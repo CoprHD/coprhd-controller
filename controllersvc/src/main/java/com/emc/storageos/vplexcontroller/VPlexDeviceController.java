@@ -1858,7 +1858,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexUtil.validateVPlexClusterExport(_dbClient, source,
                     haVarray, initiators, varrayToInitiators);
 
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId);
 
             // Do the source side export if there are src side volumes and initiators.
             String srcExportStepId = null;
@@ -2965,7 +2965,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             _log.info("Attempting to delete ExportGroup " + exportGroup.getGeneratedName()
                     + " on VPLEX " + vplexSystem.getLabel());
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", false, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", false, opId);
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex);
             if (exportMasks.isEmpty()) {
@@ -3270,7 +3270,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportAddVolumeCompleter completer = new ExportAddVolumeCompleter(exportURI, volumeMap, opId);
 
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolumes", true, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolumes", true, opId);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportURI);
             StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexURI);
             URI srcVarray = exportGroup.getVirtualArray();
@@ -3518,7 +3518,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         boolean hasSteps = false;
         try {
             validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
-            Workflow workflow = _workflowService.getNewWorkflow(this, EXPORT_GROUP_REMOVE_VOLUMES, false, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, EXPORT_GROUP_REMOVE_VOLUMES, false, opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
@@ -3842,7 +3842,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             ExportAddInitiatorCompleter completer = new ExportAddInitiatorCompleter(exportURI, initiatorURIs, opId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportAddInitiator", true, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportAddInitiator", true, opId);
             boolean isRecoverPointExport = ExportUtils.checkIfInitiatorsForRP(_dbClient,
                     exportGroup.getInitiators());
 
@@ -4527,7 +4527,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             ExportRemoveInitiatorCompleter completer = new ExportRemoveInitiatorCompleter(exportURI, initiatorURIs, opId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportRemoveInitiator", true, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportRemoveInitiator", true, opId);
             boolean hasStep = false; // true if Workflow has a Step
 
             _log.info("starting remove initiators for export group: " + exportGroup.toString());
@@ -5495,7 +5495,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get a new workflow to execute the migrations.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    MIGRATE_VOLUMES_WF_NAME, false, wfId, null);
+                    MIGRATE_VOLUMES_WF_NAME, false, wfId);
             _log.info("Created new workflow with operation id {}", wfId);
 
             // Create a step to validate the volume and prevent migration if the 
@@ -6573,7 +6573,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // the sources.
                     String subTaskId = stepId;
                     Workflow subWorkflow = _workflowService.getNewWorkflow(this,
-                            DELETE_MIGRATION_SOURCES_WF_NAME, true, subTaskId, null);
+                            DELETE_MIGRATION_SOURCES_WF_NAME, true, subTaskId);
 
                     WorkflowTaskCompleter completer = new WorkflowTaskCompleter(subWorkflow.getWorkflowURI(), subTaskId);
 
@@ -6752,7 +6752,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    IMPORT_VOLUMES_WF_NAME, false, opId, null);
+                    IMPORT_VOLUMES_WF_NAME, false, opId);
             String waitFor = null;
 
             // Add a rollback step to remove the Virtual Volume if we are
@@ -7673,7 +7673,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get a new workflow to execute the migrations.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    EXPAND_VOLUME_WF_NAME, false, opId, null);
+                    EXPAND_VOLUME_WF_NAME, false, opId);
             _log.info("Created new expansion workflow with operation id {}", opId);
 
             // Create a workflow step to create and execute the migration
@@ -7797,7 +7797,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // Get a new workflow to execute the CG deletion.
         Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_CG_WF_NAME,
-                false, opId, null);
+                false, opId);
         _log.info("Created new delete CG workflow with operation id {}", opId);
 
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, _dbClient);
@@ -7822,7 +7822,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // Get a new workflow to execute the CG update.
         Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_CG_WF_NAME,
-                false, opId, null);
+                false, opId);
         _log.info("Created new update CG workflow with operation id {}", opId);
 
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, _dbClient);
@@ -7886,7 +7886,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    COPY_VOLUMES_WF_NAME, false, opId, null);
+                    COPY_VOLUMES_WF_NAME, false, opId);
             _log.info("Created new full copy workflow with operation id {}", opId);
 
             /**
@@ -8428,7 +8428,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             completer = new CloneRestoreCompleter(fullCopyURIs, opId);
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESTORE_VOLUME_WF_NAME, false, opId, null);
+                    RESTORE_VOLUME_WF_NAME, false, opId);
             _log.info("Created restore volume workflow with operation id {}", opId);
 
             // add CG to taskCompleter
@@ -8994,7 +8994,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             completer = new CloneResyncCompleter(fullCopyURIs, opId);
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESYNC_FULL_COPY_WF_NAME, false, opId, null);
+                    RESYNC_FULL_COPY_WF_NAME, false, opId);
             _log.info("Created resync full copy workflow with operation id {}", opId);
 
             // add CG to taskCompleter
@@ -9111,7 +9111,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             completer = new VolumeDetachCloneCompleter(fullCopyURIs, opId);
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DETACH_FULL_COPY_WF_NAME, false, opId, null);
+                    DETACH_FULL_COPY_WF_NAME, false, opId);
             _log.info("Created detach full copy workflow with operation id {}", opId);
 
             // add CG to taskCompleter
@@ -9228,7 +9228,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
-                    "exportGroupChangePathParams", true, token, null);
+                    "exportGroupChangePathParams", true, token);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
@@ -9390,7 +9390,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESTORE_VOLUME_WF_NAME, false, opId, null);
+                    RESTORE_VOLUME_WF_NAME, false, opId);
             _log.info("Created restore volume workflow with operation id {}", opId);
 
             // Get some info from the snapshot we need to do the native
@@ -10341,7 +10341,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    ATTACH_MIRRORS_WF_NAME, true, taskId, null);
+                    ATTACH_MIRRORS_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the BlockDeviceController to add its methods to create backend volume for the Vplex mirror.
@@ -10369,7 +10369,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DEACTIVATE_MIRROR_WF_NAME, true, taskId, null);
+                    DEACTIVATE_MIRROR_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // Add steps for detaching and deleting mirror
@@ -10396,7 +10396,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DETACH_MIRROR_WF_NAME, true, taskId, null);
+                    DETACH_MIRROR_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // Add steps for detaching and promoting mirror to a virtual volume
@@ -11744,7 +11744,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    VOLUME_FULLCOPY_GROUP_RELATION_WF, false, opId, null);
+                    VOLUME_FULLCOPY_GROUP_RELATION_WF, false, opId);
             _log.info("Created establish volume  and full copy group relation workflow with operation id {}", opId);
             // Get the VPLEX and backend full copy volumes.
             Volume fullCopyVolume = getDataObject(Volume.class, fullCopy, _dbClient);
@@ -11794,7 +11794,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Create a new the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESYNC_SNAPSHOT_WF_NAME, false, opId, null);
+                    RESYNC_SNAPSHOT_WF_NAME, false, opId);
             _log.info("Created resync snapshot workflow with operation id {}", opId);
 
             // Get all snapshots that will be resync'd.
@@ -11996,7 +11996,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    PAUSE_MIGRATION_WF_NAME, false, opId, null);
+                    PAUSE_MIGRATION_WF_NAME, false, opId);
             _log.info("Created pause migration workflow with operation id {}", opId);
 
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -12032,7 +12032,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESUME_MIGRATION_WF_NAME, false, opId, null);
+                    RESUME_MIGRATION_WF_NAME, false, opId);
             _log.info("Created resume migration workflow with operation id {}", opId);
 
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -12068,7 +12068,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    CANCEL_MIGRATION_WF_NAME, false, opId, null);
+                    CANCEL_MIGRATION_WF_NAME, false, opId);
             _log.info("Created cancel migration workflow with operation id {}", opId);
 
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -12103,7 +12103,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DELETE_MIGRATION_WF_NAME, false, opId, null);
+                    DELETE_MIGRATION_WF_NAME, false, opId);
             _log.info("Created delete migration workflow with operation id {}", opId);
 
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -12143,7 +12143,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         BlockSnapshotSession snapSession = getDataObject(BlockSnapshotSession.class, snapSessionURI, _dbClient);
         try {
             // Generate the Workflow.
-            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAP_SESSION_WF_NAME, false, opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAP_SESSION_WF_NAME, false, opId);
             _log.info("Created restore snapshot session workflow with operation id {}", opId);
 
             // Get the VPLEX system.
@@ -12396,7 +12396,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         String waitFor = null;
         // Get a new workflow to execute the volume group update.
         Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_VOLUMEGROUP_WF_NAME,
-                false, opId, null);
+                false, opId);
         Set<URI> cgs = new HashSet<URI>();
         try {
             List<URI> allRemoveBEVolumes = new ArrayList<URI>();

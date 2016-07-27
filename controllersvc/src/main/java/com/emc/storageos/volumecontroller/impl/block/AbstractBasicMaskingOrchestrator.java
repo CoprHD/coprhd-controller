@@ -130,7 +130,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token, null);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token);
 
                 // Create two steps, one for Zoning, one for the ExportGroup actions.
                 // This step is for zoning. It is not specific to a single
@@ -182,7 +182,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         logExportGroup(exportGroup, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
-                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token, null);
+                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
         Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
@@ -539,7 +539,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
-                token, null);
+                token);
 
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<String> portNames = new ArrayList<String>();
@@ -972,7 +972,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true,
-                        token, null);
+                        token);
                 List<ExportMask> exportMasksToZoneDelete = new ArrayList<ExportMask>();
                 List<ExportMask> exportMasksToZoneRemoveVolumes = new ArrayList<ExportMask>();
                 List<ExportMask> exportMasksToDelete = new ArrayList<ExportMask>();
@@ -1262,7 +1262,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             if (exportGroup.getExportMasks() != null && !exportGroup.getInactive()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true, token, null);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true, token);
                 List<ExportMask> exportMasksToZoneDelete = new ArrayList<ExportMask>();
                 List<ExportMask> exportMasksToZoneRemoveVolumes = new ArrayList<ExportMask>();
                 Set<URI> volumesToZoneRemoveVolumes = new HashSet<URI>();
@@ -1487,7 +1487,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         try {
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
-                    "exportGroupChangePathParams", true, token, null);
+                    "exportGroupChangePathParams", true, token);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,

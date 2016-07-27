@@ -114,7 +114,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token, null);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token);
 
                 // Create two steps, one for Zoning, one for the ExportGroup actions.
                 // This step is for zoning. It is not specific to a single
@@ -168,7 +168,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token, null);
+                        token);
                 List<ExportMask> exportMasksToZoneAddVolumes = new ArrayList<ExportMask>();
                 List<URI> volumesToZoneAddVolumes = new ArrayList<URI>();
                 List<URI> exportMasksToZoneCreate = new ArrayList<URI>();

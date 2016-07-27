@@ -92,15 +92,18 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
                         storagePort.setPortNetworkId(((SymmetrixPortIscsi) item).getIdentifier());
                     }
                     storagePort.setNetworkId(null); // Keep blank since no API to get. HP3PAR driver doesn't set either.
+                    storagePort.setPortSpeed(null);
                     storagePort.setPortGroup(directorId);
                     // Keep blank since no API to get.
                     storagePort.setPortSubGroup(null); // Keep blank since no API to get.
                     storagePort.setPortHAZone(String.format("Group-%s", directorId));
                     storagePort.setAvgBandwidth(null); // Keep blank since no API to get.
                     storagePort.setUtilizationMetric(null); // Keep blank since no API to get. HP3PAR driver doesn't set either.
+                    storagePort.setOperationalStatus(StoragePort.OperationalStatus.OK);
                     storagePort.setTcpPortNumber(null); // Keep blank since no API to get.
                     storagePort.setIpAddress(null); // Keep blank since no API to get.
                     storagePort.setEndPointID(storagePort.getPortNetworkId());
+                    storagePort.setPortType(StoragePort.PortType.frontend);
                     // Keep blank since no API to get according to Evgeny's reply.
                     storagePort.setCapabilities(new ArrayList<CapabilityInstance>());
                     // Add the bean into result list.

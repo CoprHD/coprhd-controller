@@ -463,7 +463,7 @@ public class KeystoneUtils {
      *
      * @return List of OpenStack Tenants.
      */
-    public List<TenantV2> getOpenStackTenants() {
+    public List<KeystoneTenant> getOpenStackTenants() {
 
         AuthnProvider keystoneProvider = getKeystoneProvider();
 
@@ -487,7 +487,7 @@ public class KeystoneUtils {
      *
      * @return OpenStack Tenant.
      */
-    public TenantV2 getTenantWithId(String id) {
+    public KeystoneTenant getTenantWithId(String id) {
 
         AuthnProvider keystoneProvider = getKeystoneProvider();
 
@@ -499,7 +499,7 @@ public class KeystoneUtils {
         KeystoneApiClient keystoneApiClient = getKeystoneApi(keystoneProvider.getManagerDN(),
                 keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
 
-        for (TenantV2 tenant : keystoneApiClient.getKeystoneTenants().getTenants()) {
+        for (KeystoneTenant tenant : keystoneApiClient.getKeystoneTenants().getTenants()) {
             if (tenant.getId().equals(id)) {
                 return tenant;
             }
@@ -652,7 +652,7 @@ public class KeystoneUtils {
      * @param tenant OpenStack Tenant.
      * @return TenantCreateParam.
      */
-    public TenantCreateParam prepareTenantParam(TenantV2 tenant) {
+    public TenantCreateParam prepareTenantParam(KeystoneTenant tenant) {
 
         TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(),
                 prepareUserMappings(tenant.getId()));
@@ -687,12 +687,12 @@ public class KeystoneUtils {
     }
 
     /**
-     * Maps Openstack TenantV2 to OSTenant.
+     * Maps Openstack KeystoneTenant to OSTenant.
      *
      * @param tenant OpenStack Tenant to map.
      * @return OSTenant.
      */
-    public OSTenant mapToOsTenant(TenantV2 tenant) {
+    public OSTenant mapToOsTenant(KeystoneTenant tenant) {
 
         if (tenant != null) {
             OSTenant osTenant = new OSTenant();
@@ -706,7 +706,7 @@ public class KeystoneUtils {
             return osTenant;
         }
 
-        throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantV2");
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("KeystoneTenant");
     }
 
     /**

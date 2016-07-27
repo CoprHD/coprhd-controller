@@ -23,8 +23,8 @@ import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
+import com.emc.storageos.keystone.restapi.model.response.KeystoneTenant;
 import com.emc.storageos.keystone.restapi.model.response.TenantListRestResp;
-import com.emc.storageos.keystone.restapi.model.response.TenantV2;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.keystone.CoprhdOsTenant;
@@ -102,7 +102,7 @@ public class KeystoneService extends TaskResourceService {
             KeystoneApiClient keystoneApiClient = _keystoneUtils.getKeystoneApi(keystoneProvider.getManagerDN(),
                     keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
 
-            List<TenantV2> OSTenantList = new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
+            List<KeystoneTenant> OSTenantList = new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
 
             TenantListRestResp response = new TenantListRestResp();
             response.setOpenstackTenants(OSTenantList);
@@ -134,9 +134,9 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - getOpenstackTenant with id: {}", id.toString());
 
-        List<TenantV2> tenants = listOpenstackTenants().getOpenstackTenants();
+        List<KeystoneTenant> tenants = listOpenstackTenants().getOpenstackTenants();
 
-        for (TenantV2 tenant : tenants) {
+        for (KeystoneTenant tenant : tenants) {
             if (tenant.getId().equals(id.toString())) {
                 return mapToOpenstackParam(tenant);
             }
@@ -348,12 +348,12 @@ public class KeystoneService extends TaskResourceService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public Response synchronizeOpenstackTenants() {
 
-        List<TenantV2> openstackTenantsList = listOpenstackTenants().getOpenstackTenants();
+        List<KeystoneTenant> openstackTenantsList = listOpenstackTenants().getOpenstackTenants();
         List<OSTenant> coprhdOsTenantsList = getOsTenantsFromCoprhdDb();
 
-        for (Iterator<TenantV2> i = openstackTenantsList.iterator(); i.hasNext();) {
+        for (Iterator<KeystoneTenant> i = openstackTenantsList.iterator(); i.hasNext();) {
 
-            TenantV2 tenant = i.next();
+            KeystoneTenant tenant = i.next();
             for (Iterator<OSTenant> j = coprhdOsTenantsList.iterator(); j.hasNext();) {
 
                 OSTenant osTenant = j.next();
@@ -371,8 +371,8 @@ public class KeystoneService extends TaskResourceService {
         }
 
         // Create OOSTenant in CoprHD for every new Tenant in OpenStack.
-        for (TenantV2 tenantV2 : openstackTenantsList) {
-            OSTenant tenant = _keystoneUtils.mapToOsTenant(tenantV2);
+        for (KeystoneTenant keystoneTenant : openstackTenantsList) {
+            OSTenant tenant = _keystoneUtils.mapToOsTenant(keystoneTenant);
             tenant.setId(URIUtil.createId(OSTenant.class));
             _dbClient.createObject(tenant);
         }
@@ -404,7 +404,7 @@ public class KeystoneService extends TaskResourceService {
         return response;
     }
 
-    private OpenStackTenantParam mapToOpenstackParam(TenantV2 from) {
+    private OpenStackTenantParam mapToOpenstackParam(KeystoneTenant from) {
         OpenStackTenantParam to = new OpenStackTenantParam();
 
         to.setOsId(from.getId());

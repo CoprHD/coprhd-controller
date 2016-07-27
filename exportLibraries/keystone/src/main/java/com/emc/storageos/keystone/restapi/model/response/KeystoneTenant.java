@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * Keystone API Tenant class.
  */
 @XmlRootElement(name = "openstack_tenant")
-public class TenantV2 {
+public class KeystoneTenant {
 
     private String id;
     private String description;

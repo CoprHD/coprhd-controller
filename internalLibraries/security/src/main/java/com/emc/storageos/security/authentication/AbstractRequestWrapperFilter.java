@@ -47,7 +47,7 @@ import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.keystone.restapi.model.response.TenantV2;
+import com.emc.storageos.keystone.restapi.model.response.KeystoneTenant;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
@@ -230,7 +230,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
                     if (coprhdTenant == null) {
 
                         // Check whether Tenant with ID from request exists in OpenStack.
-                        TenantV2 tenant = _keystoneUtils.getTenantWithId(targetTenantId);
+                        KeystoneTenant tenant = _keystoneUtils.getTenantWithId(targetTenantId);
 
                         if (tenant == null) {
                             throw APIException.notFound.openstackTenantNotFound(targetTenantId);
@@ -275,7 +275,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         return null;
     }
 
-    private void createTenantNProject(TenantV2 tenant) {
+    private void createTenantNProject(KeystoneTenant tenant) {
 
         _internalTenantSvcClient.setServer(_keystoneUtils.getVIP());
 

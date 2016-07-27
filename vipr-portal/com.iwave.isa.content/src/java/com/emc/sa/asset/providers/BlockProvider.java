@@ -16,6 +16,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
 
 import java.net.URI;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +50,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -192,6 +194,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final String NONE_TYPE = "None";
     private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
+
+    private static final String JOURNAL_MAX_SIZE_LOW = "1.09TB";
+    private static final String JOURNAL_MAX_SIZE_HIGH = "10TB";
 
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -2121,6 +2126,38 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("rpConsistencyGroupByProject")
     public List<AssetOption> getBlockJournalSize(AssetOptionsContext ctx, URI consistencyGroup) {
 
+        String minimumSize = getJournalMinimumSize(ctx, consistencyGroup);
+
+        if (minimumSize == null) {
+            return Lists.newArrayList();
+        } else {
+            return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
+        }
+    }
+    
+    @Asset("blockJournalSizeHelp")
+    @AssetDependencies("rpConsistencyGroupByProject")
+    public List<AssetOption> getBlockJournalSizeHelp(AssetOptionsContext ctx, URI consistencyGroup) {
+        String minimumSize = getJournalMinimumSize(ctx, consistencyGroup);
+
+        if (minimumSize == null) {
+            return Lists.newArrayList();
+        } else {
+            float size = Float.parseFloat(minimumSize) * 3;
+            Long longSizeInBytes = SizeUtil.translateSizeToBytes(Float.valueOf(size).longValue(), SizeUtil.SIZE_GB);
+            if (longSizeInBytes < SizeUtil.translateSize(JOURNAL_MAX_SIZE_LOW)) {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.minDescription")));
+            } else if (longSizeInBytes > SizeUtil.translateSize(JOURNAL_MAX_SIZE_LOW) && longSizeInBytes < SizeUtil.translateSize(JOURNAL_MAX_SIZE_HIGH)) {
+                DecimalFormat df = new DecimalFormat("#.##");
+                return Lists.newArrayList(newAssetOption(minimumSize, 
+                        getMessage("block.addJournalCapacity.specificDescription", df.format(SizeUtil.translateSize(longSizeInBytes, SizeUtil.SIZE_TB)))));
+            } else {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.maxDescription")));
+            }
+        }
+    }
+
+    private String getJournalMinimumSize(AssetOptionsContext ctx, URI consistencyGroup) {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
@@ -2142,11 +2179,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
-        if (minimumSize == null) {
-            return Lists.newArrayList();
-        } else {
-            return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
-        }
+        return minimumSize;
     }
 
     @Asset("volumeWithoutConsistencyGroup")

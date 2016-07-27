@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -88,6 +89,8 @@ public class InitiatorService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "initiator";
     private static final String ALIAS = "Alias-Operations";
     private static final String EMPTY_INITIATOR_ALIAS = "/";
+    private static final int ALIAS_MAX_LIMIT = 32;
+    private static final String ALIAS_ILLEGAL_CHARACTERS = ".*[@#^:?%&+=(){}*].*";
 
     @Override
     public String getServiceType() {
@@ -379,7 +382,18 @@ public class InitiatorService extends TaskResourceService {
 
         String initiatorAlias = aliasSetParam.getInitiatorAlias();
         ArgValidator.checkFieldNotNull(initiatorAlias, "alias");
-
+        if (!initiatorAlias.contains(EMPTY_INITIATOR_ALIAS)) {
+            ArgValidator.checkFieldLengthMaximum(initiatorAlias, ALIAS_MAX_LIMIT, "alias");
+        } else {
+            ArgValidator.checkFieldLengthMaximum(initiatorAlias.split(EMPTY_INITIATOR_ALIAS)[0], ALIAS_MAX_LIMIT, "alias node name");
+            ArgValidator.checkFieldLengthMaximum(initiatorAlias.split(EMPTY_INITIATOR_ALIAS)[1], ALIAS_MAX_LIMIT, "alias port name");
+        }
+        if (initiatorAlias.matches(ALIAS_ILLEGAL_CHARACTERS)) {
+            String errMsg = String.format(
+                    "Supplied Alias: %s has invalid characters", initiatorAlias);
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
+        }
         _log.info("Setting alias- {} for initiator {} on system {}", initiatorAlias, id, systemURI);
 
         if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {

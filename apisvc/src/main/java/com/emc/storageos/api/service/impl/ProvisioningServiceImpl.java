@@ -34,8 +34,8 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
 
     private OpenStackSynchronizationTask _openStackSynchronizationTask;
 
-    public void setOpenStackSynchronizationTask(OpenStackSynchronizationTask _openStackSynchronizationTask) {
-        this._openStackSynchronizationTask = _openStackSynchronizationTask;
+    public void setOpenStackSynchronizationTask(OpenStackSynchronizationTask openStackSynchronizationTask) {
+        this._openStackSynchronizationTask = openStackSynchronizationTask;
     }
 
     @Override

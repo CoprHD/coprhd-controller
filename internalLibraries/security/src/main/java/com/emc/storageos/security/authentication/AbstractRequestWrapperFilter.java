@@ -216,8 +216,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
             String requestUrl = req.getRequestURI();
 
-            // We are looking only for PUT API call that updates quota that follows /v2/{tenant_id}/os-quota-sets/{target_tenant_id}
-            // pattern.
+            // We are looking only for PUT API call that updates quota.
             if (req.getMethod().equals(METHOD_PUT) && requestUrl.contains(OS_QUOTA_SETS) && !requestUrl.contains(DEFAULTS)) {
 
                 // Returns target OpenStack Tenant ID from quota request, otherwise null.

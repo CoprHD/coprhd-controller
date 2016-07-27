@@ -578,6 +578,8 @@ public class KeystoneUtils {
 
     /**
      * Retrieves OpenStack Tenant ID from UserMapping.
+     * UserMapping string contains 3 main subgroups: domain, attributes and groups. Openstack tenant id is located in attributes subgroup
+     * assigned to 'values' string. Method splits userMapping string and looks for 'values' and then retrieves tenant id from it.
      *
      * @param userMapping CoprHD UserMapping.
      * @return OpenStack Tenant ID.

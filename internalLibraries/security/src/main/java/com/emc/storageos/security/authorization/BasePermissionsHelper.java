@@ -4,29 +4,21 @@
  */
 package com.emc.storageos.security.authorization;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.*;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.DataObjectUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.db.exceptions.FatalDatabaseException;
-import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.auth.ACLEntry;
-import com.emc.storageos.model.tenant.UserMappingAttributeParam;
-import com.emc.storageos.model.tenant.UserMappingParam;
-import com.emc.storageos.model.usergroup.UserAttributeParam;
-import com.emc.storageos.security.SecurityDisabler;
-import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.exceptions.SecurityException;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.xml.bind.annotation.XmlElement;
+
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -37,10 +29,52 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-import javax.xml.bind.annotation.XmlElement;
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.TenantResource;
+import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualMachine;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.db.exceptions.FatalDatabaseException;
+import com.emc.storageos.model.auth.ACLEntry;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
+import com.emc.storageos.model.usergroup.UserAttributeParam;
+import com.emc.storageos.security.SecurityDisabler;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.exceptions.SecurityException;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Class provides helper methods for accessing roles and acls from db
@@ -726,8 +760,13 @@ public class BasePermissionsHelper {
                 ret = getObjectById(id, Cluster.class);
             } else if (URIUtil.isType(id, Initiator.class)) {
                 Initiator ini = getObjectById(id, Initiator.class);
-                if (ini.getHost() != null) {
+                if (NullColumnValueGetter.isNullURI(ini.getHost()) &&
+                        NullColumnValueGetter.isNullURI(ini.getVirtualMachine())) {
+                    ret = null;
+                } else if (!NullColumnValueGetter.isNullURI(ini.getHost())) {
                     ret = getObjectById(ini.getHost(), Host.class);
+                } else {
+                    ret = getObjectById(ini.getVirtualMachine(), VirtualMachine.class);
                 }
             } else if (URIUtil.isType(id, IpInterface.class)) {
                 IpInterface hostIf = getObjectById(id, IpInterface.class);
@@ -2162,7 +2201,7 @@ public class BasePermissionsHelper {
      *
      * @param acls to be used to find out the tenant of the resource.
      * @return the URI of the resource if the resource contains only
-     *          one acl entry otherwise null URI.
+     *         one acl entry otherwise null URI.
      */
     public static URI getTenant(StringSetMap acls) {
         Set<URI> usageUris = getUsageURIsFromAcls(acls);
@@ -2215,7 +2254,7 @@ public class BasePermissionsHelper {
      *
      * @param domains to get all the user mappings.
      * @return returns the map of tenantID to user mappings
-     * of the domains.
+     *         of the domains.
      */
     public Map<URI, List<UserMapping>> getAllUserMappingsForDomain(StringSet domains) {
         Map<URI, List<UserMapping>> tenantUserMappingMap = new HashMap<URI, List<UserMapping>>();

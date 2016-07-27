@@ -2659,7 +2659,7 @@ test_19() {
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
     # Verify the mask has the new volume in it
-    verify_export ${expname}1 ${HOST1} 3 2
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Resume the workflow
     runcmd workflow resume $workflow

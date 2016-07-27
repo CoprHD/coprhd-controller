@@ -1,9 +1,0 @@
-  - name: Getting ViPR creds from include file
-    include: playbook-vipr-creds.yml
-
-  - name: setting host address to inventory hostname if not set already
-    set_fact: host_address="{{inventory_hostname}}"
-    when: host_address is undefined
-
-  - name: Using proxy token for login
-    set_fact: loginToken={{ ProxyToken }}

@@ -194,11 +194,11 @@
         %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
         #{if isExecuting}
           <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'><span id="pauseText"></span></span></span> </a>
-          <br><span id="autoResumeMessage"></span>
         #{/if}
         %{ isExecuting = details.order.isPaused() }%
         #{if isExecuting}
-          <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span>  </a> 
+          <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span>  </a>
+          <br><span id="autoResumeMessage"></span> 
         #{/if}
       </dd>
       </span>

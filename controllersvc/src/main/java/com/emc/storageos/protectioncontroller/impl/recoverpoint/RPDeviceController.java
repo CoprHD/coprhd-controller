@@ -3899,8 +3899,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // as this volume and mirror its access state and link statues. If the target
                         // copy happens to be in direct access mode, it's important that the new volume
                         // be marked FAILED_OVER and READWRITE.
-                        List<Volume> existingCgTargets =
-                                RPHelper.getTargetVolumesForVarray(_dbClient, vol.getConsistencyGroup(), vol.getVirtualArray());
+                        List<Volume> existingCgTargets = RPHelper.getTargetVolumesForVarray(_dbClient, vol.getConsistencyGroup(),
+                                vol.getVirtualArray());
                         if (existingCgTargets != null && !existingCgTargets.isEmpty() && vol.getRpCopyName() != null) {
                             for (Volume targetVolume : existingCgTargets) {
                                 // If we have found a target volume that isn't the same and the RP copy matches,
@@ -3913,7 +3913,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                                     targetVolume.getId()));
                                     vol.setAccessState(targetVolume.getAccessState());
                                     vol.setLinkStatus(targetVolume.getLinkStatus());
-                    }
+                                }
                             }
                         }
                     }
@@ -4435,104 +4435,104 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (!rp.doesStandbyProdCopyExist(volumeProtectionInfo)) {
                         _log.info(String
                                 .format(
-                            "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
-                            protectionVolume.getLabel(), protectionVolume.getId().toString()));
-
-                    List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
-                    CreateCopyParams standbyLocalCopyParams = null;
-                    List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
-                    Set<URI> journalVolumes = new HashSet<URI>();
-                    if (!standbyLocalCopyVols.isEmpty()) {
-                        for (Volume standbyCopyVol : standbyLocalCopyVols) {
-
-                            // 1. delete the standby CDP copy if it exists
-                            if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
-                                RecoverPointVolumeProtectionInfo standbyCdpCopy = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
-                                        standbyCopyVol.getId(), _dbClient));
-                                rp.deleteCopy(standbyCdpCopy);
-                            }
-
-                            // set up volume info for the standby copy volume
-                            CreateVolumeParams vol = new CreateVolumeParams();
-                            vol.setWwn(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
-                            vol.setInternalSiteName(standbyCopyVol.getInternalSiteName());
-                            vol.setProduction(false);
-                            List<CreateVolumeParams> volumes = new ArrayList<CreateVolumeParams>();
-                            volumes.add(vol);
-                            CreateRSetParams rSet = new CreateRSetParams();
-                            rSet.setName(standbyCopyVol.getRSetName());
-                            rSet.setVolumes(volumes);
-                            rSets.add(rSet);
-
-                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
-                                    standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
-
-                            // compile a unique set of journal volumes
-                            for (Volume standbyJournal : standbyJournals) {
-                                journalVolumes.add(standbyJournal.getId());
-                            }
-                        }
-
-                        // prepare journal volumes info
-                        String rpCopyName = null;
-                        List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
-                        for (URI journalVolId : journalVolumes) {
-                            Volume standbyLocalJournal = _dbClient.queryObject(Volume.class, journalVolId);
-                            if (standbyLocalJournal != null) {
-                                _log.info(String.format("Found standby local journal volume %s (%s) for metropoint volume %s (%s)",
-                                        standbyLocalJournal.getLabel(), standbyLocalJournal.getId().toString(),
+                                        "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
                                         protectionVolume.getLabel(), protectionVolume.getId().toString()));
-                                rpCopyName = standbyLocalJournal.getRpCopyName();
-                                CreateVolumeParams journalVolParams = new CreateVolumeParams();
-                                journalVolParams.setWwn(RPHelper.getRPWWn(standbyLocalJournal.getId(), _dbClient));
-                                journalVolParams.setInternalSiteName(standbyLocalJournal.getInternalSiteName());
-                                journalVols.add(journalVolParams);
+
+                        List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
+                        CreateCopyParams standbyLocalCopyParams = null;
+                        List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
+                        Set<URI> journalVolumes = new HashSet<URI>();
+                        if (!standbyLocalCopyVols.isEmpty()) {
+                            for (Volume standbyCopyVol : standbyLocalCopyVols) {
+
+                                // 1. delete the standby CDP copy if it exists
+                                if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
+                                    RecoverPointVolumeProtectionInfo standbyCdpCopy = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
+                                            standbyCopyVol.getId(), _dbClient));
+                                    rp.deleteCopy(standbyCdpCopy);
+                                }
+
+                                // set up volume info for the standby copy volume
+                                CreateVolumeParams vol = new CreateVolumeParams();
+                                vol.setWwn(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
+                                vol.setInternalSiteName(standbyCopyVol.getInternalSiteName());
+                                vol.setProduction(false);
+                                List<CreateVolumeParams> volumes = new ArrayList<CreateVolumeParams>();
+                                volumes.add(vol);
+                                CreateRSetParams rSet = new CreateRSetParams();
+                                rSet.setName(standbyCopyVol.getRSetName());
+                                rSet.setVolumes(volumes);
+                                rSets.add(rSet);
+
+                                List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
+                                        standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
+
+                                // compile a unique set of journal volumes
+                                for (Volume standbyJournal : standbyJournals) {
+                                    journalVolumes.add(standbyJournal.getId());
+                                }
+                            }
+
+                            // prepare journal volumes info
+                            String rpCopyName = null;
+                            List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
+                            for (URI journalVolId : journalVolumes) {
+                                Volume standbyLocalJournal = _dbClient.queryObject(Volume.class, journalVolId);
+                                if (standbyLocalJournal != null) {
+                                    _log.info(String.format("Found standby local journal volume %s (%s) for metropoint volume %s (%s)",
+                                            standbyLocalJournal.getLabel(), standbyLocalJournal.getId().toString(),
+                                            protectionVolume.getLabel(), protectionVolume.getId().toString()));
+                                    rpCopyName = standbyLocalJournal.getRpCopyName();
+                                    CreateVolumeParams journalVolParams = new CreateVolumeParams();
+                                    journalVolParams.setWwn(RPHelper.getRPWWn(standbyLocalJournal.getId(), _dbClient));
+                                    journalVolParams.setInternalSiteName(standbyLocalJournal.getInternalSiteName());
+                                    journalVols.add(journalVolParams);
+                                }
+                            }
+
+                            // if we found any journal volumes, add them to the local copies list
+                            if (!journalVols.isEmpty()) {
+                                standbyLocalCopyParams = new CreateCopyParams();
+                                standbyLocalCopyParams.setName(rpCopyName);
+                                standbyLocalCopyParams.setJournals(journalVols);
+                            } else {
+                                _log.error("no journal volumes found for standby production copy for source volume "
+                                        + protectionVolume.getLabel());
                             }
                         }
 
-                        // if we found any journal volumes, add them to the local copies list
-                        if (!journalVols.isEmpty()) {
-                            standbyLocalCopyParams = new CreateCopyParams();
-                            standbyLocalCopyParams.setName(rpCopyName);
-                            standbyLocalCopyParams.setJournals(journalVols);
-                        } else {
-                            _log.error("no journal volumes found for standby production copy for source volume "
-                                    + protectionVolume.getLabel());
+                        String standbyProductionCopyName = RPHelper.getStandbyProductionCopyName(_dbClient, protectionVolume);
+                        // Build standby production journal
+                        if (standbyProductionCopyName != null) {
+                            List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
+                                    protectionVolume.getConsistencyGroup(), standbyProductionCopyName);
+
+                            // Get the first standby production journal
+                            Volume standbyProdJournal = existingStandbyJournals.get(0);
+
+                            if (standbyProdJournal != null) {
+                                _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)",
+                                        standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
+                                        protectionVolume.getLabel(), protectionVolume.getId().toString()));
+                                List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
+                                CreateVolumeParams journalVolParams = new CreateVolumeParams();
+                                journalVolParams.setWwn(RPHelper.getRPWWn(standbyProdJournal.getId(), _dbClient));
+                                journalVolParams.setInternalSiteName(standbyProdJournal.getInternalSiteName());
+                                journalVols.add(journalVolParams);
+
+                                CreateCopyParams standbyProdCopyParams = new CreateCopyParams();
+                                standbyProdCopyParams.setName(standbyProdJournal.getRpCopyName());
+                                standbyProdCopyParams.setJournals(journalVols);
+
+                                // 2. and 3. add back the standby production copy; add back the standby CDP copy
+                                rp.addStandbyProductionCopy(standbyProdCopyParams, standbyLocalCopyParams, rSets, copyParams);
+                            } else {
+                                _log.error(String
+                                        .format("Cannot add standby production copy because the standby production journal could not be found for copy %s.",
+                                                standbyProductionCopyName));
+                            }
                         }
                     }
-
-                    String standbyProductionCopyName = RPHelper.getStandbyProductionCopyName(_dbClient, protectionVolume);
-                    // Build standby production journal
-                    if (standbyProductionCopyName != null) {
-                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
-                                protectionVolume.getConsistencyGroup(), standbyProductionCopyName);
-
-                        // Get the first standby production journal
-                        Volume standbyProdJournal = existingStandbyJournals.get(0);
-
-                        if (standbyProdJournal != null) {
-                            _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)",
-                                    standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
-                                    protectionVolume.getLabel(), protectionVolume.getId().toString()));
-                            List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
-                            CreateVolumeParams journalVolParams = new CreateVolumeParams();
-                            journalVolParams.setWwn(RPHelper.getRPWWn(standbyProdJournal.getId(), _dbClient));
-                            journalVolParams.setInternalSiteName(standbyProdJournal.getInternalSiteName());
-                            journalVols.add(journalVolParams);
-
-                            CreateCopyParams standbyProdCopyParams = new CreateCopyParams();
-                            standbyProdCopyParams.setName(standbyProdJournal.getRpCopyName());
-                            standbyProdCopyParams.setJournals(journalVols);
-
-                            // 2. and 3. add back the standby production copy; add back the standby CDP copy
-                            rp.addStandbyProductionCopy(standbyProdCopyParams, standbyLocalCopyParams, rSets, copyParams);
-                        } else {
-                            _log.error(String
-                                    .format("Cannot add standby production copy because the standby production journal could not be found for copy %s.",
-                                            standbyProductionCopyName));
-                        }
-                    }
-                }
                 }
                 taskCompleter.ready(_dbClient, _locker);
             } else if (op.equals(FAILOVER_TEST_CANCEL)) {
@@ -4549,7 +4549,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (imageAccessMode != null) {
                     rp.updateImageAccessMode(copyParams);
 
-                    // RecoverPoint will remove all bookmarks on any copy set to direct access mode. We need to remove any
+                    // RecoverPoint will remove all bookmarks on any copy set to direct access mode. We need to remove
+                    // any
                     // BlockSnapshot objects that reference the target copy being set to direct access mode.
                     if (Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(imageAccessMode)) {
                         _log.info(String
@@ -4562,7 +4563,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
 
                     taskCompleter.ready(_dbClient, _locker);
-            } else {
+                } else {
                     taskCompleter.error(_dbClient, _locker,
                             DeviceControllerErrors.recoverpoint.imageAccessModeNotSupported(imageAccessMode));
                 }
@@ -4835,45 +4836,47 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * (non-Javadoc)
      *
      * @see
-     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.
+     * storageos.workflow
      * .Workflow, java.lang.String, java.util.List, java.lang.String)
      */
     @Override
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws InternalException {
-              
+
         _log.info("Adding steps for create replica");
         return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, true, taskId);
     }
-    
+
     @Override
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         _log.info("Adding steps for post create replica");
         return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, false, taskId);
     }
-    
+
     /**
      * adds steps for either pre-create copy or post-create copy for recoverpoint protected volumes
      *
      * @param workflow
      * @param waitFor
      * @param volumeDescriptors
-     * @param preCreate true if this is a pre-create copy steps or false for post create copy steps
+     * @param preCreate
+     *            true if this is a pre-create copy steps or false for post create copy steps
      * @param taskId
      * @return
      * @throws InternalException
      */
-    private String addStepsForPreOrPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, 
+    private String addStepsForPreOrPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
             boolean preCreate, String taskId) throws InternalException {
-        
+
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
                         VolumeDescriptor.Type.BLOCK_SNAPSHOT,
                         VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME,
                         VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
                 new VolumeDescriptor.Type[] {});
-        
+
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
             _log.warn("Skipping RP create steps for create replica because no block volume descriptors were found");
@@ -4892,7 +4895,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (snapshotSession != null && !snapshotSession.getInactive()) {
                     if (!NullColumnValueGetter.isNullNamedURI(snapshotSession.getParent())) {
                         parentIds.add(snapshotSession.getParent().getURI());
-                    } else if (!NullColumnValueGetter.isNullValue(snapshotSession.getReplicationGroupInstance())){
+                    } else if (!NullColumnValueGetter.isNullValue(snapshotSession.getReplicationGroupInstance())) {
                         List<Volume> volsInRG = ControllerUtils.getVolumesPartOfRG(snapshotSession.getStorageController(),
                                 snapshotSession.getReplicationGroupInstance(), _dbClient);
                         for (Volume vol : volsInRG) {
@@ -4927,7 +4930,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 descriptorToParentIds.put(descriptor, parentIds);
             }
         }
-        
+
         // get the descriptor and wwn of each target volume being copied
         // also get the protection system and one source volume to be used for locking
         ProtectionSystem protectionSystem = null;
@@ -4959,19 +4962,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
         }
-        
+
         if (!volumeWWNs.isEmpty()) {
-            
+
             if (preCreate) {
 
                 // A temporary date/time stamp for the bookmark name
                 String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
-            
+
                 // Step 1 - Create a RP bookmark
                 String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
                         waitFor);
-    
-                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image
+
+                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow
+                // tries to enable image
                 // access
                 List<String> locks = new ArrayList<String>();
                 String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
@@ -4979,17 +4983,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
                 }
-    
+
                 // Step 2 - Enable image access
                 return addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList),
                         bookmarkName, volumeWWNs, rpWaitFor);
-            
+
             } else {
                 return addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList),
                         volumeWWNs, waitFor);
             }
         }
-        
+
         return waitFor;
     }
 
@@ -5145,20 +5149,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             if (snapshotList != null && !snapshotList.isEmpty()) {
-            // RP Bookmark-only flow.
-            if (rpBookmarkOnly) {
-                // This will update the blocksnapshot object based on the return of the EM call
-                // The construct method will set the task completer on each snapshot
-                constructSnapshotObjectFromBookmark(response, system, snapshotList, snapshotName, token);
-            } else {
-                // Update the snapshot object with the snapshotName, this field is required during enable and disable
-                // image access later on.
-                for (URI snapshotURI : snapshotList) {
-                    BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                    snapshot.setEmName(snapshotName);
-                    _dbClient.updateObject(snapshot);
+                // RP Bookmark-only flow.
+                if (rpBookmarkOnly) {
+                    // This will update the blocksnapshot object based on the return of the EM call
+                    // The construct method will set the task completer on each snapshot
+                    constructSnapshotObjectFromBookmark(response, system, snapshotList, snapshotName, token);
+                } else {
+                    // Update the snapshot object with the snapshotName, this field is required during enable and
+                    // disable
+                    // image access later on.
+                    for (URI snapshotURI : snapshotList) {
+                        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                        snapshot.setEmName(snapshotName);
+                        _dbClient.updateObject(snapshot);
+                    }
                 }
-            }
             }
             WorkflowStepCompleter.stepSucceded(token);
         } catch (RecoverPointException e) {
@@ -5791,10 +5796,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *
      * @param workflow
      * @param rpSystem
-     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
-     * @param copyList list of replica ids
-     * @param bookmarkName name of the bookmark created for this operation
-     * @param volumeWWNs wwns of volumes that are parents to replica objects
+     * @param clazz
+     *            type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList
+     *            list of replica ids
+     * @param bookmarkName
+     *            name of the bookmark created for this operation
+     * @param volumeWWNs
+     *            wwns of volumes that are parents to replica objects
      * @param waitFor
      * @return
      * @throws InternalException
@@ -5809,7 +5818,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP,
                 rpSystem.getId(), clazz, copyList, volumeWWNs);
 
-        workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, String.format("Enable image access for bookmark %s", bookmarkName), waitFor, 
+        workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, String.format("Enable image access for bookmark %s", bookmarkName), waitFor,
                 rpSystem.getId(), rpSystem.getSystemType(),
                 this.getClass(), enableImageAccessExecuteMethod, enableImageAccessExecutionRollbackMethod, stepId);
 
@@ -5822,10 +5831,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * Enable image access before create native array replica operation
      *
      * @param protectionDevice
-     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
-     * @param copyList list of replica ids
-     * @param bookmarkName name of the bookmark created for this operation
-     * @param volumeWWNs wwns of volumes that are parents to replica objects
+     * @param clazz
+     *            type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList
+     *            list of replica ids
+     * @param bookmarkName
+     *            name of the bookmark created for this operation
+     * @param volumeWWNs
+     *            wwns of volumes that are parents to replica objects
      * @param opId
      * @return
      * @throws ControllerException
@@ -5833,7 +5846,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public boolean enableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList,
             String bookmarkName,
             Set<String> volumeWWNs, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -5888,9 +5901,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * 
      * @param workflow
      * @param rpSystem
-     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
-     * @param copyList list of replica ids
-     * @param volumeWWNs wwns of volumes that are parents to replica objects
+     * @param clazz
+     *            type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList
+     *            list of replica ids
+     * @param volumeWWNs
+     *            wwns of volumes that are parents to replica objects
      * @param waitFor
      * @return
      * @throws InternalException
@@ -5915,9 +5931,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * Disable image access for after create native array replica operation
      *
      * @param protectionDevice
-     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
-     * @param copyList list of replica ids
-     * @param volumeWWNs wwns of volumes that are parents to replica objects
+     * @param clazz
+     *            type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList
+     *            list of replica ids
+     * @param volumeWWNs
+     *            wwns of volumes that are parents to replica objects
      * @param opId
      * @throws ControllerException
      */
@@ -6071,7 +6090,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * It is possible that RP snapshots are exported to more than one host and hence part of more than one ExportGroup. If the same snapshot
+     * It is possible that RP snapshots are exported to more than one host and hence part of more than one ExportGroup.
+     * If the same snapshot
      * is part of more than one active ExportGroup, do not disable Image Access on the RP CG.
      *
      * @param snapshot
@@ -7021,11 +7041,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         break;
                     } else if (ControllerUtils.checkIfVolumeHasSnapshotSession(existingVol.getId(), _dbClient)) {
                         existingSnapOrClone = true;
-                        break;                        
+                        break;
                     } else if (ControllerUtils.checkIfVolumeHasSnapshot(existingVol, _dbClient)) {
                         existingSnapOrClone = true;
-                        break;                        
-            }
+                        break;
+                    }
                 }
             }
 
@@ -7040,12 +7060,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (existingSnapOrClone) {
                 // A temporary date/time stamp for the bookmark name
                 String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
-            
+
                 // Step 1 - Create a RP bookmark
                 String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
                         waitFor);
-    
-                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image
+
+                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow
+                // tries to enable image
                 // access
                 List<String> locks = new ArrayList<String>();
                 String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
@@ -7053,12 +7074,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
                 }
-    
+
                 // Step 2 - Enable image access
                 waitFor = addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), bookmarkName,
                         volumeWWNs, rpWaitFor);
             }
-            
+
             // add steps for add source and remove vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, allRemoveVolumes, waitFor, taskId);
 
@@ -7341,7 +7362,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * (non-Javadoc)
      *
      * @see
-     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.
+     * storageos.workflow.Workflow
      * , java.lang.String, java.util.List, java.lang.String)
      */
     @Override
@@ -7349,5 +7371,5 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             throws InternalException {
         // full copy steps are added with addStepsForPreCreateReplica and addStepsForPostCreateReplica
         return waitFor;
-}
+    }
 }

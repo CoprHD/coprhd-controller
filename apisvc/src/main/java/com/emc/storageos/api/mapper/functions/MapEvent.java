@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.model.event.EventRestRep;
 import com.google.common.base.Function;
 
-public class MapEvent implements Function<ActionableEvent, EventRestRep> {
+public final class MapEvent implements Function<ActionableEvent, EventRestRep> {
     public static final MapEvent instance = new MapEvent();
 
     public static MapEvent getInstance() {

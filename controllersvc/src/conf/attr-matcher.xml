@@ -21,6 +21,7 @@
 		 <ref bean="deviceTypeMatcher"/>
 		 <ref bean="protocolsMatcher" />
 		 <ref bean="fastPolicyMatcher" />
+		 <ref bean="compressionMatcher" />
 		 <ref bean="raidLevelMatcher" />
          <ref bean="driveTypeMatcher"/>
 		 <ref bean="multiVolumeConsistencyMatcher" />
@@ -83,6 +84,7 @@
 	<bean id="provisionTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProvisioningTypeMatcher" />
 	<bean id="raidLevelMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RaidLevelMatcher" />
 	<bean id="fastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.AutoTieringPolicyMatcher" />
+	<bean id="compressionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompressionMatcher" />
 	<bean id="thinVolumePreAllocateMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ThinVolumePreAllocationMatcher" />
 	<bean id="vnxBlockFastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VNXBlockAutoTieringPolicyMatcher" />
 	<bean id="capacityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher"/>

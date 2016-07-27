@@ -839,12 +839,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doExportAddVolumes(final StorageSystem storage, final ExportMask exportMask,
             List<Initiator> initiators, final Map<URI, Integer> volumes, final TaskCompleter taskCompleter)
                     throws DeviceControllerException {
-        _log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
+        _log.info("{} doExportAddVolumes START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                 storage.getSystemType(), volumes, _dbClient);
         _exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray,
                 initiators, taskCompleter);
-        _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
+        _log.info("{} doExportAddVolumes END ...", storage.getSerialNumber());
     }
 
     @Override

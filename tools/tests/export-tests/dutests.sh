@@ -2133,7 +2133,7 @@ test_13() {
     # Verify the mask still has the new volume in it (this will fail if rollback removed it)
     verify_export ${expname}1 ${HOST1} 3 2
 
-    # Add another initiator to the mask (done differently per array type)
+    # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed

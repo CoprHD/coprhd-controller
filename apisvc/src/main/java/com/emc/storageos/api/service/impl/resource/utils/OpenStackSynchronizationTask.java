@@ -188,9 +188,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                 TenantOrg coprhdTenant = coprhdIter.next();
                 String tenantMapping = _keystoneUtilsService.getCoprhdTenantUserMapping(coprhdTenant);
-                if (tenantMapping == null) {
-                    throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
-                }
                 String tenantId = _keystoneUtilsService.getTenantIdFromUserMapping(tenantMapping);
                 if (tenantId.equals(osTenant.getId())) {
                     if (!areTenantsIdentical(osTenant, coprhdTenant)) {

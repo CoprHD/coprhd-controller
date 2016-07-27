@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get RackHd Interfaces",
- "injectableName": "assetType.rackhd.interface",
+ "injectableName": "assetType.oe.interface",
  "tasks": [
   {
    "label": "Get RackHd Interfaces",

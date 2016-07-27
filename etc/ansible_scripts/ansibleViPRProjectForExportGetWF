@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Projects For Export",
- "injectableName": "assetType.rackhd.ProjectForExport",
+ "injectableName": "assetType.oe.ProjectForExport",
  "tasks": [
   {
    "label": "Get ViPR Virtual Projects",

@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Hosts",
- "injectableName": "assetType.rackhd.host",
+ "injectableName": "assetType.oe.host",
  "tasks": [
   {
    "label": "Get ViPR Hosts",

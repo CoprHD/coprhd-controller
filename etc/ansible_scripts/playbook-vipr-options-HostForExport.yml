@@ -1,7 +1,7 @@
 ---
 - hosts: localhost 
+  gather_facts: False
   tasks:
-
 
   - name: Getting AssetOptions for Host For Export
     fail: msg="Getting hosts for export depends on BlockStorageTypeForExport which is undefined"

@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Varrays",
- "injectableName": "assetType.rackhd.varray",
+ "injectableName": "assetType.oe.varray",
  "tasks": [
   {
    "label": "Get ViPR Virtual Arrays",

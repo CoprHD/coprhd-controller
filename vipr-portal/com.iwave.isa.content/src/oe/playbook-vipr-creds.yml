@@ -1,3 +1,0 @@
-    # user defined facts
-  - name: Setting ViPR constants
-    set_fact: api_port="4443"

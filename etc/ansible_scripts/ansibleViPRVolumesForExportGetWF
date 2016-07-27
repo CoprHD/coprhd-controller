@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Volumes For Export",
- "injectableName": "assetType.rackhd.VolumesForExport",
+ "injectableName": "assetType.oe.VolumesForExport",
  "tasks": [
   {
    "label": "Get ViPR Volumes For Export",

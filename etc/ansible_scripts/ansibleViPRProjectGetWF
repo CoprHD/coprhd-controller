@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Projects",
- "injectableName": "assetType.rackhd.project",
+ "injectableName": "assetType.oe.project",
  "tasks": [
   {
    "label": "Get ViPR Virtual Projects",

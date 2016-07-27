@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Host For Export",
- "injectableName": "assetType.rackhd.HostForExport",
+ "injectableName": "assetType.oe.HostForExport",
  "tasks": [
   {
    "label": "Get ViPR Host For Export",

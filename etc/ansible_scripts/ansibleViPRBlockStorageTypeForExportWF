@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR BlockStorageTypeForExport",
- "injectableName": "assetType.rackhd.BlockStorageTypeForExport",
+ "injectableName": "assetType.oe.BlockStorageTypeForExport",
  "tasks": [
   {
    "label": "Get ViPR Hosts",

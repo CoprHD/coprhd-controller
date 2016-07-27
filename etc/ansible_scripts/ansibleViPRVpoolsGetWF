@@ -1,6 +1,6 @@
 {
  "friendlyName": "Get ViPR Virtual Pools",
- "injectableName": "assetType.rackhd.vpool",
+ "injectableName": "assetType.oe.vpool",
  "tasks": [
   {
    "label": "Get ViPR Virtual Pools",

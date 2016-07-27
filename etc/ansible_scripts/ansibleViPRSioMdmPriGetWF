@@ -1,6 +1,6 @@
 {
   "friendlyName": "Get ScaleIO Primary MDMs",
-  "injectableName": "assetType.rackhd.sio_mdm_pri", 
+  "injectableName": "assetType.oe.sio_mdm_pri", 
   "tasks": [
    {
     "label": "Locate ScaleIO MDM Primaries",

@@ -1,8 +1,0 @@
-- name: Uninstall ScaleIO MDM
-  hosts: rackhd
-  become: yes
-  tasks:
-  - name: install package
-    yum: name="{{ item }}" state="absent"
-    with_items: 
-     - EMC-ScaleIO-mdm 

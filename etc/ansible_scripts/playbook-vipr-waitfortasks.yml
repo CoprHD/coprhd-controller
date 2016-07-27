@@ -1,5 +1,3 @@
-  - name: Getting ViPR info from include file
-    include: playbook-vipr-creds.yml
 
   - fail: msg="Failure waiting for tasks.  No REST results available to get Tasks from."
     when: restResult is undefined
@@ -7,20 +5,19 @@
   - fail: msg="Failure waiting for tasks.  No JSON in results to get Tasks from.  (Does request path end in .json?)  restResult:{{restResult}}"  #"
     when: restResult.json is undefined
 
-
-
   - name: Extract ViPR Task IDs from restResults
     set_fact: id_item="{{ item.id }}"  #" 
     with_items: "{{ restResult.json.task|default([]) }}" 
     register: ids_result
+    when: restResult.json.task is defined
 
   - name: Make a list of ViPR IDs
     set_fact: ids="{{ ids_result.results |  selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.id_item') | list }}"  #"
+    when: ids_result.results is defined
 
   - name: Or if single task, get ID from single task
     set_fact: ids=["{{ restResult.json.id }}"]  #"
     when: restResult.json.task is undefined
-
 
 
   - name: Make REST Requests for status of ViPR Tasks until done
@@ -38,8 +35,6 @@
     until: restResult.json.state != 'pending'
     retries: 60
     delay: 10
-
-
 
   - name: Logging REST results if failed
     debug: var=restResult

@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   connection: local #commands run on this server (not remotely)
+  gather_facts: False
   tasks:
 
   - name: Call script to login to ViPR
@@ -38,12 +39,16 @@
   - set_fact: exportName="{{restResult.json.name}}"
 
   - name: Assemble volume list with HLUs
-    set_fact: vol_hlu_list={'id':'{{item}}','lun':'{{HluForExport}}'}
+    set_fact: {
+       vol_hlu_list: {
+          "id": "{{item}}","lun": "{{HluForExport}}"
+          }
+       }
     with_items: "{{VolumesForExport}}"
     register: vol_hlu_list_result
 
   - name: Make a list of Volume IDs with HLUs
-    set_fact: vol_hlus={{ vol_hlu_list_result.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vol_hlu_list') | list }}
+    set_fact: vol_hlus="{{vol_hlu_list_result.results|selectattr('ansible_facts','defined')|map(attribute='ansible_facts.vol_hlu_list')|list}}"
 
   - name: Set path to create export
     set_fact: path="/block/exports.json"
@@ -53,58 +58,12 @@
 
   - include: playbook-rest-request.yml
 
+  - name: Log contents to publish to Ansible result file
+    debug: msg='Writing ansible result to {{ ansibleResultFile }} with contents {{ restResult.content }}' #'
 
-#sample:
-#{
-#  "hosts": [
-#    "urn:storageos:Host:6e149df4-d92b-4bcd-ab91-ce4cf644dad6:vdc1"
-#  ],
-#  "project": "urn:storageos:Project:31f1549b-d8e8-4c53-b8a2-52879eb332d9:global",
-#  "type": "Host",
-#  "name": "MyExport",
-#  "varray": "urn:storageos:VirtualArray:bdfc8f46-ff59-4ac2-a717-cc7827b944e8:vdc1",
-#  "volumes": [
-#    {
-#      "id": "urn:storageos:Volume:4f5a64e5-706e-4f11-a3cb-26bfd88ea83e:vdc1",
-#      "lun": "-1"
-#    }
-#  ]
-#}
-
-
-#{
-#  "clusters": [
-#    ""
-#  ],
-#  "hosts": [
-#    ""
-#  ],
-#  "initiators": [
-#    ""
-#  ],
-#  "name": "",
-#  "project": "",
-#  "type": "",
-#  "varray": "",
-#  "volumes": [
-#    {
-#      "id": "",
-#      "lun": ""
-#    }
-#  ],
-#  "path_parameters": {
-#    "max_paths": "",
-#    "paths_per_initiator": "",
-#    "min_paths": "",
-#    "storage_ports": [
-#      ""
-#    ]
-#  }
-#}
-
-
-#  include rest_request.yml
-
+  - name: Publish REST results out to Ansible file if available
+    lineinfile: dest='{{ ansibleResultFile }}' line=' {{ restResult.content }}' create='yes'
+    when: restResult.content is defined
 
   - name: Call script to wait for ViPR tasks
     include: playbook-vipr-waitfortasks.yml

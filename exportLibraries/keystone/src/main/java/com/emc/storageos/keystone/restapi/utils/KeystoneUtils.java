@@ -549,7 +549,7 @@ public class KeystoneUtils {
     }
 
     /**
-     * Retrieves UserMapping from CoprHD Tenant.
+     * Retrieves UserMapping having "tenant_id" as attribute in CoprHD Tenant.
      *
      * @param tenant CoprHD Tenant.
      * @return User Mapping for given Tenant.

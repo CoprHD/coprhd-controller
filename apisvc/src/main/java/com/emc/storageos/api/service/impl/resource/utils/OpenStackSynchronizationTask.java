@@ -144,6 +144,13 @@ public class OpenStackSynchronizationTask extends ResourceService {
         throw APIException.internalServerErrors.targetIsNullOrEmpty("keystone provider or tenantsSynchronizationOptions");
     }
 
+    /**
+     * Retrieves interval value from Tenants Synchronization Options in Keystone Authentication Provider.
+     *
+     * @param tenantsSynchronizationOptions Tenants Synchronization Options.
+     *
+     * @return interval.
+     */
     public String getIntervalFromTenantSyncSet(StringSet tenantsSynchronizationOptions) {
 
         for (String option : tenantsSynchronizationOptions) {
@@ -334,7 +341,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
                 List<TenantOrg> tenantsToUpdate = getListOfTenantsToUpdate(osTenantList, coprhdTenantList);
 
                 int size = (tenantsToUpdate == null) ? 0 : tenantsToUpdate.size();
-                _log.debug("Amount of tenants to update: {}, to create: {}, to delete: {}", size, osTenantList.size(),
+                _log.debug("Tenants to update: {}, to create: {}, to delete: {}", size, osTenantList.size(),
                         coprhdTenantList.size());
 
                 AuthnProvider keystoneProvider = getKeystoneProvider();

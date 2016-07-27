@@ -147,7 +147,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         ScheduledEvent newObject = null;
         try {
-            newObject = createScheduledEvent(tenantId, createParam, catalogService);
+            newObject = createScheduledEvent(user, tenantId, createParam, catalogService);
         } catch (APIException ex){
             log.error(ex.getMessage(), ex);
             throw ex;
@@ -288,7 +288,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @return                   ScheduledEvent
      * @throws Exception
      */
-    private ScheduledEvent createScheduledEvent(URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
+    private ScheduledEvent createScheduledEvent(StorageOSUser user, URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         if (catalogService.getExecutionWindowRequired()) {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
             String msg = match(param.getScheduleInfo(), executionWindow);
@@ -322,11 +322,11 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         newObject.setLatestOrderId(restRep.getId());
-        newObject.setOrderCommonParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
+        newObject.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
+        newObject.setStorageOSUser(new String(org.apache.commons.codec.binary.Base64.encodeBase64(user.serialize()), UTF_8));
 
         client.save(newObject);
 
-        //auditOpSuccess(OperationTypeEnum.CREATE_SCHEDULED_EVENT, order.auditParameters());
         return newObject;
     }
 

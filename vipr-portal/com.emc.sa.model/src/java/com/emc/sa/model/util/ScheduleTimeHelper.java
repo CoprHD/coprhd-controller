@@ -94,7 +94,7 @@ public class ScheduleTimeHelper {
      * @param scheduleInfo      schedule schema
      * @return
      */
-    private static Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
+    public static Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
                 scheduledTime.add(Calendar.MONTH, scheduleInfo.getCycleFrequency());

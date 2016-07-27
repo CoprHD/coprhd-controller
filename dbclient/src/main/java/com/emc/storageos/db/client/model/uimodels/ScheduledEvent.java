@@ -23,7 +23,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public static final String LATEST_ORDER_ID = "latestOrderId";
     public static final String EXECUTION_WINDOW_ID = "executionWindowId";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
-    public static final String ORDER_COMMON_PARAM = "orderCommonParam";
+    public static final String ORDER_CREATION_PARAM = "orderCreationParam";
 
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
 
@@ -33,9 +33,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private ScheduledEventStatus eventStatus; // even status
 
-    // TODO: for scheduler framework later
-    // private OrderCommonParam orderCommonParam; // the common order info
-
     private URI latestOrderId;               // the latest to-be scheduled associated orderId
 
     private NamedURI executionWindowId;     // the execution window Id the event should obey.
@@ -44,8 +41,11 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private String tenant;                   // the owner tenant
 
-    private String orderCommonParam;        // common order related params
+    private String orderCreationParam;        // common order related params
 
+    private String storageOSUser;           // user info
+
+    @AlternateId("AltIdIndex")
     @Name(EVENT_TYPE)
     public ScheduledEventType getEventType() {
         return eventType;
@@ -116,13 +116,24 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
         setChanged(TENANT);
     }
 
-    @Name(ORDER_COMMON_PARAM)
-    public String getOrderCommonParam() {
-        return orderCommonParam;
+    @Name(ORDER_CREATION_PARAM)
+    public String getOrderCreationParam() {
+        return orderCreationParam;
     }
 
-    public void setOrderCommonParam(String orderCommonParam) {
-        this.orderCommonParam = orderCommonParam;
-        setChanged(ORDER_COMMON_PARAM);
+    public void setOrderCreationParam(String orderCreationParam) {
+        this.orderCreationParam = orderCreationParam;
+        setChanged(ORDER_CREATION_PARAM);
     }
+
+    @Name("storageOSUser")
+    public String getStorageOSUser() {
+        return storageOSUser;
+    }
+
+    public void setStorageOSUser(String storageOSUser) {
+        this.storageOSUser = storageOSUser;
+        setChanged("storageOSUser");
+    }
+
 }

@@ -5,9 +5,7 @@
 package com.emc.sa.engine.scheduler;
 
 import com.emc.sa.model.util.ScheduledTimeComparator;
-import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ExecutionWindowHelper;
 import com.emc.sa.model.util.LastUpdatedComparator;
@@ -93,7 +91,7 @@ public class SchedulerDataManager {
         while (windows.isEmpty()) {
             lock.lock();
             try {
-                if (activeWindows.isEmpty() || enableInfiniteExecutionWindow == false) {
+                if (activeWindows.isEmpty() && (enableInfiniteExecutionWindow == false) ) {
                     hasActiveWindows.await();
                 }
                 windows.putAll(activeWindows);
@@ -229,9 +227,21 @@ public class SchedulerDataManager {
                 activeTenants = getTenants(windows.values());
             }
 
+            Calendar currTZTime = Calendar.getInstance();
+            Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            LOG.info("currTime: {}", currTime.toString());
+            currTime.setTimeInMillis(currTZTime.getTimeInMillis());
+            LOG.info("currTime: {}", currTime.toString());
+
             for (Order order : orders) {
+                LOG.info("The order should be scheduled at {}", order.getScheduledTime());
+                if (currTime.before(order.getScheduledTime())) {
+                    LOG.info("It is not time to invoke the earliest order yet.");
+                    break;
+                }
+
                 if (order.getExecutionWindowId().getURI().equals(ExecutionWindow.INFINITE)) {
-                    // order is not subject to normal execution window but the special INFINITE window.
+                    // order is not subjected to normal execution window but the special INFINITE window.
 
                     // check if the order is expired
                     if (isExpiredOrder(order, null))
@@ -244,7 +254,7 @@ public class SchedulerDataManager {
                         }
                     }
                 } else {
-                    // order is subject to normal execution window
+                    // order is subjected to normal execution window
                     if (windows.size() == 0) {
                         continue;
                     }
@@ -368,6 +378,8 @@ public class SchedulerDataManager {
     }
 
     private boolean isExpiredOrder(Order order, ExecutionWindow window) {
+
+
         ExecutionWindowHelper windowHelper = new ExecutionWindowHelper(window);
         if (windowHelper.isExpired(order.getScheduledTime())) {
             order.setOrderStatus(OrderStatus.ERROR.name());
@@ -378,4 +390,16 @@ public class SchedulerDataManager {
         }
         return false;
     }
+
+    /**
+     * Gets all REOCCURRENCE scheduled events from the database, ordered.
+     *
+     * @return the list of all scheduled events
+     */
+    public List<ScheduledEvent> getAllReoccurrenceEvents() {
+        List<ScheduledEvent> scheduledEvents = models.scheduledEvents().findByScheduledEventType(ScheduledEventType.REOCCURRENCE);
+        return scheduledEvents;
+    }
+
+
 }

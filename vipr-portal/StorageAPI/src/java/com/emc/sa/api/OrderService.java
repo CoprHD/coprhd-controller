@@ -14,14 +14,12 @@ import static com.emc.storageos.db.client.URIUtil.asString;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -34,7 +32,16 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.sa.engine.scheduler.SchedulerDataManager;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.db.client.model.uimodels.*;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.vipr.model.catalog.*;
+import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.OrderFilter;
@@ -48,14 +55,6 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
-import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderAndParams;
-import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -78,14 +77,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.vipr.client.catalog.impl.SearchConstants;
-import com.emc.vipr.model.catalog.ExecutionLogList;
-import com.emc.vipr.model.catalog.ExecutionStateRestRep;
-import com.emc.vipr.model.catalog.OrderBulkRep;
-import com.emc.vipr.model.catalog.OrderCreateParam;
-import com.emc.vipr.model.catalog.OrderList;
-import com.emc.vipr.model.catalog.OrderLogList;
-import com.emc.vipr.model.catalog.OrderRestRep;
-import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 @DefaultPermissions(
@@ -93,10 +84,14 @@ import com.google.common.collect.Lists;
         writeRoles = {})
 @Path("/catalog/orders")
 public class OrderService extends CatalogTaggedResourceService {
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
+
+    private static Charset UTF_8 = Charset.forName("UTF-8");
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 1; // TODO: change to 30m
 
     @Autowired
     private RecordableEventManager eventManager;
@@ -112,6 +107,14 @@ public class OrderService extends CatalogTaggedResourceService {
 
     @Autowired
     private EncryptionProvider encryptionProvider;
+
+    @Autowired
+    private SchedulerDataManager dataManager;
+
+    @Autowired
+    private ModelClient client;
+
+    private ScheduledExecutorService _executorService = new NamedScheduledThreadPoolExecutor("OrderScheduler", 1);
 
     @Override
     protected Order queryResource(URI id) {
@@ -142,6 +145,26 @@ public class OrderService extends CatalogTaggedResourceService {
             PermissionsHelper permissionsHelper)
     {
         return new OrderResRepFilter(user, permissionsHelper);
+    }
+
+    /**
+     * init method, this will be called by Spring framework after create bean successfully
+     */
+    public void init() {
+        // scan scheduled event CF to schedule REOCCURRENCE orders at regular inteval
+        _executorService.scheduleWithFixedDelay(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            scheduleReoccurenceOrders();
+                        } catch (Exception e) {
+                            log.debug("Exception is throwed when scheduling orders", e);
+                        }
+                    }
+                },
+                0, SCHEDULED_EVENTS_SCAN_INTERVAL, TimeUnit.MINUTES);
+
     }
 
     /**
@@ -286,6 +309,15 @@ public class OrderService extends CatalogTaggedResourceService {
             tenantId = uri(user.getTenantId());
         }
 
+        Order order = createNewOrder(user, tenantId, createParam);
+        order = orderManager.getOrderById(order.getId());
+        List<OrderParameter> orderParameters = orderManager.getOrderParameters(order.getId());
+
+        return map(order, orderParameters);
+
+    }
+
+    public Order createNewOrder(StorageOSUser user, URI tenantId, OrderCreateParam createParam) {
         ArgValidator.checkFieldNotNull(createParam.getCatalogService(), "catalogService");
         CatalogService service = catalogServiceManager.getCatalogServiceById(createParam.getCatalogService());
         if (service == null) {
@@ -313,11 +345,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
         orderManager.processOrder(order);
 
-        order = orderManager.getOrderById(order.getId());
-        List<OrderParameter> orderParameters = orderManager.getOrderParameters(order.getId());
-
-        return map(order, orderParameters);
-
+        return order;
     }
 
     private void addLockedFields(URI catalogServiceId, ServiceDescriptor serviceDescriptor, OrderCreateParam createParam) {
@@ -656,5 +684,38 @@ public class OrderService extends CatalogTaggedResourceService {
             ret = isTenantAccessible(uri(obj.getTenant()));
             return ret;
         }
+    }
+
+    private void scheduleReoccurenceOrders() throws Exception {
+        //todo concurrent control
+        List<ScheduledEvent> scheduledEvents = dataManager.getAllReoccurrenceEvents();
+        for (ScheduledEvent event: scheduledEvents) {
+            if (event.getEventStatus() != ScheduledEventStatus.APPROVED) {
+                log.info("Skipping event {} which is not in APPROVED status.", event.getId());
+                continue;
+            }
+
+            URI orderId = event.getLatestOrderId();
+            Order order = getOrderById(orderId, false);
+            if ( order.getOrderStatus()!=OrderStatus.SUCCESS.name() &&
+                 order.getOrderStatus()!=OrderStatus.PARTIAL_SUCCESS.name() &&
+                 order.getOrderStatus()!=OrderStatus.ERROR.name() ) {
+                log.info("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
+                continue;
+            }
+
+            StorageOSUser user = StorageOSUser.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getStorageOSUser().getBytes(UTF_8)));
+
+            OrderCreateParam createParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
+            Calendar nextScheduledTime = ScheduleTimeHelper.getNextScheduledTime(order.getScheduledTime(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getScheduleInfo().getBytes(UTF_8))));
+            createParam.setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(nextScheduledTime));
+
+            order = createNewOrder(user, uri(order.getTenant()), createParam);
+
+            event.setLatestOrderId(order.getId());
+            client.save(event);
+        }
+
     }
 }

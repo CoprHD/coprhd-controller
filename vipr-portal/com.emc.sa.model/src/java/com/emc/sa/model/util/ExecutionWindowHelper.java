@@ -205,10 +205,13 @@ public class ExecutionWindowHelper {
 
     public boolean inHourMinWindow(int hour, int min) {
         int targetTime = getHourMin(hour, min);
+        log.info("target HourMin:{}", targetTime);
 
         int startTime, endTime;
         startTime = getWindowStartHourMin();
+        log.info("window start HourMin:{}", startTime);
         endTime = getWindowEndHourMin();
+        log.info("window start HourMin:{}", endTime);
 
         if (targetTime >= startTime && targetTime <= endTime) {
             return true;

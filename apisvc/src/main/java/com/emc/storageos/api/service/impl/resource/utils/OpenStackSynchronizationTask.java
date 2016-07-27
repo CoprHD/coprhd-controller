@@ -346,10 +346,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                 AuthnProvider keystoneProvider = getKeystoneProvider();
 
-                if (keystoneProvider == null) {
-                    throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone Authentication Provider");
-                }
-
                 // Update every Tenant on tenantsToUpdate list.
                 if (tenantsToUpdate != null && !tenantsToUpdate.isEmpty()) {
                     for (TenantOrg tenant : tenantsToUpdate) {

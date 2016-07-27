@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -176,25 +177,23 @@ public class InitiatorService extends TaskResourceService {
     @PUT
     @Path("/{id}/associate/{associatedId}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public InitiatorRestRep associateInitiator(@PathParam("id") URI id, @PathParam("associatedId") URI associatedId
-            ) throws InternalException {
+    public InitiatorRestRep associateInitiator(@PathParam("id") URI id,
+            @PathParam("associatedId") URI associatedId) throws InternalException {
 
         if (id.compareTo(associatedId) == 0) {
             APIException.badRequests.associateInitiatorMismatch(id, associatedId);
         }
         Initiator initiator = queryObject(Initiator.class, id, true);
+        verifyUserPermisions(initiator);
         Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
-        if (pairInitiator != null && initiator != null)
-        {
-
+        verifyUserPermisions(pairInitiator);
+        if (pairInitiator != null && initiator != null) {
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);
             _dbClient.updateObject(initiator);
             _dbClient.updateObject(pairInitiator);
             auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
                     initiator.auditParameters());
-
         }
         return map(queryObject(Initiator.class, id, false));
     }
@@ -531,13 +530,21 @@ public class InitiatorService extends TaskResourceService {
      */
     private void verifyUserPermisions(Initiator initiator) {
         // check the user has permissions
-        if (initiator.getHost() == null) {
+        if (NullColumnValueGetter.isNullURI(initiator.getHost()) &&
+                NullColumnValueGetter.isNullURI(initiator.getVirtualMachine())) {
             // this is a system-created initiator - should only be viewed by system admin or monitor
             verifySystemAdminOrMonitorUser();
         } else {
             // otherwise, check the user permissions for the tenant org
-            Host host = queryObject(Host.class, initiator.getHost(), false);
-            verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+            URI tenantURI = null;
+            if (!NullColumnValueGetter.isNullURI(initiator.getHost())) {
+                Host host = queryObject(Host.class, initiator.getHost(), false);
+                tenantURI = host.getTenant();
+            } else {
+                VirtualMachine vm = queryObject(VirtualMachine.class, initiator.getVirtualMachine(), false);
+                tenantURI = vm.getTenant();
+            }
+            verifyAuthorizedInTenantOrg(tenantURI, getUserFromContext());
         }
     }
 

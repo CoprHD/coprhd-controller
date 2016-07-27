@@ -42,7 +42,7 @@ import controllers.security.Security;
 public class Models extends Controller {
 
     public static String TENANT_ID = "currentTenant";
-    public static String SOURCE = "currentSource";
+    private static String SOURCE = "currentSource";
 
     private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
 

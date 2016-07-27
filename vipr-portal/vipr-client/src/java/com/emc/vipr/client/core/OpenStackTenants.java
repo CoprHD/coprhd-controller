@@ -39,7 +39,7 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
     public OpenStackTenants(ViPRCoreClient parent, RestClient client) {
         super(parent, client, OpenStackTenantParam.class, PathConstants.KEYSTONE_URL + "/tenants");
     }
-    public final String OS_TENANTS_URL = PathConstants.KEYSTONE_URL + "/ostenants";
+    private final String OS_TENANTS_URL = PathConstants.KEYSTONE_URL + "/ostenants";
 
     @Override
     public OpenStackTenants withInactive(boolean inactive) {

@@ -3097,7 +3097,7 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER);
         op.setDescription("Filesystem Failover");
 
-        boolean replicateConfiguration = param.getCopies().get(0).getReplicationSettingParam().isReplicateConfiguration();
+        boolean replicateConfiguration = param.isReplicateConfiguration();
         if (replicateConfiguration) {
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(fs.getMirrorfsTargets());
@@ -3187,7 +3187,7 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK);
         op.setDescription("Filesystem Failback");
 
-        boolean replicateConfiguration = param.getCopies().get(0).getReplicationSettingParam().isReplicateConfiguration();
+        boolean replicateConfiguration = param.isReplicateConfiguration();
 
         if (replicateConfiguration) {
             List<String> targetfileUris = new ArrayList<String>();

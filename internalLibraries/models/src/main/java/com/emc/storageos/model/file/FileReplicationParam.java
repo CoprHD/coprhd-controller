@@ -16,6 +16,7 @@ public class FileReplicationParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private List<FileCopy> copies;
+    private boolean replicateConfiguration = true;
 
     public FileReplicationParam() {
     }
@@ -39,6 +40,21 @@ public class FileReplicationParam implements Serializable {
 
     public void setCopies(List<FileCopy> copies) {
         this.copies = copies;
+    }
+
+    /**
+     * Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback.
+     * Default value is TRUE.
+     * 
+     * @return
+     */
+    @XmlElement(name = "replicate_configuration")
+    public boolean isReplicateConfiguration() {
+        return this.replicateConfiguration;
+    }
+
+    public void setReplicateConfiguration(boolean replicateConfiguration) {
+        this.replicateConfiguration = replicateConfiguration;
     }
 
 }

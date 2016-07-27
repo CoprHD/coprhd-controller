@@ -86,6 +86,13 @@
     	var orderId = '${orderId}';
     	 $("#pauseLink").prop('disabled', true);
     	 $("#pauseText").text('  &{"service.order.pause"}');
+    	 var d = new Date();
+         d.setHours(d.getHours() + 1);
+         var h = addZero(d.getHours());
+         var m = addZero(d.getMinutes());
+         var s = addZero(d.getSeconds());
+         var resumeHours = h + ":" + m + ":" + s;
+    	 $("#autoResumeMessage").text('&{"service.order.auto.resume.msg"} '+resumeHours);
     	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};
     	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
              Receipt.update(data);
@@ -187,6 +194,7 @@
         %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
         #{if isExecuting}
           <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'><span id="pauseText"></span></span></span> </a>
+          <br><span id="autoResumeMessage"></span>
         #{/if}
         %{ isExecuting = details.order.isPaused() }%
         #{if isExecuting}

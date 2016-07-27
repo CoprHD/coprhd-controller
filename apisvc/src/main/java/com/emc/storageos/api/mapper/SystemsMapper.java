@@ -283,6 +283,7 @@ public class SystemsMapper {
 		to.setCompatibilityStatus(from.getCompatibilityStatus());
 		to.setDiscoveryStatus(from.getDiscoveryStatus());
 		to.setDataCenters(from.getDataCenters());
+		to.setCompressionEnabled(from.getCompressionEnabled());
 		to.setMaxPoolUtilizationPercentage(
 				(from.getMaxPoolUtilizationPercentage() != null) ? from.getMaxPoolUtilizationPercentage()
 						: Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinatorClient,

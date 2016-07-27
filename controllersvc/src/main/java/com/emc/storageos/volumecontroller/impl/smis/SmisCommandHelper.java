@@ -3927,14 +3927,14 @@ public class SmisCommandHelper implements SmisConstants {
                 // Count the number of volumes in this group. Lowest number of volumes in the storage
                 // group for that child storage group wins.
                 Integer numVolumes = getVMAXStorageGroupVolumeCount(storage, groupName);
-                String policyName = storageGroupPolicyLimitsParam.getAutoTierPolicyName();
+                String policyLimitAttribute = storageGroupPolicyLimitsParam.toString();
 
                 // This will identify the storage group with the lowest number of volumes and store the group name and policy limit params
                 // for that group name.
-                if ((preferedChildGroupMap.get(policyName) == null) ||
-                        ((preferedChildGroupMap.get(policyName) != null) &&
-                        (numVolumes < preferedChildGroupMap.get(policyName)))) {
-                    preferedChildGroupMap.put(policyName, numVolumes);
+                if ((preferedChildGroupMap.get(policyLimitAttribute) == null) ||
+                        ((preferedChildGroupMap.get(policyLimitAttribute) != null) &&
+                                (numVolumes < preferedChildGroupMap.get(policyLimitAttribute)))) {
+                    preferedChildGroupMap.put(policyLimitAttribute, numVolumes);
                     preferedPolicyLimitsParamToChildGroup.put(storageGroupPolicyLimitsParam, groupName);
                 }
             }
@@ -3986,7 +3986,7 @@ public class SmisCommandHelper implements SmisConstants {
                         // groups to parent Cascaded Group.
                         _log.info("Existing Reusable Storage Groups Found {}", Joiner.on("\t").join(existingReusableGroups.keySet()));
                         for (String group : existingReusableGroups.keySet()) {
-                            volumeGroup.put(group, null);
+                            volumeGroup.put(group, null);//Why is the volume set empty?
                         }
                         // find out remaining volumes which doesn't have any
                         // groups to fit into
@@ -5506,7 +5506,30 @@ public class SmisCommandHelper implements SmisConstants {
         return (checkIfProviderSupportsCompressionOperations(storageSystem) &&
                 !virtualPool.getCompressionEnabled() && storagePool.getCompressionEnabled());
     }
-    
+
+    /**
+     * This method is will check if the volume associated with virtual Pool has compression enabled.
+     * 
+     * @param blockObjectURI BlockObjectURI
+     * @return boolean to report if compression is enabled on the vpool.
+     */
+    public boolean isVMAX3VolumeCompressionEnabled(URI blockObjectURI) {
+        VirtualPool virtualPool = null;
+        Volume volume = null;
+        if (URIUtil.isType(blockObjectURI, Volume.class)) {
+            volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+        } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+            volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
+        }
+        if (volume != null) {
+            virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        }
+        return (virtualPool.getCompressionEnabled());
+    }
     /**
      * This method return true if the SMI-S provider supports compression operations.
      * If not, it will throw an exception
@@ -6228,12 +6251,17 @@ public class SmisCommandHelper implements SmisConstants {
 
         String hostIOLimitBandwidth = CIMPropertyFactory.getPropertyValue(groupInstance, EMC_MAX_BANDWIDTH);
         String hostIOLimitIOPs = CIMPropertyFactory.getPropertyValue(groupInstance, EMC_MAX_IO);
+        String emcCompression = CIMPropertyFactory.getPropertyValue(groupInstance, CP_EMC_COMPRESSION);
 
         if (storage.checkIfVmax3()) {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(CIMPropertyFactory.getPropertyValue(groupInstance,
                     CP_FAST_SETTING),
                     hostIOLimitBandwidth,
                     hostIOLimitIOPs, storage);
+            if ((emcCompression != null) && StringUtils.isNotEmpty(emcCompression)) {
+                storageGroupPolicyLimitsParam.setCompression(Boolean.parseBoolean(emcCompression));
+            }
+            
 
         } else {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage,

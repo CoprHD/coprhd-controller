@@ -434,7 +434,7 @@ public interface SmisConstants {
     static final String[] PS_ONLY_COPY_STATE = new String[] { CP_COPY_STATE };
     static final String[] PS_ELEMENT_NAME = new String[] { SmisConstants.CP_ELEMENT_NAME };
     static final String[] PS_V3_STORAGE_GROUP_PROPERTIES = new String[] { CP_ELEMENT_NAME, CP_FAST_SETTING, CP_ASSOCIATED_TO_VIEW,
-            EMC_MAX_BANDWIDTH, EMC_MAX_IO };
+            EMC_MAX_BANDWIDTH, EMC_MAX_IO, CP_EMC_COMPRESSION };
     static final String[] PS_V3_FAST_SETTING_PROPERTIES = new String[] { CP_FAST_SETTING };
     static final String[] PS_V3_VIRTUAL_PROVISIONING_POOL_PROPERTIES = new String[] { CP_DISK_DRIVE_TYPE };
     static final String[] PS_SPACE_CONSUMED = new String[] { SmisConstants.CP_SPACE_CONSUMED };

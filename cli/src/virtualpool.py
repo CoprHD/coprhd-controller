@@ -993,7 +993,7 @@ class VirtualPool(object):
                 parms['auto_tiering_policy_name'] = fastpolicy
         
         if(enablecompression): 
-            parms['enable_compression'] = enablecompression
+            parms['compression_enabled'] = enablecompression
 
         if(autotierpolicynames):
             parms['unique_auto_tier_policy_names'] = autotierpolicynames
@@ -1462,7 +1462,7 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='autotierpolicynames',
                                metavar='<unique_auto_tier_policy_names>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
-    create_parser.add_argument('-enablecompression', '-ec',
+    update_parser.add_argument('-enablecompression', '-ec',
                                help='enable compression on VMAX3 all flash arrays',
                                dest='enablecompression',
                                metavar='<enable_compression>',

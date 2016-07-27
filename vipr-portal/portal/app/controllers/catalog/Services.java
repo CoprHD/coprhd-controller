@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 import com.google.common.collect.ImmutableMap;
 
 import models.BreadCrumb;
@@ -68,8 +69,11 @@ public class Services extends Controller {
 
     /**
      * Builds a form for a particular service
+     * @param array TODO
+     * @param pool TODO
+     * 
      */
-    public static void showForm(String serviceId) {
+    public static void showForm(String serviceId, String virtualArray,String virtualPool)  {
         TenantSelector.addRenderArgs();
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         List<CatalogServiceFieldRestRep> serviceFields = service.getCatalogServiceFields();
@@ -92,7 +96,7 @@ public class Services extends Controller {
                 .createAssetFieldDescriptors(serviceDescriptor);
 
         // Calculate default values for all fields
-        Map<String, String> defaultValues = getDefaultValues(serviceDescriptor);
+        Map<String, String> defaultValues = getDefaultValues(serviceDescriptor, virtualArray, virtualPool);
 
         // Calculate asset parameters for any fields that are overridden
         Map<String, String> overriddenValues = getOverriddenValues(service);
@@ -171,9 +175,11 @@ public class Services extends Controller {
      * 
      * @param descriptor
      *            the service descriptor.
+     * @param virtualArray TODO
+     * @param virtualPool TODO
      * @return the default field values.
      */
-    private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor) {
+    private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor, String virtualArray, String virtualPool) {
         Map<String, String> defaultValues = Maps.newHashMap();
         List<ServiceFieldRestRep> allFields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());
         for (ServiceFieldRestRep field : allFields) {
@@ -183,6 +189,12 @@ public class Services extends Controller {
             else {
                 defaultValues.put(field.getName(), field.getInitialValue());
             }
+        }
+        if(StringUtils.isNotEmpty(virtualArray)) {
+            defaultValues.put("virtualArray", virtualArray);
+        }
+        if(StringUtils.isNotEmpty(virtualPool)) {
+            defaultValues.put("virtualPool", virtualPool);
         }
         return defaultValues;
     }

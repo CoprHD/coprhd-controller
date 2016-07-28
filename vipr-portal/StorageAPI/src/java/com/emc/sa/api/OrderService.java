@@ -697,9 +697,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
             URI orderId = event.getLatestOrderId();
             Order order = getOrderById(orderId, false);
-            if (! (order.getOrderStatus().equals(OrderStatus.SUCCESS.name()) ||
-                   order.getOrderStatus().equals(OrderStatus.PARTIAL_SUCCESS.name()) ||
-                   order.getOrderStatus().equals(OrderStatus.ERROR.name())) ) {
+            if (! (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
+                   OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
+                   OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR)) ) {
                 log.info("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
                 continue;
             }

@@ -714,7 +714,7 @@ public abstract class CommandHandler {
                     }
                 }
             } catch (IOException e) {
-                System.err.println("Error occured when reading the cleanup file.");
+                System.err.println("Error occurred when reading the cleanup file.");
                 e.printStackTrace();
             }
             if (successCounter > 0) {

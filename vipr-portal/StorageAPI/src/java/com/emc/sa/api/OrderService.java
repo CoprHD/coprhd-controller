@@ -313,8 +313,8 @@ public class OrderService extends CatalogTaggedResourceService {
         order = orderManager.getOrderById(order.getId());
         List<OrderParameter> orderParameters = orderManager.getOrderParameters(order.getId());
 
+        auditOpSuccess(OperationTypeEnum.CREATE_ORDER, order.auditParameters());
         return map(order, orderParameters);
-
     }
 
     public Order createNewOrder(StorageOSUser user, URI tenantId, OrderCreateParam createParam) {
@@ -340,8 +340,6 @@ public class OrderService extends CatalogTaggedResourceService {
         List<OrderParameter> orderParams = createOrderParameters(order, createParam, encryptionProvider);
 
         orderManager.createOrder(order, orderParams, user);
-
-        auditOpSuccess(OperationTypeEnum.CREATE_ORDER, order.auditParameters());
 
         orderManager.processOrder(order);
 

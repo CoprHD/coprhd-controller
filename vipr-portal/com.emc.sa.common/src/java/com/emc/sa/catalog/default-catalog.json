@@ -388,7 +388,7 @@
     },
     {
       "title": "file.linux.title",
-      "image": "icon_folder.png",
+      "image": "Category_File_Services_Linux.png",
       "description": "file.linux.description",
       "services": [
         {

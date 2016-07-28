@@ -93,6 +93,7 @@ public enum OperationTypeEnum {
     FAILOVER_CANCEL_RP_LINK("RPLinkFailedOverCanceled", "RPLinkFailOverCancelFailed", "RP Link Fail Over Cancel"),
     FAILOVER_TEST_RP_LINK("RPLinkTestFailedOver", "RPLinkTestFailOverFailed", "RP Link Test Fail Over"),
     FAILOVER_TEST_CANCEL_RP_LINK("RPLinkTestCancelFailedOver", "RPLinkTestCancelFailOverFailed", "RP Link Test Cancel Fail Over"),
+    CHANGE_RP_IMAGE_ACCESS_MODE("RPImageAccessModeChanged", "RPImageAccessModeChangeFailed", "RP Image Access Mode Change"),
 
     CREATE_VOLUME_MIRROR("VolumeMirrorCreated", "VolumeMirrorCreateFailed", "VolumeMirror Create"),
     DEACTIVATE_VOLUME_MIRROR("VolumeMirrorDeactivated", "VolumeMirrorDeactivateFailed", "VolumeMirror Deactivate"),
@@ -178,7 +179,8 @@ public enum OperationTypeEnum {
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
-    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed", "operation to update filesystem replication RPO"),
+    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed",
+            "operation to update filesystem replication RPO"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
@@ -414,10 +416,6 @@ public enum OperationTypeEnum {
     DELETE_TASK("DELETE TASK", "", "Delete a Task"),
     SEND_PASSWORD_TO_BE_EXPIRE_MAIL("SEND PASSWORD TO BE EXPIRED MAIL SUCCESS", "SEND PASSWORD TO BE EXPIRED MAIL FAIL",
             "operation to send password to be expired mail"),
-    SEND_STANDBY_NETWORK_BROKEN_MAIL("SEND STANDBY NETWORK BROKEN MAIL SUCCESS", "SEND STANDBY NETWORK BROKEN MAIL FAIL",
-            "operation to send standby network broken mail"),
-    SEND_STANDBY_DEGRADED_MAIL("SEND STANDBY DEGRADED NOTIFICATION MAIL SUCCESS", "SEND STANDBY DEGRADED NOTIFICATION MAIL FAIL",
-            "operation to send standby degraded notification mail"),
     DELETE_CONFIG("DELETE CONFIG", "", "operation to delete controller config"),
     CREATE_CONFIG("CREATE CONFIG", "", "operation to create controller config"),
     UPDATE_CONFIG("UPDATE CONFIG", "", "operation to update controller config"),
@@ -461,10 +459,12 @@ public enum OperationTypeEnum {
             "VolumeGroupFullCopy Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotCreated", "VolumeGroupSnapshotCreateFailed", "VolumeGroupSnapshot Create"),
-    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),   
-    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed", "VolumeGroupSnapshot Deactivate"),
+    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),
+    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed",
+            "VolumeGroupSnapshot Deactivate"),
     RESTORE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotRestored", "VolumeGroupSnapshotRestoreFailed", "VolumeGroupSnapshot Restored"),
-    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed", "VolumeGroupSnapshot Resynchronize"),
+    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed",
+            "VolumeGroupSnapshot Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionCreated", "VolumeGroupSnapshotSessionCreateFailed",
             "VolumeGroupSnapshotSession Create"),
@@ -507,6 +507,8 @@ public enum OperationTypeEnum {
     STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
     STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
+    REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 
     private final String _evType;

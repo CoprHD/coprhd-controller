@@ -43,12 +43,12 @@ public class VPlexApiUtils {
      */
     static String formatWWN(String rawWWN) {
 
-        // trim off the REGISTERED_ prefix if it's present
-        if (rawWWN.toUpperCase().startsWith(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX)){
-            rawWWN = rawWWN.substring(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX.length());
-        }
-
         if (rawWWN != null) {
+            // trim off the REGISTERED_ prefix if it's present
+            if (rawWWN.toUpperCase().startsWith(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX)){
+                rawWWN = rawWWN.substring(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX.length());
+            }
+
             return rawWWN.substring(2).toUpperCase();
         }
 
@@ -366,4 +366,154 @@ public class VPlexApiUtils {
         return !volumeInfo.getITLs().isEmpty();
     }
     
+    /**
+     * Determines if the passed volume name conforms to the default naming convention.
+     * 
+     * @param volumeName The name of the volume.
+     * @param supportingDeviceName The name of the supporting device.
+     * @param isDistributed true if the volume is distributed, or false for local.
+     * @param claimedVolumeNames The names of the claimed storage volumes used by the virtual volumes.
+     * 
+     * @return true if the volume name conforms to the default naming convention, false otherwise.
+     */
+    public static boolean volumeHasDefaultNamingConvention(String volumeName, String supportingDeviceName,
+            boolean isDistributed, List<String> claimedVolumeNames) {
+        // First check that the supporting device conforms to the default naming convention.
+        if (!deviceHasDefaultNamingConvention(supportingDeviceName, isDistributed, claimedVolumeNames)) {
+            s_logger.info("Supporting device {} does conform to default naming convention", supportingDeviceName);
+            return false;
+}
+        
+        // The volume name must end with the expected virtual volume suffix.
+        if (!volumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
+            s_logger.info("Volume {} does not end with the expected suffix", volumeName);
+            return false;
+        }
+        
+        // Verify the passed volume name is not simply the volume suffix.
+        if (volumeName.length() == VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX.length()) {
+            s_logger.info("Volume name {} consists only of the volume suffix", volumeName);
+            return false;
+        }
+
+        // Extract the value after before the suffix, which in the default naming convention
+        // is the supporting device name.
+        int endIndex = volumeName.length() - VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX.length();
+        if (!supportingDeviceName.equals(volumeName.substring(0, endIndex))) {
+            s_logger.info("Volume name {} does not conform to default naming convention", volumeName);
+            return false;            
+        }
+
+        return true;
+    }
+    
+    /**
+     * Determines if the passed supporting device name conforms to the default naming convention.
+     * 
+     * @param supportingDeviceName The name of the supporting device.
+     * @param isDistributed true if the volume is distributed, or false for local.
+     * @param claimedVolumeNames The names of the claimed storage volumes used by the device.
+     * 
+     * @return true if the device name conforms to the default naming convention, false otherwise.
+     */
+    public static boolean deviceHasDefaultNamingConvention(String supportingDeviceName, boolean isDistributed, List<String> claimedVolumeNames) {
+        // Verify the passed supporting device name based on whether it is distributed or local.
+        if (isDistributed) {
+            return distributedDeviceHasDefaultNamingConvention(supportingDeviceName, claimedVolumeNames);
+        } else {
+            return localDeviceHasDefaultNamingConvention(supportingDeviceName, claimedVolumeNames);
+        }
+    }
+
+    /**
+     * Determines if the passed local device name conforms to the default naming convention.
+     * 
+     * @param supportingDeviceName The name of the supporting device.
+     * @param claimedVolumeNames The names of the storage volumes used by the device.
+     * 
+     * @return true if the device name conforms to the default naming convention, false otherwise.
+     */
+    public static boolean localDeviceHasDefaultNamingConvention(String deviceName, List<String> claimedVolumeNames) {
+        // The local device name must start with the local device prefix.
+        if (!deviceName.startsWith(VPlexApiConstants.DEVICE_PREFIX)) {
+            s_logger.info("Local device {} does not start with the expected prefix", deviceName);
+            return false;
+        }
+        
+        // Verify the passed device name is not simply the device prefix.
+        if (deviceName.equals(VPlexApiConstants.DEVICE_PREFIX.length())) {
+            s_logger.info("Local device name {} consists only of the device prefix", deviceName);
+            return false;
+        }
+        
+        // There should only be a single claimed volume.
+        if (claimedVolumeNames.size() != 1) {
+            s_logger.info("Too many claimed volumes {} for local device {}", claimedVolumeNames, deviceName);
+            return false;            
+        }
+        String claimedVolumeName = claimedVolumeNames.get(0);
+
+        // Extract the value after the prefix, which in the default naming convention
+        // is the claimed storage volume name.
+        int startIndex = VPlexApiConstants.DEVICE_PREFIX.length();
+        if (!claimedVolumeName.equals(deviceName.substring(startIndex))) {
+            s_logger.info("Local device name {} does not conform to default naming convention", deviceName);
+            return false;            
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Determines if the passed distributed device name conforms to the default naming convention.
+     * 
+     * @param supportingDeviceName The name of the supporting device.
+     * @param claimedVolumeNames The names of the storage volumes used by the device.
+     * 
+     * @return true if the device name conforms to the default naming convention, false otherwise.
+     */
+    public static boolean distributedDeviceHasDefaultNamingConvention(String deviceName, List<String> claimedVolumeNames) {
+        // The distributed device must start with the expected prefix.
+        String distDevicePrefix = VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM;
+        if (!deviceName.startsWith(distDevicePrefix)) {
+            s_logger.info("Distributed device {} does not start with the expected prefix", deviceName);
+            return false;
+        }
+
+        // Verify the device name is not exactly the prefix.
+        if (deviceName.equals(distDevicePrefix)) {
+            s_logger.info("Distributed device {} consists only of the expected prefix", deviceName);
+            return false;                
+        }
+
+        // Get the distributed device name without the prefix. This must consist of 
+        // exactly two components separated by a delimiter.
+        String deviceNameNoPrefix = deviceName.substring(distDevicePrefix.length());
+        String[] deviceNameComponents = deviceNameNoPrefix.split(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
+        if (deviceNameComponents.length != 2) {
+            s_logger.info("Distributed device {} does not consist of exactly 2 components", deviceName);
+            return false;             
+        }
+        
+        // These two components must be the passed claimed storage volume names.
+        boolean allComponentsMatched = true;
+        for (String deviceNameComponent : deviceNameComponents) {
+            boolean match = false;
+            for (String claimedVolumeName : claimedVolumeNames)
+                if (deviceNameComponent.equals(claimedVolumeName)) {
+                    match = true;
+                    break;
+            }
+            if (!match) {
+                allComponentsMatched = false;
+                break;
+            }
+        }
+        if (!allComponentsMatched) {
+            s_logger.info("Distributed device name {} does not contain claimed volumes {}", deviceName, claimedVolumeNames);
+            return false;                
+        }
+        
+        return true;
+    }
 }

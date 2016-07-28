@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -40,7 +41,8 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(AutoTieringPolicyMatcher.class);
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         String autoTieringPolicyName = attributeMap.get(Attributes.auto_tiering_policy_name.toString()).toString();
 
         _logger.info("Pools Matching Auto Tiering Policy name attribute {} Started:{}", autoTieringPolicyName, Joiner
@@ -79,11 +81,17 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             }
         } else if (deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
             filteredPoolList = getAutoTieringPoolsOnHDS(autoTieringPolicyName, attributeMap, pools);
-        } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())) {
+        } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())
+                   || deviceTypes.contains(VirtualPool.SystemType.unity.toString())) {
             filteredPoolList = getPoolsWithAutoTieringEnabled(pools);
         }
         _logger.info("Pools Matching Auto Tiering name Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("No matching storage pool found with auto tiering policy %s. ", autoTieringPolicyName));
+            _logger.error(errorMessage.toString());
+        }
+
         return filteredPoolList;
     }
 
@@ -107,7 +115,8 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_HIGHEST_AVAILABLE.toString());
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_LOWEST_AVAILABLE.toString());
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_NO_MOVEMENT.toString());
-                    } else if (Type.vnxe.toString().equalsIgnoreCase(system.getSystemType())) {
+                    } else if (Type.vnxe.toString().equalsIgnoreCase(system.getSystemType())
+                                || Type.unity.toString().equalsIgnoreCase(system.getSystemType())) {
                         policyNameSet.add(StorageResource.TieringPolicyEnum.AUTOTIER_HIGH.name());
                         policyNameSet.add(StorageResource.TieringPolicyEnum.AUTOTIER.name());
                         policyNameSet.add(StorageResource.TieringPolicyEnum.HIGHEST.name());
@@ -138,6 +147,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxblock.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxe.toString()) ||
+                    deviceTypes.contains(VirtualPool.SystemType.unity.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
                 status = true;
             }

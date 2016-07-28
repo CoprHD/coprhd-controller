@@ -6,7 +6,6 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -396,6 +395,15 @@ public abstract class BlockIngestOrchestrator {
 
         blockObject.setConsistencyGroup(cg.getId());
         blockObject.setReplicationGroupInstance(cg.getLabel());
+        if (blockObject instanceof BlockSnapshot) {
+            // Check if the unmanaged volume has SNAPSHOT_CONSISTENCY_GROUP_NAME property populated. If yes,
+            // use that for replicationGroupInstance
+            String snapsetName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
+            if (snapsetName != null && !snapsetName.isEmpty()) {
+                blockObject.setReplicationGroupInstance(snapsetName);
+            }
+        }
     }
 
     /*
@@ -408,7 +416,6 @@ public abstract class BlockIngestOrchestrator {
         volume.setVirtualPool(vPool.getId());
         volume.setVirtualArray(virtualArray.getId());
         volume.setStorageController(system.getId());
-        volume.setCreationTime(Calendar.getInstance());
         volume.setPool(unManagedVolume.getStoragePoolUri());
         // adding capacity
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(

@@ -29,15 +29,17 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class FileMirrorSchedular implements Scheduler {
-
     public final Logger _log = LoggerFactory
             .getLogger(FileMirrorSchedular.class);
+    private static final String SCHEDULER_NAME = "filemirror";
 
     private DbClient _dbClient;
     private StorageScheduler _storageScheduler;
@@ -272,6 +274,12 @@ public class FileMirrorSchedular implements Scheduler {
         return targetVirtualArrays;
     }
 
+    @Override
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+    
     private FileRecommendation getSourceRecommendationParameters(FileShare sourceFs, StorageSystem storageSystem) {
 
         FileRecommendation fileRecommendation = new FileRecommendation();
@@ -323,4 +331,13 @@ public class FileMirrorSchedular implements Scheduler {
         return sourceFileRecommendations;
     }
 
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        return false;
+    }
 }

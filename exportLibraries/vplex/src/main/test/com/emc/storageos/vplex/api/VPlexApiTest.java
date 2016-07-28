@@ -304,7 +304,7 @@ public class VPlexApiTest {
             vvNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfo(false);
             VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true);
+                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true, false);
             Assert.assertNotNull(vvInfo);
             Assert.assertEquals(vvNameBuilder.toString(), vvInfo.getName());
 
@@ -822,7 +822,7 @@ public class VPlexApiTest {
             String vvName = vvNameBuilder.toString();
             List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfo(false);
             VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true);
+                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true, false);
             Assert.assertNotNull(vvInfo);
             Assert.assertEquals(vvName, vvInfo.getName());
 
@@ -895,7 +895,7 @@ public class VPlexApiTest {
             String volumeNativeId = tokenizer.nextToken();
             String transferSize = "8M";
             newVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId, volumeNativeId, false, Collections.<String> emptyList());
-            distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, true, "1", transferSize);
+            distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, "1", transferSize);
             Assert.assertNotNull(distVolInfo);
             WaitOnRebuildResult goodRebuild = _client.waitOnRebuildCompletion(distVolInfo.getName());
             Assert.assertEquals(WaitOnRebuildResult.SUCCESS, goodRebuild);
@@ -935,7 +935,7 @@ public class VPlexApiTest {
         nativeVolumeInfoList.add(nativeVolumeInfo);
         List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfo(false);
         VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                nativeVolumeInfoList, false, false, false, null, clusterInfoList, true);
+                nativeVolumeInfoList, false, false, false, null, clusterInfoList, true, false);
         return vvInfo;
     }
 }

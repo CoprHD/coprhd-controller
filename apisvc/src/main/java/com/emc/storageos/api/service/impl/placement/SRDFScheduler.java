@@ -39,7 +39,9 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
@@ -48,12 +50,14 @@ import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher;
+import com.emc.storageos.workflow.WorkflowException;
 
 /**
  * Advanced SRDF based scheduling function for block storage. StorageScheduler is done based on
  * desired class-of-service parameters for the provisioned storage.
  */
 public class SRDFScheduler implements Scheduler {
+    private static final String SCHEDULER_NAME = "srdf";
 
     /**
      * A valid combination of
@@ -182,12 +186,12 @@ public class SRDFScheduler implements Scheduler {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
-
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_SOURCE);
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities);
+        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
 
         if (pools == null || pools.isEmpty()) {
             _log.error(
@@ -195,8 +199,12 @@ public class SRDFScheduler implements Scheduler {
                             + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
                             + "hold at least one resource of the requested size.",
                     varray.getLabel());
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(),
-                    varray.getLabel());
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(),
+                    errorMessage.toString());
         }
 
         // skip StoragePools, which had been used as R2 targets for given consistencyGroup earlier.
@@ -303,9 +311,9 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
-
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
-                capabilities);
+                capabilities, attributeMap);
         if (varrayPoolMap == null || varrayPoolMap.isEmpty()) {
             // No matching storage pools found for any of the target varrays. There are no target
             // storage pools that match the passed vpool parameters and protocols and/or there are
@@ -322,10 +330,14 @@ public class SRDFScheduler implements Scheduler {
 
             sb.append("]. There are no storage pools that match the passed vpool parameters and protocols and/or "
                     + "there are no pools that have enough capacity to hold at least one resource of the requested size.");
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
 
             _log.error(sb.toString());
             throw APIException.badRequests.noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-                    vpool.getLabel(), tmpTargetVarrays);
+                    vpool.getLabel(), tmpTargetVarrays, errorMessage.toString());
 
         }
 
@@ -437,6 +449,8 @@ public class SRDFScheduler implements Scheduler {
         			Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap = new HashMap<VirtualArray, Set<StorageSystem>>();
         			for (VirtualArray targetVarray1 : targetVarrayPoolMap.keySet()) {
         				if (rec.getSourceStoragePool() == null) {
+        				    rec.setVirtualArray(varray.getId());
+        				    rec.setVirtualPool(vpool);
         					rec.setSourceStoragePool(recommendedPool.getId());
         					rec.setResourceCount(currentCount);
         					rec.setSourceStorageSystem(recommendedPool.getStorageDevice());
@@ -1212,10 +1226,12 @@ public class SRDFScheduler implements Scheduler {
      *            the requested vpool that must be satisfied by the storage pool
      * @param capabilities
      *            capabilities
+     * @param attributeMap
+     *            attributeMap
      * @return A list of matching storage pools and varray mapping
      */
     private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays,
-            final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities) {
+            final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
         Map<VirtualArray, List<StoragePool>> varrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
         Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool
                 .getRemoteProtectionSettings(vpool, _dbClient);
@@ -1231,10 +1247,109 @@ public class SRDFScheduler implements Scheduler {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_TARGET);
             // Find a matching pool for the target vpool
             varrayStoragePoolMap.put(varray,
-                    _blockScheduler.getMatchingPools(varray, targetVpool, capabilities));
+                    _blockScheduler.getMatchingPools(varray, targetVpool, capabilities, attributeMap));
         }
 
         return varrayStoragePoolMap;
     }
 
+    @Override
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+       List<Recommendation> recommendations;
+       if (vPoolUse == VpoolUse.SRDF_COPY) {
+           recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
+       } else {
+           recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
+       } 
+       return recommendations;
+    }
+    
+    /**
+     * This routine retrieves recommendations for the SRDF_COPY from previously generated SRDF Source
+     * recommendations. The SRDF scheduler generates them together, but upper layers of code need
+     * them separately so they can be encapsulated in higher level recommendations such as Vplex.
+     * @param vArray - Virtual Array object
+     * @param project - Project object
+     * @param vPool - Virtual Pool object
+     * @param capabilities - VirtualPoolCapabilitiesWrapper contains parameters
+     * @param currentRecommendations - Contains the current recommendations that would include SRDFRecommendations.
+     * The SrdfCopyRecommendations are generated from them
+     * @return - List of Recommendations, specifically, SRDFCopyRecommendations
+     */
+    private List<Recommendation> getRecommendationsForCopy(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities, 
+            List<Recommendation> currentRecommendations) {
+        List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        if (currentRecommendations == null) {
+            throw WorkflowException.exceptions.workflowConstructionError("Required parameter currentRecommendations is null");
+        }
+        // Look through the existing SRDF Recommendations for a SRDFRecommendation
+        // that has has matching varray and vpool.
+        for (Recommendation recommendation : currentRecommendations) {
+            Recommendation rec = recommendation;
+            while (rec != null) {
+                if (rec instanceof SRDFRecommendation) {
+                    SRDFRecommendation srdfrec = (SRDFRecommendation) rec;
+                    if (srdfrec.getVirtualArrayTargetMap().containsKey(vArray.getId())) {
+                        SRDFRecommendation.Target target = srdfrec.getVirtualArrayTargetMap().get(vArray.getId());
+                        _log.info(String.format("Found SRDF target recommendation for va %s vpool %s", 
+                                vArray.getLabel(), vPool.getLabel()));
+                        SRDFCopyRecommendation targetRecommendation = new SRDFCopyRecommendation();
+                        targetRecommendation.setVirtualArray(vArray.getId());
+                        targetRecommendation.setVirtualPool(vPool);
+                        targetRecommendation.setSourceStorageSystem(target.getTargetStorageDevice());
+                        targetRecommendation.setSourceStoragePool(target.getTargetStoragePool());
+                        targetRecommendation.setResourceCount(srdfrec.getResourceCount());
+                        targetRecommendation.setRecommendation(srdfrec);
+                        recommendations.add(targetRecommendation);
+                    }
+                }
+                // Check child recommendations, if any
+                rec = rec.getRecommendation();
+            }
+        }
+        return recommendations;
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        return (VirtualPool.vPoolSpecifiesSRDF(vPool) || vPoolUse == VpoolUse.SRDF_COPY);
+    }
+    
+    /**
+     * Check all the volumes in a project that match the given RDF Group. 
+     * Return true if any report SWAPPED LinkStatus.
+     * @param dbClient -- database client
+     * @param projectURI -- Project URI -- used to constrain volumes
+     * @param rdfGroupURI -- RDF Group -- used to match for LinkStatus
+     * @return true if a volume matching the specified RDF group has a LinkStatus of SWAPPED
+     */
+    public static boolean rdfGroupHasSwappedVolumes(DbClient dbClient, URI projectURI, URI rdfGroupURI) {
+        if (rdfGroupURI == null) {
+            return false;
+        }
+        // Find all volumes in the project.
+        URIQueryResultList volumeIds = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(projectURI), volumeIds);
+        Iterator<Volume> volumeItr = dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumeItr.hasNext()) {
+            Volume volume = volumeItr.next();
+            if (rdfGroupURI.equals(volume.getSrdfGroup())) {
+                if (Volume.LinkStatus.SWAPPED.name().equals(volume.getLinkStatus())) {
+                    return true;
+                }
+            }
+        }
+        // No volumes report swapped that match RDF Group
+        return false;
+    }
+    
+    
 }

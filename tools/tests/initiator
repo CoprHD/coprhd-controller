@@ -42,6 +42,24 @@ def initiator_list(args):
         initiator = bourne.api('GET', r['link']['href'], None)
         initiator_display(initiator)
 
+def initiator_aliasget(args):
+    bourne.connect(args.ip)
+    systemuri  = bourne.storagedevice_query(args.ssname)
+    res = bourne.initiator_aliasget(args.name, systemuri)
+    print 'current initiator alias is', res['initiator_alias']
+
+def initiator_aliasset(args):
+    bourne.connect(args.ip)
+    systemuri  = bourne.storagedevice_query(args.ssname)
+    setresult = bourne.initiator_aliasset(args.name, systemuri, args.alias)
+    getresult = bourne.initiator_aliasget(args.name, systemuri)
+    print 'initiator alias is set to',getresult['initiator_alias']
+    if (setresult['initiator_alias'] != getresult['initiator_alias']):
+        print 'Initiator alias sanity failed'
+    else:
+        print 'Initiator alias sanity success'
+
+
 #
 # display initiator in list form
 #
@@ -99,7 +117,7 @@ except:
 
 # initiator <cmd> <cmd_args>
 parser = argparse.ArgumentParser(description = 'Bourne initiator cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | register | deregister)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | register | deregister | aliasget | aliasset)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # initiator create host protocol port node
@@ -149,6 +167,17 @@ register.add_argument('name', help = 'name of initiator in the format host_name/
 deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 deregister.add_argument('name', help = 'name of initiator in the format host_name/initiator_port')
 
+# aliasget
+aliasget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+aliasget.add_argument('name', help = 'name of initiator in the format host_name/initiator_port')
+aliasget.add_argument('ssname', help = 'name of the storage system')
+
+# aliasset
+aliasset = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+aliasset.add_argument('name', help = 'name of initiator in the format host_name/initiator_port')
+aliasset.add_argument('ssname', help = 'name of the storage system')
+aliasset.add_argument('alias', help = 'alias name')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -188,6 +217,12 @@ try:
     elif(cmd == "deregister"):
         args = deregister.parse_args()
         initiator_deregister(args)
+    elif(cmd == "aliasget"):
+        args = aliasget.parse_args()
+        initiator_aliasget(args)
+    elif(cmd == "aliasset"):
+        args = aliasset.parse_args()
+        initiator_aliasset(args)
 
     else:
         parser.print_help()

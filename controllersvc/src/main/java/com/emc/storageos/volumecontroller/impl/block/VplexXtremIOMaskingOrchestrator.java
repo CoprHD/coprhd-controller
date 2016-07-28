@@ -110,15 +110,15 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         /**
          * Number of Port Group for XtremIO is always one.
          * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
-         * 
+         *
          * Single Port Group contains different set of storage ports for each network,
          * so that each VPLEX director's initiators will map to different port set.
-         * 
+         *
          * why allocatePorts() not required:
          * allocatePorts() would return required number of storage ports from a network from unique X-bricks.
          * But we need to select storage ports uniquely across X-bricks & StorageControllers and we need
          * to make use of all storage ports.
-         * 
+         *
          */
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
@@ -264,7 +264,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
          * -List of network's storage ports;
          * -X-bricks already chosen for this network;
          * -X-bricks already chosen for all networks with StorageControllers (SC) chosen:
-         * 
+         *
          * Choose a storage port based on below logic:
          * -See if there is a port from X-brick other than allNetworkXbricks (select different SC for the selected X-brick)
          * -If not, see if there is a port from X-brick other than networkXbricks (select different SC for the selected X-brick)
@@ -513,6 +513,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
 
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
+            device.refreshExportMask(array, exportMask);
 
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not
@@ -588,6 +589,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             if (!completer.getOpId().equals(stepId)) {
                 completer.setOpId(stepId);
             }
+            // refresh export mask
+            device.refreshExportMask(array, exportMask);
 
             Set<String> remainingVolumes = new HashSet<String>();
             if (exportMask.getVolumes() != null) {

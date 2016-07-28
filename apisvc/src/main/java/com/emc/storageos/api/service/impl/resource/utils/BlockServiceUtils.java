@@ -11,6 +11,7 @@ import static com.google.common.collect.Collections2.transform;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -65,7 +66,9 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 /**
@@ -168,7 +171,7 @@ public class BlockServiceUtils {
             StorageOSUser user, PermissionsHelper permissionsHelper) {
         if (!(permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || permissionsHelper.userHasGivenACL(user,
-                        project.getId(), ACL.OWN, ACL.ALL))) {
+                project.getId(), ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -235,10 +238,10 @@ public class BlockServiceUtils {
      * higher
      *
      * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
-     * 
+     *
      * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array
      * replication group
-     * 
+     *
      * For Application support, allow volumes to be added/removed to/from CG for VPLEX when the backend volume is VMAX/VNX/XtremIO
      *
      * @param cg BlockConsistencyGroup
@@ -266,12 +269,10 @@ public class BlockServiceUtils {
                 return true;
             }
 
-            // Application support: Allow volumes to be added/removed to/from CG for VPLEX and RP
-            // when the backend volume is VMAX/VNX/XtremIO
-            if (volume.getApplication(dbClient) != null && storage.deviceIsType(Type.vplex)) {
-                // Adding new VPLEX volume to CG which is part to Application, has to be done in 2 steps.
-                // Step-1: Create volume - backend volume will not be added to RG.
-                // Step-2: Add to Application - backend volume will be added to RG and clone will be created for it.
+            if (storage.deviceIsType(Type.vplex)) {
+                Set<Type> applicationSupported = Sets.newHashSet(Type.vmax, Type.vnxblock, Type.xtremio);
+                Set<Type> backendSystemTypes = new HashSet<>();
+
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = dbClient.queryObject(Volume.class,
@@ -279,16 +280,23 @@ public class BlockServiceUtils {
                         if (associatedVolume != null) {
                             StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
                                     associatedVolume.getStorageController());
-                            if (backendSystem == null ||
-                                    !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
-                                    || backendSystem.deviceIsType(Type.xtremio))) {
-                                return false;   // one of the backend volume does not meet the criteria
+                            if (backendSystem != null && !Strings.isNullOrEmpty(backendSystem.getSystemType())) {
+                                backendSystemTypes.add(Type.valueOf(backendSystem.getSystemType()));
                             }
                         }
                     }
-                    // all backend volumes have met the criteria
-                    return true;
                 }
+
+                // Application support: Allow volumes to be added/removed to/from CG for VPLEX and RP
+                // when the backend volume is VMAX/VNX/XtremIO
+                if (volume.getApplication(dbClient) != null) {
+                    // Returns true, if any backendSystemTypes are in the supported set for applications
+                    return !Collections.disjoint(applicationSupported, backendSystemTypes);
+                } else {
+                    // Returns true, for VPLEX&VMAX scenarios
+                    return backendSystemTypes.contains(Type.vmax);
+                }
+
             }
         }
 
@@ -459,7 +467,7 @@ public class BlockServiceUtils {
                     snapshot.getId()), queryResults);
             Iterator<URI> queryResultsIter = queryResults.iterator();
             if ((!queryResultsIter.hasNext()) &&
-                    (snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString()))) {
+                    (TechnologyType.NATIVE.toString().equalsIgnoreCase(snapshot.getTechnologyType()))) {
                 numSnapshots++;
             }
         }
@@ -594,7 +602,8 @@ public class BlockServiceUtils {
      * @param dbClient
      * @return table with storage URI, replication group name, and volumes
      */
-    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<URI> volumeUris, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<URI> volumeUris, URI cgUri, DbClient dbClient,
+            UriInfo uriInfo) {
         // Group volumes by storage system and replication group
         Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
         for (URI volumeUri : volumeUris) {
@@ -636,7 +645,7 @@ public class BlockServiceUtils {
                     volumes = vplexVolumes;
                 }
 
-                storageRgToVolumes.put(storage,  rgName, volumes);
+                storageRgToVolumes.put(storage, rgName, volumes);
             }
         }
 
@@ -703,7 +712,7 @@ public class BlockServiceUtils {
         // no need to check backing volumes for vplex virtual volumes because for full copies
         // there will be a virtual volume for the clone
         boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
-                    volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+                volume.getMirrors() != null && !volume.getMirrors().isEmpty();
 
         // check for snaps only if no full copies
         if (!hasReplica) {

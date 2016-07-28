@@ -49,6 +49,9 @@ public enum MetricsKeys {
     maxStorageObjects,
     /** Maximum storage capacity of storage objects */
     maxStorageCapacity,
+
+    /** Maximum NFs exports + CIFS shares on each NAS server */
+    maxExports,
    
     /** Max Number of NFS exports on each access zone */
     maxNFSExports,

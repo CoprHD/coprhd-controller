@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
@@ -57,6 +58,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -64,6 +67,8 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
+import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
+import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -73,6 +78,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
@@ -307,6 +313,22 @@ public class RPHelper {
                         vol.getId().toString());
                 for (UnManagedProtectionSet umpset : umpsets) {
                     umpset.getManagedVolumeIds().remove(vol.getId().toString());
+                    // Clean up the volume's reference, if any, in the unmanaged volumes associated with the unmanaged protection set
+                    for (String umv : umpset.getUnManagedVolumeIds()) {
+                        UnManagedVolume umVolume = _dbClient.queryObject(UnManagedVolume.class, URI.create(umv));
+                        StringSet rpManagedSourceVolumeInfo = umVolume.getVolumeInformation()
+                                .get(SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString());
+                        StringSet rpManagedTargetVolumeInfo = umVolume.getVolumeInformation()
+                                .get(SupportedVolumeInformation.RP_MANAGED_TARGET_VOLUMES.toString());
+                        if (rpManagedSourceVolumeInfo != null && !rpManagedSourceVolumeInfo.isEmpty()) {
+                            rpManagedSourceVolumeInfo.remove(vol.getId().toString());
+                        }
+
+                        if (rpManagedTargetVolumeInfo != null && !rpManagedTargetVolumeInfo.isEmpty()) {
+                            rpManagedTargetVolumeInfo.remove(vol.getId().toString());
+                        }
+                        _dbClient.updateObject(umVolume);
+                    }
                     _dbClient.updateObject(umpset);
                 }
             }
@@ -459,7 +481,7 @@ public class RPHelper {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
 
@@ -520,7 +542,7 @@ public class RPHelper {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
                     _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)",
@@ -635,6 +657,29 @@ public class RPHelper {
         }
 
         return null;
+    }
+
+    /**
+     * Get all the target volumes in the consistency group for specified target virtual array.
+     *
+     * @param dbClient the database client
+     * @param consistencyGroup the consistency group id
+     * @param virtualArray target virtual array
+     * @return Volume of the target
+     */
+    public static List<Volume> getTargetVolumesForVarray(DbClient dbClient, URI consistencyGroup, URI virtualArray) {
+        List<Volume> targetVarrayVolumes = new ArrayList<Volume>();
+        List<Volume> cgTargetVolumes = getCgVolumes(dbClient, consistencyGroup, PersonalityTypes.TARGET.name());
+
+        if (cgTargetVolumes != null) {
+            for (Volume target : cgTargetVolumes) {
+                if (target.getVirtualArray().equals(virtualArray)) {
+                    targetVarrayVolumes.add(target);
+                }
+            }
+        }
+
+        return targetVarrayVolumes;
     }
 
     /**
@@ -1995,8 +2040,9 @@ public class RPHelper {
             if (cgVolume.getPersonality() == null) {
                 continue;
             }
-            
-            if (RPHelper.isMetroPointVolume(dbClient, cgVolume) && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+
+            if (RPHelper.isMetroPointVolume(dbClient, cgVolume)
+                    && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
                 // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
                 if (cgVolume.getAssociatedVolumes() != null) {
                     for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
@@ -2006,7 +2052,7 @@ public class RPHelper {
                         }
                     }
                 }
-            }           
+            }
 
             if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
                 continue;
@@ -2057,4 +2103,149 @@ public class RPHelper {
         }
     }
 
+    /**
+     * For an RP configuration, get all RP bookmarks for the CGs provided
+     *
+     * @param system RP system
+     * @param cgIDs IDs of the consistency groups to get the bookmarks
+     * @return command result object, object list [0] has GetBookmarksResponse
+     * @throws RecoverPointException
+     */
+    private static BiosCommandResult getRPBookmarks(ProtectionSystem system, Set<Integer> cgIDs) throws RecoverPointException {
+        _log.info("getRPBookmarks {} - start", system.getId());
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+        GetBookmarksResponse bookmarkResponse = rp.getRPBookmarks(cgIDs);
+        _log.info("getRPBookmarks {} - complete", system.getId());
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        List<Object> returnList = new ArrayList<Object>();
+        returnList.add(bookmarkResponse);
+        result.setObjectList(returnList);
+        return result;
+    }
+
+    /**
+     * Validate Block snapshots that correspond to RP bookmarks. Some may no longer exist in the RP system, and we
+     * need to mark them as invalid.
+     *
+     * The strategy is as follows:
+     * 1. Get all of the protection sets associated with the protection system
+     * 2. Are there any Block Snapshots of type RP? (if not, don't bother cleaning up)
+     * 3. Query the RP Appliance for all bookmarks for that CG (protection set)
+     * 4. Find each block snapshot of type RP for each site
+     * 5. If you can't find the bookmark in the RP list, move the block snapshot to inactive
+     *
+     * @param protectionSystem Protection System
+     */
+    public static void cleanupSnapshots(DbClient dbClient, ProtectionSystem protectionSystem) throws RecoverPointException {
+        // 1. Get all of the protection sets associated with the protection system
+        Set<URI> protectionSetIDs = new HashSet<URI>();
+        Set<Integer> cgIDs = new HashSet<Integer>();
+        URIQueryResultList list = new URIQueryResultList();
+        Constraint constraint = ContainmentConstraint.Factory.getProtectionSystemProtectionSetConstraint(protectionSystem.getId());
+        dbClient.queryByConstraint(constraint, list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI protectionSetId = it.next();
+
+            // Get all snapshots that are part of this protection set.
+            URIQueryResultList plist = new URIQueryResultList();
+            Constraint pconstraint = ContainmentConstraint.Factory.getProtectionSetBlockSnapshotConstraint(protectionSetId);
+            dbClient.queryByConstraint(pconstraint, plist);
+            if (plist.iterator().hasNext()) {
+                // OK, we know there are snapshots for this protection set/CG.
+                // Retrieve all of the bookmarks associated with this protection set/CG later on by adding to the list now
+                ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetId);
+                if (protectionSet != null && !protectionSet.getInactive()) {
+                    protectionSetIDs.add(protectionSet.getId());
+                    cgIDs.add(Integer.valueOf(protectionSet.getProtectionId()));
+                }
+            }
+        }
+
+        // 2. No reason to bother the RPAs if there are no protection sets for this protection system.
+        if (protectionSetIDs.isEmpty()) {
+            _log.info("Block Snapshot of RP Bookmarks cleanup not run for this protection system. No Protections or RP Block Snapshots found on protection system: "
+                    + protectionSystem.getLabel());
+            return;
+        }
+
+        // 3. Query the RP appliance for all of the bookmarks for these CGs in one call
+        BiosCommandResult result = getRPBookmarks(protectionSystem, cgIDs);
+        GetBookmarksResponse bookmarkMap = (GetBookmarksResponse) result.getObjectList().get(0);
+
+        // 4. Go through each protection set's snapshots and see if they're there.
+        it = protectionSetIDs.iterator();
+        while (it.hasNext()) {
+            URI protectionSetId = it.next();
+            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetId);
+
+            // Now find this snapshot in the returned list of snapshots
+            // The map should have an entry for that CG with an empty list if it looked and couldn't find any. (a successful empty set)
+            if (protectionSet.getProtectionId() != null &&
+                    bookmarkMap.getCgBookmarkMap() != null &&
+                    bookmarkMap.getCgBookmarkMap().containsKey(new Integer(protectionSet.getProtectionId()))) {
+
+                // If the list of RPBookmark objects corresponding to the CG is null, lets replace it with an empty
+                // list to avoid issues further down.
+                if (bookmarkMap.getCgBookmarkMap().get(new Integer(protectionSet.getProtectionId())) == null) {
+                    bookmarkMap.getCgBookmarkMap().put(new Integer(protectionSet.getProtectionId()), new ArrayList<RPBookmark>());
+                }
+
+                // Get all snapshots that are part of this protection set.
+                URIQueryResultList plist = new URIQueryResultList();
+                Constraint pconstraint = ContainmentConstraint.Factory.getProtectionSetBlockSnapshotConstraint(protectionSetId);
+                dbClient.queryByConstraint(pconstraint, plist);
+                Iterator<URI> snapshotIter = plist.iterator();
+                while (snapshotIter.hasNext()) {
+                    URI snapshotId = snapshotIter.next();
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
+                    boolean deleteSnapshot = true;
+
+                    if (snapshot.getInactive()) {
+                        // Don't bother deleting or processing if the snapshot is already on its way out.
+                        deleteSnapshot = false;
+                    } else if (snapshot.getEmCGGroupCopyId() == null) {
+                        // If something bad happened and we weren't able to get the site information off of the snapshot
+                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark is missing Site information, thus not analyzing for automated deletion. "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":" + snapshot.getEmName());
+                        deleteSnapshot = false;
+                    } else if (!bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId())).isEmpty()) {
+                        for (RPBookmark bookmark : bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId()))) {
+                            // bookmark (from RP) vs. snapshot (from ViPR)
+                            if (snapshot.getEmName().equalsIgnoreCase(bookmark.getBookmarkName()) &&
+                                    snapshot.getEmCGGroupCopyId().equals(bookmark.getCGGroupCopyUID().getGlobalCopyUID().getCopyUID())) {
+                                deleteSnapshot = false;
+                                _log.info("Found that ViPR Snapshot corresponding to RP Bookmark still exists, thus saving in ViPR: "
+                                        + snapshot.getId() +
+                                        " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                        + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                            }
+                        }
+                    } else {
+                        // Just for debugging, otherwise useless
+                        _log.debug("Found that ViPR Snapshot corresponding to RP Bookmark doesn't exist, thus going to delete from ViPR: "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                    }
+
+                    if (deleteSnapshot) {
+                        // 5. We couldn't find the bookmark, and the query for it was successful, so it's time to mark it as gone
+                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark no longer exists, thus deleting in ViPR: "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                        dbClient.markForDeletion(snapshot);
+                    }
+                }
+            } else if (protectionSet.getProtectionId() == null) {
+                _log.error("Can not determine the consistency group ID of protection set: " + protectionSet.getLabel()
+                        + ", can not perform any cleanup of snapshots.");
+            } else {
+                _log.info("No consistency groups were found associated with protection system: " + protectionSystem.getLabel()
+                        + ", can not perform cleanup of snapshots.");
+            }
+        }
+    }
 }

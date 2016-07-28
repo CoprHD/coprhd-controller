@@ -10293,7 +10293,7 @@ fail(){
 
 trap '_failure $LINENO' ERR INT
 set -E
-if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ] && [ "$3" != "unity_file" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ] && [ "$3" != "unityfile" ]; then
     common_setup	
 fi
 
@@ -11667,7 +11667,7 @@ unityfile_setup()
      unity_common_setup
 
      discover_unity 
-     unity_file_cos_setup
+     unityfile_cos_setup
 
      storagepool update $UNITY_NATIVEGUID --type file
      storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
@@ -11714,11 +11714,6 @@ unityblock_setup()
     discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
     storagedevice list
 
-    project_setup
-     neighborhood show $NH  &> /dev/null && return $?
-
-    run neighborhood create $NH
-
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
     run neighborhood allow $NH $TENANT
@@ -11728,7 +11723,13 @@ unityblock_setup()
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
-
+     
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
+        vplexunity_setup
+    fi
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
+        rpunity_setup
+    fi
    
 }
 

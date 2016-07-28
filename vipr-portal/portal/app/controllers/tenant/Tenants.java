@@ -142,21 +142,23 @@ public class Tenants extends ViprResourceController {
         List<CoprhdOsTenant> tenants = OpenStackTenantsUtils.getOpenStackTenantsFromDataBase();
         if (ids != null) {
             List<String> idList = Arrays.asList(ids);
-            for (CoprhdOsTenant tenant : tenants) {
-                if (idList.contains(tenant.getId().toString())) {
-                    if (tenant.getExcluded()) {
-                        tenant.setExcluded(false);
-                    } else {
-                        tenant.setExcluded(true);
+            if(!idList.get(0).isEmpty()) {
+                for (CoprhdOsTenant tenant : tenants) {
+                    if (idList.contains(tenant.getId().toString())) {
+                        if (tenant.getExcluded()) {
+                            tenant.setExcluded(false);
+                        } else {
+                            tenant.setExcluded(true);
+                        }
                     }
                 }
+
+                CoprhdOsTenantListRestRep params = new CoprhdOsTenantListRestRep();
+                params.setCoprhdOsTenants(tenants);
+
+                OpenStackTenantsUtils.updateOpenStackTenants(params);
             }
         }
-
-        CoprhdOsTenantListRestRep params = new CoprhdOsTenantListRestRep();
-        params.setCoprhdOsTenants(tenants);
-
-        OpenStackTenantsUtils.updateOpenStackTenants(params);
 
         flash.success(MessagesUtils.get(UPDATED));
         list();
@@ -233,7 +235,7 @@ public class Tenants extends ViprResourceController {
         }
 
         QuotaInfo quota = TenantUtils.getQuota(id);
-        
+
 
         if (viprTenant != null) {
             TenantForm tenant = new TenantForm().from(viprTenant, quota);
@@ -340,7 +342,7 @@ public class Tenants extends ViprResourceController {
 
         Gson g = new Gson();
         renderArgs.put("domainsJson", g.toJson(domains));
-        
+
         List<StringOption> allNamespace = TenantUtils.getUnmappedNamespace();
         renderArgs.put("namespaceOptions", allNamespace);
     }
@@ -438,7 +440,7 @@ public class Tenants extends ViprResourceController {
 
     /**
      * Removes a number of role assignments from the given tenant, and redisplays the role assignment page.
-     * 
+     *
      * @param tenantId
      *            the tenant ID.
      * @param ids

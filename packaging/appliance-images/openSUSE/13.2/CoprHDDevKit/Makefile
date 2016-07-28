@@ -287,6 +287,12 @@ $(QCOW2): | downloadISO createREPO
 	bash $(WORKSPACE)/patch.sh
 	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+ifeq ($(USE_CACHE),true)
+	sed -i /installNginx/d $(WORKSPACE)/templates/config.sh
+	sed -i "/__REPO__/ i\        <source path=\"/disks/adgbuild/OPENSUSE13.2/repo\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
+	sed -i s/"<archive name=\"nginx.*\"\/>"/"<package name=\"nginx\"\/>"/g $(WORKSPACE)/templates/config.xml
+	sed -i /"<archive name=.*>"/d $(WORKSPACE)/templates/config.xml
+endif
 	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
 	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
 	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml

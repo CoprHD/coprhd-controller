@@ -71,6 +71,7 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostScsiDisk;
@@ -739,7 +740,6 @@ public class VMwareSupport {
      */
     public void unmountVmfsDatastore(HostSystem host, ClusterComputeResource cluster,
             final Datastore datastore) {
-        enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
         List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
 

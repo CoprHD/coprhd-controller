@@ -103,14 +103,14 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask deleteVolumes(List<StorageVolume> volumes) {
-        String taskType = "delete-storage-volumes";
+    public DriverTask deleteVolume(StorageVolume volume) {
+        String taskType = "delete-storage-volume";
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "deleteVolumes");
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "deleteVolume");
         _log.warn(msg);
         task.setMessage(msg);
         return task;
@@ -158,7 +158,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
+    public DriverTask deleteVolumeSnapshot(VolumeSnapshot snapshot) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "deleteVolumeSnapshot", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
@@ -210,7 +210,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
+    public DriverTask deleteVolumeClone(VolumeClone clone) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "deleteVolumeClone", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
@@ -249,7 +249,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
+    public DriverTask deleteVolumeMirror(VolumeMirror mirror) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "deleteVolumeMirror", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
@@ -469,7 +469,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discoverStorageSystem", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
@@ -523,7 +523,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discoverStorageProvider", UUID.randomUUID().toString());
+        String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
@@ -553,6 +553,14 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
         String driverName = this.getClass().getSimpleName();
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "getStorageObject");
+        _log.warn(msg);
+        throw new UnsupportedOperationException(msg);
+    }
+
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        String driverName = this.getClass().getSimpleName();
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "validateStorageProviderConnection");
         _log.warn(msg);
         throw new UnsupportedOperationException(msg);
     }

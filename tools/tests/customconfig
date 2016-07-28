@@ -1,0 +1,163 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# customconfig cli functions
+#----------------------------------------------------------------------
+
+def customconfig_create(args):
+    bourne.connect(args.ip)
+    start = time.time()
+    print "Creating custom configuration of type " + args.configtype
+    cc = bourne.customconfig_create(args.configtype, args.value, args.scopetype, args.scope, args.register)
+    total = time.time() - start
+    bourne.pretty_print_json(cc)
+    print "Custom configuration create took", "{0:.2f}".format(total), "seconds to complete"
+	    
+def customconfig_delete(args):
+    bourne.connect(args.ip)
+    print "Querying for custom configuration " + args.name
+    uri = bourne.customconfig_query(args.name, args.scopetype, args.scope, args.default)
+    start = time.time()
+    print "Deleting custom configuration with URI" + uri
+    response = bourne.customconfig_delete(uri)
+    total = time.time() - start
+    print response
+    print "Custom configuration delete took", "{0:.2f}".format(total), "seconds to complete"
+
+def customconfig_show(args):
+    bourne.connect(args.ip)
+    print "Querying for custom configuration " + args.name
+    uri = bourne.customconfig_query(args.name, args.scopetype, args.scope, args.default)
+    cc = bourne.customconfig_show(uri)
+    bourne.pretty_print_json(cc)
+
+def customconfig_query(args):
+    bourne.connect(args.ip)
+    print "Querying for custom configuration " + args.name + " with scope " + args.scopetype + ":" + args.scope + " is default: " + args.default
+    uri = bourne.customconfig_query(args.name, args.scopetype, args.scope, args.default)
+    print "Custom configuration URI is " + uri
+
+def customconfig_list(args):
+    bourne.connect(args.ip)
+    customconfig_display_hdr()
+    cc_list = bourne.customconfig_list()
+    for cc in cc_list:
+        cc = bourne.customconfig_show(cc['id'])
+        customconfig_display(cc)
+
+#----------------------------------------------------------------------
+# Display custom configurations in list form
+#----------------------------------------------------------------------
+
+customconfig_display_fmt = '{0:65s} {1:35s} {2:75s} {3:10s} {4:10s} {5:5s}'
+
+def customconfig_display_hdr():
+    print customconfig_display_fmt.format('name', 'type', 'value', 'scope type', 'scope', 'registerd')
+    print customconfig_display_fmt.format('----', '----', '-----', '----------', '-----', '---------')
+
+def customconfig_display(cc):
+    try:
+        type = cc['config_type']
+        scope = cc['scope']
+        print customconfig_display_fmt.format(
+              cc['name'],
+              type['name'],
+              cc['value'],
+              scope['type'],
+              scope['value'],
+              str(cc['registered']))
+    except:
+        print cc
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# customconfig <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne customconfig cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | query)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# customconfig create
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('configtype',	help = 'The custom configuration type')
+create.add_argument('value', help = 'The custom configuration value')
+create.add_argument('scopetype', help = 'The custom configuration scope type')
+create.add_argument('scope', help = 'The custom configuration scope')
+create.add_argument('--register', help = 'Boolean indicates if the custom configuration is registered')
+
+# customconfig delete
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name', help = 'The name of the custom configuration to be deleted')
+delete.add_argument('scopetype', help = 'The custom configuration scope type')
+delete.add_argument('scope', help = 'The custom configuration scope')
+delete.add_argument('default', help = 'Boolean indicates if this is the default value for the scope')
+
+# customconfig show
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help = 'The name of the custom configuration')
+show.add_argument('scopetype', help = 'The custom configuration scope type')
+show.add_argument('scope', help = 'The custom configuration scope')
+show.add_argument('default', help = 'Boolean indicates if this is the default value for the scope')
+
+# customconfig query
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name', help = 'The name of the custom configuration')
+query.add_argument('scopetype', help = 'The custom configuration scope type')
+query.add_argument('scope', help = 'The custom configuration scope')
+query.add_argument('default', help = 'Boolean indicates if this is the default value for the scope')
+
+# customconfig list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        customconfig_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        customconfig_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        customconfig_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        customconfig_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        customconfig_list(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

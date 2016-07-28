@@ -50,15 +50,14 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ObjectUserSecretKey;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageHADomain;
@@ -72,13 +71,13 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -93,7 +92,6 @@ import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
-import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -126,7 +124,6 @@ import com.emc.storageos.volumecontroller.StorageController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
-import com.emc.storageos.volumecontroller.impl.ecs.BucketOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -827,8 +824,9 @@ public class StorageSystemService extends TaskResourceService {
             }
             registerStoragePort(port);
         }
+        StringBuffer errorMessage = new StringBuffer();
         // Pool registration also update its varray relationship, so, we should also update vpool to pool relation.
-        ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(registeredPools, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(registeredPools, _dbClient, _coordinator, errorMessage);
         return map(storageSystem);
     }
 
@@ -898,8 +896,8 @@ public class StorageSystemService extends TaskResourceService {
             _dbClient.persistObject(port);
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT, true, null, port.getLabel(), port.getId().toString());
         }
-
-        ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(modifiedPools, _dbClient, _coordinator);
+        StringBuffer errorMessage = new StringBuffer();
+        ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(modifiedPools, _dbClient, _coordinator, errorMessage);
         auditOp(OperationTypeEnum.DEREGISTER_STORAGE_SYSTEM, true, null,
                 storageSystem.getId().toString(), id.toString());
 
@@ -1044,8 +1042,9 @@ public class StorageSystemService extends TaskResourceService {
         // if not register, registered it. Otherwise, dont do anything
         if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(pool.getRegistrationStatus())) {
             registerStoragePool(pool);
+            StringBuffer errorMessage = new StringBuffer();
             // Pool registration also update its varray relationship, so, we should also update vpool to pool relation.
-            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(Arrays.asList(pool), _dbClient, _coordinator);
+            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(Arrays.asList(pool), _dbClient, _coordinator, errorMessage);
         }
 
         return StoragePoolService.toStoragePoolRep(pool, _dbClient, _coordinator);

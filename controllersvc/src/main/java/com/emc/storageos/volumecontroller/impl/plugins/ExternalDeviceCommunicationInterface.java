@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.StorageDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +30,19 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DiscoveryDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -122,7 +124,101 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
-        // todo: need to define driver api and implement support for scan.
+        // Initialize driver instance for storage provider,
+        // call driver to scan the provider to get list of managed storage systems,
+        // update the system with this information.
+        _log.info("Scanning started for provider: {}", accessProfile.getSystemId());
+        com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus cxnStatus =
+                com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus.CONNECTED;
+        // Get discovery driver class based on storage device type
+        String deviceType = accessProfile.getSystemType();
+        AbstractStorageDriver driver = getDriver(deviceType);
+        if (driver == null) {
+            String errorMsg = String.format("No driver entry defined for device type: %s . ", deviceType);
+            _log.info(errorMsg);
+            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, errorMsg, null, null);
+        }
+
+        com.emc.storageos.db.client.model.StorageProvider storageProvider = null;
+        try {
+            storageProvider =
+                    _dbClient.queryObject(com.emc.storageos.db.client.model.StorageProvider.class, accessProfile.getSystemId());
+            String username = storageProvider.getUserName();
+            String password = storageProvider.getPassword();
+            String hostName = storageProvider.getIPAddress();
+            Integer portNumber = storageProvider.getPortNumber();
+            String providerType = storageProvider.getInterfaceType();
+            Boolean useSsl = storageProvider.getUseSSL();
+            String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
+                    providerType, hostName, portNumber, username, useSsl);
+            _log.info(msg);
+
+            StorageProvider driverProvider = new StorageProvider();
+            // initialize driver provider
+            driverProvider.setProviderHost(hostName);
+            driverProvider.setPortNumber(portNumber);
+            driverProvider.setUsername(username);
+            driverProvider.setPassword(password);
+            driverProvider.setUseSSL(useSsl);
+
+            // call the driver
+            List<StorageSystem> systems = new ArrayList<>();
+            DriverTask task = driver.discoverStorageProvider(driverProvider, systems);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // process results, populate cache
+                _log.info("Scan: found {} systems for provider {}", systems.size(), accessProfile.getSystemId());
+
+                //update provider with scan info
+                storageProvider.setVersionString(driverProvider.getProviderVersion());
+                if (driverProvider.isSupportedVersion()) {
+                    storageProvider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+                } else {
+                    storageProvider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
+                    String errorMsg = String.format("Storage provider %s has version %s which is not supported by driver",
+                            storageProvider.getIPAddress(), storageProvider.getVersionString());
+                    throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                            null, errorMsg, null, null);
+                }
+
+                // process storage system cache
+                Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
+                for (StorageSystem driverStorageSystem : systems) {
+                    String systemType = driverStorageSystem.getSystemType();
+                    String nativeGuid = NativeGUIDGenerator.generateNativeGuid(systemType, driverStorageSystem.getNativeId());
+                    StorageSystemViewObject storageSystemView = storageSystemsCache.get(nativeGuid);
+                    if (storageSystemView == null) {
+                        storageSystemView = new StorageSystemViewObject();
+                    }
+                    storageSystemView.setDeviceType(systemType);
+                    storageSystemView.addprovider(accessProfile.getSystemId().toString());
+                    storageSystemView.setProperty(StorageSystemViewObject.SERIAL_NUMBER, driverStorageSystem.getSerialNumber());
+                    storageSystemView.setProperty(StorageSystemViewObject.VERSION, driverStorageSystem.getFirmwareVersion());
+                    storageSystemView.setProperty(StorageSystemViewObject.STORAGE_NAME, driverStorageSystem.getNativeId());
+                    storageSystemsCache.put(nativeGuid, storageSystemView);
+                    _log.info(String.format("Info for storage system %s (provider ip %s): type: %s, nativeGuid: %s",
+                            driverStorageSystem.getSerialNumber(), accessProfile.getIpAddress(), systemType, nativeGuid));
+                }
+            } else {
+                // task status is not ready
+                String errorMsg = String.format("Failed to scan provider %s of type %s. \n" +
+                                " Driver task message: %s", accessProfile.getSystemId(), accessProfile.getSystemType(),
+                                task.getMessage());
+                throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                        null, errorMsg, null, null);
+            }
+        } catch (Exception ex) {
+            _log.error("Error scanning provider: {} of type: {} .", accessProfile.getIpAddress(), accessProfile.getSystemType(), ex);
+            cxnStatus = com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus.NOTCONNECTED;
+           throw ex;
+        } finally {
+            if (storageProvider != null) {
+                storageProvider.setConnectionStatus(cxnStatus.name());
+                _dbClient.updateObject(storageProvider);
+            }
+            _log.info("Completed scan of {} provider: ", accessProfile.getSystemType(), accessProfile.getIpAddress());
+        }
     }
 
     @Override
@@ -193,8 +289,7 @@ public class ExternalDeviceCommunicationInterface extends
             }
         } catch (BaseCollectionException bEx) {
             _completer.error(_dbClient, bEx);
-        } catch (Exception ex) {
-            _completer.error(_dbClient, null);
+            throw bEx;
         }
     }
 
@@ -239,18 +334,28 @@ public class ExternalDeviceCommunicationInterface extends
         driverStorageSystem.setPortNumber(accessProfile.getPortNumber());
         driverStorageSystem.setUsername(accessProfile.getUserName());
         driverStorageSystem.setPassword(accessProfile.getPassword());
-        List<StorageSystem> driverStorageSystems = Collections.singletonList(driverStorageSystem);
 
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
-        // TODO: temporary label is used to identify storage system by name when multiple systems are managed by provider at
-        // the provided endpoint.
+
         driverStorageSystem.setSystemName(storageSystem.getLabel());
 
+        // could be already populated by scan
+        if (storageSystem.getSerialNumber() != null) {
+            driverStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
+            _log.info("discoverStorageSystem: set serial number to {}", driverStorageSystem.getSerialNumber());
+        }
+        // could be already populated by scan
+        if (storageSystem.getNativeId() != null) {
+            driverStorageSystem.setNativeId(storageSystem.getNativeId());
+            _log.info("discoverStorageSystem: set nativeId to {}", driverStorageSystem.getNativeId());
+        }
+
         try {
-            _log.info("discoverStorageSystem information for storage system {}, name {} - start",
-                    accessProfile.getSystemId(), driverStorageSystem.getSystemName());
-            DriverTask task = driver.discoverStorageSystem(driverStorageSystems);
+            _log.info("discoverStorageSystem information for storage system {}, name {}, ip address (), port {} - start",
+                    accessProfile.getSystemId(), driverStorageSystem.getSystemName(), driverStorageSystem.getIpAddress(),
+                    driverStorageSystem.getPortNumber());
+            DriverTask task = driver.discoverStorageSystem(driverStorageSystem);
 
             // process discovery results.
             // todo: need to implement support for async case.
@@ -292,8 +397,9 @@ public class ExternalDeviceCommunicationInterface extends
                 }
             } else {
                 storageSystem.setReachableStatus(false);
-                String errorMsg = String.format("Failed to discover storage system %s of type %s",
-                       accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to discover storage system %s of type %s. \n" +
+                                " Driver task message: %s ",
+                       accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }
@@ -411,8 +517,9 @@ public class ExternalDeviceCommunicationInterface extends
                 allPools.addAll(newPools);
                 allPools.addAll(existingPools);
             } else {
-                String errorMsg = String.format("Failed to discover storage pools for system %s of type %s",
-                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to discover storage pools for system %s of type %s . \n" +
+                                " Driver task message: %s",
+                        accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
                 storageSystem.setLastDiscoveryStatusMessage(errorMsg);
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
@@ -519,8 +626,9 @@ public class ExternalDeviceCommunicationInterface extends
                 // Create storage ha domains for ports
                 processStorageHADomains(storageSystem, Collections.unmodifiableMap(driverPortsToDBPorts));
             } else {
-                String errorMsg = String.format("Failed to discover storage ports for system %s of type %s",
-                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to discover storage ports for system %s of type %s. \n" +
+                                " Driver task message: %s",
+                        accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }

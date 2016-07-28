@@ -1150,7 +1150,6 @@ verify_nomasks() {
 #
 test_0() {
     echot "Test 0 Begins"
-    reset_system_props
     expname=${EXPORT_GROUP_NAME}t0
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} gone
@@ -1173,7 +1172,6 @@ test_1() {
     expname=${EXPORT_GROUP_NAME}t1
 
     # Turn on suspend of export after orchestration
-    reset_system_props
     set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
@@ -1240,7 +1238,6 @@ test_2() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Turn on suspend of export after orchestration
-    reset_system_props
     set_suspend_on_class_method ${exportCreateDeviceStep}
 
     # Run the export group command
@@ -1326,8 +1323,6 @@ test_3() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1416,8 +1411,6 @@ test_4() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
@@ -1497,8 +1490,6 @@ test_5() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -1582,8 +1573,6 @@ test_6() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1686,8 +1675,6 @@ test_7() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
@@ -1744,8 +1731,6 @@ test_8() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
@@ -1793,8 +1778,6 @@ test_9() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1871,8 +1854,6 @@ test_10() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
@@ -1933,8 +1914,6 @@ test_11() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2018,8 +1997,6 @@ test_12() {
     expname=${EXPORT_GROUP_NAME}t12
     volname="${HOST1}-dutest-oktodelete-t12"
 
-    reset_system_props
-
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
@@ -2068,8 +2045,6 @@ test_13() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2151,8 +2126,6 @@ test_14() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2255,8 +2228,6 @@ test_15() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
@@ -2358,8 +2329,6 @@ test_16() {
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${SGNAME} -exact- gone
 
-    reset_system_props
-
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportCreateOrchStep}
 
@@ -2443,7 +2412,6 @@ test_17() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
     set_validation_check false
 
     # Create the mask with the 1 volume
@@ -2506,9 +2474,6 @@ test_17() {
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-
-    # Turn off suspend of export after orchestration
-    reset_system_props
 }
 
 # Export Test 18
@@ -2530,8 +2495,6 @@ test_18() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -2623,8 +2586,6 @@ test_19() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2852,13 +2813,17 @@ then
    for t in $*
    do
       echo Run $t
+      reset_system_props
       $t
+      reset_system_props
    done
 else
    # Passing tests:
     for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
     do
+      reset_system_props
       test_${num}
+      reset_system_props
     done
 fi
 

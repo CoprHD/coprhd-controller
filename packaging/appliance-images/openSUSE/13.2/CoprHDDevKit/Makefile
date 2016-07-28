@@ -19,7 +19,7 @@ MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[
 ##################################################
 #  Target files/folders
 ##################################################
-USE_CACHE := $(shell [ -d /disks/adgbuild/OPENSUSE13.2/repo ] && echo true || echo false )
+USE_CACHE := $(shell [ -d /disks/adgbuild/OPENSUSE13.2/repo ] && echo true || echo false)
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)

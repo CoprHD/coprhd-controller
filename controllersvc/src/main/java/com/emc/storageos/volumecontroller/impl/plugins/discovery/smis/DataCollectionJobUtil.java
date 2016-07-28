@@ -606,6 +606,9 @@ public class DataCollectionJobUtil {
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
             if (StorageSystem.Type.isProviderStorageSystem(storageDevice.getSystemType())) {
                 injectDiscoveryProfile(accessProfile, storageDevice);
+                // set port number to provider port
+                StorageProvider provider = getActiveProviderForStorageSystem(storageDevice, accessProfile);
+                accessProfile.setPortNumber(provider.getPortNumber());
             } else {
                 // directly managed
                 accessProfile.setSystemType(storageDevice.getSystemType());

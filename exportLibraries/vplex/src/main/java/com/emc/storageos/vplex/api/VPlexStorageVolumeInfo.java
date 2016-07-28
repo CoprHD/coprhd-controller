@@ -119,6 +119,9 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
      * "VPD83T3", for example:
      * VPD83T3:600601608d203700db57d68b5d2ae511
      * 
+     * For XIV we noticed WWN prefixed by VPD83T2(not
+     * sure what triggered this prefix change)
+     * 
      * @return the WWN of this storage volume or null.
      */
     public String getWwn() {

@@ -270,7 +270,7 @@ public class BlockServiceUtils {
             }
 
             if (storage.deviceIsType(Type.vplex)) {
-                Set<Type> applicationSupported = Sets.newHashSet(Type.vmax, Type.vnxblock, Type.xtremio);
+                Set<Type> applicationSupported = Sets.newHashSet(Type.vmax, Type.vnxblock, Type.xtremio, Type.unity);
                 Set<Type> backendSystemTypes = new HashSet<>();
 
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {

@@ -91,7 +91,7 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
-    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 1; // TODO: change to 30m
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 1; // TODO: change to 15m
 
     @Autowired
     private RecordableEventManager eventManager;
@@ -697,12 +697,14 @@ public class OrderService extends CatalogTaggedResourceService {
 
             URI orderId = event.getLatestOrderId();
             Order order = getOrderById(orderId, false);
-            if ( order.getOrderStatus()!=OrderStatus.SUCCESS.name() &&
-                 order.getOrderStatus()!=OrderStatus.PARTIAL_SUCCESS.name() &&
-                 order.getOrderStatus()!=OrderStatus.ERROR.name() ) {
+            if (! (order.getOrderStatus().equals(OrderStatus.SUCCESS.name()) ||
+                   order.getOrderStatus().equals(OrderStatus.PARTIAL_SUCCESS.name()) ||
+                   order.getOrderStatus().equals(OrderStatus.ERROR.name())) ) {
                 log.info("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
                 continue;
             }
+
+            log.info("Scheduling a new order for event {}", event.getId());
 
             StorageOSUser user = StorageOSUser.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getStorageOSUser().getBytes(UTF_8)));
 

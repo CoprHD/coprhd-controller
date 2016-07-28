@@ -42,6 +42,10 @@ public class ScheduleTimeHelper {
         startTime.set(Calendar.SECOND, 0);
         log.info("startTime: {}", startTime.toString());
 
+        if (scheduleInfo.getReoccurrence() == 1) {
+            return startTime;
+        }
+
         Calendar currTZTime = Calendar.getInstance();
         Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         currTime.setTimeInMillis(currTZTime.getTimeInMillis());
@@ -118,11 +122,18 @@ public class ScheduleTimeHelper {
     }
 
     public static Calendar getScheduledTime(ExecutionWindow window) {
-        Calendar currentTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        currentTime.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        log.info("currTime: {}", currTime.toString());
+
+        int year = currTime.get(Calendar.YEAR);
+        int month = currTime.get(Calendar.MONTH);
+        int day = currTime.get(Calendar.DAY_OF_MONTH);
+        int hour = window.getHourOfDayInUTC();
+        int min = window.getMinuteOfHourInUTC();
 
         Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         scheduledTime.setTimeZone(TimeZone.getTimeZone("UTC"));
+        scheduledTime.set(year, month, day, hour, min, 0);
 
         if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
             scheduledTime.set(Calendar.DAY_OF_MONTH, window.getDayOfMonth());
@@ -130,9 +141,10 @@ public class ScheduleTimeHelper {
             int daysDiff = (window.getDayOfWeek()%7 + 1) - scheduledTime.get(Calendar.DAY_OF_WEEK); // java dayOfWeek starts from Sun.
             scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
         }
+
         log.info("scheduledTime: {}", scheduledTime.toString());
 
-        while (scheduledTime.before(currentTime)) {
+        while (scheduledTime.before(currTime)) {
             scheduledTime = getNextScheduledTime(scheduledTime, window);
             log.info("scheduledTime in loop: {}", scheduledTime.toString());
         }

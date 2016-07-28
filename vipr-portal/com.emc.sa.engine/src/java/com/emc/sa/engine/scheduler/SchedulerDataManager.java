@@ -95,6 +95,9 @@ public class SchedulerDataManager {
                     hasActiveWindows.await();
                 }
                 windows.putAll(activeWindows);
+                if (enableInfiniteExecutionWindow == true) {
+                    return windows;
+                }
             } finally {
                 lock.unlock();
             }
@@ -227,10 +230,7 @@ public class SchedulerDataManager {
                 activeTenants = getTenants(windows.values());
             }
 
-            Calendar currTZTime = Calendar.getInstance();
             Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-            LOG.info("currTime: {}", currTime.toString());
-            currTime.setTimeInMillis(currTZTime.getTimeInMillis());
             LOG.info("currTime: {}", currTime.toString());
 
             for (Order order : orders) {
@@ -378,12 +378,9 @@ public class SchedulerDataManager {
     }
 
     private boolean isExpiredOrder(Order order, ExecutionWindow window) {
-
-
         ExecutionWindowHelper windowHelper = new ExecutionWindowHelper(window);
         if (windowHelper.isExpired(order.getScheduledTime())) {
             order.setOrderStatus(OrderStatus.ERROR.name());
-            // TODO: trigger next one for REOCCURRENCE event
             LOG.info("order {} has expired.", order.getId());
             models.save(order);
             return true;

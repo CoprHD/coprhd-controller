@@ -872,7 +872,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         	try {
         		dialog.zonesetClone(vsanId, activeZoneset.getName());
         	} catch (NetworkDeviceControllerException nde) {
-        		_log.info("Failed to create zoneset clone. Reason : ", nde.getCause().getMessage());
+        		_log.info("Failed to create zoneset clone. Reason : ", nde.getMessage());
         		if (!allowZonesIfZonesetCloneFails) {        			
         			throw nde;
         		}

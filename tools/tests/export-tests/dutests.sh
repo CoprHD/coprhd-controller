@@ -192,7 +192,7 @@ arrayhelper_create_export_mask_operation() {
 
     case $SS in
     vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id $pwwn $maskname
+         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pwwn $maskname
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -2330,7 +2330,7 @@ test_16() {
     verify_export ${SGNAME} -exact- gone
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportCreateOrchStep}
+    set_suspend_on_class_method ${exportCreateDeviceStep}
 
     HIJACK=du-hijack-volume-${RANDOM}
 
@@ -2338,7 +2338,7 @@ test_16() {
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created
-    device_id=`get_device_id ${PROJECT}/${volname}`
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
     
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
@@ -2376,22 +2376,29 @@ test_16() {
     echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
     fail task follow $task
 
-    # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 2 1
-
-    # shut off suspensions/failures
-    reset_system_props
-
-    # Make sure it really did kill off the mask
-    verify_export ${expname}1 ${HOST1} gone
-
     # Delete the mask we created
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${h1pi2} ${SGNAME}
-    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${SGNAME}
+    runcmd navihelper.sh remove_initiator_from_mask $serial_number $array_ip $h1pi2 $SGNAME
+    runcmd navihelper.sh remove_volume_from_mask $serial_number $array_ip $device_id $SGNAME
+    runcmd navihelper.sh delete_mask ${SERIAL_NUMBER} $array_ip ${SGNAME}
     verify_export ${SGNAME} -exact- gone
 
     # Delete the volume we created
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # shut off suspensions/failures
+    reset_system_props
+
+    # Run export group create again
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask was created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
 }
 
 # DU Prevention Validation Test 17

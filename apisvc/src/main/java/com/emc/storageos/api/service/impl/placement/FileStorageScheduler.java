@@ -887,11 +887,15 @@ public class FileStorageScheduler implements Scheduler {
             // TODO: normalize behavior across file arrays so that this check is
             // not required.
             // TODO: Implement fake storageHADomain for DD to fit the viPR model
+            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no vnas servers were found
+            if (storage.getSystemType().equals(Type.unity.toString())) {
+                 continue;
+            }
+
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
                     && !storage.getSystemType().equals(Type.vnxfile.toString()) 
-                    && !storage.getSystemType().equals(Type.unity.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);

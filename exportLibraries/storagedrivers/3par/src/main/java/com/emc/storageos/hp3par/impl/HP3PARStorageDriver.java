@@ -614,7 +614,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	    return expunexpHelper.exportVolumesToInitiators(initiators, volumes, volumeToHLUMap, recommendedPorts, 
 	            availablePorts, capabilities, usedRecommendedPorts, selectedPorts,
-	            task, this.driverRegistry);
+	            task, this.driverRegistry, this.lockManager);
 	}
 
 

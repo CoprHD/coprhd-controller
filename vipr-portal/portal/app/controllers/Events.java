@@ -168,6 +168,42 @@ public class Events extends Controller {
         listAll();
     }
 
+    public static void approveEvents(@As(",") String[] ids) {
+        try{
+            for(String eventId:ids) {
+                approveEvent(eventId);
+            }
+        } catch(Exception e) {
+            flashException(e);
+            listAll();
+        }
+        listAll();
+    }
+    
+    public static void declineEvents(@As(",") String[] ids) {
+        try{
+            for(String eventId:ids) {
+                declineEvent(eventId);
+            }
+        } catch(Exception e) {
+            flashException(e);
+            listAll();
+        }
+        listAll();
+    }
+    
+    public static void deleteEvents(@As(",") String[] ids) {
+        try{
+            for(String eventId:ids) {
+                deleteEvent(eventId);
+            }
+        } catch(Exception e) {
+            flashException(e);
+            listAll();
+        }
+        listAll();
+    }
+    
     public static void approveEvent(String eventId) {
         try {
             if (StringUtils.isNotBlank(eventId)) {

@@ -2,7 +2,6 @@
 
 #{set navSelected: ['nav.storage', 'nav.events'] /}
 #{set 'title'}&{'resources.events'}#{/set}
-
 <div id="events" class="events-container">
   <div class="content">
 
@@ -67,8 +66,23 @@
         cssClass:'editableRows table-striped',
         options:options,
         actionsTitleKey:'resources.actions',
-        messageOverrides : messageOverrides
-    /}
+        messageOverrides : messageOverrides,
+        selectable: true
+     }
+   #{DataTable.buttonBar}
+    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected'], submit:'approveForm'/}
+    #{Form.button name:'resources.events.declineEvent', class:'warning', submit:'removeForm', data:['enabled':'selected'], submit:'declineForm'/}
+    #{Form.button name:'resources.events.deleteEvent', class:'danger', data:['enabled':'selected'], submit:'deleteForm'/}
+  #{/DataTable.buttonBar}
+  #{/DataTable.table}
+  #{DataTable.formAction @approveEvents(), id:'approveForm', table:'events',
+                       confirm:messages.get('resources.events.approve', name)/}
+
+  #{DataTable.formAction @declineEvents(), id:'declineForm', table:'events',
+                       confirm:messages.get('resources.events.decline', name)/}
+
+  #{DataTable.formAction @deleteEvents(), id:'deleteForm', table:'events',
+                       confirm:messages.get('resources.events.delete', name)/}
   </div>
 </div>
 

@@ -77,11 +77,17 @@ public class ExecutionUtils {
         // Executing if order not in a paused state. If paused, poll while waiting for order to go into executing state
         String orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
         long startTime = System.currentTimeMillis();
+        int MAX_PAUSE_TIMEOUT = 3600000;
         try {
             while (OrderStatus.PAUSED.name().equalsIgnoreCase(orderStatus)) {
                 Thread.sleep(1000);
                 // requery order to get its updated status
                 orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
+                //limiting pause timeout to 1 hour
+                if ((System.currentTimeMillis() - startTime) > MAX_PAUSE_TIMEOUT) {
+                    context.getModelClient().orders().findById(context.getOrder().getId()).setOrderStatus(OrderStatus.EXECUTING.name());
+                    break;
+                }
             }
 
             injectValues(task, context);

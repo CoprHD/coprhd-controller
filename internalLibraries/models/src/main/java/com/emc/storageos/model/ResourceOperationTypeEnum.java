@@ -205,6 +205,8 @@ public enum ResourceOperationTypeEnum {
     CREATE_INITIATOR("CREATE INITIATOR", "create initiator"),
     ADD_HOST_INITIATOR("ADD HOST INITIATOR", "add an initiator associated with a host"),
     ADD_VIRTUAL_MACHINE_INITIATOR("ADD VIRTUAL MACHINE INITIATOR", "add an initiator associated with a virtual machine"),
+    ADD_VIRTUAL_MACHINE_PAIRED_INITIATOR("ADD VIRTUAL MACHINE PAIRED INITIATOR",
+            "add an paired initiator associated with a virtual machine"),
     DELETE_INITIATOR("DELETE INITIATOR", "delete initiator"),
     CREATE_NETWORK_SYSTEM("CREATE NETWORKSYSTEM", "create a network system"),
     UPDATE_NETWORK_SYSTEM("UPDATE NETWORKSYSTEM", "update a network system"),

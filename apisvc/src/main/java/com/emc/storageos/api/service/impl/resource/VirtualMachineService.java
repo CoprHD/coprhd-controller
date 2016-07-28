@@ -283,7 +283,7 @@ public class VirtualMachineService extends TaskResourceService {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
         }
 
-        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+        auditOp(OperationTypeEnum.CREATE_VIRTUAL_MACHINE_INITIATOR, true, null,
                 initiator.auditParameters());
         return toTask(initiator, taskId, op);
     }
@@ -307,8 +307,7 @@ public class VirtualMachineService extends TaskResourceService {
             PairedInitiatorCreateParam createParam) throws DatabaseException {
         VirtualMachine vm = queryObject(VirtualMachine.class, id, true);
         Cluster cluster = null;
-        validateInitiatorData(createParam.getFirstInitiator(), null);
-        validateInitiatorData(createParam.getSecondInitiator(), null);
+        validatePairedInitiatorData(createParam);
         // create and populate the initiator
         Initiator firstInitiator = new Initiator();
         Initiator secondInitiator = new Initiator();
@@ -332,16 +331,17 @@ public class VirtualMachineService extends TaskResourceService {
         }
         secondInitiator.setId(URIUtil.createId(Initiator.class));
         populateInitiator(secondInitiator, createParam.getFirstInitiator());
-
+        firstInitiator.setAssociatedInitiator(secondInitiator.getId());
+        secondInitiator.setAssociatedInitiator(firstInitiator.getId());
         _dbClient.createObject(firstInitiator);
         _dbClient.createObject(secondInitiator);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, firstInitiator.getId(), taskId,
-                ResourceOperationTypeEnum.ADD_VIRTUAL_MACHINE_INITIATOR);
+                ResourceOperationTypeEnum.ADD_VIRTUAL_MACHINE_PAIRED_INITIATOR);
 
         // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())
+        if (ComputeSystemHelper.isVirtualMachineInUse(_dbClient, vm.getId())
                 && (cluster == null || cluster.getAutoExportEnabled())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(firstInitiator.getVirtualMachine(),
@@ -351,9 +351,22 @@ public class VirtualMachineService extends TaskResourceService {
             _dbClient.ready(Initiator.class, firstInitiator.getId(), taskId);
         }
 
-        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+        auditOp(OperationTypeEnum.CREATE_VIRTUAL_MACHINE_PAIRED_INITIATOR, true, null,
                 firstInitiator.auditParameters());
         return toTask(firstInitiator, taskId, op);
+    }
+
+    private void validatePairedInitiatorData(PairedInitiatorCreateParam createParam) {
+        validateInitiatorData(createParam.getFirstInitiator(), null);
+        validateInitiatorData(createParam.getSecondInitiator(), null);
+
+        if (createParam.getFirstInitiator().getPort().equalsIgnoreCase(createParam.getSecondInitiator().getPort())) {
+            throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getPort(), "initiator_port");
+        }
+        if (createParam.getFirstInitiator().getName().equalsIgnoreCase(createParam.getSecondInitiator().getName())) {
+            throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getName(), "name");
+        }
+
     }
 
     /**

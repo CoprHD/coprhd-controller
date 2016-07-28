@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
@@ -46,7 +47,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
 
     @Override
     public boolean validate() throws Exception {
-        log.info("Validating export mask: {}", exportMask.getId());
+        log.info("Validating export mask: {}, field: {}", exportMask.getId(), field);
         getLogger().setLog(log);
 
         // We want the latest info, but in most customer cases, array configurations don't change every 5 minutes.
@@ -87,7 +88,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         CloseableIterator<CIMInstance> associatedResources = null;
 
         try {
-            CIMObjectPath maskingViewPath = getCimPath().getLunMaskingProtocolControllerPath(storage, exportMask);
+            CIMObjectPath maskingViewPath = getMaskingView();
             String[] prop = new String[] { getAssociatorProperty() };
             associatedResources = getHelper().getAssociatorInstances(storage, maskingViewPath, null, getAssociatorClass(), null, null,
                     prop);
@@ -115,6 +116,16 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
             result = transform(hardware, getHardwareTransformer());
         }
         return Sets.newHashSet(result);
+    }
+
+    private CIMObjectPath getMaskingView() {
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(storage.getSystemType())) {
+            return getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
+        } else if (DiscoveredDataObject.Type.vnxblock.toString().equalsIgnoreCase(storage.getSystemType())) {
+            return getCimPath().getLunMaskingProtocolControllerPath(storage, exportMask);
+        }
+        throw new IllegalArgumentException(
+                String.format("Don't know how to get masking view for storage type: %s", storage.getSystemType()));
     }
 
 }

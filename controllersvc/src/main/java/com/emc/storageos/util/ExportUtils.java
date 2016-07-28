@@ -584,8 +584,6 @@ public class ExportUtils {
      * for an export mask that:<ol>
      * <li>is for the same storage system</li>
      * <li>is not one used by the same export group</li>
-     * <li>has the initiator added into it by the application</li>
-     * <li>has the exact set of initiators which a prerequisite to sharing an initiator group</li>
      * </ol>  
      * @param dbClient an instance of DbClient
      * @param initiatorUri the URI of the initiator being checked
@@ -600,9 +598,7 @@ public class ExportUtils {
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
-                            !exportMaskURIs.contains(exportMask.getId()) && 
-                            exportMask.hasUserInitiator(initiatorUri) && 
-                            StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
+                    !exportMaskURIs.contains(exportMask.getId())) {
                 _log.info(String.format("Initiator %s is shared with mask %s.", 
                         initiatorUri, exportMask.getMaskName()));
                 return true;

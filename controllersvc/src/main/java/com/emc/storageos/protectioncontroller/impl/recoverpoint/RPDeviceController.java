@@ -4657,7 +4657,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow
      * .Workflow, java.lang.String, java.util.List, java.lang.String)
@@ -7055,7 +7055,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow
      * , java.lang.String, java.util.List, java.lang.String)
@@ -7065,5 +7065,42 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             throws InternalException {
         // full copy steps are added with addStepsForPreCreateReplica and addStepsForPostCreateReplica
         return waitFor;
+    }
+
+    @Override
+    public Map<URI, String> getCopyAccessStates(URI protectionSystemURI, List<URI> volumeURIs) {
+        _log.info(String.format("Finding RecoverPoint copy states for volumes %s", volumeURIs));
+        Map<URI, String> copyAccessStates = new HashMap<URI, String>();
+
+        if (protectionSystemURI != null && volumeURIs != null) {
+            // Validate that all volumeURIs share the same protection system that is passed in.
+            for (URI volumeURI : volumeURIs) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                if (!protectionSystemURI.equals(volume.getProtectionController())) {
+                    throw DeviceControllerExceptions.recoverpoint.failedToGetCopyAccessStateProtectionSystemMismatch(volume.getId(),
+                            protectionSystemURI);
+                }
+            }
+
+            Map<String, URI> wwnToVolumeUri = new HashMap<String, URI>();
+
+            for (URI volumeURI : volumeURIs) {
+                String wwn = RPHelper.getRPWWn(volumeURI, _dbClient);
+                wwnToVolumeUri.put(wwn, volumeURI);
+            }
+
+            ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionSystemURI);
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
+
+            Map<String, String> wwnToAccessState = rp.getCopyAccessStates(wwnToVolumeUri.keySet());
+
+            for (Map.Entry<String, String> wwnEntry : wwnToAccessState.entrySet()) {
+                copyAccessStates.put(wwnToVolumeUri.get(wwnEntry.getKey()), wwnEntry.getValue());
+            }
+        }
+
+        _log.info(String.format("Found the following RecoverPoint copy states %s", copyAccessStates));
+
+        return copyAccessStates;
     }
 }

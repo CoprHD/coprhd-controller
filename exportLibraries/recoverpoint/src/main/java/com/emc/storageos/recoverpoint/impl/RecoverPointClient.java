@@ -3732,4 +3732,35 @@ public class RecoverPointClient {
         }
         return false;
     }
+
+    /**
+     * Checks to see if the given copy is in direct access state.
+     *
+     * @param copyToExamine the copy to check for direct access state
+     * @return true if the given copy is in direct access state, false otherwise
+     */
+    public Map<String, String> getCopyAccessStates(Set<String> rpWWNs) {
+        Map<String, String> copyAccessStates = new HashMap<String, String>();
+
+        if (rpWWNs != null) {
+            for (String wwn : rpWWNs) {
+                RecoverPointVolumeProtectionInfo protectionInfo = getProtectionInfoForVolume(wwn);
+                ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(protectionInfo);
+
+                if (cgCopyUID != null) {
+                    RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+                    ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, cgCopyUID);
+
+                    if (copyState != null) {
+                        StorageAccessState copyAccessState = copyState.getStorageAccessState();
+                        copyAccessStates.put(wwn, copyAccessState.name());
+                    }
+                }
+            }
+        }
+
+        logger.info(String.format("Access states for requested copies: %s", copyAccessStates));
+
+        return copyAccessStates;
+    }
 }

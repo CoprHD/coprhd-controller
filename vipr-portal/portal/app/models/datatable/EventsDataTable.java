@@ -34,7 +34,7 @@ public class EventsDataTable extends DataTable {
         }
         addColumn("creationTime").setRenderFunction("render.localDate");
         setDefaultSort("creationTime", "desc");
-
+        sortAllExcept("id");
         setRowCallback("createRowLink");
     }
 

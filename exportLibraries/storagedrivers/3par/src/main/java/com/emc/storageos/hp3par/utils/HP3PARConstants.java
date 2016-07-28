@@ -125,5 +125,39 @@ public class HP3PARConstants {
         }       
     }
 
+    public static enum vLunType
+    {
+    	EMPTY("EMPTY" , 1),
+    	PORT("PORT", 2),
+    	HOST("HOST", 3),
+    	MATCHED_SET("MATCHED_SET", 4),
+    	HOST_SET("HOST_SET", 5);
+        	
+        public String type= "";
+        public int value = 0;
+        
+        public String getType() {
+			return type;
+		}
+
+		public void setType(String type) {
+			this.type = type;
+		}
+
+		public int getValue() {
+			return value;
+		}
+
+		public void setValue(int value) {
+			this.value = value;
+		}
+
+		vLunType(String type, int value)
+        {
+            this.type = type;
+            this.value= value;
+        }       
+    }
+
 }
 

@@ -342,6 +342,7 @@ public class HP3PARExpUnexpHelper {
             return task;
         }
 
+        HashMap<String, String> initiatorToHostMap = new HashMap<String, String>();
         // unexport each volume
         for (StorageVolume volume : volumes) {
             try {
@@ -349,34 +350,47 @@ public class HP3PARExpUnexpHelper {
                 HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(),
                         driverRegistry);
                 // TBD: Efficiency; use query method
-                VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
+                VirtualLunsList vlunRes = hp3parApi.getVLunsOfVolume(volume.getWwn());
 
                 for (Initiator init : initiators) {
 
-                    // TBD: Efficiency; Initiator & host name to be stored in hash-map
-                    ArrayList<Initiator> initList = new ArrayList<>();
-                    initList.add(init);
-                    host = get3parHostname(initList, volume.getStorageSystemId(), driverRegistry);
-                    if (host == null) {
-                        fullSuccess = false;
-                        String message = String.format(
-                                "3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s initiator %s",
-                                volume.getStorageSystemId(), volume.getNativeId(), init.getPort());
-                        _log.warn(message);
-                        task.setMessage(message);
-                        task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
-                        continue;
-                    }
-
+                	if(initiatorToHostMap.containsKey(init.getPort())){
+                		host = initiatorToHostMap.get(init.getPort());
+                	}
+                	else{
+	                    // TBD: Efficiency; Initiator & host name to be stored in hash-map
+	                    ArrayList<Initiator> initList = new ArrayList<>();
+	                    initList.add(init);
+	                    host = get3parHostname(initList, volume.getStorageSystemId(), driverRegistry);
+	                    if (host == null) {
+	                        fullSuccess = false;
+	                        String message = String.format(
+	                                "3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s initiator %s",
+	                                volume.getStorageSystemId(), volume.getNativeId(), init.getPort());
+	                        _log.warn(message);
+	                        task.setMessage(message);
+	                        task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+	                        continue;
+	                    }
+	                    else{
+	                    	initiatorToHostMap.put(init.getPort(), host);
+	                    }
+                	}
                     if (init.getInitiatorType().equals(Type.Host)) {
                         // get vlun and port details on this export
                         Integer lun = -1;
                         Position pos = null;
                         String portId = init.getPort();
                         portId = portId.replace(":", "");
-
+                        boolean bHostSeesEncountered = false;
+                        
                         for (VirtualLun vLun:vlunRes.getMembers()) {
-
+                        	if(bHostSeesEncountered && (vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()) ){
+                        		//If we are in this condition, it means already a host sees VLUN is encountered and
+                        		//we have deleted all the vluns of the the Host Sees export in one REST call invocation
+                        		//api/v1/vluns/vipr-volX,LunID,HostName. Hence we neglect this vlun entry
+                        		continue;
+                        	}
                             if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0 || (!vLun.isActive())
                                     || portId.compareToIgnoreCase(vLun.getRemoteName()) != 0) {
                                 continue;
@@ -392,8 +406,15 @@ public class HP3PARExpUnexpHelper {
                                             pos.toString());
                             _log.info(message);
 
-                            String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
+                            String posStr = null;
+                            if(vLun.getType() == HP3PARConstants.vLunType.MATCHED_SET.getValue()){
+                            	posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
+                            }
+                                                        
                             hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
+                        	if(vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()){
+                            	bHostSeesEncountered = true;
+                            }   
                         }
                     } else if (init.getInitiatorType().equals(Type.Cluster)) {
 

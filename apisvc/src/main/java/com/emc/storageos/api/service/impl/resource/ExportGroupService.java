@@ -1080,7 +1080,7 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         if (virtualMachines != null && !virtualMachines.isEmpty()) {
-            for (URI vmUri : clusters) {
+            for (URI vmUri : virtualMachines) {
                 // validate the virtual machine
                 VirtualMachine vm = queryObject(VirtualMachine.class, vmUri, true);
                 validateVMData(vm, exportGroup, storageSystems, project, allInitiators);

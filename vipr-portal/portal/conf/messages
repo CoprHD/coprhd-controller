@@ -618,9 +618,13 @@ scheduledOrders.createdDate=Date Submitted
 scheduledOrders.submittedBy=Submitted By
 scheduledOrders.executionWindow=Execution Window
 scheduledOrders.nextExecutionWindow=<Next Execution Window>
+scheduledOrders.actions=Actions
+scheduledOrders.editSchedule=Edit Schedule
 
 ScheduledOrder.nextWindow=Next Execution Window is <span style="font-weight:bold;">%s</span>, scheduled to start at <span style="font-weight:bold;">%s</span>.
 ScheduledOrder.noWindow=There are NO Execution windows currently scheduled
+
+ScheduledOrders.edit.title=Edit Order Schedule
 
 # VCenter
 vCenter=vCenter

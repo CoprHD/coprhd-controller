@@ -261,7 +261,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
             }
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            // TODO DUPP: Explore other mechanisms of failure injection such as annotation, etc.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
 
             getDevice(storage).doExportAddVolumes(storage, exportMask, initiators,
@@ -347,9 +346,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
             ExportMask exportMask = ExportMaskUtils.getExportMask(_dbClient,
                     exportGroup, storageURI);
             if (exportMask != null) {
-                // TODO DUPP:
-                // The entry points in this module are a little suspicious. I'm changing
-                // the logic here to only consider volumes/initiators in the user added list.
                 _log.info("export_delete: export mask exists");
                 List<URI> exportMaskURIs = new ArrayList<URI>();
 

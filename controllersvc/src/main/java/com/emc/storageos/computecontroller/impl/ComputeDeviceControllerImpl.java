@@ -230,16 +230,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
         }
 
-        // waitFor = workflow.createStep(POST_OS_INSTALL_POWER_DOWN_STEP, "power down compute element", waitFor,
-        // cs.getId(),
-        // cs.getSystemType(), this.getClass(), new Workflow.Method("setPowerComputeElementStep", computeSystemId,
-        // computeElementId, "down"), new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
-        //
-        // waitFor = workflow.createStep(POST_OS_INSTALL_POWER_ON_STEP, "power on compute element", waitFor, cs.getId(),
-        // cs
-        // .getSystemType(), this.getClass(), new Workflow.Method("setPowerComputeElementStep", computeSystemId,
-        // computeElementId, "up"), new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
-
         return waitFor;
     }
 

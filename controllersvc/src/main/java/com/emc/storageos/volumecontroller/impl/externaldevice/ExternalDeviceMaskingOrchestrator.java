@@ -67,7 +67,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         // Get new work flow to setup steps for export group creation
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
-                true, token, null);
+                true, token);
 
         // Create two steps, one for the ExportGroup actions and one for Zoning.
         List<String> maskingSteps = generateExportGroupCreateSteps(workflow, null,
@@ -190,12 +190,11 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
                     "exportGroupAddVolumes - Added volumes to existing mask",
-                    true, token, null);
+                    true, token);
 
             // For each export mask in export group, invoke add Volumes if export Mask belongs to the storage array
             // of added volumes. Export group may have export masks for the same array but for different compute
-            // resources
-            // (hosts or clusters).
+            // resources (hosts or clusters).
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getStorageDevice().equals(storageURI)) {
                     _log.info("export_volume_add: adding volume to an existing export");
@@ -227,9 +226,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         } else {
             // This is the case when export group does not have export mask for storage array where the volumes belongs.
             // In this case we will create new export masks for the storage array and each compute resource in the
-            // export group.
-            // Essentially for every existing mask we will add a new mask for the array and initiators in the existing
-            // mask.
+            // export group. Essentially for every existing mask we will add a new mask for the array and initiators in
+            // the existing mask.
             if (exportGroup.getInitiators() != null
                     && !exportGroup.getInitiators().isEmpty()) {
                 _log.info("export_volume_add: adding volume, creating a new export mask");
@@ -244,7 +242,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 // Get new workflow to setup steps for export masks creation
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
-                        true, token, null);
+                        true, token);
 
                 // This call will create steps for a new mask for each compute resource
                 // and new volumes. For example, if there are 3 compute resources in the group,

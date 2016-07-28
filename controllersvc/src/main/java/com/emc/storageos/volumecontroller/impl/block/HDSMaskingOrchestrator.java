@@ -114,7 +114,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token, null);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token);
 
                 // Create two steps, one for Zoning, one for the ExportGroup actions.
                 // This step is for zoning. It is not specific to a single
@@ -168,7 +168,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token, null);
+                        token);
                 List<ExportMask> exportMasksToZoneAddVolumes = new ArrayList<ExportMask>();
                 List<URI> volumesToZoneAddVolumes = new ArrayList<URI>();
                 List<URI> exportMasksToZoneCreate = new ArrayList<URI>();
@@ -349,15 +349,17 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
         // Only update the ports of a mask that we created.
-        // TODO DUPP:
+
+        // TODO COP-22395:
         // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
         // send down here. (then remove the log)
         List<Initiator> initiators = null;
         if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
             initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         } else {
-            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+            _log.warn("Internal warning: Need to add the initiatorURIs to the call that assembles this step for validation to occur.");
         }
+
         // Populate the port WWN/IQNs (portNames) and the
         // mapping of the WWN/IQNs to Initiator URIs
         processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI, hostURIs);

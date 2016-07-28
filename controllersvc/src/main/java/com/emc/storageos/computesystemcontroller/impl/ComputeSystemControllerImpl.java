@@ -177,7 +177,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(host, deactivateOnComplete, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_HOST_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             if (deactivateOnComplete) {
@@ -207,7 +207,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             completer = new VcenterCompleter(id, deactivateOnComplete, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DETACH_VCENTER_STORAGE_WF_NAME, true, taskId, null);
+                    DETACH_VCENTER_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             // We need to find all datacenters associated to the vcenter
@@ -232,7 +232,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             completer = new VcenterDataCenterCompleter(datacenter, deactivateOnComplete, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    DETACH_VCENTER_DATACENTER_STORAGE_WF_NAME, true, taskId, null);
+                    DETACH_VCENTER_DATACENTER_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             waitFor = addStepForVcenterDataCenter(workflow, waitFor, datacenter);
@@ -356,7 +356,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new InitiatorCompleter(initiators, false, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             waitFor = addStepsForAddInitiators(workflow, waitFor, hostId, initiators);
@@ -381,7 +381,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new InitiatorCompleter(initiators, true, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_INITIATOR_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             waitFor = addStepsForRemoveInitiators(workflow, waitFor, hostId, initiators);
@@ -401,7 +401,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new ClusterCompleter(clusterId, false, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, SYNCHRONIZE_SHARED_EXPORTS_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, SYNCHRONIZE_SHARED_EXPORTS_WF_NAME, true, taskId);
             String waitFor = null;
 
             List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
@@ -440,7 +440,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(hostIds, false, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
@@ -465,7 +465,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(hostIds, false, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, isVcenter);
@@ -486,7 +486,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new IpInterfaceCompleter(ipId, true, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_IPINTERFACE_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_IPINTERFACE_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             waitFor = addStepsForIpInterfaceFileShares(workflow, waitFor, hostId, ipId);
@@ -566,22 +566,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<ExportGroup> exportGroups = getSharedExports(clusterId);
+        String newWaitFor = waitFor;
         if (isVcenter) {
             Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
             Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
             }
-            waitFor = this.unmountAndDetachVolumes(hostExports, waitFor, workflow);
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, newWaitFor, workflow);
         }
         for (ExportGroup export : exportGroups) {
-            waitFor = addStepsForRemoveHostFromExport(workflow, waitFor, hostIds, export.getId());
+            newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
         }
-        return waitFor;
+        return newWaitFor;
     }
 
     public String addStepsForRemoveHostFromExport(Workflow workflow, String waitFor, List<URI> hostIds, URI exportId) {
         ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
+        String newWaitFor = waitFor;
         if (export != null) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
@@ -597,15 +599,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
-            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                    String.format("Updating export group %s", export.getId()), waitFor,
+            newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                    String.format("Updating export group %s", export.getId()), newWaitFor,
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
                             updatedClusters, updatedHosts, updatedInitiators),
                     null, null);
         }
-        return waitFor;
+        return newWaitFor;
     }
 
     /**
@@ -1166,7 +1168,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new ClusterCompleter(cluster, deactivateOnComplete, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_CLUSTER_STORAGE_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_CLUSTER_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             if (checkVms) {
@@ -1299,7 +1301,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
             String waitFor = null;
 
             // Map of host -> export groups for capturing removals from the export groups

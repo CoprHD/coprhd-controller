@@ -11,7 +11,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "order_create")
-public class OrderCreateParam extends OrderCommonParam implements Serializable {
+public class OrderCreateParam extends OrderCommonParam {
 
     private URI tenantId;
 
@@ -69,4 +69,5 @@ public class OrderCreateParam extends OrderCommonParam implements Serializable {
         }
         return (OrderCreateParam) obj;
     }
+
 }

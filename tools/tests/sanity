@@ -6,7 +6,7 @@
 
 # ==============================================================
 # Uncomment the below line to get tracing output for this script
-set -x
+#set -x
 
 #Configuration file to be used
 BASEDIR=$(dirname $0)

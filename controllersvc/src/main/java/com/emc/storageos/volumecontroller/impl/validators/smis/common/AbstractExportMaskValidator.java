@@ -2,20 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.volumecontroller.impl.validators.smis.vnx;
-
-import static com.google.common.collect.Collections2.transform;
-
-import java.util.Collection;
-import java.util.Set;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -25,17 +12,33 @@ import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValid
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class VnxExportMaskValidator extends AbstractSMISValidator {
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import java.util.Collection;
+import java.util.Set;
 
-    private static final Logger log = LoggerFactory.getLogger(VnxExportMaskValidator.class);
+import static com.google.common.collect.Collections2.transform;
+
+/**
+ * Abstract template class for comparing a set of ExportMask-related database values against hardware values.
+ * If any additional differences are detected on the hardware (i.e. SMI-S) side, then a validation error would be
+ * logged.
+ */
+public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
+
+    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
     private static final String NO_MATCH = "<no match>";
 
     private final StorageSystem storage;
     private final ExportMask exportMask;
     private final String field;
 
-    public VnxExportMaskValidator(StorageSystem storage, ExportMask exportMask, String field) {
+    public AbstractExportMaskValidator(StorageSystem storage, ExportMask exportMask, String field) {
         this.storage = storage;
         this.exportMask = exportMask;
         this.field = field;

@@ -14,7 +14,7 @@
 
 export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
 
-. /etc/rc.status
+#. /etc/rc.status
 
 _usage() {
     set +Ex
@@ -844,7 +844,7 @@ bootfs_rootimg="rootimg"
 
 DO_NOT_INCLUDE="no"
 
-rc_reset
+#rc_reset
 
 # Parse flags and hacks
 while [ $# -gt 0 ] ; do
@@ -916,4 +916,4 @@ case ${#} in
     *)  _usage
 esac
 
-rc_exit
+#rc_exit

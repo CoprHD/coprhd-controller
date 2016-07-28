@@ -61,7 +61,11 @@ import com.emc.storageos.vnxe.models.NfsShareModifyForShareParam;
 import com.emc.storageos.vnxe.models.NfsShareModifyParam;
 import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
+import com.emc.storageos.vnxe.models.RemoteSystem;
+import com.emc.storageos.vnxe.models.RemoteSystemCreateParam;
 import com.emc.storageos.vnxe.models.ReplicationParam;
+import com.emc.storageos.vnxe.models.ReplicationSession;
+import com.emc.storageos.vnxe.models.ReplicationSessionCreateParam;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.SnapCreateParam;
 import com.emc.storageos.vnxe.models.StorageResource;
@@ -135,6 +139,8 @@ import com.emc.storageos.vnxe.requests.NfsServerListRequest;
 import com.emc.storageos.vnxe.requests.NfsShareRequests;
 import com.emc.storageos.vnxe.requests.PoolListRequest;
 import com.emc.storageos.vnxe.requests.PoolRequest;
+import com.emc.storageos.vnxe.requests.RemoteSystemRequest;
+import com.emc.storageos.vnxe.requests.ReplicationSessionRequest;
 import com.emc.storageos.vnxe.requests.SnapRequests;
 import com.emc.storageos.vnxe.requests.StorageProcessorListRequest;
 import com.emc.storageos.vnxe.requests.StorageResourceRequest;
@@ -2897,4 +2903,59 @@ public class VNXeApiClient {
         BlockLunRequests req = new BlockLunRequests(_khClient);
         return req.checkLunExists(lunId);
     }
+
+     /**
+      * get all replication sessions
+      */
+     public List<ReplicationSession> getAllReplicationSessions() {
+         _logger.info("getting all replication sessions");
+         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+         return req.get();
+
+     }
+     
+     public void createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,String remoteSystemId){
+         _logger.info("Creating new replication session:");
+         ReplicationSessionCreateParam createParam = new ReplicationSessionCreateParam();
+         if (remoteSystemId == null){
+              createParam.setSrcResourceId(srcResourceId);
+              createParam.setDstResourceId(dstResourceId);
+              createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
+              createParam.setAutoInitiate(true);
+         } else {
+              RemoteSystem remoteSystem = getRemoteSystem(remoteSystemId);
+              createParam.setRemoteSystem(remoteSystem);
+              //createParam.setSrcSPAInterface(srcSPAInterface);
+              //createParam.setSrcSPBInterface(srcSPBInterface);
+              //createParam.setDstSPAInterface(dstSPAInterface);
+              //createParam.setDstSPBInterface(dstSPBInterface);
+         }
+         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+         req.createReplicationSession(createParam);
+     }
+
+     public RemoteSystem getRemoteSystem(String remoteSystemId){
+         _logger.info("getting remote system by id");
+         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+         return req.get(remoteSystemId);
+     }
+
+     public List<RemoteSystem> getAllRemoteSystems() {
+         _logger.info("getting all remote systems");
+         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+         return req.get();
+     }
+
+     public void createRemoteSystem(String ipAddress, String userName, String password){
+         _logger.info("Creating new remote system");
+         RemoteSystemCreateParam createParam = new RemoteSystemCreateParam();
+         createParam.setManagementAddress(ipAddress);
+         createParam.setRemoteUsername(userName);
+         createParam.setRemotePassword(password);
+         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+         req.createRemoteSystem(createParam);
+     }
+
+         
+
 }

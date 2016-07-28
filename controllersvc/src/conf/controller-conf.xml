@@ -247,6 +247,12 @@
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
     </bean>
 
+    <bean id="vnxunityMirrorOperations" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityMirrorOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
+
+
     <bean id="vmaxMirrorOperations" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxMirrorOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
@@ -904,7 +910,7 @@
                 <entry key="netapp" value-ref="netappFileDevice"/>
                 <entry key="netappc" value-ref="netappcFileDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
-				<entry key="unity" value-ref="vnxUnityFileDevice"/>
+		<entry key="unity" value-ref="vnxUnityFileDevice"/>
                 <entry key="datadomain" value-ref="datadomainDevice"/>
             </map>
         </property>
@@ -921,6 +927,7 @@
         <property name="devices">
             <map>
                 <entry key="isilon" value-ref="isilonDevice"/>
+                <entry key="unity" value-ref="vnxUnityFileDevice"/>
             </map>
         </property>
         
@@ -974,6 +981,7 @@
             <property name="dbClient" ref="dbclient"/>
             <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
             <property name="nameGenerator" ref="defaultNameGenerator"/>
+            <property name="mirrorOperations" ref="vnxunityMirrorOperations"/>
     </bean>
 
 	<bean id="vnxunityDevice" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityBlockStorageDevice">

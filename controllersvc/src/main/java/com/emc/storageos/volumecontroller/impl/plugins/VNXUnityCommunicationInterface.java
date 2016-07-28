@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
@@ -658,6 +659,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
                     pool.setPoolClassName(StoragePool.PoolClassNames.VNXe_Pool.name());
                     pool.setPoolServiceType(StoragePool.PoolServiceType.block_file.name());
+                    StringSet copyTypesSupported = new StringSet();
+                    copyTypesSupported.add(CopyTypes.ASYNC.name());
+                    pool.setSupportedCopyTypes(copyTypesSupported);
 
                     pool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
                     _logger.info("Creating new storage pool using NativeGuid : {}", poolNativeGuid);
@@ -665,6 +669,10 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 } else {
                     // update pool attributes
                     _logger.info("updating the pool: {}", poolNativeGuid);
+                    StringSet copyTypesSupported = new StringSet();
+                    copyTypesSupported.add(CopyTypes.ASYNC.name());
+                    pool.setSupportedCopyTypes(copyTypesSupported);
+
                     if (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
                         isModified = true;
                     }

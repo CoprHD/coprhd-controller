@@ -17,6 +17,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -47,8 +49,11 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemSnapshotJob;
@@ -68,7 +73,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityQuotaDirecto
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSystemQuotaDirectoryJob;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+        implements FileStorageDevice, RemoteFileMirrorOperation {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -81,6 +86,17 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public void setNameGenerator(NameGenerator nameGenerator) {
         this.nameGenerator = nameGenerator;
     }
+
+    private FileMirrorOperations mirrorOperations;
+
+    public FileMirrorOperations getMirrorOperations() {
+        return mirrorOperations;
+    }
+
+    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
+    }
+
 
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
@@ -1602,5 +1618,132 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "Unity"));
     }
+ 
+    //File Replication Operations
+
+    @Override
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer) {
+        mirrorOperations.doModifyReplicationRPO(system, rpoValue, rpoType, target, completer);
+    }
+
+    @Override
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.cancelMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        mirrorOperations.startMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+        mirrorOperations.refreshMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
+    }
+
+
+    @Override
+    public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+       
+        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
+            String devSpecificPolicyName) {
+       
+        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+    }
+
+    /**
+     * rollback the target filesystems
+     */
+    @Override
+    public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId) {
+        BiosCommandResult biosCommandResult = null;
+        // delete the target objects
+        if (targets != null && !targets.isEmpty()) {
+            for (URI target : targets) {
+                FileShare fileShare = dbClient.queryObject(FileShare.class, target);
+                StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
+                URI uriParent = fileShare.getParentFileShare().getURI();
+                if (sources.contains(uriParent) == true) {
+                    biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, true);
+                    if (biosCommandResult.getCommandSuccess()) {
+                        fileShare.getOpStatus().updateTaskStatus(opId, biosCommandResult.toOperation());
+                        fileShare.setInactive(true);
+                        dbClient.updateObject(fileShare);
+                    }
+                }
+            }
+        }
+        completer.ready(dbClient);
+    }
+
+     /**
+     * rollback the filesystem
+     * 
+     * @param system
+     * @param uri
+     * @param opId
+     * @param isForceDelete
+     * @return
+     */
+    private BiosCommandResult rollbackCreatedFilesystem(StorageSystem system, URI uri, String opId, boolean isForceDelete) {
+        FileDeviceInputOutput fileInputOutput = this.prepareFileDeviceInputOutput(isForceDelete, uri, opId);
+        return this.doDeleteFS(system, fileInputOutput);
+    }
+
+     private FileDeviceInputOutput prepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        boolean isFile = false;
+        args.setOpId(opId);
+        if (URIUtil.isType(uri, FileShare.class)) {
+            isFile = true;
+            args.setForceDelete(forceDelete);
+            FileShare fsObj = dbClient.queryObject(FileShare.class, uri);
+
+            if (fsObj.getVirtualNAS() != null) {
+                VirtualNAS vNAS = dbClient.queryObject(VirtualNAS.class, fsObj.getVirtualNAS());
+                args.setvNAS(vNAS);
+            }
+
+            args.addFileShare(fsObj);
+            args.setFileOperation(isFile);
+        }
+        return args;
+    }
+
+     @Override
+    public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+
 
 }

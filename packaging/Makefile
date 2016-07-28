@@ -794,7 +794,7 @@ clean-base:
 controller:
 	$(ATECHO) controller alias - [BUILD_TYPE:$(BUILD_TYPE) - PRODUCT_VERSION:$(PRODUCT_VERSION) - PRODUCT_RELEASE:$(PRODUCT_RELEASE)]
 ifeq ($(BUILD_TYPE),oss)
-	$(ATSIGN)$(MAKE) -C appliance-images/openSUSE/13.2/CoprHD appliance USE_CACHE=true VERSION=$(PRODUCT_VERSION) JOB=$(PRODUCT_RELEASE) SOURCE_RPM=../../../../../build/RPMS/x86_64/storageos-$(PRODUCT_VERSION).$(PRODUCT_RELEASE)-1.x86_64.rpm
+	$(ATSIGN)$(MAKE) -C appliance-images/openSUSE/13.2/CoprHD appliance VERSION=$(PRODUCT_VERSION) JOB=$(PRODUCT_RELEASE) SOURCE_RPM=../../../../../build/RPMS/x86_64/storageos-$(PRODUCT_VERSION).$(PRODUCT_RELEASE)-1.x86_64.rpm
 else
 	$(ATECHO) Cannot generate controller image in emc mode, specify BUILD_TYPE=oss instead
 endif
@@ -807,7 +807,7 @@ endif
 devkit:
 	$(ATECHO) devkit alias - [BUILD_TYPE:$(BUILD_TYPE) - PRODUCT_VERSION:$(PRODUCT_VERSION) - PRODUCT_RELEASE:$(PRODUCT_RELEASE)]
 ifeq ($(BUILD_TYPE),oss)
-	$(ATSIGN)$(MAKE) -C appliance-images/openSUSE/13.2/CoprHDDevKit appliance USE_CACHE=true VERSION=$(PRODUCT_VERSION) JOB=$(PRODUCT_RELEASE)
+	$(ATSIGN)$(MAKE) -C appliance-images/openSUSE/13.2/CoprHDDevKit appliance VERSION=$(PRODUCT_VERSION) JOB=$(PRODUCT_RELEASE)
 else
 	$(ATECHO) Cannot generate devkit image in emc mode, specify BUILD_TYPE=oss instead
 endif

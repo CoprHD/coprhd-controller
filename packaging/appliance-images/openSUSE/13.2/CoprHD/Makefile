@@ -26,8 +26,7 @@ endif
 ##################################################
 #  Target files/folders
 ##################################################
-USE_CACHE_BUILD := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-coprhd-repo/lastSuccessfulBuild/buildNumber)
-USE_CACHE := false
+USE_CACHE := $(shell [ -d /disks/adgbuild/OPENSUSE13.2/repo ] && echo true || echo false )
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
@@ -185,8 +184,7 @@ $(VMDK): | downloadISO createREPO
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
 ifeq ($(USE_CACHE),true)
 	sed -i /installNginx/d $(WORKSPACE)/templates/config.sh
-	sed -i "/__REPO__/ i\        <source path=\"__CACHEBUILD__\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
-	sed -i s/"__CACHEBUILD__"/"https:\/\/build.coprhd.org\/jenkins\/job\/CH-coprhd-controller-coprhd-repo\/ws\/opensuse-13.2\/$(USE_CACHE_BUILD)"/g $(WORKSPACE)/templates/config.xml
+	sed -i "/__REPO__/ i\        <source path=\"/disks/adgbuild/OPENSUSE13.2/repo\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
 	sed -i s/"<archive name=\"nginx.*\"\/>"/"<package name=\"nginx\"\/>"/g $(WORKSPACE)/templates/config.xml
 	sed -i /"<archive name=.*>"/d $(WORKSPACE)/templates/config.xml
 endif

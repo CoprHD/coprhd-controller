@@ -12,8 +12,6 @@ import java.util.Map;
 import java.util.MissingResourceException;
 
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.inject.Injector;
 import com.emc.sa.model.dao.ModelClient;
@@ -32,7 +30,6 @@ import com.google.common.collect.Maps;
 public class ExecutionUtils {
 
     private static Messages MESSAGES = new Messages(ExecutionUtils.class, "ViPRService");
-    private static final Logger _log = LoggerFactory.getLogger(ExecutionUtils.class);
 
     private static final ThreadLocal<ExecutionContext> CONTEXT_HOLDER = new ThreadLocal<ExecutionContext>() {
         protected ExecutionContext initialValue() {
@@ -80,19 +77,11 @@ public class ExecutionUtils {
         // Executing if order not in a paused state. If paused, poll while waiting for order to go into executing state
         String orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
         long startTime = System.currentTimeMillis();
-        int MAX_PAUSE_TIMEOUT = 3600000;
         try {
             while (OrderStatus.PAUSED.name().equalsIgnoreCase(orderStatus)) {
                 Thread.sleep(1000);
                 // requery order to get its updated status
                 orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
-                _log.error("Suri > current time - start time "+(System.currentTimeMillis() - startTime));
-                _log.error("Suri >MAX_PAUSE_TIMEOUT "+MAX_PAUSE_TIMEOUT);
-                if((System.currentTimeMillis() - startTime) > MAX_PAUSE_TIMEOUT){
-                    _log.error("Inside if braking out");
-                    context.getModelClient().orders().findById(context.getOrder().getId()).setOrderStatus(OrderStatus.EXECUTING.name());
-                    break;
-                }
             }
 
             injectValues(task, context);

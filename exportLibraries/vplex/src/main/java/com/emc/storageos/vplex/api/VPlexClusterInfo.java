@@ -28,8 +28,8 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
 
     // Information about the system volumes accessible to the cluster.
     private List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
-    
-	/**
+
+    /**
      * Getter for the assembly id.
      * 
      * @return The cluster assembly id.
@@ -132,12 +132,14 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
         String volumeWWN = volumeInfo.getVolumeWWN();
         List<String> volumeItlsList = volumeInfo.getITLs();
-        s_logger.info(String.format("Getting storage volume with native info [%s : %s : %s]", storageSystemNativeGuid, volumeWWN, volumeItlsList));
+        s_logger.info(String.format("Getting storage volume with native info [%s : %s : %s]", storageSystemNativeGuid, volumeWWN,
+                volumeItlsList));
         for (VPlexStorageVolumeInfo clusterStorageVolumeInfo : storageVolumeInfoList) {
             String clusterVolumeWWN = clusterStorageVolumeInfo.getWwn();
             List<String> clusterVolumeItls = clusterStorageVolumeInfo.getItls();
-            s_logger.info(String.format("Cluster storage volume info [%s : %s : %s]", clusterStorageVolumeInfo.getName(), clusterVolumeWWN, clusterVolumeItls));
-            if ((null != volumeItlsList) && (!volumeItlsList.isEmpty())) { 
+            s_logger.info(String.format("Cluster storage volume info [%s : %s : %s]", clusterStorageVolumeInfo.getName(), clusterVolumeWWN,
+                    clusterVolumeItls));
+            if ((null != volumeItlsList) && (!volumeItlsList.isEmpty())) {
                 if ((null != clusterVolumeItls) && (!clusterVolumeItls.isEmpty())) {
                     for (String itlPair : volumeItlsList) {
                         // If any one of the pair matches that is the volume.
@@ -147,17 +149,16 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
                     }
                 }
             } else if (storageSystemNativeGuid.contains(VPlexApiConstants.HDS_SYSTEM)) {
-                if (clusterVolumeWWN.endsWith(volumeWWN.toLowerCase())) {
+                if (null != clusterVolumeWWN && clusterVolumeWWN.endsWith(volumeWWN.toLowerCase())) {
                     return clusterStorageVolumeInfo;
                 }
-            } else if (clusterVolumeWWN.equals(volumeWWN.toLowerCase())) {
+            } else if (null != clusterVolumeWWN && clusterVolumeWWN.equals(volumeWWN.toLowerCase())) {
                 return clusterStorageVolumeInfo;
             }
         }
-        
+
         return null;
     }
-    
 
     /**
      * Getter for the system volume info for the cluster.

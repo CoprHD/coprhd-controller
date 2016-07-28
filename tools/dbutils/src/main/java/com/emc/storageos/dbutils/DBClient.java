@@ -1159,31 +1159,42 @@ public class DBClient {
      * This db consistency check is for a specific CF,
      * It could also detect the 2 paths same as {@link DBClient#checkDB()}
      * 
-     * @param dataCf, CF name
-     * @throws ConnectionException
+     * @param cfName
      */
-    public void checkDB(DataObjectType dataCf) throws ConnectionException {
-        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
-        logMsg("\nStart to check DataObject records id that is illegal.\n");
-        int illegalCount = helper.checkDataObject(dataCf, true);
-        logMsg(String.format("\nFinish to check DataObject records id for CF %s "
-                + "%d corrupted rows found.\n", dataCf, illegalCount));
-
-        logMsg("\nStart to check DataObject records that the related index is missing.\n");
-        int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
-        logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
-                + "%d corrupted rows found.\n", dataCf, cfCorruptedCount));
-
-        logMsg("\nStart to check INDEX data that the related object records are missing.\n");
-        Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
-        int indexCorruptCount = 0;
-        for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
-            indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
+    public void checkDB(String cfName) {
+        final Class clazz = getClassFromCFName(cfName);
+        if (clazz == null) {
+            return;
         }
-        logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
-                idxCfs.size(), dataCf, indexCorruptCount));
+        DataObjectType dataCf = TypeMap.getDoType(clazz);
+        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+        try {
 
-        DbCheckerFileWriter.close();
+            logMsg("\nStart to check DataObject records id that is illegal.\n");
+            int illegalCount = helper.checkDataObject(dataCf, true);
+            logMsg(String.format("\nFinish to check DataObject records id for CF %s "
+                    + "%d corrupted rows found.\n", dataCf, illegalCount));
+
+            logMsg("\nStart to check DataObject records that the related index is missing.\n");
+            int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
+            logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
+                    + "%d corrupted rows found.\n", dataCf, cfCorruptedCount));
+
+            logMsg("\nStart to check INDEX data that the related object records are missing.\n");
+            Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
+            int indexCorruptCount = 0;
+            for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
+                indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
+            }
+            logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
+                    idxCfs.size(), dataCf, indexCorruptCount));
+        } catch (ConnectionException e) {
+            log.error("Database connection exception happens, fail to connect: ", e);
+            System.err.println("The checker has been stopped by database connection exception. "
+                    + "Please see the log for more information.");
+        } finally {
+            DbCheckerFileWriter.close();
+        }
     }
     
     public void printDependencies(String cfName, URI uri) {

@@ -114,8 +114,9 @@ public class Main {
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
         System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s\tCheck data consistency of the whole database%n",
+        System.out.printf("\t%s [Column Family Name]\tCheck data consistency of the whole database%n",
                 Command.CHECK_DB.name().toLowerCase());
+        System.out.printf("\t\tColumn Family Name\t Only check specific CF.%n");
         System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
         System.out.printf("\t\tNote: %s option can only be executed as %s user%n",

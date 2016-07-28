@@ -660,15 +660,25 @@ public abstract class CommandHandler {
     }
 
     public static class CheckDBHandler extends CommandHandler {
+        boolean specificCF = false;
+
         public CheckDBHandler(String[] args) {
-            if (args.length != 1) {
+            if (args.length > 2) {
                 throw new IllegalArgumentException("Invalid command option. ");
+            }
+            if (args.length == 2) {
+                specificCF = true;
+                cfName = args[1];
             }
         }
 
         @Override
         public void process(DBClient _client) {
-            _client.checkDB();
+            if (specificCF) {
+                _client.checkDB(cfName);
+            } else {
+                _client.checkDB();
+            }
         }
     }
 

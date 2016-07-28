@@ -137,7 +137,7 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
     public boolean isRecurringAllowed() {
         return recurringAllowed;
     }
-
+    
     public void setRecurringAllowed(boolean schedulerAllowed) {
         this.recurringAllowed = schedulerAllowed;
     }

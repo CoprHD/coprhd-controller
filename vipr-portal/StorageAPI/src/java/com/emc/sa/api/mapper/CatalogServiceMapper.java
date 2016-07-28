@@ -133,8 +133,8 @@ public class CatalogServiceMapper {
             object.setSortedIndex(null);
         }
         
-        if (param.getSchedulerAllowed() != null) {
-            object.setRecurringAllowed(param.getSchedulerAllowed());
+        if (param.getRecurringAllowed() != null) {
+            object.setRecurringAllowed(param.getRecurringAllowed());
         }
     }
 

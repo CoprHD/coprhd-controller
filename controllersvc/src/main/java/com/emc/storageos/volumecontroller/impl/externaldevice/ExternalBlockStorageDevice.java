@@ -713,9 +713,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                     cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
-                    if (driverCloneResult.getDeviceLabel() != null && !driverCloneResult.getDeviceLabel().isEmpty()) {
-                    cloneObject.setLabel(driverCloneResult.getDeviceLabel());
-                    }
                     cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
                     cloneObjects.add(cloneObject);
                 }
@@ -1343,9 +1340,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
-                if (driverSnapshot.getDeviceLabel() != null && !driverSnapshot.getDeviceLabel().isEmpty()) {
-                	snapshot.setLabel(driverSnapshot.getDeviceLabel());
-                }
                 snapshot.setIsSyncActive(true);
                 // we use driver snapshot consistency group id as replication group label for group snapshots
                 snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());

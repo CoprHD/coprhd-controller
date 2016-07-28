@@ -1440,7 +1440,7 @@ public class MDSDialog extends SSHDialog {
         String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
         StringBuilder buf = new StringBuilder();      
         String newZoneset = generateZonesetCloneName(zonesetToClone);
-        List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId, newZoneset);
+        List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
         _log.info("Creating new zoneset clone : " + newZoneset	);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
@@ -1459,20 +1459,19 @@ public class MDSDialog extends SSHDialog {
 			zonesetNameVsan(zonesetClone, vsanId, true);    	
         }
         	
-
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
     
     /**
-     * This routine looks for any zoneset clones that contain the same date time-stamp and add them to the list
+     * This routine looks for any zoneset clones that contain the same date-stamp and add them to the list
      * of clones to be deleted.
      * Only one zoneset clone per zoneset per vsan per day is maintained on the switch 
      *  
      * @param vsanId
      * 
      */
-    private List<String> findZonesetClonesToDelete(Integer vsanId, String newZoneset) {
+    private List<String> findZonesetClonesToDelete(Integer vsanId) {
     	List<String> zonesetClonesToDelete = new ArrayList<String>();
     	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
     	    	
@@ -1490,17 +1489,17 @@ public class MDSDialog extends SSHDialog {
     
     /**
      * Generate a unique name for the zoneset clone.
-     * The format of the zoneset clone name is "ViPR-<existing_zone>-MM_dd_yy-HH_mm"
-     * MM_dd_yy and HH_mm refer to the date and the time-stamp that will help identify when the clone was performed.
+     * The format of the zoneset clone name is "ViPR-<existing_zone>-MMddyy-HHmmss"
+     * MMddyy and HHmmss refer to the date and the time-stamp that will help identify when the clone was taken.
      * 
      * @param zonesetToClone
      * @return
      */
     private String generateZonesetCloneName(String zonesetToClone) {
-    	//Sleep for one second to make sure that the new zoneset clone name doesnt clash with something existing 
-    	//if there were multiple operations all happenning at the same time
+    	//Sleep for one second to make sure that the new zoneset clone name doesn't clash with something existing 
+    	//if there were multiple operations all happening at the same time
     	 try {
-             Thread.sleep(1000);         // sleep one second
+             Thread.sleep(1000); // sleep one second
          } catch (InterruptedException ex) {
              _log.warn(ex.getLocalizedMessage());
          }
@@ -1510,8 +1509,7 @@ public class MDSDialog extends SSHDialog {
  	   DateFormat dateFormat = new SimpleDateFormat("MMddyy-HHmmss");
  	   String dateString = dateFormat.format(cal.getTime()); 	
  	   String longName = MDSDialogProperties.getString("MDSDialog.zonesetCloneLongName.cmd");
- 	   //NOTE: This is a hook placed to assist QE in trigerring a zoneset clone failure on demand. 
- 	   //This will be removed once QE has tested negative cases by forcing clone failures. 
+ 	   //NOTE: This is a hook placed to assist QE in triggering a zoneset clone failure on demand. 
  	   if (!longName.contains("!MDSDialog.zonesetCloneLongName.cmd!")) {
  		   return longName;
  	   }

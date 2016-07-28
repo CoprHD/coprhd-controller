@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -205,9 +206,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
         Set<String> hostTypes = new HashSet<String>();
         for (Initiator ini : initiatorList) {
             URI hostURI = ini.getHost();
-            if (hostURI == null) {
+            URI vmURI = ini.getVirtualMachine();
+            if (NullColumnValueGetter.isNullURI(hostURI) && NullColumnValueGetter.isNullURI(vmURI)) {
                 hostTypes.add(Host.HostType.Other.name());
-            } else {
+            } else if (!NullColumnValueGetter.isNullURI(vmURI)) {
+                VirtualMachine vm = _dbClient.queryObject(VirtualMachine.class, vmURI);
+                hostTypes.add(vm.getType());
+            } else if (!NullColumnValueGetter.isNullURI(hostURI)) {
                 Host host = _dbClient.queryObject(Host.class, hostURI);
                 hostTypes.add(host.getType());
             }
@@ -1152,13 +1157,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // Inspect each block object (if it is a volume in the first place) to see if any of them are RecoverPoint related.
                         for (URI boUri : volumesInSG) {
                             if (URIUtil.isType(boUri, Volume.class)) {
-	                            Volume volume = _dbClient.queryObject(Volume.class, boUri);
+                                Volume volume = _dbClient.queryObject(Volume.class, boUri);
                                 if (volume != null && (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient))) {
-	                                // Determined that the volume is RP related
-	                                containsRPVolume = true;
-	                                break;
-	                            }
-                        	}
+                                    // Determined that the volume is RP related
+                                    containsRPVolume = true;
+                                    break;
+                                }
+                            }
                         }
 
                         // Initialize the retry/attempt variables
@@ -1895,7 +1900,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // affect another ExportMasks. Consider that this refreshExportMask is against that other ExportMask.
                     // We shouldn't read the initiators that we find as 'existing' (that is created outside of CoprHD),
                     // instead we should consider them userAdded for this ExportMask, as well.
-                    List<Initiator> userAddedInitiators = 
+                    List<Initiator> userAddedInitiators =
                             ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd, _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);

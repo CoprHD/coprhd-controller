@@ -75,6 +75,10 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
                 for(String portId : portIds) {
                     SymmetrixPort item = new SloprovisioningSymmetrixDirectorPortGet(
                         this.storageSystem.getNativeId(), directorId, portId).perform(this.getClient());
+                    // If the port's identifier field value is empty, skip it as suggested by Evgeny.
+                    if (item.getIdentifier() == null || item.getIdentifier().isEmpty()) {
+                        continue;
+                    }
                     StoragePort storagePort = new StoragePort();
                     storagePort.setStorageSystemId(this.storageSystem.getNativeId());
                     String portName = getPortName(directorId, portId);
@@ -86,17 +90,10 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
                     storagePort.setTransportType(getTransportType(item));
                     if(item instanceof SymmetrixPortFc) {
                         storagePort.setTransportType(StoragePort.TransportType.FC);
-                        storagePort.setPortNetworkId(DriverUtil.formatWwn(((SymmetrixPortFc) item).getIdentifier()));
+                        storagePort.setPortNetworkId(DriverUtil.formatWwn(item.getIdentifier()));
                     } else if(item instanceof SymmetrixPortIscsi) {
                         storagePort.setTransportType(StoragePort.TransportType.IP);
-                        String identifier = ((SymmetrixPortIscsi) item).getIdentifier();
-                        /*
-                         For some iSCSI ports, their "identifier" field is empty which makes the port discovery fail for
-                         this field is needed in the "StoragePortAssociationHelper.runUpdatePortAssociationsProcess()"
-                         method in "ExternalDeviceCommunicationInterface.discover()". To workaround this issue, set the
-                         "portNetworkId" field with "portName" instead of "identifier".
-                         */
-                        storagePort.setPortNetworkId(identifier == null || identifier.isEmpty() ? portName: identifier);
+                        storagePort.setPortNetworkId(item.getIdentifier());
                     }
                     storagePort.setNetworkId(null); // Keep blank since no API to get. HP3PAR driver doesn't set either.
                     storagePort.setPortSpeed(null);

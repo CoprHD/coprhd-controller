@@ -11,4 +11,10 @@ package com.emc.storageos.driver.vmaxv3driver.rest.bean;
  * Created by gang on 6/24/16.
  */
 public interface SymmetrixPort {
+    /**
+     * Get the "identifier" field value of the port.
+     *
+     * @return
+     */
+    public String getIdentifier();
 }

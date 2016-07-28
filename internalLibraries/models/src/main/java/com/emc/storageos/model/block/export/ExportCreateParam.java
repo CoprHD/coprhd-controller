@@ -86,6 +86,7 @@ public class ExportCreateParam {
         this.hosts = hosts;
     }
 
+    @XmlElementWrapper(name = "virtual_machines")
     @XmlElement(name = "virtual_machine")
     public List<URI> getVirtualMachines() {
         if (virtualMachines == null) {

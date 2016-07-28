@@ -370,6 +370,10 @@ public interface VPlexApiExceptions {
             final String status, final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException setConsistencyGroupReadOnlyFailureStatus(final String cgName,
+            final String status, final String cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException setCGAutoResumeFailureStatus(final String cgName,
             final String status, final String cause);
 
@@ -825,4 +829,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException storageVolumeFailedValidation(final String vplexVolumeId, final String storageVolumeId);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_FIRMWARE_UPDATE_NEEDED)
+    public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
 }

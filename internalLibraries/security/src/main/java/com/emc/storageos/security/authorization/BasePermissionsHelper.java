@@ -1025,6 +1025,16 @@ public class BasePermissionsHelper {
         return false;
     }
 
+    public boolean tenantHasUsageACL(List<URI> tenantUris, ComputeVirtualPool computeVirtualPool) {
+        for (URI tenantUri : tenantUris) {
+            if (tenantHasUsageACL(tenantUri, computeVirtualPool)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Returns true if the user's tenant has a usage acl on the VirtualArray
      * 

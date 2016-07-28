@@ -10,9 +10,9 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.google.common.collect.Sets;
 import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;

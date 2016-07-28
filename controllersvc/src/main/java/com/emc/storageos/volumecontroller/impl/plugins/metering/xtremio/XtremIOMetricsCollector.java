@@ -5,18 +5,30 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio;
 
+import java.net.URI;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
@@ -29,9 +41,14 @@ public class XtremIOMetricsCollector {
     private static final Logger log = LoggerFactory.getLogger(XtremIOMetricsCollector.class);
 
     private XtremIOClientFactory xtremioRestClientFactory;
+    private PortMetricsProcessor portMetricsProcessor;
 
     public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
         this.xtremioRestClientFactory = xtremioRestClientFactory;
+    }
+
+    public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
+        this.portMetricsProcessor = portMetricsProcessor;
     }
 
     /**
@@ -45,9 +62,12 @@ public class XtremIOMetricsCollector {
         log.info("Collecting statistics for XtremIO system {}", system.getNativeGuid());
         XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(dbClient, system, xtremioRestClientFactory);
         String xtremIOClusterName = xtremIOClient.getClusterDetails(system.getSerialNumber()).getName();
+
         // TODO Full support for Metering collection.
         // Currently only the XEnv's CPU Utilization will be collected and
         // used for resource placement to choose the best XtremIO Cluster.
+        // Reason for CPU over port metrics: Some port metrics like KBytesTransferred are not available for XtremIO.
+        // XtremIO team also suggested to consider CPU usage over IOPs, Bandwidth, Latency.
         collectXEnvCPUUtilization(system, dbClient, xtremIOClient, xtremIOClusterName);
     }
 
@@ -63,18 +83,20 @@ public class XtremIOMetricsCollector {
     private void collectXEnvCPUUtilization(StorageSystem system, DbClient dbClient,
             XtremIOClient xtremIOClient, String xtremIOClusterName) throws Exception {
         // An XENV(XtremIO Environment) is composed of software defined modules responsible for internal data path on the array.
-        // There are two CPU sockets per SC, and one distinct XENV runs on each socket.
+        // There are two CPU sockets per Storage Controller (SC), and one distinct XENV runs on each socket.
         /**
          * Collect average CPU usage:
          * - Get the last processing time for the system,
          * - If previously not queried or if it was long back, collect data for last one day
          * 
          * - Query the XEnv metrics from from-time to current-time with granularity based on cycle time gap
-         * - Calculate the average for each XEnv
-         * - Then calculate the average of all XEnvs for the system
+         * - 1. Group the XEnvs by SC,
+         * - 2. For each SC:
+         * - - - Take the average of 2 XEnv's CPU usages
+         * - - - Calculate exponential average by calling PortMetricsProcessor.processFEAdaptMetrics()
+         * - - - - (persists cpuPercentBusy, emaPercentBusy and avgCpuPercentBusy)
          * 
-         * - calculate the new average (exponential average?)
-         * - persist in data object (existing avgPortMetric or new field?)
+         * - Average of all SC's avgCpuPercentBusy values is the average CPU usage for the system
          */
 
         log.info("Collecting CPU usage for XtremIO system {}", system.getNativeGuid());
@@ -84,12 +106,12 @@ public class XtremIOMetricsCollector {
         if (lastProcessedTime < 0 || ((currentTime - lastProcessedTime) > oneDayTime)) {
             lastProcessedTime = currentTime - oneDayTime;   // last 1 day
         }
+        // granularity is kept as 1 hour so that the minimum granular data obtained is hourly basis
         String granularity = getGranularity(lastProcessedTime, currentTime);
         SimpleDateFormat format = new SimpleDateFormat(XtremIOConstants.DATE_FORMAT);
         String fromTime = format.format(new Date(lastProcessedTime));
         String toTime = format.format(new Date(currentTime));
 
-        // granularity is kept as 1 hour so that the minimum granular data obtained is hour wise
         XtremIOPerformanceResponse response = xtremIOClient.getXtremIOObjectPerformance(xtremIOClusterName,
                 XtremIOConstants.XTREMIO_ENTITY_TYPE.XEnv.name(), XtremIOConstants.FROM_TIME, fromTime,
                 XtremIOConstants.TO_TIME, toTime, XtremIOConstants.GRANULARITY, granularity);
@@ -110,28 +132,65 @@ public class XtremIOMetricsCollector {
             }
         }
 
-        // calculate the average usage for each XEnv
-        List<Integer> avgCPUs = new ArrayList<Integer>();
+        // calculate the average usage for each XEnv for the queried period of time
+        Map<String, Double> xEnvToAvgCPU = new HashMap<>();
         for (String xEnv : xEnvToCPUvalues.keySet()) {
             List<Integer> cpuUsageList = xEnvToCPUvalues.get(xEnv);
-            int avgCPU = cpuUsageList.stream().mapToInt(Integer::intValue).sum() / cpuUsageList.size();
+            Double avgCPU = (double) (cpuUsageList.stream().mapToInt(Integer::intValue).sum() / cpuUsageList.size());
             log.info("XEnv: {}, collected CPU usage: {}, average: {}", xEnv, cpuUsageList.toString(), avgCPU);
-            avgCPUs.add(avgCPU);
+            xEnvToAvgCPU.put(xEnv, avgCPU);
         }
 
-        // calculate system's average usage by combining all XEnvs
-        if (avgCPUs.size() > 0) {
-            double systemAvgCPU = avgCPUs.stream().mapToInt(Integer::intValue).sum() / avgCPUs.size();
-            log.info("System's average CPU Usage: {}", systemAvgCPU);
-            // TODO compute new average
-            system.setAveragePortMetrics(systemAvgCPU);
-            dbClient.updateObject(system);
+        // calculate the average usage for each Storage controller (from it's 2 XEnvs)
+        Map<StorageHADomain, Double> scToAvgCPU = new HashMap<>();
+        for (String xEnv : xEnvToAvgCPU.keySet()) {
+            StorageHADomain sc = getStorageControllerForXEnv(xEnv, system, dbClient);
+            Double scCPU = scToAvgCPU.get(sc);
+            Double xEnvCPU = xEnvToAvgCPU.get(xEnv);
+            Double avgScCPU = (scCPU == null) ? xEnvCPU : ((xEnvCPU + scCPU) / 2.0);
+            scToAvgCPU.put(sc, avgScCPU);
         }
 
-        // portMetricsProcessor.computeStorageSystemAvgPortMetrics(accessProfile.getSystemId());
+        // calculate exponential average for each Storage controller
+        for (StorageHADomain sc : scToAvgCPU.keySet()) {
+            Double avgScCPU = scToAvgCPU.get(sc);
+            log.info("StorageHADomain: {}, average CPU Usage: {}", sc.getAdapterName(), avgScCPU);
 
-        // check Placement logic.
-        // for systems where no CPU% collected, it will be 0?
+            portMetricsProcessor.processFEAdaptMetrics(avgScCPU, 0l, sc, currentTime.toString(), false);
+
+            StringMap dbMetrics = sc.getMetrics();
+            double emaFactor = PortMetricsProcessor.getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+            if (emaFactor > 1.0) {
+                emaFactor = 1.0;  // in case of invalid user input
+            }
+            Double scAvgBusy = MetricsKeys.getDouble(MetricsKeys.avgPercentBusy, dbMetrics);
+            Double scEmaBusy = MetricsKeys.getDouble(MetricsKeys.emaPercentBusy, dbMetrics);
+            Double scPercentBusy = (scAvgBusy * emaFactor) + ((1 - emaFactor) * scEmaBusy);
+            MetricsKeys.putDouble(MetricsKeys.avgCpuPercentBusy, scPercentBusy, dbMetrics);
+            MetricsKeys.putLong(MetricsKeys.lastProcessingTime, currentTime, dbMetrics);
+            sc.setMetrics(dbMetrics);
+            dbClient.updateObject(sc);
+        }
+
+        // calculate storage system's average CPU usage by combining all XEnvs
+        portMetricsProcessor.computeStorageSystemAvgPortMetrics(system.getId());
+    }
+
+    /**
+     * Gets the storage controller (StorageHADomain) for the given XEnv name.
+     */
+    private StorageHADomain getStorageControllerForXEnv(String xEnv, StorageSystem system, DbClient dbClient) {
+        StorageHADomain haDomain = null;
+        String haDomainNativeGUID = NativeGUIDGenerator.generateNativeGuid(system,
+                xEnv.substring(0, xEnv.lastIndexOf(Constants.HYPHEN) - 1), NativeGUIDGenerator.ADAPTER);
+        URIQueryResultList haDomainQueryResult = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(haDomainNativeGUID),
+                haDomainQueryResult);
+        Iterator<URI> itr = haDomainQueryResult.iterator();
+        if (itr.hasNext()) {
+            haDomain = dbClient.queryObject(StorageHADomain.class, itr.next());
+        }
+        return haDomain;
     }
 
     /**

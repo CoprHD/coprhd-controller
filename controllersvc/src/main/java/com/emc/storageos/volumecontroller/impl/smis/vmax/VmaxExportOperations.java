@@ -2131,12 +2131,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
         if (!initiatorList.isEmpty()) {
             Initiator ini = initiatorList.get(0);
             URI hostURI = ini.getHost();
-            if (hostURI == null) {
+            URI vmURI = ini.getVirtualMachine();
+            if (NullColumnValueGetter.isNullURI(hostURI) &&
+                    NullColumnValueGetter.isNullURI(vmURI)) {
                 return false;
             }
-            Host host = _dbClient.queryObject(Host.class, hostURI);
-            String hostType = host.getType();
-            if (hostType.equals(Host.HostType.HPUX.toString())) {
+            String hostType = null;
+            if (!NullColumnValueGetter.isNullURI(hostURI)) {
+                Host host = _dbClient.queryObject(Host.class, hostURI);
+                hostType = host.getType();
+            } else {
+                VirtualMachine vm = _dbClient.queryObject(VirtualMachine.class, vmURI);
+                hostType = vm.getType();
+            }
+            if (Host.HostType.HPUX.toString().equals(hostType)) {
                 initiatorIsHPUX = true;
             }
         }

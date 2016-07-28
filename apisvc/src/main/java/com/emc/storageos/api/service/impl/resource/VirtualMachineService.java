@@ -330,7 +330,7 @@ public class VirtualMachineService extends TaskResourceService {
             secondInitiator.setClusterName(cluster.getLabel());
         }
         secondInitiator.setId(URIUtil.createId(Initiator.class));
-        populateInitiator(secondInitiator, createParam.getFirstInitiator());
+        populateInitiator(secondInitiator, createParam.getSecondInitiator());
         firstInitiator.setAssociatedInitiator(secondInitiator.getId());
         secondInitiator.setAssociatedInitiator(firstInitiator.getId());
         _dbClient.createObject(firstInitiator);

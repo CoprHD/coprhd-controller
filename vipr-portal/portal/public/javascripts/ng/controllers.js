@@ -1463,7 +1463,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.$parent.isMenuPinned = readCookie("isMenuPinned");
     }
 
-    $scope.toggleGuide = function() {
+    $scope.toggleGuide = function(nonav) {
+
+        //we need to check that the guide only appears on the license and initial setup nonav pages
+        if (nonav) {
+            if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
+                return;
+            }
+        }
 
         if ($scope.$parent.guideVisible) {
 		    $scope.closeGuide();
@@ -1550,37 +1557,46 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     var promises = [];
                     failedArray= [];
+                    var failedType;
                     promises.push($http.get(routes.StorageProviders_discoveryCheckJson({'ids':providerid})).then(function (data) {
                         if (data.data.length != 0) {
-                            failedArray=failedArray.concat(data.data)
+                            if(!failedType){
+                                failedType="PROVIDER";
+                                failedArray=failedArray.concat(data.data);
+                            }
                         }
                     }));
                     promises.push($http.get(routes.StorageSystems_discoveryCheckJson({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            failedArray=failedArray.concat(data.data)
+                            if(!failedType){
+                                failedType="SYSTEM";
+                                failedArray=failedArray.concat(data.data);
+                            }
                         }
                     }));
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
-
-                            $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
-                            finishChecking();
+                            if(failedType=="PROVIDER"){
+                                $scope.$parent.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
+                                finishChecking();
+                            }
                         } else {
-                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid})).then(function (data) {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(ssid)})).then(function (data) {
                                 arrayCookie = guide_data.storage_systems;
                                 storage_systems=[];
-                                if (arrayCookie) {
-                                    jQuery.each(arrayCookie, function() {
-                                        if (this.id.indexOf("StorageProvider") == -1){
-                                            storage_system = {id:this.id, name:this.name};
-                                            storage_systems.push(storage_system);
-                                        }
-                                    });
-                                    guide_data.storage_systems=storage_systems.concat(data.data);
+                                console.log("DATA"+data.data)
+                                if (data.data.length > 0) {
+                                    guide_data.storage_systems=data.data;
                                     createCookie(dataCookieKey,angular.toJson(guide_data),'session');
+                                    $scope.$parent.completedSteps = 4;
+                                    goToNextStep(true);
+                                } else {
+                                    $scope.$parent.guideError = "Error: No All Flash storage systems Discovered or Registered";
+                                    finishChecking();
                                 }
-                                $scope.$parent.completedSteps = 4;
-                                goToNextStep(true);
                             });
                         }
                     });
@@ -1589,65 +1605,48 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 5:
+                ssid= "";
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.Networks_getConnectedStorage()).then(function (data) {
-                    failedArray= [];
-                    if (data.data.length != 0) {
-                        arrayCookie = guide_data.storage_systems;
-                        console.log(data.data);
-                        if (arrayCookie) {
-                            jQuery.each(arrayCookie, function() {
-                                console.log(this.id);
-                                if($.inArray(this.id, data.data) == -1){
-                                    failedArray.push(this.name);
-                                }
-                            });
-                            if (failedArray.length > 0) {
-                                $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+failedArray;
-                                finishChecking();
-                            } else {
-                                $scope.$parent.completedSteps = 5;
-                                    $scope.$parent.optionalStepComplete = true;
-                                goToNextStep(true);
-                            }
-                        } else {
-                            finishChecking();
-                        }
-                    } else {
-                        //$scope.$parent.optionalStepComplete = false;
-                        //goToNextStep(true);
+                if(guide_data){
+                    arrayCookie = guide_data.storage_systems;
+                    if (arrayCookie) {
+                        jQuery.each(arrayCookie, function() {
+                            if (ssid){ssid += ","}
+                            ssid += this.id;
+                        });
+                    }
+                }
+                $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
+                    if (data.data.length > 0) {
+                        $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
                         finishChecking();
+                    } else {
+                        $scope.$parent.completedSteps = 5;
+                            $scope.$parent.optionalStepComplete = true;
+                        goToNextStep(true);
                     }
                 });
                 break;
             case 6:
+                ssid= "";
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.VirtualArrays_getConnectedStorage()).then(function (data) {
-                    failedArray= [];
-                    if (data.data.length != 0) {
-                        arrayCookie = guide_data.storage_systems;
-                        console.log(data.data);
-                        if (arrayCookie) {
-                            jQuery.each(arrayCookie, function() {
-                                console.log(this.id);
-                                if($.inArray(this.id, data.data) == -1){
-                                    failedArray.push(this.name);
-                                }
-                            });
-                            if (failedArray.length > 0) {
-                                $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+failedArray;
-                                finishChecking();
-                            } else {
-                                $scope.$parent.completedSteps = 6;
-                                goToNextStep(true);
-                            }
-                        } else {
-                            finishChecking();
-                        }
-                    } else {
-                        //$scope.$parent.optionalStepComplete = false;
-                        //goToNextStep(true);
+                if(guide_data){
+                    arrayCookie = guide_data.storage_systems;
+                    if (arrayCookie) {
+                        jQuery.each(arrayCookie, function() {
+                            if (ssid){ssid += ","}
+                            ssid += this.id;
+                        });
+                    }
+                }
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                $http.get(routes.VirtualArrays_getDisconnectedStorage(ssid)).then(function (data) {
+                    if (data.data.length > 0) {
+                        $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
                         finishChecking();
+                    } else {
+                        $scope.$parent.completedSteps = 6;
+                        checkStep(7);
                     }
                 });
                 break;
@@ -1731,12 +1730,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
        saveGuideCookies();
    }
 
-    $scope.runStep = function(step) {
+    $scope.runStep = function(error) {
 
-
-        if (!step) {
-            step = $scope.$parent.currentStep;
-        }
+        step = $scope.$parent.currentStep;
 
         switch (step) {
             case 1:
@@ -1767,12 +1763,33 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 4:
                 updateGuideCookies(4,'side');
-                if ($window.location.pathname != '/storagesystems/createAllFlash') {
-                    $window.location.href = '/storagesystems/createAllFlash';
-                }
-                else {
-                    $scope.$parent.currentStep=4;
-                    $scope.$parent.guideMode='side';
+                if (!error) {
+                    if ($window.location.pathname != '/storagesystems/createAllFlash') {
+                        $window.location.href = '/storagesystems/createAllFlash';
+                    }
+                    else {
+                        $scope.$parent.currentStep=4;
+                        $scope.$parent.guideMode='side';
+                    }
+                } else {
+
+                    if (error.indexOf("Provider") == -1){
+                        if ($window.location.pathname != '/storagesystems/list') {
+                            $window.location.href = '/storagesystems/list';
+                        }
+                        else {
+                            $scope.$parent.currentStep=4;
+                            $scope.$parent.guideMode='side';
+                        }
+                    } else {
+                        if ($window.location.pathname != '/storageproviders/list') {
+                            $window.location.href = '/storageproviders/list';
+                        }
+                        else {
+                            $scope.$parent.currentStep=4;
+                            $scope.$parent.guideMode='side';
+                        }
+                    }
                 }
                 break;
             case 5:
@@ -1998,37 +2015,48 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     var promises = [];
                     failedArray= [];
+                    var failedType;
                     promises.push($http.get(routes.StorageProviders_discoveryCheckJson({'ids':providerid})).then(function (data) {
+                        console.log("here 1");
                         if (data.data.length != 0) {
-                            failedArray=failedArray.concat(data.data)
+                            if(!failedType){
+                                failedType="PROVIDER";
+                                failedArray=failedArray.concat(data.data);
+                            }
                         }
                     }));
                     promises.push($http.get(routes.StorageSystems_discoveryCheckJson({'ids':ssid})).then(function (data) {
+                        console.log("here 3");
                         if (data.data.length != 0) {
-                            failedArray=failedArray.concat(data.data)
+                            if(!failedType){
+                                failedType="SYSTEM";
+                                failedArray=failedArray.concat(data.data);
+                            }
                         }
                     }));
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
-
-                            $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
-                            finishChecking();
+                            if(failedType=="PROVIDER"){
+                                $scope.$parent.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
+                                finishChecking();
+                            }
                         } else {
-                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid})).then(function (data) {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(ssid)})).then(function (data) {
                                 arrayCookie = guide_data.storage_systems;
                                 storage_systems=[];
-                                if (arrayCookie) {
-                                    jQuery.each(arrayCookie, function() {
-                                        if (this.id.indexOf("StorageProvider") == -1){
-                                            storage_system = {id:this.id, name:this.name};
-                                            storage_systems.push(storage_system);
-                                        }
-                                    });
-                                    guide_data.storage_systems=storage_systems.concat(data.data);
+                                console.log("DATA"+data.data)
+                                if (data.data.length > 0) {
+                                    guide_data.storage_systems=data.data;
                                     createCookie(dataCookieKey,angular.toJson(guide_data),'session');
+                                    $scope.$parent.completedSteps = 4;
+                                    return checkStep(5);
+                                } else {
+                                    $scope.$parent.guideError = "Error: No All Flash storage systems Discovered or Registered";
+                                    finishChecking();
                                 }
-                                $scope.$parent.completedSteps = 4;
-                                return checkStep(5);
                             });
                         }
                     });
@@ -2037,64 +2065,48 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 5:
+                ssid= "";
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.Networks_getConnectedStorage()).then(function (data) {
-                    failedArray= [];
-                    if (data.data.length != 0) {
-                        arrayCookie = guide_data.storage_systems;
-                        if (arrayCookie) {
-                            jQuery.each(arrayCookie, function() {
-                                console.log(this.id);
-                                if($.inArray(this.id, data.data) == -1){
-                                    failedArray.push(this.name);
-                                }
-                            });
-                            if (failedArray.length > 0) {
-                                $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+failedArray;
-                                finishChecking();
-                            } else {
-                                $scope.$parent.completedSteps = 5;
-                                $scope.$parent.optionalStepComplete = true;
-                                return checkStep(6);
-                            }
-                        } else {
-                            finishChecking();
-                        }
-                    } else {
-                        //$scope.$parent.optionalStepComplete = false;
-                        //goToNextStep(true);
+                if(guide_data){
+                    arrayCookie = guide_data.storage_systems;
+                    if (arrayCookie) {
+                        jQuery.each(arrayCookie, function() {
+                            if (ssid){ssid += ","}
+                            ssid += this.id;
+                        });
+                    }
+                }
+                $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
+                    if (data.data.length > 0) {
+                        $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
                         finishChecking();
+                    } else {
+                        $scope.$parent.completedSteps = 5;
+                        $scope.$parent.optionalStepComplete = true;
+                        return checkStep(6);
                     }
                 });
                 break;
             case 6:
+                ssid= "";
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.VirtualArrays_getConnectedStorage()).then(function (data) {
-                    failedArray= [];
-                    if (data.data.length != 0) {
-                        arrayCookie = guide_data.storage_systems;
-                        console.log(data.data);
-                        if (arrayCookie) {
-                            jQuery.each(arrayCookie, function() {
-                                console.log(this.id);
-                                if($.inArray(this.id, data.data) == -1){
-                                    failedArray.push(this.name);
-                                }
-                            });
-                            if (failedArray.length > 0) {
-                                $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+failedArray;
-                                finishChecking();
-                            } else {
-                                $scope.$parent.completedSteps = 6;
-                                checkStep(7);
-                            }
-                        } else {
-                            finishChecking();
-                        }
-                    } else {
-                        //$scope.$parent.optionalStepComplete = false;
-                        //goToNextStep(true);
+                if(guide_data){
+                    arrayCookie = guide_data.storage_systems;
+                    if (arrayCookie) {
+                        jQuery.each(arrayCookie, function() {
+                            if (ssid){ssid += ","}
+                            ssid += this.id;
+                        });
+                    }
+                }
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                $http.get(routes.VirtualArrays_getDisconnectedStorage(ssid)).then(function (data) {
+                    if (data.data.length > 0) {
+                        $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
                         finishChecking();
+                    } else {
+                        $scope.$parent.completedSteps = 6;
+                        checkStep(7);
                     }
                 });
                 break;

@@ -165,7 +165,7 @@ public class StorageSystems extends ViprResourceController {
         for (String id:ids) {
             StorageSystemRestRep storageSystem = StorageSystemUtils
                     .getStorageSystem(id);
-            if (storageSystem == null) {
+            if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
                 //ignore for now
                 continue;
             }
@@ -291,7 +291,7 @@ public class StorageSystems extends ViprResourceController {
         //check if checklist is running on this step
         JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
 
-        if (jobject.get("completedSteps").getAsInt() == 3) {
+        if (jobject.get("completedSteps").getAsInt() == 3 && jobject.get("guideVisible").getAsBoolean()) {
             JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 
             JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);

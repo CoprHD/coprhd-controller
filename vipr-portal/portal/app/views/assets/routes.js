@@ -99,8 +99,8 @@ var routes = {
   FileVirtualPools_list: #{jsAction @arrays.FileVirtualPools.listJson() /},
   VirtualArrays_list: #{jsAction @VirtualArrays.listJson() /},
   VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /},
-  Networks_getConnectedStorage: #{jsAction @arrays.Networks.getConnectedStorage() /},
-  VirtualArrays_getConnectedStorage: #{jsAction @VirtualArrays.getConnectedStorage() /},
+  Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
+  VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
   VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /}
 
 };

@@ -153,12 +153,14 @@ public class BlockVirtualPools extends ViprResourceController {
             }
         }
         for (String id:ids) {
-            List<StoragePoolRestRep> storagepools =StoragePoolUtils.getStoragePools(id);
             StorageSystemRestRep storageSystem =StorageSystemUtils.getStorageSystem(id);
-            for(StoragePoolRestRep storagepool:storagepools){
-                if(!connectedstoragepools.contains(storagepool.getId().toString())){
-                    failedArrays.add(storageSystem.getName());
-                    break;
+            if (storageSystem != null && !storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+                List<StoragePoolRestRep> storagepools = StoragePoolUtils.getStoragePools(id);
+                for (StoragePoolRestRep storagepool : storagepools) {
+                    if (!connectedstoragepools.contains(storagepool.getId().toString())) {
+                        failedArrays.add(storageSystem.getName());
+                        break;
+                    }
                 }
             }
         }

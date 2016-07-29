@@ -41,6 +41,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
+import com.emc.storageos.systemservices.impl.driver.DriverManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.*;
@@ -55,6 +56,7 @@ import com.emc.vipr.model.sys.TargetVersionResponse;
 import static com.emc.storageos.coordinator.client.model.Constants.MAX_UPLOAD_SIZE;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.setInstallableRemovable;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterResponse;
+
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.RemoteRepositoryException;
@@ -77,7 +79,8 @@ public class UpgradeService {
     private PropertyManager _propertyManager;
     @Autowired
     private VdcManager _vdcManager;
-
+    @Autowired
+    private DriverManager _driverManager;
     /**
      * Callback for other components to register itself for upgrade check before upgrade process starts.
      */
@@ -575,11 +578,15 @@ public class UpgradeService {
             case "vdc":
                 _vdcManager.wakeup();
                 break;
+            case "driver":
+                _driverManager.wakeup();
+                break;
             default:
                 _upgradeManager.wakeup();
                 _secretsManager.wakeup();
                 _propertyManager.wakeup();
                 _vdcManager.wakeup();
+                _driverManager.wakeup();
         }
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {

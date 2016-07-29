@@ -18,6 +18,7 @@ import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerato
 import com.emc.storageos.systemservices.SysSvc;
 import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.driver.DriverManager;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.jobs.DiagnosticsScheduler;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
@@ -45,6 +46,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _secretsManagerThread = null;
     private Thread _propertyManagerThread = null;
     private Thread _vdcManagerThread = null;
+    private Thread _driverManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
     private SoftwareUpdate _softwareUpdate;
@@ -57,6 +59,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private PropertyManager _propertyMgr;
+
+    @Autowired
+    private DriverManager _driverMgr;
 
     @Autowired
     private VdcManager _vdcMgr;
@@ -138,6 +143,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _propertyManagerThread.start();
     }
 
+    private void startDriverManager() {
+        _driverManagerThread = new Thread(_driverMgr);
+        _driverManagerThread.setName("DriverManager");
+        _driverManagerThread.start();
+    }
+
     private void startVdcManager() {
         _vdcManagerThread = new Thread(_vdcMgr);
         _vdcManagerThread.setName("VdcManager");
@@ -212,6 +223,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             // since they would update beacon
             startPropertyManager();
             startVdcManager();
+            startDriverManager();
 
             startDiagnosticsScheduler();
             

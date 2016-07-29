@@ -400,7 +400,7 @@ public class AuthnConfigurationService extends TaggedResource {
             return false;
         }
 
-        if (param.getMode() != null) {
+        if (param.getMode() != null && !param.getMode().equals(authnProvider.getMode())) {
             return false;
         }
 
@@ -446,18 +446,30 @@ public class AuthnConfigurationService extends TaggedResource {
         return true;
     }
 
+    /**
+     * Updates Keystone Auth Provider with given id.
+     *
+     * @param id URI of AuthnProvider
+     * @param param AuthnUpdateParam with params for updated AuthnProvider
+     * @param provider AuthnProvider to update
+     * @param validateP AuthnProviderParamsToValidate with parameters to validate the Provider.
+     * @return AuthnProviderRestRep updated Provider
+     */
     private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
         int synchronizationInterval = OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY;
+
+        // if Auto Registration was done, get interval value from Tenant Sync Options
         if (isAutoRegistered) {
             synchronizationInterval = Integer
                     .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
         }
-        // if the configured domain has tenant then we can't update
-        // that domain.
 
+        // if the configured domain has tenant then we can't update that domain unless
+        // the only options that changed were Tenants Synchronization Options
+        // (update to Auth Provider was done from Tenants section)
         if (!isTenantsSynchronizationOptionsChanged(provider, param)) {
             checkForActiveTenantsUsingDomains(provider.getDomains());
         }
@@ -466,6 +478,7 @@ public class AuthnConfigurationService extends TaggedResource {
         // Set old password if new one is a blank or null.
         provider.setManagerPassword(getPassword(provider, oldPassword));
 
+        // get interval value from updated Tenant Sync Options
         int newSynchronizationInterval = Integer
                 .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
 
@@ -489,11 +502,15 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
+        // if the Auto Registration was not done before, then register CoprHD in Keystone
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }
-        if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval
-                && _openStackSynchronizationTask.getSynchronizationTask() != null) {
+
+        // if the Automatic Registration is selected and new interval value is not the same as the old one,
+        // then reschedule the task
+        if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval &&
+            _openStackSynchronizationTask.getSynchronizationTask() != null) {
             _openStackSynchronizationTask.rescheduleTask(newSynchronizationInterval);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,

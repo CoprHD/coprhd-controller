@@ -218,11 +218,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
 
             // Create the auto tiering policy capability.
-            AutoTieringPolicyCapabilityDefinition autoTieringCapabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
+            AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
             Map<String, List<String>> capabilityProperties = new HashMap<>();
-            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(autoTieringPolicy.getPolicyName()));
-            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(autoTieringPolicy.getProvisioningType()));
-            CapabilityInstance autoTieringCapability = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), autoTieringPolicy.getPolicyName(), capabilityProperties);
+            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(),
+                    Arrays.asList(autoTieringPolicy.getPolicyName()));
+            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(),
+                    Arrays.asList(autoTieringPolicy.getProvisioningType()));
+            CapabilityInstance autoTieringCapability = new CapabilityInstance(capabilityDefinition.getId(), 
+                    autoTieringPolicy.getPolicyName(), capabilityProperties);
 
             // Get the common capabilities for the passed storage capabilities.
             // If null, create and set it.

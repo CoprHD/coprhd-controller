@@ -55,6 +55,8 @@ import controllers.util.Models;
 @Restrictions({ @Restrict("PROJECT_ADMIN"), @Restrict("TENANT_ADMIN") })
 public class Projects extends ViprResourceController {
     protected static final String UNKNOWN = "projects.unknown";
+    private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
+    private static final String GUIDE_DATA = "GUIDE_DATA";
 
     public static void list() {
         ProjectsDataTable dataTable = new ProjectsDataTable();
@@ -139,18 +141,21 @@ public class Projects extends ViprResourceController {
         }
 
         flash.success(MessagesUtils.get("projects.saved", project.name));
-        JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+        JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
 
-        JsonArray projects = dataObject.getAsJsonArray("projects");
-        if (projects == null) {
-            projects = new JsonArray();
+        if (jobject.get("completedSteps").getAsInt() == 7 && jobject.get("guideVisible").getAsBoolean()) {
+            JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+            JsonArray projects = dataObject.getAsJsonArray("projects");
+            if (projects == null) {
+                projects = new JsonArray();
+            }
+            JsonObject projectObject = new JsonObject();
+            projectObject.addProperty("id", project.id);
+            projectObject.addProperty("name", project.name);
+            projects.add(projectObject);
+            dataObject.add("projects", projects);
+            saveJsonAsCookie("GUIDE_DATA", dataObject);
         }
-        JsonObject projectObject = new JsonObject();
-        projectObject.addProperty("id",project.id);
-        projectObject.addProperty("name",project.name);
-        projects.add(projectObject);
-        dataObject.add("projects", projects);
-        saveJsonAsCookie("GUIDE_DATA", dataObject);
         if (StringUtils.isNotBlank(project.referrerUrl)) {
             redirect(project.referrerUrl);
         }

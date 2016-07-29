@@ -38,6 +38,7 @@ import models.datatable.NetworksDataTable;
 import models.datatable.NetworksDataTable.NetworkInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import play.Logger;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -161,6 +162,29 @@ public class Networks extends ViprResourceController {
             }
         }
         renderJSON(connectedstoragesystems);
+    }
+
+    public static void getDisconnectedStorage(@As(",") String[] ids) {
+        List<NetworkRestRep> networks = NetworkUtils.getNetworks();
+        Set<String> connectedstoragesystems = new HashSet<String>();
+        Set<String> disConnectedstoragesystems = new HashSet<String>();
+        for (NetworkRestRep network:networks) {
+            for(StoragePortRestRep port:StoragePortUtils.getStoragePortsByNetwork(network.getId())){
+                connectedstoragesystems.add(port.getStorageDevice().getId().toString());
+            }
+        }
+        for (String id:ids) {
+            StorageSystemRestRep storageSystem = StorageSystemUtils
+                    .getStorageSystem(id);
+            if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+                //ignore for now
+                continue;
+            }
+            if (!connectedstoragesystems.contains(id)){
+                disConnectedstoragesystems.add(storageSystem.getName());
+            }
+        }
+        renderJSON(disConnectedstoragesystems);
     }
 
     /**

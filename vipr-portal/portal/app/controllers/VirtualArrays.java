@@ -969,6 +969,29 @@ public class VirtualArrays extends ViprResourceController {
         renderJSON(connectedstoragesystems);
     }
 
+    public static void getDisconnectedStorage(@As(",") String[] ids) {
+        List<VirtualArrayRestRep> virtualarrays = VirtualArrayUtils.getVirtualArrays();
+        Set<String> connectedstoragesystems = new HashSet<String>();
+        Set<String> disConnectedstoragesystems = new HashSet<String>();
+        for (VirtualArrayRestRep virtualarray:virtualarrays) {
+            for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(virtualarray.getId().toString())) {
+                connectedstoragesystems.add(storageSystem.getId().toString());
+            }
+        }
+        for (String id:ids) {
+            StorageSystemRestRep storageSystem = StorageSystemUtils
+                    .getStorageSystem(id);
+            if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+                //ignore for now
+                continue;
+            }
+            if (!connectedstoragesystems.contains(id)){
+                disConnectedstoragesystems.add(storageSystem.getName());
+            }
+        }
+        renderJSON(disConnectedstoragesystems);
+    }
+
     /**
      * Adds all ports of the given storage systems to the virtual array.
      * 

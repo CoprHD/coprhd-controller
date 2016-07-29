@@ -64,6 +64,11 @@ public class StorageProviders extends ViprResourceController {
     private static final int SAVE_WAIT_MILLIS = 300000;
     private static final String HTTPS = "https";
 
+    private static final String UNITY = "unity";
+    private static final String VMAX = "vmax";
+    private static final String XTREMIO = "xtremio";
+    private static final String SUFFIX_ALL_FLASH = "F";
+
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
         renderArgs.put("optionsSIO", StorageProviderTypes.getScaleIoOption());
@@ -102,7 +107,7 @@ public class StorageProviders extends ViprResourceController {
         for (String id:ids) {
             StorageProviderRestRep storageProvider = StorageProviderUtils
                     .getStorageProvider(uri(id));
-            if (storageProvider == null) {
+            if (storageProvider == null || storageProvider.getRegistrationStatus().equals("UNREGISTERED")) {
                 //ignore for now
                 continue;
             }
@@ -138,29 +143,57 @@ public class StorageProviders extends ViprResourceController {
     public static void getAllFlashStorageSystemsList(@As(",") String[] ids) {
         List<Map<String,String>> storagesystemslist = new ArrayList<Map<String,String>>();
         for (String id:ids) {
-            StorageProviderRestRep storageProvider = StorageProviderUtils
-                    .getStorageProvider(uri(id));
-            if (storageProvider == null) {
-                //ignore for now
-                continue;
-            }
-            Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
-                    .getConnectedStorageSystems(uri(id));
+            if(id.contains("StorageProvider")) {
+                StorageProviderRestRep storageProvider = StorageProviderUtils
+                        .getStorageProvider(uri(id));
+                if (storageProvider == null) {
+                    //ignore for now
+                    continue;
+                }
+                Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
+                        .getConnectedStorageSystems(uri(id));
 
-            for (NamedRelatedResourceRep storageSystem:storageSystems){
-                StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
-                if (ss != null) {
-                    for (String option : models.StorageSystemTypes.ALL_FLASH_STORAGE_TYPES){
-                        if (option.equals(ss.getSystemType())){
-                            Map<String,String> ssMap = new HashMap<String, String>();
-                            ssMap.put("id",ss.getId().toString());
-                            ssMap.put("name",ss.getName());
+                for (NamedRelatedResourceRep storageSystem : storageSystems) {
+                    StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
+                    if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                        Map<String, String> ssMap = new HashMap<String, String>();
+                        // Check if storage system is of type UNITY, VMAX or XtremIO
+                        if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
-                            break;
+                        }
+                        if (StringUtils.equals(UNITY, ss.getSystemType()) || StringUtils.equals(VMAX, ss.getSystemType())) {
+                            String modelType = ss.getModel();
+                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                                ssMap.put("id", ss.getId().toString());
+                                ssMap.put("name", ss.getName());
+                                storagesystemslist.add(ssMap);
+                            }
+                        }
+                    }
+                }
+            } else {
+                StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(id);
+                if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                    Map<String, String> ssMap = new HashMap<String, String>();
+                    // Check if storage system is of type UNITY, VMAX or XtremIO
+                    if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
+                        ssMap.put("id", ss.getId().toString());
+                        ssMap.put("name", ss.getName());
+                        storagesystemslist.add(ssMap);
+                    }
+                    if (StringUtils.equals(UNITY, ss.getSystemType()) || StringUtils.equals(VMAX, ss.getSystemType())) {
+                        String modelType = ss.getModel();
+                        if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
+                            storagesystemslist.add(ssMap);
                         }
                     }
                 }
             }
+
         }
         renderJSON(storagesystemslist);
     }

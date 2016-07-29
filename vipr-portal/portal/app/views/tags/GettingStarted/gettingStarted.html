@@ -10,7 +10,7 @@
                         <a ng-show="currentStep > completedSteps && currentStep > 2" ng-click="completeStep();"><i class="glyphicon glyphicon-arrow-right"></i></a>
                         <a ng-show="currentStep <= completedSteps && currentStep > 2" ng-click="toggleMode('full'); nextStep();"><i class="glyphicon glyphicon-arrow-right"></i></a>
                     </span>
-                    <a ng-show="currentStep > 2" ng-click="closeGuide();"><i class="glyphicon glyphicon-remove-circle" ></i></a>
+                    <a ng-show="completedSteps > 2" ng-click="closeGuide();"><i class="glyphicon glyphicon-remove-circle" ></i></a>
                 </div>
             </div>
             <h4 ng-show="guideMode=='full'" class="">&{'gettingStarted.header.full'}</h4>
@@ -49,10 +49,6 @@
                         <h6><i class="text-success glyphicon glyphicon-ok-circle"></i> &{'gettingStarted.lpw.success'}</h6>
                     </div>
 
-                    <div class="center-block  landing-image">
-                        <img src="/public/img/guideScreengrab_en.png" width="600">
-                    </div>
-
                     <div class="landing-text">
                         <h3 ng-show="completedSteps == 2">&{'gettingStarted.landing.text'}</h3>
                         <h3 ng-show="completedSteps >= 3 && completedSteps < maxSteps" >&{'gettingStarted.landing.systemPartial'}</h3>
@@ -87,10 +83,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.licenses.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.licenses.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.licenses.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-show="completedSteps == currentStep-1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.licenses.button'}</button>
@@ -123,12 +116,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.initialsetup.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.initialsetup.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.initialsetup.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-show="completedSteps == currentStep-1"  ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
@@ -160,18 +148,14 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.storagesystem.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.storagesystem.title'}</h4>
                                 <div class="step-text">&{'gettingStarted.storagesystem.text'}</div>
                                 <div class="action-btn text-center">
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 4" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.storagesystem.button'}</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="!guideError && completedSteps < 4" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.storagesystem.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 3" name="singlebutton" class="btn btn-primary" ng-click="runStep(guideError);">Fix Error</button>
                                     <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 4">
                                         <p class="guide-error">{{guideError}}</p>
                                     </div>
@@ -200,12 +184,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.fabricmanager.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.fabricmanager.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.fabricmanager.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 5" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.fabricmanager.button'}</button>
@@ -240,12 +219,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.virtualarray.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.virtualarray.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.virtualarray.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 6" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualarray.button'}</button>
@@ -280,12 +254,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.virtualpool.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.virtualpool.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.virtualpool.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 7" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualpool.button'}</button>
@@ -320,12 +289,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.project.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="nextStep();">
-                                        &{'button.next'}</button>
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space " style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.project.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.project.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 8" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.project.button'}</button>
@@ -360,10 +324,7 @@
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
-                                <h4>&{'gettingStarted.provision.title'}
-                                    <button name="singlebutton" class="btn btn-xs btn-primary left-space" style="float: right" ng-click="previousStep();">
-                                        &{'button.back'}</button>
-                                </h4>
+                                <h4>&{'gettingStarted.provision.title'}</h4>
                                 <div class="step-text">
                                     <p>&{'gettingStarted.provision.text'}</p>
                                     <div class="summary-box"  ng-if="guideDataAvailable && currentStep == 9" ng-init="getSummary()">

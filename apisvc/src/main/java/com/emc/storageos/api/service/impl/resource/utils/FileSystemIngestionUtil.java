@@ -219,7 +219,7 @@ public class FileSystemIngestionUtil {
      * @param unManagedFileSystemUri
      * @param vpoolUri
      */
-    private static boolean checkVirtualPoolValidForUnManagedFileSystem(
+    public static boolean checkVirtualPoolValidForUnManagedFileSystem(
             DbClient dbClient, VirtualPool vPool, URI unManagedFileSystemUri) {
 
         UnManagedFileSystem unManagedFileSystem = dbClient.queryObject(
@@ -228,8 +228,8 @@ public class FileSystemIngestionUtil {
         if (unManagedFileSystem != null) {
             StringSet vPoolProtocols = vPool.getProtocols();
             if (unManagedFileSystem.getHasNFSAcl() && !vPoolProtocols.contains("NFSv4")) {
-                _logger.warn("UnManaged FileSystem {} has NFS ACLs, But vPool protocol(s) {}, Skipping Ingestion..",
-                        unManagedFileSystemUri, vPoolProtocols);
+                _logger.warn("UnManaged FileSystem {} has NFS ACLs, But vPool protocol(s) are {}, Hence skipping filesystem.",
+                        unManagedFileSystem.getLabel(), vPoolProtocols);
                 return false;
             }
         }

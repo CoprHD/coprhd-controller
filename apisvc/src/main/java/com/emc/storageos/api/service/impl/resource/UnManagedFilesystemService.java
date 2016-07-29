@@ -306,7 +306,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     continue;
                 }
 
-                if (!checkVirtualPoolValidForUnManagedFileSystem(_dbClient, cos, unManagedFileSystemUri)) {
+                if (!FileSystemIngestionUtil.checkVirtualPoolValidForUnManagedFileSystem(_dbClient, cos, unManagedFileSystemUri)) {
                     continue;
                 }
 
@@ -584,7 +584,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             for (URI unManagedFSURI : param.getUnManagedFileSystems()) {
                 FileShare fs = unManagedFSURIToFSMap.get(unManagedFSURI);
                 if (fs != null) {
-                    _logger.info("ingesting quota directories for filesystem {}", fs.getId());
+                    _logger.debug("ingesting quota directories for filesystem {}", fs.getId());
                     ingestFileQuotaDirectories(fs);
                 }
             }
@@ -710,8 +710,9 @@ public class UnManagedFilesystemService extends TaggedResource {
         if (!unManagedFileQuotaDirectories.isEmpty()) {
             unManagedFileQuotaDirectories.forEach(unManagedFileQuotaDir -> unManagedFileQuotaDir.setInactive(true));
             _dbClient.updateObject(unManagedFileQuotaDirectories);
+            _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         }
-        _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
+        
     }
 
     private void createRule(UnManagedFileExportRule orig, List<FileExportRule> fsExportRules) {

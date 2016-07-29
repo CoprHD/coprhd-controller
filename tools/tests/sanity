@@ -494,7 +494,7 @@ CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 # UNITY  device configuration
 #
 UNITY_DEV=${UNITY_DEV:-unity_device}
-UNITY_NATIVEGUID=${UNITY_DEV:-UNITY+$UNITY_SN}
+UNITY_NATIVEGUID=${UNITY_NATIVEGUID:-UNITY+$UNITY_SN}
 
 #
 # DataDomain file device configuration

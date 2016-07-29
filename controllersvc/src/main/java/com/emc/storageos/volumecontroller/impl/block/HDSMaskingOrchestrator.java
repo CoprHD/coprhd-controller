@@ -191,15 +191,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 
-                URIQueryResultList storagePortURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(exportGroup.getVirtualArray().toString()),
-                        storagePortURIs);
-                //Get all the storage ports that are in the varray belonging to the storage array
-                Set<StoragePort> storagePortsAssociatedWithVArrayAndStorageArray = _dbClient.queryObject(StoragePort.class, storagePortURIs.stream()
-                        .collect(Collectors.toSet())).stream().filter(storagePort -> storagePort.getStorageDevice().equals(storageURI)).collect(Collectors.toSet());
-                //String set of all the storage port URI's
-                Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = storagePortsAssociatedWithVArrayAndStorageArray.stream()
-                        .map(StoragePort::getId).map(URI::toString).collect(Collectors.toSet());
+                Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                        storageURI, exportGroup);
                 
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -319,6 +312,29 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 taskCompleter.error(_dbClient, serviceError);
             }
         }
+    }
+
+    private Set<String> getStoragePortUrisAssociatedWithVarrayAndStorageArray(URI storageURI, ExportGroup exportGroup) {
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(exportGroup.getVirtualArray().toString()),
+                storagePortURIs);
+        //Get all the storage ports that are in the varray belonging to the storage array
+        Set<URI> storagePortUriSet = new HashSet<>();
+        for (URI uri : storagePortURIs) {
+            storagePortUriSet.add(uri);
+        }
+        
+        Set<StoragePort> storagePortsAssociatedWithVArrayAndStorageArray = new HashSet<>();
+        for (StoragePort storagePort : _dbClient.queryObject(StoragePort.class, storagePortUriSet)) {
+            if(storagePort.getStorageDevice().equals(storageURI))
+                storagePortsAssociatedWithVArrayAndStorageArray.add(storagePort);
+        }
+        //String set of all the storage port URI's
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = new HashSet<>();
+        for (StoragePort storagePort : storagePortsAssociatedWithVArrayAndStorageArray) {
+            storagePortURIsAssociatedWithVArrayAndStorageArray.add(storagePort.getId().toString());
+        }
+        return storagePortURIsAssociatedWithVArrayAndStorageArray;
     }
 
     @Override

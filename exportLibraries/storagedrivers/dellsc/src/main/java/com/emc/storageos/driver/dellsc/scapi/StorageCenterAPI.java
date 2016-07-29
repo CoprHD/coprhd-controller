@@ -196,6 +196,14 @@ public class StorageCenterAPI implements AutoCloseable {
             }
         }
 
+        ScStorageType[] storageTypes = getStorageTypes(ssn);
+        for (ScStorageType storType : storageTypes) {
+            if (storType.name.equals(storageType)) {
+                params.add("StorageType", storType.instanceId);
+                break;
+            }
+        }
+
         try {
             RestResult result = restClient.post("StorageCenter/ScVolume", params.toJson());
             if (checkResults(result)) {

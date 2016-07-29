@@ -339,6 +339,7 @@ public class ExternalDeviceCommunicationInterface extends
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
 
         driverStorageSystem.setSystemName(storageSystem.getLabel());
+        driverStorageSystem.setDisplayName(storageSystem.getLabel());
 
         // could be already populated by scan
         if (storageSystem.getSerialNumber() != null) {
@@ -582,6 +583,17 @@ public class ExternalDeviceCommunicationInterface extends
                             break;
                         }
                     }
+
+                    // Verify that discovered port has mandatory identifier "portNetworkId"
+                    if (driverPort.getPortNetworkId() == null) {
+                        if (storagePort == null) {
+                            _log.error("No portNetworkId for new discovered port {}, skip discovery of this port.", portNativeGuid);
+                        } else {
+                            _log.error("No portNetworkId for previously discovered port {}, skip discovery of this port.", portNativeGuid);
+                        }
+                        continue;
+                    }
+
                     if (storagePort == null) {
                         // New port processing
                         storagePort = new com.emc.storageos.db.client.model.StoragePort();

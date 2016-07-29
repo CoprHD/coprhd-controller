@@ -1434,6 +1434,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
                                 fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
 
+                        unManagedFs.setHasNFSAcl(false);
                         // Get the NFS ACLs only if the system is enabled with NFSv4!!!
                         if (isNfsV4Enabled) {
                             /*

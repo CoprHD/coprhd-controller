@@ -532,18 +532,20 @@ public class ExportGroup extends DataObject implements ProjectResource {
     @Override
     public String toString() {
         return String.format("ExportGroup %s (%s)\n" +
-                "\tInactive    : %s\n" +
-                "\tType        : %s\n" +
-                "\tVolumes     : %s\n" +
-                "\tClusters    : %s\n" +
-                "\tHosts       : %s\n" +
-                "\tInitiators  : %s\n" +
-                "\tExportMasks : %s\n",
+                "\tInactive          : %s\n" +
+                "\tType              : %s\n" +
+                "\tVolumes           : %s\n" +
+                "\tClusters          : %s\n" +
+                "\tHosts             : %s\n" +
+                "\tVirtual Machines  : %s\n" +
+                "\tInitiators        : %s\n" +
+                "\tExportMasks       : %s\n",
                 getLabel(), getId(),
                 getInactive(), getType(),
                 collectionString(getVolumes()),
                 collectionString(getClusters()),
                 collectionString(getHosts()),
+                collectionString(getVirtualMachines()),
                 collectionString(getInitiators()),
                 collectionString(getExportMasks()));
     }

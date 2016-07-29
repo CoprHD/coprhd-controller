@@ -2305,22 +2305,22 @@ vplex_setup_once()
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 
-	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	storagedevice discover_all
+	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+	run storagedevice discover_all
 	storagedevice list
 	storageport list $VPLEX_VNX1_NATIVEGUID
 	storageport list $VPLEX_VMAX_NATIVEGUID
 	storageport list $VPLEX_GUID
 
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
 	# The arrays are assigned to individual varrays as well.
-	storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
+	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
 	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
@@ -2562,10 +2562,10 @@ vmaxblock_discovery()
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 }
 
 vnxblock_discovery()
@@ -2574,12 +2574,12 @@ vnxblock_discovery()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
-       smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 }
 
 ######################### Start of RecoverPoint ############################
@@ -7343,9 +7343,9 @@ export_initiator()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --addInits "$hostname/$pwwn3"
     run export_group show $exp
@@ -11281,11 +11281,11 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     secho "Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
+    run smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
 
     # Discover the vmax3 array.
     secho "Discovering VMAX3 array"
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 
     # Set up virtual pools
     secho "Setting up virtual pools"
@@ -11293,20 +11293,20 @@ snapvx_setup_once()
 
     # Assign the storage pools of the VMAX3 array to our virtual array.
     secho "Assiging storage pools to virtual array"
-    storagepool update $VMAX3_NATIVEGUID --nhadd $NH
+    run storagepool update $VMAX3_NATIVEGUID --nhadd $NH
  
     # Assign storage ports if necessary.     
     if [ $DISCOVER_SAN -eq 0 ]; then
         secho "Updating storage port networks"
         for porta in ${VMAX3_PORTS_A}
             do
-	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
+	         run storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
             done
     fi
 
     # Update virtual pool to use mathcing pools on the system.
     secho "Assiging system storage pools to virtual pool"
-    cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
+    run cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
 }
 
 

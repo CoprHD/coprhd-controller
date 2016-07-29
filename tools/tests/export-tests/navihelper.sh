@@ -147,7 +147,7 @@ create_storage_group() {
     add_volume_to_mask ${SID} ${VNX_SP_IP} ${device_id} ${sgname}
 
     # Add the initiator
-    add_initiator_to_mask ${SID} ${VNX_SP_IP} $3 ${sgname}
+    add_initiator_to_mask ${SID} ${VNX_SP_IP} $4 ${sgname}
 }
 
 delete_storage_group() {
@@ -172,7 +172,7 @@ delete_storage_group() {
 delete_volume() {
     VNX_SP_IP=$1
     device_id=$(echo $2 | sed 's/^0*//')
-    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP -o lun -destroy -l ${device_id} > /tmp/navisechelper.out
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP lun -destroy -l ${device_id} > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to delete the LUN"
     fi

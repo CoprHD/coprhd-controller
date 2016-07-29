@@ -2290,9 +2290,6 @@ test_15() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
-
-    # Delete the volume we created
-    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 16
@@ -2373,13 +2370,13 @@ test_16() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because the storage group will be there with that init already
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group create task to verify it FAILS because of the existing SG"
     fail task follow $task
 
     # Delete the mask we created
     runcmd navihelper.sh remove_initiator_from_mask $serial_number $array_ip $h1pi2 $SGNAME
     runcmd navihelper.sh remove_volume_from_mask $serial_number $array_ip $device_id $SGNAME
-    runcmd navihelper.sh delete_mask ${SERIAL_NUMBER} $array_ip ${SGNAME}
+    runcmd navihelper.sh delete_mask $array_ip ${SGNAME}
     verify_export ${SGNAME} -exact- gone
 
     # Delete the volume we created
@@ -2387,6 +2384,9 @@ test_16() {
 
     # shut off suspensions/failures
     reset_system_props
+
+    # sleep for 2 mins for the provider to get updated with the deleted SG
+    sleep 120
 
     # Run export group create again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"

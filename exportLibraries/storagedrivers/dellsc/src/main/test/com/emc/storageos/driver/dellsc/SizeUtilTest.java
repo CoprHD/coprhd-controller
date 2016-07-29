@@ -19,15 +19,13 @@ package com.emc.storageos.driver.dellsc;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.emc.storageos.driver.dellsc.scapi.SizeUtil;
-
 /**
  * Tests fir the SizeUtil class.
  */
 public class SizeUtilTest {
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToGig(long)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#byteToGig(long)}.
      */
     @Test
     public void testByteToGig() {
@@ -36,7 +34,7 @@ public class SizeUtilTest {
     }
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToGig(long)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#byteToGig(long)}.
      */
     @Test
     public void testByteToGigLarger() {
@@ -45,7 +43,7 @@ public class SizeUtilTest {
     }
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#sizeStrToBytes(java.lang.String)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#sizeStrToBytes(java.lang.String)}.
      */
     @Test
     public void testSizeStrToBytes() {
@@ -54,38 +52,11 @@ public class SizeUtilTest {
     }
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#sizeStrToBytes(java.lang.String)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#sizeStrToBytes(java.lang.String)}.
      */
     @Test
     public void testSizeStrToBytesEngNotation() {
         long result = SizeUtil.sizeStrToBytes("1.073741824E9");
         Assert.assertTrue(result == 1073741824L);
-    }
-
-    /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#sizeStrToKBytes(java.lang.String)}.
-     */
-    @Test
-    public void testSizeStrToKBytes() {
-        long result = SizeUtil.sizeStrToKBytes("100 GB");
-        Assert.assertTrue(result == 104857600L);
-    }
-
-    @Test
-    public void testSpeedStrToGigabits() {
-        long result = SizeUtil.speedStrToGigabits("1 Gbps");
-        Assert.assertTrue(result == 1);
-    }
-
-    @Test
-    public void testSpeedStrToGigabitsUnknown() {
-        long result = SizeUtil.speedStrToGigabits("Unknown");
-        Assert.assertTrue(result == 0);
-    }
-
-    @Test
-    public void testSpeedStrToGigabitsFromMegabits() {
-        long result = SizeUtil.speedStrToGigabits("1024 Mbps");
-        Assert.assertTrue(result == 1);
     }
 }

@@ -705,9 +705,9 @@ public abstract class CommandHandler {
             if (specificCF) {
                 boolean allSuccess = _client.rebuildIndex(cfName);
                 if (allSuccess) {
-                    System.out.println("Successfully rebuilt, please check the log for more details ");
+                    System.out.println(String.format("\nSuccessfully rebuilt all the indices for CF %s.", cfName));
                 } else {
-                    System.out.println("Some error happened when perform rebuilding, please check the log for more details.");
+                    System.out.println("\nSome error happened when perform rebuilding, please check the log for more details.");
                 }
                 return;
             }

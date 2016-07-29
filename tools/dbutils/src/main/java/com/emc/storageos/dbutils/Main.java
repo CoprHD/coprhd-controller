@@ -129,6 +129,9 @@ public class Main {
         System.out.printf("\t%s <file_path>%n",
                 Command.REBUILD_INDEX.name().toLowerCase());
         System.out.printf("\t\t Note: use the genereated file to rebuild the index%n");
+        System.out.printf("\t%s %s <Column Family Name>%n",
+                Command.REBUILD_INDEX.name().toLowerCase(), CF_NAME);
+        System.out.printf("\t\t Note: rebuild specific CF.%n");
         System.out.printf("\t%s <file_path>%n",
                 Command.RUN_MIGRATION_CALLBACK.name().toLowerCase());
         System.out.printf("\t\t Note: run specified migration callback.%n");

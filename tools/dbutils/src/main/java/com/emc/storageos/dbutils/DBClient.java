@@ -1173,12 +1173,12 @@ public class DBClient {
             logMsg("\nStart to check DataObject records id that is illegal.\n");
             int illegalCount = helper.checkDataObject(dataCf, true);
             logMsg(String.format("\nFinish to check DataObject records id for CF %s "
-                    + "%d corrupted rows found.\n", dataCf, illegalCount));
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), illegalCount));
 
             logMsg("\nStart to check DataObject records that the related index is missing.\n");
             int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
             logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
-                    + "%d corrupted rows found.\n", dataCf, cfCorruptedCount));
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), cfCorruptedCount));
 
             logMsg("\nStart to check INDEX data that the related object records are missing.\n");
             Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
@@ -1187,7 +1187,7 @@ public class DBClient {
                 indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
             }
             logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
-                    idxCfs.size(), dataCf, indexCorruptCount));
+                    idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "

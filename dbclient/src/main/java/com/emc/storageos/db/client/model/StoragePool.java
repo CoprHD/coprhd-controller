@@ -59,7 +59,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
     //This is required only for object storage pools
     private Integer dataCenters;
     // Stroage pools supporting de-duplication feature 
-    private Boolean _dedupCapable;
+    private Boolean dedupCapable;
     // Storage Tier Information for each Pool
     // VNX Pools have multiple tiers and VMAX has single Tier always
     private StringSet _tiers;
@@ -377,17 +377,21 @@ public class StoragePool extends VirtualArrayTaggedResource {
         setChanged("dataCenters");
     }
 
-    @Name("dedupCapable")
-	public Boolean getDdupCapable() {
-		return (null != _dedupCapable) ? _dedupCapable : false;
+	@Name("dedupCapable")
+    public Boolean getDedupCapable() {
+		if (null == dedupCapable) {
+			return false;
+		} else {
+			return dedupCapable;	
+		}
 	}
 
-	public void set_dedupCapable(Boolean _dedupCapable) {
-		this._dedupCapable = _dedupCapable;
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
 		setChanged("dedupCapable");
 	}
-	
-    public boolean supportsProtocols(Set<String> protocols) {
+
+	public boolean supportsProtocols(Set<String> protocols) {
         if (_protocols == null) {
             return false;
         }

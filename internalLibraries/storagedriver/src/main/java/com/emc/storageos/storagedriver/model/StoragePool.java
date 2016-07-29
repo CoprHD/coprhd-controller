@@ -120,14 +120,6 @@ public class StoragePool extends StorageObject {
     
     private Boolean dedupCapable;
 
-	public Boolean isDedupCapable() {
-		return dedupCapable;
-	}
-
-	public void setDedupCapable(Boolean dedupCapable) {
-		this.dedupCapable = dedupCapable;
-	}
-
 	public static enum SupportedResourceType {
         THICK_ONLY,
         THIN_ONLY,
@@ -284,6 +276,14 @@ public class StoragePool extends StorageObject {
         this.poolServiceType = poolServiceType.name();
     }
 
+    public Boolean isDedupCapable() {
+		return dedupCapable;
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
+	}
+	
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }

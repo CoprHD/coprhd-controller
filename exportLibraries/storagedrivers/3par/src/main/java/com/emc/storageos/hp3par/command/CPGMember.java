@@ -13,7 +13,7 @@ public class CPGMember {
     private SdUsage SDUsage;
     private SdGrowth SDGrowth;
     private Integer state;
-    private boolean dedupCapable;
+    private Boolean dedupCapable;
     
     public Integer getId() {
         return id;
@@ -63,10 +63,10 @@ public class CPGMember {
     public void setState(Integer state) {
         this.state = state;
     }
-	public boolean isDedupCapable() {
+	public Boolean isDedupCapable() {
 		return dedupCapable;
 	}
-	public void setDedupCapable(boolean dedupCapable) {
+	public void setDedupCapable(Boolean dedupCapable) {
 		this.dedupCapable = dedupCapable;
 	}
 }

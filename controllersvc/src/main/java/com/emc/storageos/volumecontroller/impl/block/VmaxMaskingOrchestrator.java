@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.emc.storageos.db.client.model.VirtualArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +39,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -116,7 +116,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token, null);
+                        token);
 
                 Collection<URI> initiatorIds = Collections2.transform(StringSetUtil.get(exportGroup.getInitiators()),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
@@ -169,7 +169,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         logExportGroup(exportGroup, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
-                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token, null);
+                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
         Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
@@ -478,7 +478,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
-                token, null);
+                token);
 
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 

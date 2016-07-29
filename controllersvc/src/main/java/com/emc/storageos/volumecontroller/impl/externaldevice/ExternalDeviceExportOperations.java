@@ -214,9 +214,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("{} deleteExportMask START...", storage.getSerialNumber());
         try {
             log.info("deleteExportMask: Export mask id: {}", exportMaskUri);
-            // TODO DUPP:
-            // 1. Get the volume, targets, and initiators from the caller
-            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
             if (volumeUrisList != null) {
                 log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeUrisList));
             }
@@ -255,8 +252,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Prepare initiators
             List<Initiator> driverInitiators = new ArrayList<>();
-            Set<com.emc.storageos.db.client.model.Initiator>  maskInitiators =
-                    ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+            Set<com.emc.storageos.db.client.model.Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient,
+                    exportMask, null);
             // Get export group uri from task completer
             URI exportGroupUri = taskCompleter.getId();
             ExportGroup exportGroup = (ExportGroup) dbClient.queryObject(exportGroupUri);
@@ -296,9 +293,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         try {
             log.info("addInitiators: Export mask id: {}", exportMaskUri);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. Log any other volumes that are being exposed to the initiator
             if (volumeURIs != null) {
                 log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
             }
@@ -404,9 +398,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         try {
             log.info("removeInitiators: Export mask id: {}", exportMaskUri);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. If any other volumes are impacted by removing this initiator, fail the operation
             if (volumeURIList != null) {
                 log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
             }
@@ -463,9 +454,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         try {
             log.info("addVolumes: Export mask id: {}", exportMaskUri);
             log.info("addVolumes: New volumes to add: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
-            // TODO DUPP:
-            // 1. This code is deriving the initiators directly from the ExportMask. It should be getting the list from
-            // the orchestrator.
             if (initiatorList != null) {
                 log.info("addVolumes: initiators: {}", Joiner.on(',').join(initiatorList));
             }
@@ -584,15 +572,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         try {
             log.info("removeVolumes: Export mask id: {}", exportMaskUri);
             log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeUris));
-            // TODO DUPP:
-            // 1. This implementation is pulling the initiators directly out of the export mask because the caller to
-            // detach
-            // the volumes needs this information. This might be OK to do separately than verifying the initiators that
-            // are
-            // impacted from the orchestrator, although it is likely they will be the same list.
-            // 2. The goal of sending down the initiators is for the storage controller to verify when we remove volumes
-            // that
-            // it ONLY impacts the initiators we expect/require/request, otherwise fail.
             if (initiatorList != null) {
                 log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
@@ -600,8 +579,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask) dbClient.queryObject(exportMaskUri);
 
-            // TODO DUPP Evgeny: Is there no concept of user added initiators with SB?
-            // If you did this with VMAX/VNX, you'd get initiators that ViPR didn't add.
             StringSet maskInitiators = exportMask.getInitiators();
 
             List<String> maskInitiatorList = new ArrayList<>();

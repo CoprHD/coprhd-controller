@@ -552,7 +552,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
             // Generate the Workflow.
             Workflow workflow = workflowService.getNewWorkflow(this,
-                    FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId, null);
+                    FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);
             String waitFor = null;
 
             for (String target : targetfileUris) {

@@ -97,7 +97,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token, null);
+                        token);
                 List<ExportMask> exportMasksToZoneAddVolumes = new ArrayList<ExportMask>();
                 List<URI> volumesToZoneAddVolumes = new ArrayList<URI>();
                 // Add the volume to all the ExportMasks that are contained in the
@@ -296,7 +296,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
-                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token, null);
+                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
 

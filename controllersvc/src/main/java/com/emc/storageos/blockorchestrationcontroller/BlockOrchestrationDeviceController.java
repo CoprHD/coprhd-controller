@@ -89,7 +89,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_VOLUMES_WF_NAME, false, taskId, null);
+                    CREATE_VOLUMES_WF_NAME, false, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create Volume");
@@ -164,7 +164,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    DELETE_VOLUMES_WF_NAME, true, taskId, null);
+                    DELETE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // Call the RPDeviceController to add its methods if there are RP protections.
@@ -231,7 +231,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    EXPAND_VOLUMES_WF_NAME, true, taskId, null);
+                    EXPAND_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add methods for RP CG delete
@@ -282,7 +282,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME, true, taskId, null);
+                    RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add RP steps for volume restore from snapshot
@@ -411,7 +411,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Generate the Workflow.
             String waitFor = null;
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    CHANGE_VARRAY_WF_NAME, true, taskId, null);
+                    CHANGE_VARRAY_WF_NAME, true, taskId);
 
             // First, call the BlockDeviceController to add its steps.
             // This will create the migration target volumes.
@@ -662,7 +662,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESTORE_FROM_FULLCOPY_WF_NAME, true, taskId, null);
+                    RESTORE_FROM_FULLCOPY_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add RP steps for volume restore

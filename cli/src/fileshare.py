@@ -1889,7 +1889,7 @@ def export_parser(subcommand_parsers, common_parser):
     export_parser.add_argument('-security', '-sec',
                                metavar='<security>',
                                dest='security',
-                               help='Security type')
+                               help='Comma separated security type(s)')
     export_parser.add_argument('-permission', '-pe',
                                metavar='<permission>',
                                dest='permission',
@@ -2284,10 +2284,9 @@ def export_rule_parser(subcommand_parsers, common_parser):
                                      dest='tenant',
                                      help='Name of tenant')
     mandatory_args.add_argument('-securityflavor', '-sec',
-                                choices=["sys", "krb5", "krb5i", "krb5p"],
                                 metavar='<securityflavor>',
                                 dest='securityflavor',
-                                help='Name of Security flavor',
+                                help='Comma separated Security flavor(s)',
                                 required=True)  
     mandatory_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',

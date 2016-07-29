@@ -18,7 +18,6 @@ public class VolumeClone extends StorageVolume {
     
     // sourcetype of the clone.
     SourceType sourceType = SourceType.UNKNOWN;
-    
 
     public static enum ReplicationState {
         UNKNOWN, SYNCHRONIZED, CREATED, RESYNCED, INACTIVE, DETACHED, RESTORED;

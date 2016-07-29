@@ -7,7 +7,7 @@
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
     
-    <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor" >
+    <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor" />
     
     <bean id="unManagedVolumeDiscoverer"
         class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer">

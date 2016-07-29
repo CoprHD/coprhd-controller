@@ -6,9 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio;
 
 import java.net.URI;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -89,7 +87,7 @@ public class XtremIOMetricsCollector {
          * - Get the last processing time for the system,
          * - If previously not queried or if it was long back, collect data for last one day
          * 
-         * - Query the XEnv metrics from from-time to current-time with granularity based on cycle time gap
+         * - Query the XEnv metrics for last one hour/day with granularity based on cycle time gap
          * - 1. Group the XEnvs by SC,
          * - 2. For each SC:
          * - - - Take the average of 2 XEnv's CPU usages
@@ -100,21 +98,20 @@ public class XtremIOMetricsCollector {
          */
 
         log.info("Collecting CPU usage for XtremIO system {}", system.getNativeGuid());
+        // Collect metrics for last one hour always. We are not using from-time to to-time because of machine time zone differences.
         Long lastProcessedTime = system.getLastMeteringRunTime();
         Long currentTime = System.currentTimeMillis();
         Long oneDayTime = TimeUnit.DAYS.toMillis(1);
-        if (lastProcessedTime < 0 || ((currentTime - lastProcessedTime) > oneDayTime)) {
-            lastProcessedTime = currentTime - oneDayTime;   // last 1 day
+        String timeFrame = XtremIOConstants.LAST_HOUR;
+        String granularity = XtremIOConstants.TEN_MINUTES;
+        if (lastProcessedTime < 0 || ((currentTime - lastProcessedTime) >= oneDayTime)) {
+            timeFrame = XtremIOConstants.LAST_DAY;     // last 1 day
+            granularity = XtremIOConstants.ONE_HOUR;
         }
-        // granularity is kept as 1 hour so that the minimum granular data obtained is hourly basis
-        String granularity = getGranularity(lastProcessedTime, currentTime);
-        SimpleDateFormat format = new SimpleDateFormat(XtremIOConstants.DATE_FORMAT);
-        String fromTime = format.format(new Date(lastProcessedTime));
-        String toTime = format.format(new Date(currentTime));
 
         XtremIOPerformanceResponse response = xtremIOClient.getXtremIOObjectPerformance(xtremIOClusterName,
-                XtremIOConstants.XTREMIO_ENTITY_TYPE.XEnv.name(), XtremIOConstants.FROM_TIME, fromTime,
-                XtremIOConstants.TO_TIME, toTime, XtremIOConstants.GRANULARITY, granularity);
+                XtremIOConstants.XTREMIO_ENTITY_TYPE.XEnv.name(), XtremIOConstants.TIME_FRAME, timeFrame,
+                XtremIOConstants.GRANULARITY, granularity);
         log.info("Response - Members: {}", Arrays.toString(response.getMembers()));
         log.info("Response - Counters: {}", Arrays.deepToString(response.getCounters()));
 
@@ -142,18 +139,20 @@ public class XtremIOMetricsCollector {
         }
 
         // calculate the average usage for each Storage controller (from it's 2 XEnvs)
-        Map<StorageHADomain, Double> scToAvgCPU = new HashMap<>();
+        Map<URI, Double> scToAvgCPU = new HashMap<>();
         for (String xEnv : xEnvToAvgCPU.keySet()) {
             StorageHADomain sc = getStorageControllerForXEnv(xEnv, system, dbClient);
+
             Double scCPU = scToAvgCPU.get(sc);
             Double xEnvCPU = xEnvToAvgCPU.get(xEnv);
             Double avgScCPU = (scCPU == null) ? xEnvCPU : ((xEnvCPU + scCPU) / 2.0);
-            scToAvgCPU.put(sc, avgScCPU);
+            scToAvgCPU.put(sc.getId(), avgScCPU);
         }
 
         // calculate exponential average for each Storage controller
-        for (StorageHADomain sc : scToAvgCPU.keySet()) {
-            Double avgScCPU = scToAvgCPU.get(sc);
+        for (URI scURI : scToAvgCPU.keySet()) {
+            Double avgScCPU = scToAvgCPU.get(scURI);
+            StorageHADomain sc = dbClient.queryObject(StorageHADomain.class, scURI);
             log.info("StorageHADomain: {}, average CPU Usage: {}", sc.getAdapterName(), avgScCPU);
 
             portMetricsProcessor.processFEAdaptMetrics(avgScCPU, 0l, sc, currentTime.toString(), false);
@@ -182,7 +181,7 @@ public class XtremIOMetricsCollector {
     private StorageHADomain getStorageControllerForXEnv(String xEnv, StorageSystem system, DbClient dbClient) {
         StorageHADomain haDomain = null;
         String haDomainNativeGUID = NativeGUIDGenerator.generateNativeGuid(system,
-                xEnv.substring(0, xEnv.lastIndexOf(Constants.HYPHEN) - 1), NativeGUIDGenerator.ADAPTER);
+                xEnv.substring(0, xEnv.lastIndexOf(Constants.HYPHEN)), NativeGUIDGenerator.ADAPTER);
         URIQueryResultList haDomainQueryResult = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(haDomainNativeGUID),
                 haDomainQueryResult);
@@ -191,30 +190,6 @@ public class XtremIOMetricsCollector {
             haDomain = dbClient.queryObject(StorageHADomain.class, itr.next());
         }
         return haDomain;
-    }
-
-    /**
-     * Get the granularity for the performance query based on the time gap.
-     * Values: one_day, one_hour, one_minute, ten_minutes
-     *
-     * @param fromTime the last processed time
-     * @param toTime the current time
-     * @return the granularity
-     */
-    private String getGranularity(Long fromTime, Long toTime) {
-        Long timeGap = toTime - fromTime;
-        String granularity = XtremIOConstants.ONE_HOUR;    // default
-        if (timeGap > TimeUnit.DAYS.toMillis(1)) {  // more than a day
-            granularity = XtremIOConstants.ONE_DAY;
-        } else {
-            if (timeGap < TimeUnit.HOURS.toMillis(1)) {  // less than an hour
-                granularity = XtremIOConstants.TEN_MINUTES;
-            }
-            if (timeGap < TimeUnit.MINUTES.toMillis(10)) {  // less than 10 minutes
-                granularity = XtremIOConstants.ONE_MINUTE;
-            }
-        }
-        return granularity;
     }
 
     /**

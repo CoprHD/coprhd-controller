@@ -95,14 +95,12 @@ public class XtremIOConstants {
 
     // Performance query
     public static final String ENTITY = "entity";
-    public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
-    public static final String TO_TIME = "to-time";
-    public static final String FROM_TIME = "from-time";
+    public static final String TIME_FRAME = "time-frame";
+    public static final String LAST_HOUR = "last_hour";
+    public static final String LAST_DAY = "last_day";
     public static final String GRANULARITY = "granularity";
-    public static final String ONE_MINUTE = "one_minute";
     public static final String TEN_MINUTES = "ten_minutes";
     public static final String ONE_HOUR = "one_hour";
-    public static final String ONE_DAY = "one_day";
     public static final String AVG_CPU_USAGE = "avg__cpu_usage";
     public static final String NAME = "name";
 

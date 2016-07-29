@@ -489,14 +489,12 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
-        int syncInterval = Integer
-                .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
-
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }
-        if (isAutoRegistered && synchronizationInterval != syncInterval && _openStackSynchronizationTask.getSynchronizationTask() != null) {
-            _openStackSynchronizationTask.rescheduleTask(syncInterval);
+        if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval
+                && _openStackSynchronizationTask.getSynchronizationTask() != null) {
+            _openStackSynchronizationTask.rescheduleTask(newSynchronizationInterval);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());

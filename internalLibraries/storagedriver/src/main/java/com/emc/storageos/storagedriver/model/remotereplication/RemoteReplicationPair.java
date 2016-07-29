@@ -31,7 +31,9 @@ public class RemoteReplicationPair {
     private String replicationGroupNativeId;
 
     /**
-     * Replication mode of the pair. Type: Input.
+     * Replication mode of the pair.
+     * replicationMode should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
+     * Type: Input.
      */
     private CapabilityInstance replicationMode;
 

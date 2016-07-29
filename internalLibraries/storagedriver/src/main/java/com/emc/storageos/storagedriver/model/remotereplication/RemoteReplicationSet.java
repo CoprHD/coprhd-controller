@@ -80,12 +80,16 @@ public class RemoteReplicationSet {
     private Set<ElementType> replicationLinkGranularity = new HashSet<>();
 
     /**
-     * Defines replication modes supported for elements of this set. Type: Output.
+     * Defines replication modes supported for elements of this set.
+     * supportedReplicationModes should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
+     * Type: Output.
      */
     private Set<CapabilityInstance> supportedReplicationModes;
 
     /**
-     * When replication link operations are supported on the SET level, defines link mode. Type: Output.
+     * When replication link operations are supported on the SET level, defines link mode.
+     * replicationMode should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
+     * Type: Output.
      */
     private CapabilityInstance replicationMode;
 

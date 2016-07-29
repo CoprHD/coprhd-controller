@@ -29,6 +29,7 @@ addProjects(
         "exportLibraries/xiv",
 	"exportLibraries/storagedrivers/storagedriversimulator",    
 	    "exportLibraries/storagedrivers/3par",
+	"exportLibraries/storagedrivers/dellsc",
         "geodbsvc",
         "geosvc",
         "internalLibraries/security",

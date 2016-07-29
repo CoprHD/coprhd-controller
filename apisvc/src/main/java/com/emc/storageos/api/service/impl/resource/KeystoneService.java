@@ -235,9 +235,6 @@ public class KeystoneService extends TaskResourceService {
             }
         }
 
-        // List of CoprHD Tenants mapped with OpenStack ID.
-        List<TenantOrg> tenantOrgs = _keystoneUtils.getCoprhdTenantsWithOpenStackId();
-
         if (!tenantsToUpdate.isEmpty()) {
             // Create Tenant and Project for included Tenants.
             for (OSTenant tenant : tenantsToUpdate) {

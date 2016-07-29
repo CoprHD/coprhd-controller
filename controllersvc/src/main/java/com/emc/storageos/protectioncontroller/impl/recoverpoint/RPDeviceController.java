@@ -2808,15 +2808,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             // Enable snapshots
-            if (!enableImageForSnapshots(rpSystemId, device, new ArrayList<URI>(snapshots.keySet()), token)) {
-                stepFailed(token, "enableImageAccessStep: Failed to enable image");
-                return false;
-            }
+            enableImageForSnapshots(rpSystemId, device, new ArrayList<URI>(snapshots.keySet()), token);
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
-            stepFailed(token, "enableImageAccessStep");
+            stepFailed(token, e, "enableImageAccessStep");
             return false;
         }
 
@@ -5478,9 +5475,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param opId task ID
      * @return true if operation was successful
      * @throws ControllerException
+     * @throws URISyntaxException
      */
     private boolean enableImageForSnapshots(URI protectionDevice, URI storageDevice, List<URI> snapshotList, String opId)
-            throws ControllerException {
+            throws ControllerException, URISyntaxException {
         TaskCompleter completer = null;
         try {
             _log.info("Activating a bookmark on the RP CG(s)");
@@ -5578,19 +5576,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (completer != null) {
                 completer.error(_dbClient, e);
             }
-            return false;
+            throw e;
         } catch (URISyntaxException e) {
             _log.error("Operation failed with Exception: ", e);
             if (completer != null) {
                 completer.error(_dbClient, DeviceControllerException.errors.invalidURI(e));
             }
-            return false;
+            throw e;
         } catch (Exception e) {
             _log.error("Operation failed with Exception: ", e);
             if (completer != null) {
                 completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
             }
-            return false;
+            throw e;
         }
     }
 

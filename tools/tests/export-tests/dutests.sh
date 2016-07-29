@@ -816,31 +816,40 @@ vplex_sim_setup() {
     CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
     CLUSTER2NET_NAME=$CLUSTER2NET_SIM_NAME
 
-    VPLEX_VARRAY1=$NH
-    FC_ZONE_A=${CLUSTER1NET_NAME}
-    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+    secho "Setting up the virtual arrays nh and nh2"
+    VPLEX_VARRAY1=$NH
+    VPLEX_VARRAY2=$NH2
+    FC_ZONE_A=${CLUSTER1NET_NAME}
+    FC_ZONE_B=${CLUSTER2NET_NAME}
     run neighborhood create $VPLEX_VARRAY1
     run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
     run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-    run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-    run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    run neighborhood create $VPLEX_VARRAY2
+    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    # Assign both networks to both transport zones
+    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY2
+    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY1
+
+    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
+    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-1-2-A --addvarrays $VPLEX_VARRAY1
+    run storageport update $VPLEX_GUID FC --group director-1-2-B --addvarrays $VPLEX_VARRAY1
     # The arrays are assigned to individual varrays as well.
     run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
 
-    VPLEX_VARRAY2=$NH2
-    FC_ZONE_B=${CLUSTER2NET_NAME}
-    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    run neighborhood create $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
     run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_GUID FC --group director-2-2-A --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_GUID FC --group director-2-2-B --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
     run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    #run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
 
     common_setup
 
@@ -858,7 +867,7 @@ vplex_sim_setup() {
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
-                             --expandable false 
+                             --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
@@ -876,7 +885,7 @@ vplex_sim_setup() {
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
-                             --expandable false
+                             --expandable true
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
@@ -945,7 +954,7 @@ vplex_setup() {
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
-                             --expandable false 
+                             --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
@@ -962,7 +971,7 @@ vplex_setup() {
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
-                             --expandable false
+                             --expandable true
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
@@ -2015,7 +2024,11 @@ test_12() {
     fail volume expand ${PROJECT}/${volname} 2GB
 
     # Now try to create a snapshot off of the volume, it should fail
-    fail blocksnapshot create ${PROJECT}/${volname} snap1
+    if [ "$SS" = "vplex" ]; then
+        echo "Skipping snapshot create test for Vplex because AbstractSnapshotOperations has no knowledge of Vplex volume"
+    else
+        fail blocksnapshot create ${PROJECT}/${volname} ${volname}-snap1
+    fi
 
     # Inventory-only delete the volume
     volume delete ${PROJECT}/${volname} --vipronly
@@ -2746,6 +2759,7 @@ then
 fi
 
 setup=0;
+SS=${2}
 if [ "$1" = "setuphw" -o "$1" = "setup" ]
 then
     echo "Setting up testing based on real hardware"

@@ -199,6 +199,7 @@ def volume_expand(args):
         print "Volume expanded with id " + s['resource']['id'] + ". "
     else:
         print "Volume expand failed. "
+        sys.exit(1);
 
 def volume_delete(args):
     bourne.connect(args.ip)
@@ -233,7 +234,11 @@ def volume_delete(args):
     total = time.time() - start
     if (args.wait):
        print "Volume delete took", "{0:.2f}".format(total), "seconds to complete"
-       print "Volume delete ended with status " + s + ". " + m
+       if (s['state'] == 'ready'):
+           print 'Volume deleted id ' + s['resource']['id']
+       elif (s['state'] == 'error'):
+           print 'Export group update failed.'
+           sys.exit(1);
     else:
        print o
 

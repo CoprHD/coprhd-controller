@@ -28,6 +28,7 @@ public class SizeUtilTest {
 
     /**
      * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToGig(long)}.
+>>>>>>> COP-23024 Provision operations for Dell SC
      */
     @Test
     public void testByteToGig() {

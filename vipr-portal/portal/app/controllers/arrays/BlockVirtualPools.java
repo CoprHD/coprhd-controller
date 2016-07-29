@@ -9,12 +9,15 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.core.VirtualArrays;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;
 import static controllers.Common.flashException;
@@ -24,11 +27,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
 import java.util.Set;
+
 import jobs.vipr.ConnectedBlockVirtualPoolsCall;
 import jobs.vipr.TenantsCall;
 import jobs.vipr.VirtualArraysCall;
@@ -98,6 +102,20 @@ public class BlockVirtualPools extends ViprResourceController {
     protected static final String DELETED_SUCCESS = "VirtualPools.delete.success";
     protected static final String DELETED_ERROR = "VirtualPools.delete.error";
     protected static final String UNKNOWN = "VirtualPools.unknown";
+
+    private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
+    private static final String GUIDE_DATA = "GUIDE_DATA";
+    private static final String STORAGE_SYSTEMS = "storage_systems";
+    private static final String VARRAYS = "varrays";
+    private static final String VPOOL_COOKIES = "vpools";
+    private static final String ATTRIBUTE_SYSTEM_TYPES = "system_type";
+    private static final String UNITY = "unity";
+    private static final String VMAX = "vmax";
+    private static final String XTREMIO = "xtremio";
+    private static final String VP_ALL_FLASH = "vp-all-flash-diamond";
+    private static final String VP_VMAX_DIAMOND = "vp-vmax-diamond";
+    private static final String VP_XIO_DIAMOND = "vp-xio-diamond";
+    private static final String VP_UNITY_DIAMOND = "vp-unity-diamond";
 
     public static void list() {
         VirtualPoolDataTable dataTable = createVirtualPoolDataTable();
@@ -181,141 +199,200 @@ public class BlockVirtualPools extends ViprResourceController {
     }
 
     public static void createAllFlash() {
-/*        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
-        for (VirtualArrayRestRep va : virtualArrays) {
-            List<VirtualPoolCommonRestRep> vpools = VirtualPoolUtils.getVirtualPoolsForVirtualArray(va.getId());
-            if(vpools.isEmpty()) {
-                List<StorageSystemRestRep> storageSystems = StorageSystemUtils.getStorageSystemsByVirtualArray(va.getId().toString());
-                for (StorageSystemRestRep storagesystem:storageSystems) {
-                    String type = storagesystem.getSystemType();
-                    if (null != type && !type.isEmpty()) {
-                        renderArgs.put("varray", va);
-                        renderArgs.put("type", type);
-                        render();
-                    }
-                }
-            }
-        }*/
-        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
-        for (VirtualArrayRestRep va : virtualArrays) {
-            List<VirtualPoolCommonRestRep> vpools = VirtualPoolUtils.getVirtualPoolsForVirtualArray(va.getId());
-            List<StoragePoolRestRep> spools = StoragePoolUtils.getStoragePoolsAssignedToVirtualArray(va.getId().toString());
-            if(vpools.isEmpty()) {
-                List<StorageSystemRestRep> storageSystems = StorageSystemUtils.getStorageSystemsByVirtualArray(va.getId().toString());
-                List<String> typesList = new ArrayList<String>();
+    	// This method should only list available storage type discovered
+    	List<String> typesList = new ArrayList<String>();
+		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+		JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
 
-                boolean same = true;
-                StorageSystemRestRep firstSystem = storageSystems.get(0);
-                if (null != firstSystem) {
-                    String firstType = firstSystem.getSystemType();
-                    typesList.add(firstType);
-                    for (int i = 1; i < storageSystems.size() && same; i++) {
-                        if (!storageSystems.get(i).getSystemType().equals(firstType)) {
-                            typesList.add(storageSystems.get(i).getSystemType());
-                            same = false;
-                        }
-                    }
-                    if (same) {
-                        renderArgs.put("varray", va);
-                        renderArgs.put("types", typesList);
-                        render();
-                    } else {
-                        renderArgs.put("varray", va);
-                        renderArgs.put("types", typesList);
-                        render();
-                    }
-                }
-            } else {
-                for (StoragePoolRestRep sp: spools) {
-                    Boolean spfound = false;
-                    for (VirtualPoolCommonRestRep vp: vpools){
-                        Logger.info(vp.getMatchedStoragePools().toString());
-                        for (RelatedResourceRep matchedSp:vp.getMatchedStoragePools()){
-                            if (matchedSp.getId().equals(sp.getId())) {
-                                spfound = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!spfound) {
-                        URI id = sp.getStorageSystem().getId();
-                        if (null != id) {
-                            StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
-                            if (null != storageSystem) {
-                                String type = storageSystem.getSystemType();
-                                if (null != type && !type.isEmpty()) {
-                                    List<String> typesList = new ArrayList<String>();
-                                    typesList.add(type);
-                                    renderArgs.put("varray", va);
-                                    renderArgs.put("types", typesList);
-                                    render();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+		if(storage_systems != null ) {
+			for(Object storageobject : storage_systems) {
+				JsonObject storage = (JsonObject) storageobject;
+				String storageid = storage.get("id").getAsString();
+				StorageSystemRestRep storagesys = StorageSystemUtils.getStorageSystem(storageid);
+				if(storagesys != null) {
+					typesList.add(storagesys.getSystemType());
+				}
+			}
+		}
 
-        list();
-
+		renderArgs.put("types", typesList);
+		render();
     }
 
-    public static void createAllFlashAuto(String id,List<String> types) {
+    /**
+     * This method create virtual pool according to storage system types
+     * @param types : List of storage system types discovered
+     */
+    public static void createAllFlashAuto(List<String> types) {
 
-        BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+    	Map<String, String> virtualpoolAllFlashMap = allFlashVirtualPool();
+    	// Read cookies for storage systems and virtual pools
+		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+		JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
 
-        //defaults
-        vpool.provisioningType = ProvisioningTypes.THIN;
-        vpool.protocols = Sets.newHashSet(BlockProtocols.FC);
-        vpool.minPaths = 1;
-        vpool.maxPaths = 2;
-        vpool.initiatorPaths = 1;
-        vpool.expandable = true;
-        vpool.rpJournalSizeUnit = SizeUnit.x;
-        vpool.rpJournalSize = RPCopyForm.JOURNAL_DEFAULT_MULTIPLIER;
-        vpool.rpRpoValue = Long.valueOf(25);
-        vpool.rpRpoType = RpoType.SECONDS;
-        vpool.protectSourceSite = true;
-        vpool.enableAutoCrossConnExport = true;
-        vpool.poolAssignment = PoolAssignmentTypes.AUTOMATIC;
+		List<String> vaIds4allflash = new ArrayList<String>();
+		List<String> vaIds4vmax = new ArrayList<String>();
+		List<String> vaIds4xio = new ArrayList<String>();
+		List<String> vaIds4unity = new ArrayList<String>();
 
-        //custom
-        List<String> vaIds = new ArrayList<String>();
-        vaIds.add(id);
-        vpool.virtualArrays = vaIds;
-        VirtualArrayRestRep va = VirtualArrayUtils.getVirtualArray(id);
+		for(Object varray: varrays) {
+			JsonObject jsonvarray = (JsonObject) varray;
+			String varrayid = jsonvarray.get("id").getAsString();
 
-        if(types.size()>1) {
-            String name = "all-flash-diamond";
-            vpool.name = name;
-            vpool.systemType = StorageSystemTypes.NONE;
-            vpool.description = "Virtual Pool for All Flash Storage";
-        }
-        else if (types.size()==1) {
-            String type = types.get(0);
-            String name = (StorageSystemTypes.getDisplayValue(type) + " diamond");
-            vpool.name = name.replace(' ', '-').toLowerCase();
-            vpool.systemType = type;
-            vpool.description = "Virtual Pool for " + name + " Storage";
-        }
+			// Check virtual array first
+			VirtualArrayRestRep varrayRest = VirtualArrayUtils.getVirtualArray(varrayid);
+			if(varrayRest != null) {
+				// Get virtual array attributes
+				Map<String, Set<String>> attributes = VirtualArrayUtils.getAvailableAttributes(uris(varrayid));
+				Set <String> system_type = attributes.get(ATTRIBUTE_SYSTEM_TYPES);
 
-        BlockVirtualPoolRestRep vpoolTask = vpool.save();
+				if(system_type != null && !system_type.isEmpty()) {
+					if(system_type.size() > 1) {
+						vaIds4allflash.add(varrayid);
+					}
+					else { //It has one system type
+						for(String vasystemtype: system_type) {
+							if(StringUtils.equals(UNITY, vasystemtype)) {
+								vaIds4unity.add(varrayid);
+							}
+							if(StringUtils.equals(VMAX, vasystemtype)) {
+								vaIds4vmax.add(varrayid);
+							}
+							if(StringUtils.equals(XTREMIO, vasystemtype)) {
+								vaIds4xio.add(varrayid);
+							}
+						}
+					}
+				}
+				else { //Control should not reach here but incase let add in all flash
+					vaIds4allflash.add(varrayid);
+				}
+			}
+		}
 
-        if(vpoolTask != null) {
-            JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+		if(!vaIds4allflash.isEmpty() && (vaIds4allflash.size() > 0 )){
+			String vpid = virtualpoolAllFlashMap.get(VP_ALL_FLASH);
+			if(vpid != null) {
+				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
+				List<RelatedResourceRep> virtualarrays = blockvpool.getVirtualArrays();
+				for(String vaid:vaIds4allflash) {
+					RelatedResourceRep newVaId = new RelatedResourceRep(); 
+					newVaId.setId(URI.create(vaid));
+					virtualarrays.add(newVaId);
+				}
+				blockvpool.setVirtualArrays(virtualarrays);
+				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+		        vpool.load(blockvpool);
+		        blockvpool = vpool.save();
+				if (blockvpool != null) {
+					updateVirtualPoolCookie(vpid, vpool.name);
+				}
+			}
+			else {
+				BlockVirtualPoolForm vpool = createBaseVPool();
+				vpool.name = VP_ALL_FLASH;
+				vpool.virtualArrays = vaIds4allflash;
+				vpool.systemType = StorageSystemTypes.NONE;
+				vpool.description = "Virtual Pool for All Flash Storage";
+				BlockVirtualPoolRestRep vpoolTask = vpool.save();
+				if (vpoolTask != null) {
+					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
+				}
+			}
+		}
 
-            JsonArray vpools = dataObject.getAsJsonArray("vpools");
-            if (vpools == null) {
-                vpools = new JsonArray();
-            }
-            JsonObject vpoolObject = new JsonObject();
-            vpoolObject.addProperty("id",vpoolTask.getId().toString());
-            vpoolObject.addProperty("name",vpool.name);
-            vpools.add(vpoolObject);
-            dataObject.add("vpools", vpools);
-            saveJsonAsCookie("GUIDE_DATA", dataObject);
-        }
+		if(!vaIds4vmax.isEmpty() && (vaIds4vmax.size() > 0 )){
+			String vpid = virtualpoolAllFlashMap.get(VP_VMAX_DIAMOND);
+			if(vpid != null) {
+				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
+				List<RelatedResourceRep> virtualarrays = blockvpool.getVirtualArrays();
+				for(String vaid:vaIds4vmax) {
+					RelatedResourceRep newVaId = new RelatedResourceRep(); 
+					newVaId.setId(URI.create(vaid));
+					virtualarrays.add(newVaId);
+				}
+				blockvpool.setVirtualArrays(virtualarrays);
+				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+		        vpool.load(blockvpool);
+		        blockvpool = vpool.save();
+				if (blockvpool != null) {
+					updateVirtualPoolCookie(vpid, vpool.name);
+				}
+			}
+			else {
+				BlockVirtualPoolForm vpool = createBaseVPool();
+				vpool.name = VP_VMAX_DIAMOND;
+				vpool.virtualArrays = vaIds4vmax;
+				vpool.systemType = StorageSystemTypes.VMAX;
+				vpool.description = "Virtual Pool for EMC VMAX all Flash Storage";
+				BlockVirtualPoolRestRep vpoolTask = vpool.save();
+				if (vpoolTask != null) {
+					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
+				}
+			}
+		}
+
+		if(!vaIds4xio.isEmpty() && (vaIds4xio.size() > 0 )){
+			String vpid = virtualpoolAllFlashMap.get(VP_XIO_DIAMOND);
+			if(vpid != null) {
+				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
+				List<RelatedResourceRep> virtualarrays = blockvpool.getVirtualArrays();
+				for(String vaid:vaIds4xio) {
+					RelatedResourceRep newVaId = new RelatedResourceRep(); 
+					newVaId.setId(URI.create(vaid));
+					virtualarrays.add(newVaId);
+				}
+				blockvpool.setVirtualArrays(virtualarrays);
+				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+		        vpool.load(blockvpool);
+		        blockvpool = vpool.save();
+				if (blockvpool != null) {
+					updateVirtualPoolCookie(vpid, vpool.name);
+				}
+			}
+			else {
+				BlockVirtualPoolForm vpool = createBaseVPool();
+				vpool.name = VP_XIO_DIAMOND;
+				vpool.virtualArrays = vaIds4xio;
+				vpool.systemType = StorageSystemTypes.XTREMIO;
+				vpool.description = "Virtual Pool for EMC XtremIO Storage";
+				BlockVirtualPoolRestRep vpoolTask = vpool.save();
+				if (vpoolTask != null) {
+					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
+				}
+			}
+		}
+
+		if(!vaIds4unity.isEmpty() && (vaIds4unity.size() > 0 )){
+			String vpid = virtualpoolAllFlashMap.get(VP_UNITY_DIAMOND);
+			if(vpid != null) {
+				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
+				List<RelatedResourceRep> virtualarrays = blockvpool.getVirtualArrays();
+				for(String vaid:vaIds4unity) {
+					RelatedResourceRep newVaId = new RelatedResourceRep(); 
+					newVaId.setId(URI.create(vaid));
+					virtualarrays.add(newVaId);
+				}
+				blockvpool.setVirtualArrays(virtualarrays);
+				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+		        vpool.load(blockvpool);
+		        blockvpool = vpool.save();
+				if (blockvpool != null) {
+					updateVirtualPoolCookie(vpid, vpool.name);
+				}
+			}
+			else {
+				BlockVirtualPoolForm vpool = createBaseVPool();
+				vpool.name = VP_UNITY_DIAMOND;
+				vpool.virtualArrays = vaIds4unity;
+				vpool.systemType = StorageSystemTypes.UNITY;
+				vpool.description = "Virtual Pool for EMC UNITY Storage";
+				BlockVirtualPoolRestRep vpoolTask = vpool.save();
+				if (vpoolTask != null) {
+					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
+				}
+			}
+		}
         list();
     }
 
@@ -746,6 +823,63 @@ public class BlockVirtualPools extends ViprResourceController {
         addDataObjectOptions("srdfVirtualArrayOptions", srdfVirtualArrays);
         addDataObjectOptions("srdfVirtualPoolOptions", connectedVirtualPools);
     }
+
+    private static Map<String, String> allFlashVirtualPool() {
+    	// Build virtual pool map name:id only for all-flash virtualpool.
+    	Map<String, String> virtualpoolAllFlashMap = new HashMap <String, String> ();
+    	List<BlockVirtualPoolRestRep> allblockvps = VirtualPoolUtils.getBlockVirtualPools();
+    	for(BlockVirtualPoolRestRep blockvp: allblockvps) {
+    		if(StringUtils.equalsIgnoreCase(VP_VMAX_DIAMOND, blockvp.getName())) {
+    			virtualpoolAllFlashMap.put(VP_VMAX_DIAMOND, blockvp.getId().toString());
+    		}
+    		if(StringUtils.equalsIgnoreCase(VP_XIO_DIAMOND, blockvp.getName())) {
+    			virtualpoolAllFlashMap.put(VP_XIO_DIAMOND, blockvp.getId().toString());
+    		}
+    		if(StringUtils.equalsIgnoreCase(VP_UNITY_DIAMOND, blockvp.getName())) {
+    			virtualpoolAllFlashMap.put(VP_UNITY_DIAMOND, blockvp.getId().toString());
+    		}
+    		if(StringUtils.equalsIgnoreCase(VP_ALL_FLASH, blockvp.getName())) {
+    			virtualpoolAllFlashMap.put(VP_ALL_FLASH, blockvp.getId().toString());
+    		}
+    	}
+    	return virtualpoolAllFlashMap;
+    }
+
+    private static void updateVirtualPoolCookie(String vpid, String vpname){
+        JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+        JsonArray vpcookies = dataObject.getAsJsonArray(VPOOL_COOKIES);
+        if (vpcookies == null) {
+        	vpcookies = new JsonArray();
+        }
+        JsonObject jsonvarray = new JsonObject();
+        jsonvarray.addProperty("id", vpid);
+        jsonvarray.addProperty("name", vpname);
+        
+        vpcookies.add(jsonvarray);
+        dataObject.add(VPOOL_COOKIES, vpcookies);
+        saveJsonAsCookie(GUIDE_DATA, dataObject);
+    }
+
+    private static BlockVirtualPoolForm createBaseVPool() {
+		BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+		// defaults
+		vpool.provisioningType = ProvisioningTypes.THIN;
+		vpool.protocols = Sets.newHashSet(BlockProtocols.FC);
+		vpool.minPaths = 1;
+		vpool.maxPaths = 1;
+		vpool.initiatorPaths = 1;
+		vpool.expandable = true;
+		vpool.rpJournalSizeUnit = SizeUnit.x;
+		vpool.rpJournalSize = RPCopyForm.JOURNAL_DEFAULT_MULTIPLIER;
+		vpool.rpRpoValue = Long.valueOf(25);
+		vpool.rpRpoType = RpoType.SECONDS;
+		vpool.protectSourceSite = true;
+		vpool.enableAutoCrossConnExport = true;
+		vpool.poolAssignment = PoolAssignmentTypes.AUTOMATIC;
+		vpool.maxSnapshots = 10;
+		return vpool;
+    }
+
 
     protected static class DeactivateOperation implements ResourceIdOperation<Void> {
         @Override

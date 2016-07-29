@@ -171,7 +171,8 @@ public class Events extends Controller {
     public static void approveEvents(@As(",") String[] ids) {
         try{
             for(String eventId:ids) {
-                approveEvent(eventId);
+                getViprClient().events().approve(uri(eventId));
+                flash.success(MessagesUtils.get(APPROVED, eventId));
             }
         } catch(Exception e) {
             flashException(e);
@@ -183,7 +184,8 @@ public class Events extends Controller {
     public static void declineEvents(@As(",") String[] ids) {
         try{
             for(String eventId:ids) {
-                declineEvent(eventId);
+                getViprClient().events().decline(uri(eventId));
+                flash.success(MessagesUtils.get(DECLINED, eventId));
             }
         } catch(Exception e) {
             flashException(e);
@@ -195,7 +197,8 @@ public class Events extends Controller {
     public static void deleteEvents(@As(",") String[] ids) {
         try{
             for(String eventId:ids) {
-                deleteEvent(eventId);
+                getViprClient().events().deactivate(uri(eventId));
+                flash.success(MessagesUtils.get(DELETED, eventId));
             }
         } catch(Exception e) {
             flashException(e);

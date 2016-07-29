@@ -500,6 +500,7 @@ public class Tenants extends ViprResourceController {
             if (!(tenantsSynchronizationOptionsChanges.getAdd().isEmpty() && tenantsSynchronizationOptionsChanges.getRemove().isEmpty())) {
                 param.setTenantsSynchronizationOptionsChanges(tenantsSynchronizationOptionsChanges);
                 param.setLabel(this.name);
+                param.setMode(provider.getMode());
                 AuthnProviderUtils.update(provider.getId().toString(), param);
             }
         }

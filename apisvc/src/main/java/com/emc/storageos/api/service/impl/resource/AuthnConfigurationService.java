@@ -400,7 +400,7 @@ public class AuthnConfigurationService extends TaggedResource {
             return false;
         }
 
-        if (param.getMode() != null) {
+        if (param.getMode() != null && !param.getMode().equals(authnProvider.getMode())) {
             return false;
         }
 

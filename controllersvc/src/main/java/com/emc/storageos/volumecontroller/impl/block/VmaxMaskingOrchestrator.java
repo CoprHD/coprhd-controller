@@ -731,7 +731,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     // We can only remove the volume if all the initiators associated with the export group
                                     // and mask are getting removed. Otherwise we are still referencing an initiator (or more)
                                     // in the export group that is in this mask, and we should not remove the volume(s).
-                                    if (okToRemove && !initiatorIsPartOfFullListFlags.get(initiatorURI)) {
+                                    if (okToRemove && !initiatorIsPartOfFullListFlags.get(initiatorURI)
+                                            && mask.hasAnyExistingInitiators()) {
                                         okToRemove = false;
                                         _log.info("Will not remove block object {} because there are initaitors " +
                                                 "remaining in the masking view that were created by the sytem",

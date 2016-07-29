@@ -38,6 +38,22 @@ public abstract class ViPRService extends AbstractExecutionService {
 
     private List<String> locks = Lists.newArrayList();
 
+    public EncryptionProvider getEncryptionProvider() {
+        return encryptionProvider;
+    }
+
+    public void setEncryptionProvider(EncryptionProvider encryptionProvider) {
+        this.encryptionProvider = encryptionProvider;
+    }
+
+    public ViPRProxyUser getProxyUser() {
+        return proxyUser;
+    }
+
+    public void setProxyUser(ViPRProxyUser proxyUser) {
+        this.proxyUser = proxyUser;
+    }
+
     public ModelClient getModelClient() {
         return modelClient;
     }

@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
 
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import org.springframework.stereotype.Component;
@@ -178,17 +179,21 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
      * @param inputArrays
      */
     private void filterByContextTenant(List<VirtualArrayRestRep> inputArrays, List<VirtualArrayRestRep> virtualArraysByTenant) {
-        for (VirtualArrayRestRep rep : inputArrays) {
+        Iterator<VirtualArrayRestRep> iterator = inputArrays.iterator();
+        while (iterator.hasNext()) {
+            VirtualArrayRestRep rep = iterator.next();
             if (!contains(rep.getId(), virtualArraysByTenant)) {
-                inputArrays.remove(rep);
+                iterator.remove();
             }
         }
     }
 
     private void filterByContextTenant(Set<URI> inputArrays,  List<VirtualArrayRestRep> virtualArraysByTenant) {
-        for (URI rep : inputArrays) {
+        Iterator<URI> iterator = inputArrays.iterator();
+        while (iterator.hasNext()) {
+            URI rep = iterator.next();
             if (!contains(rep, virtualArraysByTenant)) {
-                inputArrays.remove(rep);
+                iterator.remove();
             }
         }
     }

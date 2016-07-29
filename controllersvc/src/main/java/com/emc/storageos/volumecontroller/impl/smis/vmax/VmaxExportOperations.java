@@ -3422,11 +3422,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             CommonTransformerFunctions.fctnInitiatorToPortName());
 
             Initiator sample = null;
+            URI hostURI = null;
             // CTRL-5068 - We will select an IG even if it has a subset of host initiators. So we need to go through all initiators to find
             // if there
             // is a matching IG
             for (Initiator initiator : initiatorListForHost) {
                 sample = initiator;
+                hostURI = sample.getHost();
+                if (NullColumnValueGetter.isNullURI(hostURI)) {
+                    URI vmURI = sample.getVirtualMachine();
+                    if (!NullColumnValueGetter.isNullURI(vmURI)) {
+                        hostURI = vmURI;
+                    }
+                }
+
                 initiatorGroupPath = initiatorsToIGs.get(Initiator.
                         normalizePort(sample.getInitiatorPort()));
                 if (initiatorGroupPath != null) {
@@ -3456,7 +3465,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // This error check will apply only in the non-VPlex case. Meaning that
                 // there should be a reference to a Host object for the initiators.
                 // That's why there is a check here for if sample.getHost() != null.
-                if (sample.getHost() != null) {
+
+                if (!NullColumnValueGetter.isNullURI(hostURI)) {
 
                     Set<String> initiatorDiff = Sets.difference(new HashSet<String>(igInitiatorPorts), new HashSet<String>(initiatorPorts));
                     if (!initiatorDiff.isEmpty()) {
@@ -3465,7 +3475,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                          * then be sure the it is subset of host's initiators in
                          * ViPR database.
                          */
-                        List<String> initiatorsInDb = queryHostInitiators(sample.getHost());
+                        List<String> initiatorsInDb = queryInitiatorsByHost(hostURI);
                         Set<String> initiatorsTmp = new HashSet<>();
                         initiatorsTmp.addAll(initiatorDiff);
 
@@ -3483,7 +3493,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // In the case of a single IG that contains some, but not all, of the cluster's initiators,
                         // We can add any needed initiators right here and maintain the big IG.
                         if (!isEmptyClusterName(clusterName) && !initiatorsTmp.isEmpty()) {
-                            initiatorsInDb = queryClusterInitiators(sample.getHost());
+                            initiatorsInDb = queryClusterInitiators(hostURI);
 
                             _log.info("createOrUpdateInitiatorGroups - List of initiators: {} in ViPR database on cluster: " +
                                     sample.getClusterName(), Joiner.on(',').join(initiatorsInDb));
@@ -3501,7 +3511,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             // Update the initiatorListForHost to include all initiators for this cluster
                             for (String initiatorInDb : initiatorsInDb) {
                                 Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initiatorInDb), _dbClient);
-                                if (!initiator.getHost().equals(sample.getHost())) {
+                                if (!NullColumnValueGetter.isNullURI(initiator.getHost())
+                                        && !initiator.getHost().equals(hostURI)) {
+                                    initiatorListForHost.add(initiator);
+                                } else if (!NullColumnValueGetter.isNullURI(initiator.getVirtualMachine())
+                                        && !initiator.getVirtualMachine().equals(hostURI)) {
                                     initiatorListForHost.add(initiator);
                                 }
                                 groupedHosts.add(initiator.getHostName());
@@ -3536,12 +3550,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         igDataSource);
 
                 // Non-VPLEX case
-                if (sample != null && sample.getHost() != null) {
+                if (sample != null && !NullColumnValueGetter.isNullURI(hostURI)) {
                     // In this case, we may be asked to add initiators to a mask where the initiators are part of a host,
                     // but the initiators are not yet represented in an IG, however other initiators in the host are. Get the ports
                     // associated with the host and see if you can find an IG (stand-alone or child) where the initiators in
                     // initiatorList belong that are part of the mask the orchestrator sent down.
-                    Entry<String, Boolean> igName = findExistingIGForHostAndMask(storage, mask, sample.getHost());
+                    Entry<String, Boolean> igName = findExistingIGForHostAndMask(storage, mask, hostURI);
                     if (igName != null && igName.getKey() != null) {
                         initiatorGroupName = igName.getKey();
                         _log.info("createOrUpdateInitiatorGroups - Found an existing " +
@@ -3588,7 +3602,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @return initiator group name and if it's a standalone IG or not. will never be a cascaded IG.
      */
     private Entry<String, Boolean> findExistingIGForHostAndMask(StorageSystem storage, ExportMask mask, URI host) {
-        List<String> initiatorsInDb = queryHostInitiators(host);
+        List<String> initiatorsInDb = queryInitiatorsByHost(host);
         CloseableIterator<CIMInstance> cigInstances = null;
         CloseableIterator<CIMInstance> igInstances = null;
         try {
@@ -3871,6 +3885,24 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     /**
+     * This function is to retrieve the initiators of the given host or virtual machine id (uri)
+     *
+     * @param hostId - host or virtual machine uri
+     * @return a list of initiator port transform name
+     */
+    private List<String> queryInitiatorsByHost(URI hostId) {
+
+        List<String> list = new ArrayList<String>();
+        if (URIUtil.isType(hostId, Host.class)) {
+            list = queryHostInitiators(hostId);
+        } else if (URIUtil.isType(hostId, VirtualMachine.class)) {
+            list = queryVirtualMachineInitiators(hostId);
+        }
+
+        return list;
+    }
+
+    /**
      * This function is to retrieve the initiators of the given host id (uri)
      *
      * @param hostId - host uri
@@ -3892,12 +3924,33 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     /**
+     * This function is to retrieve the initiators of the given virtual machine id (uri)
+     *
+     * @param vmId - host uri
+     * @return a list of initiator port transform name
+     */
+    private List<String> queryVirtualMachineInitiators(URI vmId) {
+        List<String> initiatorNames = new ArrayList<String>();
+        List<URI> uris = _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(vmId, Initiator.class, "virtualMachine"));
+        if (uris != null && !uris.isEmpty()) {
+            List<Initiator> initiators = _dbClient.queryObjectField(Initiator.class, "iniport", uris);
+            Collection<String> intiatorHostPortNames = Collections2.transform(initiators,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+            if (intiatorHostPortNames != null && !intiatorHostPortNames.isEmpty()) {
+                initiatorNames.addAll(intiatorHostPortNames);
+            }
+        }
+        return initiatorNames;
+    }
+
+    /**
      * This function is to retrieve the initiators of the given host id (uri)
      *
      * @param hostId - host uri
      * @return a list of initiator port transform name
      */
-    private List<String> queryClusterInitiators(URI hostId) {
+    private List<String> queryClusterHostInitiators(URI hostId) {
         List<String> initiatorNames = new ArrayList<String>();
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host == null) {
@@ -3914,6 +3967,49 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
 
         return initiatorNames;
+    }
+
+    /**
+     * This function is to retrieve the initiators of the given virtual machine id (uri)
+     *
+     * @param vmId - virtual machine uri
+     * @return a list of initiator port transform name
+     */
+    private List<String> queryClusterVirtualMachineInitiators(URI vmId) {
+        List<String> initiatorNames = new ArrayList<String>();
+        VirtualMachine vm = _dbClient.queryObject(VirtualMachine.class, vmId);
+        if (vm == null) {
+            return initiatorNames;
+        }
+
+        if (vm.getCluster() == null) {
+            return initiatorNames;
+        }
+
+        List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, vm.getCluster(), VirtualMachine.class, "cluster");
+        for (URI hosturi : hostUris) {
+            initiatorNames.addAll(queryVirtualMachineInitiators(vmId));
+        }
+
+        return initiatorNames;
+    }
+
+    /**
+     * This function is to retrieve the initiators of the given host or virtual machine id (uri)
+     *
+     * @param vmId - host or virtual machine uri
+     * @return a list of initiator port transform name
+     */
+    private List<String> queryClusterInitiators(URI hostId) {
+        List<String> returnList = new ArrayList<String>();
+
+        if (URIUtil.isType(hostId, Host.class)) {
+            returnList = queryClusterHostInitiators(hostId);
+        } else if (URIUtil.isType(hostId, VirtualMachine.class)) {
+            returnList = queryClusterVirtualMachineInitiators(hostId);
+        }
+
+        return returnList;
     }
 
     /**

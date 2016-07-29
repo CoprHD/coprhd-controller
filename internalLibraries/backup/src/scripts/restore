@@ -24,13 +24,13 @@ usage() {
 }
 
 validate_parameters() {
-    if [ -d ${RESTORE_DIR} ]; then
+    if [ -d ${RESTORE_ORIGIN} ]; then
         if [[ $(is_local_backup) == "false" ]]; then
-            echo "The ${RESTORE_DIR} is not a local backup"
+            echo "The ${RESTORE_ORIGIN} is not a local backup"
             exit 3
         fi
-    elif [ ! -f "${BACKUP_ZIP}" ]; then
-        echo "${BACKUP_ZIP} not exist"
+    elif [ ! -f "${RESTORE_ORIGIN}" ]; then
+        echo "${RESTORE_ORIGIN} not exist"
         exit 2
     fi
 
@@ -39,8 +39,7 @@ validate_parameters() {
 }
 
 upload_backup() {
-    local is_local_backup=$(is_local_backup)
-    if [[ "${is_local_backup}" == "true" ]] ; then
+    if [[ "$(is_local_backup)" == "true" ]] ; then
         echo "This is a local backup, no need to upload to other nodes"
         return
     fi
@@ -70,8 +69,8 @@ create_restore_folder() {
 }
 
 extract_backup_files() {
-    cd $RESTORE_DIR
-    unzip "${BACKUP_ZIP}" >/dev/null
+    cd ${RESTORE_DIR}
+    unzip "${RESTORE_ORIGIN}" >/dev/null
 
     is_vdc_connected
 
@@ -181,14 +180,15 @@ if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
 fi
 
 
-RESTORE_ORIGIN="/data/restore-`date +%s`"
+RESTORE_DIR="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
 if [ -d "$1" ] ; then
     RESTORE_ORIGIN="$1" 
+    RESTORE_DIR=${RESTORE_ORIGIN}
 else
-    BACKUP_ZIP=$(readlink -f "$1")
+    RESTORE_ORIGIN=$(readlink -f "$1")
 fi
 
 trap clean_up EXIT
@@ -205,4 +205,4 @@ do
     $cmd
 done
 
-${DIR}/restore-internal.sh "${RESTORE_ORIGIN}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"
+${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"

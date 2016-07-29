@@ -2631,24 +2631,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2856,19 +2856,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2986,15 +2986,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -3162,24 +3162,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3719,6 +3719,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private ProtectionSet updateProtectionSet(ProtectionSet protectionSet, CGRequestParams params) throws InternalException {
         StringSet protectionSetVolumes = new StringSet();
         _log.info(String.format("Updating protection set [%s]", protectionSet.getLabel()));
+
+        // Keep a list of all volumes that were created. This will be used to ensure we do not
+        // consider volumes from this create request when setting access state and link status
+        // based on existing volumes in the CG.
+        List<URI> volumesInCreateRequest = new ArrayList<URI>();
+        for (CreateRSetParams rset : params.getRsets()) {
+            for (CreateVolumeParams volume : rset.getVolumes()) {
+                volumesInCreateRequest.add(volume.getVolumeURI());
+            }
+        }
+
         // Loop through the RSet volumes to update the protection set info and potentially add the volume to the
         // protection set
         for (CreateRSetParams rset : params.getRsets()) {
@@ -3736,9 +3747,29 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         protectionSet.setProject(vol.getProject().getURI());
                     }
                     vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
+
                     if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
+
+                        // Check the CG for an existing source volume. If the CG has an existing
+                        // source volume, we want to mirror the access state and link status for
+                        // all new source volumes.
+                        List<Volume> existingCgSourceVolumes = RPHelper.getCgSourceVolumes(vol.getConsistencyGroup(), _dbClient);
+
+                        if (existingCgSourceVolumes != null) {
+                            for (Volume sourceVolume : existingCgSourceVolumes) {
+                                if (!vol.getId().equals(sourceVolume.getId()) && !volumesInCreateRequest.contains(sourceVolume.getId())) {
+                                    _log.info(String
+                                            .format("Updating source volume %s. Setting access state = %s, link status = %s.  Based on existing CG source volume %s.",
+                                                    vol.getId(), sourceVolume.getAccessState(), sourceVolume.getLinkStatus(),
+                                                    sourceVolume.getId()));
+                                    vol.setAccessState(sourceVolume.getAccessState());
+                                    vol.setLinkStatus(sourceVolume.getLinkStatus());
+                                    break;
+                                }
+                            }
+                        }
                     } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
@@ -3749,18 +3780,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // be marked FAILED_OVER and READWRITE.
                         List<Volume> existingCgTargets =
                                 RPHelper.getTargetVolumesForVarray(_dbClient, vol.getConsistencyGroup(), vol.getVirtualArray());
-                        if (existingCgTargets != null && !existingCgTargets.isEmpty() && vol.getRpCopyName() != null) {
+                        if (existingCgTargets != null && vol.getRpCopyName() != null) {
                             for (Volume targetVolume : existingCgTargets) {
                                 // If we have found a target volume that isn't the same and the RP copy matches,
                                 // lets use it to set the access state and link status values.
                                 if (!vol.getId().equals(targetVolume.getId())
+                                        && !volumesInCreateRequest.contains(targetVolume.getId())
                                         && vol.getRpCopyName().equalsIgnoreCase(targetVolume.getRpCopyName())) {
                                     _log.info(String
-                                            .format("Updating volume %s. Setting access state = %s, link status = %s.  Based on existing CG target volume %s.",
+                                            .format("Updating target volume %s. Setting access state = %s, link status = %s.  Based on existing CG target volume %s.",
                                                     vol.getId(), targetVolume.getAccessState(), targetVolume.getLinkStatus(),
                                                     targetVolume.getId()));
                                     vol.setAccessState(targetVolume.getAccessState());
                                     vol.setLinkStatus(targetVolume.getLinkStatus());
+                                    break;
                                 }
                             }
                         }
@@ -4101,7 +4134,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4557,7 +4590,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4657,7 +4690,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow
      * .Workflow, java.lang.String, java.util.List, java.lang.String)
@@ -6665,7 +6698,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
@@ -7055,7 +7088,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow
      * , java.lang.String, java.util.List, java.lang.String)

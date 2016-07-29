@@ -198,6 +198,7 @@ public class VPlexApiConstants {
 
     // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
+    public static final String VOLUME_WWN_PREFIX_T2 = "VPD83T2:";
 
     // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
@@ -323,16 +324,16 @@ public class VPlexApiConstants {
     // VPLEX API error response fragment used to check if
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
-    
+
     // VPLEX API error response fragment used to check Consistency Group read-only flag not supported
     public static final String CG_READ_ONLY_INVALID_ATTRIBUTE = "Invalid attribute 'read-only'";
     public static final String CG_CANNOT_MAKE_READ_ONLY = "Cannot make a consistency-group read-only";
     // Reason given to user
     public static final String CG_READ_ONLY_ATTRIBUTE_NOT_SUPPORTED = "Consistency Group read-only attribute is not supported";
-    
+
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
-    
+
     // The value returned by VPLEX when the volume has no expandable capacity.
     public static final String NO_EXPANDABLE_CAPACITY = "0B";
 }

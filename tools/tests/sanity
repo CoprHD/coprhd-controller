@@ -804,6 +804,9 @@ cisco_mds_quick_setup_once()
     # Do once - Discover Cisco MDS simulator switch
     secho "Discover Cisco MDS simulator switch"
     run networksystem create CiscoMdsSimulator  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
    
 #    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
 #    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
@@ -2339,8 +2342,12 @@ vplex_setup_once()
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-A --addvarrays $NH
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-B --addvarrays $NH
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-A --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-B --addvarrays $NH2
 
 	# The arrays are assigned to individual varrays as well.
 	run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH

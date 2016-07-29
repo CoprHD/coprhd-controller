@@ -9,7 +9,7 @@ import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.keystone.CoprhdOsTenant;
-import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
+import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.tenant.*;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -153,7 +153,7 @@ public class Tenants extends ViprResourceController {
                     }
                 }
 
-                CoprhdOsTenantListRestRep params = new CoprhdOsTenantListRestRep();
+                OSTenantListRestRep params = new OSTenantListRestRep();
                 params.setCoprhdOsTenants(tenants);
 
                 OpenStackTenantsUtils.updateOpenStackTenants(params);

@@ -22,7 +22,7 @@ import java.util.List;
 
 @XmlRootElement(name = "coprhd_os_tenant_list")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class CoprhdOsTenantListRestRep {
+public class OSTenantListRestRep {
 
     private List<CoprhdOsTenant> coprhdOsTenants;
 

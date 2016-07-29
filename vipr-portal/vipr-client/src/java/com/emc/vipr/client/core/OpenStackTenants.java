@@ -19,7 +19,7 @@ package com.emc.vipr.client.core;
 import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
+import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import com.emc.storageos.model.keystone.OpenStackTenantsList;
@@ -81,8 +81,8 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
      *
      * @return list of OpenStack tenants.
      */
-    public CoprhdOsTenantListRestRep getOpenStackTenants() {
-        return client.get(CoprhdOsTenantListRestRep.class, OS_TENANTS_URL);
+    public OSTenantListRestRep getOpenStackTenants() {
+        return client.get(OSTenantListRestRep.class, OS_TENANTS_URL);
     }
 
     /**
@@ -94,8 +94,8 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
      *
      * @return list of updated OpenStack tenants.
      */
-    public CoprhdOsTenantListRestRep updateOpenStackTenants(CoprhdOsTenantListRestRep list) {
-        return client.put(CoprhdOsTenantListRestRep.class, list, OS_TENANTS_URL);
+    public OSTenantListRestRep updateOpenStackTenants(OSTenantListRestRep list) {
+        return client.put(OSTenantListRestRep.class, list, OS_TENANTS_URL);
     }
 
     @Override
@@ -124,8 +124,8 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
      *
      * @return list of saved OpenStack tenants.
      */
-    public CoprhdOsTenantListRestRep registerOpenStackTenants(OpenStackTenantListParam list) {
-        return client.post(CoprhdOsTenantListRestRep.class, list, baseUrl);
+    public OSTenantListRestRep registerOpenStackTenants(OpenStackTenantListParam list) {
+        return client.post(OSTenantListRestRep.class, list, baseUrl);
     }
 
     public void synchronizeOpenStackTenants() {

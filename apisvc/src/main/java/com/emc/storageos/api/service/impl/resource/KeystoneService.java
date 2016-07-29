@@ -28,7 +28,7 @@ import com.emc.storageos.keystone.restapi.model.response.TenantListRestResp;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.keystone.CoprhdOsTenant;
-import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
+import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -158,7 +158,7 @@ public class KeystoneService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public CoprhdOsTenantListRestRep createOpenStackTenants(OpenStackTenantListParam param) {
+    public OSTenantListRestRep createOpenStackTenants(OpenStackTenantListParam param) {
 
         _log.debug("Keystone Service - createOpenStackTenants");
 
@@ -208,7 +208,7 @@ public class KeystoneService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public CoprhdOsTenantListRestRep updateOpenstackTenants(CoprhdOsTenantListRestRep param) {
+    public OSTenantListRestRep updateOpenstackTenants(OSTenantListRestRep param) {
 
         _log.debug("Keystone Service - updateOpenstackTenants");
 
@@ -216,7 +216,7 @@ public class KeystoneService extends TaskResourceService {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
         }
 
-        CoprhdOsTenantListRestRep resp = new CoprhdOsTenantListRestRep();
+        OSTenantListRestRep resp = new OSTenantListRestRep();
         List<OSTenant> tenantsToUpdate = new ArrayList<>();
         List<OSTenant> tenantsToDelete = new ArrayList<>();
         OSTenant osTenant;
@@ -286,13 +286,13 @@ public class KeystoneService extends TaskResourceService {
      *
      * @brief Show CoprHD OpenStack Tenants.
      * @return CoprHD OpenStack Tenants details.
-     * @see CoprhdOsTenantListRestRep
+     * @see OSTenantListRestRep
      */
     @GET
     @Path("/ostenants")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public CoprhdOsTenantListRestRep listCoprhdOsTenants() {
+    public OSTenantListRestRep listCoprhdOsTenants() {
 
         _log.debug("Keystone Service - listCoprhdOsTenants");
 
@@ -394,9 +394,9 @@ public class KeystoneService extends TaskResourceService {
         return openstackTenant;
     }
 
-    private CoprhdOsTenantListRestRep map(List<OSTenant> tenants) {
+    private OSTenantListRestRep map(List<OSTenant> tenants) {
 
-        CoprhdOsTenantListRestRep response = new CoprhdOsTenantListRestRep();
+        OSTenantListRestRep response = new OSTenantListRestRep();
         List<CoprhdOsTenant> coprhdOsTenants = new ArrayList<>();
         for (OSTenant osTenant : tenants) {
             coprhdOsTenants.add(mapToCoprhdOsTenant(osTenant));

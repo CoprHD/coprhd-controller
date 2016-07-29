@@ -47,6 +47,7 @@ dependencies {
             project(":ecs"),
             project(":ceph"),
             project(":storagedriver"),
+            project(":dellsc"),
             project(":xiv"),
     // temp. here, to get simulator to controllersvc classpath
             project(":storagedriversimulator"),

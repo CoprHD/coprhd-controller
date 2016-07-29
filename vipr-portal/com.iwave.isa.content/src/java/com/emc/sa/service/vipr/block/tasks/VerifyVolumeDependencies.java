@@ -46,6 +46,9 @@ public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
             if (!getClient().blockVolumes().getContinuousCopies(id).isEmpty()) {
                 dependencyType.add(getMessage(DependencyType.CONTINUOUS_COPY));
             }
+            if (!getClient().blockVolumes().getExports(id).isEmpty()) {
+                dependencyType.add(getMessage(DependencyType.EXPORTED));
+            }
 
             // If we have dependencies, get volume name so that display information is relevant
             if (!dependencyType.isEmpty()) {
@@ -72,6 +75,7 @@ public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
         public static final String SNAPSHOT_SESSION = "VerifyVolumeDependencies.SnapshotSession";
         public static final String FULL_COPY = "VerifyVolumeDependencies.FullCopy";
         public static final String CONTINUOUS_COPY = "VerifyVolumeDependencies.ContinuousCopy";
+        public static final String EXPORTED = "VerifyVolumeDependencies.Exported";
 
         private String type;
         private String volumeName;

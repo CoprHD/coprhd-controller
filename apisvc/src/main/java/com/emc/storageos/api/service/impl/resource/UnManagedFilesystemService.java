@@ -305,6 +305,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.warn("UnManaged FileSystem {} is inactive.Skipping Ingestion..", unManagedFileSystemUri);
                     continue;
                 }
+
+                if (!checkVirtualPoolValidForUnManagedFileSystem(_dbClient, cos, unManagedFileSystemUri)) {
+                    continue;
+                }
+
                 StringSetMap unManagedFileSystemInformation = unManagedFileSystem
                         .getFileSystemInformation();
                 String fsNativeGuid = unManagedFileSystem.getNativeGuid().replace(

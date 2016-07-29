@@ -1271,12 +1271,14 @@ public class DBClient {
     public boolean rebuildIndex(String cfName) {
         boolean runResult = true;
         Class cfClazz = getClassFromCFName(cfName);
+        if (cfClazz == null) {
+            return false;
+        }
         List<URI> objUris = getColumnUris(cfClazz, false);
-        //todo check this CF first, and then found inconsistency records and do the cleanup
         for (URI id : objUris) {
             boolean eachResult = rebuildIndex(id, cfClazz);
-            if (runResult && !eachResult) {
-                runResult = eachResult; // mark some error happens
+            if (runResult && !eachResult) {// mark some error happens
+                runResult = eachResult;
             }
         }
         return runResult;
@@ -1329,15 +1331,11 @@ public class DBClient {
                 }
 
                 _dbClient.updateObject(newObject);
-                String msg = String.format("Successfully rebuild index for %s in cf %s", id, clazz);
-                System.out.println(msg);
-                log.info(msg);
+                logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));
                 runResult = true;
             }
         } catch (Exception e) {
-            String msg = String.format("Error when rebuilding index for %s in cf %s", id, clazz);
-            System.err.println(msg);
-            log.error(msg, e);
+            logMsg(String.format("Error when rebuilding index for %s in cf %s", id, clazz), true, e);
         }
         return runResult;
     }

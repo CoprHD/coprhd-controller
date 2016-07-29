@@ -687,10 +687,14 @@ public abstract class CommandHandler {
         static final String KEY_ID = "id";
         static final String KEY_CFNAME = "cfName";
         static final String KEY_COMMENT_CHAR = DbCheckerFileWriter.COMMENT_CHAR;
+        boolean specificCF = false;
 
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {
                 rebuildIndexFileName = args[1];
+            } else if (args.length == 3 && args[1].equalsIgnoreCase(Main.CF_NAME)) {
+                specificCF = true;
+                cfName = args[2];               
             } else {
                 throw new IllegalArgumentException("Invalid command option. ");
             }
@@ -698,6 +702,16 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
+            if (specificCF) {
+                boolean allSuccess = _client.rebuildIndex(cfName);
+                if (allSuccess) {
+                    System.out.println("Successfully rebuilt, please check the log for more details ");
+                } else {
+                    System.out.println("Some error happened when perform rebuilding, please check the log for more details.");
+                }
+                return;
+            }
+            
             if (rebuildIndexFileName == null) {
                 System.out.println("rebuild Index file is null");
                 return;

@@ -61,6 +61,8 @@ public class Main {
 
     public static final String BLACKLIST = "blacklist";
 
+    public static final String CF_NAME = "-cf";
+
     private static DBClient _client = null;
 
     private static final String LOG_FILE_PATH = "/opt/storageos/logs/dbutils.log";

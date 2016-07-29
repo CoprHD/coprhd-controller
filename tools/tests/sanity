@@ -1359,10 +1359,12 @@ xtremio_ingest_export_test()
 
     # Delete the volume and CG
     run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
     run export_group delete ${PROJECT}/EG-xio-ingest
+
     run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
 
-    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
 
     secho "XIO ingest discovery"
 
@@ -1400,8 +1402,10 @@ xtremio_ingest_export_test()
 
     run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
     run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
-    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
+
     run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
 
     # Discover unmanaged volumes on the array again
     run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'

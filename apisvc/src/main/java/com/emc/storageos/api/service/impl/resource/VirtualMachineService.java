@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.api.mapper.VirtualMachineMapper.map;
@@ -25,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,8 +71,10 @@ import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.model.host.PairedInitiatorCreateParam;
 import com.emc.storageos.model.host.VirtualMachineBulkRep;
 import com.emc.storageos.model.host.VirtualMachineCreateParam;
+import com.emc.storageos.model.host.VirtualMachineList;
 import com.emc.storageos.model.host.VirtualMachineParam;
 import com.emc.storageos.model.host.VirtualMachineRestRep;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -194,6 +198,37 @@ public class VirtualMachineService extends TaskResourceService {
         // check the user permissions
         verifyAuthorizedInTenantOrg(virtualMachine.getTenant(), getUserFromContext());
         return map(virtualMachine);
+    }
+
+    /**
+     * Lists the id and name for all the virtual machine that belong to the given tenant organization.
+     *
+     * @param tid the URN of a ViPR tenant organization
+     * @prereq none
+     * @brief List Virtual Machine
+     * @return a list of virtual machine that belong to the tenant organization.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public VirtualMachineList listVirtualMachines(@QueryParam("tenant") final URI tid) throws DatabaseException {
+        URI tenantId;
+        StorageOSUser user = getUserFromContext();
+        if (tid == null || StringUtils.isBlank(tid.toString())) {
+            tenantId = URI.create(user.getTenantId());
+        } else {
+            tenantId = tid;
+        }
+        // this call validates the tenant id
+        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
+
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(tenantId, user);
+        // get all host children
+        VirtualMachineList list = new VirtualMachineList();
+        list.setVirtualMachines(map(ResourceTypeEnum.VIRTUAL_MACHINE, listChildren(tenantId, VirtualMachine.class, "label", "tenant")));
+        return list;
     }
 
     /**

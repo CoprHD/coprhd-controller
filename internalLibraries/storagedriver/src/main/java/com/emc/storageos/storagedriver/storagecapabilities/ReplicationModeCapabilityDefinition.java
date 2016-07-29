@@ -4,11 +4,13 @@
  */
 package com.emc.storageos.storagedriver.storagecapabilities;
 
-
+/**
+ * Specifies remote replication mode capability definition
+ */
 public class ReplicationModeCapabilityDefinition extends CapabilityDefinition {
 
     // The uid of this capability definition.
-    public static final String CAPABILITY_UID = "replicationMode";
+    public static final String CAPABILITY_UID = CapabilityUid.replicationMode.name();
 
     // The names of the supported properties.
     public static enum PROPERTY_NAME {
@@ -17,8 +19,7 @@ public class ReplicationModeCapabilityDefinition extends CapabilityDefinition {
         GROUP_CONSISTENCY_NOT_SUPPORTED
     };
 
-    // TODO add uncomment
     public ReplicationModeCapabilityDefinition() {
-        // super(CAPABILITY_UID);
+        super(CAPABILITY_UID);
     }
 }

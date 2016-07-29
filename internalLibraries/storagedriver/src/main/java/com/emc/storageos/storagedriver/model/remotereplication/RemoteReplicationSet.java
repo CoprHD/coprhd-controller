@@ -14,54 +14,33 @@ import java.util.Set;
 
 /**
  * This class describes set of interconnected storage systems configured for remote replication.
- * The instances of this class are discovered by driver and are read-only from driver management perspective.
+ * The instances of this class are discovered by driver.
  * Any system with SOURCE role can be used to keep source elements, and any system with TARGET role can be used to
  * keep target elements. This should support different remote replication topologies.
+ *
+ * Annotation "Output" means that only driver can set this attribute.
  */
 public class RemoteReplicationSet {
 
-    // Device native id of the replication set. Identifies replication set for driver. Type: Output.
-    private String nativeId;
-
-    // Display name of the replication set. Type: Output.
-    private String displayName;
-
+    /**
+     * Defines replication roles.
+     */
     public enum ReplicationRole {
         SOURCE,
         TARGET
     }
 
     /**
-     * Map of storage systems in the replication set mapped to their roles in the set.
-     * The same system can have one or both replication roles.
+     * Type of remote replication element.
      */
-    private Map<String, Set<ReplicationRole>> systemMap = new HashMap<>();
-
-    /**
-     * Defines types of replication set elements for which link
-     * management operations are supported.
-     */
-    public enum ReplicationLinkGranularity {
-        SET,
-        GROUP,
-        PAIR
+    public enum ElementType {
+        REPLICATION_SET,
+        REPLICATION_GROUP,
+        REPLICATION_PAIR
     }
 
     /**
-     * Defines types of set elements for which replication link operations are supported.
-     */
-    private Set<ReplicationLinkGranularity> supportedReplicationLinkGranularity = new HashSet<>();
-
-    /**
-     * Defines replication modes supported for elements of this set.
-     */
-    private Set<CapabilityInstance> supportedReplicationModes;
-
-    // When replication link operations are supported on the SET level, defines link mode.
-    private CapabilityInstance replicationMode;
-
-    /**
-     * State of replication link.
+     * State of remote replication link.
      */
     public enum ReplicationState {
         ACTIVE,
@@ -72,33 +51,57 @@ public class RemoteReplicationSet {
         STOPPED
     }
 
+
     /**
-     * When replication link granularity is SET, defines replication link state of this set.
+     * Device native id of the replication set. Identifies replication set for driver. Type: Output.
+     */
+    private String nativeId;
+
+    /**
+     * Display name of the replication set. Type: Output.
+     */
+    private String deviceLabel;
+
+    /**
+     * Map of storage systems in the replication set. Key: nativeId of storage system. Value: set of system roles in the set.
+     * The same system can have one or both replication roles.
+     * Type: Output.
+     */
+    private Map<String, Set<ReplicationRole>> systemMap = new HashMap<>();
+
+    /**
+     * Element types supported by this replication set. Type: Output.
+     */
+    private Set<ElementType> supportedElementTypes;
+
+    /**
+     * Defines types of set elements for which replication link operations are supported. Type: Output.
+     */
+    private Set<ElementType> replicationLinkGranularity = new HashSet<>();
+
+    /**
+     * Defines replication modes supported for elements of this set. Type: Output.
+     */
+    private Set<CapabilityInstance> supportedReplicationModes;
+
+    /**
+     * When replication link operations are supported on the SET level, defines link mode. Type: Output.
+     */
+    private CapabilityInstance replicationMode;
+
+
+    /**
+     * When replication link granularity is SET, defines replication link state of this set. Type: Output.
      */
     private ReplicationState replicationState;
 
     /**
-     * Replication element type
-     */
-    public enum ElementType {
-        REPLICATION_GROUP,
-        REPLICATION_PAIR
-    }
-
-    /**
-     * Element types supported by this replication set.
-     */
-    private Set<ElementType> supportedElementTypes;
-
-    /*
-     * Set of replication groups in this replication set.
-     * Should be populated only if elementTypes contains REPLICATION_GROUP.
-     * If elementTypes has only REPLICATIOM_PAIR, driver should leave this element empty.
+     * Set of replication groups in this replication set. Type: Output.
      */
     private Set<RemoteReplicationGroup> replicationGroups;
 
     /**
-     * Device specific capabilities of this replication set.
+     * Device specific capabilities of this replication set. Type: Input.
      */
     private List<CapabilityInstance> capabilities;
 
@@ -111,12 +114,12 @@ public class RemoteReplicationSet {
         this.nativeId = nativeId;
     }
 
-    public String getDisplayName() {
-        return displayName;
+    public String getDeviceLabel() {
+        return deviceLabel;
     }
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+    public void setDeviceLabel(String deviceLabel) {
+        this.deviceLabel = deviceLabel;
     }
 
     public Map<String, Set<ReplicationRole>> getSystemMap() {
@@ -127,12 +130,12 @@ public class RemoteReplicationSet {
         this.systemMap = systemMap;
     }
 
-    public Set<ReplicationLinkGranularity> getSupportedReplicationLinkGranularity() {
-        return supportedReplicationLinkGranularity;
+    public Set<ElementType> getReplicationLinkGranularity() {
+        return replicationLinkGranularity;
     }
 
-    public void setSupportedReplicationLinkGranularity(Set<ReplicationLinkGranularity> supportedReplicationLinkGranularity) {
-        this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
+    public void setReplicationLinkGranularity(Set<ElementType> replicationLinkGranularity) {
+        this.replicationLinkGranularity = replicationLinkGranularity;
     }
 
     public Set<CapabilityInstance> getSupportedReplicationModes() {

@@ -11,38 +11,154 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Describes consistency remote replication group on device.
+ * Describes remote replication group on device.
  * Group always has one source storage system and one target storage system.
- * Instances of this type are discovered from device.
+ * Instances of remote replication groups could be configured on array, and have to be discovered.
+ * New remote replication groups can be provisioned as well.
  */
 public class RemoteReplicationGroup {
 
-    // Device nativeId of replication group. Type: Input/Output.
+    /**
+     * Device nativeId of replication group. Type: Input/Output.
+     */
     private String nativeId;
 
-    private String displayName;
-    private String replicationSetNativeId;
-    private CapabilityInstance replicationMode;
-    private RemoteReplicationSet.ReplicationState replicationState;
     /**
-     * Defines if group consistency for link operations is enforced
+     * When group was provisioned by CoprHD, contains name given by user. Type: Input.
+     */
+    private String displayName;
+
+    /**
+     * Label of this group on device. Type: Output.
+     */
+    private String deviceLabel;
+
+    /**
+     * NativeId of replication set on device. Type: Output.
+     */
+    private String replicationSetNativeId;
+
+    /**
+     * Replication mode of the group. Type: Input/Output.
+     */
+    private CapabilityInstance replicationMode;
+
+    /**
+     * Replication state of the group. Type: Output.
+     */
+    private RemoteReplicationSet.ReplicationState replicationState;
+
+    /**
+     * Defines if group consistency for link operations is enforced. Type: Input/Output.
      */
     private boolean isGroupConsistencyEnforced;
 
     /**
      * Defines types of group elements for which replication link operations are supported.
+     * Could be either group or pair level. Type: Output.
      */
-    private Set<RemoteReplicationSet.ReplicationLinkGranularity> supportedReplicationLinkGranularity = new HashSet<>();
+    private Set<RemoteReplicationSet.ElementType> replicationLinkGranularity = new HashSet<>();
 
+    /**
+     * Native id of the source storage system in this replication group. Type: Input/Output.
+     */
     private String sourceSystemNativeId;
+
+    /**
+     * Native id of the target storage system in this replication group. Type: Input/Output.
+     */
     private String targetSystemNativeId;
 
     /**
-     * Device specific capabilities. For example, device specific replication modes.
+     * Device specific capabilities. Type: Input.
      */
     private List<CapabilityInstance> capabilities;
 
+    public String getNativeId() {
+        return nativeId;
+    }
 
+    public void setNativeId(String nativeId) {
+        this.nativeId = nativeId;
+    }
 
+    public String getDisplayName() {
+        return displayName;
+    }
 
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDeviceLabel() {
+        return deviceLabel;
+    }
+
+    public void setDeviceLabel(String deviceLabel) {
+        this.deviceLabel = deviceLabel;
+    }
+
+    public String getReplicationSetNativeId() {
+        return replicationSetNativeId;
+    }
+
+    public void setReplicationSetNativeId(String replicationSetNativeId) {
+        this.replicationSetNativeId = replicationSetNativeId;
+    }
+
+    public CapabilityInstance getReplicationMode() {
+        return replicationMode;
+    }
+
+    public void setReplicationMode(CapabilityInstance replicationMode) {
+        this.replicationMode = replicationMode;
+    }
+
+    public RemoteReplicationSet.ReplicationState getReplicationState() {
+        return replicationState;
+    }
+
+    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+        this.replicationState = replicationState;
+    }
+
+    public boolean isGroupConsistencyEnforced() {
+        return isGroupConsistencyEnforced;
+    }
+
+    public void setIsGroupConsistencyEnforced(boolean isGroupConsistencyEnforced) {
+        this.isGroupConsistencyEnforced = isGroupConsistencyEnforced;
+    }
+
+    public Set<RemoteReplicationSet.ElementType> getReplicationLinkGranularity() {
+        return replicationLinkGranularity;
+    }
+
+    public void setReplicationLinkGranularity(Set<RemoteReplicationSet.ElementType> replicationLinkGranularity) {
+        this.replicationLinkGranularity = replicationLinkGranularity;
+    }
+
+    public String getSourceSystemNativeId() {
+        return sourceSystemNativeId;
+    }
+
+    public void setSourceSystemNativeId(String sourceSystemNativeId) {
+        this.sourceSystemNativeId = sourceSystemNativeId;
+    }
+
+    public String getTargetSystemNativeId() {
+        return targetSystemNativeId;
+    }
+
+    public void setTargetSystemNativeId(String targetSystemNativeId) {
+        this.targetSystemNativeId = targetSystemNativeId;
+    }
+
+    public List<CapabilityInstance> getCapabilities() {
+        return capabilities;
+    }
+
+    public void setCapabilities(List<CapabilityInstance> capabilities) {
+        this.capabilities = capabilities;
+    }
 }

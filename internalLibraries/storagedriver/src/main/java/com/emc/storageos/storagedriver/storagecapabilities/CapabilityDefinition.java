@@ -9,6 +9,15 @@ package com.emc.storageos.storagedriver.storagecapabilities;
  */
 public class CapabilityDefinition {
 
+    /**
+     * Supported common capability definitions
+     */
+    public enum CapabilityUid {
+        autoTieringPolicy,    // auto tiering capability
+        replicationMode,      // replication mode capability
+        remoteReplicationAttributes   // remote replication attributes
+    }
+
     // The unique identifier for the capability definition.
     private String uid;
     

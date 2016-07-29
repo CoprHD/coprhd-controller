@@ -9,40 +9,32 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import java.util.List;
 
 /**
- * This class describes operational object for remote link management.
- * All operations on the remote replication link are executed on instances of this class.
+ * This class describes operational object for remote link operations.
+ * All operations on the remote replication link is instance of this class as parameter.
  */
 public class RemoteReplicationArgument {
 
-    public static enum ReplicationArgumentType {
-        REPLICATION_SET,
-        REPLICATION_GROUP,
-        REPLICATION_PAIR
-    }
-
-    // Replication argument type. Type: Input.
-    private ReplicationArgumentType type;
+    /**
+     * Remote replication element type of this argument. Type: Input.
+     */
+    private RemoteReplicationSet.ElementType type;
 
     /**
-     *  Device nativeId of replication argument.Depending on argument type, this can be nativeId of
+     *  Device nativeId of replication element for this argument.
+     *  Depending on argument type, this can be nativeId of
      *  replication set, replication group or replication pair. Type: Input.
      */
     private String nativeId;
 
     /**
-     * Parent remote replication group native id.
-     * Applicable to REPLICATION_PAIR argument.
+     * Parent native id of remote replication element of this argument.
+     * Depending on element type and containment can be either nativeId of parent replication group
+     * or parent replication set. Type: Input.
      */
-    private String parentRemoteReplicationGroupId;
+    private String parentNativeId;
 
     /**
-     * Parent remote replication set native id.
-     * Applicable to REPLICATION_GROUP and  REPLICATION_PAIR arguments.
-     */
-    private String parentRemoteReplicationSetId;
-
-    /**
-     * Device specific capabilities.
+     * Device specific capabilities. Type: Input.
      */
     private List<CapabilityInstance> capabilities;
 }

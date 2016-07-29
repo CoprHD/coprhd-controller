@@ -47,6 +47,7 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
@@ -213,6 +214,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskType = "discover-storage-pools";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
+        AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
 
         try {
             // Get connection information.
@@ -237,7 +239,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 pool.setMinimumThickVolumeSize(1000L);
                 pool.setMaximumThinVolumeSize(5000000L);
                 pool.setMinimumThinVolumeSize(1000L);
-                pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
+                if (i%2 == 0) {
+                    pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_ONLY);
+                } else {
+                    pool.setSupportedResourceType(StoragePool.SupportedResourceType.THICK_ONLY);
+                }
 
                 pool.setSubscribedCapacity(5000000L);
                 pool.setFreeCapacity(45000000L);
@@ -252,6 +258,24 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 //            raidLevels.add(StoragePool.RaidLevels.RAID5);
                 //            raidLevels.add(StoragePool.RaidLevels.RAID6);
                 //            pool.setSupportedRaidLevels(raidLevels);
+                
+                
+                List<CapabilityInstance> capabilities = new ArrayList<>();
+                for (int j = 1; j <= 2; j++) {
+                    String policyId = "Auto-Tier-Policy-" + i + j;
+                    Map<String, List<String>> props = new HashMap<>();
+                    props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(policyId));
+                    String provisioningType;
+                    if (i%2 == 0) {
+                        provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThinlyProvisioned.name();
+                    } else {
+                        provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThicklyProvisioned.name();
+                    }
+                    props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(provisioningType));
+                    CapabilityInstance capabilityInstance = new CapabilityInstance(capabilityDefinition.getId(), policyId, props);
+                    capabilities.add(capabilityInstance);
+                }
+                pool.setCapabilities(capabilities);
 
                 storagePools.add(pool);
 

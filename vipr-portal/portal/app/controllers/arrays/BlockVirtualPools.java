@@ -4,19 +4,15 @@
  */
 package controllers.arrays;
 
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.vipr.client.Task;
-import com.emc.vipr.client.core.VirtualArrays;
+
 
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;

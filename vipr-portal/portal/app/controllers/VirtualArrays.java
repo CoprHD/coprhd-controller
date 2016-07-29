@@ -7,7 +7,6 @@ package controllers;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-import com.google.gson.JsonPrimitive;
 import static controllers.Common.backToReferrer;
 import static controllers.Common.getUserMessage;
 
@@ -99,7 +98,6 @@ public class VirtualArrays extends ViprResourceController {
 
     private static final String SIMPLE  ="SIMPLE";
     private static final String MAPPING1X1 ="1X1MAPPING";
-    private static final String CUSTOM = "CUSTOM";
 
     private static final String UNITY = "unity";
     private static final String VMAX = "vmax";
@@ -287,61 +285,6 @@ public class VirtualArrays extends ViprResourceController {
 				}
 			}
 			list();
-//			// Support three type of varray for mapping VMAX, UNITY, XtremIO
-//			List <String> vmaxids = Lists.newArrayList();
-//			List <String> unityids = Lists.newArrayList();
-//			List <String> xioids = Lists.newArrayList();
-//
-//			// Read all discovered storage in system
-//			for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
-//				if(StringUtils.equals(storageSystem.getSystemType(), VMAX)) {
-//					vmaxids.add(storageSystem.getId().toString());
-//				}
-//				else if(StringUtils.equals(storageSystem.getSystemType(), XTREMIO)) {
-//					xioids.add(storageSystem.getId().toString());
-//				}
-//				else if(StringUtils.equals(storageSystem.getSystemType(), UNITY))
-//				unityids.add(storageSystem.getId().toString());
-//			}
-//			if(!vmaxids.isEmpty()) {
-//				VirtualArrayForm virtualArray = new VirtualArrayForm();
-//				virtualArray.name = VMAX_FLASH_VARRAY;
-//				virtualArray.validate("virtualArray");
-//				if (Validation.hasErrors()) {
-//					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-//					list();
-//				}
-//
-//				VirtualArrayRestRep varray = virtualArray.save();
-//				virtualArray.load(varray);
-//				addStorageSysVarray(virtualArray.id, vmaxids);
-//			}
-//			if(!unityids.isEmpty()) {
-//				VirtualArrayForm virtualArray = new VirtualArrayForm();
-//				virtualArray.name = UNITY_FLASH_VARRAY;
-//				virtualArray.validate("virtualArray");
-//				if (Validation.hasErrors()) {
-//					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-//					list();
-//				}
-//
-//				VirtualArrayRestRep varray = virtualArray.save();
-//				virtualArray.load(varray);
-//				addStorageSysVarray(virtualArray.id, unityids);
-//			}
-//			if(!xioids.isEmpty()) {
-//				VirtualArrayForm virtualArray = new VirtualArrayForm();
-//				virtualArray.name = XTREMIO_FLASH_VARRAY;
-//				virtualArray.validate("virtualArray");
-//				if (Validation.hasErrors()) {
-//					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-//					list();
-//				}
-//
-//				VirtualArrayRestRep varray = virtualArray.save();
-//				virtualArray.load(varray);
-//				addStorageSysVarray(virtualArray.id, xioids);
-//			}
 		}
 		// List page so that user can add virtual array them self
 		else {
@@ -408,12 +351,7 @@ public class VirtualArrays extends ViprResourceController {
         autoSanZoningOptions.put(Boolean.TRUE, Messages.get("virtualArray.autoSanZoning.true"));
         autoSanZoningOptions.put(Boolean.FALSE, Messages.get("virtualArray.autoSanZoning.false"));
 
-        Map<Boolean, String> noNetworkOptions = Maps.newHashMap();
-        noNetworkOptions.put(Boolean.TRUE, Messages.get("virtualArray.noNetwork.true"));
-        noNetworkOptions.put(Boolean.FALSE, Messages.get("virtualArray.noNetwork.false"));
-        
         renderArgs.put("autoSanZoningOptions", autoSanZoningOptions);
-        renderArgs.put("noNetworkOptions", noNetworkOptions);
         renderArgs.put("storageSystems", new VirtualArrayStorageSystemsDataTable());
         renderArgs.put("virtualPools", new VirtualArrayVirtualPoolsDataTable());
 

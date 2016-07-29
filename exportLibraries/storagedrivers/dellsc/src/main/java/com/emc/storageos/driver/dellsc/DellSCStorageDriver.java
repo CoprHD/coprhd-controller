@@ -30,12 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
+import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPIException;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenter;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenterStorageUsage;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -45,7 +45,6 @@ import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
-import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -88,10 +87,49 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      * @return The volume creation task.
      */
     @Override
-    public DriverTask createVolumes(List<StorageVolume> list, StorageCapabilities storageCapabilities) {
-        LOG.info("Creating %d new volumes", list.size());
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities storageCapabilities) {
+        LOG.info("Creating {} new volumes", volumes.size());
         DriverTask task = new DellSCDriverTask("createVolume");
-        task.setStatus(TaskStatus.FAILED);
+
+        StringBuilder errBuffer = new StringBuilder();
+        int volumesCreated = 0;
+        for (StorageVolume volume : volumes) {
+            LOG.debug("Creating volume {} on system {}", volume.getDisplayName(), volume.getStorageSystemId());
+            try (StorageCenterAPI api = getSavedConnection(volume.getStorageSystemId())) {
+                ScVolume scVol = api.createVolume(
+                        volume.getStorageSystemId(),
+                        volume.getDisplayName(),
+                        volume.getStoragePoolId(),
+                        SizeUtil.byteToGig(volume.getRequestedCapacity()));
+
+                volume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
+                volume.setAllocatedCapacity(0L); // New volumes don't allocate any space
+                volume.setWwn(scVol.deviceId);
+                volume.setNativeId(scVol.instanceId);
+                volume.setDeviceLabel(scVol.name);
+                volume.setAccessStatus(AccessStatus.READ_WRITE);
+
+                // TODO(smcginnis): Add consistency group handling
+
+                volumesCreated++;
+                LOG.info("Created volume '{}'", scVol.name);
+            } catch (StorageCenterAPIException | DellSCDriverException dex) {
+                String error = String.format("Error creating volume %s: %s", volume.getDisplayName(), dex);
+                LOG.error(error);
+                errBuffer.append(String.format("%s%n", error));
+            }
+        }
+
+        task.setMessage(errBuffer.toString());
+
+        if (volumesCreated == volumes.size()) {
+            task.setStatus(TaskStatus.READY);
+        } else if (volumesCreated == 0) {
+            task.setStatus(TaskStatus.FAILED);
+        } else {
+            task.setStatus(TaskStatus.PARTIALLY_FAILED);
+        }
+
         return task;
     }
 
@@ -108,7 +146,20 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     public DriverTask expandVolume(StorageVolume storageVolume, long newCapacity) {
         LOG.info("Expanding volume {} to {}", storageVolume.getNativeId(), newCapacity);
         DriverTask task = new DellSCDriverTask("expandVolume");
-        task.setStatus(TaskStatus.FAILED);
+        try (StorageCenterAPI api = getSavedConnection(storageVolume.getStorageSystemId())) {
+            ScVolume scVol = api.expandVolume(storageVolume.getNativeId(), SizeUtil.byteToGig(newCapacity));
+            storageVolume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
+
+            task.setStatus(TaskStatus.READY);
+            LOG.info("Expanded volume '{}'", scVol.name);
+        } catch (DellSCDriverException | StorageCenterAPIException dex) {
+            String error = String.format("Error expanding volume %s: %s",
+                    storageVolume.getDisplayName(), dex);
+            LOG.error(error);
+            task.setMessage(error);
+            task.setStatus(TaskStatus.FAILED);
+        }
+
         return task;
     }
 
@@ -120,9 +171,21 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask deleteVolume(StorageVolume volume) {
-        LOG.info("Deleting volume {}", volume);
+        LOG.info("Deleting volume {}", volume.getNativeId());
         DriverTask task = new DellSCDriverTask("deleteVolume");
-        task.setStatus(TaskStatus.FAILED);
+
+        try (StorageCenterAPI api = getSavedConnection(volume.getStorageSystemId())) {
+            api.deleteVolume(volume.getNativeId());
+
+            task.setStatus(TaskStatus.READY);
+            LOG.info("Deleted volume '{}'", volume.getNativeId());
+        } catch (DellSCDriverException | StorageCenterAPIException dex) {
+            String error = String.format("Error deleting volume %s", volume.getNativeId(), dex);
+            LOG.error(error);
+            task.setMessage(error);
+            task.setStatus(TaskStatus.FAILED);
+        }
+
         return task;
     }
 
@@ -511,15 +574,8 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                 storageSystem.setFirmwareVersion(sc.version);
                 storageSystem.setIsSupportedVersion(true);
 
-                // Set display info if needed
-                if (storageSystem.getDeviceLabel() == null) {
-                    if (storageSystem.getDisplayName() != null) {
-                        storageSystem.setDeviceLabel(storageSystem.getDisplayName());
-                    } else {
-                        storageSystem.setDeviceLabel(sc.scName);
-                        storageSystem.setDisplayName(sc.scName);
-                    }
-                }
+                storageSystem.setDeviceLabel(sc.scName);
+                storageSystem.setDisplayName(sc.scName);
 
                 // TODO(smcginnis): Only supporting iSCSI to start, expand for other protocols
                 List<String> protocols = new ArrayList<>();
@@ -666,7 +722,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                 port.setDeviceLabel(scPort.iscsiName);
                 port.setPortName(port.getDeviceLabel());
                 port.setPortHAZone(haZone);
-                port.setNetworkId(portConfig.ipAddress);
+                port.setNetworkId(portConfig.getNetwork());
                 port.setIpAddress(portConfig.ipAddress);
                 port.setPortNetworkId(portConfig.getFormattedMACAddress());
                 port.setTransportType(StoragePort.TransportType.IP);
@@ -678,52 +734,6 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
             task.setStatus(DriverTask.TaskStatus.READY);
         } catch (Exception e) {
             String failureMessage = String.format("Error getting port information: %s", e);
-            task.setFailed(failureMessage);
-            LOG.warn(failureMessage);
-        }
-        return task;
-    }
-
-    @Override
-    public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> storageHosts) {
-        LOG.info("Discovering storage host components");
-        DellSCDriverTask task = new DellSCDriverTask("discoverStorageHostComponents");
-
-        try (StorageCenterAPI api = getSavedConnection(storageSystem.getNativeId())) {
-
-            ScServer[] servers = api.getServerDefinitions(storageSystem.getNativeId());
-            for (ScServer server : servers) {
-
-                StorageHostComponent host = new StorageHostComponent();
-                host.setNativeId(server.instanceId);
-                LOG.info("Discovered storage host {}, storageSystem {}",
-                        host.getNativeId(), storageSystem.getNativeId());
-
-                host.setAccessStatus(AccessStatus.READ_WRITE);
-                host.setDeviceLabel(server.name);
-                host.setDisplayName(host.getDeviceLabel());
-                host.setHostName(host.getDeviceLabel());
-                host.setIsSupportedVersion(true);
-
-                // Get the HBAs for this server
-                Set<Initiator> initiators = new HashSet<>();
-                ScServerHba[] hbas = api.getServerHbas(storageSystem.getNativeId(), server.instanceId);
-
-                for (ScServerHba hba : hbas) {
-                    // TODO(smcginnis): Determine what all should be set
-                    Initiator init = new Initiator();
-                    init.setDeviceLabel(hba.name);
-                    init.setDisplayName(hba.name);
-                    init.setNativeId(hba.instanceId);
-                    initiators.add(init);
-                }
-
-                host.setInitiators(initiators);
-                storageHosts.add(host);
-            }
-            task.setStatus(DriverTask.TaskStatus.READY);
-        } catch (Exception e) {
-            String failureMessage = String.format("Error getting server definition information: %s", e);
             task.setFailed(failureMessage);
             LOG.warn(failureMessage);
         }

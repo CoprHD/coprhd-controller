@@ -5,7 +5,9 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
@@ -49,8 +51,23 @@ public class UnManagedFileExportRule extends ExportRule {
     @Override
     public void calculateExportRuleIndex() {
         if (getFileSystemId() != null && getExportPath() != null && getSecFlavor() != null) {
+            // Convert the security types to ordered comma separated string!!!
+            Set<String> orderedSecTypes = new TreeSet<String>();
+            for (String secType : getSecFlavor().split(",")) {
+                orderedSecTypes.add(secType.trim());
+            }
+            Iterator<String> orderedList = orderedSecTypes.iterator();
+            String securityTypes = orderedList.next();
+            while (orderedList.hasNext()) {
+                securityTypes += "," + orderedList.next();
+            }
+
+            // Update the security type and export index!!!
+            this.secFlavor = securityTypes;
+            setChanged("secFlavor");
+
             this.setFsExportIndex(getFileSystemId().toString() + getExportPath()
-                    + getSecFlavor());
+                    + securityTypes);
         }
     }
 

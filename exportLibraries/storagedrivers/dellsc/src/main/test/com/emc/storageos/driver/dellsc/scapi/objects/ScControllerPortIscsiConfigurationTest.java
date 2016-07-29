@@ -66,22 +66,4 @@ public class ScControllerPortIscsiConfigurationTest {
 
         Assert.assertTrue("00:00:00:00:00:00".equals(config.getFormattedMACAddress()));
     }
-
-    @Test
-    public void testGetNetwork() {
-        ScControllerPortIscsiConfiguration config = new ScControllerPortIscsiConfiguration();
-        config.ipAddress = "172.23.57.147";
-        config.subnetMask = "255.255.255.0";
-
-        Assert.assertTrue("172.23.57.0".equals(config.getNetwork()));
-    }
-
-    @Test
-    public void testGetNetworkNotOnBoundary() {
-        ScControllerPortIscsiConfiguration config = new ScControllerPortIscsiConfiguration();
-        config.ipAddress = "172.23.57.147";
-        config.subnetMask = "255.255.248.0";
-
-        Assert.assertTrue("172.23.56.0".equals(config.getNetwork()));
-    }
 }

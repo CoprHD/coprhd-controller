@@ -28,8 +28,6 @@ public class ScControllerPortIscsiConfiguration extends ScControllerPortConfigur
     public String chapSecret;
     public String ipAddress;
     public String macAddress;
-    public long portNumber;
-    public String subnetMask;
     public int vlanId;
     public boolean vlanTagging;
 
@@ -57,26 +55,5 @@ public class ScControllerPortIscsiConfiguration extends ScControllerPortConfigur
         }
 
         return String.join(":", parts);
-    }
-
-    /**
-     * Gets the network based on the IP address and subnet mask.
-     * 
-     * @return The network.
-     */
-    public String getNetwork() {
-        String[] ipOctets = ipAddress.split("\\.");
-        String[] subnetOctets = subnetMask.split("\\.");
-        String[] result = ipOctets;
-
-        for (int i = 0; i < 4; i++) {
-            if (!"255".equals(subnetOctets[i])) {
-                int sub = Integer.parseInt(subnetOctets[i]);
-                int ip = Integer.parseInt(ipOctets[i]);
-                result[i] = String.format("%s", (ip & sub));
-            }
-        }
-
-        return String.join(".", result);
     }
 }

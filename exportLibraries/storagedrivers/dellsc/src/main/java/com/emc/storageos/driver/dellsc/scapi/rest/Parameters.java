@@ -39,8 +39,4 @@ public class Parameters {
         Gson gson = new Gson();
         return gson.toJson(payload);
     }
-
-    public Map<String, Object> getRawPayload() {
-        return payload;
-    }
 }

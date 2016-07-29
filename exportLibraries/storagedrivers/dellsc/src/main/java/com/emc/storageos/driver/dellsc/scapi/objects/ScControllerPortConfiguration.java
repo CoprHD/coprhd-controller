@@ -28,8 +28,5 @@ public class ScControllerPortConfiguration extends ScObject {
     public int initiatorCount;
     public int mapCount;
     public long preferredControllerIndex;
-    public int slot;
-    public int slotPort;
-    public String speed;
     public int targetCount;
 }

@@ -33,7 +33,6 @@ import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
 
-//import models.datatable.StorageSystemDataTable;
 import models.datatable.OpenStackTenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;

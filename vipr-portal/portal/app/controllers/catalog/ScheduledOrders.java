@@ -6,7 +6,10 @@ package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static controllers.Common.angularRenderArgs;
+import static controllers.Common.backToReferrer;
+import static util.BourneUtil.getCatalogClient;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -23,6 +26,7 @@ import play.mvc.Util;
 import play.mvc.With;
 import util.CatalogServiceUtils;
 import util.ExecutionWindowUtils;
+import util.MessagesUtils;
 import util.OrderUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
@@ -31,6 +35,7 @@ import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.ScheduleCycleType;
 import com.emc.vipr.model.catalog.ScheduleInfo;
+import com.emc.vipr.model.catalog.ScheduledEventUpdateParam;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -44,7 +49,7 @@ import controllers.util.Models;
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN") })
 public class ScheduledOrders extends Controller {
-
+    protected static final String SAVED = "ScheduledOrder.saved";
     protected static final String CANCELLED = "ScheduledOrder.cancel.success";
 
     @Util
@@ -111,16 +116,19 @@ public class ScheduledOrders extends Controller {
         
         ScheduleEventForm form = new ScheduleEventForm(details);
         angularRenderArgs().put("scheduler", form);
-        render(form);
+        render(form, details);
     }
     
     @FlashException(keep = true, referrer = { "edit" })
     public static void save(ScheduleEventForm scheduler) {
         scheduler.validate("scheduler");
-        Logger.info(scheduler.startDate);
         if (Validation.hasErrors()) {
             Common.handleError();
         }
+        
+        scheduler.save();
+        flash.success(MessagesUtils.get(SAVED));
+        backToReferrer();
         list();
     }
     
@@ -138,9 +146,9 @@ public class ScheduledOrders extends Controller {
         public Boolean recurringAllowed;
         
         public ScheduleEventForm(OrderDetails details) {
-            id = details.order.getId().toString();
             recurringAllowed = details.catalogService.isRecurringAllowed();
             if (details.order.getScheduledEventId() != null) {
+                id = details.getScheduledEvent().getId().toString();
                 ScheduleInfo schedulerInfo = details.getScheduledEvent().getScheduleInfo();
                 startDate = schedulerInfo.getStartDate();
                 startTime = String.format("%02d:%02d", schedulerInfo.getHourOfDay(), schedulerInfo.getMinuteOfHour());
@@ -171,6 +179,34 @@ public class ScheduledOrders extends Controller {
         }
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
+        }
+        
+        public void save() {
+            ScheduledEventUpdateParam update = new ScheduledEventUpdateParam();
+            ScheduleInfo scheduleInfo = new ScheduleInfo();
+            scheduleInfo.setCycleFrequency(cycleFrequency);
+            ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
+            scheduleInfo.setCycleType(cycleTypeEnum);
+            List<String> sectionsInCycle = new ArrayList<String>();
+            if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
+                sectionsInCycle.add(String.valueOf(dayOfWeek));
+            } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
+                sectionsInCycle.add(String.valueOf(dayOfMonth));
+            }
+            scheduleInfo.setSectionsInCycle(sectionsInCycle);
+            
+            scheduleInfo.setStartDate(startDate);
+            String pair[] = startTime.split(":");
+            scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
+            scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
+            if (recurrence == -1) {
+                recurrence = rangeOfRecurrence;
+            }
+            scheduleInfo.setReoccurrence(recurrence);
+            scheduleInfo.setDurationLength(3600);
+            update.setScheduleInfo(scheduleInfo);
+            
+            getCatalogClient().orders().updateScheduledEvent(uri(id), update);
         }
     }
 }

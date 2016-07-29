@@ -21,6 +21,7 @@ import static java.lang.Boolean.parseBoolean;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -2245,6 +2246,7 @@ public class BlockService extends TaskResourceService {
         // Validate the snapshot creation request parameters for the volume(s)
         // to be snapped.
         String snapshotName = param.getName();
+        
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
                 snapshotType, snapshotName, getFullCopyManager());
 

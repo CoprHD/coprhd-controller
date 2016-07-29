@@ -158,9 +158,9 @@ public class KeystoneService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public CoprhdOsTenantListRestRep saveOpenstackTenants(OpenStackTenantListParam param) {
+    public CoprhdOsTenantListRestRep createOpenStackTenants(OpenStackTenantListParam param) {
 
-        _log.debug("Keystone Service - saveOpenstackTenants");
+        _log.debug("Keystone Service - createOpenStackTenants");
 
         if (param.getOpenstackTenants() == null || param.getOpenstackTenants().isEmpty()) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");

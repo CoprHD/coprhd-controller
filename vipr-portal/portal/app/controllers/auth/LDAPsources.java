@@ -368,8 +368,9 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
-            param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
-
+            if (this.autoRegCoprHDNImportOSProjects) {
+                param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
+            }
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));
 

@@ -60,14 +60,14 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     private ScheduledExecutorService _dataCollectionExecutorService;
 
-    private ScheduledFuture synchronizationTask;
+    private ScheduledFuture _synchronizationTask;
 
     public void setInternalTenantSvcClient(InternalTenantSvcClient internalTenantSvcClient) {
         this._internalTenantSvcClient = internalTenantSvcClient;
     }
 
     public ScheduledFuture getSynchronizationTask() {
-        return synchronizationTask;
+        return _synchronizationTask;
     }
 
     public void setKeystoneUtilsService(KeystoneUtils keystoneUtilsService) {
@@ -80,7 +80,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
         _dataCollectionExecutorService = Executors.newScheduledThreadPool(NUMBER_OF_THREADS);
 
         // Schedule task at fixed interval.
-        synchronizationTask = _dataCollectionExecutorService.scheduleAtFixedRate(
+        _synchronizationTask = _dataCollectionExecutorService.scheduleAtFixedRate(
                 new SynchronizationScheduler(),
                 interval, interval, TimeUnit.SECONDS);
     }
@@ -91,7 +91,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
         try {
             _dataCollectionExecutorService.shutdown();
             _dataCollectionExecutorService.awaitTermination(MAX_TERMINATION_TIME, TimeUnit.SECONDS);
-            synchronizationTask = null;
+            _synchronizationTask = null;
         } catch (Exception e) {
             _log.error("TimeOut occurred after waiting Client Threads to finish");
         }
@@ -104,9 +104,9 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     public void rescheduleTask(int newInterval) {
 
-        if (synchronizationTask != null && newInterval >= MIN_INTERVAL_DELAY) {
-            synchronizationTask.cancel(false);
-            synchronizationTask = _dataCollectionExecutorService
+        if (_synchronizationTask != null && newInterval >= MIN_INTERVAL_DELAY) {
+            _synchronizationTask.cancel(false);
+            _synchronizationTask = _dataCollectionExecutorService
                     .scheduleAtFixedRate(new SynchronizationScheduler(), newInterval, newInterval, TimeUnit.SECONDS);
             _log.debug("Synchronization task has been rescheduled with {}s interval.", newInterval);
         } else {

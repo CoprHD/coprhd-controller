@@ -741,6 +741,52 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     }
 
     @Override
+    public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> storageHosts) {
+        LOG.info("Discovering storage host components");
+        DellSCDriverTask task = new DellSCDriverTask("discoverStorageHostComponents");
+
+        try (StorageCenterAPI api = getSavedConnection(storageSystem.getNativeId())) {
+
+            ScServer[] servers = api.getServerDefinitions(storageSystem.getNativeId());
+            for (ScServer server : servers) {
+
+                StorageHostComponent host = new StorageHostComponent();
+                host.setNativeId(server.instanceId);
+                LOG.info("Discovered storage host {}, storageSystem {}",
+                        host.getNativeId(), storageSystem.getNativeId());
+
+                host.setAccessStatus(AccessStatus.READ_WRITE);
+                host.setDeviceLabel(server.name);
+                host.setDisplayName(host.getDeviceLabel());
+                host.setHostName(host.getDeviceLabel());
+                host.setIsSupportedVersion(true);
+
+                // Get the HBAs for this server
+                Set<Initiator> initiators = new HashSet<>();
+                ScServerHba[] hbas = api.getServerHbas(storageSystem.getNativeId(), server.instanceId);
+
+                for (ScServerHba hba : hbas) {
+                    // TODO(smcginnis): Determine what all should be set
+                    Initiator init = new Initiator();
+                    init.setDeviceLabel(hba.name);
+                    init.setDisplayName(hba.name);
+                    init.setNativeId(hba.instanceId);
+                    initiators.add(init);
+                }
+
+                host.setInitiators(initiators);
+                storageHosts.add(host);
+            }
+            task.setStatus(DriverTask.TaskStatus.READY);
+        } catch (Exception e) {
+            String failureMessage = String.format("Error getting server definition information: %s", e);
+            task.setFailed(failureMessage);
+            LOG.warn(failureMessage);
+        }
+        return task;
+    }
+
+    @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         DriverTask task = new DellSCDriverTask("discover");
 

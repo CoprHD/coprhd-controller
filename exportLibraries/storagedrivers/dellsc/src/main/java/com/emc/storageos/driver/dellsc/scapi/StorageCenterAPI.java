@@ -50,7 +50,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
     private StorageCenterAPI(String host, int port, String user, String password)
             throws StorageCenterAPIException {
-        LOG.debug("{} {} {}", host, port, user);
+        LOG.info("{} {} {}", host, port, user);
         restClient = new RestClient(host, port, user, password);
         gson = new Gson();
 
@@ -149,18 +149,15 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
-     * Creates a volume on the Storage Center.
+     * Create volume sc volume.
      *
      * @param ssn The Storage Center SN on which to create the volume.
-     * @param name The volume name.
-     * @param storageType The storage type to use.
-     * @param sizeInGB The size in GB
-     * @return The Storage Center volume.
-     * @throws StorageCenterAPIException
+     * @param name the name
+     * @param sizeInGB the size in gb
+     * @return the sc volume
      */
-    public ScVolume createVolume(String ssn, String name, String storageType, int sizeInGB) throws StorageCenterAPIException {
-        LOG.debug("Creating {}GB volume: '{}'", sizeInGB, name);
-        String errorMessage = "";
+    public ScVolume createVolume(long ssn, String name, int sizeInGB) {
+        LOG.debug("Creating volume: {} {}", name, sizeInGB);
 
         Parameters params = new Parameters();
         params.add("Name", name);
@@ -168,28 +165,17 @@ public class StorageCenterAPI implements AutoCloseable {
         params.add("Size", String.format("%d GB", sizeInGB));
         params.add("StorageCenter", ssn);
 
-        ScStorageType[] storageTypes = getStorageTypes(ssn);
-        for (ScStorageType storType : storageTypes) {
-            if (storType.name.equals(storageType)) {
-                params.add("StorageType", storType.instanceId);
-                break;
-            }
-        }
-
         try {
             RestResult result = restClient.post("StorageCenter/ScVolume", params.toJson());
             if (checkResults(result)) {
                 return gson.fromJson(result.getResult(), ScVolume.class);
             }
         } catch (Exception e) {
-            errorMessage = String.format("Error creating volume: %s", e);
-            LOG.warn(errorMessage);
+            LOG.warn("Error creating volume: {}", e);
         }
 
-        if (errorMessage.length() == 0) {
-            errorMessage = String.format("Unable to create volume %s on SC %s", name, ssn);
-        }
-        throw new StorageCenterAPIException(errorMessage);
+        LOG.warn("Unable to create volume {} on SC {}", name, ssn);
+        return null;
     }
 
     /**
@@ -224,6 +210,7 @@ public class StorageCenterAPI implements AutoCloseable {
         ScVolume vol = getVolume(instanceId);
 
         if (vol == null) {
+            // TODO (smcginnis): Search for volume by name?
             LOG.warn("Volume delete request for {}, volume not found. Assuming deleted.", instanceId);
             return;
         }
@@ -438,35 +425,5 @@ public class StorageCenterAPI implements AutoCloseable {
         }
 
         return new ScControllerPortIscsiConfiguration();
-    }
-
-    /**
-     * Expand a volume to a larger size.
-     * 
-     * @param instanceId The volume instance ID.
-     * @param newSize The new size.
-     * @return The ScVolume object.
-     * @throws StorageCenterAPIException
-     */
-    public ScVolume expandVolume(String instanceId, int newSize) throws StorageCenterAPIException {
-        LOG.debug("Expanding volume '{}' to {}GB", instanceId, newSize);
-
-        Parameters params = new Parameters();
-        params.add("NewSize", String.format("%d GB", newSize));
-
-        try {
-            RestResult result = restClient.post(
-                    String.format("StorageCenter/ScVolume/%s/ExpandToSize", instanceId),
-                    params.toJson());
-            if (checkResults(result)) {
-                return gson.fromJson(result.getResult(), ScVolume.class);
-            }
-
-            throw new StorageCenterAPIException(
-                    String.format("Failed to expande volume: %s", result.getErrorMsg()));
-        } catch (Exception e) {
-            LOG.warn(String.format("Error expanding volume: %s", e));
-            throw new StorageCenterAPIException("Error expanding volume", e);
-        }
     }
 }

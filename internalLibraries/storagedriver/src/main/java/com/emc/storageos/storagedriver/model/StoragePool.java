@@ -117,8 +117,18 @@ public class StoragePool extends StorageObject {
     private Long minimumThickVolumeSize;
 
     private SupportedResourceType supportedResourceType;
+    
+    private Boolean dedupCapable;
 
-    public static enum SupportedResourceType {
+	public Boolean isDedupCapable() {
+		return dedupCapable;
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
+	}
+
+	public static enum SupportedResourceType {
         THICK_ONLY,
         THIN_ONLY,
         THIN_AND_THICK

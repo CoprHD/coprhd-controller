@@ -280,6 +280,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         List<URI> volUris = Arrays.asList(volume);
         BlockSnapshotRestoreCompleter completer = new BlockSnapshotRestoreCompleter(snapshot, taskId);
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME, true, taskId);
@@ -345,6 +348,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 volURIs, migrationURIs, changeVpoolVolsMap, cgIds, taskId);
 
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volURIs, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     CHANGE_VPOOL_WF_NAME, true, taskId, completer);
@@ -408,6 +414,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 VolumeDescriptor.getVolumeURIs(volumeDescriptors), migrationURIs, taskId);
 
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(changeVArrayVolURIList, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             String waitFor = null;
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -660,6 +669,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
         s_logger.info("Creating steps for restore from full copy.");
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(fullCopyURIs, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESTORE_FROM_FULLCOPY_WF_NAME, true, taskId);
@@ -743,6 +755,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
 
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
                     CREATE_FULL_COPIES_WF_NAME, false, taskId, completer);

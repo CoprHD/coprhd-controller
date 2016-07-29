@@ -350,7 +350,53 @@ public class ExportMaskUtils {
         }
         return false;
     }
+    
+    public static boolean hasExportMaskForStorageAndVArray(DbClient dbClient,
+            ExportGroup exportGroup,
+            URI storageURI) {
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                storageURI, exportGroup.getVirtualArray(), dbClient);
+        StringSet maskUriSet = exportGroup.getExportMasks();
+        if (maskUriSet != null) {
+            for (String maskUriString : maskUriSet) {
+                ExportMask mask = dbClient.queryObject(ExportMask.class,
+                        URI.create(maskUriString));
+                URI maskStorageURI = mask.getStorageDevice();
+                if (maskStorageURI.equals(storageURI)) {
+                    for (String storagePort : mask.getStoragePorts()) {
+                        if(storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort))
+                            return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
+    public static Set<String> getStoragePortUrisAssociatedWithVarrayAndStorageArray(URI storageURI, URI varray, DbClient dbClient) {
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varray.toString()),
+                storagePortURIs);
+        //Get all the storage ports that are in the varray belonging to the storage array
+        Set<URI> storagePortUriSet = new HashSet<>();
+        for (URI uri : storagePortURIs) {
+            storagePortUriSet.add(uri);
+        }
+        
+        Set<StoragePort> storagePortsAssociatedWithVArrayAndStorageArray = new HashSet<>();
+        for (StoragePort storagePort : dbClient.queryObject(StoragePort.class, storagePortUriSet)) {
+            if(storagePort.getStorageDevice().equals(storageURI))
+                storagePortsAssociatedWithVArrayAndStorageArray.add(storagePort);
+        }
+        //String set of all the storage port URI's
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = new HashSet<>();
+        for (StoragePort storagePort : storagePortsAssociatedWithVArrayAndStorageArray) {
+            storagePortURIsAssociatedWithVArrayAndStorageArray.add(storagePort.getId().toString());
+        }
+        return storagePortURIsAssociatedWithVArrayAndStorageArray;
+    }
+
+    
     /**
      * Generate a name for the export mask based on the initiators sent in.
      * If there are no initiators, just use the generated export group name.

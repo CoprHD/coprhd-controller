@@ -233,7 +233,7 @@ public class BlockStorageUtils {
      *
      * @param volumeIds of the volumes to validate dependencies
      */
-    public static void verifyVolumeDependencies(List<URI> volumeIds) {
+    public static void verifyVolumeDependencies(List<URI> volumeIds, URI projectId) {
         List<URI> allBlockResources = Lists.newArrayList(volumeIds);
         for (URI volumeId : volumeIds) {
             BlockObjectRestRep volume = getVolume(volumeId);
@@ -241,7 +241,7 @@ public class BlockStorageUtils {
             allBlockResources.addAll(getRpTargetVolumes(volume));
         }
 
-        execute(new VerifyVolumeDependencies(allBlockResources));
+        execute(new VerifyVolumeDependencies(allBlockResources, projectId));
     }
 
     /**

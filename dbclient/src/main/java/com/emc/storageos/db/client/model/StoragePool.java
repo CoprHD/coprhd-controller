@@ -387,7 +387,11 @@ public class StoragePool extends VirtualArrayTaggedResource {
 	}
 
 	public void setDedupCapable(Boolean dedupCapable) {
-		this.dedupCapable = dedupCapable;
+		if (null == dedupCapable) {
+			this.dedupCapable = false;
+		} else {
+			this.dedupCapable = dedupCapable;
+		}
 		setChanged("dedupCapable");
 	}
 

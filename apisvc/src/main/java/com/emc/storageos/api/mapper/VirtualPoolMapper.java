@@ -68,6 +68,7 @@ public class VirtualPoolMapper {
         to.setPathsPerInitiator(from.getPathsPerInitiator());
         to.setHostIOLimitBandwidth(from.getHostIOLimitBandwidth());
         to.setHostIOLimitIOPs(from.getHostIOLimitIOPs());
+        to.setDedupCapable(from.getDedupCapable());
 
         if (from.getArrayInfo() != null) {
             StringSetMap arrayInfo = from.getArrayInfo();

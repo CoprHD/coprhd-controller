@@ -533,6 +533,14 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (vpool.getMaxNativeContinuousCopies() != null) {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
+        
+        // validate dedup vpool ******** to be modified 
+        if (null != param.getDedupCapable()) {
+            if (vpool.getDedupCapable() != param.getDedupCapable()) {
+                ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
+            }
+            vpool.setDedupCapable(param.getDedupCapable());
+        }
 
         _dbClient.updateObject(vpool);
 
@@ -1745,6 +1753,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set limit for host i/o
         if (param.getHostIOLimitIOPs() != null) {
             vpool.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        }
+        
+        // set dedup capable or not
+        if (null != param.getDedupCapable()) {
+        	vpool.setDedupCapable(param.getDedupCapable());
         }
 
         return vpool;

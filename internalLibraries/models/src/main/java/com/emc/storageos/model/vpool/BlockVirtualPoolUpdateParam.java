@@ -35,6 +35,9 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
 
+    // De-duplication supported vpool
+    private Boolean dedupCapable;
+
     public BlockVirtualPoolUpdateParam() {
     }
 
@@ -285,4 +288,13 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     public boolean isHostIOLimitIOPsSet() {
         return hostIOLimitIOPs != null && hostIOLimitIOPs > 0;
     }
+    
+    @XmlElement(name = "dedup_capable", required = false)
+	public Boolean getDedupCapable() {
+		return dedupCapable;
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
+	}
 }

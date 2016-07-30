@@ -83,7 +83,8 @@ public abstract class AttributeMatcher {
         min_datacenters,
         quota,
         source_storage_system,
-        remote_copy_mode
+        remote_copy_mode,
+        dedup
 
     }
 

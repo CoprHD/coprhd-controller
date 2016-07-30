@@ -353,10 +353,13 @@ public class HP3PARExpUnexpHelper {
                 HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(),
                         driverRegistry);
                 // TBD: Efficiency; use query method
-                VirtualLunsList vlunRes = hp3parApi.getVLunsOfVolume(volume.getWwn());
-
+                //VirtualLunsList vlunRes = hp3parApi.getVLunsOfVolume(volume.getWwn());
+                VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
+                
                 for (Initiator init : initiators) {
 
+                	boolean bHostSeesEncountered = false;
+                	
                 	if(initiatorToHostMap.containsKey(init.getPort())){
                 		host = initiatorToHostMap.get(init.getPort());
                 	}
@@ -384,8 +387,7 @@ public class HP3PARExpUnexpHelper {
                         Integer lun = -1;
                         Position pos = null;
                         String portId = init.getPort();
-                        portId = portId.replace(":", "");
-                        boolean bHostSeesEncountered = false;
+                        portId = portId.replace(":", "");                        
                         
                         for (VirtualLun vLun:vlunRes.getMembers()) {
                         	if(bHostSeesEncountered && (vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()) ){

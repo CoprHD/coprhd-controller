@@ -534,9 +534,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
         
-        // validate dedup vpool ******** to be modified 
+        // non-dedep vpool can not be made dedup if it has volumes created
+        // dedup vpool can be made non-dedup because dedup storage pools will always remain
         if (null != param.getDedupCapable()) {
-            if (vpool.getDedupCapable() != param.getDedupCapable()) {
+            if (vpool.getDedupCapable() != null && vpool.getDedupCapable() == false &&
+            		param.getDedupCapable() == true) {
                 ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
             }
             vpool.setDedupCapable(param.getDedupCapable());

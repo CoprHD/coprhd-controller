@@ -400,7 +400,11 @@ public class DrUtil {
             return true;
         }
     }
-    
+
+    public boolean isAllSyssvcUp() {
+        return isAllSyssvcUp(getLocalSite().getUuid());
+    }
+
     /**
      * Check if all syssvc is up and running for specified site
      * @param siteId

@@ -7099,66 +7099,29 @@ vmaxblock_non_cg_ingest_tests(){
     VMAX_INGEST_CG=vmaxingest${VMAX_RANDOM}
     VMAX_INGEST_VOL1=vmaxingest1${VMAX_RANDOM}
     VMAX_INGEST_VOL2=vmaxingest2${VMAX_RANDOM}
-    VMAX_INGEST_SNAP1=vmaxingestsnap1${VMAX_RANDOM}
-    VMAX_INGEST_SNAP2=vmaxingestsnap2${VMAX_RANDOM}
-
 
     run volume create ${VMAX_INGEST_VOL1} ${PROJECT} ${NH} ${COS_VMAXBLOCK_FC} 1GB
-
     run volume create ${VMAX_INGEST_VOL2} ${PROJECT} ${NH} ${COS_VMAXBLOCK_FC} 1GB
 
-
-    # Create VMAX snapshots
-    secho "Create snapshots"
-    run_noundo blocksnapshot create ${PROJECT}/${VMAX_INGEST_VOL1} ${VMAX_INGEST_SNAP1}
-    VMAX_INGEST_SNAP1_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
-	run_noundo snapshotsession delete ${PROJECT}/${VMAX_INGEST_VOL1}/${VMAX_INGEST_SNAP1} --vipronly
-    run_noundo blocksnapshot delete ${PROJECT}/${VMAX_INGEST_VOL1}/${VMAX_INGEST_SNAP1} --vipronly
-
-    run_noundo blocksnapshot create ${PROJECT}/${VMAX_INGEST_VOL2} ${VMAX_INGEST_SNAP2}
-    VMAX_INGEST_SNAP2_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
-	run_noundo snapshotsession delete ${PROJECT}/${VMAX_INGEST_VOL2}/${VMAX_INGEST_SNAP2} --vipronly
-    run_noundo blocksnapshot delete ${PROJECT}/${VMAX_INGEST_VOL2}/${VMAX_INGEST_SNAP2} --vipronly
-
-    # Delete the volume and CG
+    # Delete the volume
     run volume delete ${PROJECT}/${VMAX_INGEST_VOL1} --vipronly
-    
     run volume delete ${PROJECT}/${VMAX_INGEST_VOL2} --vipronly
 
     secho "VMAX ingest discovery"
 
     # Discover unmanaged volumes on the array
     run storagedevice discover_namespace $VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
-    
-    ##Make sure we fail when we ingest the volumes because snaps are not ingested yet
-    fail unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_VOL1}"
-    fail unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_VOL2}"
 
-    run unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_SNAP1_ARRAY_LABEL}"
-    run unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_SNAP2_ARRAY_LABEL}"
+    run unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_VOL1}"
+    run unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_VOL2}"
 
-    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    # Verify the volumes got created; fail script if this fails.
     run volume show ${PROJECT}/${VMAX_INGEST_VOL1}
-    run blocksnapshot show ${PROJECT}/${VMAX_INGEST_VOL1}/${VMAX_INGEST_SNAP1_ARRAY_LABEL}
-
     run volume show ${PROJECT}/${VMAX_INGEST_VOL2}
-    run blocksnapshot show ${PROJECT}/${VMAX_INGEST_VOL2}/${VMAX_INGEST_SNAP2_ARRAY_LABEL}
-
-    ## Run block tests for the volumes and snaps
     
-    #blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
-
-
-    # Delete the volumes, snaps and CG again
-    run_noundo blocksnapshot delete ${PROJECT}/${VMAX_INGEST_VOL1}/${VMAX_INGEST_SNAP1_ARRAY_LABEL} 
-    run_noundo blocksnapshot delete ${PROJECT}/${VMAX_INGEST_VOL2}/${VMAX_INGEST_SNAP2_ARRAY_LABEL} 
-
     run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL1} 
-
     run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL2} 
 
-    # Discover unmanaged volumes on the array again
-    #run storagedevice discover_namespace $VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
 	secho "VMAX Ingest Block Tests END"
 }
 

@@ -1521,12 +1521,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
 	@Name("dedupCapable")
-    public Boolean getDedupCapable() {
-		if (null == dedupCapable) {
-			return false;
-		} else {
-			return dedupCapable;	
-		}
+	public Boolean getDedupCapable() {
+		return dedupCapable;	
 	}
 
 	public void setDedupCapable(Boolean dedupCapable) {

@@ -138,7 +138,11 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
         }
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _long_term_retention);
         putAttributeInMap(Attributes.min_datacenters.toString(), _minDataCenters);
-        putAttributeInMap(Attributes.dedup.toString(), _dedupCapable);
+        
+        if (_dedupCapable != null &&  _dedupCapable != false) {
+        	putAttributeInMap(Attributes.dedup.toString(), _dedupCapable);
+        }
+
         return _attributeMap;
     }
 

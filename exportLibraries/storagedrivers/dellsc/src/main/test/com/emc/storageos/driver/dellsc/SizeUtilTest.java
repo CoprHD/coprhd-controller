@@ -59,4 +59,22 @@ public class SizeUtilTest {
         long result = SizeUtil.sizeStrToBytes("1.073741824E9");
         Assert.assertTrue(result == 1073741824L);
     }
+
+    @Test
+    public void testSpeedStrToGigabits() {
+        long result = SizeUtil.speedStrToGigabits("1 Gbps");
+        Assert.assertTrue(result == 1);
+    }
+
+    @Test
+    public void testSpeedStrToGigabitsUnknown() {
+        long result = SizeUtil.speedStrToGigabits("Unknown");
+        Assert.assertTrue(result == 0);
+    }
+
+    @Test
+    public void testSpeedStrToGigabitsFromMegabits() {
+        long result = SizeUtil.speedStrToGigabits("1024 Mbps");
+        Assert.assertTrue(result == 1);
+    }
 }

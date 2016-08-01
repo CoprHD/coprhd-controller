@@ -31,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUti
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.google.common.collect.ArrayListMultimap;
 
@@ -59,6 +60,12 @@ public class XtremIOMetricsCollector {
     public void collectMetrics(StorageSystem system, DbClient dbClient) throws Exception {
         log.info("Collecting statistics for XtremIO system {}", system.getNativeGuid());
         XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(dbClient, system, xtremioRestClientFactory);
+
+        // Performance API is available from v2.0 onwards
+        if (!xtremIOClient.isVersion2()) {
+            throw XtremIOApiException.exceptions.meteringNotSupportedFor3xVersions();
+        }
+
         String xtremIOClusterName = xtremIOClient.getClusterDetails(system.getSerialNumber()).getName();
 
         // TODO Full support for Metering collection.

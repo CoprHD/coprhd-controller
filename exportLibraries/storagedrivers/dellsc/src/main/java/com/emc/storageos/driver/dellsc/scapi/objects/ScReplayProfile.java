@@ -17,19 +17,16 @@
 package com.emc.storageos.driver.dellsc.scapi.objects;
 
 /**
- * Array controller port config settings.
+ * Replay profile object.
  */
-public class ScControllerPortConfiguration extends ScObject {
-    public int bothCount;
-    public long controllerPortIndex;
-    public String description;
-    public String deviceName;
-    public long homeControllerIndex;
-    public int initiatorCount;
-    public int mapCount;
-    public long preferredControllerIndex;
-    public int slot;
-    public int slotPort;
-    public String speed;
-    public int targetCount;
+public class ScReplayProfile extends ScObject {
+    public boolean enforceReplayCreationTimeout;
+    public boolean expireIncompleteReplaySets;
+    public boolean moreVolumesAllowed;
+    public String name;
+    public String notes;
+    public long replayCreationTimeout;
+    public String type;
+    public boolean userCreated;
+    public int volumeCount;
 }

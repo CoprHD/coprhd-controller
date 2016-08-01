@@ -258,6 +258,7 @@ export BOURNE_API_SYNC_TIMEOUT=700
 NH=nh
 NH2=nh2
 NH3=nh3
+NH4=nh4
 FC_ZONE_A=fctz_a
 FC_ZONE_B=fctz_b
 IP_ZONE=iptz
@@ -383,6 +384,7 @@ COS_VMAXBLOCK_SRDF_SOURCE=vpool_srdf_source
 COS_VMAXBLOCK_SRDF_TARGET=vpool_srdf_target
 COS_VMAXBLOCK_V3_SRDF_SOURCE=vpool_v3_srdf_source
 COS_VMAXBLOCK_V3_SRDF_TARGET=vpool_v3_srdf_target
+COS_VMAXBLOCK_V3_AFA=cosvmaxb_v3_afa
 COS_RP=cos_rp
 COS_RP_BASE=cos_rp_base
 COS_HDS=coshds
@@ -2074,7 +2076,7 @@ vmax_cos_setup()
 	                     --system_type vmax \
                              --provisionType 'Thin' \
                              --expandable true \
-                         --neighborhoods $NH
+                             --neighborhoods $NH
 
     run cos create block $COS_VMAXBLOCK_THICK 				\
 	--description 'VMAX-thick-storage' true      \
@@ -2083,6 +2085,16 @@ vmax_cos_setup()
                              --max_snapshots 10 \
 	                     --system_type vmax \
                              --provisionType 'Thick' \
+			 --neighborhoods $NH
+
+    run cos create block $COS_VMAXBLOCK_V3_AFA 				\
+	--description 'VMAX-AFA-Compression-enabled' true      \
+                             --protocols FC iSCSI	    \
+                             --numpaths 1  \
+                             --max_snapshots 10 \
+	                     --system_type vmax \
+                             --provisionType 'Thick' \
+			     --compressionEnabled true \
 			 --neighborhoods $NH
 }
 
@@ -5945,6 +5957,7 @@ vmaxblock_setup_once()
     # If this is using the simulator, the vnxblock already took care of the SMIS provider
     if [ $QUICK -eq 0 ]; then
        run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+       run smisprovider create $VMAX_SMIS_V3_AFA_DEV $VMAX_SMIS_V3_AFA_IP $VMAX_SMIS_V3_AFA_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL 
     fi
 
     run storagedevice discover_all --ignore_error
@@ -5955,6 +5968,7 @@ vmaxblock_setup_once()
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX_AFA_NATIVEGUID --nhadd $NH --type block
     
     if [ $QUICK -eq 0 ]; then
         secho "VMAX Block storageports update"
@@ -5969,6 +5983,10 @@ vmaxblock_setup_once()
            do
               run storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_B --group ${portb}
            done
+	   for port in ${VMAX_AFA_PORTS}
+           do
+              run storageport update $VMAX_AFA_NATIVEGUID FC --tzone $FCTZ_A --group ${port}
+           done
        fi
        run storageport update $VMAX_NATIVEGUID IP --tzone nh/iptz
     fi
@@ -5977,6 +5995,7 @@ vmaxblock_setup_once()
     run cos update block $COS_VMAXBLOCK_FC --storage $VMAX_NATIVEGUID
     run cos update block $COS_VMAXBLOCK_ISCSI --storage $VMAX_NATIVEGUID
     run cos update block $COS_VMAXBLOCK_THIN --storage $VMAX_NATIVEGUID
+    run cos update block $COS_VMAXBLOCK_V3_AFA --storage $VMAX_AFA_NATIVEGUID
 }
 
 vmaxblock_setup()

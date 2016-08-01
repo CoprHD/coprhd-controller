@@ -1419,7 +1419,7 @@ class Bourne:
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect):
+		   auto_cross_connect, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1445,6 +1445,8 @@ class Bourne:
             parms['paths_per_initiator'] = pathsperinitiator
         if (systemtype):
             parms['system_type'] = systemtype
+	if (compressionEnabled):
+	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1578,7 +1580,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   system_type, srdf):
+                   system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1594,6 +1596,9 @@ class Bourne:
 
         if (numpaths):
             parms['num_paths'] = numpaths
+
+	if (compressionEnabled):
+   	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):

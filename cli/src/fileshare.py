@@ -3436,13 +3436,13 @@ def fileshare_mount(args):
 
 # list command parser
 def mountlist_parser(subcommand_parsers, common_parser):
-    list_parser = subcommand_parsers.add_parser(
+    mountlist_parser = subcommand_parsers.add_parser(
         'mountlist',
         description='ViPR mount List CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
         help='Lists mounts for the given filesystem')
-    mandatory_args = list_parser.add_argument_group('mandatory arguments')
+    mandatory_args = mountlist_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
         '-fs', '-filesystem',
         help='Name of the Filesystem',
@@ -3503,7 +3503,7 @@ def unmount_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Unmounts an export for the given filesystem')
-    mandatory_args = mount_parser.add_argument_group('mandatory arguments')
+    mandatory_args = unmount_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
         '-hn', '-hostname',
         help='name of the Host on which the export is mounted',

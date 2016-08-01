@@ -2178,7 +2178,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $scope.guide_varray = "";
                 jQuery.each(varrayCookie, function() {
                     if ($scope.guide_varray){$scope.guide_varray += ","}
-                    $scope.guide_varray += this;
+                    $scope.guide_varray += this.name;
                 });
             }
             else if ($scope.completedSteps > 5){

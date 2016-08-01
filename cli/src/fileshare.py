@@ -18,6 +18,7 @@ from common import SOSError
 from threading import Timer
 import schedulepolicy
 import virtualpool
+import host
 
 
 class Fileshare(object):
@@ -530,7 +531,7 @@ class Fileshare(object):
             request = {'delete' : exportRulerequest}
         else:
             request = {'modify' : exportRulerequest}
-	
+    
         body = json.dumps(request)
         params = ''
         if(subDir):
@@ -818,39 +819,6 @@ class Fileshare(object):
                 return fileshare['id']
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "Filesystem " + label + ": not found")
-
-    # Mounts the fileshare to the mount_dir
-    def mount(self, name, mount_dir):
-        '''
-        First we need to export the fileshare to the current machine
-        Then we need to find the mount path
-        then we need to mount the fileshare to the specified directory
-        '''
-
-        #share = self.show(name)
-        subdir = None
-        alldir = None
-        fsExportInfo = self.get_exports(name, subdir, alldir)
-        if(fsExportInfo and "filesystem_export" in fsExportInfo and
-           len(fsExportInfo["filesystem_export"]) > 0):
-            fsExport = fsExportInfo["filesystem_export"][0]
-
-            mount_point = fsExport["mount_point"]
-            mount_cmd = 'mount ' + mount_point + " " + mount_dir
-
-            (o, h) = commands.getstatusoutput(mount_cmd)
-            if(o == 0):
-                return (
-                    "Filesystem: " +
-                    name + " mounted to " +
-                    mount_dir + " successfully")
-            raise SOSError(SOSError.CMD_LINE_ERR,
-                           "Unable to mount " + name +
-                           " to " + mount_dir + "\nRoot cause: " + h)
-        else:
-            raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "error: Filesystem: " + name +
-                           " is not exported. Export it first.")
 
     # Timeout handler for synchronous operations
     def timeout_handler(self):
@@ -1221,13 +1189,46 @@ class Fileshare(object):
         o = common.json_decode(s)
         return    
 
-    def unmount(self, ouri, hosturi, path, sync, synctimeout):
+    def mount(self, ouri, hosturi, subdirectory, securitystyle, path, fstype, sync, synctimeout):
+        parms = {
+        }
+        if(path):
+            parms["path"] = path
+        if(securitystyle):
+            parms["security"] = securitystyle
+        if subdirectory:
+            parms['sub_directory'] = subdirectory
+        if hosturi:
+            parms['host'] = hosturi
+        if fstype:
+            parms['fs_type'] = fstype
+            
+        body = json.dumps(parms)
+
+        # REST api call
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_MOUNT.format(ouri), body)
+
+        o = common.json_decode(s)
+
+        if(sync):
+            return (
+                self.block_until_complete(
+                    o['resource']['id'],
+                    o["id"], synctimeout)
+            )
+        else:
+            return o
+        
+    def unmount(self, ouri, hosturi, mountpath, sync, synctimeout):
         body = None    
         params = dict()
         if hosturi:
-            params['hosturi'] = hosturi
-        if(path):
-            params["path"] = path
+            params['host'] = hosturi
+        if(mountpath):
+            params["mount_path"] = mountpath
      
         body = json.dumps(params)
 
@@ -1258,7 +1259,7 @@ class Fileshare(object):
             "GET",
             Fileshare.URI_MOUNT.format(ouri), None)
         o = common.json_decode(s)
-        return o['mount_info_list']
+        return o['mount_info']
     
     def storageResource_query(self,
                               fileshareName,
@@ -1610,7 +1611,7 @@ def cifs_acl_parser(subcommand_parsers, common_parser):
     cifs_acl_parser.add_argument('-group', '-grp',
                                     dest='group',
                                     metavar='<group>',
-                                    help='Group')				    
+                                    help='Group')                    
     
     cifs_acl_parser.set_defaults(func=fileshare_acl)
 
@@ -1625,7 +1626,7 @@ def fileshare_acl(args):
         if(not args.user and not args.permission):
             raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
         if(args.user and args.group):
-            raise SOSError(SOSError.CMD_LINE_ERR, "User and Group cannot be specified together")	
+            raise SOSError(SOSError.CMD_LINE_ERR, "User and Group cannot be specified together")    
         
         
         res = obj.cifs_acl(args.tenant, args.project, 
@@ -3342,11 +3343,16 @@ def mount_parser(subcommand_parsers, common_parser):
 
     mandatory_args = mount_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
-        '-hn', '-hostname',
+        '-hst', '-hstname',
         help='name of the Host on which the export is supposed to be mounted',
         metavar='<hostname>',
         dest='hostname',
         required=True)
+    mandatory_args.add_argument('-fs', '-filesystem',
+                                help='Name of filesystem',
+                                metavar='<filesystem>',
+                                dest='filesystem',
+                                required=True)
     mandatory_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
@@ -3363,10 +3369,10 @@ def mount_parser(subcommand_parsers, common_parser):
         dest='fstype',
         required=True)
     mandatory_args.add_argument(
-        '-p', '-path',
+        '-mp', '-mountpath',
         help='the mount fs path',
-        metavar='<path>',
-        dest='path',
+        metavar='<mountpath>',
+        dest='mountpath',
         required=True)
     mandatory_args.add_argument(
         '-sec', '-security',
@@ -3374,12 +3380,12 @@ def mount_parser(subcommand_parsers, common_parser):
         metavar='<security>',
         dest='security',
         required=True)
-    mandatory_args.add_argument(
+    mount_parser.add_argument(
         '-dir', '-subdirectory',
         help='the mount subdirectory',
         metavar='<subdirectory>',
-        dest='subdirectory',
-        required=True)
+        dest='subdirectory'
+        )
     mount_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Synchronous mount create',
@@ -3416,7 +3422,7 @@ def fileshare_mount(args):
         except SOSError as e:
             raise e
 
-        obj.mount(resourceUri, host_uri, args.subdirectory, args.securitystyle, args.path, args.fstype, args.sync, args.synctimeout)
+        obj.mount(resourceUri, host_uri, args.subdirectory, args.security, args.mountpath, args.fstype, args.sync, args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -3474,16 +3480,8 @@ def mountNFS_list(args):
             args.tenant)
 
         mount_obj = obj.mount_list(resourceUri)
-        records = []
-        if(mount_obj is not None):
-            records.append(mount_obj)
-
-        if(len(records) > 0):
-            if(args.verbose is True):
-                return common.format_json_object(records)
-            else:
-                from common import TableGenerator
-                TableGenerator(records, ['host', 'filesystem', 'mount_path', 'sub_directory', 'security_type']).printTable()    
+        if(mount_obj):
+            return common.format_json_object(mount_obj) 
         else:
             return
 
@@ -3505,11 +3503,16 @@ def unmount_parser(subcommand_parsers, common_parser):
         help='Unmounts an export for the given filesystem')
     mandatory_args = unmount_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
-        '-hn', '-hostname',
+        '-hst', '-hstname',
         help='name of the Host on which the export is mounted',
         metavar='<hostname>',
         dest='hostname',
         required=True)
+    mandatory_args.add_argument('-fs', '-filesystem',
+                                help='Name of filesystem',
+                                metavar='<filesystem>',
+                                dest='filesystem',
+                                required=True)
     mandatory_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
@@ -3520,10 +3523,10 @@ def unmount_parser(subcommand_parsers, common_parser):
                                dest='tenant',
                                help='Name of tenant')
     mandatory_args.add_argument(
-        '-p', '-path',
+        '-mp', '-mountpath',
         help='the mount fs path',
-        metavar='<path>',
-        dest='path',
+        metavar='<mountpath>',
+        dest='mountpath',
         required=True)
     unmount_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
@@ -3561,7 +3564,7 @@ def mountNFS_unmount(args):
         except SOSError as e:
             raise e
 
-        obj.unmount(resourceUri, host_uri, args.path, args.sync, args.synctimeout)
+        obj.unmount(resourceUri, host_uri, args.mountpath, args.sync, args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):

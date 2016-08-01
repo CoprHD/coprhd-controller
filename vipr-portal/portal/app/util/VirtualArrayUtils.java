@@ -139,14 +139,6 @@ public class VirtualArrayUtils {
         return getViprClient().varrays().create(virtualArray);
     }
 
-    public static VirtualArrayRestRep create(String name, boolean autoSanZoning, boolean noNetwork) {
-        VirtualArrayCreateParam virtualArray = new VirtualArrayCreateParam();
-        virtualArray.setLabel(name);
-        virtualArray.getBlockSettings().setAutoSanZoning(autoSanZoning);
-        virtualArray.getBlockSettings().setNoNetwork(noNetwork);
-        return getViprClient().varrays().create(virtualArray);
-    }
-
     public static VirtualArrayRestRep update(String id, String name, boolean autoSanZoning) {
         VirtualArrayUpdateParam virtualArray = new VirtualArrayUpdateParam();
         virtualArray.setLabel(name);
@@ -154,13 +146,6 @@ public class VirtualArrayUtils {
         return getViprClient().varrays().update(uri(id), virtualArray);
     }
 
-    public static VirtualArrayRestRep update(String id, String name, boolean autoSanZoning, boolean noNetwork) {
-        VirtualArrayUpdateParam virtualArray = new VirtualArrayUpdateParam();
-        virtualArray.setLabel(name);
-        virtualArray.getBlockSettings().setAutoSanZoning(autoSanZoning);
-        virtualArray.getBlockSettings().setNoNetwork(noNetwork);
-        return getViprClient().varrays().update(uri(id), virtualArray);
-    }
 
     public static void deactivate(URI id) {
         getViprClient().varrays().deactivate(id);

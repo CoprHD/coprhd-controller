@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -188,9 +187,6 @@ public class StoragePortAssociationHelper {
                 pools = new ArrayList<StoragePool>();
             }
 
-            //Lets find out if we have no network set to true
-            boolean noNetwork = isNoNetwork(varraysToAddIds, dbClient);
-
             // for better reading, added a method to group Ports by Network
             Map<NetworkLite, List<StoragePort>> portsByNetwork = groupPortsByNetwork(ports, dbClient);
             if (!portsByNetwork.isEmpty()) {
@@ -203,11 +199,6 @@ public class StoragePortAssociationHelper {
                         pools.add(pool);
                     }
                 }
-            }
-            // If No Network set to true associate Storage pools
-
-            if(noNetwork) {
-            	StoragePoolAssociationHelper.updateVArrayRelations(ports, null, dbClient, null);
             }
 
             if (!varraysWithChangedConnectivity.isEmpty()) {
@@ -574,17 +565,4 @@ public class StoragePortAssociationHelper {
         }
         return vNasNetwork;
     }
-
-	private static boolean isNoNetwork(Set<String> varraysIds, DbClient dbClient) {
-		boolean noNetwork = true;
-		for (String varrayId : varraysIds) {
-			VirtualArray varray = dbClient.queryObject(VirtualArray.class,
-					URI.create(varrayId));
-			if (!varray.getNoNetwork()) {
-				noNetwork = false;
-				break;
-			}
-		}
-		return noNetwork;
-	}
 }

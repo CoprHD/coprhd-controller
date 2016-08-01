@@ -32,15 +32,12 @@ public class VirtualArrayMapper {
         VirtualArrayRestRep to = new VirtualArrayRestRep();
         mapDataObjectFields(from, to);
 
-        if (from.getAutoSanZoning() != null || from.getNoNetwork() != null) {
+        if (from.getAutoSanZoning() != null) {
             BlockSettings blockSettings = new BlockSettings();
             if(from.getAutoSanZoning() != null) {
             	blockSettings.setAutoSanZoning(from.getAutoSanZoning());
             }
 
-            if(from.getNoNetwork() != null) {
-            	blockSettings.setNoNetwork(from.getNoNetwork());
-            }
             to.setBlockSettings(blockSettings);
         }
 

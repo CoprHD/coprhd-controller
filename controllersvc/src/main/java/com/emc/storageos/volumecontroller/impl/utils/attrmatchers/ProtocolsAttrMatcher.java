@@ -336,16 +336,6 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
      */
     private boolean isPortUsable(StoragePort storagePort, Set<String> varrays) {
         boolean isUsable = true;
-        boolean noNetwork = true;
-
-        // For No Network case, return list of Protocols without checking network check
-        for(String varrayId: varrays) {
-			VirtualArray varray = _objectCache.queryObject(VirtualArray.class, URI.create(varrayId));
-			if(!varray.getNoNetwork()) {
-				noNetwork = false;
-				break;
-			}
-        }
 
 		if (storagePort == null
 				|| storagePort.getInactive()
@@ -367,11 +357,8 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
 				isUsable = false;
 			}
 		}
-		// For No Network, network check is not required
-		if (!noNetwork) {
-			if(NullColumnValueGetter.isNullURI(storagePort.getNetwork())) {
-				isUsable = false;
-			}
+		if(NullColumnValueGetter.isNullURI(storagePort.getNetwork())) {
+			isUsable = false;
 		}
 
 		return isUsable;

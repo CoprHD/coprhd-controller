@@ -198,7 +198,7 @@ public class BlockVirtualPools extends ViprResourceController {
 
     public static void createAllFlash() {
     	// This method should only list available storage type discovered
-    	List<String> typesList = new ArrayList<String>();
+    	Set<String> typesList = new HashSet<String>();
 		JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 		JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
 
@@ -207,7 +207,7 @@ public class BlockVirtualPools extends ViprResourceController {
 				JsonObject storage = (JsonObject) storageobject;
 				String storageid = storage.get("id").getAsString();
 				StorageSystemRestRep storagesys = StorageSystemUtils.getStorageSystem(storageid);
-				if(storagesys != null) {
+				if(storagesys != null && !storagesys.getRegistrationStatus().equals("UNREGISTERED")) {
 					typesList.add(storagesys.getSystemType());
 				}
 			}

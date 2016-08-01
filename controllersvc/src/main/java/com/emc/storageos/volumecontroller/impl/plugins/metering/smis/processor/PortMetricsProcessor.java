@@ -877,16 +877,6 @@ public class PortMetricsProcessor {
 
 	private boolean isPortUsable(StoragePort storagePort, Set<String> vArrays, boolean doLogging) {
 		boolean usable = false;
-		// For No Network case, return list of Protocols without checking network check
-		boolean noNetwork = true;
-		for (String varrayId : vArrays) {
-			VirtualArray varray = _dbClient.queryObject(VirtualArray.class,
-					URI.create(varrayId));
-			if (!varray.getNoNetwork()) {
-				noNetwork = false;
-				break;
-			}
-		}
 
 		if (storagePort != null
 				&& CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storagePort.getCompatibilityStatus())
@@ -899,33 +889,19 @@ public class PortMetricsProcessor {
 					// must be registered
 					if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
 						// Must be associated with a Network
-						if (!noNetwork) {
-							if (URIUtil.isValid(storagePort.getNetwork())) {
-								// must not be OperationalStatus.NOT_OK
-								if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
-									usable = true;
-								}
-								else {
-									if (doLogging) {
-										_log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
-									}
-								}
-							}
-							else {
-								if (doLogging) {
-									_log.info("StoragePort has no Network association: " + storagePort.getNativeGuid());
-								}
-							}
-						}
-						// No Network use case
-						else {
+						if (URIUtil.isValid(storagePort.getNetwork())) {
+							// must not be OperationalStatus.NOT_OK
 							if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
 								usable = true;
-							}
-							else {
+							} else {
 								if (doLogging) {
 									_log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
 								}
+							}
+						} else {
+							if (doLogging) {
+								_log.info("StoragePort has no Network association: "
+										+ storagePort.getNativeGuid());
 							}
 						}
 					}

@@ -433,12 +433,6 @@ public class VirtualArrayService extends TaggedResource {
             varray.setAutoSanZoning(true);
         }
 
-        if (param.getBlockSettings().getNoNetwork() != null) {
-            varray.setAutoSanZoning(param.getBlockSettings().getNoNetwork());
-        } else {
-            varray.setNoNetwork(false);
-        }
-
         if (param.getObjectSettings().getProtectionType() != null) {
             varray.setProtectionType(param.getObjectSettings().getProtectionType());
         }
@@ -446,7 +440,7 @@ public class VirtualArrayService extends TaggedResource {
         _dbClient.createObject(varray);
 
         auditOp(OperationTypeEnum.CREATE_VARRAY, true, null,
-                param.getLabel(), varray.getAutoSanZoning().toString(), varray.getId().toString(), varray.getNoNetwork().toString());
+                param.getLabel(), varray.getAutoSanZoning().toString(), varray.getId().toString());
 
         return map(varray);
     }
@@ -477,10 +471,6 @@ public class VirtualArrayService extends TaggedResource {
             varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
         }
 
-        if (param.getBlockSettings().getNoNetwork() != null) {
-            varray.setNoNetwork(param.getBlockSettings().getNoNetwork());
-        }
-
         if (param.getObjectSettings().getProtectionType() != null) {
             varray.setProtectionType(param.getObjectSettings().getProtectionType());
         }
@@ -488,7 +478,7 @@ public class VirtualArrayService extends TaggedResource {
         _dbClient.persistObject(varray);
 
         auditOp(OperationTypeEnum.UPDATE_VARRAY, true, null,
-                id.toString(), param.getLabel(), varray.getAutoSanZoning().toString(), varray.getNoNetwork().toString());
+                id.toString(), param.getLabel(), varray.getAutoSanZoning().toString());
 
         return map(varray);
     }

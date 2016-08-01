@@ -1046,7 +1046,6 @@ public class VirtualArrays extends ViprResourceController {
         @MinSize(2)
         public String name;
         public Boolean autoSanZoning = Boolean.TRUE;
-        public Boolean noNetwork = Boolean.FALSE;
         public Boolean enableTenants = Boolean.FALSE;
         public List<String> tenants = new ArrayList<String>();
         public String defaultvarraytype;
@@ -1061,7 +1060,6 @@ public class VirtualArrays extends ViprResourceController {
             if (virtualArray.getBlockSettings() != null) {
                 BlockSettings settings = virtualArray.getBlockSettings();
                 this.autoSanZoning = settings.getAutoSanZoning();
-                this.noNetwork = settings.getNoNetwork();
             }
             loadTenant(virtualArray);
         }
@@ -1081,10 +1079,10 @@ public class VirtualArrays extends ViprResourceController {
 
         public VirtualArrayRestRep save() {
             if (isNew()) {
-                return VirtualArrayUtils.create(name, Boolean.TRUE.equals(autoSanZoning), Boolean.TRUE.equals(noNetwork));
+                return VirtualArrayUtils.create(name, Boolean.TRUE.equals(autoSanZoning));
             }
             else {
-                return VirtualArrayUtils.update(id, name, Boolean.TRUE.equals(autoSanZoning), Boolean.TRUE.equals(noNetwork));
+                return VirtualArrayUtils.update(id, name, Boolean.TRUE.equals(autoSanZoning));
             }
         }
 

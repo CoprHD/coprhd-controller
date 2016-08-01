@@ -54,8 +54,7 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
                         }
                         if (!NullColumnValueGetter.isNullURI(blockObject.getConsistencyGroup())) {
                             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, blockObject.getConsistencyGroup());
-                            if (!cg.checkForType(BlockConsistencyGroup.Types.RP) && 
-                                    !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
+                            if (!cg.checkForType(BlockConsistencyGroup.Types.RP)) {
                                 blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                             }
                         }

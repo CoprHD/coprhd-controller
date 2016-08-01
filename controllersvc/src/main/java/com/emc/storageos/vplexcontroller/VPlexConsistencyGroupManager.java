@@ -463,6 +463,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             // Lock the CG for the duration of update CG workflow.
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
+
             boolean acquiredLocks = workflowService.acquireWorkflowLocks(workflow, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
             if (!acquiredLocks) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
@@ -519,8 +520,10 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                             BlockDeviceController.class, updateLocalMethod,
                             rollbackLocalMethod, null);
                 }
-                waitFor = UPDATE_LOCAL_CG_STEP;
-                log.info("Created steps to remove volumes from native consistency groups.");
+                if (!localSystems.isEmpty()) {
+                    waitFor = UPDATE_LOCAL_CG_STEP;
+                    log.info("Created steps to remove volumes from native consistency groups.");
+                }
             }
 
             // First remove any volumes to be removed.
@@ -584,6 +587,8 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             String failMsg = String.format("Update of consistency group %s failed",
                     cgURI);
             log.error(failMsg, e);
+            // Release the locks 
+            workflowService.releaseAllWorkflowLocks(workflow);
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
                     Arrays.asList(cgURI), opId, null);
             String opName = ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP.getName();

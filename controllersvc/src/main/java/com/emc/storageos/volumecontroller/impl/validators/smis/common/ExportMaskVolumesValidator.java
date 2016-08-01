@@ -4,9 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+
+import java.net.URI;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -16,14 +23,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 
 /**
  * This subclass of {@link AbstractExportMaskValidator} will:
@@ -93,7 +92,7 @@ public class ExportMaskVolumesValidator extends AbstractExportMaskValidator {
             Class modelClass = URIUtil.getModelClass(expectedVolumeURI);
 
             if (!boTypeToURIs.containsKey(modelClass)) {
-                boTypeToURIs.put(modelClass, Lists.<URI>newArrayList());
+                boTypeToURIs.put(modelClass, Lists.<URI> newArrayList());
             }
             boTypeToURIs.get(modelClass).add(expectedVolumeURI);
         }

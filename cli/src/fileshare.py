@@ -69,6 +69,10 @@ class Fileshare(object):
     URI_VPOOL_CHANGE = '/file/filesystems/{0}/vpool-change'
     
     URI_SCHEDULE_SNAPSHOTS_LIST = '/file/filesystems/{0}/file-policies/{1}/snapshots'
+    
+    URI_MOUNT = "/file/filesystems/{0}/mount"
+    URI_MOUNT_UNMOUNT = "/file/filesystems/{0}/unmount"
+    URI_MOUNT_TASKS_BY_OPID = '/vdc/tasks/{0}'
 
     isTimeout = False
     timeout = 300
@@ -891,7 +895,6 @@ class Fileshare(object):
         else:
             return result
 
-
     def list_tasks(self, project_name, fileshare_name=None, task_id=None):
         return (
             common.list_tasks(self.__ipAddr, self.__port, "fileshare",
@@ -1215,6 +1218,67 @@ class Fileshare(object):
             Fileshare.URI_SCHEDULE_SNAPSHOTS_LIST.format(fsid, policyid),
             None)
         
+        o = common.json_decode(s)
+        return    
+
+    def unmount(self, ouri, hosturi, path, sync, synctimeout):
+        body = None    
+        params = dict()
+        if hosturi:
+            params['hosturi'] = hosturi
+        if(path):
+            params["path"] = path
+     
+        body = json.dumps(params)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_MOUNT_UNMOUNT.format(ouri), body)
+
+        o = common.json_decode(s)
+
+        if(sync):
+            return (
+                self.block_until_complete(
+                    o['resource']['id'],
+                    o["id"], synctimeout)
+            )
+        else:
+            return o
+
+    def mount_list(self, resourceUri):
+        if(resourceUri is not None):
+            return self.mount_list_uri(resourceUri)
+        return None
+
+    def mount_list_uri(self, ouri):
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Fileshare.URI_MOUNT.format(ouri), None)
+        o = common.json_decode(s)
+        return o['mount_info_list']
+    
+    def storageResource_query(self,
+                              fileshareName,
+                              project,
+                              tenant):
+        resourcepath = "/" + project + "/"
+        if(tenant is not None):
+            resourcepath = tenant + resourcepath
+        resourceObj = None
+        resourceObj = Fileshare(self.__ipAddr, self.__port)
+        return (resourceObj.fileshare_query(resourcepath + fileshareName))
+    
+    def mount_show_task_opid(self, taskid):
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Fileshare.URI_MOUNT_TASKS_BY_OPID.format(taskid),
+            None)
+        if (not s):
+            return None
         o = common.json_decode(s)
         return o
 
@@ -2432,51 +2496,6 @@ def fileshare_list(args):
     except SOSError as e:
         raise e
 
-
-# Fileshare mount routines
-
-def mount_parser(subcommand_parsers, common_parser):
-    mount_parser = subcommand_parsers.add_parser(
-        'mount',
-        description='ViPR Filesystem Mount CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Mount a filesystem')
-    mandatory_args = mount_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-mountdir', '-d',
-                                metavar='<mountdir>',
-                                dest='mount_dir',
-                                help='Path of mount directory',
-                                required=True)
-    mandatory_args.add_argument('-name', '-n',
-                                dest='name',
-                                metavar='<filesystemname>',
-                                help='Name of Fileshare',
-                                required=True)
-    mount_parser.add_argument('-tenant', '-tn',
-                              metavar='<tenantname>',
-                              dest='tenant',
-                              help='Name of tenant')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
-
-    mount_parser.set_defaults(func=fileshare_mount)
-
-
-def fileshare_mount(args):
-    obj = Fileshare(args.ip, args.port)
-    try:
-        if(not args.tenant):
-            args.tenant = ""
-        res = obj.mount(args.tenant + "/" + args.project + "/" + args.name,
-                        args.mount_dir)
-    except SOSError as e:
-        raise e
-
-
 def task_parser(subcommand_parsers, common_parser):
     task_parser = subcommand_parsers.add_parser(
         'tasks',
@@ -3312,6 +3331,253 @@ def schedule_snapshots_list(args):
                                         e.err_text, e.err_code)
 
 
+def mount_parser(subcommand_parsers, common_parser):
+    # create command parser
+    mount_parser = subcommand_parsers.add_parser(
+        'mount',
+        description='ViPR mount export CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Mounts an export for the given filesystem')
+
+    mandatory_args = mount_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument(
+        '-hn', '-hostname',
+        help='name of the Host on which the export is supposed to be mounted',
+        metavar='<hostname>',
+        dest='hostname',
+        required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of Project',
+                                required=True)
+    mount_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')    
+    mandatory_args.add_argument(
+        '-f', '-fstype',
+        help='the mount fs type',
+        metavar='<fstype>',
+        dest='fstype',
+        required=True)
+    mandatory_args.add_argument(
+        '-p', '-path',
+        help='the mount fs path',
+        metavar='<path>',
+        dest='path',
+        required=True)
+    mandatory_args.add_argument(
+        '-sec', '-security',
+        help='the security style for the mount',
+        metavar='<security>',
+        dest='security',
+        required=True)
+    mandatory_args.add_argument(
+        '-dir', '-subdirectory',
+        help='the mount subdirectory',
+        metavar='<subdirectory>',
+        dest='subdirectory',
+        required=True)
+    mount_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Synchronous mount create',
+                               action='store_true')
+
+    mount_parser.add_argument('-synctimeout', '-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+
+    mount_parser.set_defaults(func=fileshare_mount)
+
+
+
+'''
+Preprocessor for the mount operation
+'''
+
+def fileshare_mount(args):
+    if not args.sync and args.synctimeout != 0:
+        raise SOSError(SOSError.CMD_LINE_ERR, "error: Cannot use synctimeout without Sync ")
+    obj = Fileshare(args.ip, args.port)
+  
+    try:
+        resourceUri = obj.storageResource_query(
+            args.filesystem,
+            args.project,
+            args.tenant)
+        from host import Host
+        host_obj = Host(args.ip, args.port)
+        try:
+            host_uri = host_obj.query_by_name(args.hostname, args.tenant)
+        except SOSError as e:
+            raise e
+
+        obj.mount(resourceUri, host_uri, args.subdirectory, args.securitystyle, args.path, args.fstype, args.sync, args.synctimeout)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "fileshare Mount: " + 
+                args.name + 
+                ", mount Failed\n" + 
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "mount",
+                "mountNFS",
+                e.err_text,
+                e.err_code)
+
+
+# list command parser
+def mountlist_parser(subcommand_parsers, common_parser):
+    list_parser = subcommand_parsers.add_parser(
+        'mountlist',
+        description='ViPR mount List CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Lists mounts for the given filesystem')
+    mandatory_args = list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument(
+        '-fs', '-filesystem',
+        help='Name of the Filesystem',
+        metavar='<filesystem>',
+        dest='filesystem',
+        required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of Project',
+                                required=True)
+    mount_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    list_parser.set_defaults(func=mountNFS_list)
+
+
+'''
+Preprocessor for mount list operation
+'''
+
+def mountNFS_list(args):
+    obj = Fileshare(args.ip, args.port)    
+    try:
+        resourceUri = obj.storageResource_query(
+            args.filesystem,
+            args.project,
+            args.tenant)
+
+        mount_obj = obj.mount_list(resourceUri)
+        records = []
+        if(mount_obj is not None):
+            records.append(mount_obj)
+
+        if(len(records) > 0):
+            if(args.verbose is True):
+                return common.format_json_object(records)
+            else:
+                from common import TableGenerator
+                TableGenerator(records, ['host', 'filesystem', 'mount_path', 'sub_directory', 'security_type']).printTable()    
+        else:
+            return
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "list",
+            "mount",
+            e.err_text,
+            e.err_code)
+
+# Start Parser definitions
+def unmount_parser(subcommand_parsers, common_parser):
+    # create command parser
+    unmount_parser = subcommand_parsers.add_parser(
+        'unmount',
+        description='ViPR unmount export CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Unmounts an export for the given filesystem')
+    mandatory_args = mount_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument(
+        '-hn', '-hostname',
+        help='name of the Host on which the export is mounted',
+        metavar='<hostname>',
+        dest='hostname',
+        required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of Project',
+                                required=True)
+    mount_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument(
+        '-p', '-path',
+        help='the mount fs path',
+        metavar='<path>',
+        dest='path',
+        required=True)
+    mount_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Synchronous mount create',
+                               action='store_true')
+
+    mount_parser.add_argument('-synctimeout', '-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+
+    mount_parser.set_defaults(func=mountNFS_unmount)
+
+
+
+'''
+Preprocessor for the mount operation
+'''
+
+def mountNFS_unmount(args):
+    if not args.sync and args.synctimeout != 0:
+        raise SOSError(SOSError.CMD_LINE_ERR, "error: Cannot use synctimeout without Sync ")
+    obj = Fileshare(args.ip, args.port)
+  
+    try:
+        resourceUri = obj.storageResource_query(
+            args.filesystem,
+            args.project,
+            args.tenant)
+        from host import Host
+        host_obj = Host(args.ip, args.port)
+        try:
+            host_uri = host_obj.query_by_name(args.hostname, args.tenant)
+        except SOSError as e:
+            raise e
+
+        obj.unmount(resourceUri, host_uri, args.path, args.sync, args.synctimeout)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "MountNFS: " + 
+                args.name + 
+                ", unmount Failed\n" + 
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "unmount",
+                "mountNFS",
+                e.err_text,
+                e.err_code)
+
 #
 # Fileshare Main parser routine
 #
@@ -3352,9 +3618,6 @@ def fileshare_parser(parent_subparser, common_parser):
 
     # list command parser
     list_parser(subcommand_parsers, common_parser)
-
-    # mount command parser
-    mount_parser(subcommand_parsers, common_parser)
 
     # expand fileshare parser
     expand_parser(subcommand_parsers, common_parser)
@@ -3432,3 +3695,12 @@ def fileshare_parser(parent_subparser, common_parser):
     
     #schedule snapshots list parser
     schedule_snapshots_list_parser(subcommand_parsers, common_parser)
+    
+    # mount command parser
+    mount_parser(subcommand_parsers, common_parser)
+
+    # list command parser
+    mountlist_parser(subcommand_parsers, common_parser)
+    
+    # unmount command parser
+    unmount_parser(subcommand_parsers, common_parser)

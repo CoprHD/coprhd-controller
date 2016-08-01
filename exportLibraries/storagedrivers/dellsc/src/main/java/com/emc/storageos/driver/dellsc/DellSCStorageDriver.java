@@ -32,12 +32,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPIException;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScCopyMirrorMigrate;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageTypeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenter;
-import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenterStorageUsage;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -45,6 +50,7 @@ import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.Initiator.Protocol;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -57,6 +63,7 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
+import com.emc.storageos.storagedriver.model.VolumeMirror.SynchronizationState;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
@@ -91,16 +98,40 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         LOG.info("Creating {} new volumes", volumes.size());
         DriverTask task = new DellSCDriverTask("createVolume");
 
+        Map<String, List<ScReplayProfile>> consistencyGroups = new HashMap<>();
         StringBuilder errBuffer = new StringBuilder();
         int volumesCreated = 0;
         for (StorageVolume volume : volumes) {
             LOG.debug("Creating volume {} on system {}", volume.getDisplayName(), volume.getStorageSystemId());
-            try (StorageCenterAPI api = getSavedConnection(volume.getStorageSystemId())) {
+            String ssn = volume.getStorageSystemId();
+            try (StorageCenterAPI api = getSavedConnection(ssn)) {
+                // See if we need to add to a consistency group
+                String cgID = null;
+                String cgName = volume.getConsistencyGroup();
+                if (cgName != null && !cgName.isEmpty()) {
+                    // Find CG and add volume to it
+                    if (!consistencyGroups.containsKey(ssn)) {
+                        consistencyGroups.put(ssn, new ArrayList<>());
+                        ScReplayProfile[] cgs = api.getConsistencyGroups(ssn);
+                        for (ScReplayProfile cg : cgs) {
+                            consistencyGroups.get(ssn).add(cg);
+                        }
+                    }
+
+                    for (ScReplayProfile cg : consistencyGroups.get(ssn)) {
+                        if (cgName.equals(cg.name)) {
+                            // Found our requested consistency group
+                            cgID = cg.instanceId;
+                        }
+                    }
+                }
+
                 ScVolume scVol = api.createVolume(
-                        volume.getStorageSystemId(),
+                        ssn,
                         volume.getDisplayName(),
                         volume.getStoragePoolId(),
-                        SizeUtil.byteToGig(volume.getRequestedCapacity()));
+                        SizeUtil.byteToGig(volume.getRequestedCapacity()),
+                        cgID);
 
                 volume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
                 volume.setAllocatedCapacity(0L); // New volumes don't allocate any space
@@ -108,8 +139,6 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                 volume.setNativeId(scVol.instanceId);
                 volume.setDeviceLabel(scVol.name);
                 volume.setAccessStatus(AccessStatus.READ_WRITE);
-
-                // TODO(smcginnis): Add consistency group handling
 
                 volumesCreated++;
                 LOG.info("Created volume '{}'", scVol.name);
@@ -547,7 +576,6 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                     sn = parts[1];
                 }
             }
-            long ssn = Long.parseLong(sn);
             int port = storageSystem.getPortNumber();
             if (port == 0) {
                 port = 3033;
@@ -559,7 +587,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                     storageSystem.getUsername(),
                     storageSystem.getPassword())) {
                 // Populate the SC information
-                StorageCenter sc = api.findStorageCenter(ssn);
+                StorageCenter sc = api.findStorageCenter(sn);
                 storageSystem.setSerialNumber(sc.scSerialNumber);
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
                 storageSystem.setModel(sc.modelSeries);
@@ -577,9 +605,8 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                 storageSystem.setDeviceLabel(sc.scName);
                 storageSystem.setDisplayName(sc.scName);
 
-                // TODO(smcginnis): Only supporting iSCSI to start, expand for other protocols
-                List<String> protocols = new ArrayList<>();
-                protocols.add(Protocols.iSCSI.toString());
+                // Check the supported protocols for this array
+                List<String> protocols = getSupportedProtocols(api, sc.scSerialNumber);
                 storageSystem.setProtocols(protocols);
 
                 saveConnectionInfo(
@@ -599,6 +626,37 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         }
 
         return task;
+    }
+
+    /**
+     * Gets the transport protocols supported by an array.
+     *
+     * @param api The SC API connection.
+     * @param scSerialNumber The Storage Center serial number to check.
+     * @return The supported protocols.
+     */
+    private List<String> getSupportedProtocols(StorageCenterAPI api, String scSerialNumber) {
+
+        List<String> protocols = new ArrayList<>();
+        boolean hasIScsi = false;
+        boolean hasFC = false;
+        ScControllerPort[] controllerPorts = api.getTargetPorts(scSerialNumber, null);
+        for (ScControllerPort scPort : controllerPorts) {
+            if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                hasFC = true;
+            } else if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                hasIScsi = true;
+            }
+        }
+
+        if (hasIScsi) {
+            protocols.add(Protocols.iSCSI.toString());
+        }
+        if (hasFC) {
+            protocols.add(Protocols.FC.toString());
+        }
+
+        return protocols;
     }
 
     /*
@@ -642,7 +700,6 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         try (StorageCenterAPI api = getSavedConnection(storageSystem.getNativeId())) {
 
             ScStorageType[] storageTypes = api.getStorageTypes(storageSystem.getNativeId());
-            StorageCenterStorageUsage su = api.getStorageUsage(storageSystem.getNativeId());
             for (ScStorageType storageType : storageTypes) {
                 StoragePool pool = new StoragePool();
                 pool.setNativeId(storageType.instanceId);
@@ -653,8 +710,15 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                 pool.setDeviceLabel(storageType.name);
                 pool.setPoolName(storageType.name);
 
+                // Get the supported transport protocols
                 Set<StoragePool.Protocols> protocols = new HashSet<>();
-                protocols.add(StoragePool.Protocols.iSCSI);
+                List<String> transportProtocols = getSupportedProtocols(api, storageSystem.getNativeId());
+                if (transportProtocols.contains(Protocol.FC.toString())) {
+                    protocols.add(StoragePool.Protocols.FC);
+                }
+                if (transportProtocols.contains(Protocol.iSCSI.toString())) {
+                    protocols.add(StoragePool.Protocols.iSCSI);
+                }
                 pool.setProtocols(protocols);
 
                 pool.setPoolServiceType(StoragePool.PoolServiceType.block);
@@ -664,10 +728,11 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                 pool.setMinimumThinVolumeSize(1048576L); // Min 1 GB
                 pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_ONLY);
 
-                LOG.info("Space info: {} {} {}", su.configuredSpace, su.availableSpace, su.allocatedSpace);
-                pool.setSubscribedCapacity(5000000L);
-                pool.setFreeCapacity(45000000L);
-                pool.setTotalCapacity(48000000L);
+                ScStorageTypeStorageUsage su = api.getStorageTypeStorageUsage(storageType.instanceId);
+                LOG.info("Space info: {} {} {}", su.allocatedSpace, su.freeSpace, su.usedSpace);
+                pool.setSubscribedCapacity(SizeUtil.sizeStrToBytes(su.usedSpace));
+                pool.setFreeCapacity(SizeUtil.sizeStrToBytes(su.freeSpace));
+                pool.setTotalCapacity(SizeUtil.sizeStrToBytes(su.allocatedSpace));
                 pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
 
                 storagePools.add(pool);
@@ -699,8 +764,8 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
 
         try (StorageCenterAPI api = getSavedConnection(storageSystem.getNativeId())) {
 
-            ScControllerPort[] iscsiPorts = api.getIscsiTargetPorts(storageSystem.getNativeId());
-            for (ScControllerPort scPort : iscsiPorts) {
+            ScControllerPort[] scPorts = api.getTargetPorts(storageSystem.getNativeId(), null);
+            for (ScControllerPort scPort : scPorts) {
 
                 StoragePort port = new StoragePort();
                 port.setNativeId(scPort.instanceId);
@@ -715,18 +780,24 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                     // API returns list, but currently only one fault domain per port allowed
                     haZone = faultDomains[0].name;
                 }
-
-                ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
-                        scPort.instanceId);
-
-                port.setDeviceLabel(scPort.iscsiName);
-                port.setPortName(port.getDeviceLabel());
                 port.setPortHAZone(haZone);
-                port.setNetworkId(portConfig.getNetwork());
-                port.setIpAddress(portConfig.ipAddress);
-                port.setPortNetworkId(portConfig.getFormattedMACAddress());
-                port.setTransportType(StoragePort.TransportType.IP);
-                port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+
+                if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                    setFCPortInfo(api, scPort, port);
+                } else if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                    setISCSIPortInfo(api, scPort, port);
+                } else {
+                    // Unsupported transport type
+                    continue;
+                }
+
+                StoragePort.OperationalStatus status = StoragePort.OperationalStatus.OK;
+                if (!ScControllerPort.PORT_STATUS_UP.equals(scPort.status)) {
+                    status = StoragePort.OperationalStatus.NOT_OK;
+                }
+                port.setOperationalStatus(status);
+                port.setPortName(port.getDeviceLabel());
+                port.setEndPointID(port.getPortNetworkId());
                 port.setAccessStatus(AccessStatus.READ_WRITE);
 
                 storagePorts.add(port);
@@ -740,9 +811,51 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         return task;
     }
 
+    /**
+     * Sets FC specific info for a port.
+     *
+     * @param api The API connection.
+     * @param scPort The Storage Center port.
+     * @param port The storage port object to populate.
+     */
+    private void setFCPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
+        port.setDeviceLabel(scPort.wwn);
+        port.setTransportType(StoragePort.TransportType.FC);
+
+        ScControllerPortFibreChannelConfiguration portConfig = api.getControllerPortFCConfig(
+                scPort.instanceId);
+        port.setPortNetworkId(scPort.wwn);
+        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
+        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
+        port.setPortSubGroup(String.format("%s", portConfig.slot));
+        port.setTcpPortNumber(0L);
+    }
+
+    /**
+     * Sets iSCSI specific info for a port.
+     *
+     * @param api The API connection.
+     * @param scPort The Storage Center port.
+     * @param port The storage port object to populate.
+     */
+    private void setISCSIPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
+        port.setDeviceLabel(scPort.iscsiName);
+        port.setTransportType(StoragePort.TransportType.IP);
+
+        ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
+                scPort.instanceId);
+        port.setNetworkId(portConfig.getNetwork());
+        port.setIpAddress(portConfig.ipAddress);
+        port.setPortNetworkId(portConfig.getFormattedMACAddress());
+        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
+        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
+        port.setPortSubGroup(String.format("%s", portConfig.slot));
+        port.setTcpPortNumber(portConfig.portNumber);
+    }
+
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        DriverTask task = new DellSCDriverTask("discover");
+        DellSCDriverTask task = new DellSCDriverTask("discover");
 
         try {
             LOG.info("Getting information for storage provider [{}:{}] as user {}",
@@ -793,8 +906,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         } catch (Exception e) {
             String msg = String.format("Exception encountered getting storage provider information: %s", e);
             LOG.error(msg);
-            task.setMessage(msg);
-            task.setStatus(DriverTask.TaskStatus.FAILED);
+            task.setFailed(msg);
         }
 
         return task;
@@ -814,27 +926,169 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
             List<StorageVolume> storageVolumes,
             MutableInt token) {
         LOG.info("Getting volumes");
-        DriverTask task = new DellSCDriverTask("getVolumes");
-        task.setStatus(TaskStatus.FAILED);
+        DellSCDriverTask task = new DellSCDriverTask("getVolumes");
+
+        try (StorageCenterAPI api = getSavedConnection(storageSystem.getNativeId())) {
+            Map<ScReplayProfile, List<String>> cgInfo = getGCInfo(api, storageSystem.getNativeId());
+            ScVolume[] volumes = api.getAllVolumes(storageSystem.getNativeId());
+            for (ScVolume volume : volumes) {
+                StorageVolume driverVol = getStorageVolumeFromScVolume(api, volume, cgInfo);
+                storageVolumes.add(driverVol);
+            }
+
+            task.setStatus(TaskStatus.READY);
+        } catch (DellSCDriverException | StorageCenterAPIException e) {
+            String msg = String.format("Error getting volume info: %s", e);
+            LOG.warn(msg);
+            task.setFailed(msg);
+        }
+
         return task;
+    }
+
+    /**
+     * Populates a StorageVolume instance with Storage Center volume data.
+     *
+     * @param api The API connection.
+     * @param volume The Storage Center volume.
+     * @param cgInfo Consistency group information or null.
+     * @return The StorageVolume.
+     * @throws StorageCenterAPIException
+     */
+    private StorageVolume getStorageVolumeFromScVolume(StorageCenterAPI api, ScVolume volume, Map<ScReplayProfile, List<String>> cgInfo)
+            throws StorageCenterAPIException {
+        ScVolumeStorageUsage storageUsage = api.getVolumeStorageUsage(volume.instanceId);
+
+        StorageVolume driverVol = new StorageVolume();
+        driverVol.setStorageSystemId(volume.scSerialNumber);
+        driverVol.setStoragePoolId(volume.storageType.instanceId);
+        driverVol.setNativeId(volume.instanceId);
+        driverVol.setThinlyProvisioned(true);
+        driverVol.setProvisionedCapacity(SizeUtil.sizeStrToBytes(volume.configuredSize));
+        driverVol.setAllocatedCapacity(SizeUtil.sizeStrToBytes(storageUsage.totalDiskSpace));
+        driverVol.setWwn(volume.deviceId);
+        driverVol.setDeviceLabel(volume.name);
+
+        // Check consistency group membership
+        if (cgInfo != null) {
+            for (ScReplayProfile cg : cgInfo.keySet()) {
+                if (cgInfo.get(cg).contains(volume.instanceId)) {
+                    // Found our volume in a consistency group
+                    driverVol.setConsistencyGroup(cg.instanceId);
+                    break;
+                }
+            }
+        }
+
+        return driverVol;
+    }
+
+    /**
+     * Gets consistency groups and volumes from a given Storage Center.
+     *
+     * @param api The API connection.
+     * @param ssn The Storage Center serial number.
+     * @return The consistency groups and their volumes.
+     */
+    private Map<ScReplayProfile, List<String>> getGCInfo(StorageCenterAPI api, String ssn) {
+        Map<ScReplayProfile, List<String>> result = new HashMap<>();
+        ScReplayProfile[] cgs = api.getConsistencyGroups(ssn);
+        for (ScReplayProfile cg : cgs) {
+            result.put(cg, new ArrayList<>());
+            try {
+                ScVolume[] vols = api.getReplayProfileVolumes(cg.instanceId);
+                for (ScVolume vol : vols) {
+                    result.get(cg).add(vol.instanceId);
+                }
+            } catch (StorageCenterAPIException e) {
+                LOG.warn(String.format("Error getting volumes for consistency group %s: %s", cg.instanceId, e));
+            }
+        }
+
+        return result;
     }
 
     @Override
     public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume storageVolume) {
         LOG.info("Getting snapshots for {}", storageVolume.getNativeId());
-        return new ArrayList<>(0);
+        List<VolumeSnapshot> result = new ArrayList<>();
+
+        try (StorageCenterAPI api = getSavedConnection(storageVolume.getStorageSystemId())) {
+            ScReplay[] replays = api.getVolumeSnapshots(storageVolume.getNativeId());
+            for (ScReplay replay : replays) {
+                VolumeSnapshot snap = getVolumeSnapshotFromReplay(replay);
+                result.add(snap);
+            }
+
+        } catch (DellSCDriverException e) {
+            String msg = String.format("Error getting volume info: %s", e);
+            LOG.warn(msg);
+        }
+
+        return result;
+    }
+
+    /**
+     * Gets a VolumeSnapshot object for a given replay.
+     *
+     * @param replay The Storage Center snapshot.
+     * @return The VolumeSnapshot object.
+     */
+    private VolumeSnapshot getVolumeSnapshotFromReplay(ScReplay replay) {
+        VolumeSnapshot snap = new VolumeSnapshot();
+        snap.setNativeId(replay.instanceId);
+        snap.setDeviceLabel(replay.instanceName);
+        snap.setDisplayName(replay.instanceName);
+        snap.setStorageSystemId(String.valueOf(replay.scSerialNumber));
+        snap.setWwn(replay.globalIndex);
+        snap.setParentId(replay.createVolume.instanceId);
+        snap.setAllocatedCapacity(SizeUtil.sizeStrToBytes(replay.size));
+        snap.setProvisionedCapacity(SizeUtil.sizeStrToBytes(replay.size));
+        return snap;
     }
 
     @Override
     public List<VolumeClone> getVolumeClones(StorageVolume storageVolume) {
         LOG.info("Getting clones for volume {}", storageVolume.getNativeId());
+        // Clones are independent once created
         return new ArrayList<>(0);
     }
 
     @Override
     public List<VolumeMirror> getVolumeMirrors(StorageVolume storageVolume) {
         LOG.info("Getting mirrors for volume {}", storageVolume.getNativeId());
-        return new ArrayList<>(0);
+        List<VolumeMirror> result = new ArrayList<>();
+
+        try (StorageCenterAPI api = getSavedConnection(storageVolume.getStorageSystemId())) {
+            ScVolume scVolume = api.getVolume(storageVolume.getNativeId());
+            if (scVolume != null && scVolume.cmmSource) {
+                ScCopyMirrorMigrate[] cmms = api.getVolumeCopyMirrorMigrate(scVolume.instanceId);
+                for (ScCopyMirrorMigrate cmm : cmms) {
+                    if ("Mirror".equals(cmm.type)) {
+                        ScVolume targetVol = api.getVolume(cmm.destinationVolume.instanceId);
+                        VolumeMirror mirror = new VolumeMirror();
+                        mirror.setAccessStatus(AccessStatus.READ_WRITE);
+                        mirror.setDeviceLabel(targetVol.name);
+                        mirror.setDisplayName(targetVol.name);
+                        mirror.setNativeId(targetVol.instanceId);
+                        mirror.setParentId(cmm.sourceVolume.instanceId);
+                        mirror.setStorageSystemId(storageVolume.getStorageSystemId());
+                        SynchronizationState syncState = SynchronizationState.SYNCHRONIZED;
+                        if (cmm.percentComplete != 100) {
+                            syncState = SynchronizationState.COPYINPROGRESS;
+                        }
+                        mirror.setSyncState(syncState);
+                        mirror.setWwn(targetVol.deviceId);
+
+                        result.add(mirror);
+                    }
+                }
+            }
+        } catch (DellSCDriverException e) {
+            String msg = String.format("Error getting mirrors for volume %s", storageVolume.getNativeId(), e);
+            LOG.warn(msg);
+        }
+        return result;
     }
 
     /**
@@ -858,9 +1112,28 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      * @param <T> The storage object type.
      * @return Storage object or Null if it does not exist.
      */
+    @SuppressWarnings("unchecked")
     @Override
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
-        LOG.info("Request for object {} from {}", objectId, storageSystemId);
+        String requestedType = type.getSimpleName();
+        LOG.info("Request for {} object {} from {}", requestedType, objectId, storageSystemId);
+
+        try (StorageCenterAPI api = getSavedConnection(storageSystemId)) {
+            Map<ScReplayProfile, List<String>> cgInfo = getGCInfo(api, storageSystemId);
+            if (requestedType.equals(StorageVolume.class.getSimpleName())) {
+                ScVolume volume = api.getVolume(objectId);
+                return (T) getStorageVolumeFromScVolume(api, volume, cgInfo);
+            } else if (requestedType.equals(VolumeConsistencyGroup.class.getSimpleName())) {
+                // TODO: Add with consistency group handling
+            } else if (requestedType.equals(VolumeSnapshot.class.getSimpleName())) {
+                return (T) getVolumeSnapshotFromReplay(api.getReplay(objectId));
+            }
+        } catch (StorageCenterAPIException | DellSCDriverException e) {
+            String message = String.format("Error getting requested storage object: %s", e);
+            LOG.warn(message);
+        }
+
+        LOG.warn("Requested object of type {} not found.", requestedType);
         return null;
     }
 
@@ -868,7 +1141,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     public DriverTask stopManagement(StorageSystem storageSystem) {
         LOG.info("Stop management called for storage system {}", storageSystem.getNativeId());
         DriverTask task = new DellSCDriverTask("stopManagement");
-        task.setStatus(TaskStatus.FAILED);
+        task.setStatus(TaskStatus.READY);
         return task;
     }
 

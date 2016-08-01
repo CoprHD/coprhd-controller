@@ -38,7 +38,7 @@ public class StorageSystemTypes {
     public static final String ECS = "ecs";
     public static final String CEPH = "ceph";
     private static final String SMIS = "smis";
-    
+
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
     public static final String STORAGE_PROVIDER_HITACHI = "STORAGE_PROVIDER.hds";
     public static final String STORAGE_PROVIDER_VPLEX = "STORAGE_PROVIDER.vplex";

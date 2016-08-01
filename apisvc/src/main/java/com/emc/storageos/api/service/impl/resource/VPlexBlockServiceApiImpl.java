@@ -3991,8 +3991,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         Volume backingVol = _dbClient.queryObject(Volume.class, backingVolUri);
                         if ( backingVol != null &&
                                 !BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backingVol, _dbClient, false)) {
-                            throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(backingVol.getLabel(),
-                                "The Unity subgroup has snapshot");
+                            throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(removeVol.getLabel(),
+                                "the Unity subgroup has snapshot");
                         }
                     }
                 }
@@ -4062,7 +4062,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                     if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(addVolumes.getReplicationGroupName(), backingVol, _dbClient, true)) {
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
-                                "the subgroup has snapshot.");
+                                "the Unity subgroup has snapshot.");
                     }
                 }
             }

@@ -141,6 +141,10 @@ elif [ ${SS} = "backuprestore" ]; then
 	AUTH=ldap
     fi
     echo AUTH=$AUTH
+elif [ ${SS} = "unityfile" ]; then
+    # Unity tests cannot be run with sanity ldap configuration. So use local authentication.
+    AUTH=local
+    echo AUTH=$AUTH
 elif [ ${SS} = "unityblock" ]; then
     UNITY_OPTION=${4:-'all'}
     AUTH=${5:-ldap}
@@ -298,6 +302,7 @@ SHORTENED_HOST=`hostname`
 : ${TENANT=$SHORTENED_HOST}
 : ${PROJECT=sanity}
 : ${SRDF_PROJECT=dontuseme}
+: ${UNITY_PROJECT=unity}
 
 SVCUSER=svcuser
 
@@ -365,6 +370,7 @@ LOCAL_SECURE_LDAP_USER_USERNAME_WITH_SPACES='       secureLdapViPRUser1@'${LOCAL
 COS_VNXFILE=cosvnxf
 COS_VNXE=cosvnxe
 COS_UNITY=cosunity
+COS_UNITY_CIFS=cosunitycifs
 COS_ISIFILE=cosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
@@ -469,6 +475,7 @@ VNXE_DEV=vnxe_device
 VNXE_NATIVEGUID=VNXE+$VNXE_SN
 VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S) 
 
+
 #
 # Ceph cluster configuration
 #
@@ -482,6 +489,7 @@ CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 #
 UNITY_DEV=unity_device
 UNITY_NATIVEGUID=UNITY+$UNITY_SN
+UNITY_SMBFILESHARE1=sanity_cifs1$(date +%Y%m%d%H%M%S) 
 
 #
 # DataDomain file device configuration
@@ -599,8 +607,8 @@ FSEXP_DEFAULT_EPS="$FSEXP1 $FSEXP2 $FSEXP3"
 SNAPEXP_DEFAULT_EPS="www.emc.com www.abc.com www.amazon.com"
 FS_VNXE_SIZE=2000000000
 FS_VNXE_EXPAND_SIZE=3000000000
-FS_UNITY_SIZE=3000000000
-FS_UNITY_EXPAND_SIZE=4000000000
+FS_UNITY_SIZE=4000000000
+FS_UNITY_EXPAND_SIZE=5000000000
 
 
 # Alternate configuration file for alternate hardware/variables
@@ -804,6 +812,9 @@ cisco_mds_quick_setup_once()
     # Do once - Discover Cisco MDS simulator switch
     secho "Discover Cisco MDS simulator switch"
     run networksystem create CiscoMdsSimulator  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
    
 #    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
 #    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
@@ -2302,22 +2313,22 @@ vplex_setup_once()
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 
-	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	storagedevice discover_all
+	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+	run storagedevice discover_all
 	storagedevice list
 	storageport list $VPLEX_VNX1_NATIVEGUID
 	storageport list $VPLEX_VMAX_NATIVEGUID
 	storageport list $VPLEX_GUID
 
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
 	# The arrays are assigned to individual varrays as well.
-	storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
+	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
 	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
@@ -2559,10 +2570,10 @@ vmaxblock_discovery()
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 }
 
 vnxblock_discovery()
@@ -2571,12 +2582,12 @@ vnxblock_discovery()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
-       smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 }
 
 ######################### Start of RecoverPoint ############################
@@ -6447,7 +6458,7 @@ file_tests()
         run fileshare search --name $(echo $fsname | head -c 2)
         run fileshare search --name $(echo $fsname | head -c 2) --project $projectid
 
-        run fileshare tag $PROJECT/${fsname} $TAG
+        run fileshare tag ${PROJECT}/${fsname} $TAG
         run fileshare search --tag $SEARCH_PREFIX 
     fi
 
@@ -6575,6 +6586,16 @@ file_tests()
             run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
             run snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
         fi
+
+        if [ $cos = $COS_UNITY ] ; then
+            run snapshot create $PROJECT/$fsname $fsname-$datetime-2
+            run snapshot restore $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot export $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname $snap_exp_args
+            run snapshot show $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+        fi
+
         
     done
 
@@ -6663,6 +6684,16 @@ file_tests()
         run fileshare show $PROJECT/$fsname
         run fileshare unshare $PROJECT/$fsname $VNXE_SMBFILESHARE1 
     fi
+
+   if [ $cos = $COS_UNITY ] ; then
+        fscifs=filesysCifs-$datetime
+        run fileshare create $fscifs $PROJECT $NH $COS_UNITY_CIFS $FS_SIZEMB
+        run fileshare share $PROJECT/$fscifs  $UNITY_SMBFILESHARE1 --description 'New_SMB_Share'
+        run fileshare show $PROJECT/$fscifs
+        run fileshare unshare $PROJECT/$fscifs $UNITY_SMBFILESHARE1 
+        run fileshare delete $PROJECT/$fscifs
+    fi
+
     
     if [ $cos = $COS_ISIFILE ] ; then
         run snapshot delete $PROJECT/$fsname-$datetime $PROJECT/$fsname
@@ -7340,9 +7371,9 @@ export_initiator()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --addInits "$hostname/$pwwn3"
     run export_group show $exp
@@ -10269,7 +10300,7 @@ fail(){
 
 trap '_failure $LINENO' ERR INT
 set -E
-if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ] && [ "$3" != "unityfile" ]; then
     common_setup	
 fi
 
@@ -11278,11 +11309,11 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     secho "Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
+    run smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
 
     # Discover the vmax3 array.
     secho "Discovering VMAX3 array"
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 
     # Set up virtual pools
     secho "Setting up virtual pools"
@@ -11290,20 +11321,20 @@ snapvx_setup_once()
 
     # Assign the storage pools of the VMAX3 array to our virtual array.
     secho "Assiging storage pools to virtual array"
-    storagepool update $VMAX3_NATIVEGUID --nhadd $NH
+    run storagepool update $VMAX3_NATIVEGUID --nhadd $NH
  
     # Assign storage ports if necessary.     
     if [ $DISCOVER_SAN -eq 0 ]; then
         secho "Updating storage port networks"
         for porta in ${VMAX3_PORTS_A}
             do
-	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
+	         run storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
             done
     fi
 
     # Update virtual pool to use mathcing pools on the system.
     secho "Assiging system storage pools to virtual pool"
-    cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
+    run cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
 }
 
 
@@ -11596,6 +11627,94 @@ ceph_tests()
     ceph_test_export
 }
 
+unity_common_setup()
+{
+     login_nd_configure_smtp_nd_add_licenses
+
+     run syssvc $CONFIG_FILE "$BOURNE_IP" set_prop system_proxyuser_encpassword ${SYSADMIN_PASSWORD}
+
+     ROOT_TENANT=`tenant root|tail -1`
+
+     unity_project_setup
+     unity_nh_setup
+
+     secho "Setup ACLs on neighborhood for $ROOT_TENANT"
+     run neighborhood allow $NH $ROOT_TENANT
+
+     secho "Creating transport zone"
+     run transportzone create $IP_ZONE $NH --type IP
+
+}
+unity_project_setup()
+{
+     secho "Creating project for unity"
+     project show $UNITY_PROJECT &> /dev/null && return $?
+     run project create $UNITY_PROJECT --tenant $ROOT_TENANT
+}
+unity_nh_setup()
+{
+    secho "Creating neighborhood for unity"
+    neighborhood show $NH  &> /dev/null && return $?
+    run neighborhood create $NH
+
+}
+
+discover_unity()
+{
+    secho "Starting storage system create"
+    storagedevice show $UNITY_DEV &> /dev/null && return $?
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    storagedevice list
+}
+#Separated out unityfile_setup and tests from unity block tests since unityfile tests require different setup.
+#Nas server domain validation does not allow viprsanity.com domain which is added by default for all other tests.
+#Unity file side tests will run with local authentication
+unityfile_setup()
+{
+     unity_common_setup
+
+     discover_unity 
+     unityfile_cos_setup
+
+     storagepool update $UNITY_NATIVEGUID --type file
+     storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
+     run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
+     run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
+     run storagedevice discover_all
+}
+unityfile_tests()
+{
+    FS_SIZEMB=$FS_UNITY_SIZE;
+    FS_SIZE=$FS_UNITY_SIZE;
+    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
+    PROJECT=$UNITY_PROJECT;
+    file_tests $COS_UNITY default
+
+}
+
+unityfile_cos_setup()
+{
+     secho "Setting up Unity File Virtual Pools"
+
+     run cos create file $COS_UNITY                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols NFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+    
+
+    run cos create file $COS_UNITY_CIFS                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $COS_UNITY file $ROOT_TENANT
+    run cos allow $COS_UNITY_CIFS file $ROOT_TENANT
+
+}
+
 unityblock_setup()
 {
     secho "Starting unity storage system create"
@@ -11611,15 +11730,16 @@ unityblock_setup()
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
-    
+     
     if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
         vplexunity_setup
     fi
     if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
         rpunity_setup
     fi
-    
+   
 }
+
 
 # Unity tests command: "sanity sanity.conf viprIP unityblock" test all, including block, VPlex+Unity and RP+Unity
 # "sanity sanity.conf viprIP unityblock vplex" only test VPlex+Unity
@@ -11702,48 +11822,6 @@ unityblock_cos_setup()
                          --multiVolumeConsistency 
 }
 
-unityfile_setup()
-{
-    secho "Starting unity storage system create"
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
-
-    project_setup
-
-    secho "Setup ACLs on neighborhood for $TENANT"
-    run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
-
-    storagepool update $UNITY_NATIVEGUID --type file
-    storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
-    run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
-    run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
-    run storagedevice discover_all
-}
-
-unityfile_tests()
-{
-    FS_SIZEMB=$FS_UNITY_SIZE;
-    FS_SIZE=$FS_UNITY_SIZE;
-    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
-    file_tests $COS_UNITY default
-    
-    echo "**** Done unity"
-}
-
-unityfile_cos_setup()
-{
-    secho "setting up Unity Virtual Pool"
-
-    run cos create file $COS_UNITY                               \
-         --description 'Virtual-Pool-for-unity-file' true \
-                         --protocols NFS CIFS --max_snapshots 10    \
-                         --provisionType 'Thin' \
-                         --neighborhoods $NH
-    ROOT_TENANT=`tenant root|tail -1`
-    run cos allow $COS_UNITY file $ROOT_TENANT
-    run cos allow $COS_UNITY file $TENANT
-}
 
 vplexunity_setup()
 {

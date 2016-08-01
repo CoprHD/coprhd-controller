@@ -16,20 +16,28 @@
  */
 package com.emc.storageos.driver.dellsc.scapi.objects;
 
+import java.util.Date;
+
 /**
- * Array controller port config settings.
+ * Storage Center snapshot "replays".
  */
-public class ScControllerPortConfiguration extends ScObject {
-    public int bothCount;
-    public long controllerPortIndex;
+public class ScReplay extends ScObject {
+    public boolean active;
+    public ScObject consistencyGroup;
+    public boolean consistent;
+    public ScObject createVolume;
     public String description;
-    public String deviceName;
-    public long homeControllerIndex;
-    public int initiatorCount;
-    public int mapCount;
-    public long preferredControllerIndex;
-    public int slot;
-    public int slotPort;
-    public String speed;
-    public int targetCount;
+    public Date expireTime;
+    public boolean expires;
+    public Date freezeTime;
+    public String globalIndex;
+    public boolean markedForExpiration;
+    public ScObject parent;
+    public ScObject replayProfile;
+    public ScObject replayProfileRule;
+    public long scSerialNumber;
+    public String size;
+    public String source;
+    public boolean spaceRecovery;
+    public long writesHeldDuration;
 }

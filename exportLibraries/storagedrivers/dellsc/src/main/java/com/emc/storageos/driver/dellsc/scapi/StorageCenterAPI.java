@@ -25,12 +25,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScCopyMirrorMigrate;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageTypeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenter;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenterStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.rest.Parameters;
@@ -38,6 +44,7 @@ import com.emc.storageos.driver.dellsc.scapi.rest.PayloadFilter;
 import com.emc.storageos.driver.dellsc.scapi.rest.RestClient;
 import com.emc.storageos.driver.dellsc.scapi.rest.RestResult;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * API client for managing Storage Center via DSM.
@@ -52,7 +59,7 @@ public class StorageCenterAPI implements AutoCloseable {
             throws StorageCenterAPIException {
         LOG.debug("{} {} {}", host, port, user);
         restClient = new RestClient(host, port, user, password);
-        gson = new Gson();
+        gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ssX").create();
 
         Parameters params = new Parameters();
         params.add("Application", "CoprHD Driver");
@@ -137,10 +144,10 @@ public class StorageCenterAPI implements AutoCloseable {
      * @return The Storage Center.
      * @throws StorageCenterAPIException if the Storage Center is not found.
      */
-    public StorageCenter findStorageCenter(long ssn) throws StorageCenterAPIException {
+    public StorageCenter findStorageCenter(String ssn) throws StorageCenterAPIException {
         StorageCenter[] scs = getStorageCenterInfo();
         for (StorageCenter sc : scs) {
-            if (sc.serialNumber == ssn) {
+            if (ssn.equals(sc.scSerialNumber)) {
                 return sc;
             }
         }
@@ -155,10 +162,11 @@ public class StorageCenterAPI implements AutoCloseable {
      * @param name The volume name.
      * @param storageType The storage type to use.
      * @param sizeInGB The size in GB
+     * @param cgID The consistency group ID to add volume to or null.
      * @return The Storage Center volume.
      * @throws StorageCenterAPIException
      */
-    public ScVolume createVolume(String ssn, String name, String storageType, int sizeInGB) throws StorageCenterAPIException {
+    public ScVolume createVolume(String ssn, String name, String storageType, int sizeInGB, String cgID) throws StorageCenterAPIException {
         LOG.debug("Creating {}GB volume: '{}'", sizeInGB, name);
         String errorMessage = "";
 
@@ -167,6 +175,10 @@ public class StorageCenterAPI implements AutoCloseable {
         params.add("Notes", "Created by CoprHD driver.");
         params.add("Size", String.format("%d GB", sizeInGB));
         params.add("StorageCenter", ssn);
+        if (cgID != null && !cgID.isEmpty()) {
+            String[] ids = { cgID };
+            params.add("ReplayProfileList", ids);
+        }
 
         ScStorageType[] storageTypes = getStorageTypes(ssn);
         for (ScStorageType storType : storageTypes) {
@@ -324,6 +336,21 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Gets the storage usage information for a storage type.
+     *
+     * @param instanceId The storage type to get.
+     * @return The storage usage.
+     */
+    public ScStorageTypeStorageUsage getStorageTypeStorageUsage(String instanceId) {
+        RestResult rr = restClient.get(String.format("/StorageCenter/ScStorageType/%s/StorageUsage", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScStorageTypeStorageUsage.class);
+        }
+
+        return new ScStorageTypeStorageUsage();
+    }
+
+    /**
      * Gets the Storage Center usage data.
      * 
      * @param ssn The Storage Center system serial number.
@@ -375,17 +402,17 @@ public class StorageCenterAPI implements AutoCloseable {
      * @return The iSCSI controller ports.
      */
     public ScControllerPort[] getIscsiTargetPorts(String ssn) {
-        return getTargetPorts(ssn, "Iscsi");
+        return getTargetPorts(ssn, ScControllerPort.ISCSI_TRANSPORT_TYPE);
     }
 
     /**
      * Gets all fibre channel target ports.
-     * 
+     *
      * @param ssn The Storage Center serial number.
      * @return The FC controller ports.
      */
     public ScControllerPort[] getFcTargetPorts(String ssn) {
-        return getTargetPorts(ssn, "FibreChannel");
+        return getTargetPorts(ssn, ScControllerPort.FC_TRANSPORT_TYPE);
     }
 
     /**
@@ -441,6 +468,22 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Gets configuration about a fibre channel controller port.
+     * 
+     * @param instanceId The port instance ID.
+     * @return The port configuration.
+     */
+    public ScControllerPortFibreChannelConfiguration getControllerPortFCConfig(String instanceId) {
+        RestResult rr = restClient.get(
+                String.format("/StorageCenter/ScControllerPort/%s/ControllerPortConfiguration", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScControllerPortFibreChannelConfiguration.class);
+        }
+
+        return new ScControllerPortFibreChannelConfiguration();
+    }
+
+    /**
      * Expand a volume to a larger size.
      * 
      * @param instanceId The volume instance ID.
@@ -468,5 +511,140 @@ public class StorageCenterAPI implements AutoCloseable {
             LOG.warn(String.format("Error expanding volume: %s", e));
             throw new StorageCenterAPIException("Error expanding volume", e);
         }
+    }
+
+    /**
+     * Gets all volumes.
+     *
+     * @param ssn The Storage Center to query from.
+     * @return The volumes on the requested SC.
+     */
+    public ScVolume[] getAllVolumes(String ssn) {
+
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("scSerialNumber", ssn);
+
+        RestResult rr = restClient.post("StorageCenter/ScVolume/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScVolume[].class);
+        }
+
+        return new ScVolume[0];
+    }
+
+    /**
+     * Gets all replays for a given volume.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The volume's replays.
+     */
+    public ScReplay[] getVolumeSnapshots(String instanceId) {
+
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("createVolume", instanceId);
+        filter.append("active", false);
+        filter.append("markedForExpiration", false);
+
+        RestResult rr = restClient.post("StorageCenter/ScReplay/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScReplay[].class);
+        }
+
+        return new ScReplay[0];
+    }
+
+    /**
+     * Gets the storage consumption information for a volume.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The storage usage information.
+     * @throws StorageCenterAPIException
+     */
+    public ScVolumeStorageUsage getVolumeStorageUsage(String instanceId) throws StorageCenterAPIException {
+
+        RestResult rr = restClient.get(String.format("StorageCenter/ScVolume/%s/StorageUsage", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScVolumeStorageUsage.class);
+        }
+
+        String message = "Unknown";
+        if (rr.getErrorMsg().length() > 0) {
+            message = rr.getErrorMsg();
+        }
+        message = String.format("Error getting storage usage for volume %s: %s", instanceId, message);
+
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets all replay profiles that are consistent type.
+     *
+     * @param ssn The Storage Center serial number.
+     * @return The consistent replay profiles.
+     */
+    public ScReplayProfile[] getConsistencyGroups(String ssn) {
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("scSerialNumber", ssn);
+        filter.append("type", "Consistent");
+
+        RestResult rr = restClient.post("StorageCenter/ScReplayProfile/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScReplayProfile[].class);
+        }
+
+        return new ScReplayProfile[0];
+    }
+
+    /**
+     * Gets all volumes that are part of a replay profile.
+     *
+     * @param instanceId The replay profile instance ID.
+     * @return The member volumes.
+     * @throws StorageCenterAPIException
+     */
+    public ScVolume[] getReplayProfileVolumes(String instanceId) throws StorageCenterAPIException {
+
+        RestResult rr = restClient.get(String.format("StorageCenter/ScReplayProfile/%s/VolumeList", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScVolume[].class);
+        }
+
+        String message = "Unknown";
+        if (rr.getErrorMsg().length() > 0) {
+            message = rr.getErrorMsg();
+        }
+        message = String.format("Error getting replay profile member volumes: %s", message);
+
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets a replay.
+     * 
+     * @param instanceId The replay's instance ID.
+     * @return The replay.
+     */
+    public ScReplay getReplay(String instanceId) {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScReplayProfile/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScReplay.class);
+        }
+
+        return null;
+    }
+
+    /**
+     * Gets all copy, mirror, and migrate operations for a volume.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The CMM operations.
+     */
+    public ScCopyMirrorMigrate[] getVolumeCopyMirrorMigrate(String instanceId) {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScVolume/%s/CopyMirrorMigrateList", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScCopyMirrorMigrate[].class);
+        }
+
+        return new ScCopyMirrorMigrate[0];
     }
 }

@@ -595,20 +595,7 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
             String entityName, String... parameters) throws Exception {
-        StringBuilder strBuilder = new StringBuilder(XtremIOConstants.XTREMIO_PERFORMANCE_STR);
-        strBuilder.append(XtremIOConstants.getInputClusterString(clusterName));
-        strBuilder.append(XtremIOConstants.getInputAdditionalParamString(XtremIOConstants.ENTITY, entityName));
-        for (int i = 0; i < parameters.length; i = i + 2) {
-            String parameter = parameters[i];
-            String value = parameters[i + 1];
-            strBuilder.append(XtremIOConstants.getInputAdditionalParamString(parameter, value));
-        }
-        String uriString = strBuilder.toString();
-        log.info("Performance URL to query: {}", uriString);
-        ClientResponse response = get(URI.create(uriString));
-        XtremIOPerformanceResponse performanceResponse = getResponseObject(XtremIOPerformanceResponse.class, response);
-        log.info("Returned performance counters size : {}", performanceResponse.getCounters().length);
-        return performanceResponse;
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOObjectPerformance");
     }
 
     @Override

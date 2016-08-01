@@ -20,9 +20,9 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -1391,6 +1391,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<UnManagedNFSShareACL> oldunManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
 
             List<UnManagedFileExportRule> newUnManagedExportRules = new ArrayList<UnManagedFileExportRule>();
+            List<UnManagedFileExportRule> oldUnManagedExportRules = new ArrayList<UnManagedFileExportRule>();
 
             List<FileShare> discoveredFS = new ArrayList<FileShare>();
             do {
@@ -1560,7 +1561,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     unManagedExportRules.add(dbExportRule);
                                 } else {
                                     existingRule.setInactive(true);
-                                    _dbClient.persistObject(existingRule);
+                                    oldUnManagedExportRules.add(existingRule);
                                     unManagedExportRules.add(dbExportRule);
                                 }
                             }
@@ -1592,26 +1593,46 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             unManagedFileSystems.add(unManagedFs);
                             newFileSystemsCount++;
                         }
-                        if (!newUnManagedExportRules.isEmpty()) {
+                        // Saving bunch of Unmanaged objects!!!
+                        if (!newUnManagedExportRules.isEmpty() && newUnManagedExportRules.size() >= MAX_UMFS_RECORD_SIZE) {
                             _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                            _partitionManager.updateInBatches(
-                                    newUnManagedExportRules,
-                                    Constants.DEFAULT_PARTITION_SIZE, _dbClient,
-                                    UNMANAGED_EXPORT_RULE);
+                            _dbClient.createObject(newUnManagedExportRules);
                             newUnManagedExportRules.clear();
                         }
+
+                        if (!oldUnManagedExportRules.isEmpty() && oldUnManagedExportRules.size() >= MAX_UMFS_RECORD_SIZE) {
+                            _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
+                            _dbClient.updateObject(oldUnManagedExportRules);
+                            oldUnManagedExportRules.clear();
+                        }
+
                         // save ACLs in db
                         if (!unManagedCifsShareACLList.isEmpty() && unManagedCifsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
-                            _log.info("Saving Number of UnManagedCifsShareACL(s) {}", unManagedCifsShareACLList.size());
+                            _log.info("Saving Number of new UnManagedCifsShareACL(s) {}", unManagedCifsShareACLList.size());
                             _dbClient.createObject(unManagedCifsShareACLList);
                             unManagedCifsShareACLList.clear();
                         }
                         // save old acls
                         if (!oldunManagedCifsShareACLList.isEmpty() && oldunManagedCifsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
-                            _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldunManagedCifsShareACLList.size());
-                            _dbClient.persistObject(oldunManagedCifsShareACLList);
+                            _log.info("Saving Number of existing UnManagedCifsShareACL(s) {}", oldunManagedCifsShareACLList.size());
+                            _dbClient.updateObject(oldunManagedCifsShareACLList);
                             oldunManagedCifsShareACLList.clear();
                         }
+
+                        // save NFS ACLs in db
+                        if (!unManagedNfsShareACLList.isEmpty() && unManagedNfsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
+                            _log.info("Saving Number of new UnManagedNfsShareACL(s) {}", unManagedNfsShareACLList.size());
+                            _dbClient.createObject(unManagedNfsShareACLList);
+                            unManagedNfsShareACLList.clear();
+                        }
+
+                        // save old acls
+                        if (!oldunManagedNfsShareACLList.isEmpty() && oldunManagedNfsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
+                            _log.info("Saving Number of old NFS UnManagedFileExportRule(s) {}", oldunManagedNfsShareACLList.size());
+                            _dbClient.updateObject(oldunManagedNfsShareACLList);
+                            oldunManagedNfsShareACLList.clear();
+                        }
+
                         allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
                         /**
                          * Persist 200 objects and clear them to avoid memory issue
@@ -1632,6 +1653,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             } while (resumeToken != null);
 
+            // Saving bunch of Unmanaged objects!!!
+            if (!newUnManagedExportRules.isEmpty()) {
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
+                _dbClient.createObject(newUnManagedExportRules);
+                newUnManagedExportRules.clear();
+            }
+
+            if (!oldUnManagedExportRules.isEmpty()) {
+                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
+                _dbClient.updateObject(newUnManagedExportRules);
+                oldUnManagedExportRules.clear();
+            }
+
             // save ACLs in db
             if (!unManagedCifsShareACLList.isEmpty()) {
                 _log.info("Saving Number of UnManagedCifsShareACL(s) {}", unManagedCifsShareACLList.size());
@@ -1639,18 +1673,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 unManagedCifsShareACLList.clear();
             }
 
-            // save NFS ACLs in db
-            if (!unManagedNfsShareACLList.isEmpty()) {
-                _log.info("Saving Number of UnManagedNfsShareACL(s) {}", unManagedNfsShareACLList.size());
-                _dbClient.createObject(unManagedNfsShareACLList);
-                unManagedNfsShareACLList.clear();
-            }
-
             // save old acls
             if (!oldunManagedCifsShareACLList.isEmpty()) {
                 _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldunManagedCifsShareACLList.size());
                 _dbClient.persistObject(oldunManagedCifsShareACLList);
                 oldunManagedCifsShareACLList.clear();
+            }
+
+            // save NFS ACLs in db
+            if (!unManagedNfsShareACLList.isEmpty()) {
+                _log.info("Saving Number of UnManagedNfsShareACL(s) {}", unManagedNfsShareACLList.size());
+                _dbClient.createObject(unManagedNfsShareACLList);
+                unManagedNfsShareACLList.clear();
             }
 
             // save old acls
@@ -2062,35 +2096,45 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info(
                     "getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
                     fs.getName());
-            IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(exportPath);
-
-            for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
-
-                UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
-
-                unmanagedNFSAcl.setFileSystemPath(exportPath);
-
-                String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
-
-                if (tempUname.length > 1) {
-                    unmanagedNFSAcl.setDomain(tempUname[0]);
-                    unmanagedNFSAcl.setUser(tempUname[1]);
-                } else {
-                    unmanagedNFSAcl.setUser(tempUname[0]);
-                }
-
-                unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-                unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-                unmanagedNFSAcl.setPermissions(StringUtils.join(
-                        getIsilonAccessList(tempAcl.getAccessrights()), ","));
-
-                unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-                unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-
-                unManagedNfsACLList.add(unmanagedNFSAcl);
+            if (exportPath == null || exportPath.isEmpty()) {
+                _log.info("Export path is empty");
+                continue;
             }
+            try {
+                IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(exportPath);
 
+                for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
+
+                    if (tempAcl.getTrustee() != null) {
+
+                        UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
+                        unmanagedNFSAcl.setFileSystemPath(exportPath);
+
+                        String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+
+                        if (tempUname.length > 1) {
+                            unmanagedNFSAcl.setDomain(tempUname[0]);
+                            unmanagedNFSAcl.setUser(tempUname[1]);
+                        } else {
+                            unmanagedNFSAcl.setUser(tempUname[0]);
+                        }
+
+                        unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                        unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+                        unmanagedNFSAcl.setPermissions(StringUtils.join(
+                                getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+                        unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+                        unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+                        unManagedNfsACLList.add(unmanagedNFSAcl);
+                    }
+                }
+            } catch (Exception ex) {
+                _log.warn("Unble to access NFS ACLs for path {}", exportPath);
+            }
         }
+
     }
 
     @Override
@@ -2911,17 +2955,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         ArrayList<String> accessRights = new ArrayList<String>();
         for (String per : permissions) {
 
-            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_read.toString())) {
-                accessRights.add("Read");
-            }
-            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_write.toString())) {
-                accessRights.add("write");
-            }
-            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_execute.toString())) {
-                accessRights.add("execute");
-            }
-            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_all.toString())) {
-                accessRights.add("FullControl");
+            if (per != null) {
+                if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_read.toString())) {
+                    accessRights.add("Read");
+                }
+                if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_write.toString())) {
+                    accessRights.add("write");
+                }
+                if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_execute.toString())) {
+                    accessRights.add("execute");
+                }
+                if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_all.toString())) {
+                    accessRights.add("FullControl");
+                }
             }
         }
         return accessRights;

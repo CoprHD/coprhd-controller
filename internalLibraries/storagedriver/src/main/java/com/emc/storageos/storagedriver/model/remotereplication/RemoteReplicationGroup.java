@@ -24,7 +24,7 @@ public class RemoteReplicationGroup {
     private String nativeId;
 
     /**
-     * When group was provisioned by CoprHD, contains name given by user. Type: Input.
+     * When group was provisioned by the system, contains name given by user. Type: Input.
      */
     private String displayName;
 

@@ -18,16 +18,20 @@ public class RemoteReplicationGroup extends DataObject {
     // native id of this group
     private String nativeId;
 
-    // If replication group is reachable
+    // If replication group is reachable.
     private Boolean reachable;
 
+    // Device label of this replication group.
+    private String deviceLabel;
+
+    // Display name of this replication group (whem provisioned by the systemt).
     private String displayName;
 
-    // source storage system of this group
-    private String sourceSystemGuid;
+    // Source storage system of this group
+    private URI sourceSystem;
 
-    // target storage system of this group
-    private String targetSystemGuid;
+    // Target storage system of this group
+    private URI targetSystem;
 
     // replication mode of this group
     String replicationMode;
@@ -35,7 +39,10 @@ public class RemoteReplicationGroup extends DataObject {
     // replication state of this group
     RemoteReplicationSet.ReplicationState replicationState;
 
-    // parent replication set
+    // Defines if group consistency of link operations is enforced.
+    private boolean isGroupConsistencyEnforced;
+
+    // Parent replication set
     URI replicationSet;
 
     @Name("nativeId")
@@ -49,14 +56,25 @@ public class RemoteReplicationGroup extends DataObject {
     }
 
     @Name("reachable")
-    public Boolean getReachableStatus() {
+    public Boolean getReachable() {
         return reachable == null ? false : reachable;
     }
 
-    public void setReachableStatus(final Boolean reachable) {
+    public void setReachable(final Boolean reachable) {
         this.reachable = reachable;
         setChanged("reachable");
     }
+
+    @Name("deviceLabel")
+    public String getDeviceLabel() {
+        return deviceLabel;
+    }
+
+    public void setDeviceLabel(String deviceLabel) {
+        this.deviceLabel = deviceLabel;
+        setChanged("deviceLabel");
+    }
+
 
     @Name("displayName")
     public String getDisplayName() {
@@ -68,24 +86,34 @@ public class RemoteReplicationGroup extends DataObject {
         setChanged("displayName");
     }
 
-    @Name("sourceSystemGuid")
-    public String getSourceSystemGuid() {
-        return sourceSystemGuid;
+    @Name("sourceSystem")
+    public URI getSourceSystem() {
+        return sourceSystem;
     }
 
-    public void setSourceSystemGuid(String sourceSystemGuid) {
-        this.sourceSystemGuid = sourceSystemGuid;
-        setChanged("sourceSystemGuid");
+    public void setSourceSystem(URI sourceSystem) {
+        this.sourceSystem = sourceSystem;
+        setChanged("sourceSystem");
     }
 
-    @Name("targetSystemGuid")
-    public String getTargetSystemGuid() {
-        return targetSystemGuid;
+    @Name("targetSystem")
+    public URI getTargetSystem() {
+        return targetSystem;
     }
 
-    public void setTargetSystemGuid(String targetSystemGuid) {
-        this.targetSystemGuid = targetSystemGuid;
-        setChanged("targetSystemGuid");
+    public void setTargetSystem(URI targetSystem) {
+        this.targetSystem = targetSystem;
+        setChanged("targetSystem");
+    }
+
+    @Name("isGroupConsistencyEnforced")
+    public boolean getIsGroupConsistencyEnforced() {
+        return isGroupConsistencyEnforced;
+    }
+
+    public void setIsGroupConsistencyEnforced(boolean isGroupConsistencyEnforced) {
+        this.isGroupConsistencyEnforced = isGroupConsistencyEnforced;
+        setChanged("isGroupConsistencyEnforced");
     }
 
     @Name("replicationMode")

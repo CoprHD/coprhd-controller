@@ -11,27 +11,41 @@ import com.emc.storageos.db.client.model.Name;
 
 import java.net.URI;
 
+/**
+ * Wrapper for remotely replicated data object.
+ */
 @Cf("RemoteReplicationElement")
 public class RemoteReplicationElement extends DataObject {
 
-//    public enum ElementType {
-//        VOLUME,
-//        FILE_SYSTEM
-//    }
-
-    // uri of backing data object
-    private URI objectUri;
-//    private URI storageSystemUri;
-//    private ElementType elementType;
-
-
-    @Name("objectUri")
-    public URI getObjectUri() {
-        return objectUri;
+    public enum ElementType {
+        VOLUME,
+        FILE_SYSTEM
     }
 
-    public void setObjectUri(URI objectUri) {
-        this.objectUri = objectUri;
-        setChanged("objectUri");
+    // uri of backing data object
+    private URI dataObjectUri;
+
+    // Element type
+    private ElementType elementType;
+
+
+    @Name("dataObjectUri")
+    public URI getDataObjectUri() {
+        return dataObjectUri;
+    }
+
+    public void setDataObjectUri(URI dataObjectUri) {
+        this.dataObjectUri = dataObjectUri;
+        setChanged("dataObjectUri");
+    }
+
+    @Name("elementType")
+    public ElementType getElementType() {
+        return elementType;
+    }
+
+    public void setElementType(ElementType elementType) {
+        this.elementType = elementType;
+        setChanged("elementType");
     }
 }

@@ -4,13 +4,13 @@
  */
 package com.emc.storageos.db.client.model.remotereplication;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.Volume;
-
-import java.net.URI;
 
 @Cf("RemoteReplicationPair")
 public class RemoteReplicationPair extends DataObject {
@@ -18,15 +18,23 @@ public class RemoteReplicationPair extends DataObject {
     // Device nativeId of replication pair.
     private String nativeId;
 
-//    // If replication pair is part of replication group should be set to replication group URI, otherwise null.
-//    private URI replicationGroup;
-//
-//    // Either direct replication set parent or replication set of the replication group parent.
-//    private URI replicationSet;
-//    private RemoteReplicationSet.ReplicationMode replicationMode;
-//    private RemoteReplicationSet.ReplicationState replicationState;
-//    private URI sourceElement;
-//    private URI targetElement;
+    // If replication pair is part of replication group should be set to replication group URI, otherwise null.
+    private URI replicationGroup;
+
+    // Either direct replication set parent or replication set of the replication group parent.
+    private URI replicationSet;
+
+    // Replication mode of this pair.
+    private String replicationMode;
+
+    // Replication state of this pair.
+    private RemoteReplicationSet.ReplicationState replicationState;
+
+    // Replication pair source element.
+    private URI sourceElement;
+
+    // Replication pair target element.
+    private URI targetElement;
 
     @Name("nativeId")
     public String getNativeId() {
@@ -38,59 +46,67 @@ public class RemoteReplicationPair extends DataObject {
         setChanged("nativeId");
     }
 
-//    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationGroup.class)
-//    @Name("replicationGroup")
-//    public URI getReplicationGroup() {
-//        return replicationGroup;
-//    }
-//
-//    public void setReplicationGroup(URI replicationGroup) {
-//        this.replicationGroup = replicationGroup;
-//    }
-//
-//    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
-//    @Name("replicationSet")
-//    public URI getReplicationSet() {
-//        return replicationSet;
-//    }
-//
-//    public void setReplicationSet(URI replicationSet) {
-//        this.replicationSet = replicationSet;
-//    }
-//
-//    public RemoteReplicationSet.ReplicationMode getReplicationMode() {
-//        return replicationMode;
-//    }
-//
-//    public void setReplicationMode(RemoteReplicationSet.ReplicationMode replicationMode) {
-//        this.replicationMode = replicationMode;
-//    }
-//
-//    public RemoteReplicationSet.ReplicationState getReplicationState() {
-//        return replicationState;
-//    }
-//
-//    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
-//        this.replicationState = replicationState;
-//    }
-//
-//    @RelationIndex(cf = "RelationIndex", type = Volume.class)
-//    @Name("sourceElement")
-//    public URI getSourceElement() {
-//        return sourceElement;
-//    }
-//
-//    public void setSourceElement(URI sourceElement) {
-//        this.sourceElement = sourceElement;
-//    }
-//
-//    @RelationIndex(cf = "RelationIndex", type = Volume.class)
-//    @Name("targetElement")
-//    public URI getTargetElement() {
-//        return targetElement;
-//    }
-//
-//    public void setTargetElement(URI targetElement) {
-//        this.targetElement = targetElement;
-//    }
+    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationGroup.class)
+    @Name("replicationGroup")
+    public URI getReplicationGroup() {
+        return replicationGroup;
+    }
+
+    public void setReplicationGroup(URI replicationGroup) {
+        this.replicationGroup = replicationGroup;
+        setChanged("replicationGroup");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
+    @Name("replicationSet")
+    public URI getReplicationSet() {
+        return replicationSet;
+    }
+
+    public void setReplicationSet(URI replicationSet) {
+        this.replicationSet = replicationSet;
+        setChanged("replicationSet");
+    }
+
+    @Name("replicationMode")
+    public String getReplicationMode() {
+        return replicationMode;
+    }
+
+    public void setReplicationMode(String replicationMode) {
+        this.replicationMode = replicationMode;
+        setChanged("replicationMode");
+    }
+
+    @Name("replicationState")
+    public RemoteReplicationSet.ReplicationState getReplicationState() {
+        return replicationState;
+    }
+
+    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+        this.replicationState = replicationState;
+        setChanged("replicationState");
+    }
+
+    @RelationIndex(cf = "SourceElementOfReplicationPairIndex", type = RemoteReplicationElement.class)
+    @Name("sourceElement")
+    public URI getSourceElement() {
+        return sourceElement;
+    }
+
+    public void setSourceElement(URI sourceElement) {
+        this.sourceElement = sourceElement;
+        setChanged("sourceElement");
+    }
+
+    @RelationIndex(cf = "TargetElementOfReplicationPairIndex", type = RemoteReplicationElement.class)
+    @Name("targetElement")
+    public URI getTargetElement() {
+        return targetElement;
+    }
+
+    public void setTargetElement(URI targetElement) {
+        this.targetElement = targetElement;
+        setChanged("targetElement");
+    }
 }

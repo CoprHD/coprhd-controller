@@ -75,7 +75,7 @@ public class RemoteReplicationSet {
     private Set<ElementType> supportedElementTypes;
 
     /**
-     * Defines types of set elements for which replication link operations are supported. Type: Output.
+     * Defines types of replication set elements for which replication link operations are supported. Type: Output.
      */
     private Set<ElementType> replicationLinkGranularity = new HashSet<>();
 

@@ -1584,7 +1584,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                 finishChecking();
                             }
                         } else {
-                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(ssid)})).then(function (data) {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(",").concat(ssid)})).then(function (data) {
                                 arrayCookie = guide_data.storage_systems;
                                 storage_systems=[];
                                 console.log("DATA"+data.data)
@@ -2044,7 +2044,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                 finishChecking();
                             }
                         } else {
-                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(ssid)})).then(function (data) {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(",").concat(ssid)})).then(function (data) {
                                 arrayCookie = guide_data.storage_systems;
                                 storage_systems=[];
                                 console.log("DATA"+data.data)

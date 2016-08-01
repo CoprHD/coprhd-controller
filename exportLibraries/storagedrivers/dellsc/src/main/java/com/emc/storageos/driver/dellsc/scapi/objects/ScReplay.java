@@ -35,6 +35,7 @@ public class ScReplay extends ScObject {
     public ScObject parent;
     public ScObject replayProfile;
     public ScObject replayProfileRule;
+    public long scSerialNumber;
     public String size;
     public String source;
     public boolean spaceRecovery;

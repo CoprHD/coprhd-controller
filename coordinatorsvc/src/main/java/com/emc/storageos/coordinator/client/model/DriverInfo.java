@@ -14,7 +14,9 @@ public class DriverInfo implements CoordinatorSerializable {
     public static final String ATTR = "driver";
     public static final String ENCODING_SEPARATOR = "\0";
 
-    private final List<String> drivers;
+    private List<String> drivers;
+
+    public DriverInfo() {}
 
     public DriverInfo(List<String> drivers) {
         List<String> tmp = new ArrayList<String>(drivers);

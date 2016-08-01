@@ -554,7 +554,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
 
             Map<URI, Boolean> initiatorIsPartOfFullListFlags = flagInitiatorsThatArePartOfAFullList(exportGroup, initiatorURIs);
-
+            List<String> initiatorNames = new ArrayList<String>();
+            
+            for(URI initiatorURI : initiatorURIs ){
+                Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+                String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
+                initiatorNames.add(normalizedName);
+            }
+            _log.info("Normalized initiator names :{}", initiatorNames);
+            device.findExportMasks(storage, initiatorNames, false);
             boolean anyOperationsToDo = false;
             Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
             if (exportGroup != null && exportGroup.getExportMasks() != null) {
@@ -767,6 +775,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     for (URI initiatorURI : initiatorsToRemove) {
                         if (!ExportUtils.isInitiatorShared(_dbClient, initiatorURI, mask, existingMasksToRemoveInitiator.keySet())) {
                             initiatorsToRemoveOnStorage.add(initiatorURI);
+                        } else {
+                            // TODO - should we throw an exception here?
+                            // Because we are removing initiator from viPR DB and doing any changes on array as it is shared between
+                            // multiple maskingViews.
                         }
                     }
                     // CTRL-8846 fix : Compare against all the initiators

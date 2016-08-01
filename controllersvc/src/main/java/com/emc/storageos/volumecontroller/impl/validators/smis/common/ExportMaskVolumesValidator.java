@@ -4,16 +4,24 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+
 import java.net.URI;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -50,13 +58,45 @@ public class ExportMaskVolumesValidator extends AbstractExportMaskValidator {
         if (expectedVolumeURIs == null || expectedVolumeURIs.isEmpty()) {
             return Sets.newHashSet();
         }
-        Set<String> databaseResources = Sets.newHashSet();
-        for (URI expectedVolumeURI : expectedVolumeURIs) {
-            BlockObject expectedVolume = BlockObject.fetch(getDbClient(), expectedVolumeURI);
-            databaseResources.add(expectedVolume.getNativeId());
-        }
 
-        return databaseResources;
+        List<? extends BlockObject> blockObjects = getBlockObjects();
+        Collection<String> transformed = Collections2.transform(blockObjects, fctnBlockObjectToNativeID());
+        return Sets.newHashSet(transformed);
+    }
+
+    /**
+     * Returns the expected resource URIs as BlockObject instances, as we may be
+     * expecting BlockSnapshot and Volume instances.
+     *
+     * @return A List of BlockObject
+     */
+    private List<? extends BlockObject> getBlockObjects() {
+        List<? extends BlockObject> blockObjects = Lists.newArrayList();
+        Map<Class, List<URI>> boTypeToURIs = groupExpectedURIsByType();
+
+        for (Map.Entry<Class, List<URI>> entry : boTypeToURIs.entrySet()) {
+            List objects = getDbClient().queryObject(entry.getKey(), entry.getValue());
+            blockObjects.addAll(objects);
+        }
+        return blockObjects;
+    }
+
+    /**
+     * Groups the expected resource URIs by their type.
+     *
+     * @return Map of model classes to a list of URIs
+     */
+    private Map<Class, List<URI>> groupExpectedURIsByType() {
+        Map<Class, List<URI>> boTypeToURIs = Maps.newHashMap();
+        for (URI expectedVolumeURI : expectedVolumeURIs) {
+            Class modelClass = URIUtil.getModelClass(expectedVolumeURI);
+
+            if (!boTypeToURIs.containsKey(modelClass)) {
+                boTypeToURIs.put(modelClass, Lists.<URI> newArrayList());
+            }
+            boTypeToURIs.get(modelClass).add(expectedVolumeURI);
+        }
+        return boTypeToURIs;
     }
 
 }

@@ -4,10 +4,10 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.tasks.RetryableTask;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostConfigFault;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.HostVmfsVolume;

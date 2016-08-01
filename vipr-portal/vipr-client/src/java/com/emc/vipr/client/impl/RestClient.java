@@ -8,10 +8,19 @@ import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.impl.jersey.*;
 import com.sun.jersey.api.client.*;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.core.impl.provider.entity.MimeMultipartProvider;
+import com.sun.jersey.multipart.FormDataMultiPart;
+import com.sun.jersey.multipart.impl.MultiPartReaderClientSide;
+import com.sun.jersey.multipart.impl.MultiPartReaderServerSide;
+import com.sun.jersey.multipart.impl.MultiPartWriter;
+
+import com.sun.jersey.core.impl.provider.entity.InputStreamProvider; 
+import com.sun.jersey.core.impl.provider.entity.StringProvider;
 
 import org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider;
 import org.slf4j.LoggerFactory;
 import javax.net.ssl.HttpsURLConnection;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 
 import java.net.URI;
@@ -53,6 +62,19 @@ public class RestClient {
     public Client getClient() {
         if (client == null) {
             com.sun.jersey.api.client.config.ClientConfig jerseyConfig = new DefaultClientConfig();
+            
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.FormProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MimeMultipartProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.StringProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.ByteArrayProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.FileProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.InputStreamProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.DataSourceProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.ReaderProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.DocumentProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MimeMultipartProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.InputStreamProvider.class);
+            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.StringProvider.class);
             // The ViPR API services use the Jackson JAXB JSON provider.
             jerseyConfig.getClasses().add(JacksonJaxbJsonProvider.class);
             Client c = Client.create(jerseyConfig);
@@ -152,6 +174,12 @@ public class RestClient {
         URI uri = uriBuilder(path).build(args);
         return resource(uri);
     }
+    
+    public WebResource.Builder resourceMultiPart(String path, Object... args) {
+        URI uri = uriBuilder(path).build(args);
+        WebResource.Builder test = resourceMultiPart(uri);
+        return test;
+    }
 
     public WebResource.Builder resource(String path, Properties queryParams, Object... args) {
         UriBuilder builder = uriBuilder(path);
@@ -166,6 +194,10 @@ public class RestClient {
         return getClient().resource(uri).accept(config.getMediaType())
                 .type(config.getMediaType());
     }
+    
+	public WebResource.Builder resourceMultiPart(URI uri) {
+		return getClient().resource(uri).accept(config.getMediaType()).type(MediaType.MULTIPART_FORM_DATA_TYPE);
+	}
 
     // Method takes path + args for replacement
     public <T> T put(Class<T> responseType, Object request, String path, Object... args) {
@@ -183,6 +215,11 @@ public class RestClient {
 
     public <T> T post(Class<T> responseType, Object request, String path, Object... args) {
         return resource(path, args).post(responseType, request);
+    }
+    
+    public <T> T postMultiPart(Class<T> responseType, Object request, String path, Object... args) {
+    	WebResource.Builder webMyRes = resourceMultiPart(path, args);
+        return webMyRes.post(responseType, request);
     }
 
     public void post(Object request, String path, Object... args) {

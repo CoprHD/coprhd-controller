@@ -25,8 +25,17 @@
              <map>
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
+                <entry key="providersystem" value-ref="storageDriverSimulator"/>
+                <entry key="driverprovider" value-ref="storageDriverSimulator"/>
+            </map>
+        </property>
+        <property name="capabilityDefinitions">
+            <map>
+                <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
             </map>
         </property>
     </bean>
 
+    <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
+    </bean>
 </beans>

@@ -4,14 +4,14 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
-import com.emc.sa.util.VolumeWWNUtils;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vmware.VMwareUtils;
+import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.ScsiLunState;
 import com.vmware.vim25.mo.HostSystem;
@@ -67,11 +67,21 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume)) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn())) {
                 return entry;
             }
         }
         return null;
+    }
+
+    /**
+     * Attaches the scsi disk to the host
+     * 
+     * @param disk the scsi disk to attach
+     */
+    private void attachDisk(HostScsiDisk disk) {
+        logInfo("find.host.scsi.lun.esx.attach", disk.getDeviceName(), host.getName());
+        new HostStorageAPI(host).attachScsiLun(disk);
     }
 
     private void rescan() {
@@ -80,6 +90,13 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         new HostStorageAPI(host).rescanHBAs();
     }
 
+    /**
+     * Waits for a valid state of the given scsi disk.
+     * If the disk is in an 'off' state, the disk is attached to the host.
+     * 
+     * @param disk the scsi disk to monitor
+     * @return the scsi disk once it is in a valid state
+     */
     private HostScsiDisk waitForValidState(HostScsiDisk disk) {
         logInfo("find.host.scsi.lun.esx.wait.valid", disk.getDeviceName(), host.getName());
         long startTime = System.currentTimeMillis();
@@ -88,12 +105,29 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             disk = getLunDisk();
             if (disk == null) {
                 diskNotFound();
+            } else if (isDiskOff(disk)) {
+                attachDisk(disk);
             }
         }
         if (!isValidState(disk)) {
             diskInvalid(disk);
         }
         return disk;
+    }
+
+    /**
+     * Returns true if the disk operational state is 'off'
+     * 
+     * @param disk the scsi disk
+     * @return true if the disk operational state is 'off', otherwise returns false
+     */
+    private boolean isDiskOff(HostScsiDisk disk) {
+        String[] state = disk.getOperationalState();
+        if (state == null || state.length == 0) {
+            return false;
+        }
+        String primaryState = state[0];
+        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
     private boolean isValidState(HostScsiDisk disk) {

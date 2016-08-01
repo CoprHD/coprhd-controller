@@ -192,7 +192,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return isFSExists;
     }
 
-
     /*
      * To get around the KH API delete file system async issues, using sync call for now.
      */
@@ -225,7 +224,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -884,9 +883,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 // Check for existing exports for the export path including subdirectory
                 ArrayList<ExportRule> exps = existingExportsMapped.get(exportPath);
                 if (exps != null && !exps.isEmpty()) {
-                    _logger.error("Adding export rules is not supported as there can be only one export rule for VNXe.");
+                    _logger.error("Adding export rules is not supported as there can be only one export rule for VNX Unity.");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("updateExportRules",
-                            "Adding export rule is not supported for VNXe");
+                            "Adding export rule is not supported for VNX unity");
                     return BiosCommandResult.createErrorResult(error);
                 }
             }
@@ -983,9 +982,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             VNXeCommandJob job = null;
             for (ExportRule rule : exportsToprocess) {
                 AccessEnum access = null;
-                List<String> roHosts = null;
-                List<String> rwHosts = null;
-                List<String> rootHosts = null;
+                List<String> roHosts = new ArrayList<String>();
+                List<String> rwHosts = new ArrayList<String>();
+                List<String> rootHosts = new ArrayList<String>();
                 String path = "/";
                 String subdirName = "";
                 String mountPathFs = args.getFsMountPath();
@@ -1010,23 +1009,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
                 if (rule.getReadWriteHosts() != null && !rule.getReadWriteHosts().isEmpty()) {
                     access = AccessEnum.READWRITE;
-                    if (rwHosts == null) {
-                        rwHosts = new ArrayList<String>();
-                    }
                     rwHosts.addAll(rule.getReadWriteHosts());
                 }
                 if (rule.getReadOnlyHosts() != null && !rule.getReadOnlyHosts().isEmpty()) {
                     access = AccessEnum.READ;
-                    if (roHosts == null) {
-                        roHosts = new ArrayList<String>();
-                    }
                     roHosts.addAll(rule.getReadOnlyHosts());
                 }
                 if (rule.getRootHosts() != null && !rule.getRootHosts().isEmpty()) {
                     access = AccessEnum.ROOT;
-                    if (rootHosts == null) {
-                        rootHosts = new ArrayList<String>();
-                    }
                     rootHosts.addAll(rule.getRootHosts());
                 }
 
@@ -1239,7 +1229,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         fsExport = new FileShareExport(exp);
                     }
                     String vnxeShareId = rule.getDeviceExportId();
-                    _logger.info("Delete IsilonExport id {} for path {}",
+                    _logger.info("Delete UnityExport id {} for path {}",
                             rule.getDeviceExportId(), rule.getExportPath());
                     if (isFile) {
                         String fsId = args.getFs().getNativeId();
@@ -1274,7 +1264,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         fsExport = new FileShareExport(exp);
                         if (fsExport != null) {
                             String vnxeShareId = fsExport.getIsilonId();
-                            _logger.info("Delete IsilonExport id {} for path {}",
+                            _logger.info("Delete UnityExport id {} for path {}",
                                     vnxeShareId, fsExport.getPath());
                             if (isFile) {
                                 String fsId = args.getFs().getNativeId();
@@ -1318,9 +1308,10 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         }
                     }
                     fsExport = new FileShareExport(exp);
+
                 }
                 for (ExportRule rule : allExports) {
-                    _logger.info("Delete IsilonExport id for path {} f containing subdirectory {}",
+                    _logger.info("Delete UnityExport id for path {} f containing subdirectory {}",
                             rule.getDeviceExportId() + ":" + rule.getExportPath(), subDir);
 
                     if (rule.getExportPath().equalsIgnoreCase(subDirExportPath)) {
@@ -1333,7 +1324,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         vnxeShareId = fsExport.getIsilonId();
                     }
                 }
-                _logger.info("Delete IsilonExport id {} for path {}",
+                _logger.info("Delete UnityExport id {} for path {}",
                         vnxeShareId, subDirExportPath);
 
                 if (isFile) {
@@ -1388,7 +1379,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         vnxeShareId = fsExport.getIsilonId();
                     }
                 }
-                _logger.info("Delete IsilonExport id {} for path {}",
+                _logger.info("Delete UnityExport id {} for path {}",
                         vnxeShareId, fsExport.getPath());
                 if (isFile) {
                     String fsId = args.getFs().getNativeId();
@@ -1607,43 +1598,43 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult updateShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update CIFS Share ACLs", "Unity"));
     }
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete CIFS Share ACLs", "Unity"));
     }
 
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
     }
 
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "Unity"));
     }
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy" , "Unity"));
     }
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported(" Add or Update NFS Share ACLs", "Unity"));
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "Unity"));
     }
 
 }

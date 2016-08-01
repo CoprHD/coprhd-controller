@@ -143,10 +143,16 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
         _deviceTypeMap.put(StorageSystem.Type.ceph.name(), "CEPH");
 
-        // add systems managed by driver
+        // add system types managed by driver
         Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();
         for (String storageSystem : storageSystems) {
             _deviceTypeMap.put(storageSystem, storageSystem);
+        }
+
+        // add provider types managed by driver
+        Collection<String> storageProviders = storageDriverManager.getStorageProvidersMap().values();
+        for (String storageProvider : storageProviders) {
+            _deviceTypeMap.put(storageProvider, storageProvider);
         }
     }
 

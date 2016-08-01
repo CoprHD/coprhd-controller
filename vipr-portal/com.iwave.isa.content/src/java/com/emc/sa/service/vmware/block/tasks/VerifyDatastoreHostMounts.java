@@ -13,9 +13,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;

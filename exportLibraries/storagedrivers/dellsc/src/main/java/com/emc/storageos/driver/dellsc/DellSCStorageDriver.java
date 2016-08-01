@@ -42,6 +42,7 @@ import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.Initiator.Protocol;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -51,6 +52,7 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
+import com.emc.storageos.storagedriver.model.VolumeMirror.SynchronizationState;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
@@ -628,6 +630,68 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
             List<StorageVolume> storageVolumes,
             MutableInt token) {
         return discoveryHelper.getStorageVolumes(storageSystem, storageVolumes, token);
+    }
+
+    /**
+     * Populates a StorageVolume instance with Storage Center volume data.
+     *
+     * @param api The API connection.
+     * @param volume The Storage Center volume.
+     * @param cgInfo Consistency group information or null.
+     * @return The StorageVolume.
+     * @throws StorageCenterAPIException
+     */
+    private StorageVolume getStorageVolumeFromScVolume(StorageCenterAPI api, ScVolume volume, Map<ScReplayProfile, List<String>> cgInfo)
+            throws StorageCenterAPIException {
+        ScVolumeStorageUsage storageUsage = api.getVolumeStorageUsage(volume.instanceId);
+
+        StorageVolume driverVol = new StorageVolume();
+        driverVol.setStorageSystemId(volume.scSerialNumber);
+        driverVol.setStoragePoolId(volume.storageType.instanceId);
+        driverVol.setNativeId(volume.instanceId);
+        driverVol.setThinlyProvisioned(true);
+        driverVol.setProvisionedCapacity(SizeUtil.sizeStrToBytes(volume.configuredSize));
+        driverVol.setAllocatedCapacity(SizeUtil.sizeStrToBytes(storageUsage.totalDiskSpace));
+        driverVol.setWwn(volume.deviceId);
+        driverVol.setDeviceLabel(volume.name);
+
+        // Check consistency group membership
+        if (cgInfo != null) {
+            for (ScReplayProfile cg : cgInfo.keySet()) {
+                if (cgInfo.get(cg).contains(volume.instanceId)) {
+                    // Found our volume in a consistency group
+                    driverVol.setConsistencyGroup(cg.instanceId);
+                    break;
+                }
+            }
+        }
+
+        return driverVol;
+    }
+
+    /**
+     * Gets consistency groups and volumes from a given Storage Center.
+     *
+     * @param api The API connection.
+     * @param ssn The Storage Center serial number.
+     * @return The consistency groups and their volumes.
+     */
+    private Map<ScReplayProfile, List<String>> getGCInfo(StorageCenterAPI api, String ssn) {
+        Map<ScReplayProfile, List<String>> result = new HashMap<>();
+        ScReplayProfile[] cgs = api.getConsistencyGroups(ssn);
+        for (ScReplayProfile cg : cgs) {
+            result.put(cg, new ArrayList<>());
+            try {
+                ScVolume[] vols = api.getReplayProfileVolumes(cg.instanceId);
+                for (ScVolume vol : vols) {
+                    result.get(cg).add(vol.instanceId);
+                }
+            } catch (StorageCenterAPIException e) {
+                LOG.warn(String.format("Error getting volumes for consistency group %s: %s", cg.instanceId, e));
+            }
+        }
+
+        return result;
     }
 
     @Override

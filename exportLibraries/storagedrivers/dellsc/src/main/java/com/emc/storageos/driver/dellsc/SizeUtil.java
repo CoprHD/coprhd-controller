@@ -69,4 +69,26 @@ public class SizeUtil {
 
         return bytes;
     }
+
+    /**
+     * Converts a speed string from the API to gigabits.
+     *
+     * @param speedStr The API speed string.
+     * @return The speed in gigabits.
+     */
+    public static Long speedStrToGigabits(String speedStr) {
+        if ("Unknown".equals(speedStr)) {
+            return 0L;
+        }
+
+        String[] parts = speedStr.split(" ");
+        Long gbits = new BigDecimal(parts[0]).longValue();
+        if (parts.length > 1) {
+            if ("Mbps".equals(parts[1])) {
+                gbits = gbits / KB;
+            }
+        }
+
+        return gbits;
+    }
 }

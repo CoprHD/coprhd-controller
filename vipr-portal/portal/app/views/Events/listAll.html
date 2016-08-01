@@ -70,9 +70,9 @@
         selectable: true
      }
    #{DataTable.buttonBar}
-    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'not-value':'approved'], submit:'approveForm'/}
-    #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'not-value':'declined'], submit:'declineForm'/}
-    #{Form.button name:'resources.events.deleteEvent', class:'danger', data:['enabled':'selected','property':'eventStatus', 'not-value':'deleted'], submit:'deleteForm'/}
+    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'approveForm'/}
+    #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'declineForm'/}
+    #{Form.button name:'resources.events.deleteEvent', class:'danger', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'deleteForm'/}
   #{/DataTable.buttonBar}
   #{/DataTable.table}
   #{DataTable.formAction @approveEvents(), id:'approveForm', table:'events',

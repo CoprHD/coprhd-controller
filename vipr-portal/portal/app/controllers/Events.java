@@ -41,8 +41,11 @@ import util.datatable.DataTablesSupport;
 public class Events extends Controller {
     private static final String UNKNOWN = "resources.event.unknown";
     private static final String DELETED = "resources.event.deleted";
+    private static final String DELETED_MULTIPLE = "resources.event.deleted.multiple";
     private static final String APPROVED = "resources.event.approved";
+    private static final String APPROVED_MUTLIPE = "resources.event.approved.multiple";
     private static final String DECLINED = "resources.event.declined";
+    private static final String DECLINED_MULTIPLE = "resources.event.declined.multiple";
 
     private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
         @Override
@@ -172,8 +175,8 @@ public class Events extends Controller {
         try{
             for(String eventId:ids) {
                 getViprClient().events().approve(uri(eventId));
-                flash.success(MessagesUtils.get(APPROVED, eventId));
             }
+            flash.success(MessagesUtils.get(APPROVED_MUTLIPE));
         } catch(Exception e) {
             flashException(e);
             listAll();
@@ -185,8 +188,8 @@ public class Events extends Controller {
         try{
             for(String eventId:ids) {
                 getViprClient().events().decline(uri(eventId));
-                flash.success(MessagesUtils.get(DECLINED, eventId));
             }
+            flash.success(MessagesUtils.get(DECLINED_MULTIPLE));
         } catch(Exception e) {
             flashException(e);
             listAll();
@@ -198,8 +201,8 @@ public class Events extends Controller {
         try{
             for(String eventId:ids) {
                 getViprClient().events().deactivate(uri(eventId));
-                flash.success(MessagesUtils.get(DELETED, eventId));
             }
+            flash.success(MessagesUtils.get(DELETED_MULTIPLE));
         } catch(Exception e) {
             flashException(e);
             listAll();

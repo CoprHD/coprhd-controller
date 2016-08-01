@@ -3454,11 +3454,11 @@ def mountlist_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of Project',
                                 required=True)
-    mount_parser.add_argument('-tenant', '-tn',
+    mountlist_parser.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
                                help='Name of tenant')
-    list_parser.set_defaults(func=mountNFS_list)
+    mountlist_parser.set_defaults(func=mountNFS_list)
 
 
 '''
@@ -3515,7 +3515,7 @@ def unmount_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of Project',
                                 required=True)
-    mount_parser.add_argument('-tenant', '-tn',
+    unmount_parser.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
                                help='Name of tenant')
@@ -3525,18 +3525,18 @@ def unmount_parser(subcommand_parsers, common_parser):
         metavar='<path>',
         dest='path',
         required=True)
-    mount_parser.add_argument('-synchronous', '-sync',
+    unmount_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Synchronous mount create',
                                action='store_true')
 
-    mount_parser.add_argument('-synctimeout', '-syncto',
+    unmount_parser.add_argument('-synctimeout', '-syncto',
                                help='sync timeout in seconds ',
                                dest='synctimeout',
                                default=0,
                                type=int)
 
-    mount_parser.set_defaults(func=mountNFS_unmount)
+    unmount_parser.set_defaults(func=mountNFS_unmount)
 
 
 

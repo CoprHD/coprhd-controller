@@ -164,7 +164,7 @@ public class StorageProviders extends ViprResourceController {
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
                         }
-                        if (StringUtils.equals(UNITY, ss.getSystemType()) || StringUtils.equals(VMAX, ss.getSystemType())) {
+                        if (StringUtils.equals(VMAX, ss.getSystemType())) {
                             String modelType = ss.getModel();
                             if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
                                 ssMap.put("id", ss.getId().toString());
@@ -172,11 +172,21 @@ public class StorageProviders extends ViprResourceController {
                                 storagesystemslist.add(ssMap);
                             }
                         }
+                        if (StringUtils.equals(UNITY, ss.getSystemType())) {
+                            //String modelType = ss.getModel();
+                            //if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
+                            storagesystemslist.add(ssMap);
+                            //}
+                        }
                     }
                 }
             } else {
                 StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(id);
+                Logger.info("Occurred");
                 if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                    Logger.info(ss.getId()+"-----"+ss.getSystemType());
                     Map<String, String> ssMap = new HashMap<String, String>();
                     // Check if storage system is of type UNITY, VMAX or XtremIO
                     if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
@@ -184,13 +194,21 @@ public class StorageProviders extends ViprResourceController {
                         ssMap.put("name", ss.getName());
                         storagesystemslist.add(ssMap);
                     }
-                    if (StringUtils.equals(UNITY, ss.getSystemType()) || StringUtils.equals(VMAX, ss.getSystemType())) {
+                    if (StringUtils.equals(VMAX, ss.getSystemType())) {
                         String modelType = ss.getModel();
                         if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
                             ssMap.put("id", ss.getId().toString());
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
                         }
+                    }
+                    if (StringUtils.equals(UNITY, ss.getSystemType())) {
+                        //String modelType = ss.getModel();
+                        //if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
+                            storagesystemslist.add(ssMap);
+                        //}
                     }
                 }
             }

@@ -173,12 +173,15 @@ public class VirtualArrays extends ViprResourceController {
 						if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 							ids.add(storageSystem.getId().toString());
 						}
-						if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
-							String modelType = storageSystem.getModel();
-							if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
-								ids.add(storageSystem.getId().toString());
-							}
-						}
+                        if (StringUtils.equals(VMAX, storageSystem.getSystemType())) {
+                            String modelType = storageSystem.getModel();
+                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                                ids.add(storageSystem.getId().toString());
+                            }
+                        }
+                        if (StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                            ids.add(storageSystem.getId().toString());
+                        }
 					}
 					else {
 						if(null == attachedStorageMaps.get(storageSystem.getId().toString())) {
@@ -186,13 +189,15 @@ public class VirtualArrays extends ViprResourceController {
 							if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 								ids.add(storageSystem.getId().toString());
 							}
-
-							if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
-								String modelType = storageSystem.getModel();
-								if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
-									ids.add(storageSystem.getId().toString());
-								}
-							}
+                            if (StringUtils.equals(VMAX, storageSystem.getSystemType())) {
+                                String modelType = storageSystem.getModel();
+                                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                                    ids.add(storageSystem.getId().toString());
+                                }
+                            }
+                            if (StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                                ids.add(storageSystem.getId().toString());
+                            }
 						}
 					}
 				}
@@ -219,13 +224,15 @@ public class VirtualArrays extends ViprResourceController {
 					if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 						ids.add(storageSystem.getId().toString());
 					}
-
-					if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
-						String modelType = storageSystem.getModel();
-						if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
-							ids.add(storageSystem.getId().toString());
-						}
-					}
+                    if (StringUtils.equals(VMAX, storageSystem.getSystemType())) {
+                        String modelType = storageSystem.getModel();
+                        if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            ids.add(storageSystem.getId().toString());
+                        }
+                    }
+                    if (StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                        ids.add(storageSystem.getId().toString());
+                    }
 				}
 
 				addStorageSysVarray(virtualArray.id, ids);
@@ -272,17 +279,25 @@ public class VirtualArrays extends ViprResourceController {
 
 							addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 						}
-						if (StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
-							String modelType = storageSystem.getModel();
-							if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
-								VirtualArrayForm virtualArray = new VirtualArrayForm();
-								virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
-								VirtualArrayRestRep varray = virtualArray.save();
-								virtualArray.load(varray);
+                        if (StringUtils.equals(VMAX, storageSystem.getSystemType())) {
+                            String modelType = storageSystem.getModel();
+                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                                VirtualArrayForm virtualArray = new VirtualArrayForm();
+                                virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
+                                VirtualArrayRestRep varray = virtualArray.save();
+                                virtualArray.load(varray);
                                 updateVarrayCookie(virtualArray.name);
-								addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
-							}
-						}
+                                addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
+                            }
+                        }
+                        if (StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                            VirtualArrayForm virtualArray = new VirtualArrayForm();
+                            virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
+                            VirtualArrayRestRep varray = virtualArray.save();
+                            virtualArray.load(varray);
+                            updateVarrayCookie(virtualArray.name);
+                            addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
+                        }
 					}
 				}
 			}

@@ -1646,7 +1646,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         finishChecking();
                     } else {
                         $scope.$parent.completedSteps = 6;
-                        checkStep(7);
+                        goToNextStep(true);
                     }
                 });
                 break;
@@ -1667,8 +1667,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         failedArray= [];
                         console.log(data);
                         if (data.data.length != 0) {
-                            failedArray=failedArray.concat(data.data)
-                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+failedArray;
+                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
                             finishChecking();
                         } else {
                             $scope.$parent.completedSteps = 7;
@@ -1682,9 +1681,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             case 8:
                 $http.get(routes.Projects_list()).then(function (data) {
                     if (data.data.aaData.length != 0) {
-
+                        $scope.$parent.completedSteps = 8;
                         goToNextStep(true);
-                        finishChecking();
                     } else {
                         finishChecking();
                     }
@@ -2124,11 +2122,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         }
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
-                        failedArray= [];
-                        console.log(data);
                         if (data.data.length != 0) {
-                            failedArray=failedArray.concat(data.data)
-                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+failedArray;
+                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
                             finishChecking();
                         } else {
                             $scope.$parent.completedSteps = 7;

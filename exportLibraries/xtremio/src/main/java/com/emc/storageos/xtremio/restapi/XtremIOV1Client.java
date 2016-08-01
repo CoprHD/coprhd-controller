@@ -40,6 +40,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
@@ -589,6 +590,12 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public void tagObject(String tagName, String entityType, String entityDetail, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("tagObject");
+    }
+
+    @Override
+    public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
+            String entityName, String... parameters) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOObjectPerformance");
     }
 
     @Override

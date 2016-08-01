@@ -20,6 +20,12 @@ package com.emc.storageos.driver.dellsc.scapi.objects;
  * IO ports on the Storage Center.
  */
 public class ScControllerPort extends ScObject {
+    public static final String ISCSI_TRANSPORT_TYPE = "Iscsi";
+    public static final String FC_TRANSPORT_TYPE = "FibreChannel";
+
+    public static final String PORT_STATUS_UP = "Up";
+    public static final String PORT_STATUS_DOWN = "Down";
+
     public String childStatus;
     public ScObject controller;
     public Boolean embedded;

@@ -16,20 +16,17 @@
  */
 package com.emc.storageos.driver.dellsc.scapi.objects;
 
+import java.util.Date;
+
 /**
- * Array controller port config settings.
+ * Storage usage information for a storage type.
  */
-public class ScControllerPortConfiguration extends ScObject {
-    public int bothCount;
-    public long controllerPortIndex;
-    public String description;
-    public String deviceName;
-    public long homeControllerIndex;
-    public int initiatorCount;
-    public int mapCount;
-    public long preferredControllerIndex;
-    public int slot;
-    public int slotPort;
-    public String speed;
-    public int targetCount;
+public class ScStorageTypeStorageUsage extends ScObject {
+    public String allocatedSpace;
+    public String diskSpaceSaveByCompression;
+    public String freeSpace;
+    public float percentCompressed;
+    public Date time;
+    public float uncompressedToCompressedPageRatio;
+    public String usedSpace;
 }

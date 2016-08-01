@@ -28,6 +28,7 @@ public class ScControllerPortIscsiConfiguration extends ScControllerPortConfigur
     public String chapSecret;
     public String ipAddress;
     public String macAddress;
+    public long portNumber;
     public String subnetMask;
     public int vlanId;
     public boolean vlanTagging;

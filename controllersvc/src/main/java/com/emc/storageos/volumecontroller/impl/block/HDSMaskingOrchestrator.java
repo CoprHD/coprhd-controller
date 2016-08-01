@@ -365,11 +365,22 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs =
                 device.findExportMasks(storage, portNames, false);
-        if (matchingExportMaskURIs.isEmpty()) {
-
+        boolean masksWithStoragePortFromVArrayFound = false;
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                storage.getId(), exportGroup.getVirtualArray(), _dbClient);
+        Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, matchingExportMaskURIs.values());
+        for (String maskURIStr : checkMasks) {
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
+                    URI.create(maskURIStr));
+            //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
+            if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, exportMask.getStoragePorts()).isEmpty())
+                continue;
+            else
+                masksWithStoragePortFromVArrayFound = true;
+        }
+        if (matchingExportMaskURIs.isEmpty() || !masksWithStoragePortFromVArrayFound) {
             _log.info(String.format("No existing mask found w/ initiators { %s }", Joiner.on(",")
                     .join(portNames)));
-
             createNewExportMaskWorkflowForInitiators(initiatorURIs, exportGroup, workflow, volumeMap, storage, token, previousStep);
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
@@ -401,6 +412,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("initiator %s masks {%s}", initiator.getInitiatorPort(),
                         Joiner.on(',').join(exportMaskURIs)));
                 for (ExportMask mask : masks) {
+                  //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
+                    if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, mask.getStoragePorts()).isEmpty())
+                        continue;
                     if (null == mask.getMaskName()) {
                         String maskName = ExportMaskUtils.getMaskName(_dbClient, initiators, exportGroup, storage);
                         _log.info("Generated mask name: {}", maskName);

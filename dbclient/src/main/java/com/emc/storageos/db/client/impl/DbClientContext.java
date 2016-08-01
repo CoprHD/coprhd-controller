@@ -101,6 +101,8 @@ public class DbClientContext {
     
     private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
     private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
+    private static final int CASSANDRA_GEODB_JMX_PORT = 7299;
+    private static final int CASSANDRA_DB_JMX_PORT = 7199;
     
     private Cluster cassandraCluster;
     private Session cassandraSession;
@@ -643,7 +645,7 @@ public class DbClientContext {
     
     private Set<String> getLiveNodes() {
         Set<Host> hosts = cassandraCluster.getMetadata().getAllHosts(); 
-        int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? 7199 : 7299;
+        int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? CASSANDRA_DB_JMX_PORT : CASSANDRA_GEODB_JMX_PORT;
         String urlFormat = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
         
         for (Host host : hosts) {

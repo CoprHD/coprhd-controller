@@ -4109,7 +4109,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits =
                 new StorageGroupPolicyLimitsParam(newPolicyName,
                         newVirtualPool.getHostIOLimitBandwidth(),
-                        newVirtualPool.getHostIOLimitIOPs(), storage);
+                newVirtualPool.getHostIOLimitIOPs(),
+                newVirtualPool.getCompressionEnabled(), storage);
 
         CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
                 childGroupName,
@@ -4290,6 +4291,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // we need to set policyUpdated = true else rollback kicks in
                 policyUpdated = true;
 
+                // Update the compression attributes if it needs to be
+                boolean newCompressionSetting = newVirtualPoolPolicyLimits.getCompression();
+                if (currentStorageGroupPolicyLimits.getCompression() != newCompressionSetting) {
+                    // If we are here, we are pretty up dealing with a VMAX3 and SMI-S 8.3 version or greater provider.
+                    CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
+                            _helper.getV3CompressionProperties(newCompressionSetting));
+                    _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                    _log.info("Modified Storage Group {} Compression setting to {}",
+                            childGroupName, newCompressionSetting);
+                } else {
+                    _log.info("Current and new compression values are same '{}'." +
+                            " No need to update it on Storage Group.", newCompressionSetting);
+                }
+
                 // update host io limits if need be
                 if (!HostIOLimitsParam.isEqualsLimit(currentStorageGroupPolicyLimits.getHostIOLimitBandwidth(),
                         newVirtualPoolPolicyLimits.getHostIOLimitBandwidth())) {
@@ -4366,6 +4381,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         if (newVirtualPoolPolicyLimits.isHostIOLimitIOPsSet()) {
                             _helper.updateHostIOLimitIOPs(client, newChildGroupPath, newVirtualPoolPolicyLimits.getHostIOLimitIOPs());
+                        }
+
+                        // Honor the compression settings if needed..
+                        if (!newVirtualPoolPolicyLimits.getCompression()) {
+                            // If the user opted out of compression, and the created SG has compression enabled by default,
+                            // we need to opt out..
+                            CIMInstance newChildGroupInstance = _helper.getInstance(storage, newChildGroupPath, false,
+                                    false, SmisConstants.PS_EMC_COMPRESSION);
+                            String emcCompression = CIMPropertyFactory.getPropertyValue(newChildGroupInstance,
+                                    SmisConstants.CP_EMC_COMPRESSION);
+                            if ((emcCompression != null) && emcCompression.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                                CIMInstance toUpdate = new CIMInstance(newChildGroupInstance.getObjectPath(),
+                                        _helper.getV3CompressionProperties(false));
+                                _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                            }
                         }
 
                         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);

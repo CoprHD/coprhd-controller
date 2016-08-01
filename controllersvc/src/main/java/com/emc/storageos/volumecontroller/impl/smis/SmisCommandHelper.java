@@ -1609,6 +1609,12 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
+    public CIMProperty[] getV3CompressionProperties(boolean compression) {
+        return new CIMProperty[] {
+                _cimProperty.bool(CP_EMC_COMPRESSION, compression)
+        };
+    }
+
     public CIMArgument[] getCascadedStorageGroupInputArguments(StorageSystem storageDevice, String groupName,
             CIMObjectPath[] storageGroupPaths) {
         return new CIMArgument[] {
@@ -3738,7 +3744,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             StorageGroupPolicyLimitsParam storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(policyName,
-                    hostIOLimitBandwidth, hostIOLimitIOPs, storage);
+                    hostIOLimitBandwidth, hostIOLimitIOPs, storage); // HY TODO: Does the compression attribute matter here
             if (volumeGroup.get(storageGroupPolicyLimitsParam) == null) {
                 volumeGroup.put(storageGroupPolicyLimitsParam, new ArrayList<URI>());
             }
@@ -6258,11 +6264,8 @@ public class SmisCommandHelper implements SmisConstants {
                     CP_FAST_SETTING),
                     hostIOLimitBandwidth,
                     hostIOLimitIOPs, storage);
-            if ((emcCompression != null) && StringUtils.isNotEmpty(emcCompression)) {
-                storageGroupPolicyLimitsParam.setCompression(Boolean.parseBoolean(emcCompression));
-            }
-            
-
+            storageGroupPolicyLimitsParam
+                    .setCompression((emcCompression != null) ? emcCompression.equalsIgnoreCase(Boolean.TRUE.toString()) : false);
         } else {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage,
                     groupInstance.getObjectPath()),

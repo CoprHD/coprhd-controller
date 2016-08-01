@@ -40,8 +40,6 @@ import util.datatable.DataTablesSupport;
 @With(Common.class)
 public class Events extends Controller {
     private static final String UNKNOWN = "resources.event.unknown";
-    private static final String DELETED = "resources.event.deleted";
-    private static final String DELETED_MULTIPLE = "resources.event.deleted.multiple";
     private static final String APPROVED = "resources.event.approved";
     private static final String APPROVED_MUTLIPE = "resources.event.approved.multiple";
     private static final String DECLINED = "resources.event.declined";
@@ -163,14 +161,6 @@ public class Events extends Controller {
         return eventSummaries;
     }
 
-    public static void deleteEvent(String eventId) {
-        if (StringUtils.isNotBlank(eventId)) {
-            getViprClient().events().deactivate(uri(eventId));
-            flash.success(MessagesUtils.get(DELETED, eventId));
-        }
-        listAll();
-    }
-
     public static void approveEvents(@As(",") String[] ids) {
         try{
             for(String eventId:ids) {
@@ -190,19 +180,6 @@ public class Events extends Controller {
                 getViprClient().events().decline(uri(eventId));
             }
             flash.success(MessagesUtils.get(DECLINED_MULTIPLE));
-        } catch(Exception e) {
-            flashException(e);
-            listAll();
-        }
-        listAll();
-    }
-    
-    public static void deleteEvents(@As(",") String[] ids) {
-        try{
-            for(String eventId:ids) {
-                getViprClient().events().deactivate(uri(eventId));
-            }
-            flash.success(MessagesUtils.get(DELETED_MULTIPLE));
         } catch(Exception e) {
             flashException(e);
             listAll();

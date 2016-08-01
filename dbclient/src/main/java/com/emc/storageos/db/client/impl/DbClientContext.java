@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -540,16 +541,18 @@ public class DbClientContext {
     public Map<String, List<String>> getSchemaVersions() {
         Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            List<String> unreachableNodes = getUnreachableNodes();
-            versions.put(StorageProxy.UNREACHABLE, new LinkedList<String>(unreachableNodes));
-            log.info("Unreachable nodes:" + unreachableNodes);
+            Set<String> liveNodes = getLiveNodes();
+            versions.put(StorageProxy.UNREACHABLE, new LinkedList<String>());
+            log.info("Live nodes:" + liveNodes);
             
             ResultSet result = cassandraSession.execute("select * from system.peers");
             for (Row row : result) {
                 String hostAddress = row.getInet("rpc_address").getHostAddress();
-                if (!unreachableNodes.contains(hostAddress)) {
+                if (liveNodes.contains(hostAddress)) {
                     versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
                     versions.get(row.getUUID("schema_version").toString()).add(hostAddress);
+                } else {
+                    versions.get(StorageProxy.UNREACHABLE).add(hostAddress);
                 }
             }
             
@@ -638,7 +641,7 @@ public class DbClientContext {
         this.writeConsistencyLevel = writeConsistencyLevel;
     }
     
-    private List<String> getUnreachableNodes() {
+    private Set<String> getLiveNodes() {
         Set<Host> hosts = cassandraCluster.getMetadata().getAllHosts(); 
         int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? 7199 : 7299;
         String urlFormat = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
@@ -654,12 +657,12 @@ public class DbClientContext {
                     (StorageServiceMBean) MBeanServerInvocationHandler.newProxyInstance(
                         mbeanServerConnection, mbeanName, StorageServiceMBean.class, true);
                 
-                return mbeanProxy.getUnreachableNodes();
+                return new HashSet<String>(mbeanProxy.getLiveNodes());
             } catch (Exception e) {
-                log.error("Failed to get unreachable nodes with error {}", e);
+                log.warn("Failed to get unreachable nodes with error {}", e);
             }
         }
         
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 }

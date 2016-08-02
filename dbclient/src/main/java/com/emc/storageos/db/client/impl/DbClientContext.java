@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +103,8 @@ public class DbClientContext {
     
     private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
     private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
+    private static final int CASSANDRA_GEODB_JMX_PORT = 7299;
+    private static final int CASSANDRA_DB_JMX_PORT = 7199;
     
     private Cluster cassandraCluster;
     private Session cassandraSession;
@@ -544,16 +547,18 @@ public class DbClientContext {
     public Map<String, List<String>> getSchemaVersions() {
         Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            List<String> unreachableNodes = getUnreachableNodes();
-            versions.put(StorageProxy.UNREACHABLE, new LinkedList<String>(unreachableNodes));
-            log.info("Unreachable nodes:" + unreachableNodes);
+            Set<String> liveNodes = getLiveNodes();
+            versions.put(StorageProxy.UNREACHABLE, new LinkedList<String>());
+            log.info("Live nodes:" + liveNodes);
             
             ResultSet result = cassandraSession.execute("select * from system.peers");
             for (Row row : result) {
                 String hostAddress = row.getInet("rpc_address").getHostAddress();
-                if (!unreachableNodes.contains(hostAddress)) {
+                if (liveNodes.contains(hostAddress)) {
                     versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
                     versions.get(row.getUUID("schema_version").toString()).add(hostAddress);
+                } else {
+                    versions.get(StorageProxy.UNREACHABLE).add(hostAddress);
                 }
             }
             
@@ -642,9 +647,9 @@ public class DbClientContext {
         this.writeConsistencyLevel = writeConsistencyLevel;
     }
     
-    private List<String> getUnreachableNodes() {
+    private Set<String> getLiveNodes() {
         Set<Host> hosts = cassandraCluster.getMetadata().getAllHosts(); 
-        int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? 7199 : 7299;
+        int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? CASSANDRA_DB_JMX_PORT : CASSANDRA_GEODB_JMX_PORT;
         String urlFormat = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
         
         for (Host host : hosts) {
@@ -658,12 +663,12 @@ public class DbClientContext {
                     (StorageServiceMBean) MBeanServerInvocationHandler.newProxyInstance(
                         mbeanServerConnection, mbeanName, StorageServiceMBean.class, true);
                 
-                return mbeanProxy.getUnreachableNodes();
+                return new HashSet<String>(mbeanProxy.getLiveNodes());
             } catch (Exception e) {
-                log.error("Failed to get unreachable nodes with error {}", e);
+                log.warn("Failed to get unreachable nodes with error {}", e);
             }
         }
         
-        return Collections.emptyList();
+        return Collections.emptySet();
     }
 }

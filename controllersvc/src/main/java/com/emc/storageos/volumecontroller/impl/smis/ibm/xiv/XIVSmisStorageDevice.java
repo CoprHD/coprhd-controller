@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1199,44 +1200,54 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
-        Map<URI, List<Integer>> hostToHLUMap = new HashMap<URI, List<Integer>>();
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException {
+        Map<URI, List<Integer>> initiatorToHLUMap = new HashMap<URI, List<Integer>>();
 
-        for (URI hostURI : hostURIs) {
-            List<Integer> hostHLUs = new ArrayList<Integer>();
-            hostToHLUMap.put(hostURI, hostHLUs);
-            Host host = _dbClient.queryObject(Host.class, hostURI);
-            String label = host.getLabel();
+        for (URI initiatorURI : initiatorURIs) {
+            List<Integer> initiatorHLUs = new ArrayList<Integer>();
+            initiatorToHLUMap.put(initiatorURI, initiatorHLUs);
+            Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+            final String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
+            CloseableIterator<CIMInstance> scsiPCInstances = null;
+            CloseableIterator<CIMInstance> pcforseunitInstances = null;
 
-            String query = String.format("Select * From %s Where ElementName=\"%s\"", "IBMTSDS_SCSIProtocolController", label);
-            CIMObjectPath pcHostPath = CimObjectPathCreator.createInstance("IBMTSDS_SCSIProtocolController", Constants.IBM_NAMESPACE, null);
-            List<CIMInstance> pcInstancesForHost = _helper.executeQuery(storage, pcHostPath, query, "WQL");
-
-            if (!pcInstancesForHost.isEmpty()) {
-                CIMObjectPath specificCollectionPath = pcInstancesForHost.get(0).getObjectPath();
-
-                CloseableIterator<CIMInstance> seForPCItr = null;
-                try {
-                    seForPCItr = _helper.getReferenceInstances(storage, specificCollectionPath, "IBMTSDS_ProtocolControllerForSEUnit", null,
-                            new String[] { "DeviceNumber" });
-
-                    while (seForPCItr.hasNext()) {
-                        CIMInstance instance = seForPCItr.next();
-                        final String deviceNumber = CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber");
-                        if(null != deviceNumber && !deviceNumber.isEmpty()){
-                        	hostHLUs.add(Integer.parseInt(deviceNumber));
+            try {
+                String query = String.format("Select * From %s Where ElementName=\"%s\"", IBMSmisConstants.CP_STORAGE_HARDWARE_ID,
+                		normalizedPortName);
+                CIMObjectPath pcHwdIDPath = CimObjectPathCreator.createInstance(IBMSmisConstants.CP_STORAGE_HARDWARE_ID,
+                        Constants.IBM_NAMESPACE, null);
+                List<CIMInstance> hwidInstances = _helper.executeQuery(storage, pcHwdIDPath, query, "WQL");
+                if (null != hwidInstances && !hwidInstances.isEmpty()) {
+                    CIMObjectPath hwidObjectPath = hwidInstances.get(0).getObjectPath();
+                    scsiPCInstances = _helper.getAssociatorInstances(storage, hwidObjectPath, null,
+                            IBMSmisConstants.CP_SCSI_PROTOCOL_CONTROLLER, IBMSmisConstants.CP_COLLECTION, IBMSmisConstants.CP_MEMBER,
+                            SmisConstants.PS_ELEMENT_NAME);
+                    while (null != scsiPCInstances && scsiPCInstances.hasNext()) {
+                        CIMInstance scsiPCInstance = scsiPCInstances.next();
+                        CIMObjectPath scsiPCObjectPath = scsiPCInstance.getObjectPath();
+                        pcforseunitInstances = _helper.getReferenceInstances(storage, scsiPCObjectPath,
+                                IBMSmisConstants.CP_PROTOCOLCONTROLLER_FOR_SEUNIT, null, new String[] { IBMSmisConstants.DEVICE_NUMBER });
+                        while (null != pcforseunitInstances && pcforseunitInstances.hasNext()) {
+                            CIMInstance instance = pcforseunitInstances.next();
+                            final String deviceNumber = CIMPropertyFactory.getPropertyValue(instance, IBMSmisConstants.DEVICE_NUMBER);
+                            if (null != deviceNumber && !deviceNumber.isEmpty()) {
+                                initiatorHLUs.add(Integer.parseInt(deviceNumber));
+                            }
                         }
+                        _log.info("HLU list for Initiator Port {} : {}", normalizedPortName, initiatorHLUs);
                     }
-                    _log.info("HLU list for Host {} : {}", label, hostHLUs);
-                } catch (WBEMException e) {
-                    DeviceControllerException.exceptions.smis.hluRetrivalfailed("Error occured during retrieval of HLUs for a Host", e);
-                } finally {
-                    if (seForPCItr != null) {
-                        seForPCItr.close();
-                    }
+                }
+            } catch (WBEMException e) {
+                DeviceControllerException.exceptions.smis.hluRetrivalfailed("Error occured during retrieval of HLUs for a Host", e);
+            } finally {
+                if (scsiPCInstances != null) {
+                    scsiPCInstances.close();
+                }
+                if (pcforseunitInstances != null) {
+                    pcforseunitInstances.close();
                 }
             }
         }
-        return hostToHLUMap;
+        return initiatorToHLUMap;
     }
 }

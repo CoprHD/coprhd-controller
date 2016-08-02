@@ -240,11 +240,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} Ceph: doExportGroupDelete START ...", storage.getSerialNumber());
-        /*
-         * TODO DUPP:
-         * 1. Get the volumes and initiators from the caller and not from the export mask
-         * 2. send down to the unmapVolumes call.
-         */
         List<URI> volumeURIs2 = ExportMaskUtils.getVolumeURIs(exportMask);
         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         filterInitiators(initiators);
@@ -257,11 +252,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} Ceph: doExportAddVolumes START ...", storage.getSerialNumber());
-        /*
-         * TODO DUPP:
-         * 1. initiators from the caller and not from the export mask
-         * 2. send down to the unmapVolumes call.
-         */
         Set<Initiator> initiators2 = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         filterInitiators(initiators2);
         mapVolumes(storage, volumeMap, initiators2, taskCompleter);
@@ -274,11 +264,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} Ceph doExportRemoveVolumes START ...", storage.getSerialNumber());
-        /*
-         * TODO DUPP:
-         * 1. initiators from the caller and not from the export mask
-         * 2. send down to the unmapVolumes call.
-         */
         Set<Initiator> initiators2 = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         filterInitiators(initiators2);
         unmapVolumes(storage, volumeURIs, initiators2, taskCompleter);
@@ -289,11 +274,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, List<Initiator> initiators,
             TaskCompleter taskCompleter)
                     throws DeviceControllerException {
-        /*
-         * TODO DUPP:
-         * 1. get caller to send down list of initiators affected
-         * 2. send down to the unmapVolumes call, write validation
-         */
         Map<URI, Integer> volumes = new HashMap<>();
         volumes.put(volume, lun);
         doExportAddVolumes(storage, exportMask, initiators, volumes, taskCompleter);
@@ -303,11 +283,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, List<Initiator> initiators,
             TaskCompleter taskCompleter)
                     throws DeviceControllerException {
-        /*
-         * TODO DUPP:
-         * 1. get caller to send down list of initiators affected
-         * 2. send down to the unmapVolumes call, write validation
-         */
         doExportRemoveVolumes(storage, exportMask, asList(volume), initiators, taskCompleter);
     }
 
@@ -315,11 +290,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, List<Initiator> initiators,
             List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        /*
-         * TODO DUPP:
-         * 1. get caller to send down list of initiators affected
-         * 2. send down to the mapVolumes call, write validation
-         */
         _log.info("{} Ceph doExportAddInitiators START ...", storage.getSerialNumber());
         Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
         mapVolumes(storage, volumes, initiators, taskCompleter);
@@ -330,11 +300,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, List<Initiator> initiators,
             List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        /*
-         * TODO DUPP:
-         * 1. get caller to send down list of volumes affected
-         * 2. send down to the unmapVolumes call, write validation
-         */
         _log.info("{} Ceph doExportRemoveInitiators START ...", storage.getSerialNumber());
         List<URI> volumeURIs2 = ExportMaskUtils.getVolumeURIs(exportMask);
         unmapVolumes(storage, volumeURIs2, initiators, taskCompleter);
@@ -345,11 +310,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
             List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        /*
-         * TODO DUPP:
-         * 1. get caller to send down list of volumes affected
-         * 2. send down to the call and perform validation
-         */
         doExportAddInitiators(storage, exportMask, volumeURIs, asList(initiator), targets, taskCompleter);
     }
 
@@ -357,11 +317,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
             List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        /*
-         * TODO DUPP:
-         * 1. get caller to send down list of volumes affected
-         * 2. send down to the call and perform validation
-         */
         doExportRemoveInitiators(storage, exportMask, volumeURIs, asList(initiator), targets, taskCompleter);
     }
 

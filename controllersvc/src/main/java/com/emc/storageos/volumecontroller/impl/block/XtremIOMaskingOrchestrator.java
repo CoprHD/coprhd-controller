@@ -182,7 +182,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
                         "exportGroupAddVolumes - Added volumes to existing mask", true,
-                        token, null);
+                        token);
                 // For each export mask in export group, invoke add Volumes if export Mask belongs to the same storage Array
                 List<ExportMask> masks = new ArrayList<ExportMask>();
                 for (ExportMask exportMask : exportMasks) {
@@ -222,7 +222,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     // Group Initiators by compute and invoke create Mask
                     Workflow workflow = _workflowService.getNewWorkflow(
                             MaskingWorkflowEntryPoints.getInstance(),
-                            "exportGroupAddVolumes - Create a new mask", true, token, null);
+                            "exportGroupAddVolumes - Create a new mask", true, token);
                     List<URI> exportMasksToZoneCreate = new ArrayList<URI>();
                     Map<URI, Integer> volumesToZoneCreate = new HashMap<URI, Integer>();
                     Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
@@ -288,7 +288,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true,
-                        token, null);
+                        token);
                 List<ExportMask> exportMaskstoDelete = new ArrayList<ExportMask>();
                 List<ExportMask> exportMaskstoRemoveVolume = new ArrayList<ExportMask>();
                 String previousStep = null;
@@ -380,7 +380,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 log.info("Creating AddInitiators workFlow");
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddInitiators", true, token, null);
+                        "exportGroupAddInitiators", true, token);
 
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils
@@ -454,7 +454,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // No existing export masks available inexport Group
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
-                        true, token, null);
+                        true, token);
 
                 List<URI> exportMasksToZoneCreate = new ArrayList<URI>();
                 Map<URI, Integer> volumesToZoneCreate = new HashMap<URI, Integer>();
@@ -532,7 +532,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddInitiators", true, token, null);
+                        "exportGroupAddInitiators", true, token);
 
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils
@@ -661,7 +661,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true,
-                    token, null);
+                    token);
 
             String previousStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
 

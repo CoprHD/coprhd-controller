@@ -17,37 +17,6 @@
 #
 #set -x
 
-## Convenience method for deleting a mask outside of ViPR
-delete_mask() {
-    serial_number=$1
-    sid=${serial_number: -3}
-    pattern=$2
-
-    echo "delete_mask for VNX not supported yet"
-    return -1
-
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern}_${sid}
-    if [ $? -ne 0 ]; then
-	echo "no mask found."
-    fi
-
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -v | grep ${pattern}_${sid}
-    if [ $? -ne 0 ]; then
-	echo "SG not found for ${pattern}_${sid}"
-    else
-	sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${pattern} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-
-        # Remove the volume from the storage group it is in
-	dev_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage show ${sg_long_id} | grep Devices | awk -F: '{print $2}'`
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name ${sg_long_id} remove dev ${dev_id}
-	
-	# Put it back into the optimized SG?
-
-	# Delete storage group
-	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage
-    fi
-}
-
 # Get the storage group full name, given a pattern
 get_sg_name() {
     VNX_SP_IP=$1
@@ -167,18 +136,18 @@ remove_initiator_from_mask() {
 }
 
 create_storage_group() {
-    VNX_SP_IP=$1
-    device_id=$(echo $2 | sed 's/^0*//')
-    pwwn=$(echo $3 | awk '{print substr($0,1,2),":",substr($0,3,2),":",substr($0,5,2),":",substr($0,7,2),":",substr($0,9,2),":",substr($0,11,2),":",substr($0,13,2),":",substr($0,15,2)}' | sed 's/ //g')
-    sgname=$4
+    SID=$1
+    VNX_SP_IP=$2
+    device_id=$3
+    sgname=$5
 
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -create -gname ${sgname} > /tmp/navisechelper.out
 
     # Add the volume
-    add_volume_to_mask ${VNX_SP_IP} ${device_id} ${sgname}
+    add_volume_to_mask ${SID} ${VNX_SP_IP} ${device_id} ${sgname}
 
     # Add the initiator
-    add_initiator_to_mask ${VNX_SP_IP} $3 ${sgname}
+    add_initiator_to_mask ${SID} ${VNX_SP_IP} $4 ${sgname}
 }
 
 delete_storage_group() {
@@ -203,7 +172,7 @@ delete_storage_group() {
 delete_volume() {
     VNX_SP_IP=$1
     device_id=$(echo $2 | sed 's/^0*//')
-    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP -o lun -destroy -l ${device_id} > /tmp/navisechelper.out
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP lun -destroy -l ${device_id} > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to delete the LUN"
     fi
@@ -349,7 +318,7 @@ verify_export_via_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_jar="${DIR}/preExistingConfig.jar"
 
-    if [ ! -f preExistingConfig.properties ]; then
+    if [ ! -f ${DIR}/preExistingConfig.properties ]; then
 	echo "Missing preExistingConfg.properties.  dutests should generate this for you"
 	exit 1
     fi
@@ -410,13 +379,10 @@ elif [ "$1" = "delete_volume" ]; then
     delete_volume $1 $2
 elif [ "$1" = "delete_mask" ]; then
     shift
-    delete_mask $1 $2
+    delete_storage_group $1 $2
 elif [ "$1" = "create_export_mask" ]; then
     shift
-    create_storage_group $1 $2 $3 $4
-elif [ "$1" = "delete_export_mask" ]; then
-    shift
-    delete_storage_group $1 $2
+    create_storage_group $1 $2 $3 $4 $5
 elif [ "$1" = "verify_export" ]; then
     shift
     verify_export $*

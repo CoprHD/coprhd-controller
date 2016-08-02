@@ -466,24 +466,15 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             // If so, delete the ExportMask.
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
-                device.doExportDelete(array, exportMask, null, null, completer);
+                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
-                // TODO DUPP:
-                // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
-                // send down here. (then remove the log)
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                     initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-                } else {
-                    _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
                 }
                 device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
-        } catch (
-
-        Exception ex)
-
-        {
+        } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);

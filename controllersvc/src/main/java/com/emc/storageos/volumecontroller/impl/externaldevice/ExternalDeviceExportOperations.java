@@ -20,12 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -33,13 +29,9 @@ import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -49,8 +41,6 @@ import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -59,9 +49,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.google.common.base.Joiner;
@@ -131,17 +119,16 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap = new HashMap<>();
             preparePorts(storage, exportMaskUri, targetURIList, recommendedPorts, availablePorts, nativeIdToAvailablePortMap);
 
-            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
-                    volumeUris, exportGroup.getNumPaths(), storage.getId(), exportGroupUri);
+            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(volumeUris, exportGroup.getNumPaths(),
+                    storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
             // Prepare num paths to send to driver
             prepareCapabilities(pathParams, capabilities);
             MutableBoolean usedRecommendedPorts = new MutableBoolean(true);
 
             // Ready to call driver
-            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap,
-                    recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
-                    selectedPorts);
+            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap, recommendedPorts,
+                    availablePorts, capabilities, usedRecommendedPorts, selectedPorts);
 
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -149,8 +136,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 // Otherwise, if driver did not use recommended ports, we have to get ports selected by driver
                 // and use them in export mask and zones.
                 // We will verify driver selected ports against available ports list.
-                String msg = String.format("createExportMask -- Created export: %s . Used recommended ports: %s .",
-                        task.getMessage(), usedRecommendedPorts);
+                String msg = String.format("createExportMask -- Created export: %s . Used recommended ports: %s .", task.getMessage(),
+                        usedRecommendedPorts);
                 log.info(msg);
                 if (usedRecommendedPorts.isFalse()) {
                     // process driver selected ports
@@ -207,16 +194,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskUri, List<URI> volumeUrisList, List<URI> targetUris,
-            List<com.emc.storageos.db.client.model.Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            List<com.emc.storageos.db.client.model.Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
 
         // Unexport export mask volumes from export mask initiators.
         log.info("{} deleteExportMask START...", storage.getSerialNumber());
         try {
             log.info("deleteExportMask: Export mask id: {}", exportMaskUri);
-            // TODO DUPP:
-            // 1. Get the volume, targets, and initiators from the caller
-            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
             if (volumeUrisList != null) {
                 log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeUrisList));
             }
@@ -255,8 +238,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Prepare initiators
             List<Initiator> driverInitiators = new ArrayList<>();
-            Set<com.emc.storageos.db.client.model.Initiator>  maskInitiators =
-                    ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+            Set<com.emc.storageos.db.client.model.Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient,
+                    exportMask, null);
             // Get export group uri from task completer
             URI exportGroupUri = taskCompleter.getId();
             ExportGroup exportGroup = (ExportGroup) dbClient.queryObject(exportGroupUri);
@@ -296,9 +279,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         try {
             log.info("addInitiators: Export mask id: {}", exportMaskUri);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. Log any other volumes that are being exposed to the initiator
             if (volumeURIs != null) {
                 log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
             }
@@ -332,8 +312,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap = new HashMap<>();
             preparePorts(storage, exportMaskUri, targetURIList, recommendedPorts, availablePorts, nativeIdToAvailablePortMap);
 
-            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
-                    volumeUris, exportGroup.getNumPaths(), storage.getId(), exportGroupUri);
+            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(volumeUris, exportGroup.getNumPaths(),
+                    storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
             // Prepare num paths to send to driver
             prepareCapabilitiesForAddInitiators(pathParams, exportMask.getZoningMap(), exportGroup.getVirtualArray(), initiatorList,
@@ -341,9 +321,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             MutableBoolean usedRecommendedPorts = new MutableBoolean(true);
 
             // Ready to call driver
-            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap,
-                    recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
-                    selectedPorts);
+            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap, recommendedPorts,
+                    availablePorts, capabilities, usedRecommendedPorts, selectedPorts);
 
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -351,8 +330,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 // Otherwise, if driver did not use recommended ports, we have to get ports selected by driver
                 // and use them in export mask and zones.
                 // We will verify driver selected ports against available ports list.
-                String msg = String.format("addInitiators -- Added initiators: %s . Used recommended ports: %s .",
-                        task.getMessage(), usedRecommendedPorts);
+                String msg = String.format("addInitiators -- Added initiators: %s . Used recommended ports: %s .", task.getMessage(),
+                        usedRecommendedPorts);
                 log.info(msg);
                 if (usedRecommendedPorts.isFalse()) {
                     // process driver selected ports
@@ -365,8 +344,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                             selectedPortsForMask.add(port);
                         }
                         updateStoragePortsForAddInitiators((ExportMaskAddInitiatorCompleter) taskCompleter, storage, exportMask,
-                                initiatorList,
-                                selectedPortsForMask, varrayUri, pathParams);
+                                initiatorList, selectedPortsForMask, varrayUri, pathParams);
                         taskCompleter.ready(dbClient);
                     } else {
                         // selected ports are not valid. failure
@@ -404,9 +382,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         try {
             log.info("removeInitiators: Export mask id: {}", exportMaskUri);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. If any other volumes are impacted by removing this initiator, fail the operation
             if (volumeURIList != null) {
                 log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
             }
@@ -456,16 +431,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public void addVolumes(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs,
-            List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} addVolumes START...", storage.getSerialNumber());
 
         try {
             log.info("addVolumes: Export mask id: {}", exportMaskUri);
             log.info("addVolumes: New volumes to add: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
-            // TODO DUPP:
-            // 1. This code is deriving the initiators directly from the ExportMask. It should be getting the list from
-            // the orchestrator.
             if (initiatorList != null) {
                 log.info("addVolumes: initiators: {}", Joiner.on(',').join(initiatorList));
             }
@@ -521,16 +492,15 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             // Only ports in the mask are available for driver call.
             availablePorts = recommendedPorts;
 
-            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
-                    volumeUris, exportGroup.getNumPaths(), storage.getId(), exportGroupUri);
+            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(volumeUris, exportGroup.getNumPaths(),
+                    storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
             // Prepare num paths to send to driver
             prepareCapabilities(pathParams, capabilities);
             MutableBoolean usedRecommendedPorts = new MutableBoolean(true);
             // Ready to call driver
-            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap,
-                    recommendedPorts, availablePorts, capabilities, usedRecommendedPorts,
-                    selectedPorts);
+            DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap, recommendedPorts,
+                    availablePorts, capabilities, usedRecommendedPorts, selectedPorts);
 
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -538,8 +508,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 // Otherwise, we return error. The case when driver uses different ports than those which are already in
                 // the mask, are not supported for add volumes.
                 // We will verify driver selected ports against recommended ports list.
-                String msg = String.format("Created export: %s . Used recommended ports: %s .",
-                        task.getMessage(), usedRecommendedPorts);
+                String msg = String.format("Created export: %s . Used recommended ports: %s .", task.getMessage(), usedRecommendedPorts);
                 log.info(msg);
                 if (usedRecommendedPorts.isFalse()) {
                     String errorMsg = String.format("Change of storage ports in the mask for addVolume() call is not supported: %s .",
@@ -577,22 +546,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public void removeVolumes(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris,
-            List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} removeVolumes START...", storage.getSerialNumber());
 
         try {
             log.info("removeVolumes: Export mask id: {}", exportMaskUri);
             log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeUris));
-            // TODO DUPP:
-            // 1. This implementation is pulling the initiators directly out of the export mask because the caller to
-            // detach
-            // the volumes needs this information. This might be OK to do separately than verifying the initiators that
-            // are
-            // impacted from the orchestrator, although it is likely they will be the same list.
-            // 2. The goal of sending down the initiators is for the storage controller to verify when we remove volumes
-            // that
-            // it ONLY impacts the initiators we expect/require/request, otherwise fail.
             if (initiatorList != null) {
                 log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
@@ -600,8 +559,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask) dbClient.queryObject(exportMaskUri);
 
-            // TODO DUPP Evgeny: Is there no concept of user added initiators with SB?
-            // If you did this with VMAX/VNX, you'd get initiators that ViPR didn't add.
             StringSet maskInitiators = exportMask.getInitiators();
 
             List<String> maskInitiatorList = new ArrayList<>();
@@ -647,8 +604,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         // not supported. There are no common masking concepts. So, return null.
         return null;
     }
@@ -761,9 +717,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         }
     }
 
-    private void preparePorts(StorageSystem storage, URI exportMaskUri, List<URI> targetURIList,
-            List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-            Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap) {
+    private void preparePorts(StorageSystem storage, URI exportMaskUri, List<URI> targetURIList, List<StoragePort> recommendedPorts,
+            List<StoragePort> availablePorts, Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap) {
 
         Iterator<com.emc.storageos.db.client.model.StoragePort> ports = dbClient
                 .queryIterativeObjects(com.emc.storageos.db.client.model.StoragePort.class, targetURIList);
@@ -783,8 +738,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             } else {
                 // This is error condition. Each port for driver managed systems should have nativeId set at
                 // discovery time.
-                String errorMsg = String.format("No nativeId defined for port: storage system: %s, storagePort: %s .",
-                        storage.getId(), port.getId());
+                String errorMsg = String.format("No nativeId defined for port: storage system: %s, storagePort: %s .", storage.getId(),
+                        port.getId());
                 log.error(errorMsg);
                 throw ExternalDeviceException.exceptions.noNativeIdDefinedForPort(storage.getNativeId(), port.getId().toString());
             }
@@ -851,13 +806,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
      *            URI of the virtual array
      * @return list of storage ports of storage system which belong to virtual array
      */
-    private List<com.emc.storageos.db.client.model.StoragePort> getStorageSystemVarrayStoragePorts(
-            StorageSystem storage, URI varrayURI) {
+    private List<com.emc.storageos.db.client.model.StoragePort> getStorageSystemVarrayStoragePorts(StorageSystem storage, URI varrayURI) {
         log.debug("START - getStorageSystemVarrayStoragePorts");
         // Get the list of storage ports of a storage system which are in a given varray
         Map<URI, List<com.emc.storageos.db.client.model.StoragePort>> networkUriVsStoragePorts = ConnectivityUtil
-                .getStoragePortsOfTypeAndVArray(dbClient, storage.getId(),
-                        com.emc.storageos.db.client.model.StoragePort.PortType.frontend, varrayURI);
+                .getStoragePortsOfTypeAndVArray(dbClient, storage.getId(), com.emc.storageos.db.client.model.StoragePort.PortType.frontend,
+                        varrayURI);
 
         List<com.emc.storageos.db.client.model.StoragePort> varrayTaggedStoragePorts = new ArrayList<>();
 
@@ -881,8 +835,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         return containmentCheck && numPathCheck;
     }
 
-    private void updateStoragePortsInExportMask(ExportMask exportMask,
-            ExportGroup exportGroup, List<com.emc.storageos.db.client.model.StoragePort> storagePorts) {
+    private void updateStoragePortsInExportMask(ExportMask exportMask, ExportGroup exportGroup,
+            List<com.emc.storageos.db.client.model.StoragePort> storagePorts) {
 
         // This method will update storage ports and zoning map in the export mask based on the storagePorts list.
         // Clean all existing targets in the export mask and add new targets
@@ -913,13 +867,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
      * @param virtualArray
      * @param pathParams
      */
-    private void updateStoragePortsForAddInitiators(ExportMaskAddInitiatorCompleter taskCompleter,
-            StorageSystem system,
-            ExportMask exportMask,
-            List<com.emc.storageos.db.client.model.Initiator> initiatorList,
-            List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask,
-            URI virtualArray,
-            ExportPathParams pathParams) {
+    private void updateStoragePortsForAddInitiators(ExportMaskAddInitiatorCompleter taskCompleter, StorageSystem system,
+            ExportMask exportMask, List<com.emc.storageos.db.client.model.Initiator> initiatorList,
+            List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask, URI virtualArray, ExportPathParams pathParams) {
         // update storage ports in completer
         List<URI> portUris = new ArrayList<>();
         for (com.emc.storageos.db.client.model.StoragePort port : selectedPortsForMask) {
@@ -936,9 +886,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         // add new entries for the initiators to the zoning map
         // Build assignments for new added initiators.
         Map<URI, List<URI>> assignments = blockScheduler.assignSelectedStoragePorts(system, selectedPortsForMask, virtualArray,
-                initiatorList,
-                pathParams,
-                exportMask.getZoningMap());
+                initiatorList, pathParams, exportMask.getZoningMap());
 
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         dbClient.updateObject(exportMask);

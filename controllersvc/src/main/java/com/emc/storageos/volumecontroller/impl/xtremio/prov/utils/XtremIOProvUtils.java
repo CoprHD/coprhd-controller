@@ -50,6 +50,9 @@ public class XtremIOProvUtils {
 
     private static final Set<String> SUPPORTED_HOST_OS_SET = new HashSet<String>();
 
+    private XtremIOProvUtils() {
+    };
+
     static {
         SUPPORTED_HOST_OS_SET.add(Host.HostType.Windows.name());
         SUPPORTED_HOST_OS_SET.add(Host.HostType.Linux.name());
@@ -385,9 +388,12 @@ public class XtremIOProvUtils {
      * Get the XtremIO client for making requests to the system based
      * on the passed profile.
      *
-     * @param dbClient the db client
-     * @param system the system
-     * @param xtremioRestClientFactory xtremioclientFactory.
+     * @param dbClient
+     *            the db client
+     * @param system
+     *            the system
+     * @param xtremioRestClientFactory
+     *            xtremioclientFactory.
      * @return A reference to the xtremio client.
      */
     public static XtremIOClient getXtremIOClient(DbClient dbClient, StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
@@ -406,8 +412,10 @@ public class XtremIOProvUtils {
     /**
      * Gets the XtrmeIO model.
      *
-     * @param dbClient the db client
-     * @param system the system
+     * @param dbClient
+     *            the db client
+     * @param system
+     *            the system
      * @return the XtrmeIO model
      */
     public static String getXtremIOVersion(DbClient dbClient, StorageSystem system) {
@@ -423,8 +431,10 @@ public class XtremIOProvUtils {
     /**
      * Refresh the XIO Providers & its client connections.
      *
-     * @param xioProviderList the XIO provider list
-     * @param dbClient the db client
+     * @param xioProviderList
+     *            the XIO provider list
+     * @param dbClient
+     *            the db client
      * @return the list of active providers
      */
     public static List<URI> refreshXtremeIOConnections(final List<StorageProvider> xioProviderList,
@@ -464,7 +474,8 @@ public class XtremIOProvUtils {
     /**
      * Check if the version is greater than or equal to 4.0.2
      *
-     * @param version XIO storage system firmware version
+     * @param version
+     *            XIO storage system firmware version
      * @return true if the version is 4.0.2 or greater
      */
     public static boolean isXtremIOVersion402OrGreater(String version) {
@@ -482,7 +493,8 @@ public class XtremIOProvUtils {
      *
      * From API Doc: solaris, aix, windows, esx, other, linux, hpux
      *
-     * @param hostURI - Host URI of the Initiator.
+     * @param hostURI
+     *            - Host URI of the Initiator.
      * @return operatingSystem type.
      */
     public static String getInitiatorHostOS(Host host) {

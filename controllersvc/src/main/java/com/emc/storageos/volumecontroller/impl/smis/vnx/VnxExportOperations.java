@@ -112,10 +112,6 @@ public class VnxExportOperations implements ExportMaskOperations {
      * model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[], java.util.List,
      * java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      *
-     * TODO DUPP:
-     * 1. Verify none of the initiators are in another Storage Group. (this seems to already be done below). Standardize
-     * error message/service error.
-     * 2. Additional verifications?
      */
     @Override
     public void createExportMask(StorageSystem storage,
@@ -181,10 +177,6 @@ public class VnxExportOperations implements ExportMaskOperations {
      * model.StorageSystem, java.net.URI, java.util.List, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
      *
-     * TODO DUPP:
-     * 1. Verify volumes are the only volumes in the Storage Group. It's OK if any of our volumes are missing.
-     * 2. Verify Storage Group contains all of the initiators. Fail if you have any additional initiators.
-     * 3. If there are any initiators missing in the Storage Group, you don't need to fail, but don't delete those HW
      * IDs
      * Note: No need to verify storage ports.
      */
@@ -198,9 +190,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} deleteExportMask START...", storage.getSerialNumber());
         try {
             _log.info("Export mask id: {}", exportMaskURI);
-            // TODO DUPP:
-            // 1. Get the volume, targets, and initiators from the caller
-            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
             if (volumeURIList != null) {
                 _log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
             }
@@ -273,10 +262,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         try {
             _log.info("addVolumes: Export mask id: {}", exportMaskURI);
             _log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
-            // TODO DUPP:
-            // 1. Get initiator list from the caller above for completeness
-            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the
-            // request asked for
             if (initiatorList != null) {
                 _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
             }
@@ -333,10 +318,6 @@ public class VnxExportOperations implements ExportMaskOperations {
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeVolume(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      *
-     * TODO DUPP:
-     * 1. Add initiator list to the removeVolume() call
-     * 2. Validate that the volume being removed only impacts the initiators sent down. (Does removing these volumes
-     * take the volumes away from OTHER initiators?)
      */
     @Override
     public void removeVolumes(StorageSystem storage,
@@ -348,9 +329,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         try {
             _log.info("removeVolumes: Export mask id: {}", exportMaskURI);
             _log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeURIList));
-            // TODO DUPP:
-            // 1. Get initiator list from the caller
-            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
             if (initiatorList != null) {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
@@ -379,8 +357,6 @@ public class VnxExportOperations implements ExportMaskOperations {
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addInitiator(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
      *
-     * TODO DUPP:
-     * 1. Verify these initiators are not already in a storage group (like createExportMask)
      */
     @Override
     public void addInitiators(StorageSystem storage,
@@ -391,10 +367,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} addInitiators START...", storage.getSerialNumber());
         try {
             _log.info("addInitiators: Export mask id: {}", exportMaskURI);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. Log any other volumes that are being exposed to the initiator
-            // 3. Make sure these initiators aren't in other storage groups!
             if (volumeURIs != null) {
                 _log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
             }
@@ -438,10 +410,6 @@ public class VnxExportOperations implements ExportMaskOperations {
      * model.StorageSystem, java.net.URI, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
      *
-     * TODO DUPP:
-     * 1. Add volumes list to this removeInitiator call
-     * 2. Verify removing this initiator impacts only the volumes sent down, otherwise other initiators may lose access
-     * to those volumes
      */
     @Override
     public void removeInitiators(StorageSystem storage,
@@ -452,9 +420,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} removeInitiators START...", storage.getSerialNumber());
         try {
             _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. If any other volumes are impacted by removing this initiator, fail the operation
             if (volumeURIList != null) {
                 _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
             }
@@ -690,8 +655,25 @@ public class VnxExportOperations implements ExportMaskOperations {
                         !mask.getExistingVolumes().isEmpty()) {
                     volumesToRemove.addAll(mask.getExistingVolumes().keySet());
                     volumesToRemove.removeAll(discoveredVolumes.keySet());
-                    removeVolumes = !volumesToRemove.isEmpty();
                 }
+
+                // if the volume is in export mask's volume and also in the existing volumes, remove from exiting volumes
+                for (String wwn : discoveredVolumes.keySet()) {
+                    if (mask.hasExistingVolume(wwn)) {
+                        URIQueryResultList volumeList = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                        if (volumeList.iterator().hasNext()) {
+                            URI volumeURI = volumeList.iterator().next();
+                            if (mask.hasVolume(volumeURI)) {
+                                builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                                        + "export mask's volumes, so removing from existing volumes", wwn));
+                                volumesToRemove.add(wwn);
+                            }
+                        }
+                    }
+                }
+
+                removeVolumes = !volumesToRemove.isEmpty();
 
                 // NOTE/TODO: We are not modifying the storage ports upon refresh like we do for VMAX.
                 // Refer to CTRL-6982.

@@ -7,6 +7,8 @@ package com.emc.storageos.volumecontroller.impl.validators.smis.vnx;
 import java.net.URI;
 import java.util.Collection;
 
+import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
+import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,13 +31,13 @@ public class VnxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     @Override
     public AbstractSMISValidator createExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
             Collection<URI> volumeURIList) {
-        return new VnxExportMaskVolumesValidator(storage, exportMask, volumeURIList);
+        return new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
     }
 
     @Override
     public AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
             Collection<Initiator> initiatorList) {
-        return new VnxExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+        return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
     }
 
 }

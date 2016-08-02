@@ -199,20 +199,25 @@ public class BlockService extends TaskResourceService {
 
     // Protection operations that are allowed with /block/volumes/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER),
-        FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST),
-        FAILOVER_TEST_CANCEL("failover-test-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL),
-        FAILOVER_CANCEL("failover-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL),
-        SWAP("swap", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP),
-        SYNC("sync", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC),
-        START("start", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START),
-        STOP("stop", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_STOP),
-        PAUSE("pause", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE),
-        SUSPEND("suspend", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND),
-        RESUME("resume", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME),
-        CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
-        CHANGE_ACCESS_MODE("change-access-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_ACCESS_MODE),
-        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
+        FAILOVER("failover", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER), FAILOVER_TEST("failover-test",
+                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST), FAILOVER_TEST_CANCEL("failover-test-cancel",
+                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL), FAILOVER_CANCEL("failover-cancel",
+                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL), SWAP("swap",
+                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP), SYNC("sync",
+                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC), START("start",
+                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START), STOP("stop",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE), SUSPEND(
+                                                                                "suspend",
+                                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND), RESUME(
+                                                                                        "resume",
+                                                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME), CHANGE_COPY_MODE(
+                                                                                                "change-copy-mode",
+                                                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE), CHANGE_ACCESS_MODE(
+                                                                                                        "change-access-mode",
+                                                                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_ACCESS_MODE), UNKNOWN(
+                                                                                                                "unknown",
+                                                                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -926,11 +931,9 @@ public class BlockService extends TaskResourceService {
 
                         if (existingProtectionVarraySettings == null) {
                             // The existing CG source volume's protection settings are null. This can only happen when a
-                            // swap
-                            // is performed on the CG. This would have been a former target volume so its virtual pool
-                            // references a target virtual pool, which has no protection settings defined. We do not
-                            // support
-                            // adding a volume to an existing CG whose volumes have been swapped.
+                            // swap is performed on the CG. This would have been a former target volume so its virtual
+                            // pool references a target virtual pool, which has no protection settings defined. We do
+                            // not support adding a volume to an existing CG whose volumes have been swapped.
                             // NOTE: This will be supported in the future through Jira CTRL-10129
                             throw APIException.badRequests.cannotAddVolumesToSwappedCG(consistencyGroup.getLabel());
                         }
@@ -1810,8 +1813,10 @@ public class BlockService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param id the URN of a ViPR Source volume
-     * @param param Copy to change access mode on
+     * @param id
+     *            the URN of a ViPR Source volume
+     * @param param
+     *            Copy to change access mode on
      *
      * @brief Changes the access mode for a copy.
      * @return TaskList

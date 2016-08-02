@@ -152,14 +152,16 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
     }
 
     @Override
-    public Method createOrAddVolumesToExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap, List<URI> initiatorURIs,
+    public Method createOrAddVolumesToExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs,
             TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     @Override
-    public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap, List<URI> initiatorURIs,
+    public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs,
             TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -222,14 +224,16 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
     }
 
     @Override
-    public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes, List<URI> initiatorURIs,
+    public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes,
+            List<URI> initiatorURIs,
             TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
-    public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes, List<URI> initiatorURIs, 
+    public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes,
+            List<URI> initiatorURIs,
             TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -268,9 +272,13 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes()
                             .isEmpty())) {
-                device.doExportDelete(array, exportMask, volumes, null, completer);
+                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, null, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);

@@ -127,7 +127,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 do {
                     try {
                         ScaleIORestClient handle = scaleIOHandleFactory.using(dbClient).getClientHandle(provider);
-                        handle.getSystem();  // Ignore the result on success, otherwise catch the exception
+                        handle.getSystem(); // Ignore the result on success, otherwise catch the exception
                         log.info("Successfully connected to ScaleIO MDM {}: {}", provider.getIPAddress(), provider.getId());
                         success = true;
                         break;
@@ -145,7 +145,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                             nextIp = null;
                         }
                     }
-                } while (nextIp != null);  // while we have more IPs to try
+                } while (nextIp != null); // while we have more IPs to try
 
                 if (success) {
                     // Update secondary IP addresses if we switched over
@@ -223,9 +223,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 volumes.get(cleanup - 1).setInactive(true);
             }
             dbClient.persistObject(volumes);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("addVolume", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("addVolume", e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -233,15 +231,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateMetaVolume(StorageSystem storage, StoragePool storagePool, Volume volume,
             VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeRecommendation recommendation, VolumeCreateCompleter completer)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         completeTaskAsUnsupported(completer);
     }
 
     @Override
     public void doCreateMetaVolumes(StorageSystem storage, StoragePool storagePool, List<Volume> volumes,
             VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeRecommendation recommendation,
-            TaskCompleter completer) throws DeviceControllerException
-    {
+            TaskCompleter completer) throws DeviceControllerException {
         completeTaskAsUnsupported(completer);
     }
 
@@ -272,9 +269,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("expandVolume", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("expandVolume", e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -311,9 +306,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("deleteVolume", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteVolume", e.getMessage());
             completer.error(dbClient, code);
         }
     }
@@ -326,56 +319,49 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportDelete(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void doExportDelete(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
-        // TODO DUPP:
-        // 1. We should be using the initiators sent to us, not grabbing them from the exportmask.
-        // 2. We should be using the volumes sent to us as well
-        Set<Initiator> maskInitiators =
-                ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+        Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(maskInitiators);
         unmapVolumes(storage, maskVolumeURIs, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, List<Initiator> initiators,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         Map<URI, Integer> volumes = new HashMap<>();
         volumes.put(volume, lun);
-        // TODO DUPP:
-        // 1. Get the initiators from the orchestrator/caller and not from this call below.
-        Set<Initiator> maskInitiators =
-                ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+        Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(maskInitiators);
         mapVolumes(storage, volumes, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, Map<URI, Integer> volumes, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        // TODO DUPP:
-        // 1. Get the initiators from the orchestrator/caller and not from this call below.
-        Set<Initiator> maskInitiators =
-                ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, Map<URI, Integer> volumes,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(maskInitiators);
         mapVolumes(storage, volumes, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        Set<Initiator> maskInitiators =
-                ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, List<Initiator> initiators,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(maskInitiators);
         unmapVolumes(storage, asList(volume), maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        Set<Initiator> maskInitiators =
-                ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
+    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumes, List<Initiator> initiators,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
         filterInitiators(maskInitiators);
         unmapVolumes(storage, volumes, maskInitiators, taskCompleter);
     }
@@ -445,7 +431,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
             // We check the snapset size here because SIO consistency groups require more than 1 device
             if (ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)
-                && groupSnapshots.size() > 1) {
+                    && groupSnapshots.size() > 1) {
                 snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -522,17 +508,19 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         log.info("Nothing to do here.  ScaleIO consistency groups are formed automatically on-demand.");
         taskCompleter.ready(dbClient);
     }
 
     @Override
-    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, Boolean keepRGName,
+            Boolean markInactive, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         log.info("Going to delete BlockConsistency Group {}", consistencyGroup);
-        if (markInactive && consistencyGroup != null ) {
+        if (markInactive && consistencyGroup != null) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
             if (cg != null) {
                 dbClient.markForDeletion(cg);
@@ -540,10 +528,10 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         }
         taskCompleter.ready(dbClient);
     }
-    
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
@@ -606,16 +594,16 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer)
-    {
+    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer) {
         log.info("Nothing to do here.  ScaleIO does not require a wait for synchronization");
         completer.ready(dbClient);
 
     }
 
     @Override
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }
 
@@ -633,7 +621,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method calls the completer with error message indicating that the caller's method is unsupported
      * 
-     * @param completer [in] - TaskCompleter
+     * @param completer
+     *            [in] - TaskCompleter
      */
     private void completeTaskAsUnsupported(TaskCompleter completer) {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -646,10 +635,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
      * Given a mapping of volumes and initiators, make the ScaleIO API calls to map the volume
      * to the specified ScaleIO initiators
      * 
-     * @param storage [in] - StorageSystem object (ScaleIO array abstraction)
-     * @param volumeMap [in] - Volume URI to Integer LUN map
-     * @param initiators [in] - Collection of Initiator objects
-     * @param completer [in] - TaskCompleter
+     * @param storage
+     *            [in] - StorageSystem object (ScaleIO array abstraction)
+     * @param volumeMap
+     *            [in] - Volume URI to Integer LUN map
+     * @param initiators
+     *            [in] - Collection of Initiator objects
+     * @param completer
+     *            [in] - TaskCompleter
      */
     private void mapVolumes(StorageSystem storage, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
             TaskCompleter completer) {
@@ -666,9 +659,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                     } else if (initiator.getProtocol().equals(HostInterface.Protocol.iSCSI.name())) {
                         wasMapped = mapToSCSI(scaleIOHandle, nativeId, port, initiator.getLabel(), completer);
                     } else {
-                        ServiceCoded code =
-                                DeviceControllerErrors.scaleio.mapVolumeToClientFailed(nativeId, port,
-                                        String.format("Unexpected initiator type %s", initiator.getProtocol()));
+                        ServiceCoded code = DeviceControllerErrors.scaleio.mapVolumeToClientFailed(nativeId, port,
+                                String.format("Unexpected initiator type %s", initiator.getProtocol()));
                         completer.error(dbClient, code);
                     }
                     if (!wasMapped) {
@@ -680,9 +672,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             completer.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("mapVolume", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("mapVolume", e.getMessage());
             completer.error(dbClient, code);
         }
     }
@@ -694,8 +684,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             String error = e.getMessage();
             log.info(error);
             if (!error.contains(ALREADY_MAPPED_TO)) {
-                ServiceCoded code =
-                        DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, sdcId, error);
+                ServiceCoded code = DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, sdcId, error);
                 completer.error(dbClient, code);
                 return false;
             }
@@ -711,8 +700,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         } catch (Exception e) {
             String error = e.getMessage();
             if (!error.contains(ALREADY_MAPPED_TO)) {
-                ServiceCoded code =
-                        DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, iqn, error);
+                ServiceCoded code = DeviceControllerErrors.scaleio.mapVolumeToClientFailed(volumeId, iqn, error);
                 completer.error(dbClient, code);
                 return false;
             }
@@ -725,10 +713,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
      * Given a mapping of volumes and initiators, make the ScaleIO API calls to un-map the volume
      * to the specified ScaleIO initiators
      * 
-     * @param storage [in] - StorageSystem object (ScaleIO array abstraction)
-     * @param volumeURIs [in] - Collection of Volume URIs
-     * @param initiators [in] - Collection of Initiator objects
-     * @param completer [in] - TaskCompleter
+     * @param storage
+     *            [in] - StorageSystem object (ScaleIO array abstraction)
+     * @param volumeURIs
+     *            [in] - Collection of Volume URIs
+     * @param initiators
+     *            [in] - Collection of Initiator objects
+     * @param completer
+     *            [in] - TaskCompleter
      */
     private void unmapVolumes(StorageSystem storage, Collection<URI> volumeURIs, Collection<Initiator> initiators,
             TaskCompleter completer) {
@@ -750,9 +742,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                     } else if (initiator.getProtocol().equals(HostInterface.Protocol.iSCSI.name())) {
                         wasUnMapped = unmapFromSCSI(scaleIOHandle, nativeId, port, initiator.getLabel(), completer);
                     } else {
-                        ServiceCoded code =
-                                DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(nativeId, port,
-                                        String.format("Unexpected initiator type %s", initiator.getProtocol()));
+                        ServiceCoded code = DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(nativeId, port,
+                                String.format("Unexpected initiator type %s", initiator.getProtocol()));
                         completer.error(dbClient, code);
                     }
                     if (!wasUnMapped) {
@@ -764,9 +755,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             completer.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("unmapVolume", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("unmapVolume", e.getMessage());
             completer.error(dbClient, code);
         }
     }
@@ -776,10 +765,9 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             scaleIOHandle.unMapVolumeToSDC(volumeId, sdcId);
         } catch (Exception e) {
             String error = e.getMessage();
-            if (!error.toLowerCase().contains(VOLUME_NOT_MAPPED_TO_SDC.toLowerCase())  && 
-            		!error.toLowerCase().contains(VOLUME_NOT_MAPPED_TO_SDC_V2.toLowerCase()) ){
-                ServiceCoded code =
-                        DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, sdcId, error);
+            if (!error.toLowerCase().contains(VOLUME_NOT_MAPPED_TO_SDC.toLowerCase()) &&
+                    !error.toLowerCase().contains(VOLUME_NOT_MAPPED_TO_SDC_V2.toLowerCase())) {
+                ServiceCoded code = DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, sdcId, error);
                 completer.error(dbClient, code);
                 return false;
             }
@@ -793,8 +781,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         } catch (Exception e) {
             String error = e.getMessage();
             if (!error.contains(VOLUME_NOT_MAPPED_TO_SCSI)) {
-                ServiceCoded code =
-                        DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, iqn, error);
+                ServiceCoded code = DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, iqn, error);
                 completer.error(dbClient, code);
                 return false;
             }
@@ -806,7 +793,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
      * Given a collection of Initiators, go through and filter out any initiators
      * that are not ScaleIO or IP types. The passed in Collection will be modified.
      * 
-     * @param initiators [in/out] - Collection of Initiator objects
+     * @param initiators
+     *            [in/out] - Collection of Initiator objects
      */
     private void filterInitiators(Collection<Initiator> initiators) {
         Iterator<Initiator> initiatorIterator = initiators.iterator();
@@ -823,7 +811,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
      * Using the ExportMask object, create a volume URI to HLU map. For ScaleIO,
      * there isn't any HLU required
      * 
-     * @param exportMask [in] - ExportMask object
+     * @param exportMask
+     *            [in] - ExportMask object
      * @return Volume URI to HLU integer value (allows ExportGroup.LUN_UNASSIGNED)
      */
     private Map<URI, Integer> createVolumeMapForExportMask(ExportMask exportMask) {
@@ -836,8 +825,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     private void updateConsistencyGroupsWithStorageSystem(Set<URI> consistencyGroups, StorageSystem storageSystem) {
         List<BlockConsistencyGroup> updateCGs = new ArrayList<>();
-        Iterator<BlockConsistencyGroup> consistencyGroupIterator =
-                dbClient.queryIterativeObjects(BlockConsistencyGroup.class, consistencyGroups, true);
+        Iterator<BlockConsistencyGroup> consistencyGroupIterator = dbClient.queryIterativeObjects(BlockConsistencyGroup.class,
+                consistencyGroups, true);
         while (consistencyGroupIterator.hasNext()) {
             BlockConsistencyGroup consistencyGroup = consistencyGroupIterator.next();
             consistencyGroup.setStorageController(storageSystem.getId());

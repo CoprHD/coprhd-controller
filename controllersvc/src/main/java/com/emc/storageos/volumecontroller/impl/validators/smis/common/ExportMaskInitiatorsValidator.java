@@ -2,14 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
-
-import java.util.Collection;
-import java.util.Set;
+package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -18,24 +11,31 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
+import java.util.Collection;
+import java.util.Set;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_ID;
+
 /**
- * This subclass of {@link ExportMaskValidator} will:
+ * This subclass of {@link AbstractExportMaskValidator} will:
  * 1) Query expected {@link Initiator} instances and transform them into their respective port names.
- * 2) Query SMI-S for SE_StorageHardwareID.InstanceID instance properties associated with the given export mask
+ * 2) Query SMI-S for SE_StorageHardwareID.StorageID instance properties associated with the given export mask
  * and normalize them.
  */
-public class InitiatorsValidator extends ExportMaskValidator {
+public class ExportMaskInitiatorsValidator extends AbstractExportMaskValidator {
 
-    private Collection<Initiator> expectedInitiators;
+    private final Collection<Initiator> expectedInitiators;
 
-    public InitiatorsValidator(StorageSystem storage, ExportMask exportMask, Collection<Initiator> expectedInitiators) {
+    public ExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask, Collection<Initiator> expectedInitiators) {
         super(storage, exportMask, "initiators");
         this.expectedInitiators = expectedInitiators;
     }
 
     @Override
     protected String getAssociatorProperty() {
-        return CP_INSTANCE_ID;
+        return CP_STORAGE_ID;
     }
 
     @Override
@@ -45,10 +45,16 @@ public class InitiatorsValidator extends ExportMaskValidator {
 
     @Override
     protected Function<? super String, String> getHardwareTransformer() {
+
         return new Function<String, String>() {
+
             @Override
             public String apply(String input) {
-                return normalizePort(input);
+                // TODO Simulator bug - we can remove this when its fixed.
+                if (input.length() > 16) {
+                    input = input.substring(16);
+                }
+                return Initiator.normalizePort(input);
             }
         };
     }
@@ -60,9 +66,5 @@ public class InitiatorsValidator extends ExportMaskValidator {
         }
         Collection<String> transformed = Collections2.transform(expectedInitiators, fctnInitiatorToPortName());
         return Sets.newHashSet(transformed);
-    }
-
-    private String normalizePort(String smisPort) {
-        return smisPort.replace("W-+-", "");
     }
 }

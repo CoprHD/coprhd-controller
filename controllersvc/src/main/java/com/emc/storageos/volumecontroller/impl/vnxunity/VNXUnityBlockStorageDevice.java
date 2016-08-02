@@ -11,12 +11,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +50,6 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -67,8 +64,8 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeExpandVolumeJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
-import com.google.common.collect.Lists;
 import com.emc.storageos.workflow.WorkflowService;
+import com.google.common.collect.Lists;
 
 public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         implements BlockStorageDevice {
@@ -238,7 +235,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         try {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             if (NullColumnValueGetter.isNotNullValue(cgName)) {
-                consistencyGroupId = apiClient.getConsistencyGroupIdByName(cgName); 
+                consistencyGroupId = apiClient.getConsistencyGroupIdByName(cgName);
                 getCGLock(storage, cgName, taskCompleter.getOpId());
             }
             VNXeCommandJob commandJob = apiClient.expandLun(volume.getNativeId(), size, consistencyGroupId);
@@ -350,11 +347,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             initiators.addAll(dbClient.queryObject(Initiator.class, initiatorURIs));
         }
 
-        /*
-         * TODO DUPP:
-         * 1. Modify orchestrator to send down the initiators and volumes
-         * 2. Change deleteExportMask() to validate against those initiators and volumes
-         */
         exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
                 volumes, new ArrayList<URI>(), initiators,
                 taskCompleter);
@@ -678,7 +670,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                         dbClient.updateObject(consistencyGroup);
                     }
                     taskCompleter.ready(dbClient);
-            return;
+                    return;
                 }
             }
 
@@ -691,16 +683,16 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 logger.info("Deleting the consistency group {}", cgName);
                 String id = apiClient.getConsistencyGroupIdByName(cgName);
                 if (id != null && !id.isEmpty()) {
-            apiClient.deleteConsistencyGroup(id, false, false);
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                    apiClient.deleteConsistencyGroup(id, false, false);
+                    URI systemURI = storage.getId();
+                    consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
                 }
             }
             if (markInactive) {
                 consistencyGroup.setInactive(true);
                 logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             }
-            
+
             dbClient.updateObject(consistencyGroup);
 
             taskCompleter.ready(dbClient);
@@ -810,8 +802,8 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     logger.error(errorStr);
                     handleAddToCGError(blockObjects, taskCompleter, consistencyGroup.getLabel(), replicationGroupName, errorStr);
                     return;
-                    
-            }
+
+                }
             }
             String cgNativeId = apiClient.getConsistencyGroupIdByName(replicationGroupName);
             if (cgNativeId == null || cgNativeId.isEmpty()) {
@@ -837,27 +829,32 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         }
 
     }
-    
+
     /**
      * Handle the error case when adding volumes to a consistency group
      * 
-     * @param blockObjects The list of block objects URIs that are adding to the consistency group
-     * @param taskCompleter The task completer instance
-     * @param cgName The consistency group name
-     * @param replicationGroupName The replication group name in the array
-     * @param msg The error message
+     * @param blockObjects
+     *            The list of block objects URIs that are adding to the consistency group
+     * @param taskCompleter
+     *            The task completer instance
+     * @param cgName
+     *            The consistency group name
+     * @param replicationGroupName
+     *            The replication group name in the array
+     * @param msg
+     *            The error message
      */
-    private void handleAddToCGError(List<URI> blockObjects, TaskCompleter taskCompleter, String cgName, 
+    private void handleAddToCGError(List<URI> blockObjects, TaskCompleter taskCompleter, String cgName,
             String replicationGroupName, String msg) {
-            // Remove any references to the consistency group
-            for (URI blockObjectURI : blockObjects) {
-                BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
-                if (blockObject != null) {
-                    blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                }
-                dbClient.updateObject(blockObject);
+        // Remove any references to the consistency group
+        for (URI blockObjectURI : blockObjects) {
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
+            if (blockObject != null) {
+                blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
             }
-            taskCompleter.error(dbClient, DeviceControllerException.exceptions
+            dbClient.updateObject(blockObject);
+        }
+        taskCompleter.error(dbClient, DeviceControllerException.exceptions
                 .failedToAddMembersToConsistencyGroup(cgName,
                         replicationGroupName, msg));
 
@@ -1190,7 +1187,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         logger.error("This method is not implemented");
         return null;
     }
-    
+
     @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -1200,12 +1197,16 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
     /**
      * Acquire the workflow step lock for CG
      * 
-     * @param system The storage system
-     * @param cgName The consistency group name
-     * @param stepId The step id
+     * @param system
+     *            The storage system
+     * @param cgName
+     *            The consistency group name
+     * @param stepId
+     *            The step id
      */
     private void getCGLock(StorageSystem system, String cgName, String stepId) {
         // lock around create and delete operations on the same CG
@@ -1217,6 +1218,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         if (!lockAcquired) {
             throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                     String.format("Add or remove volumes from Unity consistency group %s", cgName));
-}
+        }
     }
 }

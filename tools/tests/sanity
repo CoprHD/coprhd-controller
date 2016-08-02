@@ -130,9 +130,9 @@ elif [ ${SS} = "backuprestore" ]; then
     BACKUP_SERVER_DOMAIN=$7
 
     if [[ $BACKUP_SERVER_URL == smb* ]]; then
-    BACKUP_SERVER_TYPE="cifs"
+    BACKUP_SERVER_TYPE="CIFS"
     elif [[ $BACKUP_SERVER_URL == ftp* ]] || [[ $BACKUP_SERVER_URL == ftps* ]];then
-    BACKUP_SERVER_TYPE="ftp"
+    BACKUP_SERVER_TYPE="FTP"
     fi
 
     if [ -n "${BOURNE_IPV6_MODE}" ]; then
@@ -9880,8 +9880,8 @@ backuprestore_setup()
 
 backuprestore_tests()
 {
-    backupname='sanity-${seed}'
-    backupname2='abc-${seed}'
+    backupname="sanity-${seed}"
+    backupname2="abc-${seed}"
     filepath='/tmp/sanity.zip'
     remote_backup_file=""
 
@@ -10118,7 +10118,7 @@ recovery_setup()
     echo "Simulating vipr${corrupted_node_id}($RECOVERY_CORRUPTED_NODE_IP) crash"
     recovery_node_crash $RECOVERY_CORRUPTED_NODE_IP
     echo "Make vipr${corrupted_node_id}($RECOVERY_CORRUPTED_NODE_IP) corrupted done"
- 
+
     sleep 60
     echo "Setup minority node corrupted cluster($BOURNE_IPADDR) successful"
 }
@@ -10127,7 +10127,7 @@ recovery_tests()
 {
     echo "Begin to run node recovery on $BOURNE_IPADDR"
     recovery trigger
- 
+
     for(( i=0; i<10; i++ )); do
        recovery_status=`recovery get_status`
        echo "Cuttent recovery status is: $recovery_status"
@@ -10145,7 +10145,7 @@ recovery_tests()
     else
         echo "Unexcepted error"
         recovery_node_startup $RECOVERY_CORRUPTED_NODE_IP
-        exit 1                         
+        exit 1
     fi
 
     while true; do

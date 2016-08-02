@@ -22,6 +22,7 @@ public class DriverManager extends AbstractManager {
 
     public static final String DRIVER_DIR = "/data/drivers";
     public static final String CONTROLLER_SERVICE = "controllersvc";
+    private static final String LISTEN_PATH = String.format("/config/%s/%s", DriverInfo.KIND, DriverInfo.ID);
     private static final Logger log = LoggerFactory.getLogger(PropertyManager.class);
 
     protected volatile boolean doRun = true;
@@ -164,14 +165,18 @@ public class DriverManager extends AbstractManager {
     private void initializeLocalAndTargetInfo() {
         localDrivers = getLocalDrivers();
         log.info("Local drivers initialized: {}", Arrays.toString(localDrivers.toArray()));
-        DriverInfo targetDriversInfo = coordinator.getCoordinatorClient().getTargetInfo(DriverInfo.class);
-        if (targetDriversInfo == null) {
+
+        if (!coordinator.getCoordinatorClient().nodeExists(LISTEN_PATH)) {
             DriverInfo initDriversInfo = new DriverInfo();
             coordinator.getCoordinatorClient().setTargetInfo(initDriversInfo);
             log.info("Created DriverInfo ZNode");
             targetDrivers = initDriversInfo.getDrivers();
-        } else {
+        }
+        DriverInfo targetDriversInfo = coordinator.getCoordinatorClient().getTargetInfo(DriverInfo.class);
+        if (targetDriversInfo != null) {
             targetDrivers = targetDriversInfo.getDrivers();
+        } else {
+            targetDrivers = new ArrayList<String>();
         }
         log.info("Target drivers initialized: {}", Arrays.toString(targetDrivers.toArray()));
     }
@@ -209,7 +214,7 @@ public class DriverManager extends AbstractManager {
     class DriverInfoListener implements NodeListener {
         @Override
         public String getPath() {
-            return String.format("/config/%s/%s", DriverInfo.KIND, DriverInfo.ID);
+            return LISTEN_PATH;
         }
 
         @Override

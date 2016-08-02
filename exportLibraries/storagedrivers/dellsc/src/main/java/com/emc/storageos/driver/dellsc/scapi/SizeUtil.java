@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.driver.dellsc;
+package com.emc.storageos.driver.dellsc.scapi;
 
 import java.math.BigDecimal;
 

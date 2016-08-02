@@ -4,30 +4,7 @@
  */
 package com.emc.storageos.auth.service.impl.resource;
 
-import com.emc.storageos.auth.AuthenticationManager;
-import com.emc.storageos.auth.impl.CassandraTokenManager;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
-import com.emc.storageos.model.password.PasswordChangeParam;
-import com.emc.storageos.security.audit.AuditLogManager;
-import com.emc.storageos.security.authentication.RequestProcessingUtils;
-import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
-import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.security.geo.RequestedTokenHelper;
-import com.emc.storageos.security.password.InvalidLoginManager;
-import com.emc.storageos.security.password.Password;
-import com.emc.storageos.security.password.PasswordUtils;
-import com.emc.storageos.security.password.PasswordValidator;
-import com.emc.storageos.security.password.ValidatorFactory;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.services.util.SecurityUtils;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -39,26 +16,20 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.password.PasswordChangeParam;
+import com.emc.storageos.security.password.Password;
+import com.emc.storageos.security.password.PasswordUtils;
+import com.emc.storageos.security.password.PasswordValidator;
+import com.emc.storageos.security.password.ValidatorFactory;
+import com.emc.storageos.services.util.SecurityUtils;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -66,6 +37,20 @@ import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.emc.storageos.auth.AuthenticationManager;
+import com.emc.storageos.security.password.InvalidLoginManager;
+import com.emc.storageos.auth.impl.CassandraTokenManager;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.security.authentication.RequestProcessingUtils;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.geo.RequestedTokenHelper;
 
 /**
  * Main resource class for all authentication api

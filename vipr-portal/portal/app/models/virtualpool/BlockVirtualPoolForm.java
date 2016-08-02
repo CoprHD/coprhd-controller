@@ -227,6 +227,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         raidLevels = defaultSet(virtualPool.getRaidLevels());
         hostIOLimitBandwidth = virtualPool.getHostIOLimitBandwidth();
         hostIOLimitIOPs = virtualPool.getHostIOLimitIOPs();
+        enableDeDup = virtualPool.getDedupCapable();
 
         VirtualPoolHighAvailabilityParam highAvailabilityType = virtualPool.getHighAvailability();
         if (highAvailabilityType != null && HighAvailability.isHighAvailability(highAvailabilityType.getType())) {

@@ -373,7 +373,7 @@ class Authentication(object):
             groupmemberattributes_array = groupmemberattributes.split(',')
             parms['group_member_attribute'] = groupmemberattributes_array
 
-        if(autoRegCoprHDNImportOSProjects == 'true' and tenantssynchronizationoptions is not None and tenantssynchronizationoptions is not ""):
+        if autoRegCoprHDNImportOSProjects == 'true' and tenantssynchronizationoptions is not None and tenantssynchronizationoptions is not "":
             tenantssynchronizationoptions_array = []
             tenantssynchronizationoptions_array = tenantssynchronizationoptions.split(',')
             parms['tenants_synchronization_options'] = tenantssynchronizationoptions_array
@@ -579,15 +579,15 @@ class Authentication(object):
                     groupmemberattributes['add'].append(iter1)
 
         tenantssynchronizationoptions['add'] = []
-        if (add_tenantssynchronizationoptions is not None):
+        if add_tenantssynchronizationoptions is not None:
             for iter1 in add_tenantssynchronizationoptions:
-                if (iter1 is not ""):
+                if iter1 is not "":
                     tenantssynchronizationoptions['add'].append(iter1)
 
         tenantssynchronizationoptions['remove'] = []
-        if (remove_tenantssynchronizationoptions is not None):
+        if remove_tenantssynchronizationoptions is not None:
             for iter1 in remove_tenantssynchronizationoptions:
-                if (iter1 is not ""):
+                if iter1 is not "":
                     tenantssynchronizationoptions['remove'].append(iter1)
 
         '''for domain in add_domains:
@@ -619,7 +619,7 @@ class Authentication(object):
         if(maxpagesize is not None):
             parms['max_page_size'] = maxpagesize
 
-        if((len(tenantssynchronizationoptions['add']) > 0) or (len(tenantssynchronizationoptions['remove']) > 0)):
+        if (len(tenantssynchronizationoptions['add']) > 0) or (len(tenantssynchronizationoptions['remove']) > 0):
             tenantssynchronizationoptions = self.cleanup_dict(tenantssynchronizationoptions)
             parms['tenants_synchronization_options_changes'] = tenantssynchronizationoptions
 

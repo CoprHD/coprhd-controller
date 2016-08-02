@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -140,7 +141,7 @@ public class TaskMapper {
         taskResourceRep.setAllowedOperations(Task.AllowedOperations.none_specified.name());
         if (task.getWorkflow() != null) {
             Workflow wf = configInstance.getDbClient().queryObject(Workflow.class, task.getWorkflow());
-            if (wf != null && wf.getCompletionMessage() != null
+            if (wf != null && NullColumnValueGetter.isNotNullValue(wf.getCompletionMessage()) 
                     && wf.getCompletionMessage().contains("post-migration delete of original source backing volumes")) {
                 taskResourceRep.setAllowedOperations(Task.AllowedOperations.retry_only.name());
             }

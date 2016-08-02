@@ -1,5 +1,5 @@
 %{
-  titleKey = 'ScheduledOrders.edit.title';
+  titleKey = 'ScheduledOrder.edit.title';
 }%
 #{extends 'main.html'/}
 #{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
@@ -25,7 +25,7 @@
   </div>
 
   <div class="pull-left span6" style="overflow:hidden">
-    #{include 'catalog/Orders/orderParameters.html'/}
+     #{Orders.parameters parameters:details?.orderParameters /}
   </div>
 
   <div id="executionWindow">
@@ -58,7 +58,12 @@
     
     #{Services.scheduler /}
     
-    #{Form.saveCancel cancelHref:referrer/}
+    #{Form.buttonBar}
+    	#{Form.saveButton size:_size, save:_save, disabled:_disabled/}
+        #{Form.button name:'ScheduledOrder.back', icon:'arrow-left', size:_size, href:@list()/}
+        #{Form.button name:'ScheduledOrder.deactivate',class: 'btn-sm btn-danger', icon:'trash', size:_size, 
+            href: @deactivate(scheduleEventForm.id) , action:'showDeactivateConfirm();' /}
+	#{/Form.buttonBar}
 
 #{/form}
 
@@ -66,22 +71,12 @@
 
 #{set 'moreScripts'}
 <script type="text/javascript">
-    $(document).ready(function() {
+   function showDeactivateConfirm() {
+       if (!confirm(Messages.get("ScheduledOrder.deactivate.confirm"))) {
+           e.preventDefault();
+       }
+    }
+ </script>
+ #{/set}
 
-        // know where it came from so can navigate back;
-        // only set the referrerUrl if it has not been set at some earlier point 
-        // i.e. in multi-step flows take into account error-handling
-        var referrerUrl = $('input[name="project.referrerUrl"]').val();
-        if(!referrerUrl)
-            referrerUrl = document.referrer;
 
-        // navigate back only if referral URL is different than this one
-        if(referrerUrl && referrerUrl != document.URL) {
-            $('input[name="project.referrerUrl"]').val(referrerUrl);
-            // navigate cancel button to referrer url
-            $('div.form-actions a.btn').attr('href', referrerUrl);
-        }
-    });
-
-</script>
-#{/set}

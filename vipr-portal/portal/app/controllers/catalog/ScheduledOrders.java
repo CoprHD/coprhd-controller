@@ -49,9 +49,10 @@ import controllers.util.Models;
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN") })
 public class ScheduledOrders extends Controller {
-    protected static final String SAVED = "ScheduledOrder.saved";
+    protected static final String SAVED = "ScheduledOrder.save.success";
     protected static final String CANCELLED = "ScheduledOrder.cancel.success";
-
+    protected static final String DEACTIVATED = "ScheduledOrder.deactivate.success";
+    
     @Util
     public static void addNextExecutionWindow() {
         Calendar now = Calendar.getInstance();
@@ -114,9 +115,9 @@ public class ScheduledOrders extends Controller {
         OrderDetails details = new OrderDetails(id);
         details.catalogService = CatalogServiceUtils.getCatalogService(details.order.getCatalogService());
         
-        ScheduleEventForm form = new ScheduleEventForm(details);
-        angularRenderArgs().put("scheduler", form);
-        render(form, details);
+        ScheduleEventForm scheduleEventForm = new ScheduleEventForm(details);
+        angularRenderArgs().put("scheduler", scheduleEventForm);
+        render(scheduleEventForm, details);
     }
     
     @FlashException(keep = true, referrer = { "edit" })
@@ -128,6 +129,14 @@ public class ScheduledOrders extends Controller {
         
         scheduler.save();
         flash.success(MessagesUtils.get(SAVED));
+        backToReferrer();
+        list();
+    }
+    
+    @FlashException(keep = true)
+    public static void deactivate(String id) {
+        getCatalogClient().orders().deactivateScheduledEvent(uri(id));
+        flash.success(MessagesUtils.get(DEACTIVATED));
         backToReferrer();
         list();
     }

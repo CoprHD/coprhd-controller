@@ -340,7 +340,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         Set<URI> volumeIds = new HashSet<URI>(getExportedVolumeIds(ctx, project));
         UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
                 volumeIds);
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, unexportedFilter/*.and(sourceTargetVolumesFilter)*/);
+
+        List<VolumeRestRep> volumes = listSourceVolumes(client, project, unexportedFilter);
         return createVolumeOptions(null, volumes);
     }
 

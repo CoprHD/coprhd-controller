@@ -443,6 +443,8 @@
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
                 <entry key="providersystem" value-ref="storageDriverSimulator"/>
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
+                <entry key="dellscprovider" value-ref="dellsc"/>
+                <entry key="dellscsystem" value-ref="dellsc"/>
             </map>
         </property>
     </bean>
@@ -452,6 +454,8 @@
     -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
     </bean>
+    
+    <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +30,16 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChanne
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScCopyMirrorMigrate;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScObject;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayConsistencyGroup;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageTypeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenter;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenterStorageUsage;
@@ -172,7 +176,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
         Parameters params = new Parameters();
         params.add("Name", name);
-        params.add("Notes", "Created by CoprHD driver.");
+        params.add("Notes", "Created by CoprHD");
         params.add("Size", String.format("%d GB", sizeInGB));
         params.add("StorageCenter", ssn);
         if (cgID != null && !cgID.isEmpty()) {
@@ -580,6 +584,113 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Creates a new consistency group on the Storage Center.
+     *
+     * @param ssn The Storage Center on which to create the CG.
+     * @param name The name of the CG.
+     * @return The created consistency group.
+     * @throws StorageCenterAPIException
+     */
+    public ScReplayProfile createConsistencyGroup(String ssn, String name) throws StorageCenterAPIException {
+        LOG.debug("Creating consistency group '{}'", name);
+        String errorMessage = "";
+
+        Parameters params = new Parameters();
+        params.add("Name", name);
+        params.add("Notes", "Created by CoprHD");
+        params.add("Type", "Consistent");
+        params.add("StorageCenter", ssn);
+
+        try {
+            RestResult result = restClient.post("StorageCenter/ScReplayProfile", params.toJson());
+            if (checkResults(result)) {
+                return gson.fromJson(result.getResult(), ScReplayProfile.class);
+            }
+
+            errorMessage = String.format(
+                    "Unable to create CG %s on SC %s: %s", name, ssn, result.getErrorMsg());
+        } catch (Exception e) {
+            errorMessage = String.format("Error creating consistency group: %s", e);
+            LOG.warn(errorMessage);
+        }
+
+        if (errorMessage.length() == 0) {
+            errorMessage = String.format("Unable to create CG %s on SC %s", name, ssn);
+        }
+        throw new StorageCenterAPIException(errorMessage);
+    }
+
+    /**
+     * Deletes a consistency group.
+     *
+     * @param instanceId The replay profile instance ID.
+     * @throws StorageCenterAPIException
+     */
+    public void deleteConsistencyGroup(String instanceId) throws StorageCenterAPIException {
+        LOG.debug("Deleting consistency group '{}'", instanceId);
+
+        RestResult rr = restClient.delete(String.format("StorageCenter/ScReplayProfile/%s", instanceId));
+        if (!checkResults(rr)) {
+            String msg = String.format("Error deleting CG %s: %s", instanceId, rr.getErrorMsg());
+            LOG.error(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+    }
+
+    /**
+     * Create snapshots for the consistency group.
+     *
+     * @param instanceId The replay profile instance ID.
+     * @return The replays created.
+     * @throws StorageCenterAPIException
+     */
+    public ScReplay[] createConsistencyGroupSnapshots(String instanceId) throws StorageCenterAPIException {
+        LOG.debug("Creating consistency group snapshots for '{}'", instanceId);
+
+        String id = UUID.randomUUID().toString();
+        Parameters params = new Parameters();
+        params.add("description", id);
+        params.add("expireTime", 0);
+
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScReplayProfile/%s/CreateReplay", instanceId),
+                params.toJson());
+        if (!checkResults(rr)) {
+            String msg = String.format("Error creating snapshots from CG %s: %s", instanceId, rr.getErrorMsg());
+            LOG.error(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+
+        rr = restClient.get(
+                String.format("StorageCenter/ScReplayProfile/%s/ConsistencyGroupList", instanceId));
+        if (!checkResults(rr)) {
+            String msg = String.format("Error getting consistent groups: %s", rr.getErrorMsg());
+            LOG.warn(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+
+        ScReplayConsistencyGroup consistentGroup = null;
+        ScReplayConsistencyGroup[] cgs = gson.fromJson(rr.getResult(), ScReplayConsistencyGroup[].class);
+        for (ScReplayConsistencyGroup cg : cgs) {
+            if (id.equals(cg.description)) {
+                consistentGroup = cg;
+            }
+        }
+
+        if (consistentGroup != null) {
+            rr = restClient.get(
+                    String.format(
+                            "StorageCenter/ScReplayConsistencyGroup/%s/ReplayList",
+                            consistentGroup.instanceId));
+            if (checkResults(rr)) {
+                return gson.fromJson(rr.getResult(), ScReplay[].class);
+            }
+        }
+
+        throw new StorageCenterAPIException("Unable to get replays created for consistency group.");
+    }
+
+    /**
      * Gets all replay profiles that are consistent type.
      *
      * @param ssn The Storage Center serial number.
@@ -637,6 +748,46 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Creates a replay on a volume.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The created replay.
+     * @throws StorageCenterAPIException
+     */
+    public ScReplay createReplay(String instanceId) throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        params.add("description", "Created by CoprHD");
+        params.add("expireTime", 0);
+
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScVolume/%s/CreateReplay", instanceId), params.toJson());
+        if (!checkResults(rr)) {
+            String msg = String.format("Error creating replay %s: %s", instanceId, rr.getErrorMsg());
+            LOG.warn(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+
+        return gson.fromJson(rr.getResult(), ScReplay.class);
+    }
+
+    /**
+     * Expire a replay.
+     *
+     * @param instanceId The replay instance ID.
+     * @throws StorageCenterAPIException
+     */
+    public void expireReplay(String instanceId) throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScReplay/%s/Expire", instanceId), params.toJson());
+        if (!checkResults(rr)) {
+            String msg = String.format("Error expiring replay %s: %s", instanceId, rr.getErrorMsg());
+            LOG.warn(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+    }
+
+    /**
      * Gets all copy, mirror, and migrate operations for a volume.
      *
      * @param instanceId The volume instance ID.
@@ -649,5 +800,64 @@ public class StorageCenterAPI implements AutoCloseable {
         }
 
         return new ScCopyMirrorMigrate[0];
+    }
+
+    /**
+     * Adds a volume to a consistency group.
+     *
+     * @param instanceId The volume instance ID.
+     * @param cgID The consistency group ID.
+     * @throws StorageCenterAPIException
+     */
+    public void addVolumeToConsistencyGroup(String instanceId, String cgID) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScVolumeConfiguration/%s", instanceId));
+        if (!checkResults(rr)) {
+            throw new StorageCenterAPIException(String.format("Error getting volume configuration: %s", rr.getErrorMsg()));
+        }
+
+        ScVolumeConfiguration volConfig = gson.fromJson(rr.getResult(), ScVolumeConfiguration.class);
+        List<String> profiles = new ArrayList<>();
+        for (ScObject profile : volConfig.replayProfileList) {
+            if (!cgID.equals(profile.instanceId)) {
+                profiles.add(profile.instanceId);
+            }
+        }
+        profiles.add(cgID);
+
+        Parameters params = new Parameters();
+        params.add("ReplayProfileList", profiles.toArray(new String[0]));
+        rr = restClient.put(String.format("StorageCenter/ScVolumeConfiguration/%s", instanceId), params.toJson());
+        if (!checkResults(rr)) {
+            throw new StorageCenterAPIException(String.format("Error updating volume replay profile membership: %s", rr.getErrorMsg()));
+        }
+    }
+
+    /**
+     * Removes a volume from a consistency group.
+     *
+     * @param instanceId The volume instance ID.
+     * @param cgID The consistency group ID.
+     * @throws StorageCenterAPIException
+     */
+    public void removeVolumeFromConsistencyGroup(String instanceId, String cgID) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScVolumeConfiguration/%s", instanceId));
+        if (!checkResults(rr)) {
+            throw new StorageCenterAPIException(String.format("Error getting volume configuration: %s", rr.getErrorMsg()));
+        }
+
+        ScVolumeConfiguration volConfig = gson.fromJson(rr.getResult(), ScVolumeConfiguration.class);
+        List<String> profiles = new ArrayList<>();
+        for (ScObject profile : volConfig.replayProfileList) {
+            if (!cgID.equals(profile.instanceId)) {
+                profiles.add(profile.instanceId);
+            }
+        }
+
+        Parameters params = new Parameters();
+        params.add("ReplayProfileList", profiles.toArray(new String[0]));
+        rr = restClient.put(String.format("StorageCenter/ScVolumeConfiguration/%s", instanceId), params.toJson());
+        if (!checkResults(rr)) {
+            throw new StorageCenterAPIException(String.format("Error updating volume replay profile membership: %s", rr.getErrorMsg()));
+        }
     }
 }

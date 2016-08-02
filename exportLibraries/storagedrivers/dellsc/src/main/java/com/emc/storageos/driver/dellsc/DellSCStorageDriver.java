@@ -42,7 +42,6 @@ import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
-import com.emc.storageos.storagedriver.model.Initiator.Protocol;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -52,7 +51,6 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
-import com.emc.storageos.storagedriver.model.VolumeMirror.SynchronizationState;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
@@ -179,6 +177,23 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     //
     // Provisioning operations
     //
+
+    private DellSCPersistence persistence = new DellSCPersistence(DRIVER_NAME, this.driverRegistry);
+    private DellSCProvisioning provisioningHelper = new DellSCProvisioning(persistence);
+    private DellSCSnapshots snapshotHelper = new DellSCSnapshots(persistence);
+    private DellSCConsistencyGroups cgHelper = new DellSCConsistencyGroups(persistence);
+    private DellSCDiscovery discoveryHelper = new DellSCDiscovery(DRIVER_NAME, DRIVER_VERSION, persistence);
+
+    /**
+     * Get driver registration data.
+     *
+     * @return The registration data.
+     */
+    @Override
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities storageCapabilities) {
+        LOG.info("Creating {} new volumes", volumes.size());
+        return provisioningHelper.createVolumes(volumes, storageCapabilities);
+    }
 
     /**
      * Create storage volumes with a given set of capabilities.

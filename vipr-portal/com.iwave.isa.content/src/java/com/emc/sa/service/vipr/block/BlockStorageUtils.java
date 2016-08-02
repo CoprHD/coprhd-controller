@@ -233,8 +233,15 @@ public class BlockStorageUtils {
      *
      * @param volumeIds of the volumes to validate dependencies
      */
-    public static void verifyVolumeDependencies(List<URI> volumeIds) {
-        execute(new VerifyVolumeDependencies(volumeIds));
+    public static void verifyVolumeDependencies(List<URI> volumeIds, URI projectId) {
+        List<URI> allBlockResources = Lists.newArrayList(volumeIds);
+        for (URI volumeId : volumeIds) {
+            BlockObjectRestRep volume = getVolume(volumeId);
+            allBlockResources.addAll(getSrdfTargetVolumes(volume));
+            allBlockResources.addAll(getRpTargetVolumes(volume));
+        }
+
+        execute(new VerifyVolumeDependencies(allBlockResources, projectId));
     }
 
     /**
@@ -771,6 +778,26 @@ public class BlockStorageUtils {
             VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getSrdfRep().getSRDFTargetVolumes()) {
+                    targetVolumes.add(targetVolume.getId());
+                }
+            }
+        }
+
+        return targetVolumes;
+    }
+
+    /**
+     * Return a list of target RP volume for a given block object
+     *
+     * @param blockObject to retrieve target from
+     * @return a list of RP target volumes for specified block object
+     */
+    public static List<URI> getRpTargetVolumes(BlockObjectRestRep blockObject) {
+        List<URI> targetVolumes = Lists.newArrayList();
+        if (blockObject instanceof VolumeRestRep) {
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+                for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getRpRep().getRpTargets()) {
                     targetVolumes.add(targetVolume.getId());
                 }
             }

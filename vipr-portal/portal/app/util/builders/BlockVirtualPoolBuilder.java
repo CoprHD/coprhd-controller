@@ -334,4 +334,13 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         }
         return Collections.emptyList();
     }
+    
+    public BlockVirtualPoolBuilder setDedupCapable(boolean dedupCapable) {
+        virtualPool.setDedupCapable(dedupCapable);
+        return this;
+    }
+    
+	public Boolean getDedupCapable(boolean dedupCapable) {
+		return virtualPool.getDedupCapable();
+	}
 }

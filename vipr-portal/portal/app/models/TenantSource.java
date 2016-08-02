@@ -26,6 +26,8 @@ import util.StringOption;
 import java.util.List;
 
 public class TenantSource {
+    private static final String OPTION_PREFIX = "TenantSource";
+    
     // Tenants sources
     public static final String TENANTS_SOURCE_ALL = "All";
     public static final String TENANTS_SOURCE_OS = "OpenStack";
@@ -81,6 +83,6 @@ public class TenantSource {
     }
 
     public static String getDisplayValue(String type) {
-        return StringOption.getDisplayValue(type, "TenantSource");
+        return StringOption.getDisplayValue(type, OPTION_PREFIX);
     }
 }

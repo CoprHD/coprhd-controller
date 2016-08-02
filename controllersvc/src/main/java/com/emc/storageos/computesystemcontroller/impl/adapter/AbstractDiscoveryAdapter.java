@@ -536,14 +536,14 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
             for (Initiator oldInitiator : oldInitiatorObjects) {
                 EventUtil.createActionableEvent(dbClient, host.getTenant(),
-                        "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorNode(),
-                        "Initiator " + oldInitiator.getInitiatorNode() + " will be deleted and removed from export groups",
+                        "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorPort(),
+                        "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
                         oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
             }
             for (Initiator newInitiator : newInitiatorObjects) {
                 EventUtil.createActionableEvent(dbClient, host.getTenant(),
-                        "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorNode(),
-                        "Initiator " + newInitiator.getInitiatorNode() + " will be added to export groups",
+                        "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorPort(),
+                        "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
                         newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
             }
         }

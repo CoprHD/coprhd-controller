@@ -8,7 +8,7 @@ import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
-import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.OSTenantRestRep;
 import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.tenant.*;
@@ -139,11 +139,11 @@ public class Tenants extends ViprResourceController {
     }
 
     public static void synchronizeOSTenants(@As(",") String[] ids) {
-        List<CoprhdOsTenant> tenants = OpenStackTenantsUtils.getOpenStackTenantsFromDataBase();
+        List<OSTenantRestRep> tenants = OpenStackTenantsUtils.getOpenStackTenantsFromDataBase();
         if (ids != null) {
             List<String> idList = Arrays.asList(ids);
             if(!idList.get(0).isEmpty()) {
-                for (CoprhdOsTenant tenant : tenants) {
+                for (OSTenantRestRep tenant : tenants) {
                     if (idList.contains(tenant.getId().toString())) {
                         if (tenant.getExcluded()) {
                             tenant.setExcluded(false);
@@ -154,7 +154,7 @@ public class Tenants extends ViprResourceController {
                 }
 
                 OSTenantListRestRep params = new OSTenantListRestRep();
-                params.setCoprhdOsTenants(tenants);
+                params.setOSTenantsRestRep(tenants);
 
                 OpenStackTenantsUtils.updateOpenStackTenants(params);
             }
@@ -170,7 +170,7 @@ public class Tenants extends ViprResourceController {
     public static void tenantsListToAddJson() {
         OpenStackTenantsUtils.synchronizeOpenStackTenants();
         List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
-        for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+        for (OSTenantRestRep tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
             if(tenant.getExcluded()) {
                 tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
             }
@@ -181,7 +181,7 @@ public class Tenants extends ViprResourceController {
     public static void tenantsListToRemoveJson() {
         OpenStackTenantsUtils.synchronizeOpenStackTenants();
         List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
-        for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+        for (OSTenantRestRep tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
             if(!tenant.getExcluded()) {
                 tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
             }

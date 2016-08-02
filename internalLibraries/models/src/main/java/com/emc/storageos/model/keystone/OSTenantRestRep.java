@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "coprhd_os_tenant")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class CoprhdOsTenant extends DataObjectRestRep {
+public class OSTenantRestRep extends DataObjectRestRep {
 
     private Boolean enabled;
     private Boolean excluded;

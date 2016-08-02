@@ -27,7 +27,7 @@ import com.emc.storageos.keystone.restapi.model.response.KeystoneTenant;
 import com.emc.storageos.keystone.restapi.model.response.TenantListRestResp;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.OSTenantRestRep;
 import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
@@ -212,7 +212,7 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - updateOpenstackTenants");
 
-        if (param.getCoprhdOsTenants() == null || param.getCoprhdOsTenants().isEmpty()) {
+        if (param.getOSTenantsRestRep() == null || param.getOSTenantsRestRep().isEmpty()) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
         }
 
@@ -220,7 +220,7 @@ public class KeystoneService extends TaskResourceService {
         List<OSTenant> tenantsToUpdate = new ArrayList<>();
         List<OSTenant> tenantsToDelete = new ArrayList<>();
         OSTenant osTenant;
-        for (CoprhdOsTenant tenant : param.getCoprhdOsTenants()) {
+        for (OSTenantRestRep tenant : param.getOSTenantsRestRep()) {
             osTenant = _dbClient.queryObject(OSTenant.class, tenant.getId());
 
             if (!osTenant.getExcluded().equals(tenant.getExcluded())) {
@@ -231,7 +231,7 @@ public class KeystoneService extends TaskResourceService {
                     tenantsToUpdate.add(osTenant);
                 }
                 osTenant.setExcluded(tenant.getExcluded());
-                resp.getCoprhdOsTenants().add(mapToCoprhdOsTenant(osTenant));
+                resp.getOSTenantsRestRep().add(mapToCoprhdOsTenant(osTenant));
             }
         }
 
@@ -314,13 +314,13 @@ public class KeystoneService extends TaskResourceService {
      * @param id CoprHD Tenant ID.
      * @brief Show CoprHD Tenant.
      * @return CoprHD Tenant details.
-     * @see CoprhdOsTenant
+     * @see OSTenantRestRep
      */
     @GET
     @Path("/ostenants/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public CoprhdOsTenant getCoprhdOsTenant(@PathParam("id") URI id) {
+    public OSTenantRestRep getCoprhdOsTenant(@PathParam("id") URI id) {
 
         if (id == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant ID");
@@ -397,11 +397,11 @@ public class KeystoneService extends TaskResourceService {
     private OSTenantListRestRep map(List<OSTenant> tenants) {
 
         OSTenantListRestRep response = new OSTenantListRestRep();
-        List<CoprhdOsTenant> coprhdOsTenants = new ArrayList<>();
+        List<OSTenantRestRep> OSTenantsRestRep = new ArrayList<>();
         for (OSTenant osTenant : tenants) {
-            coprhdOsTenants.add(mapToCoprhdOsTenant(osTenant));
+            OSTenantsRestRep.add(mapToCoprhdOsTenant(osTenant));
         }
-        response.setCoprhdOsTenants(coprhdOsTenants);
+        response.setOSTenantsRestRep(OSTenantsRestRep);
 
         return response;
     }
@@ -418,9 +418,9 @@ public class KeystoneService extends TaskResourceService {
         return to;
     }
 
-    private CoprhdOsTenant mapToCoprhdOsTenant(OSTenant from) {
+    private OSTenantRestRep mapToCoprhdOsTenant(OSTenant from) {
 
-        CoprhdOsTenant to = new CoprhdOsTenant();
+        OSTenantRestRep to = new OSTenantRestRep();
         DbObjectMapper.mapDataObjectFields(from, to);
         to.setExcluded(from.getExcluded());
         to.setDescription(from.getDescription());

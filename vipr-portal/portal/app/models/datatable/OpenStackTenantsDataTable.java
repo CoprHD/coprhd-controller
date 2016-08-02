@@ -16,7 +16,7 @@
  */
 package models.datatable;
 
-import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.OSTenantRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import util.datatable.DataTable;
 
@@ -46,7 +46,7 @@ public class OpenStackTenantsDataTable extends DataTable {
             this.exclude = tenant.getExcluded();
         }
 
-        public OpenStackTenant(CoprhdOsTenant tenant) {
+        public OpenStackTenant(OSTenantRestRep tenant) {
             this.id = tenant.getId().toString();
             this.osId = tenant.getOsId();
             this.name = tenant.getName();

@@ -20,7 +20,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.util.List;
 
-import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.OSTenantRestRep;
 import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
@@ -31,8 +31,8 @@ public class OpenStackTenantsUtils {
         return getViprClient().openStackTenants().getAll();
     }
 
-    public static List<CoprhdOsTenant> getOpenStackTenantsFromDataBase() {
-        return getViprClient().openStackTenants().getOpenStackTenants().getCoprhdOsTenants();
+    public static List<OSTenantRestRep> getOpenStackTenantsFromDataBase() {
+        return getViprClient().openStackTenants().getOpenStackTenants().getOSTenantsRestRep();
     }
 
     public static void updateOpenStackTenants(OSTenantListRestRep list) {

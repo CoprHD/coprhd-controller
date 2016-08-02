@@ -16,7 +16,9 @@ public class DriverInfo implements CoordinatorSerializable {
 
     private List<String> drivers;
 
-    public DriverInfo() {}
+    public DriverInfo() {
+        this.drivers = Collections.unmodifiableList(new ArrayList<String>());
+    }
 
     public DriverInfo(List<String> drivers) {
         List<String> tmp = new ArrayList<String>(drivers);

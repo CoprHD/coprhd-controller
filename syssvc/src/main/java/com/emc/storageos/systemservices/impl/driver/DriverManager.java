@@ -165,7 +165,14 @@ public class DriverManager extends AbstractManager {
         localDrivers = getLocalDrivers();
         log.info("Local drivers initialized: {}", Arrays.toString(localDrivers.toArray()));
         DriverInfo targetDriversInfo = coordinator.getCoordinatorClient().getTargetInfo(DriverInfo.class);
-        targetDrivers = targetDriversInfo.getDrivers();
+        if (targetDriversInfo == null) {
+            DriverInfo initDriversInfo = new DriverInfo();
+            coordinator.getCoordinatorClient().setTargetInfo(initDriversInfo);
+            log.info("Created DriverInfo ZNode");
+            targetDrivers = initDriversInfo.getDrivers();
+        } else {
+            targetDrivers = targetDriversInfo.getDrivers();
+        }
         log.info("Target drivers initialized: {}", Arrays.toString(targetDrivers.toArray()));
     }
 

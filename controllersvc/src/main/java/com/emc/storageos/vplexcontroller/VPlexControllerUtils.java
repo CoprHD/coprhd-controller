@@ -47,6 +47,7 @@ import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
+import com.emc.storageos.vplex.api.VPlexTargetInfo;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
@@ -474,17 +475,19 @@ public class VPlexControllerUtils {
      *              port wwn    - 0x50001442601e8002
      * 
      * @param client a reference to the VPlexApiClient to query for port info
+     * @param clusterName the cluster for this port name search; port names can potentially be different
+     *                    across clusters.
      * @return a Map of target-port to port-wwn values for a VPLEX device
      */
-    public static Map<String, String>  getTargetPortToPwwnMap(VPlexApiClient client) {
+    public static Map<String, String> getTargetPortToPwwnMap(VPlexApiClient client, String clusterName) {
 
         long start = new Date().getTime();
         Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
-        List<VPlexPortInfo> vplexPortInfos = client.getPortInfo(true);
-        if (vplexPortInfos != null) {
-            for (VPlexPortInfo vplexPortInfo : vplexPortInfos) {
-                if (null != vplexPortInfo.getPortWwn()) {
-                    targetPortToPwwnMap.put(vplexPortInfo.getTargetPort(), vplexPortInfo.getPortWwn());
+        List<VPlexTargetInfo> targetInfos = client.getTargetInfoForCluster(clusterName);
+        if (targetInfos != null) {
+            for (VPlexTargetInfo vplexTargetPortInfo : targetInfos) {
+                if (null != vplexTargetPortInfo.getPortWwn()) {
+                    targetPortToPwwnMap.put(vplexTargetPortInfo.getName(), vplexTargetPortInfo.getPortWwn());
                 }
             }
         }

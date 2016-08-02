@@ -231,6 +231,10 @@ public class VirtualArrays extends ViprResourceController {
 			// If storage system ids are passed, use them and create virtual arrays
 			JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 			JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
+			JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+			if (varrays == null) {
+	            varrays = new JsonArray();
+	        }
 			if(storage_systems != null ) {
 				for(Object storageobject : storage_systems) {
 					JsonObject storage = (JsonObject) storageobject;
@@ -242,10 +246,11 @@ public class VirtualArrays extends ViprResourceController {
 					VirtualArrayRestRep varray = virtualArray.save();
 					virtualArray.load(varray);
 
-                    updateVarrayCookie(virtualArray.id, virtualArray.name);
-
 					addVarrayStorageSystem(virtualArray.id, storageid);
+			        buildVarrayCookies(virtualArray.id, virtualArray.name, varrays);
 				}
+		        dataObject.add(VARRAYS, varrays);
+		        saveJsonAsCookie(GUIDE_DATA, dataObject);
 			}
 			else {
 				// Create a storage system map that have virtual arrays attached
@@ -305,6 +310,13 @@ public class VirtualArrays extends ViprResourceController {
         saveJsonAsCookie(GUIDE_DATA, dataObject);
     }
 
+    private static void buildVarrayCookies( String varrayid, String varrayname, JsonArray varrays) {
+    	JsonObject jsonvarray = new JsonObject();
+        jsonvarray.addProperty("id", varrayid);
+        jsonvarray.addProperty("name", varrayname);
+
+        varrays.add(jsonvarray);
+    }
 
     /**
      * Displays the page for editing an existing virtual array.

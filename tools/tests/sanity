@@ -2810,12 +2810,12 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-        --journalVpool rp_targets \
+        --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 
@@ -2826,12 +2826,29 @@ rpvplex_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-        --journalVpool rp_targets \
+        --journalVpool rpvplex_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
+        --highavailability vplex_local
+
+    run cos create block rpvplex_cdp$1-migrate $POOLS_AUTO_MATCH \
+        --description 'RP+VPLEX-Source-CDP MIGRATE'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --expandable true \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
+        --max_snapshots 10 \
+        --rp_copy_mode ASYNCHRONOUS \
+        --rp_rpo_value 5 \
+        --rp_rpo_type MINUTES \
+        --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 }
@@ -4671,7 +4688,8 @@ recoverpoint_vpool_change_test()
         noprotection_vpool=${2}
         rp_vpool=${3}
         rp_cg=${4}
-        upgrade_to_mp=${5}
+        rp_migrate_vpool=${5}
+        upgrade_to_mp=${6}
 
         # Perform Upgrade to MP if the variable is present,
         # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
@@ -4679,6 +4697,12 @@ recoverpoint_vpool_change_test()
             secho 'Change Virtual Pool - Upgrade To MetroPoint'
             run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
         fi
+
+        if [ a${rp_migrate_vpool} != a ] ; then
+            secho 'Change Virtual Pool - VPLEX Data Migration (RecoverPoint)'
+            run volume change_cos ${PROJECT}/${base_volume} ${rp_migrate_vpool}
+        fi
+
         secho 'Change Virtual Pool - Remove RecoverPoint Protection'
         run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
@@ -4899,7 +4923,6 @@ recoverpoint_setup()
     fi
 }
 
-
 recoverpoint_cleanup_volumes()
 {
     vol=${1}
@@ -5049,12 +5072,14 @@ recoverpoint_tests()
         # RP+VPLEX
         rpvplex_src_vpool='rpvplex_'$rp_type
         rpvplex_src_vpool_sync=${rpvplex_src_vpool}'-sync'
+        rpvplex_migrate_vpool=${rpvplex_src_vpool}'-migrate'
         rpvplexvolume=${RP_VPLEX_VOLUME}
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
         rpmp_src_vpool='rpmp_'$rp_type
         rpmp_src_vpool_sync=${rpmp_src_vpool}'-sync'
+        rpmp_migrate_vpool=${rpvplex_src_vpool}'-migrate'
         rpmpvolume=${RP_METROPOINT_VOLUME}
         rpmpvolumetarget=${mpvolume}'-target-'${rpmp_active_tgt_varray}
 
@@ -5180,9 +5205,9 @@ recoverpoint_tests()
                 # Change Virtual Pool Test
                 if [ "$RP_CRR" = "1" ]; then
                     # Upgrade to MetroPoint change vpool test
-                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} rpmp_crr
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplex_migrate_vpool} rpmp_crr
                 else
-                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplex_migrate_vpool}
                 fi
 
                 # Add Journal Test
@@ -5214,7 +5239,7 @@ recoverpoint_tests()
                 secho 'MetroPoint tests...'
 
                 # Change Virtual Pool Test
-                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmp_migrate_vpool}
 
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}

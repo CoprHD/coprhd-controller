@@ -157,6 +157,10 @@ public class XtremIOMetricsCollector {
         }
 
         // calculate exponential average for each Storage controller
+        double emaFactor = PortMetricsProcessor.getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        if (emaFactor > 1.0) {
+            emaFactor = 1.0;  // in case of invalid user input
+        }
         for (URI scURI : scToAvgCPU.keySet()) {
             Double avgScCPU = scToAvgCPU.get(scURI);
             StorageHADomain sc = dbClient.queryObject(StorageHADomain.class, scURI);
@@ -165,10 +169,6 @@ public class XtremIOMetricsCollector {
             portMetricsProcessor.processFEAdaptMetrics(avgScCPU, 0l, sc, currentTime.toString(), false);
 
             StringMap dbMetrics = sc.getMetrics();
-            double emaFactor = PortMetricsProcessor.getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
-            if (emaFactor > 1.0) {
-                emaFactor = 1.0;  // in case of invalid user input
-            }
             Double scAvgBusy = MetricsKeys.getDouble(MetricsKeys.avgPercentBusy, dbMetrics);
             Double scEmaBusy = MetricsKeys.getDouble(MetricsKeys.emaPercentBusy, dbMetrics);
             Double scPercentBusy = (scAvgBusy * emaFactor) + ((1 - emaFactor) * scEmaBusy);

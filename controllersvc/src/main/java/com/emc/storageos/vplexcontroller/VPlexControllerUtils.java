@@ -481,7 +481,6 @@ public class VPlexControllerUtils {
      */
     public static Map<String, String> getTargetPortToPwwnMap(VPlexApiClient client, String clusterName) {
 
-        long start = new Date().getTime();
         Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
         List<VPlexTargetInfo> targetInfos = client.getTargetInfoForCluster(clusterName);
         if (targetInfos != null) {
@@ -491,9 +490,8 @@ public class VPlexControllerUtils {
                 }
             }
         }
-        long elapsed = new Date().getTime() - start;
-        log.info("TIMER: assembling the target port name to wwn map took {} ms", elapsed);
 
+        log.info("target port map for cluster {} is {}", clusterName, targetPortToPwwnMap);
         return targetPortToPwwnMap;
     }
 

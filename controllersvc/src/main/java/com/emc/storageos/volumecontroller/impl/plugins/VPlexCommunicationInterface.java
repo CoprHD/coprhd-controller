@@ -1389,18 +1389,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
 
         try {
+            // this is a map of cluster id (1 or 2) to the actual cluster name
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
+            // this is a map of the cluster names to a map of its target port names to wwpns
             Map<String, Map<String, String>> clusterPortMap = new HashMap<String, Map<String, String>>();
 
             for (String clusterName : clusterIdToNameMap.values()) {
-                List<VPlexTargetInfo> targetInfos = client.getTargetInfoForCluster(clusterName);
-                Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
-                for (VPlexTargetInfo cachedPortInfo : targetInfos) {
-                    if (null != cachedPortInfo.getPortWwn()) {
-                        targetPortToPwwnMap.put(cachedPortInfo.getName(), cachedPortInfo.getPortWwn());
-                    }
-                }
-                s_logger.info("target port map for cluster {} is {}", clusterName, targetPortToPwwnMap);
+                Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, clusterName);
                 clusterPortMap.put(clusterName, targetPortToPwwnMap);
             }
 

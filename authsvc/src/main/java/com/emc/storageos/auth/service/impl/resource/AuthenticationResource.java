@@ -4,7 +4,30 @@
  */
 package com.emc.storageos.auth.service.impl.resource;
 
-import java.io.*;
+import com.emc.storageos.auth.AuthenticationManager;
+import com.emc.storageos.auth.impl.CassandraTokenManager;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.model.password.PasswordChangeParam;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authentication.RequestProcessingUtils;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.geo.RequestedTokenHelper;
+import com.emc.storageos.security.password.InvalidLoginManager;
+import com.emc.storageos.security.password.Password;
+import com.emc.storageos.security.password.PasswordUtils;
+import com.emc.storageos.security.password.PasswordValidator;
+import com.emc.storageos.security.password.ValidatorFactory;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.SecurityUtils;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -16,20 +39,26 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.NewCookie;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.SecurityContext;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import com.emc.storageos.model.password.PasswordChangeParam;
-import com.emc.storageos.security.password.Password;
-import com.emc.storageos.security.password.PasswordUtils;
-import com.emc.storageos.security.password.PasswordValidator;
-import com.emc.storageos.security.password.ValidatorFactory;
-import com.emc.storageos.services.util.SecurityUtils;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -37,20 +66,6 @@ import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.emc.storageos.auth.AuthenticationManager;
-import com.emc.storageos.security.password.InvalidLoginManager;
-import com.emc.storageos.auth.impl.CassandraTokenManager;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
-import com.emc.storageos.security.authentication.RequestProcessingUtils;
-import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
-import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.security.audit.AuditLogManager;
-import com.emc.storageos.security.geo.RequestedTokenHelper;
 
 /**
  * Main resource class for all authentication api
@@ -84,6 +99,11 @@ public class AuthenticationResource {
     private static final String FORM_LOGIN_POST_NO_SERVICE_ERROR = "The POST request to formlogin does not have service query parameter";
     private static final String SERVICE_URL_FORMAT_ERROR = "The provided service URI has invalid format";
 
+    private static final String LOGIN_BANNER_KEY = "system_login_banner";
+    private static final String FORM_LOGIN_BANNER = "login_banner";
+    private static final String DEFAULT_BANNER_HTML = "<span class=\"glyphicon glyphicon-warning-sign \"></span><span style=\"font-weight: bold;\"> Authorized Users Only.</span><br>If you are not an authorized user, please leave this page.";
+
+
     private static String _cachedLoginPagePart1;
     private static String _cachedLoginPagePart2;
 
@@ -92,6 +112,7 @@ public class AuthenticationResource {
 
     private static String HEADER_PRAGMA = "Pragma";
     private static String HEADER_PRAGMA_VALUE = "no-cache";
+
 
     private static CacheControl _cacheControl = null;
     @Autowired
@@ -416,6 +437,7 @@ public class AuthenticationResource {
         }
 
         String formLP = getFormLoginPage(service, source, httpRequest.getServerName(), loginError);
+
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -960,7 +982,16 @@ public class AuthenticationResource {
         }
 
         sbFinal.append("\" ");
-        sbFinal.append(error == null ? _cachedLoginPagePart2 : _cachedLoginPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
+        String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
+        String defaultBannerProp = _passwordUtils.getDefaultProperties().getProperty(LOGIN_BANNER_KEY);
+        String _cachedLoginPagePart2Tmp = "";
+        if (defaultBannerProp.equals(loginBannerString)) {
+            _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, DEFAULT_BANNER_HTML);
+        } else {
+            _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, loginBannerString).replaceAll("\\\\n", "<br>");
+        }
+
+        sbFinal.append(error == null ? _cachedLoginPagePart2Tmp : _cachedLoginPagePart2Tmp.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
 
     }
@@ -1000,6 +1031,15 @@ public class AuthenticationResource {
         String passwordRuleInfo = MessageFormat.format(FORM_INFO_ENT, getPasswordChangePromptRule());
         _log.info("password rule info: \n" + passwordRuleInfo);
         String newPart2 = _cachedChangePasswordPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, passwordRuleInfo + "$1");
+
+        String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
+        String defaultBannerProp = _passwordUtils.getDefaultProperties().getProperty(LOGIN_BANNER_KEY);
+        if (defaultBannerProp.equals(loginBannerString)) {
+            newPart2 = newPart2.replaceAll(FORM_LOGIN_BANNER, DEFAULT_BANNER_HTML);
+        } else {
+            newPart2 = newPart2.replaceAll(FORM_LOGIN_BANNER, loginBannerString).replaceAll("\\\\n", "<br>");
+        }
+
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
     }

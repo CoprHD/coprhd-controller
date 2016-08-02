@@ -11,6 +11,7 @@ import org.apache.commons.io.IOUtils;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.oe.gson.AffectedResource;
+import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.TaskResourceRep;
@@ -32,7 +33,7 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
     private static final String OESERVERPORT = "9090";
 
     private static final String NODE_NULL_VALUE = "null";
-    
+
     private Map<String, Object> params;
     private String workflowName;
     private List<String> playbookNameList;
@@ -70,37 +71,59 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
 
         String workflowId = startWorkflow();
         List<URI> tasksStartedByOe = new ArrayList<>();
+        List<String> messagesLogged = new ArrayList<>();
         do {
             workflowResponse = getOeWorkflowResponse(workflowId);
-            for(String ansibleResult : OrchestrationUtils.getAnsibleResults(workflowResponse)){
-                // see if it refers to an Operation with ViPR Tasks
-                ViprOperation viprOperation = OrchestrationUtils.parseViprTasks(ansibleResult);
-                if(viprOperation != null) {
-                    OrchestrationUtils.updateAffectedResources(viprOperation);
-                    List<TaskResourceRep> viprTaskIds = OrchestrationUtils.locateTasksInVipr(viprOperation,getClient());
-                    for(TaskResourceRep task : viprTaskIds ) {
-                        if(!tasksStartedByOe.contains(task)) {
-                            addOrderIdTag(task.getId());
-                            tasksStartedByOe.add(task.getId());
-                            ExecutionUtils.currentContext().logInfo("Orchestration Engine started " + 
-                                    " task '" + task.getName()+ "'  " +
-                                    task.getResource().getName()); 
+
+
+            // get results (maybe multiple, if multiple tasks were in WF)
+            String[] ansibleResultFromWfArray = OrchestrationUtils.getAnsibleResults(workflowResponse);
+
+            for(String ansibleResultFromWf : ansibleResultFromWfArray) {
+
+                // result may contain multiple JSON objects:
+                for(String ansibleResult:
+                    OrchestrationUtils.parseObjectList(ansibleResultFromWf)) {
+
+                    // see if it refers to an Operation with ViPR Tasks
+                    ViprOperation viprOperation = OrchestrationUtils.parseViprTasks(ansibleResult);
+                    if(viprOperation != null) {
+                        OrchestrationUtils.updateAffectedResources(viprOperation);
+                        List<TaskResourceRep> viprTaskIds = OrchestrationUtils.locateTasksInVipr(viprOperation,getClient());
+                        for(TaskResourceRep task : viprTaskIds ) {
+                            if(!tasksStartedByOe.contains(task.getId())) {
+                                addOrderIdTag(task.getId());
+                                tasksStartedByOe.add(task.getId());
+                                ExecutionUtils.currentContext().logInfo("Orchestration Engine started " +
+                                        " task '" + task.getName()+ "'  " +
+                                        task.getResource().getName());
+                            }
+                        }
+                    } 
+                    // else see if it's a list of resources
+                    AffectedResource[] rsrcList = null;
+                    if (viprOperation == null) {
+                        rsrcList = OrchestrationUtils.parseResourceList(ansibleResult);
+                        if(rsrcList != null) {
+                            OrchestrationUtils.updateAffectedResources(rsrcList);
                         }
                     }
-                } 
-                // else see if it's a list of resources
-                AffectedResource[] rsrcList = null;
-                if (viprOperation == null) {
-                    rsrcList = OrchestrationUtils.parseResourceList(ansibleResult);
-                    if(rsrcList != null) {
-                        OrchestrationUtils.updateAffectedResources(rsrcList);
-                    } 
-                }
-                // if neither, log result
-                if ((viprOperation == null) && (rsrcList == null)) {
-                    ExecutionUtils.currentContext().logInfo("An orchestration engine Workflow " + 
-                            "result was not recognized as a ViPR Task or " +
-                            "list of Affected Resources in ViPR: " + ansibleResult);
+                    // else see if it's a status message for order log
+                    OeStatusMessage oeStatusMessage = null;
+                    if ((viprOperation == null) && (rsrcList == null)) {
+                        oeStatusMessage = OrchestrationUtils.parseOeStatusMessage(ansibleResult);
+                        if((oeStatusMessage != null) &&
+                                !messagesLogged.contains(oeStatusMessage.getMessage())){
+                            ExecutionUtils.currentContext().logInfo(oeStatusMessage.getMessage());
+                            messagesLogged.add(oeStatusMessage.getMessage());
+                        }
+                    }
+                    // if neither, log result
+                    if ((viprOperation == null) && (rsrcList == null) && (oeStatusMessage == null) ) {
+                        ExecutionUtils.currentContext().logInfo("An orchestration engine Workflow " +
+                                "result was not recognized as a ViPR Task or " +
+                                "list of Affected Resources in ViPR: " + ansibleResult);
+                    }
                 }
             }
         } while (OrchestrationUtils.isWorkflowRunning(workflowResponse) && !timedOut);

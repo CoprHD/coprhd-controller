@@ -252,6 +252,7 @@ public class LDAPsources extends ViprResourceController {
         list();
     }
 
+    @SuppressWarnings("ClassVariableVisibilityCheck")
     public static class LDAPsourcesForm {
 
         public String id;

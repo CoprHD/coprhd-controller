@@ -117,6 +117,9 @@
         <control-group v-field='vpool.provisioningType' required>
           <select-one options="provisioningTypeOptions" auto-default v-disabled='locked'></select-one>
         </control-group>
+        <control-group v-field="vpool.enableDeDup">
+          <boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
+        </control-group>
 
         <control-group v-field='vpool.protocols'  type="array" required>
           <select-many options="protocolsAvailableOptions" v-disabled='locked'></select-many>

@@ -156,4 +156,7 @@ public interface ServiceParams {
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 
+    public String RETENTION_ENABLED = "enableRetention";
+    public String RETENTION_TTL = "timeToLive";
+    public String RETENTION_TTL_UNIT = "timeToLiveUnit";
 }

@@ -367,6 +367,7 @@ public class BlockMapper {
         to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        to.setTimeToLive(from.getTimeToLive());
         return to;
     }
 

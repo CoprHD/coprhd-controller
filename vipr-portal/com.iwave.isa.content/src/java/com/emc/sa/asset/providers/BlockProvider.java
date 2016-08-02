@@ -156,6 +156,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final AssetOption LINKED_SNAPSHOT_NOCOPYMODE_OPTION = newAssetOption(LINKED_SNAPSHOT_NOCOPYMODE_VALUE,
             "block.snapshot.linked.nocopymode");
 
+    private static List<AssetOption> RETENTION_OPTION = Lists.newArrayList(
+            newAssetOption("1", "retention.enabled"));
+    
+    private static List<AssetOption> TTL_UNITS = Lists.newArrayList(
+            newAssetOption("0", "retention.minutes"),
+            newAssetOption("1", "retention.hours"),
+            newAssetOption("2", "retention.days"), 
+            newAssetOption("3", "retention.months"));
+    
     private static List<AssetOption> NTFS_OPTIONS = Lists.newArrayList(newAssetOption("DEFAULT", "Default"),
             newAssetOption("512", "512"),
             newAssetOption("1024", "1k"),
@@ -606,6 +615,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createExportWithVarrayOptions(client, client.blockExports().getByRefs(exports));
     }
 
+    @Asset("enableRetention")
+    public List<AssetOption> getRetentionOptions(AssetOptionsContext ctx) {
+        return RETENTION_OPTION;
+    }
+    
+    @Asset("timeToLiveUnit")
+    @AssetDependencies("enableRetention")
+    public List<AssetOption> getTimeToLiveUnits(AssetOptionsContext ctx, String enable) {
+        return TTL_UNITS;
+    }
+    
     /**
      * Gets the set of unique exports for a given volume.
      * 

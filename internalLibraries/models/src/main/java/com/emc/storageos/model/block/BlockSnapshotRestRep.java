@@ -25,7 +25,8 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     private String snapsetLabel;
     private String provisionedCapacity;
     private String allocatedCapacity;
-
+    private Integer timeToLive;
+    
     /**
      * URI and reference link to the volume that is the
      * source for the snapshot.
@@ -152,4 +153,14 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     public void setAllocatedCapacity(String allocatedCapacity) {
         this.allocatedCapacity = allocatedCapacity;
     }
+
+    @XmlElement(name = "ttl")
+    public Integer getTimeToLive() {
+        return timeToLive;
+    }
+
+    public void setTimeToLive(Integer timeToLive) {
+        this.timeToLive = timeToLive;
+    }
+    
 }

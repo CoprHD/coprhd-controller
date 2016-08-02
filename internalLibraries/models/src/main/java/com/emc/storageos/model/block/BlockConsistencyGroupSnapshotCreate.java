@@ -23,7 +23,8 @@ public class BlockConsistencyGroupSnapshotCreate {
     private List<URI> volumes;
     private Boolean createInactive;
     private Boolean readOnly;
-
+    private Integer ttl;
+    
     public BlockConsistencyGroupSnapshotCreate() {
     }
 
@@ -110,4 +111,14 @@ public class BlockConsistencyGroupSnapshotCreate {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
+	
+    @XmlElement(name = "ttl", required = false, defaultValue = "0")
+    public Integer getTtl() {
+        return ttl;
+    }
+
+    public void setTtl(Integer ttl) {
+        this.ttl = ttl;
+    }
+	    
 }

@@ -98,6 +98,8 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // COPY - supported only on VMAX3 sessions
     private String copyMode = CopyMode.nocopy.toString();
     
+    private Integer timeToLive;
+    
     // Enum defines copy modes for array snapshot sessions.
     public enum CopyMode {
         copy,
@@ -110,6 +112,8 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         SRDF
     };
 
+    public static Integer TTL_UNLIMITED = 0;
+    
     @Override
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Volume.class)
     @Name("parent")
@@ -417,4 +421,15 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         this.copyMode = copyMode;
         setChanged("copyMode");
     }
+
+    @Name("timeToLive")
+    public Integer getTimeToLive() {
+        return timeToLive;
+    }
+
+    public void setTimeToLive(Integer timeToLive) {
+        this.timeToLive = timeToLive;
+        setChanged("timeToLive");
+    }
+    
 }

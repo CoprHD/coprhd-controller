@@ -2490,12 +2490,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshotName The snapshot name.
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
      * @param taskId The unique task identifier
+     * @param timeToLive the time to live for this snapshot
      *
      * @return The list of snapshots
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId) {
+            String snapshotName, Integer timeToLive, List<URI> snapshotURIs, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int index = 1;

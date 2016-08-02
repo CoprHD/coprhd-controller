@@ -1168,6 +1168,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param volumes The volumes for which snapshots are to be created.
      * @param snapshotType The snapshot technology type.
      * @param snapshotName The snapshot name.
+     * @param timeToLive time to live
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
      * @param taskId The unique task identifier
      * 
@@ -1175,7 +1176,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId) {
+            String snapshotName, Integer timeToLive, List<URI> snapshotURIs, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int count = 1;
@@ -1209,6 +1210,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             op.setResourceType(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT);
             snapshot.getOpStatus().createTaskStatus(taskId, op);
             snapshotURIs.add(snapshot.getId());
+            snapshot.setTimeToLive(timeToLive);
             snapshots.add(snapshot);
         }
         _dbClient.createObject(snapshots);

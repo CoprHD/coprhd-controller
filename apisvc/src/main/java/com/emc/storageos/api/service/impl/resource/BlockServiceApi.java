@@ -398,13 +398,14 @@ public interface BlockServiceApi {
      * @param volumes The volumes for which snapshots are to be created.
      * @param snapShotType The snapshot technology type.
      * @param snapshotName The snapshot name.
+     * @param timeToLive time to live in hours
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
      * @param taskId The unique task identifier
      * 
      * @return The list of snapshots
      */
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapShotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId);
+            String snapshotName, Integer timeToLive, List<URI> snapshotURIs, String taskId);
 
     /**
      * Uses the appropriate controller to create the snapshots.

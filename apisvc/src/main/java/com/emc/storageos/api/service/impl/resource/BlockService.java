@@ -2254,9 +2254,10 @@ public class BlockService extends TaskResourceService {
         // initialize the task list.
         String taskId = UUID.randomUUID().toString();
         List<URI> snapshotURIs = new ArrayList<URI>();
-
+        Integer ttl = param.getTtl();
+        
         List<BlockSnapshot> snapshots = blockServiceApiImpl.prepareSnapshots(
-                volumesToSnap, snapshotType, snapshotName, snapshotURIs, taskId);
+                volumesToSnap, snapshotType, snapshotName, ttl, snapshotURIs, taskId);
 
         TaskList response = new TaskList();
         for (BlockSnapshot snapshot : snapshots) {

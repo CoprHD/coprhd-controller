@@ -237,9 +237,9 @@ public class SnapshotService extends TaskResourceService {
 
         String taskId = UUID.randomUUID().toString();
         List<URI> snapshotURIs = new ArrayList<URI>();
-
+        Integer ttl = BlockSnapshot.TTL_UNLIMITED; 
         List<BlockSnapshot> snapshots = api.prepareSnapshots(volumesToSnap,
-                snapshotType, snapshotName, snapshotURIs, taskId);
+                snapshotType, snapshotName, ttl, snapshotURIs, taskId);
 
         TaskList response = new TaskList();
         for (BlockSnapshot snapshot : snapshots) {

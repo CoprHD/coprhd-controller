@@ -12,6 +12,9 @@ import static com.emc.sa.service.ServiceParams.READ_ONLY;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
+import static com.emc.sa.service.ServiceParams.RETENTION_ENABLED;
+import static com.emc.sa.service.ServiceParams.RETENTION_TTL;
+import static com.emc.sa.service.ServiceParams.RETENTION_TTL_UNIT;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +57,17 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(value = LINKED_SNAPSHOT_COPYMODE, required = false)
     protected String linkedSnapshotCopyMode;
 
+    @Param(value = RETENTION_ENABLED, required = false)
+    protected String retentionEnabled;
+    
+    @Param(value = RETENTION_TTL, required = false)
+    protected Integer timeToLive;
+    
+    @Param(value = RETENTION_TTL_UNIT, required = false)
+    protected String timeToLiveUnit;
+    
     private List<BlockObjectRestRep> volumes;
-
+    
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
@@ -83,6 +95,7 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
+        warn("ttl " + timeToLive + ", unit " + timeToLiveUnit);
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
@@ -90,7 +103,7 @@ public class CreateBlockSnapshotService extends ViPRService {
                     tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
                                                                     linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
                 } else {
-                    tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly));
+                    tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly, timeToLive));
                 }
                 addAffectedResources(tasks);
             }

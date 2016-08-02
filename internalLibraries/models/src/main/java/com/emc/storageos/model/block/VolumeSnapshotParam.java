@@ -17,14 +17,16 @@ public class VolumeSnapshotParam {
     private Boolean createInactive;
     private Boolean readOnly;
     private String type;
-
+    private Integer ttl;
+    
     public VolumeSnapshotParam() {
     }
 
-    public VolumeSnapshotParam(String name, Boolean createInactive, String type) {
+    public VolumeSnapshotParam(String name, Boolean createInactive, String type, Integer ttl) {
         this.name = name;
         this.createInactive = createInactive;
         this.type = type;
+        this.ttl = ttl;
     }
 
     /**
@@ -88,4 +90,14 @@ public class VolumeSnapshotParam {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
+
+	@XmlElement(name = "ttl", required = false, defaultValue = "0")
+    public Integer getTtl() {
+        return ttl;
+    }
+
+    public void setTtl(Integer ttl) {
+        this.ttl = ttl;
+    }
+	
 }

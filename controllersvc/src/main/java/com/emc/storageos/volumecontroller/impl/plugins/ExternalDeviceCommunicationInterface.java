@@ -13,8 +13,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -22,6 +24,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StorageHADomain;
@@ -44,6 +50,9 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -63,6 +72,9 @@ public class ExternalDeviceCommunicationInterface extends
     private static final String EXISTING = "existing";
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
+    
+    // The common capability definitions supported by the SB SDK.
+    private Map<String, CapabilityDefinition> capabilityDefinitions;
 
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
@@ -77,6 +89,15 @@ public class ExternalDeviceCommunicationInterface extends
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
         this.drivers = drivers;
     }
+    
+    /**
+     * Setter for the common capability definitions supported by the SB SDK.
+     * 
+     * @param capabilityDefinitions The map common of capability definitions keyed by their unique id.
+     */
+    public void setCapabilityDefinitions(Map<String, CapabilityDefinition> capabilityDefinitions) {
+        this.capabilityDefinitions = capabilityDefinitions;
+    }    
 
     /**
      * Get device driver based on the driver type.
@@ -289,8 +310,7 @@ public class ExternalDeviceCommunicationInterface extends
             }
         } catch (BaseCollectionException bEx) {
             _completer.error(_dbClient, bEx);
-        } catch (Exception ex) {
-            _completer.error(_dbClient, null);
+            throw bEx;
         }
     }
 
@@ -340,19 +360,23 @@ public class ExternalDeviceCommunicationInterface extends
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
 
         driverStorageSystem.setSystemName(storageSystem.getLabel());
+        driverStorageSystem.setDisplayName(storageSystem.getLabel());
 
         // could be already populated by scan
         if (storageSystem.getSerialNumber() != null) {
             driverStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
+            _log.info("discoverStorageSystem: set serial number to {}", driverStorageSystem.getSerialNumber());
         }
         // could be already populated by scan
         if (storageSystem.getNativeId() != null) {
             driverStorageSystem.setNativeId(storageSystem.getNativeId());
+            _log.info("discoverStorageSystem: set nativeId to {}", driverStorageSystem.getNativeId());
         }
 
         try {
-            _log.info("discoverStorageSystem information for storage system {}, name {} - start",
-                    accessProfile.getSystemId(), driverStorageSystem.getSystemName());
+            _log.info("discoverStorageSystem information for storage system {}, name {}, ip address (), port {} - start",
+                    accessProfile.getSystemId(), driverStorageSystem.getSystemName(), driverStorageSystem.getIpAddress(),
+                    driverStorageSystem.getPortNumber());
             DriverTask task = driver.discoverStorageSystem(driverStorageSystem);
 
             // process discovery results.
@@ -423,11 +447,14 @@ public class ExternalDeviceCommunicationInterface extends
 
     private List<com.emc.storageos.db.client.model.StoragePool>  discoverStoragePools(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
+        
+        // Discover storage pools and associated auto tiering policies.
         List<StoragePool> driverStoragePools = new ArrayList<>();
-        // Discover storage pools
         List<com.emc.storageos.db.client.model.StoragePool> allPools = new ArrayList<>();
         List<com.emc.storageos.db.client.model.StoragePool> newPools = new ArrayList<>();
         List<com.emc.storageos.db.client.model.StoragePool> existingPools = new ArrayList<>();
+        Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap = new HashMap<>();
+        Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap = new HashMap<>();
 
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
@@ -505,8 +532,16 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.setOperationalStatus(storagePool.getOperationalStatus());
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
-
+                    
+                    // Discover the auto tiering policies supported by the storage pool.
+                    discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,
+                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);            
                 }
+
+                // Now that all storage pools have been process we can create or update
+                // as necessary the auto tiering policy instances in the controller.
+                createOrUpdateAutoTierPolicies(storageSystem, autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);
+
                 _log.info("No of newly discovered pools {}", newPools.size());
                 _log.info("No of existing discovered pools {}", existingPools.size());
 
@@ -537,6 +572,181 @@ public class ExternalDeviceCommunicationInterface extends
             _log.info("Discovery of storage pools of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
 
+    }
+    
+    /**
+     * Discovers the auto tiering policies supported by the passed driver storage pool
+     * and updates the passed auto tiering policy maps.
+     * 
+     * @param driverStorageSystem A reference to the driver storage system.
+     * @param storagePool A reference to the driver storage pool.
+     * @param pool A reference to the controller storage pool representing the driver storage pool.
+     * @param autoTieringPolicyPoolMap A map of unique policy ids and controller storage pools that support the policy.
+     * @param autoTieringPolicyPropertiesMap A map of unique policy ids and the policy properties.
+     */
+    private void discoverAutoTieringPoliciesForStoragePool(StorageSystem driverStorageSystem, StoragePool storagePool,
+            com.emc.storageos.db.client.model.StoragePool pool,
+            Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap,
+            Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap) {
+        
+        // Get the capabilities specified for the storage pool and
+        // process any auto tiering policy capabilities.
+        List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+        for (CapabilityInstance capability : capabilities) {
+            // Get the capability definition for the capability.
+            String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+            if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
+                _log.error(String.format("Skipping capability %s with no capability definition UID for storage pool %s on system %s",
+                        capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+                continue;
+            }
+            
+            // Get the capability definition from the map of supported capability definitions.
+            CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
+            if (capabilityDefinition == null) {
+                _log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
+                        capabilityDefinitionUid, storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+                continue;
+            }
+            
+            // Handle auto tiering policy capability.
+            if (AutoTieringPolicyCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {                           
+                // Get the policy id.
+                String policyId = capability.getPropertyValue(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name());
+                if (policyId == null) {
+                    _log.error(String.format("Skipping auto tiering policy capability %s with no policy id for storage pool %s on system %s",
+                            capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+                    continue;
+                }
+                
+                // Add the pool to the set of storage pools for this auto tiering policy.
+                if (autoTieringPolicyPoolMap.containsKey(policyId)) {
+                    List<com.emc.storageos.db.client.model.StoragePool> autoTieringPolicyPools = autoTieringPolicyPoolMap.get(policyId);
+                    autoTieringPolicyPools.add(pool);
+                } else {
+                    List<com.emc.storageos.db.client.model.StoragePool> autoTieringPolicyPools = new ArrayList<>();
+                    autoTieringPolicyPools.add(pool);
+                    autoTieringPolicyPoolMap.put(policyId, autoTieringPolicyPools);
+                }
+                
+                // Also, save the properties for this auto tiering policy.
+                if (!autoTieringPolicyPropertiesMap.containsKey(policyId)) {
+                    autoTieringPolicyPropertiesMap.put(policyId, capability.getProperties());
+                }
+            } 
+        } 
+    }
+    
+    /**
+     * Creates and/or updates the auto tiering policies in the controller database after
+     * processing the discovered storage pools and the auto tiering policies that they support.
+     * 
+     * @param system A reference to the storage system.
+     * @param autoTieringPolicyPoolMap A map of the storage pools for each policy keyed by policy id.
+     * @param autoTieringPolicyPropertiesMap A map of the auto tiering policy properties keyed by policy id.
+     */
+    private void createOrUpdateAutoTierPolicies(com.emc.storageos.db.client.model.StorageSystem system, 
+            Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap,
+            Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap) {
+        
+        List<DataObject> objectsToCreate = new ArrayList<>();
+        List<DataObject> objectsToUpdate = new ArrayList<>();
+        for (Entry<String, List<com.emc.storageos.db.client.model.StoragePool>> policyEntry : autoTieringPolicyPoolMap.entrySet()) {
+            String policyId = policyEntry.getKey();
+            String nativeGuid = NativeGUIDGenerator.generateAutoTierPolicyNativeGuid(system.getNativeGuid(),
+                    policyId, NativeGUIDGenerator.AUTO_TIERING_POLICY);
+            AutoTieringPolicy autoTieringPolicy = checkAutoTieringPolicyExistsInDB(nativeGuid);
+            if (autoTieringPolicy == null) {
+                autoTieringPolicy = new AutoTieringPolicy();
+                autoTieringPolicy.setId(URIUtil.createId(AutoTieringPolicy.class));
+                autoTieringPolicy.setPolicyName(policyId);
+                autoTieringPolicy.setStorageSystem(system.getId());
+                autoTieringPolicy.setNativeGuid(nativeGuid);
+                autoTieringPolicy.setLabel(policyId);
+                autoTieringPolicy.setSystemType(system.getSystemType());
+                autoTieringPolicy.setPolicyEnabled(Boolean.TRUE);
+                Map<String, List<String>> policyProperties = autoTieringPolicyPropertiesMap.get(policyId);
+                List<String> provTypeValueList = policyProperties.get(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name());
+                if (!provTypeValueList.isEmpty()) {
+                    autoTieringPolicy.setProvisioningType(provTypeValueList.get(0));
+                }
+                objectsToCreate.add(autoTieringPolicy);
+                _log.info(String.format("Creating new auto tiering policy %s, supported by storage pools %s", policyId, policyEntry.getValue()));
+            } else {
+                objectsToUpdate.add(autoTieringPolicy);
+                _log.info(String.format("Updating existing auto tiering policy %s, supported by storage pools %s", policyId, policyEntry.getValue()));
+            }
+            
+            // Set the storage pools for this policy. Since the pools have enabled auto
+            // tiering policies, also, make sure auto tiering is enabled on each pool.
+            StringSet poolIds = new StringSet();
+            for (com.emc.storageos.db.client.model.StoragePool pool : policyEntry.getValue()) {
+                poolIds.add(pool.getId().toString());
+                // Note that the pool in the db will be updated by the caller.
+                pool.setAutoTieringEnabled(true);
+            }
+            autoTieringPolicy.setPools(poolIds);
+            
+            // Lastly, since the system has pools with auto tiering enabled, make
+            // sure the system has auto tiering enabled.
+            if (!system.getAutoTieringEnabled()) {
+                system.setAutoTieringEnabled(true);
+                _dbClient.updateObject(system);                
+            }
+        }
+        
+        // Now any auto tier policies in the database for the passed system that are 
+        // not represented by the passed policy map need to be marked disabled.
+        disableRemovedAutoTieringPolicies(autoTieringPolicyPoolMap.keySet(), system.getId());
+        
+        // Lastly create and update objects in the database.
+        _dbClient.createObject(objectsToCreate);
+        _dbClient.updateObject(objectsToUpdate);
+    }
+    
+    /**
+     * Get the auto tiering policy in the database with the passed native GUID if it exists.
+     * Otherwise, return null.
+     * 
+     * @param nativeGuid The native GUI of the auto tiering policy.
+     * 
+     * @return The auto tiering policy if it exists, null otherwise.
+     */
+    private AutoTieringPolicy checkAutoTieringPolicyExistsInDB(String nativeGuid) {
+        AutoTieringPolicy autoTieringPolicy = null;
+        URIQueryResultList queryResult = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAutoTieringPolicyByNativeGuidConstraint(nativeGuid), queryResult);
+        if (queryResult.iterator().hasNext()) {
+            autoTieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class, queryResult.iterator().next());
+        }
+        return autoTieringPolicy;
+    }
+
+    /**
+     * Disable any auto tiering policies for the passed system that were not discovered
+     * as represented by the passed policy ids.
+     * 
+     * @param discoveredPolicyIds The ids of the discovered auto tiering policies 
+     * after processing all discovered storage pools.
+     * @param systemURI The URI of the external storage system.
+     */
+    private void disableRemovedAutoTieringPolicies(Set<String> discoveredPolicyIds, URI systemURI) {
+        List<AutoTieringPolicy> disabledPolicies = new ArrayList<>();
+        URIQueryResultList queryResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFASTPolicyConstraint(systemURI), queryResults);
+        Iterator<URI> queryResultsIter = queryResults.iterator();
+        while (queryResultsIter.hasNext()) {
+            URI autoTieringPolicyURI = queryResultsIter.next();
+            AutoTieringPolicy autoTieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
+            if ((autoTieringPolicy != null) && (!discoveredPolicyIds.contains(autoTieringPolicy.getPolicyName()))) {
+                // Disable the policy and clear the supporting storage pools.
+                autoTieringPolicy.setPolicyEnabled(false);
+                autoTieringPolicy.setPools(new StringSet());
+                autoTieringPolicy.setInactive(true);
+                disabledPolicies.add(autoTieringPolicy);
+            }
+        }
+        _dbClient.updateObject(disabledPolicies);
     }
 
     private Map<String, List<com.emc.storageos.db.client.model.StoragePort>> discoverStoragePorts(DiscoveryDriver driver, Set<Network> networksToUpdate,
@@ -580,6 +790,17 @@ public class ExternalDeviceCommunicationInterface extends
                             break;
                         }
                     }
+
+                    // Verify that discovered port has mandatory identifier "portNetworkId"
+                    if (driverPort.getPortNetworkId() == null) {
+                        if (storagePort == null) {
+                            _log.error("No portNetworkId for new discovered port {}, skip discovery of this port.", portNativeGuid);
+                        } else {
+                            _log.error("No portNetworkId for previously discovered port {}, skip discovery of this port.", portNativeGuid);
+                        }
+                        continue;
+                    }
+
                     if (storagePort == null) {
                         // New port processing
                         storagePort = new com.emc.storageos.db.client.model.StoragePort();

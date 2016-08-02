@@ -12,14 +12,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
@@ -38,7 +39,8 @@ public class DeviceTypeMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
 
         StringSet deviceTypes = (StringSet) attributeMap.get(Attributes.system_type.toString());
         String deviceType = null;
@@ -69,6 +71,11 @@ public class DeviceTypeMatcher extends AttributeMatcher {
         }
         _logger.info("Device Type {} Matcher Ended {} :", deviceType,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPools)));
+        
+        if(CollectionUtils.isEmpty(filteredPools)){
+            errorMessage.append(String.format("No matching storage pool available for the given device type %s. ", deviceType));
+            _logger.error(errorMessage.toString());
+        }
         return filteredPools;
     }
 

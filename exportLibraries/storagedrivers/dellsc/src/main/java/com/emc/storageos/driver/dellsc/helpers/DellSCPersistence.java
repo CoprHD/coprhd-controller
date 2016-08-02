@@ -29,7 +29,7 @@ import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
 import com.emc.storageos.storagedriver.Registry;
 
 /**
- * Handles persistence for driver data.
+ * 
  */
 public class DellSCPersistence {
 
@@ -47,17 +47,10 @@ public class DellSCPersistence {
      * Initializes the class.
      * 
      * @param driverName The driver name.
-     */
-    public DellSCPersistence(String driverName) {
-        this.driverName = driverName;
-    }
-
-    /**
-     * Sets the persistence store.
-     *
      * @param driverRegistry The driver persistence registry.
      */
-    public void setDriverRegistry(Registry driverRegistry) {
+    public DellSCPersistence(String driverName, Registry driverRegistry) {
+        this.driverName = driverName;
         this.driverRegistry = driverRegistry;
     }
 

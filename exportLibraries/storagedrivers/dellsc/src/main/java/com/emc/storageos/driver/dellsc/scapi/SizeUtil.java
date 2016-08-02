@@ -71,16 +71,6 @@ public class SizeUtil {
     }
 
     /**
-     * Converts a size string from the API to kilobytes.
-     *
-     * @param sizeStr The API size string.
-     * @return The size in kilobytes.
-     */
-    public static Long sizeStrToKBytes(String sizeStr) {
-        return sizeStrToBytes(sizeStr) / KB;
-    }
-
-    /**
      * Converts a speed string from the API to gigabits.
      *
      * @param speedStr The API speed string.

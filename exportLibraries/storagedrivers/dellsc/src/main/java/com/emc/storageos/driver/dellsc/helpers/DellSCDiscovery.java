@@ -33,7 +33,10 @@ import com.emc.storageos.driver.dellsc.scapi.SizeUtil;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPIException;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScCopyMirrorMigrate;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
@@ -79,53 +82,6 @@ public class DellSCDiscovery {
         this.driverName = driverName;
         this.driverVersion = driverVersion;
         this.persistence = persistence;
-        this.util = DellSCUtil.getInstance();
-    }
-
-    /**
-     * Perform discovery for a storage provider.
-     * 
-     * @param storageProvider The provider.
-     * @param storageSystems The storage systems collection to populate.
-     * @return The driver task.
-     */
-    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        DellSCDriverTask task = new DellSCDriverTask("discover");
-
-        try {
-            LOG.info("Getting information for storage provider [{}:{}] as user {}",
-                    storageProvider.getProviderHost(),
-                    storageProvider.getPortNumber(),
-                    storageProvider.getUsername());
-
-            try (StorageCenterAPI api = StorageCenterAPI.openConnection(
-                    storageProvider.getProviderHost(),
-                    storageProvider.getPortNumber(),
-                    storageProvider.getUsername(),
-                    storageProvider.getPassword())) {
-
-                // Populate the provider information
-                storageProvider.setAccessStatus(AccessStatus.READ_WRITE);
-                storageProvider.setManufacturer("Dell");
-                storageProvider.setProviderVersion(driverVersion);
-                storageProvider.setIsSupportedVersion(true);
-
-                // Populate the basic SC information
-                StorageCenter[] scs = api.getStorageCenterInfo();
-                for (StorageCenter sc : scs) {
-                    StorageSystem storageSystem = getStorageSystemFromStorageCenter(api, sc, null);
-                    storageSystems.add(storageSystem);
-                }
-            }
-
-            task.setStatus(DriverTask.TaskStatus.READY);
-        } catch (Exception e) {
-            String msg = String.format("Exception encountered getting storage provider information: %s", e);
-            LOG.error(msg);
-            task.setFailed(msg);
-        }
-
-        return task;
     }
 
     /**
@@ -167,7 +123,26 @@ public class DellSCDiscovery {
                     storageSystem.getPassword())) {
                 // Populate the SC information
                 StorageCenter sc = api.findStorageCenter(sn);
-                getStorageSystemFromStorageCenter(api, sc, storageSystem);
+                storageSystem.setSerialNumber(sc.scSerialNumber);
+                storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
+                storageSystem.setModel(sc.modelSeries);
+                storageSystem.setProvisioningType(SupportedProvisioningType.THIN);
+                storageSystem.setNativeId(sc.scSerialNumber);
+                storageSystem.setSystemType(driverName);
+
+                // Parse out version information
+                String[] version = sc.version.split("\\.");
+                storageSystem.setMajorVersion(version[0]);
+                storageSystem.setMinorVersion(version[1]);
+                storageSystem.setFirmwareVersion(sc.version);
+                storageSystem.setIsSupportedVersion(true);
+
+                storageSystem.setDeviceLabel(sc.scName);
+                storageSystem.setDisplayName(sc.scName);
+
+                // Check the supported protocols for this array
+                List<String> protocols = getSupportedProtocols(api, sc.scSerialNumber);
+                storageSystem.setProtocols(protocols);
 
                 persistence.saveConnectionInfo(
                         storageSystem.getNativeId(),
@@ -186,44 +161,6 @@ public class DellSCDiscovery {
         }
 
         return task;
-    }
-
-    /**
-     * Populate a StorageSystem object with Storage Center info.
-     *
-     * @param api The SC API connection.
-     * @param sc The Storage Center.
-     * @param storageSystemOrNull The StorageSystem to populate or null.
-     * @return The StorageSystem.
-     */
-    private StorageSystem getStorageSystemFromStorageCenter(StorageCenterAPI api, StorageCenter sc, StorageSystem storageSystemOrNull) {
-        StorageSystem storageSystem = storageSystemOrNull;
-        if (storageSystem == null) {
-            storageSystem = new StorageSystem();
-        }
-
-        storageSystem.setSerialNumber(sc.scSerialNumber);
-        storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
-        storageSystem.setModel(sc.modelSeries);
-        storageSystem.setProvisioningType(SupportedProvisioningType.THIN);
-        storageSystem.setNativeId(sc.scSerialNumber);
-        storageSystem.setSystemType(driverName);
-
-        // Parse out version information
-        String[] version = sc.version.split("\\.");
-        storageSystem.setMajorVersion(version[0]);
-        storageSystem.setMinorVersion(version[1]);
-        storageSystem.setFirmwareVersion(sc.version);
-        storageSystem.setIsSupportedVersion(true);
-
-        storageSystem.setDeviceLabel(sc.scName);
-        storageSystem.setDisplayName(sc.name);
-
-        // Check the supported protocols for this array
-        List<String> protocols = getSupportedProtocols(api, sc.scSerialNumber);
-        storageSystem.setProtocols(protocols);
-
-        return storageSystem;
     }
 
     /**
@@ -274,9 +211,9 @@ public class DellSCDiscovery {
 
                 ScStorageTypeStorageUsage su = api.getStorageTypeStorageUsage(storageType.instanceId);
                 LOG.info("Space info: {} {} {}", su.allocatedSpace, su.freeSpace, su.usedSpace);
-                pool.setSubscribedCapacity(SizeUtil.sizeStrToKBytes(su.usedSpace));
-                pool.setFreeCapacity(SizeUtil.sizeStrToKBytes(su.freeSpace));
-                pool.setTotalCapacity(SizeUtil.sizeStrToKBytes(su.allocatedSpace));
+                pool.setSubscribedCapacity(SizeUtil.sizeStrToBytes(su.usedSpace));
+                pool.setFreeCapacity(SizeUtil.sizeStrToBytes(su.freeSpace));
+                pool.setTotalCapacity(SizeUtil.sizeStrToBytes(su.allocatedSpace));
                 pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
 
                 storagePools.add(pool);
@@ -309,15 +246,41 @@ public class DellSCDiscovery {
 
             ScControllerPort[] scPorts = api.getTargetPorts(storageSystem.getNativeId(), null);
             for (ScControllerPort scPort : scPorts) {
-                if (!ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType) &&
-                        !ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
-                    LOG.info("Skipping unsupported port transport type of {}", scPort.transportType);
+
+                StoragePort port = new StoragePort();
+                port.setNativeId(scPort.instanceId);
+                port.setStorageSystemId(storageSystem.getNativeId());
+                LOG.info("Discovered Port {}, storageSystem {}",
+                        port.getNativeId(), port.getStorageSystemId());
+
+                // Get the port configuration
+                String haZone = "";
+                ScFaultDomain[] faultDomains = api.getControllerPortFaultDomains(scPort.instanceId);
+                if (faultDomains.length > 0) {
+                    // API returns list, but currently only one fault domain per port allowed
+                    haZone = faultDomains[0].name;
+                }
+                port.setPortHAZone(haZone);
+
+                if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                    setFCPortInfo(api, scPort, port);
+                } else if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                    setISCSIPortInfo(api, scPort, port);
+                } else {
+                    // Unsupported transport type
+                    LOG.warn("Skipping unsupported {} transport type port.", scPort.transportType);
                     continue;
                 }
 
-                LOG.info("Discovered Port {}, storageSystem {}",
-                        scPort.instanceId, scPort.scSerialNumber);
-                StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
+                StoragePort.OperationalStatus status = StoragePort.OperationalStatus.OK;
+                if (!ScControllerPort.PORT_STATUS_UP.equals(scPort.status)) {
+                    status = StoragePort.OperationalStatus.NOT_OK;
+                }
+                port.setOperationalStatus(status);
+                port.setPortName(port.getDeviceLabel());
+                port.setEndPointID(port.getPortNetworkId());
+                port.setAccessStatus(AccessStatus.READ_WRITE);
+
                 storagePorts.add(port);
             }
             task.setStatus(DriverTask.TaskStatus.READY);
@@ -326,6 +289,71 @@ public class DellSCDiscovery {
             task.setFailed(failureMessage);
             LOG.warn(failureMessage);
         }
+        return task;
+    }
+
+    /**
+     * Perform discovery for a storage provider.
+     * 
+     * @param storageProvider The provider.
+     * @param storageSystems The storage systems collection to populate.
+     * @return The driver task.
+     */
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+        DellSCDriverTask task = new DellSCDriverTask("discover");
+
+        try {
+            LOG.info("Getting information for storage provider [{}:{}] as user {}",
+                    storageProvider.getProviderHost(),
+                    storageProvider.getPortNumber(),
+                    storageProvider.getUsername());
+
+            try (StorageCenterAPI api = StorageCenterAPI.openConnection(
+                    storageProvider.getProviderHost(),
+                    storageProvider.getPortNumber(),
+                    storageProvider.getUsername(),
+                    storageProvider.getPassword())) {
+
+                // Populate the provider information
+                storageProvider.setAccessStatus(AccessStatus.READ_WRITE);
+                storageProvider.setManufacturer("Dell");
+                storageProvider.setProviderVersion(driverVersion);
+                storageProvider.setIsSupportedVersion(true);
+
+                // Populate the basic SC information
+                StorageCenter[] scs = api.getStorageCenterInfo();
+                for (StorageCenter sc : scs) {
+                    StorageSystem storageSystem = new StorageSystem();
+                    storageSystem.setSerialNumber(sc.scSerialNumber);
+                    storageSystem.setNativeId(sc.scSerialNumber);
+                    storageSystem.setSystemType(driverName);
+
+                    storageSystem.setIpAddress(storageProvider.getProviderHost());
+                    storageSystem.setPortNumber(storageProvider.getPortNumber());
+
+                    // Set display info
+                    storageSystem.setDeviceLabel(sc.scName);
+                    storageSystem.setDisplayName(sc.scName);
+                    storageSystem.setSystemName(sc.scName);
+
+                    // Parse out version information
+                    String[] version = sc.version.split("\\.");
+                    storageSystem.setMajorVersion(version[0]);
+                    storageSystem.setMinorVersion(version[1]);
+                    storageSystem.setFirmwareVersion(sc.version);
+                    storageSystem.setIsSupportedVersion(true);
+
+                    storageSystems.add(storageSystem);
+                }
+            }
+
+            task.setStatus(DriverTask.TaskStatus.READY);
+        } catch (Exception e) {
+            String msg = String.format("Exception encountered getting storage provider information: %s", e);
+            LOG.error(msg);
+            task.setFailed(msg);
+        }
+
         return task;
     }
 
@@ -341,16 +369,13 @@ public class DellSCDiscovery {
     public DriverTask getStorageVolumes(StorageSystem storageSystem,
             List<StorageVolume> storageVolumes,
             MutableInt token) {
-        LOG.info("Getting volumes from {}", storageSystem.getNativeId());
+        LOG.info("Getting volumes");
         DellSCDriverTask task = new DellSCDriverTask("getVolumes");
 
         try (StorageCenterAPI api = persistence.getSavedConnection(storageSystem.getNativeId())) {
             Map<ScReplayProfile, List<String>> cgInfo = util.getGCInfo(api, storageSystem.getNativeId());
             ScVolume[] volumes = api.getAllVolumes(storageSystem.getNativeId());
             for (ScVolume volume : volumes) {
-                if (volume.inRecycleBin) {
-                    continue;
-                }
                 StorageVolume driverVol = util.getStorageVolumeFromScVolume(api, volume, cgInfo);
                 storageVolumes.add(driverVol);
             }
@@ -442,6 +467,48 @@ public class DellSCDiscovery {
             LOG.warn(msg);
         }
         return result;
+    }
+
+    /**
+     * Sets FC specific info for a port.
+     *
+     * @param api The API connection.
+     * @param scPort The Storage Center port.
+     * @param port The storage port object to populate.
+     */
+    private void setFCPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
+        port.setDeviceLabel(scPort.wwn);
+        port.setTransportType(StoragePort.TransportType.FC);
+
+        ScControllerPortFibreChannelConfiguration portConfig = api.getControllerPortFCConfig(
+                scPort.instanceId);
+        port.setPortNetworkId(scPort.wwn);
+        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
+        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
+        port.setPortSubGroup(String.format("%s", portConfig.slot));
+        port.setTcpPortNumber(0L);
+    }
+
+    /**
+     * Sets iSCSI specific info for a port.
+     *
+     * @param api The API connection.
+     * @param scPort The Storage Center port.
+     * @param port The storage port object to populate.
+     */
+    private void setISCSIPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
+        port.setDeviceLabel(scPort.iscsiName);
+        port.setTransportType(StoragePort.TransportType.IP);
+
+        ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
+                scPort.instanceId);
+        port.setNetworkId(portConfig.getNetwork());
+        port.setIpAddress(portConfig.ipAddress);
+        port.setPortNetworkId(portConfig.getFormattedMACAddress());
+        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
+        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
+        port.setPortSubGroup(String.format("%s", portConfig.slot));
+        port.setTcpPortNumber(portConfig.portNumber);
     }
 
     /**

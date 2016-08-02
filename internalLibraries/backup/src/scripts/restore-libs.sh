@@ -39,7 +39,7 @@ ssh_execute() {
     local viprNode="${1}"
     local command="${2}"
     local password="${3}"
-    echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command" 2>>/tmp/u >/dev/null
+    echo "${password}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${password}' | sudo -S $command" &>/dev/null
 }
 
 get_nodeid() {

@@ -184,11 +184,9 @@ RESTORE_DIR="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
-if [ -d "$1" ] ; then
-    RESTORE_ORIGIN="$1" 
+RESTORE_ORIGIN=$(readlink -f "$1")
+if [ -d "$RESTORE_ORIGIN" ] ; then
     RESTORE_DIR=${RESTORE_ORIGIN}
-else
-    RESTORE_ORIGIN=$(readlink -f "$1")
 fi
 
 trap clean_up EXIT

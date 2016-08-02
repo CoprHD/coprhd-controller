@@ -1,5 +1,10 @@
-package com.emc.storageos.volumecontroller.impl.validators.vmax;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.volumecontroller.impl.validators.smis;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -7,15 +12,15 @@ import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 
 /**
- * Abstract super-class for Vmax validators, providing convenience
+ * Abstract super-class for SMIS validators, providing convenience
  * methods for external dependencies set on the factory.
  */
-public abstract class AbstractVmaxValidator implements Validator {
+public abstract class AbstractSMISValidator implements Validator {
 
-    private VmaxSystemValidatorFactory factory;
+    private AbstractSMISValidatorFactory factory;
     private ValidatorLogger logger;
 
-    public void setFactory(VmaxSystemValidatorFactory factory) {
+    public void setFactory(AbstractSMISValidatorFactory factory) {
         this.factory = factory;
     }
 
@@ -30,13 +35,16 @@ public abstract class AbstractVmaxValidator implements Validator {
     /*
      * Convenience delegation methods for external dependencies.
      */
-
     public CIMObjectPathFactory getCimPath() {
         return factory.getCimPath();
     }
 
     public DbClient getDbClient() {
         return factory.getDbClient();
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return factory.getCoordinator();
     }
 
     public SmisCommandHelper getHelper() {

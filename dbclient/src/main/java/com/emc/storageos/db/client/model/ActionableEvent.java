@@ -117,8 +117,8 @@ public class ActionableEvent extends DataObject implements TenantResource {
 
     public static class Method implements Serializable {
 
-        protected String methodName;
-        protected Object[] args;
+        private String methodName;
+        private Object[] args;
 
         public Method(String methodName, Object[] args) {
             this.methodName = methodName;

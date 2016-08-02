@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -38,7 +38,7 @@ import com.google.common.collect.Sets;
  * 
  * This is a somewhat inexact test. We cannot guarantee that an Export will succeed
  * even with this check, because we don't know the distribution of initiators in the
- * Export to Networks. On the other hand, this check can cause Pools to be excldued
+ * Export to Networks. On the other hand, this check can cause Pools to be excluded
  * that could be used in certain circumstances because the user actually used fewer
  * initiator than num_paths.
  * 
@@ -72,7 +72,8 @@ public class NumPathsMatcher extends AttributeMatcher {
      */
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         boolean checkIP = false;
         boolean checkFC = false;
         // If not a block vpool, then everything matches.
@@ -147,6 +148,10 @@ public class NumPathsMatcher extends AttributeMatcher {
                 }
             }
             matchedPools.add(pool);
+        }
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No storage pool is matching with the VPool maximum path parameter %d. ", maxPaths));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("NumPathsMatcher maxPaths: " + maxPaths + " passed " + matchedPools.size() + " pools");
         return matchedPools;

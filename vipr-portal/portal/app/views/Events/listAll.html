@@ -2,7 +2,6 @@
 
 #{set navSelected: ['nav.storage', 'nav.events'] /}
 #{set 'title'}&{'resources.events'}#{/set}
-
 <div id="events" class="events-container">
   <div class="content">
 
@@ -67,8 +66,20 @@
         cssClass:'editableRows table-striped',
         options:options,
         actionsTitleKey:'resources.actions',
-        messageOverrides : messageOverrides
-    /}
+        messageOverrides : messageOverrides,
+        selectable: true
+     }
+   #{DataTable.buttonBar}
+    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'approveForm'/}
+    #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'declineForm'/}
+  #{/DataTable.buttonBar}
+  #{/DataTable.table}
+  #{DataTable.formAction @approveEvents(), id:'approveForm', table:'events',
+                       confirm:messages.get('resources.events.approve', name)/}
+
+  #{DataTable.formAction @declineEvents(), id:'declineForm', table:'events',
+                       confirm:messages.get('resources.events.decline', name)/}
+
   </div>
 </div>
 

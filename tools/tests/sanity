@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile '
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -141,6 +141,16 @@ elif [ ${SS} = "backuprestore" ]; then
 	AUTH=ldap
     fi
     echo AUTH=$AUTH
+elif [ ${SS} = "unityfile" ]; then
+    # Unity tests cannot be run with sanity ldap configuration. So use local authentication.
+    AUTH=local
+    echo AUTH=$AUTH
+elif [ ${SS} = "unityblock" ]; then
+    UNITY_OPTION=${4:-'all'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+
+    echo "option: " $UNITY_OPTION
 else
     # By default, we're not running quick sanity
     if [ ${SS} = "quick" ]; then
@@ -166,7 +176,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unity|custvolname)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|custvolname)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -305,6 +315,7 @@ SHORTENED_HOST=`hostname`
 : ${TENANT=$SHORTENED_HOST}
 : ${PROJECT=sanity}
 : ${SRDF_PROJECT=dontuseme}
+: ${UNITY_PROJECT=unity}
 
 SVCUSER=svcuser
 
@@ -372,6 +383,7 @@ LOCAL_SECURE_LDAP_USER_USERNAME_WITH_SPACES='       secureLdapViPRUser1@'${LOCAL
 COS_VNXFILE=cosvnxf
 COS_VNXE=cosvnxe
 COS_UNITY=cosunity
+COS_UNITY_CIFS=cosunitycifs
 COS_ISIFILE=cosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
@@ -476,6 +488,7 @@ VNXE_DEV=vnxe_device
 VNXE_NATIVEGUID=VNXE+$VNXE_SN
 VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S) 
 
+
 #
 # Ceph cluster configuration
 #
@@ -488,7 +501,8 @@ CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 # UNITY  device configuration
 #
 UNITY_DEV=${UNITY_DEV:-unity_device}
-UNITY_NATIVEGUID=${UNITY_DEV:-UNITY+$UNITY_SN}
+UNITY_NATIVEGUID=${UNITY_NATIVEGUID:-UNITY+$UNITY_SN}
+UNITY_SMBFILESHARE1=sanity_cifs1$(date +%Y%m%d%H%M%S) 
 
 #
 # DataDomain file device configuration
@@ -524,6 +538,9 @@ RP_METROPOINT_CONSISTENCY_GROUP=rpmpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_R
 
 RP_XIO_VOLUME=rpxioSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
 RP_XIO_CONSISTENCY_GROUP=rpxioSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
+
+RP_UNITY_VOLUME=rpUnitySanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
+RP_UNITY_CONSISTENCY_GROUP=rpUnitySanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-cg
 
 RP_EXPORT_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}
 RP_EXPORT_GROUP_HOST=host${hostseed}.sanity.com
@@ -603,8 +620,8 @@ FSEXP_DEFAULT_EPS="$FSEXP1 $FSEXP2 $FSEXP3"
 SNAPEXP_DEFAULT_EPS="www.emc.com www.abc.com www.amazon.com"
 FS_VNXE_SIZE=2000000000
 FS_VNXE_EXPAND_SIZE=3000000000
-FS_UNITY_SIZE=3000000000
-FS_UNITY_EXPAND_SIZE=4000000000
+FS_UNITY_SIZE=4000000000
+FS_UNITY_EXPAND_SIZE=5000000000
 
 
 # Alternate configuration file for alternate hardware/variables
@@ -809,6 +826,9 @@ cisco_mds_quick_setup_once()
     # Do once - Discover Cisco MDS simulator switch
     secho "Discover Cisco MDS simulator switch"
     run networksystem create CiscoMdsSimulator  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
    
 #    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
 #    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
@@ -1350,10 +1370,12 @@ xtremio_ingest_export_test()
 
     # Delete the volume and CG
     run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
     run export_group delete ${PROJECT}/EG-xio-ingest
+
     run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
 
-    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
 
     secho "XIO ingest discovery"
 
@@ -1391,8 +1413,10 @@ xtremio_ingest_export_test()
 
     run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
     run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
-    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
+
     run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
 
     # Discover unmanaged volumes on the array again
     run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
@@ -2301,22 +2325,22 @@ vplex_setup_once()
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 
-	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	storagedevice discover_all
+	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+	run storagedevice discover_all
 	storagedevice list
 	storageport list $VPLEX_VNX1_NATIVEGUID
 	storageport list $VPLEX_VMAX_NATIVEGUID
 	storageport list $VPLEX_GUID
 
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
 	# The arrays are assigned to individual varrays as well.
-	storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
+	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
 	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
@@ -2338,8 +2362,12 @@ vplex_setup_once()
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-A --addvarrays $NH
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-2-B --addvarrays $NH
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-A --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-2-B --addvarrays $NH2
 
 	# The arrays are assigned to individual varrays as well.
 	run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
@@ -2554,10 +2582,10 @@ vmaxblock_discovery()
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 }
 
 vnxblock_discovery()
@@ -2566,12 +2594,12 @@ vnxblock_discovery()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
-       smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 }
 
 ######################### Start of RecoverPoint ############################
@@ -2685,6 +2713,7 @@ rp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2745,6 +2774,7 @@ rp_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
@@ -2775,6 +2805,7 @@ rp_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2805,6 +2836,7 @@ rpvplex_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2841,6 +2873,7 @@ rpvplex_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
@@ -2877,6 +2910,7 @@ rpvplex_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2917,6 +2951,7 @@ rpmp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2957,6 +2992,7 @@ rpmp_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2997,6 +3033,7 @@ rpmp_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -3427,7 +3464,7 @@ recoverpoint_export_bookmark_tests()
 	    done
         done
 
-        recoverpoint_export_bookmark_host_setup ${vpool} ${rptype}
+        recoverpoint_export_host_setup ${vpool} ${rptype}
 
         sleep 20
 	
@@ -3491,7 +3528,7 @@ recoverpoint_export_bookmark_tests()
     fi
 }
 
-recoverpoint_export_bookmark_host_setup()
+recoverpoint_export_host_setup()
 {
     vpool=${1}
     rptype=${2}
@@ -4445,6 +4482,207 @@ recoverpoint_cg_failover_test()
     fi
 }
 
+recoverpoint_direct_access_test()
+{
+    if [ "$RP_DIRECT_ACCESS_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Direct Access Tests'
+
+        # The source source volume - an arbitrary source volume from the CG
+        src_volume=${1}
+        # The target virtual arrays
+        rp_tgt_varrays=${2}
+        # The source virtual array
+        rp_src_varray=${3}
+        # The source virtual pool
+        rp_src_vpool=${4}
+        # The RP consistency group
+        consistency_group=${5}
+        # RecoverPoint type
+        rp_type=${6}
+
+        rp_bookmark=direct_access_bookmark-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        array_snapshot=direct_access_array_snap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        direct_access_mode_varray=${rp_tgt_varrays[0]}
+        tgt_volume=${src_volume}-target-${direct_access_mode_varray}
+        new_volume=${src_volume}-newvol
+
+        secho 'Setting direct access mode on target copy pre-failover - expected failure'
+        fail volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+        
+        secho 'Setting access mode to some unknown value on target copy - expected failure'
+        fail volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am UNKNOWN
+
+        secho 'Setting access mode with no access mode value - expected failure'
+        fail volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp
+
+        secho 'Creating RP bookmark prior to direct access mode being set'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
+		
+        secho 'Failover'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp		
+
+        secho 'Verify the post failover state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+
+        secho 'Setting access mode to direct access'
+        run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+
+        sleep 20
+
+        secho 'Setting access mode to direct access a second time'
+        run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+
+        # TODO: Would be nice to verify the copy is in DIRECT_ACCESS mode but there is currently no way to do
+        # that querying volume attributes.
+
+        for tgt_varray in ${rp_tgt_varrays[@]}
+        do
+            if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
+                secho 'Verifying that the bookmark associated with the target copy in direct access mode has been removed'
+                fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${direct_access_mode_varray}
+            else
+                secho 'Verifying that the bookmark associated with target copy NOT in direct access mode still exists'
+                run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${tgt_varray}
+            fi
+        done	 
+
+        # Test creating snapshots after target copy is in direct access mode
+
+        if [ "${#rp_tgt_varrays[@]}" -eq "1" ]; then
+            echo 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
+            fail blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
+        else 
+            echo 'Creating RP bookmark when 1 CG copy is in direct access mode'
+            run blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark}-2 --type rp
+
+            for tgt_varray in ${rp_tgt_varrays[@]}
+            do
+                #if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
+                    # TODO: Uncomment this test and the if/else once COP-22617 has been resolved
+                    #secho 'Verifying that the bookmark associated with the target copy has not been created'
+                    #fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${direct_access_mode_varray}
+                #else
+                    secho 'Verifying that the bookmark associated with target copy NOT in direct access mode exists'
+                    run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${tgt_varray}
+                #fi
+            done
+        fi
+
+        if [ "$rp_type" = "" || "$RP_VOLUME_COUNT" = "1" ]; then
+            # Only run these tests for single volume tests or non-VPlex.  RP+VPlex with multiple volumes creates unpredicable
+            # local array snapshot names so it's hard to match up the source volume name with the snapshot name
+            secho 'Creating local array snapshot of source volume when one target copy is in direct access mode'
+            run blocksnapshot create ${PROJECT}/${src_volume} ${array_snapshot} --type native
+            secho 'Verifying the local array snapshot of the source volume was created'
+            run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}-1
+        fi
+
+        for tgt_varray in ${rp_tgt_varrays[@]}
+        do
+            if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
+                secho 'Attempt to create an array snapshot of target volume whose copy is in direct access mode - expected failure'
+                fail blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native
+            else
+                secho 'Attempt to create an array snapshot of target volume whose copy is not in direct access mode'
+                run blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native 
+                secho 'Verifying that the array snapshot associated with target copy NOT in direct access mode exists'
+                run blocksnapshot show ${PROJECT}/${src_volume}-target-${tgt_varray}/${array_snapshot}-1
+                #secho 'Removing array snapshot after it has been verified'
+                #run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}
+            fi 
+        done 
+
+        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
+            secho 'Add replication set to consistency group while a copy is in direct access mode'
+            run volume create ${new_volume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup ${consistency_group} --count=1
+            secho 'Ensure the target volume on the direct access RP copy has the appropriate access state and link status'
+            run volume verify ${PROJECT}/${new_volume}-target-${direct_access_mode_varray} access_state READWRITE
+            run volume verify ${PROJECT}/${new_volume}-target-${direct_access_mode_varray} link_status FAILED_OVER
+            secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
+            fail volume delete $PROJECT/${new_volume} --wait
+        fi
+
+        secho 'Expand source volume when one of the RP target copies is in direct access mode'
+        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+
+        secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
+        recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
+        sleep 20
+        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}"
+        run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
+
+        secho 'Removing export host'
+        run hosts delete ${RP_HOSTNAME}
+
+        secho 'Swap/swap-back while single target volume is in direct access mode'
+        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp       
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+
+        # Failover to each of the remaining target copies and set access mode to direct access.  Test swap/swap-back.
+        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
+            for tgt_varray in ${rp_tgt_varrays[@]}
+            do
+                if [ "$tgt_varray" != "$direct_access_mode_varray" ]; then        
+                    target_vol=${src_volume}-target-${tgt_varray}
+                    secho 'Failover to target virtual array '${tgt_varray}
+                    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${target_vol} rp
+                    secho 'Setting access mode to direct access for target virtual array '${tgt_varray}
+                    run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${target_vol} rp --am DIRECT_ACCESS
+                    
+                    sleep 10
+
+                    secho 'Swap/swap-back while each target copies are in direct access mode'
+                    run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${target_vol} rp
+                    run volume change_link ${PROJECT}/${target_vol} swap ${PROJECT}/${src_volume} rp
+                fi
+            done
+        fi
+       
+        secho 'Failover'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+        secho 'Setting access mode to direct access'
+        run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+ 
+        sleep 20
+
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
+        run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
+
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+        secho 'Failover using consistency group API'
+        run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+        secho 'Setting access mode to direct access using consistency group API'
+        run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]} --am DIRECT_ACCESS
+
+        sleep 20
+
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
+        run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+   else
+        secho 'Skipping RecoverPoint Direct Access Tests'
+   fi
+}
+
 recoverpoint_vpool_change_test()
 {
     # Run change vpool tests on the volume if the flag is set.
@@ -4948,6 +5186,9 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
 
+                # Direct Access Failover Test
+                recoverpoint_direct_access_test ${rpvolume}${volume_name_modifier} ${rp_tgt_varrays} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP} "" 
+
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
 
@@ -4980,6 +5221,9 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
 
+                # Direct Access Failover Test
+                recoverpoint_direct_access_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_tgt_varrays} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} "vplex"
+
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
 
@@ -5007,6 +5251,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
+
+                # Direct Access Failover Test
+                recoverpoint_direct_access_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_varrays} ${rpmp_src_varray} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} "mp"
 
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}
@@ -6227,7 +6474,7 @@ file_tests()
         run fileshare search --name $(echo $fsname | head -c 2)
         run fileshare search --name $(echo $fsname | head -c 2) --project $projectid
 
-        run fileshare tag $PROJECT/${fsname} $TAG
+        run fileshare tag ${PROJECT}/${fsname} $TAG
         run fileshare search --tag $SEARCH_PREFIX 
     fi
 
@@ -6355,6 +6602,16 @@ file_tests()
             run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
             run snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
         fi
+
+        if [ $cos = $COS_UNITY ] ; then
+            run snapshot create $PROJECT/$fsname $fsname-$datetime-2
+            run snapshot restore $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot export $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname $snap_exp_args
+            run snapshot show $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+        fi
+
         
     done
 
@@ -6443,6 +6700,16 @@ file_tests()
         run fileshare show $PROJECT/$fsname
         run fileshare unshare $PROJECT/$fsname $VNXE_SMBFILESHARE1 
     fi
+
+   if [ $cos = $COS_UNITY ] ; then
+        fscifs=filesysCifs-$datetime
+        run fileshare create $fscifs $PROJECT $NH $COS_UNITY_CIFS $FS_SIZEMB
+        run fileshare share $PROJECT/$fscifs  $UNITY_SMBFILESHARE1 --description 'New_SMB_Share'
+        run fileshare show $PROJECT/$fscifs
+        run fileshare unshare $PROJECT/$fscifs $UNITY_SMBFILESHARE1 
+        run fileshare delete $PROJECT/$fscifs
+    fi
+
     
     if [ $cos = $COS_ISIFILE ] ; then
         run snapshot delete $PROJECT/$fsname-$datetime $PROJECT/$fsname
@@ -7121,9 +7388,9 @@ export_initiator()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --addInits "$hostname/$pwwn3"
     run export_group show $exp
@@ -10048,7 +10315,7 @@ fail(){
 
 trap '_failure $LINENO' ERR INT
 set -E
-if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ] && [ "$3" != "unityfile" ]; then
     common_setup	
 fi
 
@@ -11057,11 +11324,11 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     secho "Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
+    run smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
 
     # Discover the vmax3 array.
     secho "Discovering VMAX3 array"
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 
     # Set up virtual pools
     secho "Setting up virtual pools"
@@ -11069,20 +11336,20 @@ snapvx_setup_once()
 
     # Assign the storage pools of the VMAX3 array to our virtual array.
     secho "Assiging storage pools to virtual array"
-    storagepool update $VMAX3_NATIVEGUID --nhadd $NH
+    run storagepool update $VMAX3_NATIVEGUID --nhadd $NH
  
     # Assign storage ports if necessary.     
     if [ $DISCOVER_SAN -eq 0 ]; then
         secho "Updating storage port networks"
         for porta in ${VMAX3_PORTS_A}
             do
-	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
+	         run storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
             done
     fi
 
     # Update virtual pool to use mathcing pools on the system.
     secho "Assiging system storage pools to virtual pool"
-    cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
+    run cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
 }
 
 
@@ -11375,15 +11642,99 @@ ceph_tests()
     ceph_test_export
 }
 
-unity_setup()
+unity_common_setup()
 {
-    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+     login_nd_configure_smtp_nd_add_licenses
+
+     run syssvc $CONFIG_FILE "$BOURNE_IP" set_prop system_proxyuser_encpassword ${SYSADMIN_PASSWORD}
+
+     ROOT_TENANT=`tenant root|tail -1`
+
+     unity_project_setup
+     unity_nh_setup
+
+     secho "Setup ACLs on neighborhood for $ROOT_TENANT"
+     run neighborhood allow $NH $ROOT_TENANT
+
+     secho "Creating transport zone"
+     run transportzone create $IP_ZONE $NH --type IP
+
+}
+unity_project_setup()
+{
+     secho "Creating project for unity"
+     project show $UNITY_PROJECT &> /dev/null && return $?
+     run project create $UNITY_PROJECT --tenant $ROOT_TENANT
+}
+unity_nh_setup()
+{
+    secho "Creating neighborhood for unity"
+    neighborhood show $NH  &> /dev/null && return $?
+    run neighborhood create $NH
+
+}
+
+discover_unity()
+{
     secho "Starting storage system create"
+    storagedevice show $UNITY_DEV &> /dev/null && return $?
     discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
     storagedevice list
+}
+#Separated out unityfile_setup and tests from unity block tests since unityfile tests require different setup.
+#Nas server domain validation does not allow viprsanity.com domain which is added by default for all other tests.
+#Unity file side tests will run with local authentication
+unityfile_setup()
+{
+     unity_common_setup
 
-    project_setup
+     discover_unity 
+     unityfile_cos_setup
+
+     storagepool update $UNITY_NATIVEGUID --type file
+     storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
+     run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
+     run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
+     run storagedevice discover_all
+}
+unityfile_tests()
+{
+    FS_SIZEMB=$FS_UNITY_SIZE;
+    FS_SIZE=$FS_UNITY_SIZE;
+    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
+    PROJECT=$UNITY_PROJECT;
+    file_tests $COS_UNITY default
+
+}
+
+unityfile_cos_setup()
+{
+     secho "Setting up Unity File Virtual Pools"
+
+     run cos create file $COS_UNITY                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols NFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+    
+
+    run cos create file $COS_UNITY_CIFS                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $COS_UNITY file $ROOT_TENANT
+    run cos allow $COS_UNITY_CIFS file $ROOT_TENANT
+
+}
+
+unityblock_setup()
+{
+    secho "Starting unity storage system create"
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    storagedevice list
 
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
@@ -11392,35 +11743,52 @@ unity_setup()
     storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
-    unity_cos_setup
+    unityblock_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
-
-    storagepool update $UNITY_NATIVEGUID --type file
-    storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
-    run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
-    run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
-    run storagedevice discover_all
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
+        vplexunity_setup
+    fi
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
+        rpunity_setup
+    fi
+   
 }
 
-unity_tests()
+
+# Unity tests command: "sanity sanity.conf viprIP unityblock" test all, including block, VPlex+Unity and RP+Unity
+# "sanity sanity.conf viprIP unityblock vplex" only test VPlex+Unity
+# "sanity sanity.conf viprIP unityblock rp" only test RP+Unity
+# "sanity sanity.conf viprIP unityblock block" only test Unity
+unityblock_tests()
 {
-    FS_SIZEMB=$FS_UNITY_SIZE;
-    FS_SIZE=$FS_UNITY_SIZE;
-    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
-    file_tests $COS_UNITY default
+    secho "unity block tests"
 
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "block" ]; then
+        unityblock_base_tests
+    fi
 
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
+        vplexunity_tests
+    fi
+    
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
+        rpunity_tests
+    fi
+}
+
+unityblock_base_tests()
+{
+    secho "unity block tests"
+    
     vol1=unity1-${RANDOM};
     vol2=unity-cg-${RANDOM};
     host=$PROJECT.lss.emc.com
     hostLbl=$PROJECT
-    iqn1=iqn.1998-01.com.vmware:lgly6193-7ae20d76
     consistency_group=cg-${RANDOM}
     snap1_label=snap1-${RANDOM}
     snap2_label=snap2-${RANDOM}
     eg=eg-${RANDOM}
 	    
-    run transportzone add $NH/$IP_ZONE $iqn1
     run volume create $vol1 $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE
     sleep 60
     run volume expand $PROJECT/$vol1 $BLK_SIZE_EXPAND
@@ -11449,21 +11817,12 @@ unity_tests()
     sleep 30
     run volume delete $PROJECT/$vol2 --wait
     run blockconsistencygroup delete $consistency_group
-    echo "**** Done unity"
+    echo "**** Done unity block"
 }
 
-unity_cos_setup()
+unityblock_cos_setup()
 {
-    secho "setting up Unity Virtual Pool"
-
-    run cos create file $COS_UNITY                               \
-         --description 'Virtual-Pool-for-unity-file' true \
-                         --protocols NFS CIFS --max_snapshots 10    \
-                         --provisionType 'Thin' \
-                         --neighborhoods $NH
-    ROOT_TENANT=`tenant root|tail -1`
-    run cos allow $COS_UNITY file $ROOT_TENANT
-
+    secho "setting up Unity block virtual pool"
     
     run cos create block $COS_UNITYBLOCK_CG                            \
 	--description 'Virtual-Pool-for-unity-block-cg' true         \
@@ -11475,6 +11834,135 @@ unity_cos_setup()
                          --expandable true \
                          --neighborhoods $NH \
                          --multiVolumeConsistency 
+}
+
+
+vplexunity_setup()
+{
+    #run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
+    
+    # Discover the VPLEX storage systems 
+    echo "Discovering VPLEX"
+    #discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+    
+    run storagedevice discover_all
+    storagedevice list
+    storageport list $UNITY_NATIVEGUID --v
+    storageport list $VPLEX_GUID --v
+    sleep 90
+    storageport list $VPLEX_GUID --v
+    
+    # Setup the varrays. $NH contains VPLEX cluster-1
+    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+    run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+    storageport list $VPLEX_GUID --v
+
+    vplexunity_cos_setup
+    storageport list $VPLEX_GUID --v
+}
+
+vplexunity_cos_setup()
+{
+    run cos create block cosvplexlocal true                   \
+                     --description 'Local-CoS-for-VPlex'      \
+                         --protocols FC                   \
+                         --numpaths 2 \
+                         --provisionType 'Thin' \
+                     --highavailability vplex_local           \
+                         --neighborhoods $NH \
+                     --max_snapshots 1                        \
+                     --max_mirrors 1                          \
+                     --expandable false 
+
+    run cos allow cosvplexlocal block $TENANT
+
+    run cos update block cosvplexlocal --storage $UNITY_NATIVEGUID
+    
+}
+
+vplexunity_tests()
+{
+    echo "**** Executing VPLEX tests"
+    
+    hname=$(hostname)
+    if [ $hname = "standalone" ]; then
+        hname=$SHORTENED_HOST
+    fi
+    echo "hostname is $hname"
+    	
+    localVolume1=$hname-${RANDOM}-VPlexLocal1
+    localVolume2=$hname-${RANDOM}-VPlexLocal2
+
+    sourceSideSuffix=-0
+    localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+    
+    echo "**** Creating VPLEX local volumes"
+    run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
+    run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --count=2
+    	
+    echo "**** Volumes created so far"
+    run volume list $PROJECT
+    	
+    echo "**** Creating VPLEX volume snapshots"
+    run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
+    blocksnapshot list $PROJECT/$localVolume1
+    blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
+   
+    
+    echo "**** Deleting VPLEX volume snapshots"
+    run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
+    
+    echo "**** Deleting VPLEX volumes"
+    run volume delete $PROJECT/$localVolume1 --wait
+    run volume delete $PROJECT/$localVolume2-1 --wait
+    run volume delete $PROJECT/$localVolume2-2 --wait
+    
+    echo "**** Completed VPLEX Unity Tests"
+    
+}
+
+rpunity_setup()
+{
+    rp_protection_system_setup
+    #run storageport update $UNITY_NATIVEGUID FC --addvarrays $NH
+    
+    run cos create block rpunity_cdp true \
+            --description 'RP-Unity-Source-CDP'  \
+            --protocols FC \
+            --numpaths 2 \
+            --provisionType 'Thin' \
+            --neighborhoods $NH \
+            --multiVolumeConsistency \
+            --protectionCoS $NH:$COS_UNITYBLOCK_CG:min \
+            --max_snapshots 10 \
+            --expandable true \
+            --rp_copy_mode ASYNCHRONOUS \
+            --rp_rpo_value 5 \
+            --rp_rpo_type MINUTES
+    run cos update block rpunity_cdp --storage $UNITY_NATIVEGUID
+    
+}
+
+rpunity_tests()
+{
+    secho "*** unity RP tests"
+    run blockconsistencygroup create $PROJECT $RP_UNITY_CONSISTENCY_GROUP
+    run volume create $RP_UNITY_VOLUME $PROJECT $NH rpunity_cdp $RP_VOLUME_SIZE --consistencyGroup $RP_UNITY_CONSISTENCY_GROUP --count=1
+    # Failover Test
+    recoverpoint_failover_test ${RP_UNITY_VOLUME} $RP_UNITY_VOLUME-target-${NH}
+    
+    # CG Failover/Swap Test
+    recoverpoint_cg_failover_test ${RP_UNITY_CONSISTENCY_GROUP} ${RP_UNITY_VOLUME} ${NH} $RP_UNITY_VOLUME-target-${NH} ${NH}
+   
+    run volume delete $PROJECT/${RP_UNITY_VOLUME} --wait
+
+    secho 'CG cleanup...'
+    run blockconsistencygroup delete $RP_UNITY_CONSISTENCY_GROUP
+    secho 'RP Unity tests done'
+
 }
 
 custvolname_setup()

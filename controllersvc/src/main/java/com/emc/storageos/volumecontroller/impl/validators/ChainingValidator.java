@@ -1,11 +1,17 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators;
 
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.google.common.collect.Lists;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.google.common.collect.Lists;
 
 /**
  * Chains multiple {@link Validator} instances with a shared {@link ValidatorLogger}.
@@ -18,11 +24,13 @@ public class ChainingValidator implements Validator {
 
     private List<Validator> validators;
     private ValidatorLogger logger;
+    private CoordinatorClient coordinator;
     private String type;
 
-    public ChainingValidator(ValidatorLogger logger, String type) {
+    public ChainingValidator(ValidatorLogger logger, CoordinatorClient coordinator, String type) {
         validators = Lists.newArrayList();
         this.logger = logger;
+        this.coordinator = coordinator;
         this.type = type;
     }
 
@@ -38,12 +46,16 @@ public class ChainingValidator implements Validator {
             }
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
+            }
         }
 
         if (logger.hasErrors()) {
-            throw DeviceControllerException.exceptions.validationError(
-                    type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.validationError(
+                        type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            }
         }
 
         return true;

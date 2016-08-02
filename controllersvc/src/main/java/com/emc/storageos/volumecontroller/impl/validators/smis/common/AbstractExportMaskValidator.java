@@ -1,13 +1,22 @@
-package com.emc.storageos.volumecontroller.impl.validators.vmax;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
+import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
@@ -21,16 +30,16 @@ import static com.google.common.collect.Collections2.transform;
  * If any additional differences are detected on the hardware (i.e. SMI-S) side, then a validation error would be
  * logged.
  */
-public abstract class ExportMaskValidator extends AbstractVmaxValidator {
+public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(ExportMaskValidator.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
     private static final String NO_MATCH = "<no match>";
 
-    private StorageSystem storage;
-    private ExportMask exportMask;
-    private String field;
+    private final StorageSystem storage;
+    private final ExportMask exportMask;
+    private final String field;
 
-    public ExportMaskValidator(StorageSystem storage, ExportMask exportMask, String field) {
+    public AbstractExportMaskValidator(StorageSystem storage, ExportMask exportMask, String field) {
         this.storage = storage;
         this.exportMask = exportMask;
         this.field = field;
@@ -38,11 +47,17 @@ public abstract class ExportMaskValidator extends AbstractVmaxValidator {
 
     @Override
     public boolean validate() throws Exception {
-        log.info("Validating export mask: {}", exportMask.getId());
+        log.info("Validating export mask: {}, field: {}", exportMask.getId(), field);
         getLogger().setLog(log);
 
-        // Refresh the provider's view of the storage system
-        getHelper().callRefreshSystem(storage);
+        // We want the latest info, but in most customer cases, array configurations don't change every 5 minutes.
+        // By default we do not want to refresh and cause additional performance issues.
+        // But in the case of automated test suites where we combine in-controller and out-of-controller operations,
+        // we have tighter tolerances and need to run refresh.
+        if (DefaultValidator.validationRefreshEnabled(getCoordinator())) {
+            // Refresh the provider's view of the storage system
+            getHelper().callRefreshSystem(storage);
+        }
 
         Set<String> database = getDatabaseResources();
         Set<String> hardware = getHardwareResources();
@@ -70,16 +85,17 @@ public abstract class ExportMaskValidator extends AbstractVmaxValidator {
 
     private Set<String> getHardwareResources() {
         Set<String> hardware = Sets.newHashSet();
-        CloseableIterator<CIMObjectPath> associatedResources = null;
+        CloseableIterator<CIMInstance> associatedResources = null;
 
         try {
-            CIMObjectPath maskingViewPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
-            associatedResources = getHelper().getAssociatorNames(storage, maskingViewPath, null, getAssociatorClass(),
-                    null, null);
+            CIMObjectPath maskingViewPath = getMaskingView();
+            String[] prop = new String[] { getAssociatorProperty() };
+            associatedResources = getHelper().getAssociatorInstances(storage, maskingViewPath, null, getAssociatorClass(), null, null,
+                    prop);
 
             while (associatedResources.hasNext()) {
-                CIMObjectPath assoc = associatedResources.next();
-                String assocProperty = (String) assoc.getKeyValue(getAssociatorProperty());
+                CIMInstance cimInstance = associatedResources.next();
+                String assocProperty = CIMPropertyFactory.getPropertyValue(cimInstance, getAssociatorProperty());
                 hardware.add(assocProperty);
             }
         } catch (WBEMException wbeme) {
@@ -101,4 +117,15 @@ public abstract class ExportMaskValidator extends AbstractVmaxValidator {
         }
         return Sets.newHashSet(result);
     }
+
+    private CIMObjectPath getMaskingView() {
+        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(storage.getSystemType())) {
+            return getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
+        } else if (DiscoveredDataObject.Type.vnxblock.toString().equalsIgnoreCase(storage.getSystemType())) {
+            return getCimPath().getLunMaskingProtocolControllerPath(storage, exportMask);
+        }
+        throw new IllegalArgumentException(
+                String.format("Don't know how to get masking view for storage type: %s", storage.getSystemType()));
+    }
+
 }

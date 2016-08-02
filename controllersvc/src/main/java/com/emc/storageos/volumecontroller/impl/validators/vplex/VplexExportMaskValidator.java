@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
 import java.net.URI;
@@ -9,6 +13,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -17,6 +22,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -31,10 +37,11 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
     Collection<URI> volumesToValidate = null;
     Collection<Initiator> initiatorsToValidate = null;
     VPlexApiClient client = null;
-    String id = null;    // identifying string for ExportMask
+    String id = null; // identifying string for ExportMask
 
-    public VplexExportMaskValidator(DbClient dbClient, ValidatorLogger logger, StorageSystem vplex, ExportMask mask) {
-        super(dbClient, logger);
+    public VplexExportMaskValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger, StorageSystem vplex,
+            ExportMask mask) {
+        super(dbClient, coordinator, logger);
         this.vplex = vplex;
         this.mask = mask;
         id = String.format("%s (%s)(%s)", mask.getMaskName(), mask.getNativeId(), mask.getId().toString());
@@ -68,12 +75,16 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 return false;
             }
             log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            throw DeviceControllerException.exceptions.unexpectedCondition(
-                    "Unexpected exception validating ExportMask: " + ex.getMessage());
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(
+                        "Unexpected exception validating ExportMask: " + ex.getMessage());
+            }
         }
         if (logger.hasErrors()) {
-            throw DeviceControllerException.exceptions.validationError(
-                    "Export Mask", logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.validationError(
+                        "Export Mask", logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            }
         }
         log.info("Vplex ExportMask validation complete: " + id);
 
@@ -84,7 +95,8 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      * Validates the hardware has no additional volumes than were passed in the volumesToValidate list.
      * Uses the virtualVolumeWWNMap to retrieve the volume WWNs and match against hardware.
      * 
-     * @param storageView -- VPlexStorageViewInfo
+     * @param storageView
+     *            -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalVolumes(VPlexStorageViewInfo storageView) {
         List<Volume> volumes = dbClient.queryObject(Volume.class, volumesToValidate);
@@ -113,7 +125,8 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      * Validate the hardware has no additional initiators than were passed in the initiatorsToValidate list.
      * Uses the Initiator PWWNs in the Storage View to match against initiator port WWN.
      * 
-     * @param storageView -- VPlexStorageViewInfo
+     * @param storageView
+     *            -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalInitiators(VPlexStorageViewInfo storageView) {
         Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns());

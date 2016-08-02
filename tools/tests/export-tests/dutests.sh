@@ -163,6 +163,11 @@ arrayhelper() {
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
 	;;
+    delete_mask)
+        pattern=$4
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_delete_mask $operation $serial_number $masking_view_name
+	;;
     verify_export)
 	masking_view_name=$3
 	shift 3
@@ -187,7 +192,7 @@ arrayhelper_create_export_mask_operation() {
 
     case $SS in
     vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id $pwwn $maskname
+         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pwwn $maskname
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -210,7 +215,7 @@ arrayhelper_volume_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id $pattern
+         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $device_id $pattern
@@ -239,7 +244,7 @@ arrayhelper_initiator_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $array_ip $pwwn $pattern
+         runcmd navihelper.sh $operation $serial_number $array_ip $pwwn $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $pwwn $pattern
@@ -274,6 +279,34 @@ arrayhelper_delete_volume() {
 	 ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform delete mask
+# outside of the controller.
+#
+arrayhelper_delete_mask() {
+    operation=$1
+    serial_number=$2
+    pattern=$3
+
+    case $SS in
+    vmax2|vmax3)
+         runcmd symhelper.sh $operation $serial_number $pattern
+	 ;;
+    vnx)
+         runcmd navihelper.sh $operation $array_ip $pattern
+	 ;;
+    xio)
+         runcmd xiohelper.sh $operation $pattern
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $operation $pattern
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -513,6 +546,36 @@ setup_yaml() {
     printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 }
 
+setup_provider() {
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    tools_file="${DIR}/preExistingConfig.properties"
+    if [ -f "$tools_file" ]; then
+	echo "stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
+	exit;
+    fi
+
+    sstype=${SS}
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+	sstype="vmax"
+    fi
+
+    # create the yml file to be used for array tooling
+    touch $tools_file
+    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    ##update provider properties file with the array details
+    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s\n' "$storage_ip" "$storage_user" "$storage_password" "$storage_port" >> $tools_file
+}
+
 login() {
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
@@ -548,6 +611,9 @@ login() {
 }
 
 prerun_setup() {
+    # Convenience, clean up known artifacts
+    cleanup_previous_run_artifacts
+
     if [ "${SS}" = "vnx" ]
     then
 	array_ip=${VNXB_IP}
@@ -596,12 +662,15 @@ reset_system_props() {
     set_suspend_on_class_method "none"
     set_suspend_on_error false
     set_artificial_failure "none"
+    set_validation_check true
+    set_validation_refresh true
 }
 
 vnx_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VNX"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -659,6 +728,7 @@ vmax2_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX2"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -694,6 +764,7 @@ vmax3_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX3"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -745,31 +816,40 @@ vplex_sim_setup() {
     CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
     CLUSTER2NET_NAME=$CLUSTER2NET_SIM_NAME
 
-    VPLEX_VARRAY1=$NH
-    FC_ZONE_A=${CLUSTER1NET_NAME}
-    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+    secho "Setting up the virtual arrays nh and nh2"
+    VPLEX_VARRAY1=$NH
+    VPLEX_VARRAY2=$NH2
+    FC_ZONE_A=${CLUSTER1NET_NAME}
+    FC_ZONE_B=${CLUSTER2NET_NAME}
     run neighborhood create $VPLEX_VARRAY1
     run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
     run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-    run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-    run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    run neighborhood create $VPLEX_VARRAY2
+    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    # Assign both networks to both transport zones
+    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY2
+    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY1
+
+    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
+    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-1-2-A --addvarrays $VPLEX_VARRAY1
+    run storageport update $VPLEX_GUID FC --group director-1-2-B --addvarrays $VPLEX_VARRAY1
     # The arrays are assigned to individual varrays as well.
     run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
     run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
 
-    VPLEX_VARRAY2=$NH2
-    FC_ZONE_B=${CLUSTER2NET_NAME}
-    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    run neighborhood create $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
     run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_GUID FC --group director-2-2-A --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_GUID FC --group director-2-2-B --addvarrays $VPLEX_VARRAY2
     run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
     run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    #run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
 
     common_setup
 
@@ -787,7 +867,7 @@ vplex_sim_setup() {
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
-                             --expandable false 
+                             --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
@@ -805,7 +885,7 @@ vplex_sim_setup() {
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
-                             --expandable false
+                             --expandable true
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
@@ -819,7 +899,7 @@ vplex_sim_setup() {
 
 vplex_setup() {
     storage_password=${VPLEX_PASSWD}
-    if [ "${SIM}" -eq 1 ]; then
+    if [ "${SIM}" = "1" ]; then
 	vplex_sim_setup
 	return
     fi
@@ -874,7 +954,7 @@ vplex_setup() {
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
-                             --expandable false 
+                             --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
@@ -891,7 +971,7 @@ vplex_setup() {
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
-                             --expandable false
+                             --expandable true
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
@@ -990,10 +1070,9 @@ setup() {
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
     echo "Tenant $TENANT created."
-    # Why is this sleep here?  can we do a retry loop instead?  I don't have 2 minutes to spare.  :)
-    # sleep 120
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
         which symhelper.sh
@@ -1044,6 +1123,14 @@ set_suspend_on_error() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
 }
 
+set_validation_check() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check $1
+}
+
+set_validation_refresh() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop refresh_provider_on_validation $1
+}
+
 set_suspend_on_class_method() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
@@ -1072,7 +1159,6 @@ verify_nomasks() {
 #
 test_0() {
     echot "Test 0 Begins"
-    reset_system_props
     expname=${EXPORT_GROUP_NAME}t0
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} gone
@@ -1095,7 +1181,6 @@ test_1() {
     expname=${EXPORT_GROUP_NAME}t1
 
     # Turn on suspend of export after orchestration
-    reset_system_props
     set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
@@ -1162,7 +1247,6 @@ test_2() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Turn on suspend of export after orchestration
-    reset_system_props
     set_suspend_on_class_method ${exportCreateDeviceStep}
 
     # Run the export group command
@@ -1248,8 +1332,6 @@ test_3() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1338,8 +1420,6 @@ test_4() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
@@ -1419,8 +1499,6 @@ test_5() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -1504,8 +1582,6 @@ test_6() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1608,8 +1684,6 @@ test_7() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
@@ -1666,8 +1740,6 @@ test_8() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
@@ -1715,8 +1787,6 @@ test_9() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1793,8 +1863,6 @@ test_10() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
@@ -1855,8 +1923,6 @@ test_11() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1940,8 +2006,6 @@ test_12() {
     expname=${EXPORT_GROUP_NAME}t12
     volname="${HOST1}-dutest-oktodelete-t12"
 
-    reset_system_props
-
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
@@ -1960,7 +2024,11 @@ test_12() {
     fail volume expand ${PROJECT}/${volname} 2GB
 
     # Now try to create a snapshot off of the volume, it should fail
-    fail blocksnapshot create ${PROJECT}/${volname} snap1
+    if [ "$SS" = "vplex" ]; then
+        echo "Skipping snapshot create test for Vplex because AbstractSnapshotOperations has no knowledge of Vplex volume"
+    else
+        fail blocksnapshot create ${PROJECT}/${volname} ${volname}-snap1
+    fi
 
     # Inventory-only delete the volume
     volume delete ${PROJECT}/${volname} --vipronly
@@ -1990,8 +2058,6 @@ test_13() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2039,7 +2105,7 @@ test_13() {
     # Verify the mask still has the new volume in it (this will fail if rollback removed it)
     verify_export ${expname}1 ${HOST1} 3 2
 
-    # Add another initiator to the mask (done differently per array type)
+    # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed
@@ -2073,8 +2139,6 @@ test_14() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
-
-    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2177,8 +2241,6 @@ test_15() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    reset_system_props
-
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
@@ -2241,9 +2303,6 @@ test_15() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
-
-    # Delete the volume we created
-    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 16
@@ -2280,10 +2339,8 @@ test_16() {
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${SGNAME} -exact- gone
 
-    reset_system_props
-
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportCreateOrchStep}
+    set_suspend_on_class_method ${exportCreateDeviceStep}
 
     HIJACK=du-hijack-volume-${RANDOM}
 
@@ -2291,7 +2348,7 @@ test_16() {
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created
-    device_id=`get_device_id ${PROJECT}/${volname}`
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
     
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
@@ -2326,25 +2383,295 @@ test_16() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because the storage group will be there with that init already
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group create task to verify it FAILS because of the existing SG"
     fail task follow $task
 
-    # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 2 1
-
-    # shut off suspensions/failures
-    reset_system_props
-
-    # Make sure it really did kill off the mask
-    verify_export ${expname}1 ${HOST1} gone
-
     # Delete the mask we created
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${h1pi2} ${SGNAME}
-    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${SGNAME}
+    runcmd navihelper.sh remove_initiator_from_mask $serial_number $array_ip $h1pi2 $SGNAME
+    runcmd navihelper.sh remove_volume_from_mask $serial_number $array_ip $device_id $SGNAME
+    runcmd navihelper.sh delete_mask $array_ip ${SGNAME}
     verify_export ${SGNAME} -exact- gone
 
     # Delete the volume we created
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # shut off suspensions/failures
+    reset_system_props
+
+    # sleep for 2 mins for the provider to get updated with the deleted SG
+    sleep 120
+
+    # Run export group create again
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask was created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 17
+#
+# Summary: Delete Export Group: Tests kill switch that allows service to shut off validation
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to delete the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Delete of export group workflow is resumed
+# 5. Verify the operation succeeds because validation is turned off
+#
+test_17() {
+    echot "Test 17: Tests kill switch to disable export validation checks"
+    expname=${EXPORT_GROUP_NAME}t3
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    set_validation_check false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
+
+    # Create the volume and inventory-only delete it so we can use it later.
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should pass because validation is run but not enforced
+    echo "*** Following the export_group delete task to verify it PASSES because validation is disabled"
+    runcmd task follow $task
+
+    if [ "${SS}" = "xio" ]; then
+        # XIO will still protect the lun mapping due to the additional volume, leaving it behind
+	verify_export ${expname}1 ${HOST1} 2 1
+	# Delete the lun mapping
+	arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+    fi
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+}
+
+# Export Test 18
+#
+# Summary: Remove Volume: Tests an volume sneaking into a masking view outside of ViPR.  Should not fail.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 2 volumes, 1 host export.
+# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
+# 3. Customer adds a different volume to the export mask outside of ViPR
+# 4. Removal of volume workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_18() {
+    echot "Test 18: Remove Volume allows removal of the volume when other volume sneaks into the mask"
+    expname=${EXPORT_GROUP_NAME}t18
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Add an unrelated initiator to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 3
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group update task to verify it succeeds despite unrelated volume"
+    runcmd task follow $task
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the initiator from the export mask
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 19
+#
+# Summary: Remove Initiator: Tests to make sure unrelated initiator don't prevent removal of initiator
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to remove an initiator from the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Remove initiator workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_19() {
+    echot "Test 19: Remove Initiator removes initiator when extra initiators are seen by it"
+    expname=${EXPORT_GROUP_NAME}t19
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    PWWN=`randwwn | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 3 1
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should succeed
+    echo "*** Following the export_group update task to verify it passes despite extra initiator"
+    runcmd task follow $task
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Remove initiator from the mask (done differently per array type)
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Try the export operation again
+    runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
 }
 
 cleanup() {
@@ -2356,6 +2683,22 @@ cleanup() {
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+}
+
+# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
+cleanup_previous_run_artifacts() {
+   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+   do
+      echo "Deleting old export group: ${id}"
+      runcmd export_group delete ${id} > /dev/null
+   done
+
+   for id in `volume list $PROJECT | grep YES | grep hijack | awk '{print $5}'`
+   do
+      echo "Deleting old volume: ${id}"
+      runcmd volume delete ${id} --wait > /dev/null
+   done
+
 }
 
 # call this to generate a random WWN for exports.
@@ -2416,6 +2759,7 @@ then
 fi
 
 setup=0;
+SS=${2}
 if [ "$1" = "setuphw" -o "$1" = "setup" ]
 then
     echo "Setting up testing based on real hardware"
@@ -2467,6 +2811,9 @@ then
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	setup_yaml;
     fi
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
+	setup_provider;
+    fi
 fi
 
 docleanup=0;
@@ -2487,16 +2834,24 @@ then
    for t in $*
    do
       echo Run $t
+      reset_system_props
       $t
+      reset_system_props
    done
 else
    # Passing tests:
-    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
     do
+      reset_system_props
       test_${num}
+      reset_system_props
     done
 fi
 
+   echo There were $VERIFY_EXPORT_COUNT export verifications
+   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+   echo `date`
+   echo `git status | grep 'On branch'`
 if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi

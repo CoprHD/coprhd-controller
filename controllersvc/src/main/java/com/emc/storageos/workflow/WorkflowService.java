@@ -644,6 +644,25 @@ public class WorkflowService implements WorkflowController {
      *            - Keep rolling back even if there's a rollback error
      * @param taskId
      *            -- Orchestration taskId from API service.
+     * @param completer
+     *            task completer
+     * @return Workflow
+     */
+    public Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId) {
+        return getNewWorkflow(controller, method, rollbackContOnError, taskId, null, null);
+    }
+
+    /**
+     * Get a new workflow that is associated with a taskId.
+     * 
+     * @param controller
+     *            -- Orchestration controller.
+     * @param method
+     *            -- Orchestration method.
+     * @param rollbackContOnError
+     *            - Keep rolling back even if there's a rollback error
+     * @param taskId
+     *            -- Orchestration taskId from API service.
      * @param workflowURI
      *            -- If non-null, will use the passed URI parameter for the workflowURI
      * @return Workflow
@@ -1038,7 +1057,7 @@ public class WorkflowService implements WorkflowController {
      * @throws WorkflowException
      */
     private void dispatchStep(Step step, boolean isNested) throws WorkflowException {
-        assert (step.status.state == StepState.QUEUED);
+        assert(step.status.state == StepState.QUEUED);
         // The stepId is automatically added as the last argument to the step.
         List<Object> argList = new ArrayList<Object>(
                 Arrays.asList(step.executeMethod.args));
@@ -1561,7 +1580,7 @@ public class WorkflowService implements WorkflowController {
      */
     private InterProcessLock getWorkflowLock(Workflow workflow) throws WorkflowException {
         try {
-            assert (workflow.getWorkflowURI() != null);
+            assert(workflow.getWorkflowURI() != null);
             InterProcessLock lock = _coordinator.getLock(getLockName(workflow));
             return lock;
         } catch (Exception ex) {
@@ -2480,16 +2499,19 @@ public class WorkflowService implements WorkflowController {
             throws WorkflowException {
         _instance.updateStepStatus(stepId, StepState.SUCCESS, null, "Step completed successfully");
     }
-    
+
     /**
      * If warning message is non null and length > 0, emit warning message with
      * successful completion, otherwise emit the usual canned message.
-     * @param stepId - the stepId to be marked suceeded
-     * @param warningMessage - warning message(s) or empty string or null
+     * 
+     * @param stepId
+     *            - the stepId to be marked suceeded
+     * @param warningMessage
+     *            - warning message(s) or empty string or null
      */
     public static void completerStepSucceeded(String stepId, String warningMessage) {
         if (warningMessage != null && warningMessage.length() > 0) {
-        _instance.updateStepStatus(stepId, StepState.SUCCESS, null, warningMessage);
+            _instance.updateStepStatus(stepId, StepState.SUCCESS, null, warningMessage);
         } else {
             completerStepSucceded(stepId);
         }

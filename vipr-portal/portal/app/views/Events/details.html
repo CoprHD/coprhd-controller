@@ -31,11 +31,10 @@ margin-bottom: 5px;
     </div>  
     
     <div class="pull-right">
-
+    #{if event.eventStatus.toString() == 'pending'}
           <a class="btn btn-success" href="@{approveEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
           <a class="btn btn-warning" href="@{declineEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
-          <a class="btn btn-danger" href="@{deleteEvent(event.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.events.deleteEvent'}</a><br/>          
-
+	#{/if}
     </div>
     
     <dl class="dl-horizontal smallColumn">

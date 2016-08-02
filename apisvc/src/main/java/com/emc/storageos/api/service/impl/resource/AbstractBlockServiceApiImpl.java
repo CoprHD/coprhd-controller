@@ -2013,8 +2013,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         TaskList taskList = new TaskList();
         if (volumes == null) {
             s_logger.info("No volumes were presented to create task objects.  This is a fatal error");
-            // TODO DUPP: throw exception;
-            return taskList;
+            if (vPool != null && vPool.getLabel() != null) {
+                throw APIException.badRequests.noVolumesForTaskObjects(vPool.getLabel(), taskId);
+            }
+            throw APIException.badRequests.noVolumesForTaskObjects("None Specified", taskId);
         }
 
         for (Volume volume : volumes) {
@@ -2071,8 +2073,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     protected TaskResourceRep createTaskForRG(VirtualPool vPool, List<Volume> volumes, String taskId) {
         if (volumes == null || volumes.isEmpty()) {
             s_logger.info("No volumes were presented to create task objects.  This is a fatal error");
-            // TODO DUPP: throw exception;
-            return null;
+            if (vPool != null && vPool.getLabel() != null) {
+                throw APIException.badRequests.noVolumesForTaskObjects(vPool.getLabel(), taskId);
+            }
+            throw APIException.badRequests.noVolumesForTaskObjects("None Specified", taskId);
         }
 
         // Sort the based on label for deterministic primary resource

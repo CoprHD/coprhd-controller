@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
 import org.slf4j.Logger;
@@ -5,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.google.common.collect.ArrayListMultimap;
@@ -43,14 +48,18 @@ public class XtremIOExportMaskValidator implements Validator {
             volumesValidator.validate();
             initiatorsValidator.validate();
         } catch (Exception ex) {
-            log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            throw DeviceControllerException.exceptions.unexpectedCondition(
-                    "Unexpected exception validating ExportMask: " + ex.getMessage());
+            log.error("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
+            if (DefaultValidator.validationEnabled(volumesValidator.getCoordinator())) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(
+                        "Unexpected exception validating ExportMask: " + ex.getMessage());
+            }
         }
 
         if (logger.hasErrors()) {
-            throw DeviceControllerException.exceptions.validationError(
-                    "Export Mask", logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            if (DefaultValidator.validationEnabled(volumesValidator.getCoordinator())) {
+                throw DeviceControllerException.exceptions.validationError(
+                        "Export Mask", logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            }
         }
 
         return true;

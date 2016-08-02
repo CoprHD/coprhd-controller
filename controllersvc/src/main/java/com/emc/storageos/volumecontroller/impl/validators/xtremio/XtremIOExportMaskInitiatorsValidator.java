@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
 import java.util.ArrayList;
@@ -15,6 +19,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
@@ -143,9 +148,11 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                 }
             }
         } catch (Exception ex) {
-            log.info("Unexpected exception validating ExportMask initiators: " + ex.getMessage(), ex);
-            throw DeviceControllerException.exceptions.unexpectedCondition(
-                    "Unexpected exception validating ExportMask initiators: " + ex.getMessage());
+            log.error("Unexpected exception validating ExportMask initiators: " + ex.getMessage(), ex);
+            if (DefaultValidator.validationEnabled(getCoordinator())) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(
+                        "Unexpected exception validating ExportMask initiators: " + ex.getMessage());
+            }
         }
 
         checkForErrors();

@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -55,6 +56,7 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.recoverpoint.utils.WwnUtils.FORMAT;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -67,6 +69,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
@@ -81,7 +84,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     private DbClient _dbClient;
     private CIMObjectPathFactory _cimPath;
     private static final int DEFAULT_STORAGE_TIER_METHODOLOGY = 4;
-
+    private ValidatorFactory validator;
     @Autowired
     private NetworkDeviceController _networkDeviceController;
 
@@ -97,19 +100,20 @@ public class VnxExportOperations implements ExportMaskOperations {
         _dbClient = dbClient;
     }
 
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
+    }
+
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#createExportMask(com.emc.storageos.db.client.
      * model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[], java.util.List,
      * java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-     * 
-     * TODO DUPP:
-     * 1. Verify none of the initiators are in another Storage Group. (this seems to already be done below). Standardize
-     * error message/service error.
-     * 2. Additional verifications?
+     *
      */
+    @Override
     public void createExportMask(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -167,19 +171,16 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#deleteExportMask(com.emc.storageos.db.client.
      * model.StorageSystem, java.net.URI, java.util.List, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
-     * 
-     * TODO DUPP:
-     * 1. Verify volumes are the only volumes in the Storage Group. It's OK if any of our volumes are missing.
-     * 2. Verify Storage Group contains all of the initiators. Fail if you have any additional initiators.
-     * 3. If there are any initiators missing in the Storage Group, you don't need to fail, but don't delete those HW
+     *
      * IDs
      * Note: No need to verify storage ports.
      */
+    @Override
     public void deleteExportMask(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -189,9 +190,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} deleteExportMask START...", storage.getSerialNumber());
         try {
             _log.info("Export mask id: {}", exportMaskURI);
-            // TODO DUPP:
-            // 1. Get the volume, targets, and initiators from the caller
-            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
             if (volumeURIList != null) {
                 _log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
             }
@@ -204,6 +202,8 @@ public class VnxExportOperations implements ExportMaskOperations {
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             String nativeId = exportMask.getNativeId();
+
+            validator.exportMaskDelete(storage, exportMask, volumeURIList, initiatorList).validate();
 
             if (Strings.isNullOrEmpty(nativeId)) {
                 _log.warn(String.format("ExportMask %s does not have a nativeID, " +
@@ -247,12 +247,13 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addVolume(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[],
      * com.emc.storageos.volumecontroller.TaskCompleter)
      */
+    @Override
     public void addVolumes(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -261,19 +262,46 @@ public class VnxExportOperations implements ExportMaskOperations {
         try {
             _log.info("addVolumes: Export mask id: {}", exportMaskURI);
             _log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
-            // TODO DUPP:
-            // 1. Get initiator list from the caller above for completeness
-            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the
-            // request asked for
             if (initiatorList != null) {
                 _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
             }
+            // Determine if the volume is already in the masking view.
+            // If so, log and remove from volumes we need to process.
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            CIMInstance maskingView = _helper.getLunMaskingProtocolController(storage, mask);
+            Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+            if (maskingView != null) {
+                WBEMClient client = _helper.getConnection(storage).getCimClient();
+                // Get volumes for the masking instance
+                discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, maskingView);
+            }
 
-            CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage, exportMaskURI, volumeURIHLUs, null, null,
+            List<VolumeURIHLU> removeURIs = new ArrayList<>();
+            for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
+                BlockObject bo = BlockObject.fetch(_dbClient, volumeUriHLU.getVolumeURI());
+                if (discoveredVolumes.keySet().contains(bo.getNativeId())) {
+                    _log.info("Found volume {} is already associated with masking view.  Assuming this is from a previous operation.",
+                            bo.getLabel());
+                    removeURIs.add(volumeUriHLU);
+                }
+            }
+
+            // Create the new array of volumes that don't exist yet in the masking view.
+            VolumeURIHLU[] addVolumeURIHLUs = new VolumeURIHLU[volumeURIHLUs.length - removeURIs.size()];
+            int index = 0;
+            for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
+                if (!removeURIs.contains(volumeUriHLU)) {
+                    addVolumeURIHLUs[index++] = volumeUriHLU;
+                }
+            }
+
+            CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage, exportMaskURI, addVolumeURIHLUs, null, null,
                     taskCompleter);
             CimConnection cimConnection = _helper.getConnection(storage);
             ExportMaskOperationsHelper.populateDeviceNumberFromProtocolControllers(_dbClient, cimConnection, exportMaskURI,
-                    volumeURIHLUs, protocolControllers, taskCompleter);
+                    addVolumeURIHLUs, protocolControllers, taskCompleter);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: addVolumes failed.", e);
@@ -285,16 +313,13 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeVolume(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-     * 
-     * TODO DUPP:
-     * 1. Add initiator list to the removeVolume() call
-     * 2. Validate that the volume being removed only impacts the initiators sent down. (Does removing these volumes
-     * take the volumes away from OTHER initiators?)
+     *
      */
+    @Override
     public void removeVolumes(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -304,12 +329,10 @@ public class VnxExportOperations implements ExportMaskOperations {
         try {
             _log.info("removeVolumes: Export mask id: {}", exportMaskURI);
             _log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeURIList));
-            // TODO DUPP:
-            // 1. Get initiator list from the caller
-            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
             if (initiatorList != null) {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
+            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
 
             if (null == volumeURIList || volumeURIList.isEmpty()) {
                 taskCompleter.ready(_dbClient);
@@ -329,14 +352,13 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addInitiator(com.emc.storageos.db.client.model.
      * StorageSystem, java.net.URI, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-     * 
-     * TODO DUPP:
-     * 1. Verify these initiators are not already in a storage group (like createExportMask)
+     *
      */
+    @Override
     public void addInitiators(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIs,
@@ -345,17 +367,32 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} addInitiators START...", storage.getSerialNumber());
         try {
             _log.info("addInitiators: Export mask id: {}", exportMaskURI);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. Log any other volumes that are being exposed to the initiator
-            // 3. Make sure these initiators aren't in other storage groups!
             if (volumeURIs != null) {
                 _log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
             }
             _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
             _log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
 
-            createOrGrowStorageGroup(storage, exportMaskURI, null, initiatorList, targets, taskCompleter);
+            // Determine if the initiator is already in the masking view.
+            // If so, log and remove from initiators we need to process.
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            CIMInstance maskingView = _helper.getLunMaskingProtocolController(storage, mask);
+            List<String> discoveredPorts = new ArrayList<String>();
+            if (maskingView != null) {
+                WBEMClient client = _helper.getConnection(storage).getCimClient();
+                // Get initiators for the masking instance
+                discoveredPorts = _helper.getInitiatorsFromLunMaskingInstance(client, maskingView);
+            }
+            List<Initiator> initiatorsToAdd = new ArrayList<Initiator>();
+            for (Initiator initiator : initiatorList) {
+                String portName = Initiator.normalizePort(initiator.getInitiatorPort());
+                if (!discoveredPorts.contains(portName)) {
+                    initiatorsToAdd.add(initiator);
+                }
+            }
+            createOrGrowStorageGroup(storage, exportMaskURI, null, initiatorsToAdd, targets, taskCompleter);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: addInitiators failed.", e);
@@ -367,17 +404,14 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeInitiator(com.emc.storageos.db.client.
      * model.StorageSystem, java.net.URI, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
-     * 
-     * TODO DUPP:
-     * 1. Add volumes list to this removeInitiator call
-     * 2. Verify removing this initiator impacts only the volumes sent down, otherwise other initiators may lose access
-     * to those volumes
+     *
      */
+    @Override
     public void removeInitiators(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -386,14 +420,16 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} removeInitiators START...", storage.getSerialNumber());
         try {
             _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
-            // TODO DUPP:
-            // 1. Get the impacted volumes from the caller
-            // 2. If any other volumes are impacted by removing this initiator, fail the operation
             if (volumeURIList != null) {
                 _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
             }
             _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
-            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+            if (targets != null) {
+                _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+            }
+
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            validator.removeInitiators(storage, exportMask, volumeURIList).validate();
 
             deleteStorageHWIDs(storage, initiatorList);
             taskCompleter.ready(_dbClient);
@@ -408,8 +444,8 @@ public class VnxExportOperations implements ExportMaskOperations {
     /**
      * This call can be used to look up the passed in initiator/port names and find (if
      * any) to which export masks they belong on the 'storage' array.
-     * 
-     * 
+     *
+     *
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiatorNames
@@ -418,6 +454,7 @@ public class VnxExportOperations implements ExportMaskOperations {
      *            [in] NOT APPLICABLE FOR VNX
      * @return Map of port name to Set of ExportMask URIs
      */
+    @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
             boolean mustHaveAllPorts) {
@@ -618,8 +655,25 @@ public class VnxExportOperations implements ExportMaskOperations {
                         !mask.getExistingVolumes().isEmpty()) {
                     volumesToRemove.addAll(mask.getExistingVolumes().keySet());
                     volumesToRemove.removeAll(discoveredVolumes.keySet());
-                    removeVolumes = !volumesToRemove.isEmpty();
                 }
+
+                // if the volume is in export mask's volume and also in the existing volumes, remove from exiting volumes
+                for (String wwn : discoveredVolumes.keySet()) {
+                    if (mask.hasExistingVolume(wwn)) {
+                        URIQueryResultList volumeList = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                        if (volumeList.iterator().hasNext()) {
+                            URI volumeURI = volumeList.iterator().next();
+                            if (mask.hasVolume(volumeURI)) {
+                                builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                                        + "export mask's volumes, so removing from existing volumes", wwn));
+                                volumesToRemove.add(wwn);
+                            }
+                        }
+                    }
+                }
+
+                removeVolumes = !volumesToRemove.isEmpty();
 
                 // NOTE/TODO: We are not modifying the storage ports upon refresh like we do for VMAX.
                 // Refer to CTRL-6982.
@@ -701,7 +755,7 @@ public class VnxExportOperations implements ExportMaskOperations {
      * Initiators. CSHID is called only if the SE_StorageHardwareID (Initiator) is
      * not already known to the array. If the Initiator is known to the array, function
      * will attempt to extract any known targets end points and return those.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiators
@@ -754,7 +808,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     /**
      * Find any initiator on the storage array that belongs to the same host and grab the "hostname"
      * of that initiator. Update our existing transient initiator object so it will use the same name.
-     * 
+     *
      * @param initiator
      * @return
      * @throws Exception
@@ -817,7 +871,7 @@ public class VnxExportOperations implements ExportMaskOperations {
      * Method invokes the SMI-S operation to remove the initiator hardware ID from the
      * array. This should be called whenever the initiator is removed from an export or
      * when the export is deleted.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem representing the array
      * @param initiators
@@ -849,7 +903,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /**
      * Method invokes the SMI-S operation to modify the initiator parameters such as type and failovermode.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem representing the array
      * @param initiators
@@ -1109,10 +1163,10 @@ public class VnxExportOperations implements ExportMaskOperations {
     /**
      * Routine will return a list of SE_StorageHardwareID.ElementName values from the
      * provider managing the specified 'storage' array.
-     * 
+     *
      * The values will be normalized. That is, in the case of WWN,
      * it will be all uppercase with colons (if any) removed.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object
      * @return Map of String(initiator port name) to CIMObjectPath representing the Initiator in SMI-S
@@ -1145,7 +1199,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /**
      * Looks up the targets that are associated with the initiator (if any).
-     * 
+     *
      * @param idMgmtSvcPath
      *            [in] - Clar_StorageHardwareIDManagementService CIMObjectPath
      * @param storage
@@ -1193,7 +1247,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     /**
      * Method to call EMCManuallyRegisterHostInitiators. This call will bind initiators and target ports
      * on the VNX array.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object
      * @param targetPortsToInitiators
@@ -1219,7 +1273,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /**
      * Wrapper function of exposePaths. This one only using the volumes to call exposePaths.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param exportMaskURI
@@ -1242,7 +1296,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /**
      * Wrapper function of exposePaths. This one only using the volumes and initiators to call exposePaths.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param exportMaskURI
@@ -1268,7 +1322,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /**
      * Updates Auto-tiering policy for the given volumes.
-     * 
+     *
      * @param storage
      *            the storage
      * @param exportMask
@@ -1299,7 +1353,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             /**
              * get tier methodology for policy name
              * volume has tier methodology as '4' when no policy set (START_HIGH_THEN_AUTO_TIER).
-             * 
+             *
              * For VNX, Policy is set on Volumes during creation.
              */
             int storageTierMethodologyId = DEFAULT_STORAGE_TIER_METHODOLOGY;
@@ -1355,7 +1409,7 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     /**
      * Gets the storage tier methodology from policy name.
-     * 
+     *
      * @param policyName
      *            the policy name
      * @return the storage tier methodology from policy name

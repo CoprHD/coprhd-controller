@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
 import java.net.URI;
@@ -10,10 +14,11 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -46,14 +51,15 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             Set<String> knownVolumes = new HashSet<String>();
             Set<String> igVols = new HashSet<String>();
-            // get the volumes in the IGs and validate against passed impacted volumes
-            List<Volume> knownVolumesInIG = getDbClient().queryObject(Volume.class, volumeURIs);
+            // get the volumes in the IGs and validate against passed impacted block objects
+            for (URI maskVolumeURI : volumeURIs) {
+                BlockObject maskVolume = BlockObject.fetch(getDbClient(), maskVolumeURI);
+                knownVolumes.add(maskVolume.getDeviceLabel());
+            }
+
             List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
             for (String igName : igNames) {
                 igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
-            }
-            for (Volume knownVolumeInIG : knownVolumesInIG) {
-                knownVolumes.add(knownVolumeInIG.getDeviceLabel());
             }
 
             for (XtremIOVolume igVolume : igVolumes) {
@@ -66,9 +72,11 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
                 getLogger().logDiff(id, "volumes", NO_MATCH, igVol);
             }
         } catch (Exception ex) {
-            log.info("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);
-            throw DeviceControllerException.exceptions.unexpectedCondition(
-                    "Unexpected exception validating ExportMask volumes: " + ex.getMessage());
+            log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);
+            if (DefaultValidator.validationEnabled(getCoordinator())) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(
+                        "Unexpected exception validating ExportMask volumes: " + ex.getMessage());
+            }
         }
 
         checkForErrors();

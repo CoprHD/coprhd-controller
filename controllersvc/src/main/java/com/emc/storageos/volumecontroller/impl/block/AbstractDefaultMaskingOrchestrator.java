@@ -224,7 +224,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *
      *
      * @param exportGroup
+     *            export group
      * @param storageURI
+     *            storage system
      * @return
      * @throws java.io.IOException
      */
@@ -272,12 +274,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Creates an ExportMask Workflow that generates a new ExportMask in an existing ExportGroup.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param storage
+     *            storage system
      * @param exportGroup
+     *            export group
      * @param initiatorURIs
+     *            initiators impacted by this operation
      * @param volumeMap
+     *            volumes
      * @param token
+     *            step ID
      * @return URI of the new ExportMask
      * @throws Exception
      */
@@ -291,14 +300,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         URI exportGroupURI = exportGroup.getId();
         URI storageURI = storage.getId();
 
-        // TODO DUPP:
-        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
-        // send down here. (then remove the log)
         List<Initiator> initiators = null;
         if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
             initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         } else {
-            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+            _log.error("Internal Error: Need to add the initiatorURIs to the call that assembles this step.");
         }
 
         // Create and initialize the Export Mask. This involves assigning and
@@ -362,9 +368,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     /**
      * Generate export mask steps and add to workflow.
      *
-     * TODO DUPP:
-     * 1. Change all callers to send in expected volumes and initiators (not just ones from the ExportMask!)
-     *
      * @param workflow
      *            workflow to add steps to
      * @param previousStep
@@ -423,8 +426,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generate workflow steps to add volumes to an export mask
-     * TODO DUPP:
-     * 1. Change all callers to send down initiators it expects to be impacted by this operation.
      *
      * @param workflow
      *            workflow
@@ -479,8 +480,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generate workflow steps to remove volumes from an export mask
-     * TODO DUPP:
-     * 1. Change all callers to send down initiators it expects to be impacted by this operation.
      *
      * @param workflow
      *            workflow
@@ -540,8 +539,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generate workflow steps to remove volumes from an export mask.
-     * TODO DUPP:
-     * 1. Change all callers to send down initiators that should be impacted by this volume removal.
      *
      * @param workflow
      *            workflow
@@ -585,9 +582,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generate workflow steps to add initiators to an export mask
-     * TODO: DUPP:
-     * 1. This method already has a list of volumes, but it looks like it's a "new volume" list. We perhaps need a new
-     * volume list for impacted volumes?
      *
      * @param workflow
      *            workflow
@@ -622,15 +616,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         URI storageURI = storage.getId();
         List<URI> newTargetURIs = new ArrayList<>();
 
-        // Only update the ports of a mask that we created.
-        // TODO DUPP:
-        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
-        // send down here. (then remove the log)
         List<Initiator> initiators = null;
         if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
             initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         } else {
-            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+            _log.error("Internal Error: Need to add the initiatorURIs to the call that assembles this step.");
         }
 
         // Allocate any new ports that are required for the initiators
@@ -672,11 +662,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return maskingStep;
     }
 
-    /**
-     *
-     * * TODO DUPP:
-     * 1. Add impacted volume list to each caller of this method.
-     */
     protected String generateExportMaskRemoveInitiatorsWorkflow(Workflow workflow, String previousStep,
             StorageSystem storage, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> volumeURIs, List<URI> initiatorURIs, boolean removeTargets) throws Exception {
@@ -686,8 +671,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generate workflow steps to remove initiators from an export mask
-     * TODO DUPP:
-     * 1. Add impacted volume list to each caller of this method.
      *
      * @param workflow
      *            workflow
@@ -752,9 +735,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * There is an optional last parameter - the zoningStep id.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param exportGroup
+     *            export group
      * @param volumeMap
+     *            volumes
      * @return zoningStep - String id of zoning step
      * @throws WorkflowException
      */
@@ -927,17 +914,25 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * This is default implementation.
      * If there is any device specific implementation, we should override this method and implement
      * device specific logic.
-     * TODO DUPP:
-     * 1. Change all callers to send in volume list for impacted volumes
+     *
      * @param workflow
+     * workflow to add steps to
      * @param previousStep
+     * previous step before these steps
      * @param storage
+     * storage system
      * @param exportGroup
+     * export group
      * @param mask
+     * export mask
      * @param volumeURIs
+     * volumes
      * @param initiatorsURIs
+     * new initiators
      * @param maskToInitiatorsMap
+     * mask to initiator map
      * @param token
+     * step ID
      * @throws
      */
     public String generateDeviceSpecificAddInitiatorWorkFlow(Workflow workflow,
@@ -953,17 +948,23 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generates device specific sequence of workflow to addVolumes in exportmask.
-     * TODO DUPP:
-     * 1. Change all callers to send down initiators it expects to be impacted by this operation.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param attachGroupSnapshot
+     *            group snapshot attach name
      * @param storage
+     *            storage system
      * @param exportGroup
+     *            export group
      * @param mask
+     *            export mask
      * @param volumesToAdd
+     *            volumes to add
      * @param volumeURIs
+     *            volumes
      * @param initiatorURIs
+     *            initiators impacted by this operation
      * @return workflow stepId: exportmask stepId.
      * @throws Exception
      */
@@ -982,12 +983,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates Device specific workflow step to create exportmask.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStepId
+     *            previous step before these steps
      * @param storage
+     *            storage system
      * @param exportGroup
+     *            export group
      * @param hostInitiators
+     *            host initiators
      * @param volumeMap
+     *            volumes
      * @param token
+     *            step ID
      * @return
      * @throws Exception
      */
@@ -1006,10 +1014,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates Device specific workflow step to create zoning in exportmask.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStepId
+     *            previous step before these steps
      * @param exportGroup
+     *            export group
      * @param exportMaskList
+     *            export mask list
      * @param overallVolumeMap
+     *            volume map
      */
     public String generateDeviceSpecificZoningCreateWorkflow(Workflow workflow,
             String previousStepId, ExportGroup exportGroup, List<URI> exportMaskList,
@@ -1019,17 +1032,23 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generates Device specific workflow step to addInitiators in exportMask.
-     * DUPP:
-     * 1. Change all callers to send in volume list for impacted volumes
      *
      * @param workflow
+     *            workflow to add steps to
      * @param zoningGroupId
+     *            group zoning ID
      * @param storage
+     *            storage system
      * @param exportGroup
+     *            export group
      * @param mask
-     * @param volumes TODO
+     *            export mask
+     * @param volumes
+     *            volumes impacted by operation
      * @param newInitiators
+     *            initiators to add
      * @param token
+     *            step ID
      * @throws Exception
      */
     public String generateDeviceSpecificExportMaskAddInitiatorsWorkflow(Workflow workflow,
@@ -1044,9 +1063,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to do zoning for addInitiators in exportmask.
      *
      * @param workflow
-     * @param object
+     *            workflow to add steps to
+     * @param previousStep
+     *            previous step
      * @param exportGroup
+     *            export group
      * @param zoneMasksToInitiatorsURIs
+     *            zone masks to initiator map
      */
     public String generateDeviceSpecificZoningAddInitiatorsWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup,
@@ -1057,16 +1080,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generates device specific workflow steps to delete zoning & exportmask.
-     * TODO DUPP:
-     * 1. Change all callers to send in expected volumes and initiators (not just ones from the ExportMask!)
      *
      * @param workflow
+     *            workflow to add steps to
      * @param exportGroup
+     *            export group
      * @param mask
-     * @param volumes TODO
-     * @param initiators TODO
+     *            export mask
+     * @param volumes
+     *            volumes to be validated
+     * @param initiators
+     *            initiators to be validated
      * @param storage
-     * @param object
+     *            storage system
      * @return
      * @throws Exception
      */
@@ -1082,12 +1108,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to remove initiators in exportmask..
      *
      * @param workflow
+     *            workflow to add steps to
      * @param exportGroup
+     *            export group
      * @param mask
+     *            export mask
      * @param storage
+     *            storage system
      * @param maskToInitiatorsMap
-     * @param volumes TODO DUPP: Add impacted volume list to each caller of this method.
+     *            mask to initiator map
+     * @param volumes
+     *            volumes to be validated
      * @param initiatorsToRemove
+     *            initiators to remove
      * @param removeTargets
      *            whether or not to remove storage ports from mask
      * @return
@@ -1109,14 +1142,21 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to remove volumes in exportmask.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param exportGroup
+     *            export group
      * @param mask
+     *            export mask
      * @param storage
+     *            storage system
      * @param volumesToRemove
+     *            volumes to remove
      * @param initiatorURIs
-     *            TODO
+     *            initiators impacted by this operation
      * @param completer
+     *            task completer
      * @throws Exception
      */
     public String generateDeviceSpecificRemoveVolumesWorkflow(Workflow workflow,
@@ -1131,18 +1171,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
     /**
      * Generates device specific workflow step to delete exportmask.
-     * TODO DUPP:
-     * 1. Change all callers to send in expected volumes and initiators (not just ones from the ExportMask!)
      *
      * @param workflow
+     *            workflow to add steps to
      * @param exportGroup
+     *            export group
      * @param exportMask
-     * @param volumes TODO
-     * @param initiators TODO
+     *            export mask
+     * @param volumes
+     *            volumes impacted by this operation
+     * @param initiators
+     *            initiators impacted by this operation
      * @param storage
-     * @param object
-     * @param volumes volumes we expect to be impacted
-     * @param initiators initiators we expect to be impacted
+     *            storage system
      * @throws Exception
      */
     public String generateDeviceSpecificExportMaskDeleteWorkflow(Workflow workflow,
@@ -1156,14 +1197,21 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to removeVolumes in exportMask.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param exportGroup
+     *            export group
      * @param exportMask
+     *            export mask
      * @param storage
+     *            storage system
      * @param volumesToRemove
+     *            volumes to remove
      * @param initiatorURIs
-     *            TODO
+     *            initiators impacted by this operation
      * @param completer
+     *            task completer
      * @return last step in workflow
      * @throws Exception
      */
@@ -1178,9 +1226,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to removing zoning for removeVolumes in exportMask.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param exportGroup
+     *            export group
      * @param exportMasksToZoneRemoveVolumes
+     *            export mask to zone removal maps
      * @param volumesToZoneRemoveVolumes
      */
     public String generateDeviceSpecificZoningRemoveVolumesWorkflow(Workflow workflow,
@@ -1195,8 +1247,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to delete zoning in exportmask.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param exportGroup
+     *            export group
      * @param exportMasksToZoneDelete
      */
     public String generateDeviceSpecificZoningDeleteWorkflow(Workflow workflow,
@@ -1209,10 +1264,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Generates device specific workflow step to remove volumes from ExportGroup.
      *
      * @param workflow
+     *            workflow to add steps to
      * @param previousStep
+     *            previous step before these steps
      * @param storage
+     *            storage system
      * @param exportGroup
+     *            export group
      * @param volumeURIs
+     *            volumes
      * @param initiatorURIs
      *            initiators impacted by this change
      */
@@ -1307,9 +1367,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * used for some other volume or not.
      *
      * @param volumeMap
+     *            volumes
      * @param exportMask
      * @param exportGroup
+     *            export group
      * @param token
+     *            step ID
      * @return
      */
     protected Map<URI, Integer> getVolumesToAdd(Map<URI, Integer> volumeMap,
@@ -1390,12 +1453,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Creates a new ExportMask for host for the given initiators.
      *
      * @param initiatorURIs
+     *            initiators
      * @param exportGroup
+     *            export group
      * @param workflow
+     *            workflow to add steps to
      * @param volumeMap
+     *            volumes
      * @param storage
+     *            storage system
      * @param token
+     *            step ID
      * @param previousStep
+     *            previous step before these steps
      * @return
      * @throws Exception
      */
@@ -2305,7 +2375,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return isMatched;
     }
 
-
     /**
      * Check that export mask has at least one valid port from virtual array
      *
@@ -2342,7 +2411,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             if (!port.taggedToVirtualArray(virtualArray.getId())) {
                 _log.info(String.format("maskHasStoragePortsInExportVarray - Port %s (%s) is not tagged to VArray %s (%s)",
                         port.getPortName(), uri.toString(), virtualArray.getLabel(), virtualArray.getId()));
-                // CTRL-8959 - All mask Ports should be part of the VArray, to be able to consider this Export mask for reuse.
+                // CTRL-8959 - All mask Ports should be part of the VArray, to be able to consider this Export mask for
+                // reuse.
                 // reverted the fix, as the probability of Consistent lun violation will be more.
                 continue;
             }
@@ -2465,6 +2535,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Overloaded version of {@link #updateZoningMap(ExportGroup, ExportMask, boolean)}
      *
      * @param exportGroup
+     *            export group
      * @param exportMask
      */
     public void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask) {

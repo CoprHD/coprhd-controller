@@ -4389,8 +4389,6 @@ public class SmisCommandHelper implements SmisConstants {
                 storage.setLastRefresh(currentMillis);
                 _dbClient.updateObject(storage);
 
-                pauseThread(30000);
-
                 _log.info(String.format("Did EMCRefresh against StorageSystem %s. " +
                                 "Last refresh set to %d", storage.getNativeGuid(),
                         currentMillis));

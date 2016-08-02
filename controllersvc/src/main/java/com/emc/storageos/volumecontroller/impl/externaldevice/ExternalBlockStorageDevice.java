@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -52,13 +53,26 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateGroupCloneExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateVolumeCloneExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.ExpandVolumeExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromCloneExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromGroupCloneExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromSnapshotExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
@@ -81,7 +95,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     private ExportMaskOperations exportMaskOperationsHelper;
 
     // Initialized drivers map
-    private Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
+    private static Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
 
 
     public void setDbClient(DbClient dbClient) {
@@ -133,13 +147,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                 VirtualPoolCapabilityValuesWrapper capabilities,
                                 TaskCompleter taskCompleter) throws DeviceControllerException {
 
-        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-
         List<StorageVolume> driverVolumes = new ArrayList<>();
         Map<StorageVolume, Volume> driverVolumeToVolumeMap = new HashMap<>();
         Set<URI> consistencyGroups = new HashSet<>();
+        StorageCapabilities storageCapabilities = null;
         try {
             for (Volume volume : volumes) {
+                if (storageCapabilities == null) {
+                    // All volumes created in a request will have the same capabilities.
+                    // Currently, auto tiering policy is the only capability supported.
+                    storageCapabilities = new StorageCapabilities();
+                    addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
+                }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
                 driverVolume.setStoragePoolId(storagePool.getNativeId());
@@ -155,7 +174,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverVolumeToVolumeMap.put(driverVolume, volume);
             }
             // Call driver
-            DriverTask task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), null);
+            BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            DriverTask task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), storageCapabilities);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY || task.getStatus() == DriverTask.TaskStatus.PARTIALLY_FAILED ) {
 
@@ -182,6 +202,53 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(dbClient, serviceError);
         }
     }
+    
+    /**
+     * Create the auto tiering policy capability and add it to the passed
+     * storage capabilities
+     * 
+     * @param storageCapabilities A reference to all storage capabilities.
+     * @param autoTieringPolicyURI The URI of the AutoTieringPolicy or null.
+     */
+    private void addAutoTieringPolicyCapability(StorageCapabilities storageCapabilities, URI autoTieringPolicyURI) {
+        if (!NullColumnValueGetter.isNullURI(autoTieringPolicyURI)) {
+            AutoTieringPolicy autoTieringPolicy = dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
+            if (autoTieringPolicy == null) {
+                throw DeviceControllerException.exceptions.objectNotFound(autoTieringPolicyURI);
+            }
+
+            // Create the auto tiering policy capability.
+            AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(),
+                    Arrays.asList(autoTieringPolicy.getPolicyName()));
+            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(),
+                    Arrays.asList(autoTieringPolicy.getProvisioningType()));
+            CapabilityInstance autoTieringCapability = new CapabilityInstance(capabilityDefinition.getId(), 
+                    autoTieringPolicy.getPolicyName(), capabilityProperties);
+
+            // Get the common capabilities for the passed storage capabilities.
+            // If null, create and set it.
+            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+            if (commonCapabilities == null) {
+                commonCapabilities = new CommonStorageCapabilities();
+                storageCapabilities.setCommonCapabilitis(commonCapabilities);
+            }
+            
+            // Get the data storage service options for the common capabilities.
+            // If null, create it and set it.
+            List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
+            if (dataStorageSvcOptions == null) {
+                dataStorageSvcOptions = new ArrayList<>();
+                commonCapabilities.setDataStorage(dataStorageSvcOptions);
+            }
+            
+            // Create a new data storage service option for the auto tiering policy capability
+            // and add it to the list.
+            DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Arrays.asList(autoTieringCapability));
+            dataStorageSvcOptions.add(dataStorageSvcOption);
+        }        
+    }
 
     @Override
     public void doExpandVolume(StorageSystem storageSystem, StoragePool storagePool,
@@ -196,6 +263,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // Prepare driver volume
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setNativeId(volume.getNativeId());
+            driverVolume.setDeviceLabel(volume.getDeviceLabel());
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId(storagePool.getNativeId());
             driverVolume.setRequestedCapacity(volume.getCapacity());
@@ -207,15 +275,17 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
             // call driver
             task = driver.expandVolume(driverVolume, size);
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                volume.setCapacity(driverVolume.getRequestedCapacity());
-                volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
-                volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
-                dbClient.updateObject(volume);
-
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the volume and
+                // call the completer as appropriate based on the result of the request.
+                ExpandVolumeExternalDeviceJob job = new ExpandVolumeExternalDeviceJob(
+                        storageSystem.getId(), volume.getId(), task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("doExpandVolume -- Expanded volume: %s .", task.getMessage());
                 _log.info(msg);
+                ExternalDeviceUtils.updateExpandedVolume(volume, driverVolume, dbClient);
                 taskCompleter.ready(dbClient);
             } else {
                 // operation failed
@@ -261,9 +331,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     VolumeClone driverClone = new VolumeClone();
                     driverClone.setStorageSystemId(storageSystem.getNativeId());
                     driverClone.setNativeId(volume.getNativeId());
+                    driverClone.setDeviceLabel(volume.getDeviceLabel());
                     driverClone.setParentId(sourceVolume.getNativeId());
                     driverClone.setConsistencyGroup(volume.getReplicationGroupInstance());
-                    task = driver.deleteVolumeClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
+                    task = driver.deleteVolumeClone(driverClone);
                 } else {
                     // this is regular volume
                     _log.info("Deleting volume on storage system {}, volume: {} .",
@@ -271,7 +342,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
-                    task = driver.deleteVolumes(Collections.unmodifiableList(Collections.singletonList(driverVolume)));
+                    driverVolume.setDeviceLabel(volume.getDeviceLabel());
+                    task = driver.deleteVolume(driverVolume);
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {
                     volume.setInactive(true);
@@ -406,8 +478,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // Call driver to execute this request
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task = driver.restoreSnapshot(driverSnapshots);
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and call the completer as
+                // appropriate based on the result of the request.
+                RestoreFromSnapshotExternalDeviceJob job = new RestoreFromSnapshotExternalDeviceJob(
+                        storageSystem.getId(), snapshot, task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("doRestoreFromSnapshot -- Restored snapshots: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
@@ -417,7 +495,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 ServiceError serviceError = ExternalDeviceException.errors.restoreFromSnapshotFailed("doRestoreFromSnapshot", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
-        } catch (DatabaseException e) {
+        } catch (Exception e) {
             String message = String.format("IO exception when trying to restore from snapshots on array %s",
                     storageSystem.getSerialNumber());
             _log.error(message, e);
@@ -500,21 +578,19 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         	driverClones.add(driverClone);
         	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
         	
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume and call the completer as appropriate based on the result of the request.
+                CreateVolumeCloneExternalDeviceJob job = new CreateVolumeCloneExternalDeviceJob(
+                        storageSystem.getId(), clone, task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone
-            	VolumeClone driverCloneResult = driverClones.get(0);
-                cloneObject.setNativeId(driverCloneResult.getNativeId());
-                cloneObject.setWWN(driverCloneResult.getWwn());
-                cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
-                cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
-                cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
-                cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
-                cloneObject.setInactive(false);
-                dbClient.updateObject(cloneObject);
                 String msg = String.format("doCreateClone -- Created volume clone: %s .", task.getMessage());
                 _log.info(msg);
+            	VolumeClone driverCloneResult = driverClones.get(0);
+                ExternalDeviceUtils.updateNewlyCreatedClone(cloneObject, driverCloneResult, dbClient);
                 taskCompleter.ready(dbClient);
             } else {
                 cloneObject.setInactive(true);
@@ -522,7 +598,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 String errorMsg = String.format("doCreateClone -- Failed to create volume clone: %s .", task.getMessage());
                 _log.error(errorMsg);
                 ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", errorMsg);
-                taskCompleter.error(dbClient, serviceError);
+                taskCompleter.error(dbClient, serviceError);                
             }
         } catch (Exception e) {
             if (cloneObject != null) {
@@ -695,27 +771,25 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
             // Call driver to create group snapshot
             DriverTask task = driver.createConsistencyGroupClone(driverCG, Collections.unmodifiableList(driverClones), null);
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume and call the completer as appropriate based on the result of the request.
+                CreateGroupCloneExternalDeviceJob job = new CreateGroupCloneExternalDeviceJob(
+                        storageSystem.getId(), cloneURIs, parentVolume.getConsistencyGroup(),
+                        task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone object with driver data
+                String msg = String.format("doCreateGroupClone -- Created group clone: %s .", task.getMessage());
+                _log.info(msg);
                 List<Volume> cloneObjects = new ArrayList<>();
                 for (VolumeClone driverCloneResult : driverClones) {
                     Volume cloneObject = driverCloneToCloneMap.get(driverCloneResult);
-                    cloneObject.setNativeId(driverCloneResult.getNativeId());
-                    cloneObject.setWWN(driverCloneResult.getWwn());
-                    cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
-                    cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                    cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
-                    cloneObject.setReplicationGroupInstance(driverCloneResult.getConsistencyGroup());
-                    cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
-                    cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
-                    cloneObject.setInactive(false);
-                    cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
+                    ExternalDeviceUtils.updateNewlyCreatedGroupClone(cloneObject, driverCloneResult, parentVolume.getConsistencyGroup(), dbClient);
                     cloneObjects.add(cloneObject);
                 }
                 dbClient.updateObject(cloneObjects);
-                String msg = String.format("doCreateGroupClone -- Created group clone: %s .", task.getMessage());
-                _log.info(msg);
                 taskCompleter.ready(dbClient);
             } else {
                 // Process failure
@@ -865,12 +939,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
             // Call driver
             task = driver.restoreFromClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                clone.setReplicaState(driverClone.getReplicationState().name());
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume replica state and call the completer as appropriate based on the result
+                // of the request.
+                RestoreFromCloneExternalDeviceJob job = new RestoreFromCloneExternalDeviceJob(
+                        storageSystem.getId(), cloneVolume, task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("doRestoreFromClone -- Restored volume from clone: %s .", task.getMessage());
                 _log.info(msg);
-                dbClient.updateObject(clone);
+                ExternalDeviceUtils.updateRestoredClone(clone, driverClone, dbClient, true);
                 taskCompleter.ready(dbClient);
             } else {
                 String msg = String.format("Failed to restore volume from clone on storage system %s, clone: %s .",
@@ -913,12 +993,19 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
             // Call driver
             task = driver.restoreFromClone(Collections.unmodifiableList(driverClones));
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume replica state and call the completer as appropriate based on the result
+                // of the request.
+                RestoreFromGroupCloneExternalDeviceJob job = new RestoreFromGroupCloneExternalDeviceJob(
+                        storageSystem.getId(), cloneVolumes, task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 for (Map.Entry<VolumeClone, Volume> entry : driverCloneToCloneMap.entrySet() ) {
                     VolumeClone driverClone = entry.getKey();
                     Volume clone = entry.getValue();
-                    clone.setReplicaState(driverClone.getReplicationState().name());
+                    ExternalDeviceUtils.updateRestoredClone(clone, driverClone, dbClient, false);
                 }
 
                 String msg = String.format("doRestoreFromGroupClone -- Restore from group clone: %s .", task.getMessage());
@@ -1380,11 +1467,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverSnapshot.setNativeId(blockSnapshot.getNativeId());
             driverSnapshot.setParentId(parent.getNativeId());
             driverSnapshot.setConsistencyGroup(blockSnapshot.getReplicationGroupInstance());
-            List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
-            driverSnapshots.add(driverSnapshot);
             // call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.deleteVolumeSnapshot(Collections.unmodifiableList(driverSnapshots));
+            DriverTask task = driver.deleteVolumeSnapshot(driverSnapshot);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // update snapshots
@@ -1487,7 +1572,44 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         completer.ready(dbClient);
 
     }
-
+    
+    /**
+     * Method determines if the passed task status indicates that the task is completed
+     * and is in a terminal state.
+     * 
+     * Terminal states are:
+     *   READY
+     *   FAILED
+     *   PARTIALLY_FAILED
+     *   WARNING
+     *   ABORTED
+     *   
+     * Non-Terminal states are:
+     *    QUEUED
+     *    PROVISIONING  
+     * 
+     * @param taskStatus A reference to the task status
+     * 
+     * @return true if the state is terminal, false otherwise.
+     */
+    public boolean isTaskInTerminalState(DriverTask.TaskStatus taskStatus) {
+        if (DriverTask.TaskStatus.PROVISIONING == taskStatus || DriverTask.TaskStatus.QUEUED == taskStatus) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+    /**
+     * Static method for getting an initialized block storage driver.
+     * 
+     * @param driverType The driver system type.
+     * 
+     * @return A reference to the initialized block storage driver.
+     */
+    public static synchronized BlockStorageDriver getBlockStorageDriver(String driverType) {
+        return blockDrivers.get(driverType);
+    }
     @Override
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         // call driver to validate provider connection

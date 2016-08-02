@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -569,8 +570,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // create and set IsilonExport instance from NFSExport
             String permissions = fileExport.getPermissions();
-            String securityType = fileExport.getSecurityType();
-            List<String> securityTypes = Arrays.asList(securityType);
+            Set<String> orderedSecTypes = new TreeSet<String>();
+            for (String securityType : fileExport.getSecurityType().split(",")) {
+                securityType = securityType.trim();
+                orderedSecTypes.add(securityType);
+            }
+            Iterator<String> orderedList = orderedSecTypes.iterator();
+            String strCSSecurityType = orderedList.next().toString();
+            while (orderedList.hasNext()) {
+                strCSSecurityType += "," + orderedList.next().toString();
+            }
+
             String root_user = fileExport.getRootUserMapping();
             String storagePortName = fileExport.getStoragePortName();
             String storagePort = fileExport.getStoragePort();
@@ -587,6 +597,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 throw IsilonException.exceptions.invalidParameters();
             }
 
+            List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,
                     comments);
 
@@ -634,7 +645,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
 
                 // set file export data and add it to the export map
-                fExport = new FileExport(newIsilonExport.getClients(), storagePortName, mountPath, securityType,
+                fExport = new FileExport(newIsilonExport.getClients(), storagePortName, mountPath, strCSSecurityType,
                         permissions, root_user, protocol, storagePort, path, mountPath, subDirectory, comments);
                 fExport.setIsilonId(id);
             } else {

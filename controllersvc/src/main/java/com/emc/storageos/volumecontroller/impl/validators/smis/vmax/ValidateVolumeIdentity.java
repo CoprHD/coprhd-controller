@@ -1,8 +1,14 @@
-package com.emc.storageos.volumecontroller.impl.validators.vmax;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +24,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 /**
  * TODO
  */
-public class ValidateVolumeIdentity extends AbstractVmaxValidator {
+public class ValidateVolumeIdentity extends AbstractSMISValidator {
 
     private static final Logger log = LoggerFactory.getLogger(ValidateVolumeIdentity.class);
     private static final String[] PROP_KEYS = new String[] { CP_WWN_NAME };
@@ -42,7 +48,7 @@ public class ValidateVolumeIdentity extends AbstractVmaxValidator {
 
             checkForDifferences(instance, volume);
         }
-        
+
         return getLogger().hasErrors();
     }
 

@@ -97,7 +97,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token, null);
+                        token);
                 List<ExportMask> exportMasksToZoneAddVolumes = new ArrayList<ExportMask>();
                 List<URI> volumesToZoneAddVolumes = new ArrayList<URI>();
                 // Add the volume to all the ExportMasks that are contained in the
@@ -173,7 +173,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             updateZoningMap(exportGroup, exportMask, true);
 
                             // Update volumeMap to find the next HLU here.
-                            updateVolumeHLU(storage, initiatorURIs, exportGroup, volumesToAdd);
+                            updateVolumeHLU(storage, initiatorURIs, volumesToAdd);
 
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
                                     exportGroup, exportMask, volumesToAdd, null);
@@ -296,7 +296,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
-                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token, null);
+                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
 
@@ -656,7 +656,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 initiatorURIs, hostURIs);
 
         // Update volumeMap to find the next HLU here.
-        updateVolumeHLU(storage, initiatorURIs, exportGroup, volumeMap);
+        updateVolumeHLU(storage, initiatorURIs, volumeMap);
 
         // Find the export masks that are associated with any or all the ports in
         // portNames. We will have to do processing differently based on whether
@@ -1062,22 +1062,15 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * volume Map to the next HLU reference if user has chosen system to decide on HLU number
      * 
      * @param system
-     *            Storage Array on whic export operation is executed
+     *            Storage Array on which export operation is executed
      * @param initiatorURIs
      *            List of Host initiators
-     * @param exportGroup
-     *            Export group reference
      * @param volumeMap
      *            Volume and HLU mapping.
      */
-    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
+    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
         boolean findHLU = false;
-        Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
-        Set<String> hostURISet = computeResourceToInitiators.keySet();
-        List<URI> hostURIs = new ArrayList<URI>();
-        for (String hostURI : hostURISet) {
-            hostURIs.add(URI.create(hostURI));
-        }
+        
         // Loop through the volume entries to see if there is a request for Auto HLU.
         for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
             if (volumeMapEntry.getValue() == -1) {
@@ -1085,16 +1078,17 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 break;
             }
         }
+        
         // If auto HLU then start finding out the next HLU
         if (findHLU) {
             BlockStorageDevice device = getDevice();
-            Map<URI, List<Integer>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs);
-            Iterator<Entry<URI, List<Integer>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
+            Map<URI, List<Integer>> initiatorToHLUsMap = device.doFindHostHLUs(system, initiatorURIs);
+            Iterator<Entry<URI, List<Integer>>> initiatorToHLUsItr = initiatorToHLUsMap.entrySet().iterator();
             Set<Integer> usedHLUs = new HashSet<Integer>();
             // Get the list of available HLU on array and then add that to the Set of common used HLUs
-            while (hostToHLUsItr.hasNext()) {
-                Entry<URI, List<Integer>> hostHLUs = hostToHLUsItr.next();
-                usedHLUs.addAll(hostHLUs.getValue());
+            while (initiatorToHLUsItr.hasNext()) {
+                Entry<URI, List<Integer>> initiatorHLUs = initiatorToHLUsItr.next();
+                usedHLUs.addAll(initiatorHLUs.getValue());
             }
             // Update Volume Map to the next available HLU.
             int nextHLU = 1;

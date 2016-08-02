@@ -10,6 +10,7 @@
                  <entry key="Simulator" value="driversystem"/>
                  <entry key="SimulatorToo" value="providersystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
+                 <entry key="HP3ParDriver" value="hp3par"/>
                  <entry key="DellSCDriver" value="dellscsystem"/>
               </map>
            </property>
@@ -26,6 +27,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>hp3par</value> <!-- HP3Par Driver-->
                    <value>dellscsystem</value>
                </set>
            </property>

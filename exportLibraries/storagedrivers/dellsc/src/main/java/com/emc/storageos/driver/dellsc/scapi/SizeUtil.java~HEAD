@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.driver.dellsc;
+package com.emc.storageos.driver.dellsc.scapi;
 
 import java.math.BigDecimal;
 
@@ -68,6 +68,16 @@ public class SizeUtil {
         }
 
         return bytes;
+    }
+
+    /**
+     * Converts a size string from the API to kilobytes.
+     *
+     * @param sizeStr The API size string.
+     * @return The size in kilobytes.
+     */
+    public static Long sizeStrToKBytes(String sizeStr) {
+        return sizeStrToBytes(sizeStr) / KB;
     }
 
     /**

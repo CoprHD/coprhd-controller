@@ -27,18 +27,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.dellsc.scapi.SizeUtil;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPIException;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeStorageUsage;
-import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
-import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
-import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 
 /**
@@ -161,110 +154,5 @@ public class DellSCUtil {
         }
 
         return result;
-    }
-
-    /**
-     * Gets a consistency group object from an SC replay profile.
-     *
-     * @param cg The ScReplayProfile.
-     * @param volumeConsistencyGroup The consistency group object or null.
-     * @return The consistency group object.
-     */
-    public VolumeConsistencyGroup getVolumeConsistencyGroupFromReplayProfile(ScReplayProfile cg,
-            VolumeConsistencyGroup volumeConsistencyGroup) {
-        if (volumeConsistencyGroup == null) {
-            volumeConsistencyGroup = new VolumeConsistencyGroup();
-        }
-
-        volumeConsistencyGroup.setAccessStatus(AccessStatus.READ_WRITE);
-        volumeConsistencyGroup.setNativeId(cg.instanceId);
-        volumeConsistencyGroup.setDeviceLabel(cg.name);
-        volumeConsistencyGroup.setStorageSystemId(cg.scSerialNumber);
-
-        return volumeConsistencyGroup;
-    }
-
-    /**
-     * @param api
-     * @param scPort
-     * @param storagePort
-     * @return
-     */
-    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort, StoragePort storagePort) {
-        StoragePort port = storagePort;
-        if (port == null) {
-            port = new StoragePort();
-        }
-
-        port.setNativeId(scPort.instanceId);
-        port.setStorageSystemId(scPort.scSerialNumber);
-
-        // Get the port configuration
-        String haZone = "";
-        ScFaultDomain[] faultDomains = api.getControllerPortFaultDomains(scPort.instanceId);
-        if (faultDomains.length > 0) {
-            // API returns list, but currently only one fault domain per port allowed
-            haZone = faultDomains[0].name;
-        }
-        port.setPortHAZone(haZone);
-
-        if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
-            setFCPortInfo(api, scPort, port);
-        } else if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
-            setISCSIPortInfo(api, scPort, port);
-        }
-
-        StoragePort.OperationalStatus status = StoragePort.OperationalStatus.OK;
-        if (!ScControllerPort.PORT_STATUS_UP.equals(scPort.status)) {
-            status = StoragePort.OperationalStatus.NOT_OK;
-        }
-        port.setOperationalStatus(status);
-        port.setPortName(port.getDeviceLabel());
-        port.setEndPointID(port.getPortNetworkId());
-        port.setAccessStatus(AccessStatus.READ_WRITE);
-
-        return port;
-    }
-
-    /**
-     * Sets FC specific info for a port.
-     *
-     * @param api The API connection.
-     * @param scPort The Storage Center port.
-     * @param port The storage port object to populate.
-     */
-    private void setFCPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
-        port.setDeviceLabel(scPort.wwn);
-        port.setTransportType(StoragePort.TransportType.FC);
-
-        ScControllerPortFibreChannelConfiguration portConfig = api.getControllerPortFCConfig(
-                scPort.instanceId);
-        port.setPortNetworkId(scPort.wwn);
-        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
-        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
-        port.setPortSubGroup(String.format("%s", portConfig.slot));
-        port.setTcpPortNumber(0L);
-    }
-
-    /**
-     * Sets iSCSI specific info for a port.
-     *
-     * @param api The API connection.
-     * @param scPort The Storage Center port.
-     * @param port The storage port object to populate.
-     */
-    private void setISCSIPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
-        port.setDeviceLabel(scPort.iscsiName);
-        port.setTransportType(StoragePort.TransportType.IP);
-
-        ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
-                scPort.instanceId);
-        port.setEndPointID(scPort.iscsiName);
-        port.setIpAddress(portConfig.ipAddress);
-        port.setPortNetworkId(scPort.iscsiName);
-        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
-        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
-        port.setPortSubGroup(String.format("%s", portConfig.slot));
-        port.setTcpPortNumber(portConfig.portNumber);
     }
 }

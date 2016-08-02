@@ -57,6 +57,7 @@ public class HP3PARConstants {
     public static final String TASK_TYPE_REMOVE_VOLUME_FROM_CONSISTENCY_GROUP = "remove-volume-from-consistency-group";
     public static final String TASK_TYPE_ADD_VOLUME_TO_CONSISTENCY_GROUP = "add-volume-to-consistency-group";
     
+    public static final String VLUN_DOES_NOT_EXIST = "VLUN does not exist";
 
     public static enum provisioningType
     {

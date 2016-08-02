@@ -354,12 +354,10 @@ public class HP3PARExpUnexpHelper {
                         driverRegistry);
                 // TBD: Efficiency; use query method
                 //VirtualLunsList vlunRes = hp3parApi.getVLunsOfVolume(volume.getWwn());
-                VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
+                VirtualLunsList vlunRes = hp3parApi.getVLunsByVolumeName(volume.getNativeId());
                 
                 for (Initiator init : initiators) {
 
-                	boolean bHostSeesEncountered = false;
-                	
                 	if(initiatorToHostMap.containsKey(init.getPort())){
                 		host = initiatorToHostMap.get(init.getPort());
                 	}
@@ -378,7 +376,7 @@ public class HP3PARExpUnexpHelper {
 	                        task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
 	                        continue;
 	                    }
-	                    else{
+	                    else{	
 	                    	initiatorToHostMap.put(init.getPort(), host);
 	                    }
                 	}
@@ -390,12 +388,12 @@ public class HP3PARExpUnexpHelper {
                         portId = portId.replace(":", "");                        
                         
                         for (VirtualLun vLun:vlunRes.getMembers()) {
-                        	if(bHostSeesEncountered && (vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()) ){
+                        	/*if(bHostSeesEncountered && (vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()) ){
                         		//If we are in this condition, it means already a host sees VLUN is encountered and
                         		//we have deleted all the vluns of the the Host Sees export in one REST call invocation
                         		//api/v1/vluns/vipr-volX,LunID,HostName. Hence we neglect this vlun entry
                         		continue;
-                        	}
+                        	}*/
                             if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0 || (!vLun.isActive())
                                     || portId.compareToIgnoreCase(vLun.getRemoteName()) != 0) {
                                 continue;
@@ -415,11 +413,21 @@ public class HP3PARExpUnexpHelper {
                             if(vLun.getType() == HP3PARConstants.vLunType.MATCHED_SET.getValue()){
                             	posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
                             }
-                                                        
-                            hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
-                        	if(vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()){
+                                
+                            try{
+                            	hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
+                            }
+                            catch(Exception e){
+                            	if(e.getMessage().contains(HP3PARConstants.VLUN_DOES_NOT_EXIST)){
+                            		_log.info("The VLUN does not exist on the array and hence we treat the delete as success");
+                            	}
+                            	else{
+                            		throw e;
+                            	}
+                            }
+                        	/*if(vLun.getType() == HP3PARConstants.vLunType.HOST.getValue()){
                             	bHostSeesEncountered = true;
-                            }   
+                            } */  
                         }
                     } else if (init.getInitiatorType().equals(Type.Cluster)) {
 

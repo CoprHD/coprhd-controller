@@ -5,6 +5,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +15,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.oe.gson.AffectedResource;
 import com.emc.sa.service.vipr.oe.gson.Node;
+import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
 import com.emc.sa.service.vipr.oe.gson.Task;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
@@ -255,6 +258,23 @@ public class OrchestrationUtils {
         }
     }
 
+    public static String[] parseObjectList(String objectList) {
+        // ansible result could be a single object, or multiple objects (comma separated)
+        // add brackets to form array and parse
+        List<String> results = new ArrayList<>();
+        try {
+            Object[] oList =  gson.fromJson("["+objectList+"]",Object[].class);
+            for(Object o : oList) {
+                if(o != null) {
+                    results.add(gson.toJson(o));
+                }
+            }
+            return results.toArray(new String[results.size()]);
+        } catch(JsonSyntaxException e) {
+            return new String[] {objectList};
+        }
+    }
+
     public static AffectedResource[] parseResourceList(String taskResult) {
         try {
             AffectedResource[] rArray = gson.fromJson(taskResult,AffectedResource[].class);
@@ -267,6 +287,16 @@ public class OrchestrationUtils {
         } catch(JsonSyntaxException e) {
             return null;
         }
+    }
+
+    public static OeStatusMessage parseOeStatusMessage(String ansibleResult) {
+        OeStatusMessage oeStatusMessage = null;
+        try {
+            oeStatusMessage = gson.fromJson(ansibleResult,OeStatusMessage.class);
+        } catch(JsonSyntaxException e) {
+            return null;
+        }
+        return oeStatusMessage.isValid() ? oeStatusMessage : null;
     }
 
     public static List<TaskResourceRep> locateTasksInVipr(ViprOperation viprOperation, ViPRCoreClient client) {

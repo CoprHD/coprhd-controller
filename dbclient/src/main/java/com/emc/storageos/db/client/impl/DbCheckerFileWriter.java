@@ -101,6 +101,7 @@ public class DbCheckerFileWriter {
             try {
                 if (writer != null) {
                     writer.close();
+                    writer = null;
                 }
             } catch (IOException e) {
                 log.error("Exception happens when closing file, e=", e);

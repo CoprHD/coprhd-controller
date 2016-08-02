@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +56,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
@@ -1226,7 +1230,7 @@ public class DBClient {
             }
             logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
                     idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
-        } catch (ConnectionException e) {
+        } catch (Exception e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");

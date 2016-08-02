@@ -54,6 +54,12 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
         setStorage(storage);
     }
 
+    public StorageGroupPolicyLimitsParam(String autoTierPolicyName, Integer hostIOLimitBandwidth, Integer hostIOLimitIOPs,
+            boolean compression, StorageSystem storage) {
+        this(autoTierPolicyName, hostIOLimitBandwidth, hostIOLimitIOPs, storage);
+        setCompression(compression);
+    }
+
     public StorageGroupPolicyLimitsParam(String autoTierPolicyName, String hostIOLimitBandwidth, String hostIOLimitIOPs,
             StorageSystem storage) {
         this(autoTierPolicyName, (Integer) null, (Integer) null, storage);

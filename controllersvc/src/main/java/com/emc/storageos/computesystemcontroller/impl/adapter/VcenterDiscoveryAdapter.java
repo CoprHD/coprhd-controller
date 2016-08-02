@@ -513,7 +513,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         : targetCluster != null && oldClusterURI.toString().equals(target.getCluster().toString()));
 
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
-                    changes.add(new HostStateChange(target, oldClusterURI, cluster.getId(), oldInitiators, addedInitiators));
+                    changes.add(new HostStateChange(target, oldClusterURI, targetCluster, oldInitiators, addedInitiators));
                 }
             }
             else {

@@ -1514,7 +1514,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      */
     @Name("compressionEnabled")
     public Boolean getCompressionEnabled() {
-        return compressionEnabled;
+        return this.compressionEnabled == null ? false : compressionEnabled;
     }
 
     /**

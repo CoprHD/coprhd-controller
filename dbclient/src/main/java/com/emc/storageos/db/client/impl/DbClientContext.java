@@ -40,6 +40,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
@@ -59,6 +60,7 @@ public class DbClientContext {
     private static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 14;
     private static final int DEFAULT_SVCLIST_POLL_INTERVAL_SEC = 5;
     private static final int DEFAULT_CONN_TIMEOUT = 1000 * 5;
+    private static final int DEFAULT_SOCKET_READ_TIMEOUT = 1000 * 15;
     private static final int DEFAULT_MAX_BLOCKED_THREADS = 500;
     private static final String DEFAULT_CN_POOL_NANE = "DbClientPool";
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
@@ -251,7 +253,9 @@ public class DbClientContext {
                 .withPoolingOptions(poolingOptions)
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .withLoadBalancingPolicy(new RoundRobinPolicy())
-                .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
+                .addContactPoints(contactPoints).withPort(getNativeTransportPort())
+                .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(DEFAULT_CONN_TIMEOUT).setReadTimeoutMillis(DEFAULT_SOCKET_READ_TIMEOUT))
+                .build();
         cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(DEFAULT_READ_CONSISTENCY_LEVEL);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         prepareStatementMap = new HashMap<String, PreparedStatement>();

@@ -27,8 +27,9 @@ public class MDSDialogTest {
     private static final String ipaddress = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
     private static final String username = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
     private static final String password = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
+    static String vsanId = "13";
     static Integer sshport = 22;
-    static String vsanId = "3178";
+    
 
     private static final Logger _log = LoggerFactory.getLogger(MDSDialogTest.class);
 
@@ -110,7 +111,7 @@ public class MDSDialogTest {
             String wwn = vsanToWwns.get(vsan);
             _log.info("Vsan {} WWN {}", vsan, wwn);
         }
-        boolean isSessionInProgress = dialog.isSessionInProgress(3172);
+        boolean isSessionInProgress = dialog.isSessionInProgress(3178);
         isSessionInProgress = dialog.isSessionInProgress(new Integer(vsanId));
         if (isSessionInProgress) {
             throw new Exception("Session in progress vsan: " + vsanId);
@@ -129,9 +130,10 @@ public class MDSDialogTest {
         // Print vsans, zonesets, zones, zone members
         for (String key : Vsan.vsanIdToVsan.keySet()) {
             Vsan v = Vsan.vsanIdToVsan.get(key);
+            System.out.println("VSAN: " + v.vsanName);
             v.print();
         }
-
+       
         testZoning(dialog, new Integer(vsanId));
 
     }

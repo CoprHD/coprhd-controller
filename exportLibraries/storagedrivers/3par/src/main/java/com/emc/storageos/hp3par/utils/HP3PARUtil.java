@@ -141,14 +141,12 @@ public class HP3PARUtil {
                 port.setPortSubGroup(currMember.getPortPos().getSlot().toString());
 
                 // set specific properties based on protocol
-                if (port.getTransportType().equals(TransportType.FC.toString()) ||
-                        port.getTransportType().equals(TransportType.Ethernet.toString())) {
-
+                if (port.getTransportType().equals(TransportType.FC.toString())) {
                     port.setPortNetworkId(SanUtils.formatWWN(currMember.getPortWWN()));
                     // rest of the values
                     port.setEndPointID(port.getPortNetworkId());
                     port.setTcpPortNumber((long)0);
-                } else {
+                } else if (port.getTransportType().equals(TransportType.IP.toString())){
                     port.setIpAddress(currMember.getIPAddr());
                     port.setPortNetworkId(currMember.getiSCSINmae());
                     port.setTcpPortNumber(currMember.getiSCSIPortInfo().getiSNSPort());

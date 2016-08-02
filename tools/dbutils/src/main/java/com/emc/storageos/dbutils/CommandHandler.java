@@ -660,15 +660,25 @@ public abstract class CommandHandler {
     }
 
     public static class CheckDBHandler extends CommandHandler {
+        boolean specificCF = false;
+
         public CheckDBHandler(String[] args) {
-            if (args.length != 1) {
+            if (args.length > 2) {
                 throw new IllegalArgumentException("Invalid command option. ");
+            }
+            if (args.length == 2) {
+                specificCF = true;
+                cfName = args[1];
             }
         }
 
         @Override
         public void process(DBClient _client) {
-            _client.checkDB();
+            if (specificCF) {
+                _client.checkDB(cfName);
+            } else {
+                _client.checkDB();
+            }
         }
     }
 
@@ -677,10 +687,14 @@ public abstract class CommandHandler {
         static final String KEY_ID = "id";
         static final String KEY_CFNAME = "cfName";
         static final String KEY_COMMENT_CHAR = DbCheckerFileWriter.COMMENT_CHAR;
+        boolean specificCF = false;
 
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {
                 rebuildIndexFileName = args[1];
+            } else if (args.length == 3 && args[1].equalsIgnoreCase(Main.CF_NAME)) {
+                specificCF = true;
+                cfName = args[2];               
             } else {
                 throw new IllegalArgumentException("Invalid command option. ");
             }
@@ -688,6 +702,16 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
+            if (specificCF) {
+                boolean allSuccess = _client.rebuildIndex(cfName);
+                if (allSuccess) {
+                    System.out.println(String.format("\nSuccessfully rebuilt all the indices for CF %s.", cfName));
+                } else {
+                    System.out.println("\nSome error happened when perform rebuilding, please check the log for more details.");
+                }
+                return;
+            }
+            
             if (rebuildIndexFileName == null) {
                 System.out.println("rebuild Index file is null");
                 return;
@@ -714,7 +738,7 @@ public abstract class CommandHandler {
                     }
                 }
             } catch (IOException e) {
-                System.err.println("Error occured when reading the cleanup file.");
+                System.err.println("Error occurred when reading the cleanup file.");
                 e.printStackTrace();
             }
             if (successCounter > 0) {

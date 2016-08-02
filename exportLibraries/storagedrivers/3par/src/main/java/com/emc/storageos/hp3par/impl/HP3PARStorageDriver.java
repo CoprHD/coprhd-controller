@@ -7,6 +7,7 @@ package com.emc.storageos.hp3par.impl;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -138,7 +139,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public RegistrationData getRegistrationData() {
 		_log.info("3PARDriver: getStorageObject enter");
-        RegistrationData registrationData = new RegistrationData(HP3PARConstants.DRIVER_NAME, "driversystem", null);
+        RegistrationData registrationData = new RegistrationData(HP3PARConstants.DRIVER_NAME, "hp3par", null);
         _log.info("3PARDriver: getStorageObject leave");
         return registrationData;
 	}
@@ -316,6 +317,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setDeviceLabel(currMember.getName());
 				pool.setDisplayName(currMember.getName());
 				storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
+                List<CapabilityInstance> capabilities = new ArrayList<>(); // SDK requires initialization
+                pool.setCapabilities(capabilities);
 
 				_log.info("3PARDriver: added storage pool {}, native id {}", pool.getPoolName(), pool.getNativeId());
 				storagePools.add(pool);

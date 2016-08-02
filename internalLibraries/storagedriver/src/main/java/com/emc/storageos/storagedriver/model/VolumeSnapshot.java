@@ -18,7 +18,6 @@ public class VolumeSnapshot extends StorageBlockObject {
     // Should be set to the same value for all consistency group  snapshots taken at the same time.
     @Deprecated
     private String snapSetId;
-   
 
     // Logical size of a snap on array in bytes. Type: Output.
     private Long provisionedCapacity = 0L;

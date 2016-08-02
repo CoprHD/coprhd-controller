@@ -526,7 +526,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 }
 
-                if (cluster != null || oldCluster != null) {
+                boolean oldClusterInUse = oldCluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, oldCluster.getId());
+                boolean newClusterInUse = cluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, cluster.getId());
+
+                if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
                     EventUtil.createActionableEvent(dbClient, host.getTenant(),
                             "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
                                     + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
@@ -537,20 +540,26 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             "hostClusterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     isVCenter });
+                } else {
+                    host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
+                    dbClient.updateObject(host);
+                    ComputeSystemHelper.updateInitiatorClusterName(dbClient, host.getCluster(), host.getId());
                 }
             }
 
-            for (Initiator oldInitiator : oldInitiatorObjects) {
-                EventUtil.createActionableEvent(dbClient, host.getTenant(),
-                        "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorPort(),
-                        "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
-                        oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
-            }
-            for (Initiator newInitiator : newInitiatorObjects) {
-                EventUtil.createActionableEvent(dbClient, host.getTenant(),
-                        "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorPort(),
-                        "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
-                        newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+                for (Initiator oldInitiator : oldInitiatorObjects) {
+                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                            "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorPort(),
+                            "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
+                            oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
+                }
+                for (Initiator newInitiator : newInitiatorObjects) {
+                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                            "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorPort(),
+                            "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
+                            newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+                }
             }
         }
 

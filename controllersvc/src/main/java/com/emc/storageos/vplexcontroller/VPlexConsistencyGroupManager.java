@@ -463,7 +463,6 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             // Lock the CG for the duration of update CG workflow.
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
-
             boolean acquiredLocks = workflowService.acquireWorkflowLocks(workflow, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
             if (!acquiredLocks) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),

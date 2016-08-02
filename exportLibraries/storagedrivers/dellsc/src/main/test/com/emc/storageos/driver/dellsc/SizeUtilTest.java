@@ -19,13 +19,15 @@ package com.emc.storageos.driver.dellsc;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.emc.storageos.driver.dellsc.scapi.SizeUtil;
+
 /**
  * Tests fir the SizeUtil class.
  */
 public class SizeUtilTest {
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#byteToGig(long)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToGig(long)}.
      */
     @Test
     public void testByteToGig() {
@@ -34,7 +36,7 @@ public class SizeUtilTest {
     }
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#byteToGig(long)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToGig(long)}.
      */
     @Test
     public void testByteToGigLarger() {
@@ -43,7 +45,7 @@ public class SizeUtilTest {
     }
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#sizeStrToBytes(java.lang.String)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#sizeStrToBytes(java.lang.String)}.
      */
     @Test
     public void testSizeStrToBytes() {
@@ -52,7 +54,7 @@ public class SizeUtilTest {
     }
 
     /**
-     * Test method for {@link com.emc.storageos.driver.dellsc.SizeUtil#sizeStrToBytes(java.lang.String)}.
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#sizeStrToBytes(java.lang.String)}.
      */
     @Test
     public void testSizeStrToBytesEngNotation() {

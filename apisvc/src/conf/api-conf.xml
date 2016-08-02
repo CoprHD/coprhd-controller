@@ -359,6 +359,28 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
+    <bean id="ingestFileStrategyFactory" class="com.emc.storageos.api.service.impl.resource.Fileingestorchestration.IngestFileStrategyFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="fileSnapIngestOrchestrator" ref="fileSnapIngestOrchestrator"/>
+        <property name="fileMirrorIngestOrchestrator" ref="fileMirrorIngestOrchestrator"/>
+        <property name="fileSystemIngestOrchestrator" ref="fileSystemIngestOrchestrator"/>
+    </bean>
+
+    <bean id ="fileSnapIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.Fileingestorchestration.FileSnapIngestOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="ingestFileStrategyFactory" ref="ingestFileStrategyFactory"/>
+    </bean>
+
+    <bean id ="fileMirrorIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.Fileingestorchestration.FileMirrorIngestOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="ingestFileStrategyFactory" ref="ingestFileStrategyFactory"/>
+    </bean>
+
+    <bean id ="fileSystemIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.Fileingestorchestration.FileSystemIngestOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="ingestFileStrategyFactory" ref="ingestFileStrategyFactory"/>
+    </bean>
+
     <bean id="rphelper" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper">
       <property name="dbClient" ref="dbclient"/>
     </bean>
@@ -702,6 +724,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.UnManagedFilesystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="ingestFileStrategyFactory" ref="ingestFileStrategyFactory"/>
                 </bean>
 
                 <bean class="com.emc.storageos.api.service.impl.resource.UnManagedExportMaskService">

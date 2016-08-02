@@ -25,6 +25,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.service.impl.resource.Fileingestorchestration.IngestFileStrategyFactory;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,6 +106,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     private static final Logger _logger = LoggerFactory
             .getLogger(UnManagedFilesystemService.class);
+    private IngestFileStrategyFactory ingestFileStrategyFactory;
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -1243,5 +1245,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
                 description,
                 descparams);
+    }
+
+    public void setIngestFileStrategyFactory(IngestFileStrategyFactory ingestFileStrategyFactory) {
+        this.ingestFileStrategyFactory = ingestFileStrategyFactory;
+    }
+
+    public IngestFileStrategyFactory getIngestFileStrategyFactory() {
+        return ingestFileStrategyFactory;
     }
 }

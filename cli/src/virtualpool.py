@@ -544,7 +544,8 @@ class VirtualPool(object):
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-                     fr_policy, fr_copies, mindatacenters, snapshotsched):
+                     fr_policy, fr_copies, mindatacenters, snapshotsched, 
+                     dedupcapable):
 
         '''
         This is the function will create the VPOOL with given name and type.
@@ -683,6 +684,9 @@ class VirtualPool(object):
             if(expandable):
                 parms['expandable'] = expandable
 
+            if(dedupcapable):
+                parms['dedup_capable'] = dedupcapable
+
             if(fastexpansion):
                 parms['fast_expansion'] = fastexpansion
 
@@ -785,7 +789,8 @@ class VirtualPool(object):
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched):
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched, 
+            dedupcapable):
 
         '''
         This is the function will update the VPOOL.
@@ -953,10 +958,12 @@ class VirtualPool(object):
             parms["min_datacenters"] = mindatacenters
             
 
-        if(expandable):
+        if(expandable or dedupcapable):
             vpool = self.vpool_show_uri(vpooltype, vpooluri)
-            if(vpool['num_resources'] == 0):
+            if(vpool['num_resources'] == 0 and expandable):
                 parms['expandable'] = expandable
+            elif(vpool['num_resources'] == 0 and dedupcapable):
+                parms['dedup_capable'] = dedupcapable
             else:
                 raise SOSError(SOSError.VALUE_ERR,
                                "Update virtual pool is not allowed if it has active resources")
@@ -1094,6 +1101,11 @@ def create_parser(subcommand_parsers, common_parser):
                                'Thick ',
                                metavar='<provisiontype>',
                                dest='provisiontype')
+
+    create_parser.add_argument('-dedupcapable', '-dd',
+                               help='deduplication capable',
+                               choices=VirtualPool.BOOL_TYPE_LIST,
+                               dest='dedupcapable')
     create_parser.add_argument('-maxsnapshots', '-msnp',
                                help='Maximum number of native snapshots',
                                metavar='<max_snapshots>',
@@ -1311,7 +1323,8 @@ def vpool_create(args):
                                args.fr_policy,
                                args.fr_copies,
                                args.mindatacenters,
-                               args.snapshotsched)
+                               args.snapshotsched,
+                               args.dedupcapable)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1427,6 +1440,12 @@ def update_parser(subcommand_parsers, common_parser):
                                'volume expansion should be supported',
                                dest='expandable',
                                metavar='<expandable>',
+                               choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-dedupcapable', '-dd',
+                               help='True/False Indicates if dedup capability ' +
+                               ' should be supported',
+                               dest='dedupcapable',
+                               metavar='<dedupcapable>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-autoCrossConnectExport','-acc',
                                help='AutocrossconnectExport Enable/Disable',
@@ -1565,7 +1584,7 @@ def vpool_update(args):
            args.quota_enable is not None or args.quota_capacity is not None or
            args.systemtype is not None or args.drivetype is not None or
            args.fr_policy is not None or args.fr_addcopies is not None or
-           args.fr_removecopies is not None):
+           args.fr_removecopies is not None or args.dedupcapable is not None):
             obj = VirtualPool(args.ip, args.port)
             obj.vpool_update(args.name,
                              args.label,
@@ -1604,7 +1623,8 @@ def vpool_update(args):
                              args.fr_policy, args.fr_addcopies,
                              args.fr_removecopies,
                              args.mindatacenters,
-                             args.snapshotsched)
+                             args.snapshotsched,
+                             args.dedupcapable)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide atleast one of parameters")

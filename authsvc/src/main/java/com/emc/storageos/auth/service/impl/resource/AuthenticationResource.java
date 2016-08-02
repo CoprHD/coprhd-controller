@@ -85,8 +85,6 @@ public class AuthenticationResource {
     private static final String SERVICE_URL_FORMAT_ERROR = "The provided service URI has invalid format";
 
     private static final String LOGIN_BANNER_KEY = "system_login_banner";
-    private static final String FORM_LOGIN_BANNER = "login_banner";
-    private static final String DEFAULT_BANNER_HTML = "<span class=\"glyphicon glyphicon-warning-sign \"></span><span style=\"font-weight: bold;\"> Authorized Users Only.</span><br>If you are not an authorized user, please leave this page.";
 
 
     private static String _cachedLoginPagePart1;
@@ -968,13 +966,8 @@ public class AuthenticationResource {
 
         sbFinal.append("\" ");
         String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
-        String defaultBannerProp = _passwordUtils.getDefaultProperties().getProperty(LOGIN_BANNER_KEY);
         String _cachedLoginPagePart2Tmp = "";
-        if (defaultBannerProp.equals(loginBannerString)) {
-            _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, DEFAULT_BANNER_HTML);
-        } else {
-            _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, loginBannerString).replaceAll("\\\\n", "<br>");
-        }
+        _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll("\\\\n", "<br>");
 
         sbFinal.append(error == null ? _cachedLoginPagePart2Tmp : _cachedLoginPagePart2Tmp.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
@@ -1018,12 +1011,7 @@ public class AuthenticationResource {
         String newPart2 = _cachedChangePasswordPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, passwordRuleInfo + "$1");
 
         String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
-        String defaultBannerProp = _passwordUtils.getDefaultProperties().getProperty(LOGIN_BANNER_KEY);
-        if (defaultBannerProp.equals(loginBannerString)) {
-            newPart2 = newPart2.replaceAll(FORM_LOGIN_BANNER, DEFAULT_BANNER_HTML);
-        } else {
-            newPart2 = newPart2.replaceAll(FORM_LOGIN_BANNER, loginBannerString).replaceAll("\\\\n", "<br>");
-        }
+        newPart2 = newPart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll("\\\\n", "<br>");
 
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();

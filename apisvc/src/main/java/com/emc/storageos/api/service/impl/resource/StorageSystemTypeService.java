@@ -7,7 +7,9 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,12 +20,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -60,6 +64,29 @@ public class StorageSystemTypeService extends TaskResourceService {
     private static final String UPLOAD_DEVICE_DRIVER = "/data/storagedrivers/";
     private static final String ALL_TYPE = "all";
 
+    
+    @POST
+    @Path("driver/install")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response installDriver(@Context HttpServletRequest request) throws Exception {
+        InputStream driver = request.getInputStream();
+        File f = new File("/data/drivers/sample_file");
+        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
+        int bytesRead = 0;
+        while (true) {
+            byte[] buffer = new byte[0x10000];
+            bytesRead = driver.read(buffer);
+            if (bytesRead == -1) {
+                break;
+            }
+            os.write(buffer, 0, bytesRead);
+        }
+        driver.close();
+        os.close();
+        return Response.ok().build();
+    }
     /**
      * Show Storage System Type detail for given URI
      *

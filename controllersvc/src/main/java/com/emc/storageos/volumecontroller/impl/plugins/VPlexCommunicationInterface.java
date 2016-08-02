@@ -1401,6 +1401,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     }
                 }
                 s_logger.info("target port map for cluster {} is {}", clusterName, targetPortToPwwnMap);
+                clusterPortMap.put(clusterName, targetPortToPwwnMap);
             }
 
             Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();

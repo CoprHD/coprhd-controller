@@ -61,6 +61,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -175,7 +176,10 @@ public class VolumeGroupService extends TaskResourceService {
             ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY.getName(),
             ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY.getName(),
             ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName()));
-            
+    
+    private static final Set<String> FULL_COPY_NOT_SUPPORTED_SYSTEM_TYPES = new HashSet<String>(Arrays.asList(
+            Type.xtremio.name(),
+            Type.unity.name()));
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";
     private static final String NAME_FIELD = "name";
@@ -676,9 +680,9 @@ public class VolumeGroupService extends TaskResourceService {
             
             checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
             
-            // check for xtremio or Unity volumes
+            // check for full copy not supported volumes
             for (String groupName : arrayGroupNames) {
-                checkForXtremioOrUnity(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                checkForFullCopyNotSupportedVolumes(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName)));
             }
 
@@ -709,8 +713,8 @@ public class VolumeGroupService extends TaskResourceService {
 
             checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
 
-            // make sure there are no xtremio volumes in the application
-            checkForXtremioOrUnity(volumes);
+            // make sure there are no xtremio/unity volumes in the application
+            checkForFullCopyNotSupportedVolumes(volumes);
 
             auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
                     param.getName(), param.getCount());
@@ -832,11 +836,11 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * checks the list of volumes to see if any is on xtremio storage; handles vplex; throws if xtremio exists
+     * checks the list of volumes to see if any is on FULL_COPY_NOT_SUPPORTED_SYSTEM_TYPES; handles vplex;
      * 
      * @param volumes
      */
-    private void checkForXtremioOrUnity(List<Volume> volumes) {
+    private void checkForFullCopyNotSupportedVolumes(List<Volume> volumes) {
         // getVolumeByAssociatedVolumesConstraint
         Set<URI> virtualVolAlreadyChecked = new HashSet<URI>();
         for (Volume volume : volumes) {
@@ -859,13 +863,15 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
             }
+
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, checkVolume.getStorageController());
+            if (storage != null) {
+                if (FULL_COPY_NOT_SUPPORTED_SYSTEM_TYPES.contains(storage.getSystemType())) {
+                    throw APIException.badRequests.replicaOperationNotAllowedApplication(ReplicaTypeEnum.FULL_COPY.toString(), 
+                            storage.getSystemType());
+                }
+            }
             
-            if (ControllerUtils.isXtremIOVolume(checkVolume, _dbClient)) {
-                throw APIException.badRequests.replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
-            }
-            if (ControllerUtils.isUnityVolume(checkVolume, _dbClient)) {
-                throw APIException.badRequests.replicaOperationNotAllowedApplicationHasUnity(ReplicaTypeEnum.FULL_COPY.toString());
-            }
         }
     }
 

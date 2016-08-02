@@ -3989,7 +3989,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     for (String backingVolId : backingVolumes) {
                         URI backingVolUri = URI.create(backingVolId);
                         Volume backingVol = _dbClient.queryObject(Volume.class, backingVolUri);
-                        if ( backingVol != null &&
+                        if (backingVol != null &&
                                 !BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backingVol, _dbClient, false)) {
                             throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(removeVol.getLabel(),
                                 "the Unity subgroup has snapshot");

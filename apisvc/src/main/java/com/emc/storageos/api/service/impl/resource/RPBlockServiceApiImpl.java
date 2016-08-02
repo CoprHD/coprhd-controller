@@ -3717,7 +3717,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         if (removeVolumes != null && !removeVolumes.isEmpty()) {
-            removeVolumesURI = validateRemoveVolumesForUpdateVolumeGroup(removeVolumes);
+            removeVolumesURI = getValidVolumesToRemoveFromCG(removeVolumes);
             if (firstVolume == null) {
                 firstVolume = removeVolumes.get(0);
             }
@@ -3799,12 +3799,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
     
     /**
-     * Unity array does not support remove volumes from the CG, which has snapshots. Validate the remove volumes list 
+     * Get valid volumes to remove for volume group updating
+     * Unity array does not support remove volumes from the CG, which has snapshots.
      * 
      * @param removeVolumes The volumes to be removed from the application
      * @return the validated to-beremoved volumes URI list
      */
-    List<URI> validateRemoveVolumesForUpdateVolumeGroup(List<Volume> removeVolumes) {
+    List<URI> getValidVolumesToRemoveFromCG(List<Volume> removeVolumes) {
         List<URI> result = new ArrayList<URI>();
         for (Volume vol : removeVolumes) {
             boolean vplex = RPHelper.isVPlexVolume(vol);
@@ -3816,8 +3817,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backendVol, _dbClient, false)) {
                         throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(vol.getLabel(),
                                 "the Unity subgroup has snapshot.");
+                    }
                 }
-            } else if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, vol, _dbClient, false)) {
+            } else {
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, vol, _dbClient, false)) {
                     throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(vol.getLabel(),
                             "the Unity subgroup has snapshot.");
                 }

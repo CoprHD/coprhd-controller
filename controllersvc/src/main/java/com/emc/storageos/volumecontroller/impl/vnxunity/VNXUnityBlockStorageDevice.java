@@ -877,7 +877,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
                 apiClient.removeLunsFromConsistencyGroup(cgId, luns);
             } else {
-                logger.info(String.format("The block object %s is not in a CG", blockObjects.get(0).toString()));
+                logger.warn(String.format("The block object %s is not in a CG", blockObjects.get(0).toString()));
             }
             taskCompleter.ready(dbClient);
             logger.info("Remove volumes from the consistency group successfully");

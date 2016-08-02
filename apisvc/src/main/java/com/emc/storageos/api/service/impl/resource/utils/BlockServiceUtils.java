@@ -268,6 +268,8 @@ public class BlockServiceUtils {
                 }
             } else if (storage.deviceIsType(Type.xtremio)) {
                 return true;
+            } else if (storage.deviceIsType(Type.unity) && volume.checkForRp()) {
+                return true;
             }
 
             if (storage.deviceIsType(Type.vplex)) {
@@ -775,11 +777,8 @@ public class BlockServiceUtils {
                         for (Volume vol : volumesInRG) {
                             if (vol.getStorageController().equals(volume.getStorageController())) {
                                 // Check if the volume in RG has snapshot
-                                URIQueryResultList snapshotURIs = new URIQueryResultList();
-                                dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                                        vol.getId()), snapshotURIs);
-                                Iterator<URI> it = snapshotURIs.iterator();
-                                if (it.hasNext()) {
+                                List<BlockSnapshot> snaps = getVolumeNativeSnapshots(vol.getId(), dbClient);
+                                if (!snaps.isEmpty()) {
                                     return false;
                                 }
                             }
@@ -787,16 +786,39 @@ public class BlockServiceUtils {
                     }
                 } else if (!isAdd) {
                     // for remove, Check if the volume has snapshot
-                    URIQueryResultList snapshotURIs = new URIQueryResultList();
-                    dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                            volume.getId()), snapshotURIs);
-                    Iterator<URI> it = snapshotURIs.iterator();
-                    if (it.hasNext()) {
+                    List<BlockSnapshot> snaps = getVolumeNativeSnapshots(volume.getId(), dbClient);
+                    if (!snaps.isEmpty()) {
                         return false;
                     }
                 }
             } 
         }
         return true;
-    } 
+   }
+   
+   /**
+    * Get volume's block snapshots, whose technologyType attributes is NATIVE
+    * 
+    * @param volumeUri The volume URI
+    * @param dbClient
+    * @return The list of block snapshot for the given volume.
+    */
+   public static List<BlockSnapshot> getVolumeNativeSnapshots(URI volumeUri, DbClient dbClient) {
+       List<BlockSnapshot> result = new ArrayList<BlockSnapshot>();
+       URIQueryResultList snapshotURIs = new URIQueryResultList();
+       dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+               volumeUri), snapshotURIs);
+       Iterator<URI> it = snapshotURIs.iterator();
+       while (it.hasNext()) {
+           URI snapUri = it.next();
+           BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapUri);
+           if (snapshot != null && !snapshot.getInactive() &&
+                   BlockSnapshot.TechnologyType.NATIVE.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+               result.add(snapshot);               
+           }
+          
+       }
+       return result;
+   }
+   
 }

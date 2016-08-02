@@ -1489,18 +1489,6 @@ public class ControllerUtils {
     }
     
     /**
-     * Check whether the given volume is Unity volume
-     * 
-     * @param volume
-     * @param dbClient
-     * @return
-     */
-    public static boolean isUnityVolume(Volume volume, DbClient dbClient) {
-        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        return storage != null && storage.deviceIsType(Type.unity);
-    }
-
-    /**
      * Check whether the given volume is not in a real replication group
      * 
      * @param volume

@@ -117,7 +117,7 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
 
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
             boolean inApplication = false;
-            if (volume.getVolumeGroupIds()!= null && !volume.getVolumeGroupIds().isEmpty()) {
+            if (volume.getApplication(_dbClient) != null) {
                 inApplication = true;
             } else if (volume.checkInternalFlags(Flag.INTERNAL_OBJECT)){
                 // Check if it is VPLEX backend volume and if the vplex volume is in an application
@@ -126,7 +126,7 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
                                 getVolumesByAssociatedId(volume.getId().toString()));
 
                 for (Volume vplexVolume : vplexVolumes) {
-                    if (vplexVolume.getVolumeGroupIds()!= null && !vplexVolume.getVolumeGroupIds().isEmpty()) {
+                    if (vplexVolume.getApplication(_dbClient) != null) {
                         inApplication = true;
                         break;
                     }

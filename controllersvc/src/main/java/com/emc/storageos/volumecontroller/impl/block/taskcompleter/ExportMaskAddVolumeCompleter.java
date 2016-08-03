@@ -95,11 +95,13 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
         if (context != null) {
             List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
 
-            for (ExportOperationContext.ExportOperationContextOperation operation : operations) {
-                // VMAX check
-                if (OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equalsIgnoreCase(operation.getOperation())) {
-                    // TODO Check arguments.
-                    return true;
+            if (operations != null) {
+                for (ExportOperationContext.ExportOperationContextOperation operation : operations) {
+                    // VMAX check
+                    if (OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equalsIgnoreCase(operation.getOperation())) {
+                        // TODO Check arguments.
+                        return true;
+                    }
                 }
             }
         }

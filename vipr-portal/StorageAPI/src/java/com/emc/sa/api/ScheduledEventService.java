@@ -207,15 +207,17 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
         }
 
+        Calendar currTime, endTime;
         try {
             DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
             Date date = formatter.parse(scheduleInfo.getStartDate());
-
-            Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-            Calendar endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
+            currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
             if (endTime != null && currTime.after(endTime)) {
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
             }
+        } catch (APIException e) {
+            throw e;
         } catch (Exception e) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
         }
@@ -333,6 +335,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         client.save(newObject);
 
+        log.info("Created a new scheduledEvent {}:{}.", newObject.getId(),param.getScheduleInfo().toString());
         return newObject;
     }
 
@@ -349,6 +352,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(scheduledEvent.getTenant()), user);
+
+        try {
+            log.info("Fetched a scheduledEvent {}:{}", scheduledEvent.getId(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getScheduleInfo().getBytes(UTF_8))).toString());
+        } catch (Exception e) {
+            log.error("Failed to parse scheduledEvent.");
+        }
 
         return map(scheduledEvent);
     }
@@ -417,6 +427,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
         client.save(scheduledEvent);
 
+        log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());
         return scheduledEvent;
     }
 
@@ -449,6 +460,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         scheduledEvent.setEventStatus(ScheduledEventStatus.CANCELLED);
         client.save(scheduledEvent);
+
+        try {
+            log.info("Cancelled a scheduledEvent {}:{}", scheduledEvent.getId(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getScheduleInfo().getBytes(UTF_8))).toString());
+        } catch (Exception e) {
+            log.error("Failed to parse scheduledEvent.");
+        }
         return Response.ok().build();
     }
 
@@ -475,6 +493,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             log.info("deleting order: {}", uri);
             Order order = _dbClient.queryObject(Order.class, uri);
             client.delete(order);
+        }
+
+        try {
+            log.info("Deleting a scheduledEvent {}:{}", scheduledEvent.getId(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getScheduleInfo().getBytes(UTF_8))).toString());
+        } catch (Exception e) {
+            log.error("Failed to parse scheduledEvent.");
         }
 
         // deactivate the scheduled event

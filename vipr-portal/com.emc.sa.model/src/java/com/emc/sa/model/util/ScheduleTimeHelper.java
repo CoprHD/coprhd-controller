@@ -29,7 +29,7 @@ public class ScheduleTimeHelper {
      * @return
      * @throws Exception
      */
-    public static Calendar getScheduledStartTime(ScheduleInfo scheduleInfo) throws Exception{
+    public static Calendar getScheduledStartTime(ScheduleInfo scheduleInfo) throws Exception {
         DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
         Date date = formatter.parse(scheduleInfo.getStartDate());
 

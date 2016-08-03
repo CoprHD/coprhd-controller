@@ -1589,18 +1589,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     .getJournalVpool());
 
             // If the current Source Journal varray/vpool are not set, default them to known values.
-            if (currentSourceJournalVarrayId.equals("null")) {
+            if (currentSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
                 currentSourceJournalVarrayId = volume.getVirtualArray().toString();
             }
-            if (currentSourceJournalVpoolId.equals("null")) {
+            if (currentSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
                 currentSourceJournalVpoolId = currentVpool.getId().toString();
             }
 
             // If the new Source Journal varray/vpool is not set, default it to the known value.        
-            if (newSourceJournalVarrayId.equals("null")) {
+            if (newSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
                 newSourceJournalVarrayId = volume.getVirtualArray().toString();
             }
-            if (newSourceJournalVpoolId.equals("null")) {
+            if (newSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
                 newSourceJournalVpoolId = newVpool.getId().toString();
             }
             
@@ -1639,18 +1639,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                         .getStandbyJournalVpool());
     
                 // If the current Standby Journal varray/vpool are not set, default them to known values.
-                if (currentStandbyJournalVarrayId.equals("null")) {
+                if (currentStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
                     currentStandbyJournalVarrayId = getHaVarrayURI(currentVpool).toString();
                 }
-                if (currentStandbyJournalVpoolId.equals("null")) {
+                if (currentStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
                     currentStandbyJournalVpoolId = currentVpool.getId().toString();
                 }
     
                 // If the new Standby Journal varray/vpool is not set, default it to the known value.
-                if (newStandbyJournalVarrayId.equals("null")) {
+                if (newStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
                     newStandbyJournalVarrayId = getHaVarrayURI(newVpool).toString();
                 }
-                if (newStandbyJournalVpoolId.equals("null")) {
+                if (newStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
                     newStandbyJournalVpoolId = newVpool.getId().toString();
                 }
                 
@@ -1729,18 +1729,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                             .getJournalVpool());
 
                     // If the current Target Journal varray/vpool are not set, default them to known values.
-                    if (currentTargetJournalVarrayId.equals("null")) {
+                    if (currentTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
                         currentTargetJournalVarrayId = targetVarrayId;
                     }
-                    if (currentTargetJournalVpoolId.equals("null")) {
+                    if (currentTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
                         currentTargetJournalVpoolId = currentTargetVpool.getId().toString();
                     }
 
                     // If the current Target Journal varray/vpool is not set, default it to the known value.
-                    if (newTargetJournalVarrayId.equals("null")) {
+                    if (newTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
                         newTargetJournalVarrayId = targetVarrayId;
                     }
-                    if (newTargetJournalVpoolId.equals("null")) {
+                    if (newTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
                         newTargetJournalVpoolId = newTargetVpool.getId().toString();
                     }
                     

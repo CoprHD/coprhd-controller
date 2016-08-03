@@ -17,6 +17,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
@@ -355,5 +356,15 @@ public class ExportWorkflowEntryPoints implements Controller {
             WorkflowStepCompleter.stepFailed(token, exception);
             throw exception;
         }
+    }
+
+    /**
+     * No-op workflow step to allow rollback to continue.
+     *
+     * @param stepId    The workflow step ID.
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 }

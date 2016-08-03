@@ -62,14 +62,20 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCStorageDriver.class);
 
-    private static final String DRIVER_NAME = "dellscsystem";
-    private static final String DRIVER_VERSION = "1.0.0";
+    static final String DRIVER_NAME = "dellscsystem";
+    static final String DRIVER_VERSION = "1.0.0";
 
-    private DellSCPersistence persistence = new DellSCPersistence(DRIVER_NAME, this.driverRegistry);
+    private DellSCPersistence persistence = new DellSCPersistence(DRIVER_NAME);
     private DellSCProvisioning provisioningHelper = new DellSCProvisioning(persistence);
     private DellSCSnapshots snapshotHelper = new DellSCSnapshots(persistence);
     private DellSCConsistencyGroups cgHelper = new DellSCConsistencyGroups(persistence);
     private DellSCDiscovery discoveryHelper = new DellSCDiscovery(DRIVER_NAME, DRIVER_VERSION, persistence);
+
+    @Override
+    public synchronized void setDriverRegistry(com.emc.storageos.storagedriver.Registry driverRegistry) {
+        super.setDriverRegistry(driverRegistry);
+        persistence.setDriverRegistry(driverRegistry);
+    }
 
     /**
      * Get driver registration data.

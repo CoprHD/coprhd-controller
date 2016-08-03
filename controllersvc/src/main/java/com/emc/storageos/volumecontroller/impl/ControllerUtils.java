@@ -1487,7 +1487,7 @@ public class ControllerUtils {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return storage != null && storage.deviceIsType(Type.xtremio);
     }
-
+    
     /**
      * Check whether the given volume is not in a real replication group
      * 

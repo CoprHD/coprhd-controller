@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.vnxunity;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+
 import java.net.URI;
 import java.util.List;
 
@@ -11,9 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -111,13 +116,34 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
-            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
-            String tenantName = tenant.getLabel();
-            String snapLabelToUse =
-                    _nameGenerator.generate(tenantName, snapshotObj.getSnapsetLabel(),
-                            snapshot.toString(), '-', SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
+            boolean inApplication = false;
+            if (volume.getApplication(_dbClient) != null) {
+                inApplication = true;
+            } else if (volume.checkInternalFlags(Flag.INTERNAL_OBJECT)){
+                // Check if it is VPLEX backend volume and if the vplex volume is in an application
+                final List<Volume> vplexVolumes = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                                getVolumesByAssociatedId(volume.getId().toString()));
+
+                for (Volume vplexVolume : vplexVolumes) {
+                    if (vplexVolume.getApplication(_dbClient) != null) {
+                        inApplication = true;
+                        break;
+                    }
+                }
+            }
             String groupName = volume.getReplicationGroupInstance();
+            String snapLabelToUse = null;
             if (NullColumnValueGetter.isNotNullValue(groupName)) {
+                String snapsetLabel = snapshotObj.getSnapsetLabel();
+                if (inApplication) {
+                    // When in application, it could have more than one CGs in the same application, when creating
+                    // snapshot on the application, the snapset label would be the same for all volumes in the application.
+                    // if we use the same name to create snapshot for multiple CGs, it would fail. 
+                    snapLabelToUse = String.format("%s-%s", snapsetLabel, groupName);
+                } else {
+                    snapLabelToUse =  snapsetLabel;
+                }
                 VNXeApiClient apiClient = getVnxeClient(storage);
                 String cgId = apiClient.getConsistencyGroupIdByName(groupName);
                 VNXeCommandJob job = apiClient.createSnap(cgId, snapLabelToUse, readOnly);

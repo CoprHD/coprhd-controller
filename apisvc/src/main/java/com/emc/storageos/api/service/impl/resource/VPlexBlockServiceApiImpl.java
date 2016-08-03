@@ -530,6 +530,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vPoolCapabilities, volume.getCapacity());
             
             // Set the compute resource in the descriptor if the volume to be created will be exported
+
             // to a host/cluster after it has been created so that the compute resource name can be 
             // included in the volume name if the custom volume naming is so configured. Do not set the
             // compute resource if the descriptor is for an SRDF target as the target is not exported

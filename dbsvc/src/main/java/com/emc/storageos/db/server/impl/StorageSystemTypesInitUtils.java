@@ -136,6 +136,7 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(ECS, "4443");
         SSL_PORT_MAP.put(VNXe, "443");
         SSL_PORT_MAP.put(VNXFILE_SMIS, "5989");
+        SSL_PORT_MAP.put(UNITY, "443");
 
         NON_SSL_PORT_MAP = new HashMap<String, String>();
         NON_SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -383,7 +384,7 @@ public class StorageSystemTypesInitUtils {
         unity.setStorageTypeDispName(DISPLAY_NAME_MAP.get(UNITY));
         unity.setMetaType(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
         unity.setIsSmiProvider(false);
-        unity.setIsDefaultSsl(false);
+        unity.setIsDefaultSsl(true);
         if (SSL_PORT_MAP.get(UNITY) != null) {
             unity.setSslPort(SSL_PORT_MAP.get(UNITY));
         }

@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.DELETION_TYPE;
+import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.util.List;
@@ -18,6 +19,9 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 public class RemoveUnexportedBlockStorageService extends ViPRService {
     @Param(VOLUMES)
     protected List<String> volumeIds;
+    
+    @Param(PROJECT)
+    protected String project;
 
     @Param(DELETION_TYPE)
     protected VolumeDeleteTypeEnum deletionType;
@@ -25,7 +29,7 @@ public class RemoveUnexportedBlockStorageService extends ViPRService {
     @Override
     public void precheck() {
         BlockStorageUtils.getBlockResources(uris(volumeIds));
-        BlockStorageUtils.verifyVolumeDependencies(uris(volumeIds));
+        BlockStorageUtils.verifyVolumeDependencies(uris(volumeIds), uri(project));
     }
 
     @Override

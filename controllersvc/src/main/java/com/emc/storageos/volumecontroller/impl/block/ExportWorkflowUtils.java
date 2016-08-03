@@ -315,14 +315,10 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportAddInitiatorsMethod(storage, export,
                         initiatorURIs);
 
-        Workflow.Method rollback =
-                ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(storage, export,
-                        initiatorURIs);
-
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding initiators from export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollback, waitFor);
+                storageSystem, method, rollbackMethodNullMethod(), waitFor);
     }
 
     /**
@@ -510,5 +506,15 @@ public class ExportWorkflowUtils {
                 removedBlockObjects != null && removedBlockObjects.isEmpty() &&
                 addedInitiators != null && addedInitiators.isEmpty() &&
                 removedInitiators != null && removedInitiators.isEmpty());
+    }
+
+    /**
+     * Creates a rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain.
+     *
+     * @return A workflow method
+     */
+    private Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method("rollbackMethodNull");
     }
 }

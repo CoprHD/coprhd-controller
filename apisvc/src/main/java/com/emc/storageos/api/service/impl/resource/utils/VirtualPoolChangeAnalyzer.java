@@ -1596,57 +1596,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 }
             }
 
-            // Check the Targets for potential candidates for migration
-            for (Map.Entry<String, String> entry : currentVpool.getProtectionVarraySettings().entrySet()) {
-                String targetVarrayId = entry.getKey();
-                // Make sure we find the same varray in the new vpool, otherwise we can immediately
-                // exclude the migration operation.
-                if (newVpool.getProtectionVarraySettings().containsKey(targetVarrayId)) {
-                    String currentProtectionVarraySettingsId = entry.getValue();
-                    String newProtectionVarraySettingsId = newVpool.getProtectionVarraySettings().get(targetVarrayId);
-
-                    // Get the current protection varray settings
-                    VpoolProtectionVarraySettings currentProtectionVarraySetting = dbClient.queryObject(VpoolProtectionVarraySettings.class,
-                            URI.create(currentProtectionVarraySettingsId));
-
-                    // Get the new protection varray settings
-                    VpoolProtectionVarraySettings newProtectionVarraySetting = dbClient.queryObject(VpoolProtectionVarraySettings.class,
-                            URI.create(newProtectionVarraySettingsId));
-
-                    // Current Target vpool
-                    String currentTargetVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
-                            .getVirtualPool());
-                    VirtualPool currentTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetVpoolId));
-
-                    // New Target vpool
-                    String newTargetVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
-                    VirtualPool newTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetVpoolId));
-
-                    // Only allow migrations when both vpools specify HA.
-                    if (!currentTargetVpoolId.equals(newTargetVpoolId)) {                                            
-                        if (VirtualPool.vPoolSpecifiesHighAvailability(currentTargetVpool)
-                                    && VirtualPool.vPoolSpecifiesHighAvailability(newTargetVpool)) {
-                            // Add Target for potential migration                    
-                            potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.TARGET, 
-                                    URI.create(targetVarrayId), currentTargetVpool, newTargetVpool));                            
-                        } else {
-                            // If the Target vpools are different and both of the Target vpools do not specify HA, 
-                            // then exclude this new vpool for RP+VPLEX migration.
-                            notSuppReasonBuff.append("RP Target virtual pool does not specify High Availability.");
-                            return false;
-                        }                        
-                    }
-                    
-                    // Target Journal
-                    invalidMigration = determineRPTargetJournalMigration(volume, currentTargetVpool, newTargetVpool, potentialMigrations, 
-                            notSuppReasonBuff, dbClient, currentProtectionVarraySetting, newProtectionVarraySetting, targetVarrayId);
-                    if (invalidMigration) {
-                        return false;
-                    }
-                } else {
-                    notSuppReasonBuff.append("Target virtual arrays do not match.");
-                    return false;
-                }
+            // Targets
+            invalidMigration = determineRPTargetMigration(volume, currentVpool, newVpool, potentialMigrations, 
+                    notSuppReasonBuff, dbClient);
+            if (invalidMigration) {
+                return false;
             }
 
             // Iterate over all the potential for migrations (SOURCE, TARGET, METADATA).
@@ -1871,6 +1825,78 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 notSuppReasonBuff.append("Not valid for migration due to changes in RP Standby Journal virtual pool / virtual array.");
                 invalidMigration = true;
             }                        
+        }            
+        
+        return invalidMigration;
+    }
+    
+    /**
+     * Determines if there are any Target migrations and adds them to the 
+     * potentialMigrations container.
+     * 
+     * @param volume The change vpool volume
+     * @param currentVpool The change vpool volume's current vpool
+     * @param newVpool The target vpool to move to
+     * @param potentialMigrations Container for migrations
+     * @param notSuppReasonBuff Buffer for not supported reasons
+     * @param dbClient DbClient instance
+     * @return true if invalid migration, false otherwise
+     */
+    private static boolean determineRPTargetMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
+            List<RPVPlexMigration> potentialMigrations, StringBuffer notSuppReasonBuff, DbClient dbClient) {
+        boolean invalidMigration = false;
+        
+        // Check the Targets for potential candidates for migration
+        for (Map.Entry<String, String> entry : currentVpool.getProtectionVarraySettings().entrySet()) {
+            String targetVarrayId = entry.getKey();
+            // Make sure we find the same varray in the new vpool, otherwise we can immediately
+            // exclude the migration operation.
+            if (newVpool.getProtectionVarraySettings().containsKey(targetVarrayId)) {
+                String currentProtectionVarraySettingsId = entry.getValue();
+                String newProtectionVarraySettingsId = newVpool.getProtectionVarraySettings().get(targetVarrayId);
+
+                // Get the current protection varray settings
+                VpoolProtectionVarraySettings currentProtectionVarraySetting = dbClient.queryObject(VpoolProtectionVarraySettings.class,
+                        URI.create(currentProtectionVarraySettingsId));
+
+                // Get the new protection varray settings
+                VpoolProtectionVarraySettings newProtectionVarraySetting = dbClient.queryObject(VpoolProtectionVarraySettings.class,
+                        URI.create(newProtectionVarraySettingsId));
+
+                // Current Target vpool
+                String currentTargetVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+                        .getVirtualPool());
+                VirtualPool currentTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetVpoolId));
+
+                // New Target vpool
+                String newTargetVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
+                VirtualPool newTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetVpoolId));
+
+                // Only allow migrations when both vpools specify HA.
+                if (!currentTargetVpoolId.equals(newTargetVpoolId)) {                                            
+                    if (VirtualPool.vPoolSpecifiesHighAvailability(currentTargetVpool)
+                                && VirtualPool.vPoolSpecifiesHighAvailability(newTargetVpool)) {
+                        // Add Target for potential migration                    
+                        potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.TARGET, 
+                                URI.create(targetVarrayId), currentTargetVpool, newTargetVpool));                            
+                    } else {
+                        // If the Target vpools are different and both of the Target vpools do not specify HA, 
+                        // then exclude this new vpool for RP+VPLEX migration.
+                        notSuppReasonBuff.append("RP Target virtual pool does not specify High Availability.");
+                        return false;
+                    }                        
+                }
+                
+                // Target Journal
+                invalidMigration = determineRPTargetJournalMigration(volume, currentTargetVpool, newTargetVpool, potentialMigrations, 
+                        notSuppReasonBuff, dbClient, currentProtectionVarraySetting, newProtectionVarraySetting, targetVarrayId);
+                if (invalidMigration) {
+                    return invalidMigration;
+                }
+            } else {
+                notSuppReasonBuff.append("Target virtual arrays do not match.");
+                invalidMigration = true;
+            }
         }            
         
         return invalidMigration;

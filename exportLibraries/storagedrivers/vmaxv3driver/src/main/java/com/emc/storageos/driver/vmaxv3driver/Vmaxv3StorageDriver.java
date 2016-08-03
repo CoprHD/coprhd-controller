@@ -70,8 +70,8 @@ public class Vmaxv3StorageDriver extends DefaultStorageDriver {
         if ((Boolean) result.get("success")) {
             task.setStatus(DriverTask.TaskStatus.READY);
         } else {
-            task.setStatus(
-                    (Boolean) result.get("partially_failed") ? DriverTask.TaskStatus.PARTIALLY_FAILED : DriverTask.TaskStatus.FAILED);
+            task.setStatus((Boolean) result.get("partially_failed") ?
+                DriverTask.TaskStatus.PARTIALLY_FAILED : DriverTask.TaskStatus.FAILED);
             String message = String.format("Vmaxv3StorageDriver: Unable to perform operation '%s', error: %s.\n",
                     operationName, result.get("message"));
             task.setMessage(message);

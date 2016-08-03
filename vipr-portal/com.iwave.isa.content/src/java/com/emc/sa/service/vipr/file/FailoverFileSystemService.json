@@ -15,6 +15,13 @@
     
     failoverTargetFile:{
       type:"assetType.vipr.failoverFileTarget"
+    },
+    
+    replicateConfFailover:{
+      type: "boolean",
+      initialValue: "true",
+      required: "false",
+      lockable: true
     }
   }
 }

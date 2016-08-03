@@ -101,6 +101,9 @@ public class EventService extends TaggedResource {
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
         _dbClient.markForDeletion(event);
+        _log.info(
+                "Deleting Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource());
         return Response.ok().build();
     }
 
@@ -114,6 +117,10 @@ public class EventService extends TaggedResource {
         if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
             throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
         }
+
+        _log.info(
+                "Approving Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource());
 
         return executeEventMethod(event, true);
     }
@@ -348,6 +355,10 @@ public class EventService extends TaggedResource {
         if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
             throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
         }
+
+        _log.info(
+                "Declining Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource());
 
         return executeEventMethod(event, false);
     }

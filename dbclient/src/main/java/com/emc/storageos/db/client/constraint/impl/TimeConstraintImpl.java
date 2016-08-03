@@ -137,7 +137,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
         Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
         statement.setFetchSize(DEFAULT_PAGE_SIZE);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

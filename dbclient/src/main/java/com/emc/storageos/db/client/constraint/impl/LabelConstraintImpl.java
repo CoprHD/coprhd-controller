@@ -71,7 +71,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
                 _label.getLabel());
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

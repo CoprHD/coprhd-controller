@@ -59,7 +59,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
                 _prefix.toLowerCase());
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

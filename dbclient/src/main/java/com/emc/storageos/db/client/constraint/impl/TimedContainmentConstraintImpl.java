@@ -59,7 +59,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
                 entryType.getSimpleName());
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

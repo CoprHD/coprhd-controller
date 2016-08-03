@@ -63,7 +63,7 @@ public class AggregateDbIndex extends DbIndex {
             if (colField != null && obj.isInitialized(field)) {
                 Object groupValue = ColumnField.getFieldValue(colField, obj);
                 if (groupValue != null) {
-                    String indexRowKey = className;
+                    String indexRowKey = getRowKey(className, groupValue);
                     mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value);
                 }
             }

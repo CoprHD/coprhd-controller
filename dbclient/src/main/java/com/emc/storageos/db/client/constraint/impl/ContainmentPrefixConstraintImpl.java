@@ -53,7 +53,7 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
                 target, target + Character.MAX_VALUE);
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

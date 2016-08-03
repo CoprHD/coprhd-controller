@@ -77,11 +77,11 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
         String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
-        Statement statement =  preparedStatement.bind(rowKey,
+        Statement statement = preparedStatement.bind(rowKey,
                 fieldName);
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

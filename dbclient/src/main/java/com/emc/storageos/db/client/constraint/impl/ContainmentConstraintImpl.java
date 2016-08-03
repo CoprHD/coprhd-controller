@@ -52,7 +52,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
                 _entryType.getSimpleName());
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 
@@ -74,7 +74,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
         Statement statement =  preparedStatement.bind(_indexKey.toString());
         statement.setFetchSize(pageCount);
         
-        log.info("query string: {}", preparedStatement.getQueryString());
+        log.debug("query string: {}", preparedStatement.getQueryString());
         queryOnePageWithAutoPaginate(statement, result);
     }
 

@@ -16,7 +16,7 @@ public class LargeWriteRequestTest extends DbsvcTestBase {
         volume.setInactive(false);
         volume.setAllocatedCapacity(1000L);
         volume.setProvisionedCapacity(2000L);
-        volume.setLinkStatus(RandomStringUtils.randomAscii(1024 * 1024 * 30));
+        volume.setLinkStatus(RandomStringUtils.randomAscii(1024 * 1024 * 15));
         getDbClient().updateObject(volume);
     }
 }

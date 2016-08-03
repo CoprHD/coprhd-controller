@@ -384,7 +384,8 @@ public class HostService extends TaskResourceService {
 
             boolean runArrayAffinity = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY, CustomConfigConstants.GLOBAL_KEY, null));
-            if (runArrayAffinity) {
+            // COP-24307: Trigger array affinity discoveries only when the host is created. Skip during host re-discovery.
+            if (runArrayAffinity && host.getLastDiscoveryRunTime() == 0) {
                 ArrayAffinityTasksSchedulingThread.scheduleArrayAffinityTasks(this, _asyncTaskService.getExecutorService(), host.getId(), taskId, _dbClient);
             }
             return taskList.getTaskList().iterator().next();
@@ -412,7 +413,6 @@ public class HostService extends TaskResourceService {
         Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
         while (storageSystems.hasNext()) {
             StorageSystem systemObj = storageSystems.next();
-            String task = UUID.randomUUID().toString();
             if (systemObj == null) {
                 _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
                 continue;
@@ -447,7 +447,7 @@ public class HostService extends TaskResourceService {
                 providerToSystemsMap.put(systemObj.getId(), systemIds);
                 providerToSystemTypeMap.put(systemObj.getId(), systemObj.getSystemType());
             } else {
-                _log.info("Skip unsupported system {}", systemObj.getLabel());
+                _log.info("Skip unsupported system {}, system type {}", systemObj.getLabel(), systemObj.getSystemType());
                 continue;
             }
         }

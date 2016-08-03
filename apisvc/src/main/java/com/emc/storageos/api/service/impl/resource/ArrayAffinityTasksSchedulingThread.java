@@ -99,7 +99,7 @@ class ArrayAffinityTasksSchedulingThread implements Runnable {
             }
 
             try {
-                logger.info("Waiting host discovery task {} to finish", task);
+                logger.info("Waiting for host discovery task {} to finish", task);
                 Thread.sleep(SLEEP_MINUTES * 60000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

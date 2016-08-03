@@ -16,7 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
+import java.util.regex.Matcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -965,7 +965,7 @@ public class AuthenticationResource {
         }
 
         sbFinal.append("\" ");
-        String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
+        String loginBannerString = Matcher.quoteReplacement(_passwordUtils.getConfigProperty(LOGIN_BANNER_KEY));
         String _cachedLoginPagePart2Tmp = "";
         _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll("\\\\n", "<br>");
 
@@ -1010,7 +1010,7 @@ public class AuthenticationResource {
         _log.info("password rule info: \n" + passwordRuleInfo);
         String newPart2 = _cachedChangePasswordPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, passwordRuleInfo + "$1");
 
-        String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
+        String loginBannerString = Matcher.quoteReplacement(_passwordUtils.getConfigProperty(LOGIN_BANNER_KEY));
         newPart2 = newPart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll("\\\\n", "<br>");
 
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));

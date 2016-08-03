@@ -20,6 +20,7 @@
             <list>
                 <ref bean="loginoperation" /> 
                 <ref bean="vnxqueryallquotadirs"/>
+                <ref bean="sessioncleanoperation"/>
             </list>
         </property>
     </bean>

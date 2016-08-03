@@ -62,6 +62,15 @@ public class SizeUtilTest {
         Assert.assertTrue(result == 1073741824L);
     }
 
+    /**
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#sizeStrToKBytes(java.lang.String)}.
+     */
+    @Test
+    public void testSizeStrToKBytes() {
+        long result = SizeUtil.sizeStrToKBytes("100 GB");
+        Assert.assertTrue(result == 104857600L);
+    }
+
     @Test
     public void testSpeedStrToGigabits() {
         long result = SizeUtil.speedStrToGigabits("1 Gbps");

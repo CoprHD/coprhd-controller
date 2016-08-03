@@ -1530,7 +1530,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static void fillInNotSupportedReasons(Map<String, Change> changes, StringBuffer notSuppReasonBuff) {
         Set<String> allChanges = new HashSet<String>();
         for (Change foundChange : changes.values()) {
-            // Use the plain name field from the change oject
+            // Use the plain name field from the change object
             allChanges.add(foundChange.name);
         }
         notSuppReasonBuff.append(Joiner.on(", ").join(allChanges));

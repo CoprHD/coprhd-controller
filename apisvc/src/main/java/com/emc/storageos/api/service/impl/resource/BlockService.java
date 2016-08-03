@@ -4091,7 +4091,7 @@ public class BlockService extends TaskResourceService {
                 // allowed.
                 //
                 // RP+VPLEX Journals are normally hidden in the UI since they are internal volumes, however they 
-                // can been exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
+                // can be exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
                 if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
                     if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
                         verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool);

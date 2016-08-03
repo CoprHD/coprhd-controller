@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -35,11 +36,14 @@ import javax.ws.rs.core.Response;
 import com.emc.sa.engine.scheduler.SchedulerDataManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.vipr.model.catalog.*;
 import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,7 +95,14 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
-    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 1; // TODO: change to 15m
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 1; // TODO: change to 5m
+
+    private static final String LOCK_NAME = "orderscheduler";
+
+    @Autowired
+    private CoordinatorClient coordinatorClient;
+
+    private InterProcessLock lock;
 
     @Autowired
     private RecordableEventManager eventManager;
@@ -685,37 +696,54 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     private void scheduleReoccurenceOrders() throws Exception {
-        //todo concurrent control
-        List<ScheduledEvent> scheduledEvents = dataManager.getAllReoccurrenceEvents();
-        for (ScheduledEvent event: scheduledEvents) {
-            if (event.getEventStatus() != ScheduledEventStatus.APPROVED) {
-                log.info("Skipping event {} which is not in APPROVED status.", event.getId());
-                continue;
+        lock = coordinatorClient.getLock(LOCK_NAME);
+        try {
+            lock.acquire();
+
+            List<ScheduledEvent> scheduledEvents = dataManager.getAllReoccurrenceEvents();
+            for (ScheduledEvent event: scheduledEvents) {
+                if (event.getEventStatus() != ScheduledEventStatus.APPROVED) {
+                    log.info("Skipping event {} which is not in APPROVED status.", event.getId());
+                    continue;
+                }
+
+                URI orderId = event.getLatestOrderId();
+                Order order = getOrderById(orderId, false);
+                if (! (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
+                       OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
+                       OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR)) ) {
+                    log.info("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
+                    continue;
+                }
+
+                log.info("Trying to schedule a new order for event {}", event.getId());
+
+                StorageOSUser user = StorageOSUser.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getStorageOSUser().getBytes(UTF_8)));
+
+                OrderCreateParam createParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
+                Calendar nextScheduledTime = ScheduleTimeHelper.getNextScheduledTime(order.getScheduledTime(),
+                        ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getScheduleInfo().getBytes(UTF_8))));
+                if (nextScheduledTime == null) {
+                    log.info("Scheduled event {} is already finished.", event.getId());
+                    event.setEventStatus(ScheduledEventStatus.FINISHED);
+                } else {
+                    createParam.setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(nextScheduledTime));
+
+                    order = createNewOrder(user, uri(order.getTenant()), createParam);
+                    event.setLatestOrderId(order.getId());
+                    log.info("Scheduled an new order {} for event {} ...", order.getId(), event.getId());
+                }
+                client.save(event);
+
             }
-
-            URI orderId = event.getLatestOrderId();
-            Order order = getOrderById(orderId, false);
-            if (! (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
-                   OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
-                   OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR)) ) {
-                log.info("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
-                continue;
+        } catch (Exception e) {
+            log.error("Failed to schedule next orders", e);
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                log.error("Error releasing order scheduler lock", e);
             }
-
-            log.info("Scheduling a new order for event {}", event.getId());
-
-            StorageOSUser user = StorageOSUser.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getStorageOSUser().getBytes(UTF_8)));
-
-            OrderCreateParam createParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
-            Calendar nextScheduledTime = ScheduleTimeHelper.getNextScheduledTime(order.getScheduledTime(),
-                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getScheduleInfo().getBytes(UTF_8))));
-            createParam.setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(nextScheduledTime));
-
-            order = createNewOrder(user, uri(order.getTenant()), createParam);
-
-            event.setLatestOrderId(order.getId());
-            client.save(event);
         }
-
     }
 }

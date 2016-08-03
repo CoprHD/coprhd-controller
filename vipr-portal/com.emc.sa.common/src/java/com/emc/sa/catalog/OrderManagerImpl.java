@@ -109,7 +109,9 @@ public class OrderManagerImpl implements OrderManager {
         if (catalogService.getExecutionWindowRequired()) {
             order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
             if (order.getScheduledEventId() == null) {
-                // Not created via new scheduler, so set schedule time to the latest execution window starting time
+                // Not created via new scheduler, so set schedule time to
+                // either 1) the next execution window starting time
+                // or     2) the current time if it is in current execution window
                 ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
                 order.setScheduledTime(ScheduleTimeHelper.getScheduledTime(executionWindow));
             }

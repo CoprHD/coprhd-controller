@@ -210,6 +210,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         try {
             DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
             Date date = formatter.parse(scheduleInfo.getStartDate());
+
+            Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            Calendar endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
+            if (endTime != null && currTime.after(endTime)) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
+            }
         } catch (Exception e) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
         }
@@ -471,7 +477,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             client.delete(order);
         }
 
-        // deactive the scheduled event
+        // deactivate the scheduled event
         client.delete(scheduledEvent);
         return Response.ok().build();
     }

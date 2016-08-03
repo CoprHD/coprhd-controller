@@ -17,7 +17,15 @@ public class ScheduledTimeComparator implements Comparator<Order> {
 
     @Override
     public int compare(Order a, Order b) {
-        int result = ObjectUtils.compare(a.getScheduledTime(), b.getScheduledTime());
+        int result = 0;
+        if (a.getScheduledTime().before(b.getScheduledTime())) {
+            result = -1;
+        } else if (a.getScheduledTime().after(b.getScheduledTime())) {
+            result = 1;
+        } else {
+            result = 0;
+        }
+
         return result;
     }
 

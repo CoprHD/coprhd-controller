@@ -54,7 +54,7 @@ public class Order extends ModelObject implements TenantDataObject {
 
     private URI scheduledEventId;
 
-    private Calendar scheduledTime; // Format: "yyyy/MM/dd HH:mm:ss"
+    private Calendar scheduledTime;
 
     /**
      * Field used for indexing updated time

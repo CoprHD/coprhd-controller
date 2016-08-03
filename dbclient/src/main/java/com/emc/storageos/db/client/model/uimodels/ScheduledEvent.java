@@ -41,7 +41,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private String tenant;                   // the owner tenant
 
-    private String orderCreationParam;        // common order related params
+    private String orderCreationParam;     // order creation related params
 
     private String storageOSUser;           // user info
 

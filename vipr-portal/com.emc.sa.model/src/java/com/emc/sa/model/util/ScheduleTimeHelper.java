@@ -24,13 +24,12 @@ public class ScheduleTimeHelper {
     }
 
     /**
-     * Get the first desired schedule time based on current time, start time and schedule schema
-     * @param scheduleInfo  schedule schema
-     * @return                calendar for the first desired schedule time
+     * Get the first desired scheduled time which consists of start day and start hour/min of that day.
+     * @param scheduleInfo
+     * @return
      * @throws Exception
      */
-    public static Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
-
+    public static Calendar getScheduledStartTime(ScheduleInfo scheduleInfo) throws Exception{
         DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
         Date date = formatter.parse(scheduleInfo.getStartDate());
 
@@ -40,7 +39,58 @@ public class ScheduleTimeHelper {
         startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
         startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
         startTime.set(Calendar.SECOND, 0);
-        log.info("startTime: {}", startTime.toString());
+        log.info("The first desired scheduled time: {}", startTime.toString());
+
+        return startTime;
+    }
+
+    /**
+     * Get the last desired scheduled time which consists of start day,
+     * start hour/min of that day, cycleType, cycleFrequency and reoccurrence.
+     * @param scheduleInfo
+     * @return
+     * @throws Exception
+     */
+    public static Calendar getScheduledEndTime(ScheduleInfo scheduleInfo) throws Exception {
+        if (scheduleInfo.getReoccurrence() == 0) {
+            return null;
+        }
+
+        Calendar startTime = getScheduledStartTime(scheduleInfo);
+        Calendar endTime = startTime;
+        int timeToIncrease = scheduleInfo.getCycleFrequency() * (scheduleInfo.getReoccurrence() - 1);
+        switch (scheduleInfo.getCycleType()) {
+            case MONTHLY:
+                endTime.add(Calendar.MONTH, timeToIncrease);
+                break;
+            case WEEKLY:
+                endTime.add(Calendar.WEEK_OF_MONTH, timeToIncrease);
+                break;
+            case DAILY:
+                endTime.add(Calendar.DAY_OF_MONTH, timeToIncrease);
+                break;
+            case HOURLY:
+                endTime.add(Calendar.HOUR_OF_DAY, timeToIncrease);
+                break;
+            case MINUTELY:
+                endTime.add(Calendar.MINUTE, timeToIncrease);
+                break;
+            default:
+                log.error("not expected schedule cycle.");
+        }
+
+        log.info("The last desired scheduled time: {}", endTime.toString());
+        return endTime;
+    }
+
+    /**
+     * Get the first desired and AVAILABLE schedule time based on current time, start time and schedule schema
+     * @param scheduleInfo  schedule schema
+     * @return                calendar for the first desired and AVAILABLE schedule time
+     * @throws Exception
+     */
+    public static Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
+        Calendar startTime = getScheduledStartTime(scheduleInfo);
 
         if (scheduleInfo.getReoccurrence() == 1) {
             return startTime;
@@ -82,13 +132,13 @@ public class ScheduleTimeHelper {
                 log.error("not expected schedule cycle.");
         }
 
-        log.info("scheduledTime: {}", scheduledTime.toString());
-
-        while (scheduledTime.before(initTime)) {
+        while (scheduledTime != null && scheduledTime.before(initTime)) {
             scheduledTime = getNextScheduledTime(scheduledTime, scheduleInfo);
-            log.info("scheduledTime in loop: {}", scheduledTime.toString());
         }
 
+        if (scheduledTime != null) {
+            log.info("scheduledTime: {}", scheduledTime.toString());
+        }
         return scheduledTime;
     }
 
@@ -96,34 +146,75 @@ public class ScheduleTimeHelper {
      * Get next desired schedule time based on the previous one and schedule schema
      * @param scheduledTime     previous schedule time
      * @param scheduleInfo      schedule schema
-     * @return
+     * @return  1) next scheduled time or 2) null if there is no need to schedule again.
      */
-    public static Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
-        switch (scheduleInfo.getCycleType()) {
-            case MONTHLY:
-                scheduledTime.add(Calendar.MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case WEEKLY:
-                scheduledTime.add(Calendar.WEEK_OF_MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case DAILY:
-                scheduledTime.add(Calendar.DAY_OF_MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case HOURLY:
-                scheduledTime.add(Calendar.HOUR_OF_DAY, scheduleInfo.getCycleFrequency());
-                break;
-            case MINUTELY:
-                scheduledTime.add(Calendar.MINUTE, scheduleInfo.getCycleFrequency());
-                break;
-            default:
-                log.error("not expected schedule cycle.");
+    public static Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) throws Exception{
+
+        do {
+            switch (scheduleInfo.getCycleType()) {
+                case MONTHLY:
+                    scheduledTime.add(Calendar.MONTH, scheduleInfo.getCycleFrequency());
+                    break;
+                case WEEKLY:
+                    scheduledTime.add(Calendar.WEEK_OF_MONTH, scheduleInfo.getCycleFrequency());
+                    break;
+                case DAILY:
+                    scheduledTime.add(Calendar.DAY_OF_MONTH, scheduleInfo.getCycleFrequency());
+                    break;
+                case HOURLY:
+                    scheduledTime.add(Calendar.HOUR_OF_DAY, scheduleInfo.getCycleFrequency());
+                    break;
+                case MINUTELY:
+                    scheduledTime.add(Calendar.MINUTE, scheduleInfo.getCycleFrequency());
+                    break;
+                default:
+                    log.error("not expected schedule cycle.");
+            }
+        } while (isExceptionTime(scheduledTime, scheduleInfo));
+
+        Calendar endTime = getScheduledEndTime(scheduleInfo);
+        if (endTime != null && scheduledTime.after(endTime)) {
+            return null;
         }
+
         return scheduledTime;
     }
 
+    /**
+     * Check if the schedule time is in exception list
+     * @param scheduleTime
+     */
+    public static boolean isExceptionTime(Calendar scheduleTime, ScheduleInfo scheduleInfo) throws Exception{
+        if (scheduleInfo.getDateExceptions() != null) {
+            for (String dateException: scheduleInfo.getDateExceptions()) {
+                DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
+                Date date = formatter.parse(scheduleInfo.getStartDate());
+
+                Calendar exceptionTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                exceptionTime.setTime(date);
+                if (exceptionTime.equals(scheduleTime)) {
+                    log.info("The scheduled time {} is in exception list", scheduleTime.toString());
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get expected schedule time based on execution window
+     * @param window
+     * @return
+     */
     public static Calendar getScheduledTime(ExecutionWindow window) {
         Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         log.info("currTime: {}", currTime.toString());
+        ExecutionWindowHelper windowHelper = new ExecutionWindowHelper(window);
+        if (windowHelper.isActive(currTime)) {
+            log.info("currTime {} is in active window, set it as scheduled time.", currTime.toString());
+            return currTime;
+        }
 
         int year = currTime.get(Calendar.YEAR);
         int month = currTime.get(Calendar.MONTH);
@@ -142,18 +233,17 @@ public class ScheduleTimeHelper {
             scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
         }
 
-        log.info("scheduledTime: {}", scheduledTime.toString());
-
         while (scheduledTime.before(currTime)) {
             scheduledTime = getNextScheduledTime(scheduledTime, window);
             log.info("scheduledTime in loop: {}", scheduledTime.toString());
         }
 
+        log.info("scheduledTime: {}", scheduledTime.toString());
         return scheduledTime;
     }
 
     /**
-     * Get next desired schedule time based on the previous one and schedule schema
+     * Get next desired schedule time based on the previous one and execution window
      * @param scheduledTime     previous schedule time
      * @param window             execution window
      * @return
@@ -182,6 +272,12 @@ public class ScheduleTimeHelper {
         return formatted;
     }
 
+    /**
+     * Convert a readable time string to Calendar
+     * @param formattedTime
+     * @return
+     * @throws Exception
+     */
     public static Calendar convertStrToCalendar(String formattedTime) {
         Calendar cal = Calendar.getInstance();
         try {

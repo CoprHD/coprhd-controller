@@ -310,7 +310,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setMinimumThickVolumeSize(256 * HP3PARConstants.KILO_BYTE);
 
 				pool.setSupportedResourceType(SupportedResourceType.THIN_AND_THICK);
-				pool.setDedupCapable(currMember.isDedupCapable());
 				pool.setPoolServiceType(PoolServiceType.block);
 
 				// Storage object properties

@@ -512,7 +512,6 @@ public class ExternalDeviceCommunicationInterface extends
                         }
 
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
-                        pool.setDedupCapable(storagePool.isDedupCapable());
                         pool.setInactive(false);
                         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);

@@ -280,14 +280,6 @@ public class StoragePool extends StorageObject {
     public void setPoolServiceType(PoolServiceType poolServiceType) {
         this.poolServiceType = poolServiceType.name();
     }
-
-    public Boolean isDedupCapable() {
-		return dedupCapable;
-	}
-
-	public void setDedupCapable(Boolean dedupCapable) {
-		this.dedupCapable = dedupCapable;
-	}
 	
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;

@@ -211,9 +211,9 @@ public class DellSCDiscovery {
 
                 ScStorageTypeStorageUsage su = api.getStorageTypeStorageUsage(storageType.instanceId);
                 LOG.info("Space info: {} {} {}", su.allocatedSpace, su.freeSpace, su.usedSpace);
-                pool.setSubscribedCapacity(SizeUtil.sizeStrToBytes(su.usedSpace));
-                pool.setFreeCapacity(SizeUtil.sizeStrToBytes(su.freeSpace));
-                pool.setTotalCapacity(SizeUtil.sizeStrToBytes(su.allocatedSpace));
+                pool.setSubscribedCapacity(SizeUtil.sizeStrToKBytes(su.usedSpace));
+                pool.setFreeCapacity(SizeUtil.sizeStrToKBytes(su.freeSpace));
+                pool.setTotalCapacity(SizeUtil.sizeStrToKBytes(su.allocatedSpace));
                 pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
 
                 storagePools.add(pool);

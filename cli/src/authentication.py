@@ -1094,7 +1094,7 @@ def add_other_provider(config, sectioniter, obj, mode):
                                     searchbase, searchfilter, None, groupattr,
                                     name, domains, whitelist, searchscope,
                                     description, disable, None,
-                                    maxpagesize, groupobjectclasses, groupmemberattributes, None)
+                                    maxpagesize, groupobjectclasses, groupmemberattributes, None, None)
 
 
 
@@ -1249,7 +1249,7 @@ def update_other_providers(config, sectioniter, mode, obj):
                 disable, None, maxpagesize,
                 add_groupobjectclassnames.split(','), remove_groupobjectclassnames.split(','),
                 add_groupmemberattributetypenames.split(','), remove_groupmemberattributetypenames.split(','),
-                force_groupattributeupdate, None)
+                force_groupattributeupdate, None, None, None)
 
 
 

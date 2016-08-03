@@ -19,6 +19,25 @@ public class EventUtil {
 
     private static Logger log = LoggerFactory.getLogger(EventUtil.class);
 
+    public enum EventCode {
+        HOST_DELETE(100),
+        HOST_CLUSTER_CHANGE(101),
+        HOST_INITIATOR_ADD(102),
+        HOST_INITIATOR_DELETE(103),
+        CLUSTER_DELETE(104),
+        VCENTER_DATACENTER_DELETE(105);
+
+        private int code;
+
+        EventCode(int code) {
+            this.code = code;
+        }
+
+        public int getCode() {
+            return code;
+        }
+    };
+
     private EventUtil() {
     };
 
@@ -26,6 +45,7 @@ public class EventUtil {
      * Creates an actionable event and persists to the database
      * 
      * @param dbClient db client
+     * @param eventCode the code for the event
      * @param tenant the tenant that owns the event
      * @param name the name of the event
      * @param description the description of what the event will do
@@ -35,10 +55,11 @@ public class EventUtil {
      * @param declineMethod the method to invoke when declining the event
      * @param declineParameters the parameters to pass to the decline method
      */
-    public static void createActionableEvent(DbClient dbClient, URI tenant, String name, String description,
+    public static void createActionableEvent(DbClient dbClient, EventCode eventCode, URI tenant, String name, String description,
             DataObject resource, String approveMethod, Object[] approveParameters,
             String declineMethod, Object[] declineParameters) {
         ActionableEvent event = new ActionableEvent();
+        event.setEventCode(eventCode.getCode());
         event.setId(URIUtil.createId(ActionableEvent.class));
         event.setTenant(tenant);
         event.setDescription(description);
@@ -57,7 +78,8 @@ public class EventUtil {
         event.setLabel(name);
         dbClient.createObject(event);
         log.info("Created Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
-                + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Approve Method: " + approveMethod
+                + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: " + event.getEventCode()
+                + " Approve Method: " + approveMethod
                 + " Decline Method: " + declineMethod);
     }
 
@@ -65,6 +87,7 @@ public class EventUtil {
      * Creates an actionable event and persists to the database
      * 
      * @param dbClient db client
+     * @param eventCode the code for the event
      * @param tenant the tenant that owns the event
      * @param name the name of the event
      * @param description the description of what the event will do
@@ -72,9 +95,9 @@ public class EventUtil {
      * @param approveMethod the method to invoke when approving the event
      * @param approveParameters the parameters to pass to the approve method
      */
-    public static void createActionableEvent(DbClient dbClient, URI tenant, String name, String description,
+    public static void createActionableEvent(DbClient dbClient, EventCode eventCode, URI tenant, String name, String description,
             DataObject resource, String approveMethod, Object[] approveParameters) {
-        createActionableEvent(dbClient, tenant, name, description,
+        createActionableEvent(dbClient, eventCode, tenant, name, description,
                 resource, approveMethod, approveParameters, null, null);
     }
 

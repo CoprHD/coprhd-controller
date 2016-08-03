@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.util.EventUtil;
+import com.emc.storageos.util.EventUtil.EventCode;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -195,7 +196,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 deletedHosts.add(host.getId());
             }
 
-            EventUtil.createActionableEvent(dbClient, datacenter.getTenant(), "Delete vcenter datacenter " + datacenter.getLabel(),
+            EventUtil.createActionableEvent(dbClient, EventCode.VCENTER_DATACENTER_DELETE, datacenter.getTenant(),
+                    "Delete vcenter datacenter " + datacenter.getLabel(),
                     "Datacenter " + datacenter.getLabel()
                             + " will be deleted and storage will be unexported from clusters and hosts in this datacenter",
                     datacenter, "deleteDataCenter", new Object[] { datacenter.getId() });

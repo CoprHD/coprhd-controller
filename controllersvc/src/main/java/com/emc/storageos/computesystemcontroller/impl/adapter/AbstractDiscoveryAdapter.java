@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.EventUtil;
+import com.emc.storageos.util.EventUtil.EventCode;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -541,7 +542,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 boolean newClusterInUse = cluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, cluster.getId());
 
                 if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
-                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
                             "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
                                     + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
                             "Host " + host.getLabel() + " will be removed from shared exports for cluster "
@@ -560,13 +561,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
             if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
-                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
                             "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorPort(),
                             "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
                             oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
-                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_ADD, host.getTenant(),
                             "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorPort(),
                             "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
                             newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
@@ -590,7 +591,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
                 }
             } else {
-                EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
+                EventUtil.createActionableEvent(dbClient, EventCode.HOST_DELETE, host.getTenant(), "Delete host " + host.getLabel(),
                         "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
                         "deleteHost", new Object[] { deletedHost });
             }
@@ -606,8 +607,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 log.info(
                         "Cluster " + cluster.getId() + " should not be deleted because it contains hosts that are not going to be deleted");
             } else {
-                EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
-                        + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
+                EventUtil.createActionableEvent(dbClient, EventCode.CLUSTER_DELETE, cluster.getTenant(),
+                        "Delete cluster " + cluster.getLabel(), "Cluster "
+                                + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.",
+                        cluster,
                         "deleteCluster", new Object[] { deletedCluster });
             }
         }

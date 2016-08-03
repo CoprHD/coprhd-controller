@@ -1622,6 +1622,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
 
         try {
+            Map<String, Object> reqAttributeMap = getRequestParamsMap(storageSystem);
+            reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+            _discExecutor.setKeyMap(reqAttributeMap);
+
+            // Login namespace
+            _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
+                    "vnxlogin"));
+
             for (String umfsId : umfsIds) {
                 // Retrieve all the qtree info.
                 List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem, umfsId);
@@ -1678,6 +1686,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     }
                 }
             }
+            // Login namespace
+            _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
+                    "vnxlogout"));
+
         } catch (Exception e) {
             if (null != storageSystem) {
                 cleanupDiscovery(storageSystem);
@@ -3091,9 +3103,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         List<TreeQuota> quotaTrees = new ArrayList<TreeQuota>();
         List<TreeQuota> tempQuotaTrees = null;
 
-        Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-        reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
-        _discExecutor.setKeyMap(reqAttributeMap);
         _discExecutor.getKeyMap().put(VNXFileConstants.FILESYSTEM_ID, umfsId);
         try {
 

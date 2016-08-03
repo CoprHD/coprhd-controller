@@ -39,6 +39,8 @@
 				<entry key="vnxfileStoragePortGroup" value-ref="vnxfileStoragePortGroupSpace" />
 				<entry key="vnxfileStoragePort" value-ref="vnxfileStoragePortSpace" />
 				<entry key="vnxallquotas" value-ref="vnxallquotasnamespace"></entry>
+				<entry key="vnxlogin" value-ref="loginnamespace"></entry>
+				<entry key="vnxlogout" value-ref="logoutnamespace"></entry>
                                 <entry key="vnxfileSystem" value-ref="vnxfileFileSystemSpace" />
                                 <entry key="vnxfileSelectedFileSystem" value-ref="vnxfileSelectedFileSystemSpace" />
                                 <entry key="vnxfileCifsConfig" value-ref="vnxfileCifsConfigSpace" />

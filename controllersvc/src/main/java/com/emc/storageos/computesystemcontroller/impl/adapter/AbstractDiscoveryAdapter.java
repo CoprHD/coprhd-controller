@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.net.ssl.SSLException;
@@ -24,6 +25,7 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryVersionValidator;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
@@ -40,6 +42,7 @@ import com.emc.storageos.util.EventUtil;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscoveryAdapter {
     private Logger log;
@@ -510,6 +513,14 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             List<Initiator> newInitiatorObjects = dbClient.queryObject(Initiator.class, change.getNewInitiators());
             List<Initiator> oldInitiatorObjects = dbClient.queryObject(Initiator.class, change.getOldInitiators());
 
+            if (newInitiatorObjects.isEmpty() && !oldInitiatorObjects.isEmpty()) {
+                List<URI> hostInitiators = ComputeSystemHelper.getChildrenUris(dbClient, host.getId(), Initiator.class, "host");
+                if (hostInitiators.size() == oldInitiatorObjects.size()) {
+                    log.info("No initiators were re-discovered for host " + host.getId() + " so we will not delete its initiators");
+                    oldInitiatorObjects.clear();
+                }
+            }
+
             if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
                     || (change.getOldCluster() != null && change.getNewCluster() != null
@@ -565,20 +576,40 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
         log.info("Number of deleted hosts: " + deletedHosts.size());
 
+        Set<URI> incorrectDeletedHosts = Sets.newHashSet();
         for (URI deletedHost : deletedHosts) {
             Host host = dbClient.queryObject(Host.class, deletedHost);
-            EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
-                    "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
-                    "deleteHost", new Object[] { deletedHost });
+            URI clusterId = host.getCluster();
+            if (!NullColumnValueGetter.isNullURI(clusterId)) {
+                List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+                if (clusterHosts.contains(deletedHost)
+                        && deletedHosts.containsAll(clusterHosts)) {
+                    incorrectDeletedHosts.add(deletedHost);
+                    DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "Error discovering host cluster", null);
+                    log.info("Host " + host.getId()
+                            + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
+                }
+            } else {
+                EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
+                        "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
+                        "deleteHost", new Object[] { deletedHost });
+            }
         }
 
         log.info("Number of deleted clusters: " + deletedClusters.size());
 
         for (URI deletedCluster : deletedClusters) {
             Cluster cluster = dbClient.queryObject(Cluster.class, deletedCluster);
-            EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
-                    + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
-                    "deleteCluster", new Object[] { deletedCluster });
+
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, deletedCluster, Host.class, "cluster");
+            if (!Collections.disjoint(clusterHosts, incorrectDeletedHosts)) {
+                log.info(
+                        "Cluster " + cluster.getId() + " should not be deleted because it contains hosts that are not going to be deleted");
+            } else {
+                EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
+                        + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
+                        "deleteCluster", new Object[] { deletedCluster });
+            }
         }
 
     }

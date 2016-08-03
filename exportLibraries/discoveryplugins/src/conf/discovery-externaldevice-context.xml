@@ -28,9 +28,15 @@
                 <entry key="hp3par" value-ref="hp3Par"/>
             </map>
         </property>
+        <property name="capabilityDefinitions">
+            <map>
+                <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
+            </map>
+        </property>
     </bean>
     
-     <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
+    <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
     </bean>
-
+    <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
+    </bean>
 </beans>

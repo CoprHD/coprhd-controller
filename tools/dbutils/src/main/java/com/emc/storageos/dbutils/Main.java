@@ -61,6 +61,8 @@ public class Main {
 
     public static final String BLACKLIST = "blacklist";
 
+    public static final String CF_NAME = "-cf";
+
     private static DBClient _client = null;
 
     private static final String LOG_FILE_PATH = "/opt/storageos/logs/dbutils.log";
@@ -114,8 +116,9 @@ public class Main {
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
         System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s\tCheck data consistency of the whole database%n",
+        System.out.printf("\t%s [Column Family Name]\tCheck data consistency of the whole database%n",
                 Command.CHECK_DB.name().toLowerCase());
+        System.out.printf("\t\tColumn Family Name\t Only check specific CF.%n");
         System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
         System.out.printf("\t\tNote: %s option can only be executed as %s user%n",
@@ -126,6 +129,9 @@ public class Main {
         System.out.printf("\t%s <file_path>%n",
                 Command.REBUILD_INDEX.name().toLowerCase());
         System.out.printf("\t\t Note: use the genereated file to rebuild the index%n");
+        System.out.printf("\t%s %s <Column Family Name>%n",
+                Command.REBUILD_INDEX.name().toLowerCase(), CF_NAME);
+        System.out.printf("\t\t Note: rebuild specific CF.%n");
         System.out.printf("\t%s <file_path>%n",
                 Command.RUN_MIGRATION_CALLBACK.name().toLowerCase());
         System.out.printf("\t\t Note: run specified migration callback.%n");

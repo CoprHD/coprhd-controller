@@ -1682,28 +1682,32 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
+    <bean id="validatorConfig" class="com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
     <bean id="vmaxValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.smis.vmax.VmaxSystemValidatorFactory">
         <property name="helper" ref="vmaxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>
+        <property name="config" ref="validatorConfig"/>
         <property name="cimPath" ref="vmaxCIMObjectPathFactoryAdapter"/>
     </bean>
 
     <bean id="xtremioValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremioSystemValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>
+        <property name="config" ref="validatorConfig"/>
         <property name="clientFactory" ref="xtremioRestClientFactory"/>
     </bean>
 
     <bean id="vplexValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.vplex.VplexSystemValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>
+        <property name="config" ref="validatorConfig"/>
     </bean>
     
     <bean id="vnxValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.smis.vnx.VnxSystemValidatorFactory">
         <property name="helper" ref="vnxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>
+        <property name="config" ref="validatorConfig"/>
         <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
     </bean>
 

@@ -54,7 +54,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         // By default we do not want to refresh and cause additional performance issues.
         // But in the case of automated test suites where we combine in-controller and out-of-controller operations,
         // we have tighter tolerances and need to run refresh.
-        if (DefaultValidator.validationRefreshEnabled(getCoordinator())) {
+        if (getConfig().validationRefreshEnabled()) {
             // Refresh the provider's view of the storage system
             getHelper().callRefreshSystem(storage);
         }

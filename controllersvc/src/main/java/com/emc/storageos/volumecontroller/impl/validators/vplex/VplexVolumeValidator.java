@@ -10,10 +10,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.VPlexDrillDownParser;
 import com.emc.storageos.util.VPlexDrillDownParser.NodeType;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -42,8 +41,8 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
     private Logger log = LoggerFactory.getLogger(VplexVolumeValidator.class);
     private List<Volume> remediatedVolumes = new ArrayList<Volume>();
 
-    public VplexVolumeValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger) {
-        super(dbClient, coordinator, logger);
+    public VplexVolumeValidator(DbClient dbClient, ValidatorConfig config, ValidatorLogger logger) {
+        super(dbClient, config, logger);
     }
 
     public List<Volume> validateVolumes(StorageSystem storageSystem,
@@ -119,7 +118,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 }
             } catch (VPlexApiException ex) {
                 log.error("Unable to determine if VPLEX device reused: " + volumeId, ex);
-                if (DefaultValidator.validationEnabled(coordinator)) {
+                if (config.validationEnabled()) {
                     throw ex;
                 }
             }
@@ -193,7 +192,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
      *            -- top level VPLEX device name
      * @param distributed
      *            -- if true VPLEX distributed, false if VPLEX local
-     * @param clusterName
+     * @param cluster
      *            cluster-1 or cluster-2
      * @param hasMirror
      *            -- if true this cluster has a mirror

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -1577,102 +1578,22 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.SOURCE, 
                                     volume.getVirtualArray(), currentVpool, newVpool));
 
-            // Current Source Journal varray/vpool
-            String currentSourceJournalVarrayId = NullColumnValueGetter.getStringValue(currentVpool
-                    .getJournalVarray());
-            String currentSourceJournalVpoolId = NullColumnValueGetter.getStringValue(currentVpool
-                    .getJournalVpool());
-            // New Source Journal varray/vpool
-            String newSourceJournalVarrayId = NullColumnValueGetter.getStringValue(newVpool
-                    .getJournalVarray());
-            String newSourceJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
-                    .getJournalVpool());
-
-            // If the current Source Journal varray/vpool are not set, default them to known values.
-            if (currentSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-                currentSourceJournalVarrayId = volume.getVirtualArray().toString();
-            }
-            if (currentSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-                currentSourceJournalVpoolId = currentVpool.getId().toString();
-            }
-
-            // If the new Source Journal varray/vpool is not set, default it to the known value.        
-            if (newSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-                newSourceJournalVarrayId = volume.getVirtualArray().toString();
-            }
-            if (newSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-                newSourceJournalVpoolId = newVpool.getId().toString();
-            }
-            
-            VirtualPool currentSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentSourceJournalVpoolId));
-            VirtualPool newSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newSourceJournalVpoolId));
-            
-            // Only consider the Source Journal migration if the varrays are the same and the vpools
-            // are different and both specify HA.
-            if (!currentSourceJournalVpoolId.equals(newSourceJournalVpoolId)) {                                            
-                if (currentSourceJournalVarrayId.equals(newSourceJournalVarrayId)
-                        && VirtualPool.vPoolSpecifiesHighAvailability(currentSourceJournalVpool)
-                        && VirtualPool.vPoolSpecifiesHighAvailability(newSourceJournalVpool)) {
-                    // Add Source Journal for potential migration                    
-                    potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.METADATA, Volume.PersonalityTypes.SOURCE,
-                            URI.create(currentSourceJournalVarrayId), currentSourceJournalVpool, newSourceJournalVpool));                           
-                } else {
-                    // If the Source Journal vpools are different and both of the Source Journal vpools do not specify HA, 
-                    // then exclude this new vpool for RP+VPLEX migration.
-                    notSuppReasonBuff.append("Not valid for migration due to changes in RP Source Journal virtual pool / virtual array.");
-                    return false;
-                }                        
+            // Source Journal
+            boolean invalidMigration = determineRPSourceJournalMigration(volume, currentVpool, newVpool, potentialMigrations, 
+                    notSuppReasonBuff, dbClient);
+            if (invalidMigration) {
+                return false;
             }
 
             // Only MetroPoint configurations will have Standby Journals
             if (VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
-                    && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {            
-                // Current Standby Journal varray/vpool
-                String currentStandbyJournalVarrayId = NullColumnValueGetter.getStringValue(currentVpool
-                        .getStandbyJournalVarray());
-                String currentStandbyJournalVpoolId = NullColumnValueGetter.getStringValue(currentVpool
-                        .getStandbyJournalVpool());
-                // New Standby Journal varray/vpool
-                String newStandbyJournalVarrayId = NullColumnValueGetter.getStringValue(newVpool
-                        .getStandbyJournalVarray());
-                String newStandbyJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
-                        .getStandbyJournalVpool());
-    
-                // If the current Standby Journal varray/vpool are not set, default them to known values.
-                if (currentStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-                    currentStandbyJournalVarrayId = getHaVarrayURI(currentVpool).toString();
+                    && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {   
+                // Standby Journal
+                invalidMigration = determineRPStandbyJournalMigration(volume, currentVpool, newVpool, potentialMigrations, 
+                        notSuppReasonBuff, dbClient);
+                if (invalidMigration) {
+                    return false;
                 }
-                if (currentStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-                    currentStandbyJournalVpoolId = currentVpool.getId().toString();
-                }
-    
-                // If the new Standby Journal varray/vpool is not set, default it to the known value.
-                if (newStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-                    newStandbyJournalVarrayId = getHaVarrayURI(newVpool).toString();
-                }
-                if (newStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-                    newStandbyJournalVpoolId = newVpool.getId().toString();
-                }
-                
-                VirtualPool currentStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentStandbyJournalVpoolId));
-                VirtualPool newStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newStandbyJournalVpoolId));                
-                
-                // Only consider the Standby Journal migration if the varrays are the same and the vpools
-                // are different and both specify HA.
-                if (!currentStandbyJournalVpoolId.equals(newStandbyJournalVpoolId)) {                                            
-                    if (currentStandbyJournalVarrayId.equals(newStandbyJournalVarrayId)
-                            && VirtualPool.vPoolSpecifiesHighAvailability(currentStandbyJournalVpool)
-                            && VirtualPool.vPoolSpecifiesHighAvailability(newStandbyJournalVpool)) {
-                        // Add Standby Journal for potential migration                    
-                        potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.METADATA, Volume.PersonalityTypes.SOURCE,
-                                URI.create(currentStandbyJournalVarrayId), currentStandbyJournalVpool, newStandbyJournalVpool));                           
-                    } else {
-                        // If the Standby Journal vpools are different and both of the Standby Journal vpools do not specify HA, 
-                        // then exclude this new vpool for RP+VPLEX migration.
-                        notSuppReasonBuff.append("Not valid for migration due to changes in RP Standby Journal virtual pool / virtual array.");
-                        return false;
-                    }                        
-                }            
             }
 
             // Check the Targets for potential candidates for migration
@@ -1716,53 +1637,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                         }                        
                     }
                     
-                    // Current Target Journal varray/vpool
-                    String currentTargetJournalVarrayId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
-                            .getJournalVarray());
-                    String currentTargetJournalVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
-                            .getJournalVpool());
-
-                    // New Target Journal varray/vpool
-                    String newTargetJournalVarrayId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
-                            .getJournalVarray());
-                    String newTargetJournalVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
-                            .getJournalVpool());
-
-                    // If the current Target Journal varray/vpool are not set, default them to known values.
-                    if (currentTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-                        currentTargetJournalVarrayId = targetVarrayId;
+                    // Target Journal
+                    invalidMigration = determineRPTargetJournalMigration(volume, currentTargetVpool, newTargetVpool, potentialMigrations, 
+                            notSuppReasonBuff, dbClient, currentProtectionVarraySetting, newProtectionVarraySetting, targetVarrayId);
+                    if (invalidMigration) {
+                        return false;
                     }
-                    if (currentTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-                        currentTargetJournalVpoolId = currentTargetVpool.getId().toString();
-                    }
-
-                    // If the current Target Journal varray/vpool is not set, default it to the known value.
-                    if (newTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
-                        newTargetJournalVarrayId = targetVarrayId;
-                    }
-                    if (newTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
-                        newTargetJournalVpoolId = newTargetVpool.getId().toString();
-                    }
-                    
-                    VirtualPool currentTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetJournalVpoolId));
-                    VirtualPool newTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetJournalVpoolId));
-                    
-                    // Only consider the Target Journal migration if the varrays are the same and the vpools
-                    // are different and both specify HA.
-                    if (!currentTargetJournalVpoolId.equals(newTargetJournalVpoolId)) {                                            
-                        if (currentTargetJournalVarrayId.equals(newTargetJournalVarrayId)
-                                && VirtualPool.vPoolSpecifiesHighAvailability(currentTargetJournalVpool)
-                                && VirtualPool.vPoolSpecifiesHighAvailability(newTargetJournalVpool)) {
-                            // Add Target Journal for potential migration                    
-                            potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.METADATA, Volume.PersonalityTypes.TARGET,
-                                    URI.create(currentTargetJournalVarrayId), currentTargetJournalVpool, newTargetJournalVpool));                           
-                        } else {
-                            // If the Target Journal vpools are different and both of the Target Journal vpools do not specify HA, 
-                            // then exclude this new vpool for RP+VPLEX migration.
-                            notSuppReasonBuff.append("Not valid for migration due to changes in RP Target Journal virtual pool / virtual array.");
-                            return false;
-                        }                        
-                    }                        
                 } else {
                     notSuppReasonBuff.append("Target virtual arrays do not match.");
                     return false;
@@ -1863,5 +1743,208 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         s_logger.info(String.format("RP+VPLEX migration operation is%s supported.",
                 validMigrationsFound ? "" : " NOT"));
         return validMigrationsFound;
+    }
+    
+    /**
+     * Determines if there are any Source Journal migrations and adds them to the 
+     * potentialMigrations container.
+     * 
+     * @param volume The change vpool volume
+     * @param currentVpool The change vpool volume's current vpool
+     * @param newVpool The target vpool to move to
+     * @param potentialMigrations Container for migrations
+     * @param notSuppReasonBuff Buffer for not supported reasons
+     * @param dbClient DbClient instance
+     * @return true if invalid migration, false otherwise
+     */
+    private static boolean determineRPSourceJournalMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
+            List<RPVPlexMigration> potentialMigrations, StringBuffer notSuppReasonBuff, DbClient dbClient) {
+        boolean invalidMigration = false;
+        // Current Source Journal varray/vpool
+        String currentSourceJournalVarrayId = NullColumnValueGetter.getStringValue(currentVpool
+                .getJournalVarray());
+        String currentSourceJournalVpoolId = NullColumnValueGetter.getStringValue(currentVpool
+                .getJournalVpool());
+        // New Source Journal varray/vpool
+        String newSourceJournalVarrayId = NullColumnValueGetter.getStringValue(newVpool
+                .getJournalVarray());
+        String newSourceJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
+                .getJournalVpool());
+
+        // If the current Source Journal varray/vpool are not set, default them to known values.
+        if (currentSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            currentSourceJournalVarrayId = volume.getVirtualArray().toString();
+        }
+        if (currentSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+            currentSourceJournalVpoolId = currentVpool.getId().toString();
+        }
+
+        // If the new Source Journal varray/vpool is not set, default it to the known value.        
+        if (newSourceJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            newSourceJournalVarrayId = volume.getVirtualArray().toString();
+        }
+        if (newSourceJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+            newSourceJournalVpoolId = newVpool.getId().toString();
+        }
+        
+        VirtualPool currentSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentSourceJournalVpoolId));
+        VirtualPool newSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newSourceJournalVpoolId));
+        
+        // Only consider the Source Journal migration if the varrays are the same and the vpools
+        // are different and both specify HA.
+        if (!currentSourceJournalVpoolId.equals(newSourceJournalVpoolId)) {                                            
+            if (currentSourceJournalVarrayId.equals(newSourceJournalVarrayId)
+                    && VirtualPool.vPoolSpecifiesHighAvailability(currentSourceJournalVpool)
+                    && VirtualPool.vPoolSpecifiesHighAvailability(newSourceJournalVpool)) {
+                // Add Source Journal for potential migration                    
+                potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.METADATA, Volume.PersonalityTypes.SOURCE,
+                        URI.create(currentSourceJournalVarrayId), currentSourceJournalVpool, newSourceJournalVpool));                           
+            } else {
+                // If the Source Journal vpools are different and both of the Source Journal vpools do not specify HA, 
+                // then exclude this new vpool for RP+VPLEX migration.
+                notSuppReasonBuff.append("Not valid for migration due to changes in RP Source Journal virtual pool / virtual array.");
+                invalidMigration = true;
+            }                        
+        }
+        
+        return invalidMigration;
+    }
+    
+    /**
+     * Determines if there are any Standby Journal migrations and adds them to the 
+     * potentialMigrations container.
+     * 
+     * @param volume The change vpool volume
+     * @param currentVpool The change vpool volume's current vpool
+     * @param newVpool The target vpool to move to
+     * @param potentialMigrations Container for migrations
+     * @param notSuppReasonBuff Buffer for not supported reasons
+     * @param dbClient DbClient instance
+     * @return true if invalid migration, false otherwise
+     */
+    private static boolean determineRPStandbyJournalMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
+            List<RPVPlexMigration> potentialMigrations, StringBuffer notSuppReasonBuff, DbClient dbClient) {
+        boolean invalidMigration = false;
+        
+        // Current Standby Journal varray/vpool
+        String currentStandbyJournalVarrayId = NullColumnValueGetter.getStringValue(currentVpool
+                .getStandbyJournalVarray());
+        String currentStandbyJournalVpoolId = NullColumnValueGetter.getStringValue(currentVpool
+                .getStandbyJournalVpool());
+        // New Standby Journal varray/vpool
+        String newStandbyJournalVarrayId = NullColumnValueGetter.getStringValue(newVpool
+                .getStandbyJournalVarray());
+        String newStandbyJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
+                .getStandbyJournalVpool());
+
+        // If the current Standby Journal varray/vpool are not set, default them to known values.
+        if (currentStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            currentStandbyJournalVarrayId = getHaVarrayURI(currentVpool).toString();
+        }
+        if (currentStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+            currentStandbyJournalVpoolId = currentVpool.getId().toString();
+        }
+
+        // If the new Standby Journal varray/vpool is not set, default it to the known value.
+        if (newStandbyJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            newStandbyJournalVarrayId = getHaVarrayURI(newVpool).toString();
+        }
+        if (newStandbyJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+            newStandbyJournalVpoolId = newVpool.getId().toString();
+        }
+        
+        VirtualPool currentStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentStandbyJournalVpoolId));
+        VirtualPool newStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newStandbyJournalVpoolId));                
+        
+        // Only consider the Standby Journal migration if the varrays are the same and the vpools
+        // are different and both specify HA.
+        if (!currentStandbyJournalVpoolId.equals(newStandbyJournalVpoolId)) {                                            
+            if (currentStandbyJournalVarrayId.equals(newStandbyJournalVarrayId)
+                    && VirtualPool.vPoolSpecifiesHighAvailability(currentStandbyJournalVpool)
+                    && VirtualPool.vPoolSpecifiesHighAvailability(newStandbyJournalVpool)) {
+                // Add Standby Journal for potential migration                    
+                potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.METADATA, Volume.PersonalityTypes.SOURCE,
+                        URI.create(currentStandbyJournalVarrayId), currentStandbyJournalVpool, newStandbyJournalVpool));                           
+            } else {
+                // If the Standby Journal vpools are different and both of the Standby Journal vpools do not specify HA, 
+                // then exclude this new vpool for RP+VPLEX migration.
+                notSuppReasonBuff.append("Not valid for migration due to changes in RP Standby Journal virtual pool / virtual array.");
+                invalidMigration = true;
+            }                        
+        }            
+        
+        return invalidMigration;
+    }
+    
+    /**
+     * Determines if there are any Target Journal migrations and adds them to the 
+     * potentialMigrations container.
+     * 
+     * @param volume The change vpool volume
+     * @param currentVpool The change vpool volume's current vpool
+     * @param newVpool The target vpool to move to
+     * @param potentialMigrations Container for migrations
+     * @param notSuppReasonBuff Buffer for not supported reasons
+     * @param dbClient DbClient instance
+     * @param currentProtectionVarraySetting Current vpool protection settings
+     * @param newProtectionVarraySetting New vpool protection settings
+     * @param targetVarrayId Current target varray ID
+     * @return true if invalid migration, false otherwise
+     */
+    private static boolean determineRPTargetJournalMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
+            List<RPVPlexMigration> potentialMigrations, StringBuffer notSuppReasonBuff, DbClient dbClient, 
+            VpoolProtectionVarraySettings currentProtectionVarraySetting, VpoolProtectionVarraySettings newProtectionVarraySetting, 
+            String targetVarrayId) {
+        boolean invalidMigration = false;
+        
+        // Current Target Journal varray/vpool
+        String currentTargetJournalVarrayId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+                .getJournalVarray());
+        String currentTargetJournalVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+                .getJournalVpool());
+
+        // New Target Journal varray/vpool
+        String newTargetJournalVarrayId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
+                .getJournalVarray());
+        String newTargetJournalVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
+                .getJournalVpool());
+
+        // If the current Target Journal varray/vpool are not set, default them to known values.
+        if (currentTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            currentTargetJournalVarrayId = targetVarrayId;
+        }
+        if (currentTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+            currentTargetJournalVpoolId = currentVpool.getId().toString();
+        }
+
+        // If the current Target Journal varray/vpool is not set, default it to the known value.
+        if (newTargetJournalVarrayId.equals(NullColumnValueGetter.getNullStr())) {
+            newTargetJournalVarrayId = targetVarrayId;
+        }
+        if (newTargetJournalVpoolId.equals(NullColumnValueGetter.getNullStr())) {
+            newTargetJournalVpoolId = newVpool.getId().toString();
+        }
+        
+        VirtualPool currentTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetJournalVpoolId));
+        VirtualPool newTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetJournalVpoolId));
+        
+        // Only consider the Target Journal migration if the varrays are the same and the vpools
+        // are different and both specify HA.
+        if (!currentTargetJournalVpoolId.equals(newTargetJournalVpoolId)) {                                            
+            if (currentTargetJournalVarrayId.equals(newTargetJournalVarrayId)
+                    && VirtualPool.vPoolSpecifiesHighAvailability(currentTargetJournalVpool)
+                    && VirtualPool.vPoolSpecifiesHighAvailability(newTargetJournalVpool)) {
+                // Add Target Journal for potential migration                    
+                potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.METADATA, Volume.PersonalityTypes.TARGET,
+                        URI.create(currentTargetJournalVarrayId), currentTargetJournalVpool, newTargetJournalVpool));                           
+            } else {
+                // If the Target Journal vpools are different and both of the Target Journal vpools do not specify HA, 
+                // then exclude this new vpool for RP+VPLEX migration.
+                notSuppReasonBuff.append("Not valid for migration due to changes in RP Target Journal virtual pool / virtual array.");
+                invalidMigration = true;
+            }                        
+        }             
+        
+        return invalidMigration;
     }
 }

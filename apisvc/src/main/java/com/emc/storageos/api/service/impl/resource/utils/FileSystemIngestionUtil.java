@@ -133,6 +133,10 @@ public class FileSystemIngestionUtil {
         }
     }
 
+    public static boolean isMirrorFileSystem(UnManagedFileSystem unManagedFileSystem) {
+        return true;
+    }
+
     
     /**
      * Gets and verifies the CoS passed in the request.

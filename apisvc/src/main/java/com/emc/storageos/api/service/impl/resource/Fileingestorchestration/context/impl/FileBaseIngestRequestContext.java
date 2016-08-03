@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.Fileingestorchestration.cont
 
 import com.emc.storageos.api.service.impl.resource.Fileingestorchestration.context.FileIngestionContext;
 import com.emc.storageos.api.service.impl.resource.Fileingestorchestration.context.IngestionFileRequestContext;
+import com.emc.storageos.api.service.impl.resource.utils.FileSystemIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -20,6 +21,30 @@ import java.util.List;
  */
 public class FileBaseIngestRequestContext implements IngestionFileRequestContext {
 
+    private final VirtualPool _vpool;
+    private final VirtualArray _virtualArray;
+    private final Project _project;
+    private final TenantOrg _tenant;
+
+    private final DbClient _dbClient;
+
+
+    private FileIngestionContext _currentFileIngestionContext;
+
+
+
+    private URI _currentUnManagedFileSystemUri;
+
+    private final Iterator<URI> _unManagedFileSystemUrisToProcessIterator;
+
+    public FileBaseIngestRequestContext(VirtualPool _vpool, VirtualArray _virtualArray, Project _project, TenantOrg _tenant, DbClient _dbClient, Iterator<URI> _unManagedFileSystemUrisToProcessIterator) {
+        this._vpool = _vpool;
+        this._virtualArray = _virtualArray;
+        this._project = _project;
+        this._tenant = _tenant;
+        this._dbClient = _dbClient;
+        this._unManagedFileSystemUrisToProcessIterator = _unManagedFileSystemUrisToProcessIterator;
+    }
 
     @Override
     public StorageSystem getStorageSystem() {
@@ -92,6 +117,23 @@ public class FileBaseIngestRequestContext implements IngestionFileRequestContext
         _unManagedFileSystemUrisToProcessIterator.remove();
     }
 
+    /**
+     * Instantiates the correct FileIngestionContext type for the
+     * current UnManagedFileSystem being processed, based on the UnManagedFile type.
+     */
+    protected static class FileIngestionContextFactory {
+
+        public static FileIngestionContext getVolumeIngestionContext(UnManagedFileSystem unManagedFileSystem,
+                                                                       DbClient dbClient, IngestionFileRequestContext parentRequestContext) {
+            if (null == unManagedFileSystem) {
+                return null;
+            } else {
+                return new FileSystemIngestionContext(dbClient, unManagedFileSystem);
+            }
+        }
+
+    }
+
 
     /**
      * Private setter for the current UnManagedFileSystem, used by this class' implementation
@@ -100,7 +142,7 @@ public class FileBaseIngestRequestContext implements IngestionFileRequestContext
      * @param unManagedFileSystem the UnManagedFileSystem to set
      */
     private void setCurrentUnmanagedFileSystemUri(UnManagedFileSystem unManagedFileSystem) {
-        _currentFileIngestionContext = FileIngestionContextFactory.getVolumeIngestionContext(unManagedFileSystem, _dbClient, this);
+       this._currentFileIngestionContext = FileIngestionContextFactory.getVolumeIngestionContext(unManagedFileSystem, this._db, this);
     }
 
 
@@ -112,25 +154,5 @@ public class FileBaseIngestRequestContext implements IngestionFileRequestContext
 
         return _currentFileIngestionContext.getUnmanagedFileSystem();
     }
-
-
-
-    private final VirtualPool _vpool;
-    private final VirtualArray _virtualArray;
-    private final Project _project;
-    private final TenantOrg _tenant;
-
-    private final DbClient _dbClient;
-
-    private final Iterator<URI> _unManagedFileSystemUrisToProcessIterator;
-
-    private FileIngestionContext _currentFileIngestionContext;
-
-
-
-    private URI _currentUnManagedFileSystemUri;
-
-
-
 
 }

@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.nas.vnxfile.xmlapi.TreeQuota;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -1623,36 +1624,38 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         try {
             for (String umfsId : umfsIds) {
                 // Retrieve all the qtree info.
-                List<VNXQuotaTree> qtrees = getAllQuotaTrees(storageSystem, umfsId);
+                List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem, umfsId);
                 if (null != qtrees && !qtrees.isEmpty()) {
                     // List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
                     List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                     List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
 
-                    for (VNXQuotaTree quotaTree : qtrees) {
+                    for (TreeQuota quotaTree : qtrees) {
                         String fsNativeId;
 
                         String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
                                 storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFsId() + "");
+                                storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFileSystem() + "");
 
                         String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber(), quotaTree.getName(), quotaTree.getFsId() + "");
+                                storageSystem.getSerialNumber(), quotaTree.getTree(), quotaTree.getFileSystem() + "");
 
                         String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
                                 storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber(), quotaTree.getName(), quotaTree.getFsId() + "");
+                                storageSystem.getSerialNumber(), quotaTree.getTree(), quotaTree.getFileSystem() + "");
                         if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                             continue;
                         }
 
                         UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                         unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
-                        unManagedFileQuotaDirectory.setLabel(quotaTree.getName());
+                        unManagedFileQuotaDirectory.setLabel(quotaTree.getTree());
                         unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                         unManagedFileQuotaDirectory.setParentFSNativeGuid(fsUnManagedFsNativeGuid);
                         unManagedFileQuotaDirectory.setOpLock(false);
-                        unManagedFileQuotaDirectory.setSize(Long.valueOf(quotaTree.getSize()));
+                        if (quotaTree.getLimits() != null) {
+                            unManagedFileQuotaDirectory.setSize(Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()));
+                        }
 
                         if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
                             unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -3082,23 +3085,27 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return fileSystems;
     }
 
-    private List<VNXQuotaTree> getAllQuotaTrees(final StorageSystem system, String umfsId)
+    private List<TreeQuota> getAllQuotaTrees(final StorageSystem system, String umfsId)
             throws VNXException {
 
-        List<VNXQuotaTree> quotaTrees = null;
-        List<VNXQuotaTree> tempQuotaTrees = null;
+        List<TreeQuota> quotaTrees = new ArrayList<TreeQuota>();
+        List<TreeQuota> tempQuotaTrees = null;
 
+        Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
+        reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+        _discExecutor.setKeyMap(reqAttributeMap);
         _discExecutor.getKeyMap().put(VNXFileConstants.FILESYSTEM_ID, umfsId);
         try {
 
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxallquotas"));
 
-            tempQuotaTrees = (ArrayList<VNXQuotaTree>) _discExecutor.getKeyMap()
+            tempQuotaTrees = (ArrayList<TreeQuota>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.QUOTA_DIR_LIST);
 
             if (null != tempQuotaTrees && !tempQuotaTrees.isEmpty()) {
                 quotaTrees.addAll(tempQuotaTrees);
+                _logger.info("Found {} Quota directories for FileSystem Id {} ", tempQuotaTrees.size(), umfsId);
             } else {
                 _logger.info("No Quota directories found for FileSystem Id:" + umfsId);
             }

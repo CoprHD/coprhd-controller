@@ -507,12 +507,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 List<Initiator> addedInitiators = new ArrayList<Initiator>();
                 discoverConnectedHostInitiators(source, target, oldInitiators, addedInitiators);
 
-                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI)
-                        ? NullColumnValueGetter.isNullURI(cluster.getId())
-                        : cluster.getId() != null && oldClusterURI.toString().equals(cluster.getId().toString()));
+                URI targetCluster = cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI();
+
+                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(targetCluster)
+                        : targetCluster != null && oldClusterURI.toString().equals(target.getCluster().toString()));
 
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
-                    changes.add(new HostStateChange(target, oldClusterURI, cluster.getId(), oldInitiators, addedInitiators));
+                    changes.add(new HostStateChange(target, oldClusterURI, targetCluster, oldInitiators, addedInitiators));
                 }
             }
             else {

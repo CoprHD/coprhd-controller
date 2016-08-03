@@ -125,10 +125,6 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
         updateStatus(Status.suspended_no_error.name());
     }
     
-    public void suspendedError() {
-        suspendedNoError("Operation has been suspended due to error");
-    }
-    
     public void suspendedError(String message) {
         setMessage(message);
         updateStatus(Status.suspended_error.name());

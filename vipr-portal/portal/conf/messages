@@ -3248,9 +3248,15 @@ resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event
 resources.events.declineEvent=Decline Event
 resources.event.approved=Approved event %s
+resources.event.approved.multiple=Approved the selected events successfully.
 resources.event.declined=Declined event %s
+resources.event.declined.multiple=Declined the selected events successfully.
 resources.event.deleted=Deleted event %s
+resources.event.deleted.multiple=Deleted the selected events successfully.
 resources.event.unknown=Unknown event %s
+resources.events.approve=Are you sure you want to approve all the selected event(s)?
+resources.events.decline=Are you sure you want to decline all the selected event(s)?
+resources.events.delete=Are you sure you want to delete all the selected event(s)?
 events.eventStatus=Status
 events.name=Name
 events.description=Description
@@ -3260,6 +3266,7 @@ events.event=Event
 events.id=ID
 events.resource=Resource
 events.created=Created
+
 
 resources.tasks=Tasks
 resources.task=Task Details

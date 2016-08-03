@@ -40,9 +40,10 @@ import util.datatable.DataTablesSupport;
 @With(Common.class)
 public class Events extends Controller {
     private static final String UNKNOWN = "resources.event.unknown";
-    private static final String DELETED = "resources.event.deleted";
     private static final String APPROVED = "resources.event.approved";
+    private static final String APPROVED_MUTLIPE = "resources.event.approved.multiple";
     private static final String DECLINED = "resources.event.declined";
+    private static final String DECLINED_MULTIPLE = "resources.event.declined.multiple";
 
     private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
         @Override
@@ -160,14 +161,32 @@ public class Events extends Controller {
         return eventSummaries;
     }
 
-    public static void deleteEvent(String eventId) {
-        if (StringUtils.isNotBlank(eventId)) {
-            getViprClient().events().deactivate(uri(eventId));
-            flash.success(MessagesUtils.get(DELETED, eventId));
+    public static void approveEvents(@As(",") String[] ids) {
+        try{
+            for(String eventId:ids) {
+                getViprClient().events().approve(uri(eventId));
+            }
+            flash.success(MessagesUtils.get(APPROVED_MUTLIPE));
+        } catch(Exception e) {
+            flashException(e);
+            listAll();
         }
         listAll();
     }
-
+    
+    public static void declineEvents(@As(",") String[] ids) {
+        try{
+            for(String eventId:ids) {
+                getViprClient().events().decline(uri(eventId));
+            }
+            flash.success(MessagesUtils.get(DECLINED_MULTIPLE));
+        } catch(Exception e) {
+            flashException(e);
+            listAll();
+        }
+        listAll();
+    }
+    
     public static void approveEvent(String eventId) {
         try {
             if (StringUtils.isNotBlank(eventId)) {

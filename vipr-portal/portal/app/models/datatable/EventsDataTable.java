@@ -25,7 +25,7 @@ public class EventsDataTable extends DataTable {
 
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
-        addColumn("id").hidden().setSearchable(false);
+        addColumn("id").hidden();
         addColumn("name");
         addColumn("eventStatus");
         if (addResourceColumn) {
@@ -34,7 +34,7 @@ public class EventsDataTable extends DataTable {
         }
         addColumn("creationTime").setRenderFunction("render.localDate");
         setDefaultSort("creationTime", "desc");
-
+        sortAllExcept("id");
         setRowCallback("createRowLink");
     }
 

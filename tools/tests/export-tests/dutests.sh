@@ -2840,7 +2840,7 @@ then
    done
 else
    # Passing tests:
-    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
     do
       reset_system_props
       test_${num}
@@ -2848,6 +2848,10 @@ else
     done
 fi
 
+   echo There were $VERIFY_EXPORT_COUNT export verifications
+   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+   echo `date`
+   echo `git status | grep 'On branch'`
 if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi

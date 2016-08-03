@@ -6,6 +6,9 @@ package com.emc.storageos.util;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ActionableEvent;
@@ -14,8 +17,11 @@ import com.emc.storageos.db.client.model.NamedURI;
 
 public class EventUtil {
 
-    private EventUtil() {};
-    
+    private static Logger log = LoggerFactory.getLogger(EventUtil.class);
+
+    private EventUtil() {
+    };
+
     /**
      * Creates an actionable event and persists to the database
      * 
@@ -50,6 +56,9 @@ public class EventUtil {
         }
         event.setLabel(name);
         dbClient.createObject(event);
+        log.info("Created Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Approve Method: " + approveMethod
+                + " Decline Method: " + declineMethod);
     }
 
     /**

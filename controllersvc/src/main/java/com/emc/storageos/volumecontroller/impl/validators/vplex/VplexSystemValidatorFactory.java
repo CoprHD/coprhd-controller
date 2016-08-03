@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
@@ -109,7 +110,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
             logger = new ValidatorLogger(log);
             VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, coordinator, logger);
             vplexVolumeValidator.validateVolumes(storageSystem, volumes, delete, remediate, checks);
-            if (logger.hasErrors()) {
+            if (logger.hasErrors() && DefaultValidator.validationEnabled(coordinator)) {
                 throw DeviceControllerException.exceptions.validationError("vplex volume(s)",
                         logger.getMsgs().toString(), ValidatorLogger.INVENTORY_DELETE_VOLUME);
             }

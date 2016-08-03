@@ -226,17 +226,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                 // Step 2: Add initiators to all HSD's.
                 hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
                         systemObjectID, hsdResponseList, storagePorts, initiatorList, storage.getModel());
-                List<HostStorageDomain> hsdsWithInitiatorsAndTarget = new ArrayList<>();
-                for (HostStorageDomain hsdWithInitiators : hsdsWithInitiators) {
-                    for (URI uri : targetURIList) {
-                        StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);
-                        if(hsdWithInitiators.getPortID().equals(storagePort.getPortName()))
-                            hsdsWithInitiatorsAndTarget.add(hsdWithInitiators);
-                    }
-                }
                 // Step 3: Add volumes to all HSD's.
                 List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
-                        systemObjectID, hsdsWithInitiatorsAndTarget, volumeURIHLUs, storage.getModel());
+                        systemObjectID, hsdsWithInitiators, volumeURIHLUs, storage.getModel());
 
                 if (null != allHSDPaths && !allHSDPaths.isEmpty()) {
                     updateExportMaskDetailInDB(hsdsWithInitiators, allHSDPaths,

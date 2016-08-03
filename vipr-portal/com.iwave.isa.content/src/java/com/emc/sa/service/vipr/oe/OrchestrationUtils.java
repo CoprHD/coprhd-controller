@@ -169,6 +169,9 @@ public class OrchestrationUtils {
     public static boolean isWorkflowRunning(String workflowResponse) {
         Workflow oeWorkflow = 
                 getWorkflowObjFromJson(workflowResponse);  
+        
+        //TODO: IF NOT RACKHD REPONSE, TRY PARSING AS ANSIBLE RESPONSE
+        
         String status = oeWorkflow.get_status();   
         return status.equalsIgnoreCase(WORKFLOW_PENDING_STATE);
     }
@@ -389,5 +392,24 @@ public class OrchestrationUtils {
             e.printStackTrace();
         }
         return responseString;
+    }
+
+    //TODO: make startAnsible() so it works in both these cases (for Service & Provider)
+    
+    public static String startAnsible(Map<String, Object> params, String workflowName, String playbookNameList) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public static String startAnsible2(Map<String, String> parentAssetParams, String thisAssetType,
+            String thisAssetType2) {
+        // TODO Auto-generated method stub
+        return null;
+        
+    }
+
+    public static String getAnsibleStatus(String workflowResponse) {
+        //TODO: use workflowResponse to locate ansible file with results, and get status and/or contents of result file(s)
+        return null;
     }
 }

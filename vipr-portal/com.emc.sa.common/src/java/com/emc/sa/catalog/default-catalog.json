@@ -734,8 +734,12 @@
       "description": "oe_services.description",
       "services": [
         { 
+          "image": "icon_orchestration.png", 
+          "baseService": "OrchestrationService"
+        },
+        {
           "image": "icon_orchestration.png",
-          "baseService": "OrchestrationService" 
+          "baseService": "OrchestrationAnsibleService" 
         }
       ]
     } 

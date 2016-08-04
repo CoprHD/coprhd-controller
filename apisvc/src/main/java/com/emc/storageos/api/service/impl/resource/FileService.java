@@ -2047,8 +2047,8 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        List<MountInfo> unmountList = isExportMounted(id, subDir, param);
-        if (!(unmount || unmountList.isEmpty()) && unmountList != null) {
+        List<MountInfo> unmountList = getMountedExports(id, subDir, param);
+        if (unmount && !unmountList.isEmpty()) {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
 
@@ -2136,7 +2136,7 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        if (isExportMounted(id, subDir, allDirs)) {
+        if (!unmount && isExportMounted(id, subDir, allDirs)) {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
 
@@ -4156,11 +4156,11 @@ public class FileService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.UNMOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN, param.getHostId(), param.getMountPath());
 
-        fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::unmount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
-                fs.getOpStatus().get(task).getStatus());
+        FileShare updatedfs = _dbClient.queryObject(FileShare.class, fs.getId());
+        _log.debug("FileService::unmount Before sending response, FS ID : {}, Taks : {} ; Status {}", updatedfs.getOpStatus().get(task),
+                updatedfs.getOpStatus().get(task).getStatus());
 
-        return toTask(fs, task, op);
+        return toTask(updatedfs, task, op);
     }
 
     private List<MountInfo> getAllMounts(URI resId) {
@@ -4180,7 +4180,7 @@ public class FileService extends TaskResourceService {
         if (mountList == null || mountList.isEmpty()) {
             return false;
         }
-        if (allDirs && !mountList.isEmpty()) {
+        if (allDirs) {
             return true;
         }
         if (!(allDirs || mountList.isEmpty())) {
@@ -4193,43 +4193,54 @@ public class FileService extends TaskResourceService {
         return false;
     }
 
-    private List<MountInfo> isExportMounted(URI fsId, String subDir, FileShareExportUpdateParams param) {
+    private List<MountInfo> getMountedExports(URI fsId, String subDir, FileShareExportUpdateParams param) {
         List<MountInfo> mountList = getAllMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
-        List<ExportRule> exportList = new ArrayList<ExportRule>();
-        Map<ExportRule, List<String>> filteredExports = null;
         if (param.getExportRulesToDelete() != null) {
-            exportList.addAll(param.getExportRulesToDelete().getExportRules());
-            filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
-            for (MountInfo mount : mountList) {
-                if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
-                        || mount.getSubDirectory().equals(subDir)) {
-                    String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-                    for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
-                            unmountList.add(mount);
-                        }
-                    }
-                }
-            }
+            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
         }
         if (param.getExportRulesToModify() != null) {
-            exportList.clear();
-            exportList.addAll(param.getExportRulesToModify().getExportRules());
-            filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
-            for (MountInfo mount : mountList) {
-                String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-                if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
-                        || mount.getSubDirectory().equals(subDir)) {
-                    for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
-                            unmountList.add(mount);
-                        }
+            unmountList.addAll(getModifyRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
+        }
+
+        return unmountList;
+    }
+
+    private List<MountInfo> getModifyRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<ExportRule> exportList = new ArrayList<ExportRule>();
+        exportList.addAll(rules.getExportRules());
+        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
+        for (MountInfo mount : mountList) {
+            String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
+                    || mount.getSubDirectory().equals(subDir)) {
+                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
+                        unmountList.add(mount);
                     }
                 }
             }
         }
+        return unmountList;
+    }
 
+    private List<MountInfo> getDeleteRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<ExportRule> exportList = new ArrayList<ExportRule>();
+        exportList.addAll(rules.getExportRules());
+        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
+        for (MountInfo mount : mountList) {
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
+                    || mount.getSubDirectory().equals(subDir)) {
+                String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
+                        unmountList.add(mount);
+                    }
+                }
+            }
+        }
         return unmountList;
     }
 

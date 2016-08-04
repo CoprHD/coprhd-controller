@@ -97,7 +97,7 @@
             </div>
           </div>
   
-   		  #{if service.schedulerAllowed}
+   		  
    		    <collapse title="&{'scheduler.title'}">
    		          <div class="form-group">
 				     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
@@ -113,7 +113,7 @@
 				   
   		       	   #{Services.scheduler /}
   		    </collapse> 
-  		  #{/if}
+  		  
   		  
           <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">
             <span class="label label-warning"><i v-icon='exclamation-sign'></i></span>

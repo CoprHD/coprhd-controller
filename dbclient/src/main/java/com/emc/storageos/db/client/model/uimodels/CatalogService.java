@@ -26,7 +26,7 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     public static final String MAX_SIZE = "maxSize";
     public static final String CATALOG_CATEGORY_ID = "catalogCategoryId";
     public static final String SORTED_INDEX = "sortedIndex";
-    public static final String SCHEDULER_ALLOWED = "schedulerAllowed";
+    public static final String RECURRING_ALLOWED = "recurringAllowed";
 
     private String title;
 
@@ -48,7 +48,7 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
 
     private Integer sortedIndex;
     
-    private Boolean schedulerAllowed = DEFAULT_SCHEDULER_ALLOWED;
+    private Boolean recurringAllowed = DEFAULT_SCHEDULER_ALLOWED;
 
     @Name(TITLE)
     public String getTitle() {
@@ -155,14 +155,14 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
         setChanged(SORTED_INDEX);
     }
     
-    @Name(SCHEDULER_ALLOWED)
-    public Boolean getSchedulerAllowed() {
-        return schedulerAllowed;
+    @Name(RECURRING_ALLOWED)
+    public Boolean getRecurringAllowed() {
+        return recurringAllowed;
     }
 
-    public void setSchedulerAllowed(Boolean schedulerAllowed) {
-        this.schedulerAllowed = schedulerAllowed;
-        setChanged(SCHEDULER_ALLOWED);
+    public void setRecurringAllowed(Boolean recurringAllowed) {
+        this.recurringAllowed = recurringAllowed;
+        setChanged(RECURRING_ALLOWED);
     }
 
     @Override

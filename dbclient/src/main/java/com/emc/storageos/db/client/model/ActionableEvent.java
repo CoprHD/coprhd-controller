@@ -95,7 +95,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
         return this;
     }
 
-    @NamedRelationIndex(cf = "ActionableEvent", types = { Host.class, Initiator.class, Cluster.class, Vcenter.class,
+    @NamedRelationIndex(cf = "Event", types = { Host.class, Initiator.class, Cluster.class, Vcenter.class,
             VcenterDataCenter.class })
     @Name("resource")
     public NamedURI getResource() {

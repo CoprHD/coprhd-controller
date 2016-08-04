@@ -224,7 +224,7 @@ public class Events extends Controller {
         public String resourceName;
         public URI resourceId;
         public String eventStatus;
-        public int eventCode;
+        public String eventCode;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();

@@ -49,7 +49,7 @@ public class EventsDataTable extends DataTable {
         public String description;
         public Long creationTime;
         public String eventStatus;
-        public int eventCode;
+        public String eventCode;
 
         public Event(EventRestRep eventRestRep) {
             load(eventRestRep);

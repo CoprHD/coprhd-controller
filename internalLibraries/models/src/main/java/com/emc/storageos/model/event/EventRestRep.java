@@ -23,7 +23,7 @@ public class EventRestRep extends DataObjectRestRep {
     private String description;
     private NamedRelatedResourceRep resource;
     private String eventStatus;
-    private int eventCode;
+    private String eventCode;
 
     private RelatedResourceRep tenant;
 
@@ -67,11 +67,11 @@ public class EventRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "event_code")
-    public int getEventCode() {
+    public String getEventCode() {
         return eventCode;
     }
 
-    public void setEventCode(int eventCode) {
+    public void setEventCode(String eventCode) {
         this.eventCode = eventCode;
     }
 }

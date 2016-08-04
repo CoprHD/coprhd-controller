@@ -143,7 +143,7 @@ public class QuotaCommands {
                 quota.setVolume(quotaElem.getChildContent("volume"));
                 quota.setQuotaTarget(quotaElem.getChildContent("quota-target"));
                 quota.setQuotaType(quotaElem.getChildContent("quota-type"));
-                quota.setQtree(quotaElem.getChildContent("tree"));
+                quota.setQtree(quotaElem.getChildContent("qtree"));
                 quota.setDiskLimit(quotaElem.getChildContent("disk-limit"));
                 quota.setFileLimit(quotaElem.getChildContent("file-limit"));
                 quota.setSoftDiskLimit(quotaElem.getChildContent("soft-disk-limit"));

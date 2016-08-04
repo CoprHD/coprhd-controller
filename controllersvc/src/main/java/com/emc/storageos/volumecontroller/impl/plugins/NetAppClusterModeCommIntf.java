@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,8 @@ import com.iwave.ext.netapp.model.SecurityRuleInfo;
 import com.iwave.ext.netappc.SVMNetInfo;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 import com.iwave.ext.netappc.model.CifsAcl;
+
+
 
 public class NetAppClusterModeCommIntf extends
         ExtendedCommunicationInterfaceImpl {
@@ -411,10 +415,31 @@ public class NetAppClusterModeCommIntf extends
 
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+                String tempVolume=null;
+                String tempQuotaTree=null;
+                String tempQuotaTarget=null;
 
                 for (Quota quota : quotas) {
-                    if (quota.getQtree() == null) {
-                        continue;
+                    /* Temporary fix TODO 
+                     * Fix for situations where QuotaTree is null
+                     * Extracting QuotaTree id from quotaTarget.
+                     */
+                    if ("".equals(quota.getQtree())) {
+                        tempQuotaTarget = quota.getQuotaTarget();
+                        tempVolume = quota.getVolume();
+                        if (!"".equals(tempVolume)) {
+                            Pattern pattern = Pattern.compile(tempVolume + "/(.*$)");
+                            Matcher matcher = pattern.matcher(tempQuotaTarget);
+                            if (matcher.find()) {
+                                tempQuotaTree = matcher.group(1);
+                            }
+                            if ("".equals(tempQuotaTree)) {
+                                continue;
+                            }
+                            quota.setQtree(tempQuotaTree);
+                        } else {
+                            continue;
+                        }
                     }
                     String fsNativeId;
                     if (quota.getVolume().startsWith(VOL_ROOT)) {

@@ -7,7 +7,6 @@ package controllers.arrays;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 
-
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
@@ -29,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jobs.vipr.AutoTierPolicyNamesCall;
 import jobs.vipr.ConnectedBlockVirtualPoolsCall;
 import jobs.vipr.TenantsCall;
 import jobs.vipr.VirtualArraysCall;
@@ -116,6 +116,7 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String VMAX_DIAMOND_DESC = "Virtual Pool for EMC VMAX all Flash Storage";
     private static final String XIO_DIAMOND_DESC = "Virtual Pool for EMC XtremIO Storage";
     private static final String UNITY_DIAMOND_DESC = "Virtual Pool for EMC UNITY Storage";
+    private static final String DEFAULT_AUTO_TIER = "Diamond SLO (0.8ms)";
  
 
     public static void list() {
@@ -833,6 +834,28 @@ public class BlockVirtualPools extends ViprResourceController {
 		vpool.systemType = storageType;
 		vpool.virtualArrays = virtualarrayIds;
 		vpool.description = vpdesc;
+
+		// Check if creating a vmax AFA virtual pool, need to set auto-tiering
+		if(StringUtils.equals(VMAX, storageType)) {
+			vpool.uniqueAutoTierPolicyNames = true;
+			boolean isAutoTier = false;
+			AutoTierPolicyNamesCall auto_tiering = vpool.autoTierPolicyNames();
+			List<String> autoPolicyList = auto_tiering.call();
+			for(String policy: autoPolicyList) {
+				if(StringUtils.equals(DEFAULT_AUTO_TIER, policy)) {
+					vpool.autoTierPolicy = policy;
+					isAutoTier = true;
+					break;
+				}
+			}
+
+			if(!isAutoTier) { //This means we did not find the pattern, set random
+				for(String policy: autoPolicyList) {
+					vpool.autoTierPolicy = policy;
+					break;
+				}
+			}
+		}
 
 		BlockVirtualPoolRestRep vpoolTask = vpool.save();
 		if (vpoolTask != null) {

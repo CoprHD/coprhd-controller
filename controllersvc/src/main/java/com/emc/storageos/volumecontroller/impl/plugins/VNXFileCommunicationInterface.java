@@ -1643,9 +1643,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         // Ignore / from QD path
                         qdName = quotaTree.getPath().substring(1);
                     }
-                    String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                    
+                    String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem.getSystemType(),
-                            storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFileSystem() + "");
+                            storageSystem.getSerialNumber(), quotaTree.getFileSystem() + "");
 
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
@@ -1662,7 +1663,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     unManagedFileQuotaDirectory.setLabel(qdName);
 
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
-                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsUnManagedFsNativeGuid);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGuid);
                     unManagedFileQuotaDirectory.setOpLock(false);
                     if (quotaTree.getLimits() != null) {
                         unManagedFileQuotaDirectory.setSize(

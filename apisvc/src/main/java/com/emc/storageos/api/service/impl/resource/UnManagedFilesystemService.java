@@ -659,16 +659,12 @@ public class UnManagedFilesystemService extends TaggedResource {
     }
 
     private void ingestFileQuotaDirectories(FileShare parentFS) throws IOException {
+        String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
 
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, parentFS.getStorageDevice());
-        
-        String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
-                system.getSystemType(), system.getSerialNumber().toUpperCase(), parentFS.getNativeId());
-        
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(fsUnManagedFsNativeGuid), result);
+                .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
         List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, result);
         _logger.info("found {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {

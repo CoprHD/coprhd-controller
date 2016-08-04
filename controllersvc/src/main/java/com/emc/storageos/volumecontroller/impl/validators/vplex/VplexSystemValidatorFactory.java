@@ -12,7 +12,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -20,11 +19,11 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -37,7 +36,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
 
     private static final Logger log = LoggerFactory.getLogger(VplexSystemValidatorFactory.class);
     private DbClient dbClient;
-    private CoordinatorClient coordinator;
+    private ValidatorConfig config;
 
     private final List<Volume> remediatedVolumes = Lists.newArrayList();
     private VPlexApiClient client;
@@ -47,8 +46,8 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         this.dbClient = dbClient;
     }
 
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
+    public void setConfig(ValidatorConfig config) {
+        this.config = config;
     }
 
     /**
@@ -72,7 +71,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
             Collection<Initiator> initiatorList) {
         checkVplexConnectivity(storage);
         logger = new ValidatorLogger(log);
-        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, coordinator, logger, storage, exportMask);
+        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, storage, exportMask);
         validator.setVolumesToValidate(volumeURIList);
         validator.setInitiatorsToValidate(initiatorList);
         return validator;
@@ -83,7 +82,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         checkVplexConnectivity(storage);
         logger = new ValidatorLogger(log);
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, coordinator, logger, storage, exportMask);
+        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, storage, exportMask);
         validator.setInitiatorsToValidate(initiators);
         return validator;
     }
@@ -92,7 +91,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
         checkVplexConnectivity(storage);
         logger = new ValidatorLogger(log);
-        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, coordinator, logger, storage, exportMask);
+        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, storage, exportMask);
         validator.setVolumesToValidate(volumeURIList);
         return validator;
     }
@@ -108,9 +107,9 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         checkVplexConnectivity(storageSystem);
         try {
             logger = new ValidatorLogger(log);
-            VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, coordinator, logger);
+            VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, config, logger);
             vplexVolumeValidator.validateVolumes(storageSystem, volumes, delete, remediate, checks);
-            if (logger.hasErrors() && DefaultValidator.validationEnabled(coordinator)) {
+            if (logger.hasErrors() && config.validationEnabled()) {
                 throw DeviceControllerException.exceptions.validationError("vplex volume(s)",
                         logger.getMsgs().toString(), ValidatorLogger.INVENTORY_DELETE_VOLUME);
             }

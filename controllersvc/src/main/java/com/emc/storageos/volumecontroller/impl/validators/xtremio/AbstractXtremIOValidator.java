@@ -4,13 +4,12 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 
@@ -51,8 +50,8 @@ public abstract class AbstractXtremIOValidator implements Validator {
         return factory.getDbClient();
     }
 
-    public CoordinatorClient getCoordinator() {
-        return factory.getCoordinator();
+    public ValidatorConfig getConfig() {
+        return factory.getConfig();
     }
 
     public XtremIOClientFactory getClientFactory() {
@@ -65,7 +64,7 @@ public abstract class AbstractXtremIOValidator implements Validator {
 
     public void checkForErrors() {
         if (getLogger().hasErrors() && errorOnMismatch) {
-            if (DefaultValidator.validationEnabled(getCoordinator())) {
+            if (getConfig().validationEnabled()) {
                 throw DeviceControllerException.exceptions.validationError(
                         "Export Mask", getLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
             }

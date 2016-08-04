@@ -10,10 +10,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -39,9 +38,9 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
     VPlexApiClient client = null;
     String id = null; // identifying string for ExportMask
 
-    public VplexExportMaskValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger, StorageSystem vplex,
-            ExportMask mask) {
-        super(dbClient, coordinator, logger);
+    public VplexExportMaskValidator(DbClient dbClient, ValidatorConfig config, ValidatorLogger logger, StorageSystem vplex,
+                                    ExportMask mask) {
+        super(dbClient, config, logger);
         this.vplex = vplex;
         this.mask = mask;
         id = String.format("%s (%s)(%s)", mask.getMaskName(), mask.getNativeId(), mask.getId().toString());
@@ -75,13 +74,13 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 return false;
             }
             log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            if (DefaultValidator.validationEnabled(coordinator)) {
+            if (config.validationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask: " + ex.getMessage());
             }
         }
         if (logger.hasErrors()) {
-            if (DefaultValidator.validationEnabled(coordinator)) {
+            if (config.validationEnabled()) {
                 throw DeviceControllerException.exceptions.validationError(
                         "Export Mask", logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
             }

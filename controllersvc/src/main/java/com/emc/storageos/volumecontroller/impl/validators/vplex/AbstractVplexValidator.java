@@ -4,18 +4,18 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 
 public class AbstractVplexValidator {
     protected DbClient dbClient;
-    protected CoordinatorClient coordinator;
+    protected ValidatorConfig config;
     protected ValidatorLogger logger;
 
-    public AbstractVplexValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger) {
+    public AbstractVplexValidator(DbClient dbClient, ValidatorConfig config, ValidatorLogger logger) {
         this.dbClient = dbClient;
-        this.coordinator = coordinator;
+        this.config = config;
         this.logger = logger;
     }
 }

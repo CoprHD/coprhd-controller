@@ -24,13 +24,13 @@ public class ChainingValidator implements Validator {
 
     private List<Validator> validators;
     private ValidatorLogger logger;
-    private CoordinatorClient coordinator;
+    private ValidatorConfig config;
     private String type;
 
-    public ChainingValidator(ValidatorLogger logger, CoordinatorClient coordinator, String type) {
+    public ChainingValidator(ValidatorLogger logger, ValidatorConfig config, String type) {
         validators = Lists.newArrayList();
         this.logger = logger;
-        this.coordinator = coordinator;
+        this.config = config;
         this.type = type;
     }
 
@@ -46,13 +46,13 @@ public class ChainingValidator implements Validator {
             }
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            if (DefaultValidator.validationEnabled(coordinator)) {
+            if (config.validationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
 
         if (logger.hasErrors()) {
-            if (DefaultValidator.validationEnabled(coordinator)) {
+            if (config.validationEnabled()) {
                 throw DeviceControllerException.exceptions.validationError(
                         type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
             }

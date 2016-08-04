@@ -4,11 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 
 /**
@@ -43,8 +43,8 @@ public abstract class AbstractSMISValidator implements Validator {
         return factory.getDbClient();
     }
 
-    public CoordinatorClient getCoordinator() {
-        return factory.getCoordinator();
+    public ValidatorConfig getConfig() {
+        return factory.getConfig();
     }
 
     public SmisCommandHelper getHelper() {

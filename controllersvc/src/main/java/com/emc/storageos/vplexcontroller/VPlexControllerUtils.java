@@ -616,14 +616,16 @@ public class VPlexControllerUtils {
             // if init is in userAddedInitiators now, but also in existing initiators,
             // we should remove it from existing initiators
             List<String> initiatorsToRemoveFromExisting = new ArrayList<String>();
-            for (String initWwn : discoveredInitiators) {
-                Initiator managedInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initWwn), dbClient);
-                if (!isRemoveOperation && (exportMask.hasUserInitiator(initWwn) || 
-                        (managedInitiator != null && exportMask.hasInitiator(managedInitiator.getId().toString())))
-                        && exportMask.hasExistingInitiator(initWwn)) {
-                    log.info("\texisting initiators contain id {}, but it is also in "
-                            + "user added inits, removing from existing inits", initWwn);
-                    initiatorsToRemoveFromExisting.add(initWwn);
+            if (!isRemoveOperation) {
+                for (String initWwn : discoveredInitiators) {
+                    Initiator managedInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initWwn), dbClient);
+                    if ((exportMask.hasUserInitiator(initWwn) || 
+                            (managedInitiator != null && exportMask.hasInitiator(managedInitiator.getId().toString())))
+                            && exportMask.hasExistingInitiator(initWwn)) {
+                        log.info("\texisting initiators contain id {}, but it is also in "
+                                + "user added inits, removing from existing inits", initWwn);
+                        initiatorsToRemoveFromExisting.add(initWwn);
+                    }
                 }
             }
 
@@ -656,16 +658,18 @@ public class VPlexControllerUtils {
 
             // if volume is in userAddedVolumes now, but also in existing volumes,
             // we should remove it from existing volumes
-            for (String wwn : discoveredVolumes.keySet()) {
-                if (!isRemoveOperation && exportMask.hasExistingVolume(wwn)) {
-                    URIQueryResultList volumeList = new URIQueryResultList();
-                    dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
-                    if (volumeList.iterator().hasNext()) {
-                        URI volumeURI = volumeList.iterator().next();
-                        if (exportMask.hasVolume(volumeURI)) {
-                            log.info("\texisting volumes contain wwn {}, but it is also in the "
-                                    + "export mask's volumes, so removing from existing volumes", wwn);
-                            volumesToRemoveFromExisting.add(wwn);
+            if (!isRemoveOperation) {
+                for (String wwn : discoveredVolumes.keySet()) {
+                    if (exportMask.hasExistingVolume(wwn)) {
+                        URIQueryResultList volumeList = new URIQueryResultList();
+                        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                        if (volumeList.iterator().hasNext()) {
+                            URI volumeURI = volumeList.iterator().next();
+                            if (exportMask.hasVolume(volumeURI)) {
+                                log.info("\texisting volumes contain wwn {}, but it is also in the "
+                                        + "export mask's volumes, so removing from existing volumes", wwn);
+                                volumesToRemoveFromExisting.add(wwn);
+                            }
                         }
                     }
                 }

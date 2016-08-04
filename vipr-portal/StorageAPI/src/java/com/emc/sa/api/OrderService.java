@@ -457,19 +457,24 @@ public class OrderService extends CatalogTaggedResourceService {
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
 
-        if (order.getScheduledEventId()!=null) {
-            throw APIException.badRequests.scheduledOrderNotAllowed("cancel");
-        }
-
         if (!OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SCHEDULED)) {
             throw APIException.badRequests.unexpectedValueForProperty("orderStatus", OrderStatus.SCHEDULED.toString(),
                     order.getOrderStatus());
         }
 
-        orderManager.deleteOrder(order);
+        if (order.getScheduledEventId()!=null) {
+            ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
+            if (scheduledEvent.getEventType().equals(ScheduledEventType.ONCE)) {
+                scheduledEvent.setEventStatus(ScheduledEventStatus.CANCELLED);
+                client.save(scheduledEvent);
+            }
+            order.setOrderStatus(OrderStatus.CANCELLED.name());
+            client.save(order);
+        } else {
+            orderManager.deleteOrder(order);
+        }
 
         return Response.ok().build();
-
     }
 
     /**
@@ -720,7 +725,7 @@ public class OrderService extends CatalogTaggedResourceService {
             List<ScheduledEvent> scheduledEvents = dataManager.getAllReoccurrenceEvents();
             for (ScheduledEvent event: scheduledEvents) {
                 if (event.getEventStatus() != ScheduledEventStatus.APPROVED) {
-                    log.info("Skipping event {} which is not in APPROVED status.", event.getId());
+                    log.debug("Skipping event {} which is not in APPROVED status.", event.getId());
                     continue;
                 }
 
@@ -728,8 +733,9 @@ public class OrderService extends CatalogTaggedResourceService {
                 Order order = getOrderById(orderId, false);
                 if (! (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
                        OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
-                       OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR)) ) {
-                    log.info("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
+                       OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR) ||
+                       OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.CANCELLED)) ) {
+                    log.debug("Skipping event {} whose latest order {} is not finished yet.", event.getId(), order.getId());
                     continue;
                 }
 

@@ -39,7 +39,7 @@ public class ScheduleTimeHelper {
         startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
         startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
         startTime.set(Calendar.SECOND, 0);
-        log.debug("The first desired scheduled time: {}", startTime.toString());
+        log.info("The first desired scheduled time: {}", startTime.toString());
 
         return startTime;
     }
@@ -79,7 +79,7 @@ public class ScheduleTimeHelper {
                 log.error("not expected schedule cycle.");
         }
 
-        log.debug("The last desired scheduled time: {}", endTime.toString());
+        log.info("The last desired scheduled time: {}", endTime.toString());
         return endTime;
     }
 

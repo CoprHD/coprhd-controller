@@ -1136,9 +1136,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     return;
                 }
 
-                // TODO Check if this is necessary
-                _helper.callRefreshSystem(storage);
-
                 Map<String, List<URI>> volumesByGroup = _helper.groupVolumesBasedOnExistingGroups(storage, parentGroupName, volumeURIList);
                 _log.info("Group Volumes by Storage Group size : {}", volumesByGroup.size());
 

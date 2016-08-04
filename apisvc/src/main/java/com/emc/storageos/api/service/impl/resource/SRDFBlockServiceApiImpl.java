@@ -1422,13 +1422,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         return allowedOperations;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.
-     * model.VolumeGroup)
-     */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
         List<String> groupNames = new ArrayList<String>();

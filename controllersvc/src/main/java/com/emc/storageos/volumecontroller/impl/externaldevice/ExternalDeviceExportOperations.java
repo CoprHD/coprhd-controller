@@ -14,30 +14,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -45,15 +40,18 @@ import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.workflow.WorkflowService;
 
 /**
  * Export operations for storage systems managed by drivers
@@ -191,7 +189,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void deleteExportMask(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, List<URI> targetUris,
+    public void deleteExportMask(StorageSystem storage, URI exportMaskUri, List<URI> volumeUrisList, List<URI> targetUris,
                                  List<com.emc.storageos.db.client.model.Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
 
@@ -202,29 +200,39 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
+            List<URI> volumeUris = new ArrayList<>();
+            StringMap maskVolumes = exportMask.getVolumes();
+            if (maskVolumes != null) {
+                for (String vol : maskVolumes.keySet()) {
+                    URI volumeURI = URI.create(vol);
+                    volumeUris.add(volumeURI);
+                }
+            }
+
             StringSet maskInitiatorUris = exportMask.getInitiators();
             List<String> initiatorUris = new ArrayList<>();
             for (String initiatorUri : maskInitiatorUris) {
                 initiatorUris.add(initiatorUri);
             }
-            log.info("Export mask existing initiators: {} ", initiatorUris);
-
-            StringMap volumes = exportMask.getVolumes();
-            log.info("Export mask existing volumes: {} ", volumes != null ? volumes.keySet() : null);
+            log.info("Export mask initiators: {} ", initiatorUris);
+            log.info("Export mask volumes: {} ", volumeUris);
 
             // Prepare volumes.
             List<StorageVolume> driverVolumes = new ArrayList<>();
             prepareVolumes(storage, volumeUris, driverVolumes);
+
             // Prepare initiators
+            List<Initiator> driverInitiators = new ArrayList<>();
             Set<com.emc.storageos.db.client.model.Initiator>  maskInitiators =
                     ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
-            List<Initiator> driverInitiators = new ArrayList<>();
             // Get export group uri from task completer
             URI exportGroupUri = taskCompleter.getId();
             ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
             prepareInitiators(maskInitiators, exportGroup.forCluster(), driverInitiators);
 
             // Ready to call driver
+            log.info("Initiators to call driver: {} ", maskInitiators);
+            log.info("Volumes to call driver: {} ", volumeUris);
             DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -880,6 +888,17 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         driverInitiator.setNode(initiator.getInitiatorNode());
         driverInitiator.setProtocol(Initiator.Protocol.valueOf(initiator.getProtocol()));
         driverInitiator.setDisplayName(initiator.getLabel());
+
+        // set host OS type
+        driverInitiator.setHostOsType(Initiator.HostOsType.Other);
+        Host host = dbClient.queryObject(Host.class, initiator.getHost());
+        String hostType = host.getType();
+        for (Initiator.HostOsType driverInitiatorHostType : Initiator.HostOsType.values()) {
+            if (hostType.equals(driverInitiatorHostType.toString())) {
+                driverInitiator.setHostOsType(driverInitiatorHostType);
+            }
+        }
+        log.info("Initiator host OS type {}", driverInitiator.getHostOsType());
 
         return driverInitiator;
     }

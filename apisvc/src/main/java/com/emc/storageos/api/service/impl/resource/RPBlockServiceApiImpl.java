@@ -1051,9 +1051,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volumeCreateParam.setVpool(vpool.getId());
             
             boolean createTask = Volume.PersonalityTypes.SOURCE.equals(personality);
-            descriptors.addAll(vplexBlockServiceApiImpl
+            List<VolumeDescriptor> vplexVolumeDescriptors = vplexBlockServiceApiImpl
                     .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool,
-                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes, createTask));
+                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes, createTask);
+            // Set the compute resource into the VPLEX volume descriptors for RP source
+            // volumes so that the compute resource name can be reflected in the volume 
+            // name if the custom volume naming is configured as such.
+            if ((createTask) && (param.getComputeResource() != null)) {
+                for (VolumeDescriptor vplexVolumeDescriptor : vplexVolumeDescriptors) {
+                    vplexVolumeDescriptor.setComputeResource(param.getComputeResource());
+                }
+            }
+            descriptors.addAll(vplexVolumeDescriptors);            
             vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
         } else {
             if (Volume.PersonalityTypes.SOURCE.equals(personality)) {
@@ -2129,7 +2138,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if ((DiscoveredDataObject.Type.vplex.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vmax.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType))
-                || (DiscoveredDataObject.Type.xtremio.name().equals(systemType))) {
+                || (DiscoveredDataObject.Type.xtremio.name().equals(systemType))
+                || (DiscoveredDataObject.Type.unity.name().equals(systemType))) {
 
             // Get the current vpool
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -3707,10 +3717,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         if (removeVolumes != null && !removeVolumes.isEmpty()) {
-            removeVolumesURI = new ArrayList<URI>();
-            for (Volume vol : removeVolumes) {
-                removeVolumesURI.add(vol.getId());
-            }
+            removeVolumesURI = getValidVolumesToRemoveFromCG(removeVolumes);
             if (firstVolume == null) {
                 firstVolume = removeVolumes.get(0);
             }
@@ -3769,6 +3776,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 "Volume has to be added to a different replication group than it is currently in");
                     }
                 }
+                // Check if the backend volume is unity, and the subgroup already has snapshot.
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(volumeList.getReplicationGroupName(), backendVol, _dbClient, true)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "the Unity subgroup has snapshot.");
+                }
+
+            } else {
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(volumeList.getReplicationGroupName(), volume, _dbClient, true)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "the Unity subgroup has snapshot.");
+                }
             }
         }
 
@@ -3778,6 +3796,39 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         outVolumesList.setVolumes(addVolumeURIs);
 
         return outVolumesList;
+    }
+    
+    /**
+     * Get valid volumes to remove for volume group updating
+     * Unity array does not support remove volumes from the CG, which has snapshots.
+     * 
+     * @param removeVolumes The volumes to be removed from the application
+     * @return the validated to-beremoved volumes URI list
+     */
+    List<URI> getValidVolumesToRemoveFromCG(List<Volume> removeVolumes) {
+        List<URI> result = new ArrayList<URI>();
+        for (Volume vol : removeVolumes) {
+            boolean vplex = RPHelper.isVPlexVolume(vol);
+            if (vplex) {
+             // get the backend volume
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(vol, true, _dbClient);
+                if (backendVol != null) {
+                    // Check if the backend volume is unity, and the subgroup already has snapshot.
+                    if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backendVol, _dbClient, false)) {
+                        throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(vol.getLabel(),
+                                "the Unity subgroup has snapshot.");
+                    }
+                }
+            } else {
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, vol, _dbClient, false)) {
+                    throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(vol.getLabel(),
+                            "the Unity subgroup has snapshot.");
+                }
+            }
+            result.add(vol.getId());
+        }
+        return result;
+        
     }
 
     /*

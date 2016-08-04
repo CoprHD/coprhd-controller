@@ -77,6 +77,7 @@ import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotSessionsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
+import com.emc.sa.service.vipr.block.tasks.GetBlockContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -96,6 +97,7 @@ import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
+import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -221,11 +223,52 @@ public class BlockStorageUtils {
     private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
     }
+    
+    private static List<BlockMirrorRestRep> getBlockContinuousCopies(List<URI> uris, URI parentId) {
+        return execute(new GetBlockContinuousCopies(uris, parentId));
+    }
+    
+    /**
+     * Verify that list of volume doesn't contain any dependencies (snapshot, full copies, continuous copy)
+     *
+     * @param volumeIds of the volumes to validate dependencies
+     */
+    public static void verifyVolumeDependencies(List<URI> volumeIds, URI projectId) {
+        List<URI> allBlockResources = Lists.newArrayList(volumeIds);
+        for (URI volumeId : volumeIds) {
+            BlockObjectRestRep volume = getVolume(volumeId);
+            allBlockResources.addAll(getSrdfTargetVolumes(volume));
+            allBlockResources.addAll(getRpTargetVolumes(volume));
+        }
 
+        execute(new VerifyVolumeDependencies(allBlockResources, projectId));
+    }
+
+    /**
+     * Retrieve a list of block resources based on the resource ids provided. This will gather
+     * the appropriate resources based on the resource type of the ids provided.
+     *
+     * @param resourceIds of the resources to retrieve.
+     * @return list of block resources
+     */
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
+        return getBlockResources(resourceIds, null);
+    }
+
+    /**
+     * Retrieve a list of block resources based on the resource ids provided. This will gather
+     * the appropriate resources based on the resource type of the ids provided.
+     *
+     * @param resourceIds of the resources to retrieve.
+     * @param parentId of a continuous copy. This will be null for all other resource types.
+     * @return list of block resources
+     */
+
+    public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds, URI parentId) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         List<URI> blockVolumes = new ArrayList<URI>();
         List<URI> blockSnapshots = new ArrayList<URI>();
+        List<URI> blockContinuousCopies = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
             ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
             switch (volumeType) {
@@ -235,12 +278,16 @@ public class BlockStorageUtils {
                 case BLOCK_SNAPSHOT:
                     blockSnapshots.add(resourceId);
                     break;
+                case BLOCK_CONTINUOUS_COPY:
+                    blockContinuousCopies.add(resourceId);
+                    break;
                 default:
                     break;
             }
         }
         blockResources.addAll(getVolumes(blockVolumes));
         blockResources.addAll(getBlockSnapshots(blockSnapshots));
+        blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
         return blockResources;
     }
 
@@ -731,6 +778,26 @@ public class BlockStorageUtils {
             VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getSrdfRep().getSRDFTargetVolumes()) {
+                    targetVolumes.add(targetVolume.getId());
+                }
+            }
+        }
+
+        return targetVolumes;
+    }
+
+    /**
+     * Return a list of target RP volume for a given block object
+     *
+     * @param blockObject to retrieve target from
+     * @return a list of RP target volumes for specified block object
+     */
+    public static List<URI> getRpTargetVolumes(BlockObjectRestRep blockObject) {
+        List<URI> targetVolumes = Lists.newArrayList();
+        if (blockObject instanceof VolumeRestRep) {
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+                for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getRpRep().getRpTargets()) {
                     targetVolumes.add(targetVolume.getId());
                 }
             }

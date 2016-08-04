@@ -65,6 +65,7 @@ public interface ServiceParams {
     public String FAILBACK_TARGET_FILE = "failbackTargetFile";
     public String IMAGE_TO_ACCESS = "imageToAccess";
     public String POINT_IN_TIME = "pointInTime";
+    public String DIRECT_ACCESS = "directAccess";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";
@@ -78,6 +79,7 @@ public interface ServiceParams {
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
     public String COPIES = "copies";
+    public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
 

@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1048,6 +1049,15 @@ public interface BlockStorageDevice {
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
     
+    /**
+     * Finds the HLUs for a Host or Hosts within Cluster.
+     * 
+     * @param storage StorageSystem on which HLU needs to be determined
+     * @param initiatorURIs List of Initiator URIs. Cluster export will have more than one Initiators from different hosts
+     * @return Map of Initiators to its Volume HLUs
+     * @throws DeviceControllerException If error occurs during the processing
+     */
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException;
     /**
      * Set an Alias for the supplied initiator on a given Storage System
      * 

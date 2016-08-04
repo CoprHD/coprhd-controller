@@ -367,7 +367,9 @@ public class PortMetricsProcessor {
         Double portMetricDouble = portPercentBusy;
 
         // compute port cpu busy if applicable
-        if (type == DiscoveredDataObject.Type.vmax || type == DiscoveredDataObject.Type.vnxblock) {
+        if (type == DiscoveredDataObject.Type.vmax ||
+                type == DiscoveredDataObject.Type.vnxblock ||
+                type == DiscoveredDataObject.Type.vplex) {
             StorageHADomain haDomain = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
             StringMap cpuMap = haDomain.getMetrics();
 
@@ -1360,8 +1362,10 @@ public class PortMetricsProcessor {
         if (StorageSystem.Type.vnxblock.equals(systemType) || StorageSystem.Type.vnxfile.equals(systemType)
                 || StorageSystem.Type.vnxe.equals(systemType)) {
             name = StorageSystem.Type.vnxblock.name();
-        } else if (!StorageSystem.Type.vmax.equals(systemType) && !StorageSystem.Type.hds.equals(systemType)) {
-            // for other system type besides vnx, vmax, hds are categorirzed as "other_arrays"
+        } else if (!StorageSystem.Type.vmax.equals(systemType) &&
+                !StorageSystem.Type.hds.equals(systemType) &&
+                !StorageSystem.Type.vplex.equals(systemType)) {
+            // System types other than vnx, vmax, hds, and vplex are categorized as "other_arrays"
             name = "other_arrays";
         }
         return name;
@@ -1436,7 +1440,8 @@ public class PortMetricsProcessor {
         // if before and after lists are not the same, implied one of the port allocation disqualification status
         // has changed. Then, invoke pool matcher
         if (!disqualifiedPortAfterCompute.equals(disqualifiedPortBeforeCompute)) {
-            ImplicitPoolMatcher.matchStorageSystemPoolsToVPools(storageSystem.getId(), _dbClient, _coordinator);
+            StringBuffer errorMessage = new StringBuffer();
+            ImplicitPoolMatcher.matchStorageSystemPoolsToVPools(storageSystem.getId(), _dbClient, _coordinator, errorMessage);
         }
     }
 

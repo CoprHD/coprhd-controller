@@ -1714,6 +1714,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     public static void updateStoragePoolCapacity(StoragePool dbPool, StorageSystem dbSystem,
                                                  List<URI> reservedObjects, DbClient dbClient) {
+        _log.info(String.format("Update storage pool capacity for pool %s, system %s ", dbPool.getId(),
+                dbSystem.getId()));
         BlockStorageDriver driver = getBlockStorageDriver(dbSystem.getSystemType());
         // refresh the pool
         dbPool = dbClient.queryObject(StoragePool.class, dbPool.getId());
@@ -1722,6 +1724,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 dbPool.getNativeId(), com.emc.storageos.storagedriver.model.StoragePool.class);
         // update pool capacity in db
         if (driverPool != null) {
+            _log.info(String.format("Driver pool %s info: free capacity %s, subscribed capacity %s ", driverPool.getNativeId(),
+                    driverPool.getFreeCapacity(), driverPool.getSubscribedCapacity()));
             dbPool.setFreeCapacity(driverPool.getFreeCapacity());
             dbPool.setSubscribedCapacity(driverPool.getSubscribedCapacity());
         } else {

@@ -216,10 +216,14 @@ public class ScheduledOrders extends Controller {
             String pair[] = startTime.split(":");
             scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
             scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
-            if (recurrence == -1) {
-                recurrence = rangeOfRecurrence;
+            if (recurrence != null) {
+                if (recurrence == -1) {
+                    recurrence = rangeOfRecurrence;
+                }
+                scheduleInfo.setReoccurrence(recurrence);
+            } else {
+                scheduleInfo.setReoccurrence(1)
             }
-            scheduleInfo.setReoccurrence(recurrence);
             scheduleInfo.setDurationLength(3600);
             update.setScheduleInfo(scheduleInfo);
             

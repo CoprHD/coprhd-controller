@@ -25,13 +25,13 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
  */
 public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
-    private MountUtils mountUtils;
+    private LinuxMountUtils mountUtils;
 
-    public MountUtils getMountUtils() {
+    public LinuxMountUtils getMountUtils() {
         return mountUtils;
     }
 
-    public void setMountUtils(MountUtils mountUtils) {
+    public void setMountUtils(LinuxMountUtils mountUtils) {
         this.mountUtils = mountUtils;
     }
 
@@ -41,7 +41,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     @Override
     public void doMount(HostDeviceInputOutput args) throws InternalException {
-        mountUtils = new MountUtils(dbClient.queryObject(Host.class, args.getHostId()));
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, args.getHostId()));
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
         String fsType = args.getFsType() == null ? "auto" : args.getFsType();
@@ -61,7 +61,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     @Override
     public void doUnmount(HostDeviceInputOutput args) throws InternalException {
-        mountUtils = new MountUtils(dbClient.queryObject(Host.class, args.getHostId()));
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, args.getHostId()));
         // unmount the Export
         mountUtils.unmountPath(args.getMountPath());
         // remove from fstab

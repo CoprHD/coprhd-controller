@@ -55,7 +55,7 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
-import com.emc.storageos.computesystemcontroller.hostmountadapters.MountUtils;
+import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -4164,7 +4164,7 @@ public class FileService extends TaskResourceService {
     }
 
     private List<MountInfo> getAllMounts(URI resId) {
-        MountUtils mountUtils = new MountUtils();
+        LinuxMountUtils mountUtils = new LinuxMountUtils();
         List<String> mountTags = new ArrayList<String>();
         FileShare fs = _dbClient.queryObject(FileShare.class, resId);
         if (fs.getTag() != null) {

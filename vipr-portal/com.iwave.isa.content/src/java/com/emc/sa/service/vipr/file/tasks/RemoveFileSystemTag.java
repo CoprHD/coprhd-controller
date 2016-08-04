@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;

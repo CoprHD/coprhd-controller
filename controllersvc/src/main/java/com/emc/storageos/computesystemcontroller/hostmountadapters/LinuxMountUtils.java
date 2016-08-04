@@ -33,16 +33,16 @@ import com.iwave.ext.linux.model.MountPoint;
  * @author yelkaa
  *
  */
-public class MountUtils {
+public class LinuxMountUtils {
     private LinuxSystemCLI cli;
     private Host host;
 
-    public MountUtils(Host host) {
+    public LinuxMountUtils(Host host) {
         cli = createLinuxCLI(host);
         this.host = host;
     }
 
-    public MountUtils() {
+    public LinuxMountUtils() {
 
     }
 

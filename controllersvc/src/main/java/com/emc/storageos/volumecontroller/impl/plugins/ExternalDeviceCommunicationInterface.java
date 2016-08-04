@@ -592,6 +592,9 @@ public class ExternalDeviceCommunicationInterface extends
         // Get the capabilities specified for the storage pool and
         // process any auto tiering policy capabilities.
         List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+        if (capabilities == null) {
+            return;
+        }
         for (CapabilityInstance capability : capabilities) {
             // Get the capability definition for the capability.
             String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();

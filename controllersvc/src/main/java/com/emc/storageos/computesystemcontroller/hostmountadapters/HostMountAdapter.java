@@ -7,7 +7,9 @@ package com.emc.storageos.computesystemcontroller.hostmountadapters;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 
 /**
@@ -45,4 +47,10 @@ public interface HostMountAdapter {
     public Method setMountTagMethod(HostDeviceInputOutput args);
 
     public Method removeMountTagMethod(HostDeviceInputOutput args);
+
+    public String addStepsForMountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
+            throws InternalException;
+
+    String addStepsForUnmountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
+            throws InternalException;
 }

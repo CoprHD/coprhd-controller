@@ -22,7 +22,9 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 
 public class AbstractMountAdapter implements HostMountAdapter {
@@ -255,6 +257,20 @@ public class AbstractMountAdapter implements HostMountAdapter {
 
     @Override
     public Method removeMountTagMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public String addStepsForMountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
+            throws InternalException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public String addStepsForUnmountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
+            throws InternalException {
         // TODO Auto-generated method stub
         return null;
     }

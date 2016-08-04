@@ -588,7 +588,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 FileShare fs = unManagedFSURIToFSMap.get(unManagedFSURI);
                 if (fs != null) {
                     _logger.debug("ingesting quota directories for filesystem {}", fs.getId());
-                    ingestFileQuotaDirectories(fs, system);
+                    ingestFileQuotaDirectories(fs);
                 }
             }
 
@@ -658,10 +658,12 @@ public class UnManagedFilesystemService extends TaggedResource {
         return filesystemList;
     }
 
-    private void ingestFileQuotaDirectories(FileShare parentFS, StorageSystem system) throws IOException {
+    private void ingestFileQuotaDirectories(FileShare parentFS) throws IOException {
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
 
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, parentFS.getStorageDevice());
+        
         String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
                 system.getSystemType(), system.getSerialNumber().toUpperCase(), parentFS.getNativeId());
         

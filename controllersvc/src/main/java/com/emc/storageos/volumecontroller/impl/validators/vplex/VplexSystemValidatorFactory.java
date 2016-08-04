@@ -22,8 +22,8 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -42,10 +42,19 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     private VPlexApiClient client;
     private ValidatorLogger logger;
 
+    /**
+     * Sets the database client.
+     * 
+     * @param dbClient the database client
+     */
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
 
+    /**
+     * Set the ValidatorConfig
+     * @param config the validator config object
+     */
     public void setConfig(ValidatorConfig config) {
         this.config = config;
     }
@@ -53,7 +62,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     /**
      * Verify storage system connectivity
      * 
-     * @param storageSystem
+     * @param storageSystem the VPLEX storage system to check
      */
     private void checkVplexConnectivity(StorageSystem storageSystem) {
         try {

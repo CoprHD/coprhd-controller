@@ -3064,7 +3064,7 @@ public class SmisCommandHelper implements SmisConstants {
         List<String> names = new ArrayList<String>();
         for (URI uri : uris) {
             String alternateName = getBlockObjectAlternateName(uri);
-            if (!names.contains(alternateName)) {
+            if (NullColumnValueGetter.isNotNullValue(alternateName) && !names.contains(alternateName)) {
                 names.add(alternateName);
             }
         }

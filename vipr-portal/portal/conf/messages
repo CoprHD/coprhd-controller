@@ -458,8 +458,8 @@ service.defaultCostCodeId=Default Cost Code
 service.field.validation=Invalid field value
 service.unknown.type=UNKNOWN TYPE
 service.unknown.type.description=Field <b>%s</b> is of type <b>%s</b> which is not supported
-service.schedulerAllowed=Scheduler Allowed
-service.schedulerAllowed.helpText=If specified, allow user to schedule recurring orders
+service.recurringAllowed=Recurrent Schedule Allowed
+service.recurringAllowed.helpText=If specified, allow user to schedule recurring orders
 
 serviceField.name=Field
 serviceField.locked=Locked
@@ -624,7 +624,12 @@ scheduledOrders.editSchedule=Edit Schedule
 ScheduledOrder.nextWindow=Next Execution Window is <span style="font-weight:bold;">%s</span>, scheduled to start at <span style="font-weight:bold;">%s</span>.
 ScheduledOrder.noWindow=There are NO Execution windows currently scheduled
 
-ScheduledOrders.edit.title=Edit Order Schedule
+ScheduledOrder.edit.title=Edit Order Schedule
+ScheduledOrder.save.success=Order schedule is updated successfully.
+ScheduledOrder.back=Back
+ScheduledOrder.deactivate=Deactivate
+ScheduledOrder.deactivate.confirm=WARNING: This operation will delete scheduled orders. Are you sure to continue?   
+ScheduledOrder.deactivate.success=Schedule is deactivated and all scheduled orders are cancelled.
 
 # VCenter
 vCenter=vCenter
@@ -4583,19 +4588,18 @@ mobilityGroupResources.tenant=Tenant
 
 scheduler.title=Scheduler
 scheduler.enabled=Enable Scheduler
-scheduler.startDate=Start Date
-scheduler.startTime=Start Time
-scheduler.startTime.helpText=(HH:MM)
+scheduler.startDate=Start Date/Time
 scheduler.cycleFrequency=Recur every
 scheduler.cycleType=Frequency
-scheduler.minutely=Minutely
-scheduler.hourly=Hourly
-scheduler.daily=Daily
-scheduler.monthly=Monthly
-scheduler.weekly=Weekly
-scheduler.dayOfWeek=Day of Week
-scheduler.dayOfMonth=Day of Month
-scheduler.recurrence=Recurrence
+scheduler.minutes=Minutes
+scheduler.hours=Hours
+scheduler.days=Days
+scheduler.months=Months
+scheduler.weeks=Weeks
+scheduler.on=on
+scheduler.onday=on day
+scheduler.recurrence=Frequency
 scheduler.onlyonce=Only Once
 scheduler.indefinitely=Indefinitely
 scheduler.endAfterRecurrences=End after recurrences
+scheduler.rangeOfRecurrence=Number of recurrences

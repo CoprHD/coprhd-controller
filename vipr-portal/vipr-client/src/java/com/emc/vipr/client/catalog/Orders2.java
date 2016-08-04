@@ -195,18 +195,6 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     }
 
     /**
-     * Return scheduled event for an order
-     * <p>
-     * API Call: <tt>GET /catalog/events/{id}</tt>
-     * 
-     * @return order's logs
-     */
-    public ScheduledEventRestRep getScheduledEvent(URI eventId) {
-        ScheduledEventRestRep event = client.get(ScheduledEventRestRep.class, PathConstants.SCHEDULED_EVENTS_URL + "/{id}", eventId);
-        return event;
-    }
-    
-    /**
      * Cancel a scheduled order
      * <p>
      * API Call: <tt>POST /catalog/orders/{id}/cancel</tt>
@@ -248,4 +236,42 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         client.post(String.class, PathConstants.ORDER2_RESUME, id);
     }
 
+    /**
+     * Return scheduled event for an order
+     * <p>
+     * API Call: <tt>GET /catalog/events/{id}</tt>
+     * 
+     * @return order's logs
+     */
+    public ScheduledEventRestRep getScheduledEvent(URI eventId) {
+        ScheduledEventRestRep event = client.get(ScheduledEventRestRep.class, PathConstants.SCHEDULED_EVENTS_URL + "/{id}", eventId);
+        return event;
+    }
+    
+    /**
+     * Update an order
+     * <p>
+     * API Call: <tt>PUT /catalog/events/{id}</tt>
+     * 
+     * @param eventId - URN for the event
+     * @param input - event update parameters
+     * @return the scheduled events
+     */
+    public ScheduledEventRestRep updateScheduledEvent(URI eventId, ScheduledEventUpdateParam input) {
+        String uri = String.format("%s/%s", PathConstants.SCHEDULED_EVENTS_URL, eventId);
+        ScheduledEventRestRep event = client
+                .put(ScheduledEventRestRep.class, input, uri);
+        return event;
+    }
+    
+    /**
+     * Deactivate an recurring order
+     * <p>
+     * API Call: <tt>POST /catalog/events/{id}/deactivate</tt>
+     * 
+     * @param eventId - URN for the event
+     */
+    public void deactivateScheduledEvent(URI eventId) {
+        client.post(String.class, PathConstants.SCHEDULED_EVENTS_DEACTIVATE_URL, eventId);
+    }
 }

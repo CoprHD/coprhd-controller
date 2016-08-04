@@ -394,7 +394,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case MINUTELY:
                  break;
             default:
-                 log.error("not expected schedule cycle.");
+                 log.error("not expected schedule cycle - {}", scheduleInfo.getCycleType());
         }
         log.info("scheduledTime: {}", scheduledTime.toString());
 

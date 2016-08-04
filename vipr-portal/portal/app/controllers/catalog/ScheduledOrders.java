@@ -192,6 +192,8 @@ public class ScheduledOrders extends Controller {
         
         public void save() {
             ScheduledEventUpdateParam update = new ScheduledEventUpdateParam();
+            // See ScheduleInfo know detailed information of each fields and
+            // the expected default values
             ScheduleInfo scheduleInfo = new ScheduleInfo();
             if (cycleFrequency != null) {
                 scheduleInfo.setCycleFrequency(cycleFrequency);
@@ -222,8 +224,9 @@ public class ScheduledOrders extends Controller {
                 }
                 scheduleInfo.setReoccurrence(recurrence);
             } else {
-                scheduleInfo.setReoccurrence(1)
+                scheduleInfo.setReoccurrence(1);
             }
+
             scheduleInfo.setDurationLength(3600);
             update.setScheduleInfo(scheduleInfo);
             

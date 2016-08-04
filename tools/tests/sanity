@@ -9206,6 +9206,8 @@ dr_multisite_tests()
 
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
+    # COP-23445: We should check if Standby C is SYNCED before initiating a pause command.
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     # pause standby c
     echo "---PAUSE SITE $standby_site_c---"
     time_start pause_standby_c

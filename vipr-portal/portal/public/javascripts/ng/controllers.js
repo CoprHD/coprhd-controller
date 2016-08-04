@@ -1435,7 +1435,6 @@ angular.module("portalApp").factory('GuideCookies', function($rootScope, $http, 
 
 angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window) {
 
-
     cookieObject = {};
     cookieKey = "VIPR_START_GUIDE";
     dataCookieKey = "GUIDE_DATA";
@@ -1729,7 +1728,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
    }
 
     $scope.runStep = function(error) {
-
+        openMenu();
         step = $scope.$parent.currentStep;
 
         switch (step) {
@@ -2224,6 +2223,62 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject = readCookie(cookie);
 
         if (cookieObject) {
+            return true;
+        }
+        return false;
+    }
+
+    $scope.$watch('guideVisible', function() {
+        if($scope.guideVisible){
+            openMenu();
+        }
+        else {
+            closeMenus();
+        }
+    });
+    var PINNED_COOKIE = 'isMenuPinned';
+        var MAIN_MENU = '#mainMenu';
+        var NAV = '.rootNav';
+        var MAIN_MENU_NAV = MAIN_MENU + ' ' + NAV;
+        var MENU = '.navMenu';
+        var MENU_NAME = 'subnav';
+        var MENU_PIN = '.menuPin';
+        var CONTENT_AREA = '#contentArea';
+
+        // --- CSS Classes ---
+        var MAIN_MENU_OPEN = 'selected';
+        var MENU_OPEN = 'menu-open';
+        var MENU_PINNED = 'menu-pinned';
+        var ACTIVE_INDICATOR = 'blueArrow';
+
+        function openMenu() {
+            $menu = $('a.rootNav.active');
+            closeMenus();
+            var name = $menu.data(MENU_NAME);
+            if (name) {
+                var $subMenu = $('#' + name);
+                if ($subMenu) {
+                    $menu.addClass(MAIN_MENU_OPEN);
+                    $subMenu.addClass(MENU_OPEN);
+                    $(CONTENT_AREA).addClass(MENU_OPEN);
+                    $(CONTENT_AREA).addClass(MENU_PINNED);
+                    $("#wizard").addClass('guide-menuopen');
+                    createCookie(PINNED_COOKIE, 'true', 'session');
+                }
+            }
+            //updateActiveIndicator();
+        }
+            function closeMenus() {
+                createCookie(PINNED_COOKIE, 'false', 'session');
+                $(MAIN_MENU_NAV).removeClass(MAIN_MENU_OPEN);
+                $(MENU).removeClass(MENU_OPEN);
+                $(CONTENT_AREA).removeClass(MENU_OPEN);
+                $("#wizard").removeClass('guide-menuopen');
+                //updateActiveIndicator();
+            }
+    function isMenuOpened() {
+        var elements = $('div.'+MENU_OPEN);
+        if (elements.length > 0) {
             return true;
         }
         return false;

@@ -87,7 +87,7 @@ import com.google.common.base.Strings;
  */
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
-    private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
+    private static Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
     // Storage drivers for block  devices
     private Map<String, AbstractStorageDriver> drivers;
     private DbClient dbClient;
@@ -1721,8 +1721,12 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         com.emc.storageos.storagedriver.model.StoragePool driverPool = driver.getStorageObject(dbSystem.getNativeId(),
                 dbPool.getNativeId(), com.emc.storageos.storagedriver.model.StoragePool.class);
         // update pool capacity in db
-        dbPool.setFreeCapacity(driverPool.getFreeCapacity());
-        dbPool.setSubscribedCapacity(driverPool.getSubscribedCapacity());
+        if (driverPool != null) {
+            dbPool.setFreeCapacity(driverPool.getFreeCapacity());
+            dbPool.setSubscribedCapacity(driverPool.getSubscribedCapacity());
+        } else {
+            _log.error("Driver pool for storage pool {} and storage system {} is null.", dbPool.getNativeId(), dbSystem.getNativeId());
+        }
         // release reserved capacity
         dbPool.removeReservedCapacityForVolumes(URIUtil.asStrings(reservedObjects));
         dbClient.updateObject(dbPool);

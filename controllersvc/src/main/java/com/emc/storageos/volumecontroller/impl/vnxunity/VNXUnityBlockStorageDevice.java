@@ -268,6 +268,10 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             Set<URI> updateStoragePools = new HashSet<URI>();
             for (Volume volume : volumes) {
                 String lunId = volume.getNativeId();
+                if (NullColumnValueGetter.isNullValue(lunId)) {
+                    logger.info(String.format("The volume %s does not have native id, do nothing", volume.getLabel()));
+                    continue;
+                }
                 updateStoragePools.add(volume.getPool());
                 if (!apiClient.checkLunExists(lunId)) {
                     logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));

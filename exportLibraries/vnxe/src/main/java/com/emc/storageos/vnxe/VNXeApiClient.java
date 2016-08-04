@@ -1872,12 +1872,18 @@ public class VNXeApiClient {
 
     public boolean isFASTVPEnabled() {
         FastVPRequest req = new FastVPRequest(_khClient);
-        List<FastVP> fastVP = req.get();
-        if (fastVP != null && !fastVP.isEmpty()) {
-            return true;
-        } else {
-            return false;
-        }
+        boolean result = false;
+        try {
+            List<FastVP> fastVP = req.get();
+            if (fastVP != null && !fastVP.isEmpty()) {
+                result = true;
+            }
+        } catch (Exception e) {
+            // All Flash Unity does not support get fastVP
+            result = false;
+        } 
+        _khClient.setFastVPEnabled(result);
+        return result;
     }
 
     public VNXeLun getLunByLunGroup(String lunGroupId, String lunName) {

@@ -3108,9 +3108,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (null != tempQuotaTrees && !tempQuotaTrees.isEmpty()) {
                 quotaTrees.addAll(tempQuotaTrees);
-                _logger.info("Found {} Quota directories for FileSystem Id {} ", tempQuotaTrees.size(), umfsId);
+                _logger.info("Found {} Quota directories ", tempQuotaTrees.size());
             } else {
-                _logger.info("No Quota directories found for FileSystem Id:" + umfsId);
+                _logger.info("No Quota directories found ");
             }
         } catch (BaseCollectionException e) {
             throw new VNXException("Get QuotaTrees op failed", e);

@@ -16,7 +16,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private URI tenant;
     private byte[] approveMethod;
     private byte[] declineMethod;
-    private int eventCode;
+    private String eventCode;
 
     public enum Status {
         pending, approved, declined
@@ -117,11 +117,11 @@ public class ActionableEvent extends DataObject implements TenantResource {
     }
 
     @Name("eventCode")
-    public int getEventCode() {
+    public String getEventCode() {
         return eventCode;
     }
 
-    public void setEventCode(int eventCode) {
+    public void setEventCode(String eventCode) {
         this.eventCode = eventCode;
         setChanged("eventCode");
     }

@@ -23,20 +23,20 @@ public class EventUtil {
     private static Logger log = LoggerFactory.getLogger(EventUtil.class);
 
     public enum EventCode {
-        HOST_DELETE(100),
-        HOST_CLUSTER_CHANGE(101),
-        HOST_INITIATOR_ADD(102),
-        HOST_INITIATOR_DELETE(103),
-        CLUSTER_DELETE(104),
-        VCENTER_DATACENTER_DELETE(105);
+        HOST_DELETE("100"),
+        HOST_CLUSTER_CHANGE("101"),
+        HOST_INITIATOR_ADD("102"),
+        HOST_INITIATOR_DELETE("103"),
+        CLUSTER_DELETE("104"),
+        VCENTER_DATACENTER_DELETE("105");
 
-        private int code;
+        private String code;
 
-        EventCode(int code) {
+        EventCode(String code) {
             this.code = code;
         }
 
-        public int getCode() {
+        public String getCode() {
             return code;
         }
     };
@@ -122,7 +122,7 @@ public class EventUtil {
      * @param resourceId the id of the resource to check
      * @return event if a duplicate is found, else null
      */
-    public static ActionableEvent getDuplicateEvent(DbClient dbClient, int eventCode, URI resourceId) {
+    public static ActionableEvent getDuplicateEvent(DbClient dbClient, String eventCode, URI resourceId) {
         List<ActionableEvent> events = EventUtils.findResourceTasks(dbClient, resourceId);
         for (ActionableEvent event : events) {
             if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name()) && event.getEventCode() == eventCode) {

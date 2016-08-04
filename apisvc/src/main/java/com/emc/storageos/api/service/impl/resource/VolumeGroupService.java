@@ -12,8 +12,10 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -2122,8 +2125,10 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT_SESSION);
 
         // validate name
-        String name = param.getName();
-        ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
+        String namePattern = param.getName();
+        ArgValidator.checkFieldNotEmpty(namePattern, NAME_FIELD);
+        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        String name = MessageFormat.format(namePattern, current);
 
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {

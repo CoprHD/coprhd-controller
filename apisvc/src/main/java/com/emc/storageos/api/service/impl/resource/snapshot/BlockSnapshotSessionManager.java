@@ -13,8 +13,10 @@ import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -305,8 +308,10 @@ public class BlockSnapshotSessionManager {
         s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
         // Get the snapshot session label.
-        String snapSessionLabel = param.getName();
-
+        String snapshotNamePattern = param.getName();
+        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        String snapSessionLabel = MessageFormat.format(snapshotNamePattern, current);
+        
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsName = null;
@@ -314,7 +319,8 @@ public class BlockSnapshotSessionManager {
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
-            newTargetsName = linkedTargetsParam.getTargetName();
+            String newTargetsNamePattern = linkedTargetsParam.getTargetName();
+            newTargetsName = MessageFormat.format(newTargetsNamePattern, current);
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
         }
 

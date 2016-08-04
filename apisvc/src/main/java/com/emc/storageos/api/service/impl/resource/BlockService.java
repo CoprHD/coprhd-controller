@@ -19,6 +19,7 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -29,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -2245,8 +2247,9 @@ public class BlockService extends TaskResourceService {
 
         // Validate the snapshot creation request parameters for the volume(s)
         // to be snapped.
-        String snapshotName = param.getName();
-        
+        String snapshotNamePattern = param.getName();
+        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        String snapshotName = MessageFormat.format(snapshotNamePattern, current);
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
                 snapshotType, snapshotName, getFullCopyManager());
 

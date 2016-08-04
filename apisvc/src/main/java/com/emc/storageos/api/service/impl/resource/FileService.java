@@ -11,13 +11,16 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -1508,19 +1511,23 @@ public class FileService extends TaskResourceService {
         if (getNumSnapshots(fs) >= vpool.getMaxNativeSnapshots()) {
             throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
         }
-
+        
+        String labelPattern = param.getLabel();
+        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        String label = MessageFormat.format(labelPattern, current);
+        
         // check duplicate fileshare snapshot names for this fileshare
-        checkForDuplicateName(param.getLabel(), Snapshot.class, id, "parent", _dbClient);
+        checkForDuplicateName(label, Snapshot.class, id, "parent", _dbClient);
 
         Snapshot snap = new Snapshot();
         snap.setId(URIUtil.createId(Snapshot.class));
-        snap.setParent(new NamedURI(id, param.getLabel()));
-        snap.setLabel(param.getLabel());
+        snap.setParent(new NamedURI(id, label));
+        snap.setLabel(label);
         snap.setOpStatus(new OpStatusMap());
-        snap.setProject(new NamedURI(fs.getProject().getURI(), param.getLabel()));
+        snap.setProject(new NamedURI(fs.getProject().getURI(), label));
 
-        String convertedName = param.getLabel().replaceAll("[^\\dA-Za-z_]", "");
-        _log.info("Original name {} and converted name {}", param.getLabel(), convertedName);
+        String convertedName = label.replaceAll("[^\\dA-Za-z_]", "");
+        _log.info("Original name {} and converted name {}", label, convertedName);
         snap.setName(convertedName);
 
         fs.setOpStatus(new OpStatusMap());

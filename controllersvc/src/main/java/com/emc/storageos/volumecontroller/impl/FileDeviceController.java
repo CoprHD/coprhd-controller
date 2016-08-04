@@ -378,13 +378,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
                 if (result.isCommandSuccess()
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
+                    boolean snapshotsExist = snapshotsExistsOnFS(fsObj);
+                    boolean quotaDirsExist =  quotaDirectoriesExistsOnFS(fsObj);
+                    boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
-                    if ((snapshotsExistsOnFS(fsObj) || quotaDirectoriesExistsOnFS(fsObj))) {
-                        boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
-
-                        if (fsCheck) {
-                            String errMsg = new String(
-                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system " + fsObj.getLabel());
+                    if (fsCheck) {
+                        String errMsg = null;
+                        if (snapshotsExist) {
+                            errMsg = new String(
+                                    "delete file system from ViPR database failed because snapshots exist for file system "
+                                     + fsObj.getLabel() + " and once deleted the snapshot cannot be ingested into ViPR");
+                        } else if (quotaDirsExist && !quotaDirectoryIngestionSupported(storageObj.getSystemType())) {
+                            errMsg = new String(
+                                    "delete file system from ViPR database failed because quota directories exist for file system " 
+                                     + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
+                        }
+                        if (errMsg != null) {
                             _log.error(errMsg);
 
                             final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
@@ -467,6 +476,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 }
             }
         }
+    }
+
+    private boolean quotaDirectoryIngestionSupported(String storageType){
+        StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
+        boolean qDIngestionSupported = false;
+        if (storageSystemType.equals(StorageSystem.Type.unity)){
+           qDIngestionSupported = true;
+        }
+        return qDIngestionSupported;
     }
 
     private List<QuotaDirectory> queryFileQuotaDirs(FileDeviceInputOutput args) {

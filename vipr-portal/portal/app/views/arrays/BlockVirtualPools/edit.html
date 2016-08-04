@@ -165,7 +165,7 @@
           <boolean-checkbox v-disabled='locked'></boolean-checkbox>
         </control-group>
 
-        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}', '${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <div ng-if="vpool.expandable">
             <control-group v-field='vpool.fastExpansion'>
               <boolean-checkbox v-disabled='locked'></boolean-checkbox>
@@ -247,12 +247,14 @@
           <control-group v-field='vpool.continuousCopyVirtualPool'>
             <select-one v-disabled="locked" options="continuousCopyVirtualPoolOptions" auto-default empty-option="none"></select-one>
           </control-group>
-
-          <control-group v-field='vpool.remoteProtection'>
+        </div>
+        
+        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
+		  <control-group v-field='vpool.remoteProtection'>
             <select-one v-disabled="locked" options="remoteProtectionOptions" auto-default empty-option="none"></select-one>
           </control-group>
         </div>
-
+        
         <div ng-if="vpool.remoteProtection == '${models.ProtectionSystemTypes.RECOVERPOINT}'">
           <control-group v-field='vpool.rpRemoteCopyMode'>
             <select-one v-disabled="locked" options="rpRemoteCopyModeOptions" auto-default disable-search></select-one>

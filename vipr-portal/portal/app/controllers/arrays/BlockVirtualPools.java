@@ -112,6 +112,11 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String VP_VMAX_DIAMOND = "vp-vmax-diamond";
     private static final String VP_XIO_DIAMOND = "vp-xio-diamond";
     private static final String VP_UNITY_DIAMOND = "vp-unity-diamond";
+    private static final String ALL_FLASH_DESC = "Virtual Pool for All Flash Storage";
+    private static final String VMAX_DIAMOND_DESC = "Virtual Pool for EMC VMAX all Flash Storage";
+    private static final String XIO_DIAMOND_DESC = "Virtual Pool for EMC XtremIO Storage";
+    private static final String UNITY_DIAMOND_DESC = "Virtual Pool for EMC UNITY Storage";
+ 
 
     public static void list() {
         VirtualPoolDataTable dataTable = createVirtualPoolDataTable();
@@ -279,23 +284,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
-		        vpool.load(blockvpool);
-		        blockvpool = vpool.save();
-				if (blockvpool != null) {
-					updateVirtualPoolCookie(vpid, vpool.name);
-				}
+				updateAutoVirtualPool(vpid, blockvpool);
 			}
 			else {
-				BlockVirtualPoolForm vpool = createBaseVPool();
-				vpool.name = VP_ALL_FLASH;
-				vpool.virtualArrays = vaIds4allflash;
-				vpool.systemType = StorageSystemTypes.NONE;
-				vpool.description = "Virtual Pool for All Flash Storage";
-				BlockVirtualPoolRestRep vpoolTask = vpool.save();
-				if (vpoolTask != null) {
-					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
-				}
+				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, ALL_FLASH_DESC);
 			}
 		}
 
@@ -310,23 +302,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
-		        vpool.load(blockvpool);
-		        blockvpool = vpool.save();
-				if (blockvpool != null) {
-					updateVirtualPoolCookie(vpid, vpool.name);
-				}
+				updateAutoVirtualPool(vpid, blockvpool);
 			}
 			else {
-				BlockVirtualPoolForm vpool = createBaseVPool();
-				vpool.name = VP_VMAX_DIAMOND;
-				vpool.virtualArrays = vaIds4vmax;
-				vpool.systemType = StorageSystemTypes.VMAX;
-				vpool.description = "Virtual Pool for EMC VMAX all Flash Storage";
-				BlockVirtualPoolRestRep vpoolTask = vpool.save();
-				if (vpoolTask != null) {
-					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
-				}
+				createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, VMAX_DIAMOND_DESC);
 			}
 		}
 
@@ -341,23 +320,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
-		        vpool.load(blockvpool);
-		        blockvpool = vpool.save();
-				if (blockvpool != null) {
-					updateVirtualPoolCookie(vpid, vpool.name);
-				}
+				updateAutoVirtualPool(vpid, blockvpool);
 			}
 			else {
-				BlockVirtualPoolForm vpool = createBaseVPool();
-				vpool.name = VP_XIO_DIAMOND;
-				vpool.virtualArrays = vaIds4xio;
-				vpool.systemType = StorageSystemTypes.XTREMIO;
-				vpool.description = "Virtual Pool for EMC XtremIO Storage";
-				BlockVirtualPoolRestRep vpoolTask = vpool.save();
-				if (vpoolTask != null) {
-					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
-				}
+				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, XIO_DIAMOND_DESC);
 			}
 		}
 
@@ -372,23 +338,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
-		        vpool.load(blockvpool);
-		        blockvpool = vpool.save();
-				if (blockvpool != null) {
-					updateVirtualPoolCookie(vpid, vpool.name);
-				}
+				updateAutoVirtualPool(vpid, blockvpool);
 			}
 			else {
-				BlockVirtualPoolForm vpool = createBaseVPool();
-				vpool.name = VP_UNITY_DIAMOND;
-				vpool.virtualArrays = vaIds4unity;
-				vpool.systemType = StorageSystemTypes.UNITY;
-				vpool.description = "Virtual Pool for EMC UNITY Storage";
-				BlockVirtualPoolRestRep vpoolTask = vpool.save();
-				if (vpoolTask != null) {
-					updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
-				}
+				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, UNITY_DIAMOND_DESC);
 			}
 		}
         list();
@@ -858,7 +811,7 @@ public class BlockVirtualPools extends ViprResourceController {
         saveJsonAsCookie(GUIDE_DATA, dataObject);
     }
 
-    private static BlockVirtualPoolForm createBaseVPool() {
+    private static void createBaseVPool(String vpoolName, String storageType, List<String> virtualarrayIds, String vpdesc) {
 		BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
 		// defaults
 		vpool.provisioningType = ProvisioningTypes.THIN;
@@ -875,9 +828,26 @@ public class BlockVirtualPools extends ViprResourceController {
 		vpool.enableAutoCrossConnExport = true;
 		vpool.poolAssignment = PoolAssignmentTypes.AUTOMATIC;
 		vpool.maxSnapshots = 10;
-		return vpool;
+
+		vpool.name = vpoolName;
+		vpool.systemType = storageType;
+		vpool.virtualArrays = virtualarrayIds;
+		vpool.description = vpdesc;
+
+		BlockVirtualPoolRestRep vpoolTask = vpool.save();
+		if (vpoolTask != null) {
+			updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
+		}
     }
 
+    private static void updateAutoVirtualPool(String vpid, BlockVirtualPoolRestRep blockvpool) { 
+		BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+		vpool.load(blockvpool);
+		blockvpool = vpool.save();
+		if (blockvpool != null) {
+			updateVirtualPoolCookie(vpid, vpool.name);
+		}
+    }
 
     protected static class DeactivateOperation implements ResourceIdOperation<Void> {
         @Override

@@ -37,9 +37,9 @@ import com.emc.vipr.client.impl.RestClient;
 public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam> implements
         TopLevelResources<OpenStackTenantParam> {
     public OpenStackTenants(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, OpenStackTenantParam.class, PathConstants.KEYSTONE_URL + "/tenants");
+        super(parent, client, OpenStackTenantParam.class, PathConstants.KEYSTONE_TENANTS_URL);
     }
-    private final String OS_TENANTS_URL = PathConstants.KEYSTONE_URL + "/ostenants";
+    private final String OS_TENANTS_URL = PathConstants.KEYSTONE_OS_TENANTS_URL;
 
     @Override
     public OpenStackTenants withInactive(boolean inactive) {

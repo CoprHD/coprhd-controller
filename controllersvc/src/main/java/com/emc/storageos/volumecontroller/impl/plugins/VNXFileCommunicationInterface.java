@@ -1528,7 +1528,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             List<VNXFileSystem> discoveredFS = discoverAllFileSystems(storageSystem);
 
-            ArrayList<String> umfsIds = new ArrayList<String>();
+            StringSet umfsIds = new StringSet();
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
@@ -1587,7 +1587,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (null != umfsIds && !umfsIds.isEmpty()) {
                 // Discovering unmanaged quota directories
-                discoverUmanagedFileQuotaDirectory(profile);
+                discoverUmanagedFileQuotaDirectory(profile, umfsIds);
             }
 
         } catch (Exception e) {
@@ -1611,7 +1611,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) throws Exception {
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, StringSet umfsIds) throws Exception {
         URI storageSystemId = profile.getSystemId();
 
         StorageSystem storageSystem = _dbClient.queryObject(
@@ -1634,27 +1634,32 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                 for (TreeQuota quotaTree : qtrees) {
                     String fsNativeId;
-
+                    // Process the QD's only of unmanaged file systems.
+                    if (!umfsIds.contains(quotaTree.getFileSystem())) {
+                        continue;
+                    }
+                    String qdName = "";
+                    if (quotaTree.getPath() != null) {
+                        // Ignore / from QD path
+                        qdName = quotaTree.getPath().substring(1);
+                    }
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
                             storageSystem.getSystemType(),
                             storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFileSystem() + "");
 
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
-                            storageSystem.getSerialNumber(), quotaTree.getTree(), quotaTree.getFileSystem() + "");
+                            storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
 
                     String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
                             storageSystem.getSystemType(),
-                            storageSystem.getSerialNumber(), quotaTree.getTree(), quotaTree.getFileSystem() + "");
+                            storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
                     if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
 
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                     unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
-                    if (quotaTree.getPath() != null) {
-                        // Ignore / from QD path
-                        unManagedFileQuotaDirectory.setLabel(quotaTree.getPath().substring(1));
-                    }
+                    unManagedFileQuotaDirectory.setLabel(qdName);
 
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsUnManagedFsNativeGuid);

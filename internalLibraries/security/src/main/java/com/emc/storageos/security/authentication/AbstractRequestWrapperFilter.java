@@ -214,37 +214,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         if (null != keystoneUserAuthToken) {
             _log.info("The request is for keystone - with token - " + keystoneUserAuthToken);
 
-            String requestUrl = req.getRequestURI();
-
-            // We are looking only for PUT API call that updates quota.
-            if (req.getMethod().equals(METHOD_PUT) && requestUrl.contains(OS_QUOTA_SETS) && !requestUrl.contains(DEFAULTS)) {
-
-                // Returns target OpenStack Tenant ID from quota request, otherwise null.
-                String targetTenantId = getOpenstackTenantIdFromQuotaRequest(requestUrl);
-                // Try to create project and tenant in CoprHD when tenant ID is present.
-                if (targetTenantId != null) {
-
-                    // Check whether Tenant already exists in CoprHD for given ID. If not, then create one.
-                    TenantOrg coprhdTenant = _keystoneUtils.getCoprhdTenantWithOpenstackId(targetTenantId);
-
-                    if (coprhdTenant == null) {
-
-                        // Check whether Tenant with ID from request exists in OpenStack.
-                        KeystoneTenant tenant = _keystoneUtils.getTenantWithId(targetTenantId);
-
-                        if (tenant == null) {
-                            throw APIException.notFound.openstackTenantNotFound(targetTenantId);
-                        }
-
-                        // Check whether Tenant with given ID is already imported to the CoprHD.
-                        OSTenant osTenant = _keystoneUtils.findOpenstackTenantInCoprhd(targetTenantId);
-                        if (osTenant == null) {
-                            createTenantNProject(tenant);
-                        }
-                    }
-                }
-            }
-
+            createTenantNProject(req);
             return createStorageOSUserUsingKeystone(keystoneUserAuthToken);
         }
 
@@ -264,6 +234,45 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
             }
         }
         return null;
+    }
+
+    /**
+     * Search through request URL for PUT api call updating quota. In case of finding, get OS Tenant id from the request.
+     * If the id is not null and Tenant with given id was not created in CoprHD before, then create the Tenant and Project.
+     *
+     * @param httpServletRequest
+     */
+    private void createTenantNProject(HttpServletRequest httpServletRequest) {
+        String requestUrl = httpServletRequest.getRequestURI();
+
+        // We are looking only for PUT API call that updates quota.
+        if (httpServletRequest.getMethod().equals(METHOD_PUT) && requestUrl.contains(OS_QUOTA_SETS) && !requestUrl.contains(DEFAULTS)) {
+
+            // Returns target OpenStack Tenant ID from quota request, otherwise null.
+            String targetTenantId = getOpenstackTenantIdFromQuotaRequest(requestUrl);
+            // Try to create project and tenant in CoprHD when tenant ID is present.
+            if (targetTenantId != null) {
+
+                // Check whether Tenant already exists in CoprHD for given ID. If not, then create one.
+                TenantOrg coprhdTenant = _keystoneUtils.getCoprhdTenantWithOpenstackId(targetTenantId);
+
+                if (coprhdTenant == null) {
+
+                    // Check whether Tenant with ID from request exists in OpenStack.
+                    KeystoneTenant tenant = _keystoneUtils.getTenantWithId(targetTenantId);
+
+                    if (tenant == null) {
+                        throw APIException.notFound.openstackTenantNotFound(targetTenantId);
+                    }
+
+                    // Check whether Tenant with given ID is already imported to the CoprHD.
+                    OSTenant osTenant = _keystoneUtils.findOpenstackTenantInCoprhd(targetTenantId);
+                    if (osTenant == null) {
+                        createTenantNProject(tenant);
+                    }
+                }
+            }
+        }
     }
 
     private String getOpenstackTenantIdFromQuotaRequest(String requestUrl) {

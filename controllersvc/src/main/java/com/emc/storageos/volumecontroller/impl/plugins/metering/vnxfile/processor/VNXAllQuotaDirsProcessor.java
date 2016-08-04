@@ -45,7 +45,7 @@ public class VNXAllQuotaDirsProcessor extends VNXFileProcessor {
                             _logger.debug("searching quota dir: {}", quotaDir.getTree());
                             String id = quotaDir.getTree();
                             quotaDirs.add(quotaDir);
-                            _logger.info("Found matching quota dir: {}", id);
+                            _logger.info("Found matching quota dir id: {}", id);
 
                         }
                         keyMap.put(VNXFileConstants.QUOTA_DIR_LIST, quotaDirs);

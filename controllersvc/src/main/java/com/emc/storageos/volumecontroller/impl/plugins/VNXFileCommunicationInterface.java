@@ -1587,7 +1587,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (null != umfsIds && !umfsIds.isEmpty()) {
                 // Discovering unmanaged quota directories
-                discoverUmanagedFileQuotaDirectory(profile, umfsIds);
+                discoverUmanagedFileQuotaDirectory(profile);
             }
 
         } catch (Exception e) {
@@ -1611,7 +1611,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, List<String> umfsIds) throws Exception {
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) throws Exception {
         URI storageSystemId = profile.getSystemId();
 
         StorageSystem storageSystem = _dbClient.queryObject(
@@ -1629,7 +1629,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // Retrieve all the qtree info.
             List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem);
             if (null != qtrees && !qtrees.isEmpty()) {
-                // List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
 
@@ -1653,6 +1652,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                     unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                     if (quotaTree.getPath() != null) {
+                        // Ignore / from QD path
                         unManagedFileQuotaDirectory.setLabel(quotaTree.getPath().substring(1));
                     }
 
@@ -3097,7 +3097,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         List<TreeQuota> quotaTrees = new ArrayList<TreeQuota>();
         List<TreeQuota> tempQuotaTrees = null;
 
-        // _discExecutor.getKeyMap().put(VNXFileConstants.FILESYSTEM_ID, umfsId);
         try {
 
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(

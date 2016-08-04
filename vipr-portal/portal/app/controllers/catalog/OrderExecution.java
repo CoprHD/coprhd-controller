@@ -262,21 +262,29 @@ public class OrderExecution extends Controller {
         }
         ScheduleInfo scheduleInfo = new ScheduleInfo();
         String cycleFrequency = params.get("scheduler.cycleFrequency");
-        scheduleInfo.setCycleFrequency(Integer.parseInt(cycleFrequency));
+        if (cycleFrequency != null) {
+            scheduleInfo.setCycleFrequency(Integer.parseInt(cycleFrequency));
+        } else {
+            scheduleInfo.setCycleFrequency(1);
+        }
 
         String cycleType = params.get("scheduler.cycleType");
-        ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
-        scheduleInfo.setCycleType(cycleTypeEnum);
-        List<String> sectionsInCycleList = Lists.newArrayList();
-        if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
-            String sectionsInCycle = params.get("scheduler.dayOfWeek");
-            sectionsInCycleList.add(sectionsInCycle);
-        } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
-            String sectionsInCycle = params.get("scheduler.dayOfMonth");
-            sectionsInCycleList.add(sectionsInCycle);
+        if (cycleType != null) {
+            ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
+            scheduleInfo.setCycleType(cycleTypeEnum);
+            List<String> sectionsInCycleList = Lists.newArrayList();
+            if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
+                String sectionsInCycle = params.get("scheduler.dayOfWeek");
+                sectionsInCycleList.add(sectionsInCycle);
+            } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
+                String sectionsInCycle = params.get("scheduler.dayOfMonth");
+                sectionsInCycleList.add(sectionsInCycle);
+            }
+            scheduleInfo.setSectionsInCycle(sectionsInCycleList);
+        } else {
+            scheduleInfo.setCycleType(ScheduleCycleType.DAILY);
         }
-        scheduleInfo.setSectionsInCycle(sectionsInCycleList);
-        
+
         String startDate = params.get("scheduler.startDate");
         scheduleInfo.setStartDate(startDate);
         String startTime = params.get("scheduler.startTime");
@@ -285,12 +293,16 @@ public class OrderExecution extends Controller {
         scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
         
         String recurrence = params.get("scheduler.recurrence");
-        int recurrenceNum = Integer.parseInt(recurrence);
-        if (recurrenceNum == -1) {
-            String range = params.get("scheduler.rangeOfRecurrence");
-            recurrenceNum = Integer.parseInt(range);
+        if (recurrence != null) {
+            int recurrenceNum = Integer.parseInt(recurrence);
+            if (recurrenceNum == -1) {
+                String range = params.get("scheduler.rangeOfRecurrence");
+                recurrenceNum = Integer.parseInt(range);
+            }
+            scheduleInfo.setReoccurrence(recurrenceNum);
+        } else {
+           scheduleInfo.setReoccurrence(1);
         }
-        scheduleInfo.setReoccurrence(recurrenceNum);
         scheduleInfo.setDurationLength(3600);
         ScheduledEventCreateParam eventParam = new ScheduledEventCreateParam();
         eventParam.setOrderCreateParam(orderParam);

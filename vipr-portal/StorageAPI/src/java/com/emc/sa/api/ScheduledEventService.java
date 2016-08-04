@@ -164,6 +164,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @param scheduleInfo     Schedule Schema
      */
     private void validateParam(ScheduleInfo scheduleInfo) {
+        try {
+            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+            Date date = formatter.parse(scheduleInfo.getStartDate());
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+        }
+
         if (scheduleInfo.getHourOfDay() < 0 || scheduleInfo.getHourOfDay() > 23) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.HOUR_OF_DAY);
         }

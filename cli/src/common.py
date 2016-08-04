@@ -367,6 +367,16 @@ def format_json_object(obj):
     '''
     return json.dumps(obj, sort_keys=True, indent=3)
 
+def to_pretty_json(orig_json):
+    '''
+    Formats JSON string to make it readable by proper indentation
+    Parameters:
+        obj - JSON object
+    Returns:
+        a string of formatted JSON object
+    '''
+    json.load(orig_json)
+    return json.dumps(json.load(orig_json), sort_keys=True, indent=3)
 
 def pyc_cleanup(directory, path):
     '''

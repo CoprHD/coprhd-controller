@@ -95,6 +95,16 @@ public class MountUtils {
         }
     }
 
+    public Boolean isDirectoryExists(String directory) throws InternalException {
+        String command = "[ -d \"" + directory + "\" ] &&echo \"exists\"||echo \"not exists\" ";
+        CommandOutput output = cli.executeCommand(command);
+        if ("exists".equalsIgnoreCase(output.getStdout())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void removeFromFSTab(String path) throws InternalException {
         RemoveFromFSTabCommand command = new RemoveFromFSTabCommand();
         command.setMountPoint(path);

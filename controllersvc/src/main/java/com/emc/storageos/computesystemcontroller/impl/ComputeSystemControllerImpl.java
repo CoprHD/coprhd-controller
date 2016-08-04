@@ -24,6 +24,7 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
+import com.emc.storageos.computesystemcontroller.hostmountadapters.MountCompleter;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
@@ -121,6 +122,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+
+    private static final String MOUNT_DEVICE_WF_NAME = "MOUNT_DEVICE_WORKFLOW";
+    private static final String UNMOUNT_DEVICE_WF_NAME = "UNMOUNT_DEVICE_WORKFLOW";
+
+    private static final String VERIFY_MOUNT_POINT_STEP = "VerifyMountPointStep";
+    private static final String CREATE_DIRECTORY_STEP = "CreateDirectoryStep";
+    private static final String ADD_TO_FSTAB_STEP = "AddToFSTabStep";
+    private static final String MOUNT_DEVICE_STEP = "MountDeviceStep";
+    private static final String SET_MOUNT_TAG_STEP = "SetMountTagStep";
+
+    private static final String UNMOUNT_DEVICE_STEP = "UnmountDeviceStep";
+    private static final String REMOVE_FROM_FSTAB_STEP = "RemoveFromFSTabStep";
+    private static final String DELETE_DIRECTORY_STEP = "DeleteDirectoryStep";
+    private static final String REMOVE_MOUNT_TAG_STEP = "RemoveMountTagStep";
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
@@ -1669,8 +1684,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String opId)
             throws ControllerException {
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        HostMountAdapter adapter = getMountAdapters().get(host.getType());
         HostDeviceInputOutput args = new HostDeviceInputOutput();
         args.setSubDirectory(subDirectory);
         args.setHostId(hostId);
@@ -1678,33 +1691,152 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         args.setSecurity(security);
         args.setMountPath(mountPath);
         args.setFsType(fsType);
+        // Generate the Workflow.
+        Workflow workflow = null;
+        MountCompleter completer = new MountCompleter(args.getHostId(), opId);
+        Host host = _dbClient.queryObject(Host.class, args.getHostId());
+        HostMountAdapter adapter = getMountAdapters().get(host.getType());
         try {
-            adapter.doMount(args);
-            _dbClient.ready(FileShare.class, resId, opId);
-        } catch (InternalException e) {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this, MOUNT_DEVICE_WF_NAME, false, opId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(hostId.toString());
+            _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
+            String waitFor = null; // the wait for key returned by previous call
+
+            _log.info("Generating steps for mounting device");
+
+            waitFor = workflow.createStep(VERIFY_MOUNT_POINT_STEP,
+                    String.format("Verifying mount point: %s", args.getMountPath()),
+                    null, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.verifyMountPointMethod(args),
+                    rollbackMethodNullMethod(), null);
+
+            waitFor = workflow.createStep(CREATE_DIRECTORY_STEP,
+                    String.format("Creating Directory: %s", args.getMountPath()),
+                    null, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.createDirectoryMethod(args),
+                    adapter.deleteDirectoryMethod(args), null);
+
+            waitFor = workflow.createStep(ADD_TO_FSTAB_STEP,
+                    String.format("Adding to etc/fstab:%n%s", args.getMountPath()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.addtoFSTabMethod(args),
+                    adapter.removeFromFSTabMethod(args), null);
+
+            waitFor = workflow.createStep(MOUNT_DEVICE_STEP,
+                    String.format("Mounting device:%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.mountDeviceMethod(args),
+                    adapter.removeFromFSTabMethod(args), null);
+
+            workflow.createStep(SET_MOUNT_TAG_STEP,
+                    String.format("Setting tag on :%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.setMountTagMethod(args),
+                    adapter.removeMountTagMethod(args), null);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Mount device successful for: " + args.getHostId().toString();
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            _log.error("Could not mount device: " + args, ex);
             ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
-                    .unableToMount(_dbClient.queryObject(Host.class, hostId).getType(), e);
-            _dbClient.error(FileShare.class, resId, opId, exception);
-            throw e;
+                    .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
+            completer.error(_dbClient, exception);
         }
     }
 
     @Override
     public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException {
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        HostMountAdapter adapter = getMountAdapters().get(host.getType());
         HostDeviceInputOutput args = new HostDeviceInputOutput();
         args.setHostId(hostId);
         args.setResId(resId);
         args.setMountPath(mountPath);
+        // Generate the Workflow.
+        Workflow workflow = null;
+        MountCompleter completer = new MountCompleter(args.getHostId(), opId);
+        Host host = _dbClient.queryObject(Host.class, args.getHostId());
+        HostMountAdapter adapter = getMountAdapters().get(host.getType());
         try {
-            adapter.doUnmount(args);
-            _dbClient.ready(FileShare.class, resId, opId);
-        } catch (InternalException e) {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this, MOUNT_DEVICE_WF_NAME, false, opId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(hostId.toString());
+            _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
+            String waitFor = null; // the wait for key returned by previous call
+
+            _log.info("Generating steps for mounting device");
+
+            waitFor = workflow.createStep(UNMOUNT_DEVICE_STEP,
+                    String.format("Creating Directory: %s", args.getMountPath()),
+                    null, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.unmountDeviceMethod(args),
+                    adapter.mountDeviceMethod(args), null);
+
+            waitFor = workflow.createStep(REMOVE_FROM_FSTAB_STEP,
+                    String.format("Adding to etc/fstab:%n%s", args.getMountPath()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.removeFromFSTabMethod(args),
+                    adapter.addtoFSTabMethod(args), null);
+
+            waitFor = workflow.createStep(DELETE_DIRECTORY_STEP,
+                    String.format("Mounting device:%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.deleteDirectoryMethod(args),
+                    adapter.createDirectoryMethod(args), null);
+
+            workflow.createStep(REMOVE_MOUNT_TAG_STEP,
+                    String.format("Setting tag on :%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    adapter.removeMountTagMethod(args),
+                    adapter.setMountTagMethod(args), null);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Unmount device successful for: " + args.getHostId().toString();
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            _log.error("Could not unmount device: " + args, ex);
             ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
-                    .unableToUnmount(_dbClient.queryObject(Host.class, hostId).getType(), e);
-            _dbClient.error(FileShare.class, resId, opId, exception);
-            throw e;
+                    .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
+            completer.error(_dbClient, exception);
         }
+    }
+
+    /**
+     * Get the deviceType for a StorageSystem.
+     * 
+     * @param deviceURI
+     *            -- StorageSystem URI
+     * @return deviceType String
+     */
+    public String getHostType(URI hostURI) throws ControllerException {
+        Host host = _dbClient.queryObject(Host.class, hostURI);
+        if (host == null) {
+            throw DeviceControllerException.exceptions.getDeviceTypeFailed(hostURI.toString());
+        }
+        return host.getType();
     }
 }

@@ -17,6 +17,10 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
  * 
@@ -105,7 +109,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     private List<String> getTags(DataObject object) {
         List<String> mountTags = new ArrayList<String>();
         if (object.getTag() != null) {
-            for (ScopedLabel label : object.getTag()) { // TODO filter tags for nfs
+            for (ScopedLabel label : object.getTag()) {
                 mountTags.add(label.getLabel());
             }
         }
@@ -134,5 +138,173 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
             }
         }
         return null;
+    }
+
+    public void createDirectory(URI hostId, String mountPath, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // Create directory
+            mountUtils.createDirectory(mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            FileShare fs = dbClient.queryObject(FileShare.class, resId);
+            FileExport export = findExport(fs, subDirectory, security);
+            // Add to etc/fstab
+            mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, "nolock,sec=" + security);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void mountDevice(URI hostId, String mountPath, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // mount device
+            mountUtils.mountPath(mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void verifyMountPoint(URI hostId, String mountPath, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // verify if mount point already exists in host
+            mountUtils.verifyMountPoint(mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void deleteDirectory(URI hostId, String mountPath, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // Delete directory
+            if (mountUtils.isDirectoryEmpty(mountPath)) {
+                mountUtils.deleteDirectory(mountPath);
+            }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void removeFromFSTab(URI hostId, String mountPath, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // remove mount entry from /etc/fstab
+            mountUtils.removeFromFSTab(mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void unmountDevice(URI hostId, String mountPath, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // unmount device
+            mountUtils.unmountPath(mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
+        try {
+            mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // set mount tag on the fs
+            setTag(resId, mountUtils.generateMountTag(hostId, mountPath, subDirectory, security));
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    public void removeMountTag(URI hostId, String mountPath, URI resId, String stepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // remove mount tag
+            String tag = findTag(hostId.toString(), resId.toString(), mountPath);
+            removeTag(resId, tag);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        }
+    }
+
+    @Override
+    public Method createDirectoryMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("createDirectory", args.getHostId(), args.getMountPath());
+    }
+
+    @Override
+    public Method addtoFSTabMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("addToFSTab", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    @Override
+    public Method mountDeviceMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("mountDevice", args.getHostId(), args.getMountPath());
+    }
+
+    @Override
+    public Method verifyMountPointMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("verifyMountPoint", args.getHostId(), args.getMountPath());
+    }
+
+    @Override
+    public Method unmountDeviceMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("unmountDevice", args.getHostId(), args.getMountPath());
+    }
+
+    @Override
+    public Method removeFromFSTabMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeFromFSTab", args.getHostId(), args.getMountPath());
+    }
+
+    @Override
+    public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("deleteDirectory", args.getHostId(), args.getMountPath());
+    }
+
+    @Override
+    public Method setMountTagMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("setMountTag", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    @Override
+    public Method removeMountTagMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeMountTag", args.getHostId(), args.getMountPath(), args.getResId());
     }
 }

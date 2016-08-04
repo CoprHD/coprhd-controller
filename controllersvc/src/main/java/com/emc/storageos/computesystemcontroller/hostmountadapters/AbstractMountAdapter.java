@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.workflow.Workflow.Method;
 
 public class AbstractMountAdapter implements HostMountAdapter {
     private Logger log;
@@ -202,5 +203,59 @@ public class AbstractMountAdapter implements HostMountAdapter {
     public void doUnmount(HostDeviceInputOutput args) throws ControllerException {
         // TODO Auto-generated method stub
 
+    }
+
+    @Override
+    public Method createDirectoryMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method addtoFSTabMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method mountDeviceMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method verifyMountPointMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method unmountDeviceMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method removeFromFSTabMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method setMountTagMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Method removeMountTagMethod(HostDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

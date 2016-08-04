@@ -37,7 +37,6 @@ public class UnmountNFSExportService extends LinuxService {
     public void precheck() throws Exception {
         super.precheck();
         mountList = MachineTagUtils.convertNFSTagsToMounts(mountTags);
-        acquireHostsLock();
         unmountNFSExportHelper.setMounts(mountList);
     }
 

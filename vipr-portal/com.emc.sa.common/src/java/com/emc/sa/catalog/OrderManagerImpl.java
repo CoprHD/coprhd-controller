@@ -115,8 +115,6 @@ public class OrderManagerImpl implements OrderManager {
                 ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
                 order.setScheduledTime(ScheduleTimeHelper.getScheduledTime(executionWindow));
             }
-        } else {
-            order.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());

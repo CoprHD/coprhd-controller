@@ -239,7 +239,7 @@ public class SchedulerDataManager {
                     break;
                 }
 
-                if (order.getExecutionWindowId().getURI().equals(ExecutionWindow.INFINITE)) {
+                if (order.getExecutionWindowId() == null || !order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
                     // order is not subjected to normal execution window but the special INFINITE window.
 
                     // check if the order is expired

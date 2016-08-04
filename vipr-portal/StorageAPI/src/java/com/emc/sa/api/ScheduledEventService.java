@@ -332,8 +332,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         newObject.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getScheduleInfo().serialize()), UTF_8));
         if (catalogService.getExecutionWindowRequired()) {
             newObject.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
-        } else {
-            newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         newObject.setLatestOrderId(restRep.getId());
         newObject.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
@@ -425,8 +423,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         if (catalogService.getExecutionWindowRequired()) {
             scheduledEvent.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
-        } else {
-            scheduledEvent.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         // TODO: update execution window when admin change it in catalog service
 

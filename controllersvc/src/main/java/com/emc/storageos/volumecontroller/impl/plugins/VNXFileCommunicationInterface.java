@@ -1528,7 +1528,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             List<VNXFileSystem> discoveredFS = discoverAllFileSystems(storageSystem);
 
-            ArrayList<String> umfsIds = new ArrayList<String>();
+            StringSet umfsIds = new StringSet();
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
@@ -1611,7 +1611,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, List<String> umfsIds) throws Exception {
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, StringSet umfsIds) throws Exception {
         URI storageSystemId = profile.getSystemId();
 
         StorageSystem storageSystem = _dbClient.queryObject(
@@ -1622,62 +1622,74 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
 
         try {
-            for (String umfsId : umfsIds) {
-                // Retrieve all the qtree info.
-                List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem, umfsId);
-                if (null != qtrees && !qtrees.isEmpty()) {
-                    // List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
-                    List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
-                    List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+            Map<String, Object> reqAttributeMap = getRequestParamsMap(storageSystem);
+            reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+            _discExecutor.setKeyMap(reqAttributeMap);
 
-                    for (TreeQuota quotaTree : qtrees) {
-                        String fsNativeId;
+            // Retrieve all the qtree info.
+            List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem);
+            if (null != qtrees && !qtrees.isEmpty()) {
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
 
-                        String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
-                                storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFileSystem() + "");
+                for (TreeQuota quotaTree : qtrees) {
+                    String fsNativeId;
+                    // Process the QD's only of unmanaged file systems.
+                    if (!umfsIds.contains(quotaTree.getFileSystem())) {
+                        continue;
+                    }
+                    String qdName = "";
+                    if (quotaTree.getPath() != null) {
+                        // Ignore / from QD path
+                        qdName = quotaTree.getPath().substring(1);
+                    }
+                    String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                            storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFileSystem() + "");
 
-                        String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber(), quotaTree.getTree(), quotaTree.getFileSystem() + "");
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
 
-                        String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
-                                storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber(), quotaTree.getTree(), quotaTree.getFileSystem() + "");
-                        if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
-                            continue;
-                        }
-
-                        UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
-                        unManagedFileQuotaDirectory.setLabel(quotaTree.getTree());
-                        unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
-                        unManagedFileQuotaDirectory.setParentFSNativeGuid(fsUnManagedFsNativeGuid);
-                        unManagedFileQuotaDirectory.setOpLock(false);
-                        if (quotaTree.getLimits() != null) {
-                            unManagedFileQuotaDirectory.setSize(Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()));
-                        }
-
-                        if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
-                            unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
-                        } else {
-                            existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
-                        }
-
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
+                            storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), qdName, quotaTree.getFileSystem() + "");
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
                     }
 
-                    if (!unManagedFileQuotaDirectories.isEmpty()) {
-                        _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
-                                Constants.DEFAULT_PARTITION_SIZE, _dbClient,
-                                UNMANAGED_FILEQUOTADIR);
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(qdName);
+
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsUnManagedFsNativeGuid);
+                    unManagedFileQuotaDirectory.setOpLock(false);
+                    if (quotaTree.getLimits() != null) {
+                        unManagedFileQuotaDirectory.setSize(
+                                Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()) * BYTESCONV);
                     }
 
-                    if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
-                        _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
-                                Constants.DEFAULT_PARTITION_SIZE, _dbClient,
-                                UNMANAGED_FILEQUOTADIR);
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     }
+
+                }
+
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
                 }
             }
+
         } catch (Exception e) {
             if (null != storageSystem) {
                 cleanupDiscovery(storageSystem);
@@ -3085,16 +3097,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return fileSystems;
     }
 
-    private List<TreeQuota> getAllQuotaTrees(final StorageSystem system, String umfsId)
+    private List<TreeQuota> getAllQuotaTrees(final StorageSystem system)
             throws VNXException {
 
         List<TreeQuota> quotaTrees = new ArrayList<TreeQuota>();
         List<TreeQuota> tempQuotaTrees = null;
 
-        Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-        reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
-        _discExecutor.setKeyMap(reqAttributeMap);
-        _discExecutor.getKeyMap().put(VNXFileConstants.FILESYSTEM_ID, umfsId);
         try {
 
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
@@ -3105,9 +3113,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (null != tempQuotaTrees && !tempQuotaTrees.isEmpty()) {
                 quotaTrees.addAll(tempQuotaTrees);
-                _logger.info("Found {} Quota directories for FileSystem Id {} ", tempQuotaTrees.size(), umfsId);
+                _logger.info("Found {} Quota directories ", tempQuotaTrees.size());
             } else {
-                _logger.info("No Quota directories found for FileSystem Id:" + umfsId);
+                _logger.info("No Quota directories found ");
             }
         } catch (BaseCollectionException e) {
             throw new VNXException("Get QuotaTrees op failed", e);

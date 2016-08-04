@@ -659,12 +659,16 @@ public class UnManagedFilesystemService extends TaggedResource {
     }
 
     private void ingestFileQuotaDirectories(FileShare parentFS) throws IOException {
-        String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
 
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, parentFS.getStorageDevice());
+        
+        String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                system.getSystemType(), system.getSerialNumber().toUpperCase(), parentFS.getNativeId());
+        
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
+                .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(fsUnManagedFsNativeGuid), result);
         List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, result);
         _logger.info("found {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {
@@ -676,7 +680,6 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setOpStatus(new OpStatusMap());
             quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), unManagedFileQuotaDirectory.getLabel()));
             quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
-            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
             quotaDirectory.setInactive(false);
 
             quotaDirectory.setSoftLimit(
@@ -702,7 +705,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
-
+            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
             quotaDirectories.add(quotaDirectory);
         }
 
@@ -878,7 +881,6 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
 
     private boolean doesStoragePortExistsInVArray(StoragePort umfsStoragePort, VirtualArray virtualArray) {
-
 
         List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray.getId());
 

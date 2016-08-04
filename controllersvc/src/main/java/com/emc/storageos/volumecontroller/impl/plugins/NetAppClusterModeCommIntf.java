@@ -275,11 +275,14 @@ public class NetAppClusterModeCommIntf extends
                 StoragePool pool = pools.get(poolNativeGuid);
                 
                 String nativeId;
+                if("".equals(filesystem)){
+                    continue;
+                }
                 
-                if (path.startsWith(VOL_ROOT)) {
-                    nativeId = path;
+                if (filesystem.startsWith(VOL_ROOT)) {
+                    nativeId = filesystem;
                 } else {
-                    nativeId = VOL_ROOT + path;
+                    nativeId = VOL_ROOT + filesystem;
                 }
 
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(

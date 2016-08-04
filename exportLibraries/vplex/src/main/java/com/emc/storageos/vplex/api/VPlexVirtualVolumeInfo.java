@@ -154,10 +154,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // The volume id containing the WWN.
     private String vpdId;
-    
+
     // The expandable capacity for the volume.
     private String expandableCapacity;
-
 
     /**
      * Getter for the volume block count.
@@ -340,7 +339,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             clusters.add(clusterId);
         }
     }
-    
+
     /**
      * Getter for the volume vpd-id.
      * 
@@ -349,7 +348,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getVpdId() {
         return vpdId;
     }
-    
+
     /**
      * Setter for the volume vpd-id.
      * 
@@ -358,7 +357,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public void setVpdId(String strVal) {
         vpdId = strVal;
     }
-    
+
     /**
      * Getter for the volume expandable-capacity.
      * 
@@ -367,7 +366,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getExpandableCapacity() {
         return expandableCapacity;
     }
-    
+
     /**
      * Setter for the volume expandable-capacity.
      * 
@@ -387,12 +386,14 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         if (null != vpdId) {
             if (vpdId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX)) {
                 return vpdId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX.length());
+            } else if (vpdId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX_T2)) {
+                return vpdId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX_T2.length());
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Return the virtual volume capacity in bytes.
      * 
@@ -455,7 +456,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public boolean isThinEnabled() {
         // need to check both thin-capable=true && thin-enabled=true|enabled
         return VPlexApiConstants.TRUE.equalsIgnoreCase(getThinCapable()) &&
-                (VPlexApiConstants.TRUE.equalsIgnoreCase(getThinEnabled()) 
+                (VPlexApiConstants.TRUE.equalsIgnoreCase(getThinEnabled())
                         || VPlexApiConstants.ENABLED.equalsIgnoreCase(getThinEnabled()));
     }
 

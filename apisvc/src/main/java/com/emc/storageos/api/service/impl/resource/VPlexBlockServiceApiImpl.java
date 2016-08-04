@@ -3984,6 +3984,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 if (systemURI == null) {
                     systemURI = removeVol.getStorageController();
                 }
+                StringSet backingVolumes = removeVol.getAssociatedVolumes();
+                if (backingVolumes != null ) {
+                    for (String backingVolId : backingVolumes) {
+                        URI backingVolUri = URI.create(backingVolId);
+                        Volume backingVol = _dbClient.queryObject(Volume.class, backingVolUri);
+                        if (backingVol != null &&
+                                !BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backingVol, _dbClient, false)) {
+                            throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(removeVol.getLabel(),
+                                "the Unity subgroup has snapshot");
+                        }
+                    }
+                }
                 removeVolIds.add(removeVol.getId());
             }
         }
@@ -4047,6 +4059,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
                                     "Volume has to be added to a different replication group than it is currently in");
                         }
+                    }
+                    if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(addVolumes.getReplicationGroupName(), backingVol, _dbClient, true)) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
+                                "the Unity subgroup has snapshot.");
                     }
                 }
             }

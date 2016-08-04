@@ -405,6 +405,10 @@ public class OrderService extends CatalogTaggedResourceService {
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
 
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("pause");
+        }
+
         if (!OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.EXECUTING)) {
             throw APIException.badRequests.unexpectedValueForProperty("orderStatus", OrderStatus.EXECUTING.toString(),
                     order.getOrderStatus());
@@ -427,6 +431,10 @@ public class OrderService extends CatalogTaggedResourceService {
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
 
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("resume");
+        }
+
         if (!OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PAUSED)) {
             throw APIException.badRequests.unexpectedValueForProperty("orderStatus", OrderStatus.PAUSED.toString(),
                     order.getOrderStatus());
@@ -448,6 +456,10 @@ public class OrderService extends CatalogTaggedResourceService {
 
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
+
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("cancel");
+        }
 
         if (!OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SCHEDULED)) {
             throw APIException.badRequests.unexpectedValueForProperty("orderStatus", OrderStatus.SCHEDULED.toString(),
@@ -603,6 +615,10 @@ public class OrderService extends CatalogTaggedResourceService {
     public Response deactivateOrder(@PathParam("id") URI id) throws DatabaseException {
         Order order = queryResource(id);
         ArgValidator.checkEntity(order, id, true);
+
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
+        }
 
         orderManager.deleteOrder(order);
 

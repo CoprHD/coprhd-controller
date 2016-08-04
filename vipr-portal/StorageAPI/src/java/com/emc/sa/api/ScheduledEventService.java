@@ -307,7 +307,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
             String msg = match(param.getScheduleInfo(), executionWindow);
             if (!msg.isEmpty()) {
-                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow(msg);
+                throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
         }
 
@@ -415,7 +415,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
             String msg = match(scheduleInfo, executionWindow);
             if (!msg.isEmpty()) {
-                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow(msg);
+                throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
         }
 

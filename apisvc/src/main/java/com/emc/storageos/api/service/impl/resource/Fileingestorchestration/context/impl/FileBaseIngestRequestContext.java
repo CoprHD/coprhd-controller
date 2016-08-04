@@ -100,7 +100,7 @@ public class FileBaseIngestRequestContext implements IngestionFileRequestContext
     @Override
     public UnManagedFileSystem next() {
         _currentUnManagedFileSystemUri = _unManagedFileSystemUrisToProcessIterator.next();
-        UnManagedFileSystem currentFileSystem = _dbClient.queryObject(UnManagedVolume.class, _currentUnManagedVolumeUri);
+        UnManagedFileSystem currentFileSystem = _dbClient.queryObject(UnManagedFileSystem.class, _currentUnManagedFileSystemUri);
         if (null != currentFileSystem) {
             this.setCurrentUnmanagedFileSystemUri(currentFileSystem);
         }
@@ -142,7 +142,7 @@ public class FileBaseIngestRequestContext implements IngestionFileRequestContext
      * @param unManagedFileSystem the UnManagedFileSystem to set
      */
     private void setCurrentUnmanagedFileSystemUri(UnManagedFileSystem unManagedFileSystem) {
-       this._currentFileIngestionContext = FileIngestionContextFactory.getVolumeIngestionContext(unManagedFileSystem, this._db, this);
+       this._currentFileIngestionContext = FileIngestionContextFactory.getVolumeIngestionContext(unManagedFileSystem, _dbClient, this);
     }
 
 

@@ -32,10 +32,8 @@ public class VplexDataMigrationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        boolean forceFlag = false;
-        if (BlockProvider.YES_VALUE.equals(displayJournals)) {
-            forceFlag = true;
-        }
+        boolean forceFlag = BlockProvider.YES_VALUE.equalsIgnoreCase(displayJournals);
+        
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, forceFlag));
         addAffectedResources(tasks);
     }

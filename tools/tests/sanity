@@ -2659,46 +2659,16 @@ rpvplex_ha()
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
-}
 
-# Regular vpool used as base for change vpool tests
-rp_regular()
-{
-    run cos create block rp_regular$1 $POOLS_AUTO_MATCH \
-        --description 'Regular-vpool-used-as-base-for-change-vpool-tests' \
+    run cos create block rpvplex_ha$1-migrate true \
+        --description 'HA-MIGRATE' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --max_snapshots 10
-}
-
-# Regular VPLEX local vpool used as base for change vpool tests
-rpvplex_local_regular()
-{
-    run cos create block rpvplex_local_regular$1 $POOLS_AUTO_MATCH \
-        --description 'Regular-VPLEX-local-vpool-used-as-base-for-change-vpool-tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
-}
-
-# Regular VPLEX dist vpool used as base for change vpool tests
-rpvplex_dist_regular()
-{
-    run cos create block rpvplex_dist_regular$1  $POOLS_AUTO_MATCH \
-        --description 'Regular-VPLEX-dist-vpool-used-as-base-for-change-vpool-tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_distributed \
-        --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --max_snapshots 10 \
-        --haCos rpvplex_ha
 }
 
 # RP CDP
@@ -2869,12 +2839,12 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-        --journalVpool rpvplex_targets \
+        --journalVpool rpvplex_targets-migrate \
         --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 }
@@ -2890,11 +2860,12 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
+        --journalVpool rpvplex_targets \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
@@ -2906,11 +2877,12 @@ rpvplex_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
+        --journalVpool rpvplex_targets \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
@@ -2924,14 +2896,15 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
+        --journalVpool rpvplex_targets-migrate \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --haCos rpvplex_ha
+        --haCos rpvplex_ha-migrate
 }
 
 # RP+VPLEX CLR
@@ -2945,14 +2918,14 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --journalVpool rp_targets \
+        --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 
@@ -2963,14 +2936,14 @@ rpvplex_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --journalVpool rp_targets \
+        --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 
@@ -2983,16 +2956,16 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --journalVpool rp_targets \
+        --journalVpool rpvplex_targets-migrate \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --haCos rpvplex_ha
+        --haCos rpvplex_ha-migrate
 }
 
 # MetroPoint CDP
@@ -3181,7 +3154,7 @@ rpmp_clr()
 # RP - NO PROTECTION
 rp_noprotection()
 {
-    run cos create block rp_noprotection$1 $POOLS_AUTO_MATCH \
+    run cos create block rp_noprotection$1 true \
         --description 'RP---NO-PROTECTION'  \
         --protocols FC \
         --numpaths 2 \
@@ -3194,7 +3167,7 @@ rp_noprotection()
 # RP+VPLEX LOCAL - NO PROTECTION
 rpvplexlocal_noprotection()
 {
-    run cos create block rpvplexlocal_noprotection$1 $POOLS_AUTO_MATCH \
+    run cos create block rpvplexlocal_noprotection$1 true \
         --description 'RP+VPLEX-LOCAL---NO-PROTECTION'  \
         --protocols FC \
         --numpaths 2 \
@@ -3208,7 +3181,7 @@ rpvplexlocal_noprotection()
 # RP+VPLEX DIST - NO PROTECTION
 rpvplexdist_noprotection()
 {
-    run cos create block rpvplexdist_noprotection$1 $POOLS_AUTO_MATCH \
+    run cos create block rpvplexdist_noprotection$1 true \
         --description 'RP+VPLEX-DIST---NO-PROTECTION'  \
         --protocols FC \
         --numpaths 2 \
@@ -3224,7 +3197,6 @@ rpvplexdist_noprotection()
 rp_vpool_setup()
 {
     rp_targets
-    rp_regular
     rp_noprotection
 
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -4977,6 +4949,7 @@ recoverpoint_simulator_vpool_setup()
             run cos update block rp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
         fi
     fi
+
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         run cos update block rpvplex_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
@@ -4991,58 +4964,67 @@ recoverpoint_simulator_vpool_setup()
         run cos update block rpvplexdist_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rpvplexdist_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-        if [ "${RP_CDP}" = "1" ]; then
-            run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+        if [ "${RPVPLEX_TESTS}" = "1" ]; then
+            if [ "${RP_CDP}" = "1" ]; then
+                run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpvplex_cdp-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_cdp-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_cdp-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_cdp-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_cdp-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_cdp-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+            fi
+            if [ "${RP_CRR}" = "1" ]; then
+                run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_crr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_crr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_crr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+            fi
+            if [ "${RP_CLR}" = "1" ]; then
+                run cos update block rpvplex_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpmp_cdp-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_cdp-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_cdp-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_clr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_clr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpvplex_clr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+            fi
         fi
-        if [ "${RP_CRR}" = "1" ]; then
-            run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpvplex_crr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_crr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_crr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+        if [ "${RPMP_TESTS}" = "1" ]; then
+            if [ "${RP_CDP}" = "1" ]; then
+                run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpmp_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_cdp-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_cdp-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_cdp-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+            fi
+            if [ "${RP_CRR}" = "1" ]; then
+                run cos update block rpmp_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpmp_crr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_crr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_crr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
-        fi
-        if [ "${RP_CLR}" = "1" ]; then
-            run cos update block rpvplex_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_crr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_crr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_crr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+            fi
+            if [ "${RP_CLR}" = "1" ]; then
+                run cos update block rpmp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
 
-            run cos update block rpvplex_clr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_clr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpvplex_clr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
-
-            run cos update block rpmp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
-
-            run cos update block rpmp_clr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_clr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
-            run cos update block rpmp_clr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_clr-migrate --storage $VMAX1_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_clr-migrate --storage $VMAX2_SIMULATOR_NATIVEGUID
+                run cos update block rpmp_clr-migrate --storage $VMAX3_SIMULATOR_NATIVEGUID
+            fi
         fi
     fi
+
     if [ "${RPXIO_TESTS}" = "1" ]; then
         run cos update block rpxio_targets --storage $XIO_4X_SIM_NATIVEGUID
         run cos update block rp_noprotection --storage $XIO_4X_SIM_NATIVEGUID

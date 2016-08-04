@@ -162,8 +162,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             "block.snapshot.linked.copymode");
     private static final AssetOption LINKED_SNAPSHOT_NOCOPYMODE_OPTION = newAssetOption(LINKED_SNAPSHOT_NOCOPYMODE_VALUE,
             "block.snapshot.linked.nocopymode");
-    private static final AssetOption DISPLAY_JOUNRNALS_TRUE_OPTION = newAssetOption(YES_VALUE, "choice.yes");
-    private static final AssetOption DISPLAY_JOUNRNALS_FALSE_OPTION = newAssetOption(NO_VALUE, "choice.no");
+    private static final AssetOption DISPLAY_JOURNALS_TRUE_OPTION = newAssetOption(YES_VALUE, "choice.yes");
+    private static final AssetOption DISPLAY_JOURNALS_FALSE_OPTION = newAssetOption(NO_VALUE, "choice.no");
 
     private static List<AssetOption> NTFS_OPTIONS = Lists.newArrayList(newAssetOption("DEFAULT", "Default"),
             newAssetOption("512", "512"),
@@ -1616,8 +1616,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getDisplayJournals(AssetOptionsContext ctx) {
         // These are hard coded values for now. In the future, this may be available through an API
         List<AssetOption> options = Lists.newArrayList();
-        options.add(DISPLAY_JOUNRNALS_FALSE_OPTION);
-        options.add(DISPLAY_JOUNRNALS_TRUE_OPTION);
+        options.add(DISPLAY_JOURNALS_FALSE_OPTION);
+        options.add(DISPLAY_JOURNALS_TRUE_OPTION);
         return options;
     }
 

@@ -95,7 +95,7 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
-    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 1; // TODO: change to 5m
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 60; // TODO: change to 5m
 
     private static final String LOCK_NAME = "orderscheduler";
 
@@ -174,7 +174,7 @@ public class OrderService extends CatalogTaggedResourceService {
                         }
                     }
                 },
-                0, SCHEDULED_EVENTS_SCAN_INTERVAL, TimeUnit.MINUTES);
+                0, SCHEDULED_EVENTS_SCAN_INTERVAL, TimeUnit.SECONDS);
 
     }
 
@@ -321,6 +321,9 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         Order order = createNewOrder(user, tenantId, createParam);
+
+        orderManager.processOrder(order);
+
         order = orderManager.getOrderById(order.getId());
         List<OrderParameter> orderParameters = orderManager.getOrderParameters(order.getId());
 
@@ -351,8 +354,6 @@ public class OrderService extends CatalogTaggedResourceService {
         List<OrderParameter> orderParams = createOrderParameters(order, createParam, encryptionProvider);
 
         orderManager.createOrder(order, orderParams, user);
-
-        orderManager.processOrder(order);
 
         return order;
     }
@@ -716,7 +717,8 @@ public class OrderService extends CatalogTaggedResourceService {
                     continue;
                 }
 
-                log.info("Trying to schedule a new order for event {}", event.getId());
+                log.info("Trying to schedule a new order for event {} : {}", event.getId(),
+                        ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getScheduleInfo().getBytes(UTF_8))).toString());
 
                 StorageOSUser user = StorageOSUser.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getStorageOSUser().getBytes(UTF_8)));
 
@@ -730,6 +732,8 @@ public class OrderService extends CatalogTaggedResourceService {
                     createParam.setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(nextScheduledTime));
 
                     order = createNewOrder(user, uri(order.getTenant()), createParam);
+                    orderManager.processOrder(order);
+
                     event.setLatestOrderId(order.getId());
                     log.info("Scheduled an new order {} for event {} ...", order.getId(), event.getId());
                 }

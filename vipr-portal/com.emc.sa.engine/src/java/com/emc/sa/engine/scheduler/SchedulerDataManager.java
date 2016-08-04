@@ -231,12 +231,11 @@ public class SchedulerDataManager {
             }
 
             Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-            LOG.info("currTime: {}", currTime.toString());
 
             for (Order order : orders) {
-                LOG.info("The order should be scheduled at {}", order.getScheduledTime());
+                LOG.debug("The order should be scheduled at {}", order.getScheduledTime());
                 if (currTime.before(order.getScheduledTime())) {
-                    LOG.info("It is not time to invoke the earliest order yet.");
+                    LOG.debug("It is not time to invoke the earliest order yet.");
                     break;
                 }
 
@@ -244,8 +243,11 @@ public class SchedulerDataManager {
                     // order is not subjected to normal execution window but the special INFINITE window.
 
                     // check if the order is expired
-                    if (isExpiredOrder(order, null))
+                    if (isExpiredOrder(order, null)) {
+                        order.setOrderStatus(OrderStatus.ERROR.name());
+                        models.save(order);
                         continue;
+                    }
 
                     // lock a order
                     if (!isLocked(order)) {
@@ -261,8 +263,11 @@ public class SchedulerDataManager {
 
                     // check if the order is expired
                     ExecutionWindow window = models.findById(order.getExecutionWindowId().getURI());
-                    if (isExpiredOrder(order, window))
+                    if (isExpiredOrder(order, window)) {
+                        order.setOrderStatus(OrderStatus.ERROR.name());
+                        models.save(order);
                         continue;
+                    }
 
                     // lock a order if tenant is active and window is matched.
                     boolean matchesTenant = activeTenants.contains(order.getTenant());

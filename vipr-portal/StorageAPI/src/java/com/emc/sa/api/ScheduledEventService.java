@@ -167,16 +167,41 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         if (scheduleInfo.getHourOfDay() < 0 || scheduleInfo.getHourOfDay() > 23) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.HOUR_OF_DAY);
         }
+
         if (scheduleInfo.getMinuteOfHour() < 0 || scheduleInfo.getMinuteOfHour() > 59) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.MINUTE_OF_HOUR);
         }
+
+        Calendar currTime, endTime;
+        try {
+            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+            Date date = formatter.parse(scheduleInfo.getStartDate());
+            currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
+            if (endTime != null && currTime.after(endTime)) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
+            }
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+        }
+
+        /* TODO: enable it later when we support customized duration
         if (scheduleInfo.getDurationLength() < 1 || scheduleInfo.getHourOfDay() > 60*24) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DURATION_LENGTH);
         }
+        */
+
+        if (scheduleInfo.getReoccurrence() < 0) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
+        } else if (scheduleInfo.getReoccurrence() == 1) {
+            return;
+        }
+
         if (scheduleInfo.getCycleFrequency() < 1 ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
         }
-
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
                 if (scheduleInfo.getSectionsInCycle().size() != 1) {
@@ -205,25 +230,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 break;
             default:
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
-        }
-
-        Calendar currTime, endTime;
-        try {
-            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-            Date date = formatter.parse(scheduleInfo.getStartDate());
-            currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-            endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
-            if (endTime != null && currTime.after(endTime)) {
-                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
-            }
-        } catch (APIException e) {
-            throw e;
-        } catch (Exception e) {
-            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
-        }
-
-        if (scheduleInfo.getReoccurrence() < 0 ) {
-            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
         if (scheduleInfo.getDateExceptions() != null) {
@@ -335,7 +341,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         client.save(newObject);
 
-        log.info("Created a new scheduledEvent {}:{}.", newObject.getId(),param.getScheduleInfo().toString());
+        log.info("Created a new scheduledEvent {}:{}", newObject.getId(),param.getScheduleInfo().toString());
         return newObject;
     }
 

@@ -496,9 +496,11 @@ public class OrderManagerImpl implements OrderManager {
                 break;
             case SUCCESS:
                 processSuccessOrder(order, service);
+                processScheduledEvent(order);
                 break;
             case ERROR:
                 processErrorOrder(order, service);
+                processScheduledEvent(order);
                 break;
         }
     }
@@ -639,4 +641,21 @@ public class OrderManagerImpl implements OrderManager {
         updateOrder(order);
     }
 
+    public void processScheduledEvent(Order order) {
+        URI scheduledEventId = order.getScheduledEventId();
+        ScheduledEvent scheduledEvent = client.scheduledEvents().findById(scheduledEventId);
+        if (scheduledEvent != null) {
+            if (scheduledEvent.getEventType() == ScheduledEventType.ONCE) {
+                // For ONCE event, update its status to FINISHED after order finished.
+                // For REOCCURRENCE event, update its status during scheduler thread.
+                if (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
+                    OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
+                    OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR) ) {
+                    scheduledEvent.setEventStatus(ScheduledEventStatus.FINISHED);
+                    client.save(scheduledEvent);
+                }
+            }
+        }
+        return;
+    }
 }

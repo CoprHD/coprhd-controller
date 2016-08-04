@@ -39,7 +39,7 @@ public class ScheduleTimeHelper {
         startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
         startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
         startTime.set(Calendar.SECOND, 0);
-        log.info("The first desired scheduled time: {}", startTime.toString());
+        log.debug("The first desired scheduled time: {}", startTime.toString());
 
         return startTime;
     }
@@ -79,7 +79,7 @@ public class ScheduleTimeHelper {
                 log.error("not expected schedule cycle.");
         }
 
-        log.info("The last desired scheduled time: {}", endTime.toString());
+        log.debug("The last desired scheduled time: {}", endTime.toString());
         return endTime;
     }
 
@@ -99,10 +99,10 @@ public class ScheduleTimeHelper {
         Calendar currTZTime = Calendar.getInstance();
         Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         currTime.setTimeInMillis(currTZTime.getTimeInMillis());
-        log.info("currTime: {}", currTime.toString());
+        log.debug("currTime: {}", currTime.toString());
 
         Calendar initTime = startTime.before(currTime)? currTime:startTime;
-        log.info("initTime: {}", initTime.toString());
+        log.debug("initTime: {}", initTime.toString());
 
         int year = initTime.get(Calendar.YEAR);
         int month = initTime.get(Calendar.MONTH);
@@ -137,7 +137,7 @@ public class ScheduleTimeHelper {
         }
 
         if (scheduledTime != null) {
-            log.info("scheduledTime: {}", scheduledTime.toString());
+            log.debug("scheduledTime: {}", scheduledTime.toString());
         }
         return scheduledTime;
     }
@@ -209,10 +209,10 @@ public class ScheduleTimeHelper {
      */
     public static Calendar getScheduledTime(ExecutionWindow window) {
         Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        log.info("currTime: {}", currTime.toString());
+        log.debug("currTime: {}", currTime.toString());
         ExecutionWindowHelper windowHelper = new ExecutionWindowHelper(window);
         if (windowHelper.isActive(currTime)) {
-            log.info("currTime {} is in active window, set it as scheduled time.", currTime.toString());
+            log.debug("currTime {} is in active window, set it as scheduled time.", currTime.toString());
             return currTime;
         }
 
@@ -235,10 +235,10 @@ public class ScheduleTimeHelper {
 
         while (scheduledTime.before(currTime)) {
             scheduledTime = getNextScheduledTime(scheduledTime, window);
-            log.info("scheduledTime in loop: {}", scheduledTime.toString());
+            log.debug("scheduledTime in loop: {}", scheduledTime.toString());
         }
 
-        log.info("scheduledTime: {}", scheduledTime.toString());
+        log.debug("scheduledTime: {}", scheduledTime.toString());
         return scheduledTime;
     }
 
@@ -268,7 +268,7 @@ public class ScheduleTimeHelper {
     public static String convertCalendarToStr(Calendar cal) throws Exception {
         SimpleDateFormat format = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
         String formatted = format.format(cal.getTime());
-        log.info("converted calendar time:{}", formatted);
+        log.debug("converted calendar time:{}", formatted);
         return formatted;
     }
 

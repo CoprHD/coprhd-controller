@@ -54,10 +54,10 @@ public class ExecutionWindowHelper {
         } else {
             endTime.add(getWindowLengthCalendarField(), window.getExecutionWindowLength());
         }
-        log.info("endTime: {}", endTime);
 
         Calendar currTime = Calendar.getInstance();
-        log.info("currTime: {}", currTime);
+
+        log.debug("currTime:{}, endTime: {}", currTime, endTime);
 
         expired = currTime.compareTo(endTime) > 0;
         return expired;
@@ -205,20 +205,20 @@ public class ExecutionWindowHelper {
 
     public boolean inHourMinWindow(int hour, int min) {
         int targetTime = getHourMin(hour, min);
-        log.info("target HourMin:{}", targetTime);
+        log.debug("target HourMin:{}", targetTime);
 
         int startTime, endTime;
         startTime = getWindowStartHourMin();
-        log.info("window start HourMin:{}", startTime);
+        log.debug("window start HourMin:{}", startTime);
         endTime = getWindowEndHourMin();
-        log.info("window start HourMin:{}", endTime);
+        log.debug("window end HourMin:{}", endTime);
 
         if (targetTime >= startTime && targetTime <= endTime) {
             return true;
         }
         // might in the 2nd day.
         targetTime += 2400;
-        if ( targetTime >= startTime && targetTime <= endTime) {
+        if (targetTime >= startTime && targetTime <= endTime) {
             return true;
         }
         return false;

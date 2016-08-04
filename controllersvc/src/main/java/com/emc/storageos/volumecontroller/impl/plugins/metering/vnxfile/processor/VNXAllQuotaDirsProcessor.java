@@ -35,7 +35,7 @@ public class VNXAllQuotaDirsProcessor extends VNXFileProcessor {
             } else {
                 List<Object> quotaDirList = getQueryResponse(responsePacket);
                 List<TreeQuota> quotaDirs = new ArrayList<TreeQuota>();
-                _logger.info("Size of quotadir found {} ", quotaDirList.size());
+                _logger.info("Received the response size {} ", quotaDirList.size());
                 Iterator<Object> quotaDirItr = quotaDirList.iterator();
                 if (quotaDirItr.hasNext()) {
                     Status status = (Status) quotaDirItr.next();

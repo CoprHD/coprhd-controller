@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import com.emc.sa.service.vipr.tasks.AcquireHostLock;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.uimodels.EphemeralObject;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Tasks;
@@ -100,7 +102,28 @@ public abstract class ViPRService extends AbstractExecutionService {
             }
         }
     }
-
+    
+    protected void addEmphemeralObjects(Tasks<? extends DataObjectRestRep> tasks, Integer ttl) {
+        warn("add emphemeral object %d", ttl);
+        if (tasks == null) {
+            return;
+        }
+        
+        for (Task<? extends DataObjectRestRep> task : tasks.getTasks()) {
+            if (task.getResourceId() != null) {
+                warn("Task resource id %s", task.getResourceId());
+                EphemeralObject ephemeralObject = new EphemeralObject();
+                ephemeralObject.setResourceId(task.getResourceId());
+                ephemeralObject.setExecutionStateId(ExecutionUtils.currentContext().getExecutionState().getId());
+                modelClient.save(ephemeralObject);
+                warn("created object %s", ephemeralObject.getId());
+            }
+            else {
+                warn("null resource for task, not adding to ephemeral object: %s", task);
+            }
+        }
+    }
+    
     @Override
     public void init() throws Exception {
         addInjectedValue(ViPRCoreClient.class, getClient());

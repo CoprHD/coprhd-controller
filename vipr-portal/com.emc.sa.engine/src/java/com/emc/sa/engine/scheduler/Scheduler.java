@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.engine.ExecutionEngineDispatcher;
+import com.emc.storageos.db.client.model.uimodels.EphemeralObject;
 import com.emc.storageos.db.client.model.uimodels.Order;
 
 @Component
@@ -84,9 +85,11 @@ public class Scheduler implements Runnable {
         thread = Thread.currentThread();
 
         pool = Executors.newFixedThreadPool(threadCount);
-        for (int i = 0; i < threadCount; i++) {
+        for (int i = 0; i < threadCount - 1; i++) {
             pool.execute(new OrderProcessor());
         }
+        pool.execute(new EphemeralObjectProcessor());
+
     }
 
     /**
@@ -162,6 +165,28 @@ public class Scheduler implements Runnable {
             } catch (Exception e) {
                 LOG.error("Unexpected exception processing order: " + order.getId(), e);
             }
+        }
+    }
+    
+    private class EphemeralObjectProcessor implements Runnable {
+        @Override
+        public void run() {
+            LOG.info("Started EphemeralObjectProcessor");
+            try {
+                while (isRunning()) {
+                    LOG.info("execute EphemeralObjectProcessor");
+                    try {
+                    dispatcher.killEphemeralObject();
+                    } catch (Exception e) {
+                        LOG.error("Unexpected exception processing EphemeralObjectProcessor: " , e);
+                    }
+                    Thread.sleep(5000);
+                }
+            } catch (InterruptedException e) {
+                LOG.info("Interruped waiting for an order");
+                Thread.currentThread().interrupt();
+            }
+            LOG.info("Finished OrderProcessor");
         }
     }
 }

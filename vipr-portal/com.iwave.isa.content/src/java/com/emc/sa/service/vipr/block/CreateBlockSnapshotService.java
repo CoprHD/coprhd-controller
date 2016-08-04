@@ -95,7 +95,7 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
-        warn("ttl " + timeToLive + ", unit " + timeToLiveUnit);
+        warn("ttl aaa" + timeToLive + ", unit " + timeToLiveUnit);
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
@@ -106,16 +106,24 @@ public class CreateBlockSnapshotService extends ViPRService {
                     tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly, timeToLive));
                 }
                 addAffectedResources(tasks);
+                warn("ttl " + timeToLive);
+                if (timeToLive > 0) {
+                    this.addEmphemeralObjects(tasks, timeToLive);
+                }
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
                 if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = ConsistencyUtils.createSnapshotSession(uri(consistencyGroupId), nameParam, 
                                                                     linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode);
-                } else {
+                } else  {
                     tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
                 }
                 addAffectedResources(tasks);
+                warn("ttl cg" + timeToLive);
+                if (timeToLive > 0) {
+                    this.addEmphemeralObjects(tasks, timeToLive);
+                }
             }
         }
     }

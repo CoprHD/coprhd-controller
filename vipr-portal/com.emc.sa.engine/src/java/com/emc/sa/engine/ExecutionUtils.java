@@ -19,6 +19,7 @@ import com.emc.sa.engine.inject.Injector;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.EphemeralObject;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
@@ -62,6 +63,19 @@ public class ExecutionUtils {
         context.setParameters(params);
     }
 
+    public static void createContext(ModelClient modelClient, EphemeralObject ephemeralObject) {
+        // Ensure there is no existing context
+        destroyContext();
+
+        // Initialize the execution state for this order
+        ExecutionState state = modelClient.executionStates().findById(ephemeralObject.getExecutionStateId());
+        state.setStartDate(new Date());
+
+        ExecutionContext context = currentContext();
+        context.setModelClient(modelClient);
+        context.setExecutionState(state);
+    }
+    
     public static void destroyContext() {
         CONTEXT_HOLDER.remove();
     }

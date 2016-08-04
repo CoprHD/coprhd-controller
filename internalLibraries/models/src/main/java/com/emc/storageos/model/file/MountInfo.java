@@ -6,6 +6,12 @@ import javax.xml.bind.annotation.XmlElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
+/**
+ * Holds the mount attributes for operations
+ * 
+ * @author yelkaa
+ *
+ */
 public class MountInfo {
     private URI hostId;
     private URI fsId;

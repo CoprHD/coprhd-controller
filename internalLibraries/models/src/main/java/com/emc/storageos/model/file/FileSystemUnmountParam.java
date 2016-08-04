@@ -9,6 +9,11 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * 
+ * @author yelkaa
+ *
+ */
 @XmlRootElement(name = "unmount_export")
 public class FileSystemUnmountParam {
 

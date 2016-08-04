@@ -383,12 +383,11 @@ public class FileStorageUtils {
         Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
         addAffectedResources(tasks);
     }
-    
+
     public static void failbackFileSystem(URI fileId, URI targetId) {
         Tasks<FileShareRestRep> tasks = execute(new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
         addAffectedResources(tasks);
     }
-
 
     public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
         Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));

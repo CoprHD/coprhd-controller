@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
 import java.net.URI;
@@ -14,9 +18,22 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
+/**
+ * 
+ * @author yelkaa
+ *
+ */
 public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
-    MountUtils mountUtils;
+    private MountUtils mountUtils;
+
+    public MountUtils getMountUtils() {
+        return mountUtils;
+    }
+
+    public void setMountUtils(MountUtils mountUtils) {
+        this.mountUtils = mountUtils;
+    }
 
     public LinuxHostMountAdapter() {
 

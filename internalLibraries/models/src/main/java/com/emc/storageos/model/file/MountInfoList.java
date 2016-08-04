@@ -15,7 +15,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement(name = "mount_info_list")
 public class MountInfoList {
-    List<MountInfo> mountList;
+    private List<MountInfo> mountList;
 
     public List<MountInfo> getMountList() {
         return mountList;

@@ -15,7 +15,7 @@ public class MountNFSExportTest {
 
     private static LinuxSystemCLI linuxSystem;
     private static LinuxSupport linuxSupport;
-    private final String mountPoint = "vipr-isi6111.lss.emc.com:/ifs/vipr/vpoo1/Provider_Tenant/testproject/testfs2352016";
+    private final String mountPoint = "vipr-isi6111.lss.emc.com:/ifs/vipr/vpoolantar297/ProviderTenant/testproject/testexport";
     private final String path = "/workspace/test";
 
     @Before
@@ -31,7 +31,14 @@ public class MountNFSExportTest {
     @Test
     public void mountExport() {
         linuxSupport.createDirectory(path);
-        linuxSupport.addToFSTab(mountPoint, path, "auto", null);
+        linuxSupport.addToFSTab(mountPoint, path, "auto", "sec=sys");
         linuxSupport.mountPath(path);
+    }
+
+    @Test
+    public void unmountExport() {
+        linuxSupport.unmountPath(path);
+        linuxSupport.removeFromFSTab(path);
+        linuxSupport.deleteDirectory(path);
     }
 }

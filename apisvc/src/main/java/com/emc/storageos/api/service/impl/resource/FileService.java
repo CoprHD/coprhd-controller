@@ -2052,12 +2052,12 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
 
-        // if (unmount) { TODO
-        // for (MountInfo mount : unmountList) {
-        // FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
-        // unmount(id, queryResource(id), unmountParam);
-        // }
-        // }
+        if (unmount) {
+            for (MountInfo mount : unmountList) {
+                FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
+                unmount(id, queryResource(id), unmountParam);
+            }
+        }
 
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
@@ -2107,7 +2107,6 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
-    // TODO
     /**
      * 
      * Existing file system exports may have their list of export rules deleted.
@@ -2141,9 +2140,9 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
 
-        // if (unmount) { TODO
-        // unmountAllAssociatedExports(id, subDir);
-        // }
+        if (unmount) {
+            unmountAllAssociatedExports(id, subDir);
+        }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
@@ -4194,7 +4193,6 @@ public class FileService extends TaskResourceService {
         return false;
     }
 
-    // TODO
     private List<MountInfo> isExportMounted(URI fsId, String subDir, FileShareExportUpdateParams param) {
         List<MountInfo> mountList = getAllMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
@@ -4254,7 +4252,7 @@ public class FileService extends TaskResourceService {
         List<FileExportRule> exports = queryDBFSExports(fs);
         _log.info("Number of existing exports found : {} ", exports.size());
         if (allDirs) {
-            // ALl EXPORTS
+            // ALL EXPORTS
             for (FileExportRule rule : exports) {
                 ExportRule expRule = new ExportRule();
                 // Copy Props

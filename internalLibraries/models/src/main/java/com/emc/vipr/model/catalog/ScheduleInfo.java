@@ -33,7 +33,7 @@ public class ScheduleInfo implements Serializable {
     private Integer minuteOfHour;    // [0..59)
     private Integer durationLength;  // in minutes [1..60*24]
 
-    private ScheduleCycleType cycleType; // Minutely, Hourly, Daily, Weekly, Monthly, Yearly
+    private ScheduleCycleType cycleType = ScheduleCycleType.DAILY; // Minutely, Hourly, Daily, Weekly, Monthly, Yearly
 
     // frequency for each cycle; e.g. 2 for every 2 hours, if the cycleType is Hourly
     private Integer cycleFrequency;  // [1..)
@@ -61,7 +61,7 @@ public class ScheduleInfo implements Serializable {
     // date format: "yyyy-MM-dd HH:mm:ss"
     private List<String> dateExceptions;
 
-    @XmlElement(name = HOUR_OF_DAY)
+    @XmlElement(name = HOUR_OF_DAY, required = true)
     public Integer getHourOfDay() {
         return hourOfDay;
     }
@@ -79,7 +79,7 @@ public class ScheduleInfo implements Serializable {
         this.minuteOfHour = minuteOfHour;
     }
 
-    @XmlElement(name = DURATION_LENGTH, required = true)
+    @XmlElement(name = DURATION_LENGTH)
     public Integer getDurationLength() {
         return durationLength;
     }
@@ -88,7 +88,7 @@ public class ScheduleInfo implements Serializable {
         this.durationLength = durationLength;
     }
 
-    @XmlElement(name = CYCLE_TYPE, required = true)
+    @XmlElement(name = CYCLE_TYPE)
     public ScheduleCycleType getCycleType() {
         return cycleType;
     }

@@ -163,6 +163,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @param scheduleInfo     Schedule Schema
      */
     private void validateParam(ScheduleInfo scheduleInfo) {
+        try {
+            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+            Date date = formatter.parse(scheduleInfo.getStartDate());
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+        }
+
         if (scheduleInfo.getHourOfDay() < 0 || scheduleInfo.getHourOfDay() > 23) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.HOUR_OF_DAY);
         }
@@ -172,49 +179,44 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         if (scheduleInfo.getDurationLength() < 1 || scheduleInfo.getHourOfDay() > 60*24) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DURATION_LENGTH);
         }
-        if (scheduleInfo.getCycleFrequency() < 1 ) {
-            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
-        }
-
-        switch (scheduleInfo.getCycleType()) {
-            case MONTHLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
-                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                }
-                int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                if (day < 1 || day > 31) {
-                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                }
-                break;
-            case WEEKLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
-                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                }
-                int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                if (dayOfWeek < 1 || dayOfWeek > 7) {
-                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                }
-                break;
-            case DAILY:
-            case HOURLY:
-            case MINUTELY:
-                if (scheduleInfo.getSectionsInCycle().size() != 0) {
-                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                }
-                break;
-            default:
-                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
-        }
-
-        try {
-            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-            Date date = formatter.parse(scheduleInfo.getStartDate());
-        } catch (Exception e) {
-            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
-        }
 
         if (scheduleInfo.getReoccurrence() < 0 ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
+        } 
+        if (scheduleInfo.getReoccurrence() > 1 ) {
+	    if (scheduleInfo.getCycleFrequency() < 1 ) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
+            }
+
+            switch (scheduleInfo.getCycleType()) {
+                case MONTHLY:
+                    if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                    }
+                    int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                    if (day < 1 || day > 31) {
+                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                    }
+                    break;
+                case WEEKLY:
+                    if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                    }
+                    int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                    if (dayOfWeek < 1 || dayOfWeek > 7) {
+                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                    }
+                    break;
+                case DAILY:
+                case HOURLY:
+                case MINUTELY:
+                    if (scheduleInfo.getSectionsInCycle().size() != 0) {
+                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                    }
+                    break;
+                default:
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
+            }
         }
 
         if (scheduleInfo.getDateExceptions() != null) {
@@ -390,11 +392,10 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case DAILY:
             case HOURLY:
             case MINUTELY:
-                break;
+                 break;
             default:
-                log.error("not expected schedule cycle.");
+                 log.error("not expected schedule cycle.");
         }
-
         log.info("scheduledTime: {}", scheduledTime.toString());
 
         while (scheduledTime.before(initTime)) {

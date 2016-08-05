@@ -2124,6 +2124,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate name
         String name = TimeUtils.formatDateForCurrent(param.getName());
+        ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
         
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {

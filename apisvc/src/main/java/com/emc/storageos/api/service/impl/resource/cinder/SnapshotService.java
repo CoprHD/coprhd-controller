@@ -292,12 +292,7 @@ public class SnapshotService extends TaskResourceService {
                 ScopedLabel tagLabel = new ScopedLabel(
                         tenantOwner.toString(), tagName);
                 tagSet.add(tagLabel);
-                _dbClient.updateObject(snap);
-
-
-                // "creating";
-                
-                _log.info(CREATED SNAPSHOT-->");
+                _dbClient.updateObject(snap);                
 
                 if (isV1Call != null) {
                 	_log.debug("Inside V1 call");
@@ -948,7 +943,6 @@ public class SnapshotService extends TaskResourceService {
         CinderSnapshotMetadata resp = new CinderSnapshotMetadata();
         resp.metadata = metaMap;
         
-        _log.debug("RAG getSnapshotMetadataDetail {}", resp.metadata.keySet());
         return resp;
     }
 

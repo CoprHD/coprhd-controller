@@ -94,7 +94,7 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
 
     public boolean isActiveJob(DbClient dbClient) {
         DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
-        return (dbObject != null && !dbObject.getInactive()) ? true : false;
+        return (dbObject != null && !dbObject.getInactive());
     }
 
     public String getNamespace() {

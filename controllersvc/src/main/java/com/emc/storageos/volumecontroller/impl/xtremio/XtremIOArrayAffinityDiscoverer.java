@@ -173,7 +173,7 @@ public class XtremIOArrayAffinityDiscoverer {
                     }
                     volumes.add(lunMap.getVolumeName());
                 } catch (Exception ex) {
-                    log.info("Error processing XtremIO lun map {}. {}", lunMap, ex.getMessage());
+                    log.warn("Error processing XtremIO lun map {}. {}", lunMap, ex.getMessage());
                 }
             }
         }

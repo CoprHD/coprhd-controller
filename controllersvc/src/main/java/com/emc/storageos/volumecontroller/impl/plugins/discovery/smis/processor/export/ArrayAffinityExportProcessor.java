@@ -445,7 +445,7 @@ public class ArrayAffinityExportProcessor extends Processor {
                 _partitionManager.updateInBatches(hostsToUpdate, BATCH_SIZE, _dbClient, HOST);
             }
         } catch (Exception e) {
-            _logger.warn("Exception on updatePreferredSystems {}", e.getMessage());
+            _logger.warn("Exception on updatePreferredSystems", e);
         }
     }
 }

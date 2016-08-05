@@ -79,6 +79,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -737,12 +738,12 @@ public class StorageSystemService extends TaskResourceService {
             List<URI> systemIds = new ArrayList<URI>();
             systemIds.add(id);
 
-            if (storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.vnxblock) || storageSystem.deviceIsType(Type.xtremio)) {
+            if (!NullColumnValueGetter.isNullURI(providerURI) && 
+                    (storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.vnxblock) || storageSystem.deviceIsType(Type.xtremio))) {
                 List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
                 Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
                 while (storageSystems.hasNext()) {
                     StorageSystem systemObj = storageSystems.next();
-                    String task = UUID.randomUUID().toString();
                     if (systemObj == null) {
                         _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
                         continue;

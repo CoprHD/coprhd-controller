@@ -3254,6 +3254,7 @@ resources.events.delete=Are you sure you want to delete all the selected event(s
 events.eventStatus=Status
 events.name=Name
 events.description=Description
+events.eventCode=Event Code
 events.resourceId=Resource
 events.creationTime=Created At
 events.event=Event

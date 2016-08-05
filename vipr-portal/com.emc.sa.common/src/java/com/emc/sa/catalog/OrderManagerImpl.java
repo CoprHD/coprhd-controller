@@ -505,8 +505,24 @@ public class OrderManagerImpl implements OrderManager {
 
     private void processPendingOrder(Order order, CatalogService service) {
         if (Boolean.TRUE.equals(service.getApprovalRequired())) {
-            requireApproval(order, service);
-            return;
+            if (order.getScheduledEventId() != null) {
+                ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
+                if (scheduledEvent != null) {
+                    if (scheduledEvent.getEventStatus() == ScheduledEventStatus.APPROVAL) {
+                        requireApproval(order, service);
+                        return;
+                    }
+
+                    // For scheduled event, the APPROVAL procedure will go along with the latest order APPROVAL procedure
+                    // For the following orders, we would skip order approval request after the event is already APPROVED.
+                } else {
+                    requireApproval(order, service);
+                    return;
+                }
+            } else {
+                requireApproval(order, service);
+                return;
+            }
         }
 
         if (order.getScheduledEventId() != null) {
@@ -526,9 +542,11 @@ public class OrderManagerImpl implements OrderManager {
         switch (status) {
             case APPROVED:
                 approveOrder(order, service);
+                approveScheduledEvent(order, service, true);
                 break;
             case REJECTED:
                 rejectOrder(order, service);
+                approveScheduledEvent(order, service, false);
                 break;
         }
     }
@@ -579,6 +597,14 @@ public class OrderManagerImpl implements OrderManager {
         processApprovedOrder(order, service);
     }
 
+    private void approveScheduledEvent(Order order, CatalogService service, boolean approved) {
+        ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
+        if (scheduledEvent != null) {
+            scheduledEvent.setEventStatus(approved? ScheduledEventStatus.APPROVED: ScheduledEventStatus.REJECTED);
+            client.save(scheduledEvent);
+        }
+    }
+
     private void rejectOrder(Order order, CatalogService service) {
         order.setOrderStatus(OrderStatus.REJECTED.name());
         updateOrder(order);
@@ -600,6 +626,7 @@ public class OrderManagerImpl implements OrderManager {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalStatus(ApprovalStatus.PENDING.name());
         approvalRequest.setOrderId(order.getId());
+        approvalRequest.setScheduledEventId(order.getScheduledEventId());
         approvalRequest.setTenant(order.getTenant());
         approvalManager.createApproval(approvalRequest);
 

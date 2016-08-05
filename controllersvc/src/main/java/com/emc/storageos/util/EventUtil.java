@@ -133,4 +133,17 @@ public class EventUtil {
         return null;
     }
 
+    /**
+     * Delete all actionable events for a given resource
+     * 
+     * @param dbClient db client
+     * @param resourceId the resource id for events to delete
+     */
+    public static void deleteResourceEvents(DbClient dbClient, URI resourceId) {
+        List<ActionableEvent> events = EventUtils.findResourceEvents(dbClient, resourceId);
+        for (ActionableEvent event : events) {
+            dbClient.markForDeletion(event);
+        }
+    }
+
 }

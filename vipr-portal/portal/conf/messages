@@ -3331,6 +3331,7 @@ resources.volume.lun=LUN
 resources.volume.devicelabel=Device Label
 resources.volume.nativeid=Native ID
 resources.volume.storagesystem=Storage System
+resources.volume.compressionratio=Compression Ratio
 resources.volume.accessstate=Access State
 resources.volume.deleteLink=Delete Volume
 resources.volume.deleteLink.FULL=Full

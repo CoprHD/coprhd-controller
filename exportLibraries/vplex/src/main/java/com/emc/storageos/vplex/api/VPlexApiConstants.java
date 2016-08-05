@@ -341,4 +341,7 @@ public class VPlexApiConstants {
     // Match string for device name when a Storage Volume is not used (either claimed or unclaimed)
     public static final String STORAGE_VOLUME_NOT_IN_USE = "Storage-volume.*is not in use.*";
 
+    // used to indicate the device collapse command should just use the
+    // given path instead of trying to locate a device component
+    public static final String COLLAPSE_BY_PATH = "collapse-by-path";
 }

@@ -1715,15 +1715,14 @@ public class VPlexApiClient {
 
     /**
      * This method collapses the one legged device for the passed virtual volume device.
-     * After this device will change back to local device.
      * 
-     * @param sourceDeviceName source device name
-     * @param deviceType "local" or "distributed"
+     * @param sourceDeviceNameOrPath source device name or path
+     * @param collapseType "local" or "distributed" or "collapse-by-path"
      * @throws VPlexApiException
      */
-    public void deviceCollapse(String sourceDeviceName, String deviceType) throws VPlexApiException {
-        s_logger.info("Request to collpase device {}", _baseURI);
-        _virtualVolumeMgr.deviceCollapse(sourceDeviceName, deviceType);
+    public void deviceCollapse(String sourceDeviceNameOrPath, String collapseType) throws VPlexApiException {
+        s_logger.info("Request to collapse device {} with collapse type {}", sourceDeviceNameOrPath, collapseType);
+        _virtualVolumeMgr.deviceCollapse(sourceDeviceNameOrPath, collapseType);
     }
 
     /**

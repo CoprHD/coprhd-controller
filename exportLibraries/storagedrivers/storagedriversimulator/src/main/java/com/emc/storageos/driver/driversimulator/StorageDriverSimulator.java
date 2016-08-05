@@ -166,6 +166,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             StoragePool pool = new StoragePool();
             pool.setFreeCapacity(40000000L); // 40 GB
             pool.setSubscribedCapacity(10000000L);  // 10 GB
+            pool.setNativeId(objectId);
+            pool.setStorageSystemId(storageSystemId);
             _log.info("getStorageObject: storage pool free capacity: {}, subscribed capacity: {}",
                     pool.getFreeCapacity(), pool.getSubscribedCapacity());
             return (T) pool;

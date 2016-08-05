@@ -1712,6 +1712,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         return isConnectionValid;
     }
 
+    /**
+     * Update storage pool capacity to the most recent values from  driver.
+     * Release reserved capacity in the pool for set of reservedObjects.
+     *
+     * @param dbPool storage pool to update capacity
+     * @param dbSystem storage system where the pool is located
+     * @param reservedObjects list of reserved object (volumes/clones/mirrors)
+     * @param dbClient db client
+     */
     public static void updateStoragePoolCapacity(StoragePool dbPool, StorageSystem dbSystem,
                                                  List<URI> reservedObjects, DbClient dbClient) {
         _log.info(String.format("Update storage pool capacity for pool %s, system %s ", dbPool.getId(),

@@ -874,7 +874,6 @@ public class PortMetricsProcessor {
         return usable;
     }
 
-
 	private boolean isPortUsable(StoragePort storagePort, Set<String> vArrays, boolean doLogging) {
 		boolean usable = false;
 

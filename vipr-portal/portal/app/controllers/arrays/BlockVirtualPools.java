@@ -274,7 +274,7 @@ public class BlockVirtualPools extends ViprResourceController {
 			}
 		}
 
-		if(!vaIds4allflash.isEmpty() && (vaIds4allflash.size() > 0 )){
+		if(!vaIds4allflash.isEmpty()){
 			String vpid = virtualpoolAllFlashMap.get(VP_ALL_FLASH);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
@@ -292,7 +292,7 @@ public class BlockVirtualPools extends ViprResourceController {
 			}
 		}
 
-		if(!vaIds4vmax.isEmpty() && (vaIds4vmax.size() > 0 )){
+		if(!vaIds4vmax.isEmpty() ){
 			String vpid = virtualpoolAllFlashMap.get(VP_VMAX_DIAMOND);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
@@ -310,7 +310,7 @@ public class BlockVirtualPools extends ViprResourceController {
 			}
 		}
 
-		if(!vaIds4xio.isEmpty() && (vaIds4xio.size() > 0 )){
+		if(!vaIds4xio.isEmpty() ){
 			String vpid = virtualpoolAllFlashMap.get(VP_XIO_DIAMOND);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);
@@ -328,7 +328,7 @@ public class BlockVirtualPools extends ViprResourceController {
 			}
 		}
 
-		if(!vaIds4unity.isEmpty() && (vaIds4unity.size() > 0 )){
+		if(!vaIds4unity.isEmpty() ){
 			String vpid = virtualpoolAllFlashMap.get(VP_UNITY_DIAMOND);
 			if(vpid != null) {
 				BlockVirtualPoolRestRep blockvpool = VirtualPoolUtils.getBlockVirtualPool(vpid);

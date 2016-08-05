@@ -31,6 +31,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -267,10 +268,12 @@ public class BlockServiceUtils {
                 }
             } else if (storage.deviceIsType(Type.xtremio)) {
                 return true;
+            } else if (storage.deviceIsType(Type.unity) && volume.checkForRp()) {
+                return true;
             }
 
             if (storage.deviceIsType(Type.vplex)) {
-                Set<Type> applicationSupported = Sets.newHashSet(Type.vmax, Type.vnxblock, Type.xtremio);
+                Set<Type> applicationSupported = Sets.newHashSet(Type.vmax, Type.vnxblock, Type.xtremio, Type.unity);
                 Set<Type> backendSystemTypes = new HashSet<>();
 
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
@@ -752,4 +755,70 @@ public class BlockServiceUtils {
                     String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
         }
     }
+   
+   /**
+    * Check if a unity volume could be add or removed from unity consistency group. for Unity, if the unity CG has snapshot, volumes could
+    * not be added or removed. 
+    * 
+    * @param rgName  Unity consistency group name
+    * @param volume  Unity volume to be added or removed 
+    * @param dbClient 
+    * @param isAdd   If the volume is for add
+    * @return true if the volume could be added or removed
+    */
+   public static boolean checkUnityVolumeCanBeAddedOrRemovedToCG(String rgName, Volume volume, DbClient dbClient, boolean isAdd) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        if (storage != null) {
+            if (storage.deviceIsType(Type.unity)) {
+                if (isAdd && rgName != null) {
+                    List<Volume> volumesInRG = CustomQueryUtility.queryActiveResourcesByConstraint(
+                            dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByReplicationGroupInstance(rgName));
+                    if (volumesInRG != null && !volumesInRG.isEmpty()) {
+                        for (Volume vol : volumesInRG) {
+                            if (vol.getStorageController().equals(volume.getStorageController())) {
+                                // Check if the volume in RG has snapshot
+                                List<BlockSnapshot> snaps = getVolumeNativeSnapshots(vol.getId(), dbClient);
+                                if (!snaps.isEmpty()) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                } else if (!isAdd) {
+                    // for remove, Check if the volume has snapshot
+                    List<BlockSnapshot> snaps = getVolumeNativeSnapshots(volume.getId(), dbClient);
+                    if (!snaps.isEmpty()) {
+                        return false;
+                    }
+                }
+            } 
+        }
+        return true;
+   }
+   
+   /**
+    * Get volume's block snapshots, whose technologyType attributes is NATIVE
+    * 
+    * @param volumeUri The volume URI
+    * @param dbClient
+    * @return The list of block snapshot for the given volume.
+    */
+   public static List<BlockSnapshot> getVolumeNativeSnapshots(URI volumeUri, DbClient dbClient) {
+       List<BlockSnapshot> result = new ArrayList<BlockSnapshot>();
+       URIQueryResultList snapshotURIs = new URIQueryResultList();
+       dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+               volumeUri), snapshotURIs);
+       Iterator<URI> it = snapshotURIs.iterator();
+       while (it.hasNext()) {
+           URI snapUri = it.next();
+           BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapUri);
+           if (snapshot != null && !snapshot.getInactive() &&
+                   BlockSnapshot.TechnologyType.NATIVE.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+               result.add(snapshot);               
+           }
+          
+       }
+       return result;
+   }
+   
 }

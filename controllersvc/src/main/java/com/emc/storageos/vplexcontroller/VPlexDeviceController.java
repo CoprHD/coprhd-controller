@@ -4103,14 +4103,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Only add initiators to this ExportMask that are on the host of the Export Mask
                 for (Initiator initiator : initiators) {
                     if (exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
-                        exportMask.addInitiator(initiator);
-                        if (!exportMask.hasExistingInitiator(initiator)) {
-                            exportMask.addToUserCreatedInitiators(initiator);
-                        }
                         maskToInitiatorsMap.get(exportMask.getId()).add(initiator.getId());
                     }
                 }
-                _dbClient.updateObject(exportMask);
             }
             _networkDeviceController.zoneExportAddInitiators(exportURI, maskToInitiatorsMap, stepId);
         } catch (Exception ex) {
@@ -4200,6 +4195,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         VPlexControllerUtils.getTargetPortToPwwnMap(client),
                         _networkDeviceController);
 
+                boolean updateExportMask = false;
+
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
 
@@ -4231,13 +4228,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // Add the targets to the database.
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.addTarget(target);
+                            updateExportMask = true;
                         }
-                        _dbClient.updateObject(exportMask);
                     }
                 }
 
-                List<PortInfo> initiatorPortInfo = new ArrayList<PortInfo>();
+                List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
                 List<String> initiatorPortWwns = new ArrayList<String>();
+                Map<PortInfo, Initiator> portInfosToInitiatorMap = new HashMap<PortInfo, Initiator>();
                 for (URI initiatorURI : initiatorURIs) {
                     Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
                     // Only add this initiator if it's for the same host as other initiators in mask
@@ -4249,11 +4247,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     .toUpperCase().replaceAll(":", ""),
                             initiator.getLabel(),
                             getVPlexInitiatorType(initiator));
-                    initiatorPortInfo.add(portInfo);
+                    initiatorPortInfos.add(portInfo);
                     initiatorPortWwns.add(initiator.getInitiatorPort());
+                    portInfosToInitiatorMap.put(portInfo, initiator);
                 }
 
-                if (!initiatorPortInfo.isEmpty()) {
+                if (!initiatorPortInfos.isEmpty()) {
                     String lockName = null;
                     boolean lockAcquired = false;
                     try {
@@ -4266,7 +4265,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                         }
                         // Add the initiators to the VPLEX
-                        client.addInitiatorsToStorageView(exportMask.getMaskName(), initiatorPortInfo);
+                        client.addInitiatorsToStorageView(exportMask.getMaskName(), initiatorPortInfos);
+
+                        for (PortInfo portInfo : initiatorPortInfos) {
+                            // update the ExportMask with the successfully added initiator
+                            Initiator initForThisPortInfo = portInfosToInitiatorMap.get(portInfo);
+                            exportMask.addInitiator(initForThisPortInfo);
+                            if (!exportMask.hasExistingInitiator(initForThisPortInfo)) {
+                                exportMask.addToUserCreatedInitiators(initForThisPortInfo);
+                            }
+                            updateExportMask = true;
+                        }
 
                         _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
                         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
@@ -4280,7 +4289,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                         + "was already in existing initiators, removing from existing initiators.",
                                         wwn, exportMask.forDisplay());
                                 exportMask.removeFromExistingInitiators(wwn);
+                                updateExportMask = true;
                             }
+                        }
+
+                        if (updateExportMask) {
+                            _dbClient.updateObject(exportMask);
                         }
                     } finally {
                         if (lockAcquired) {
@@ -5116,7 +5130,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexControllerUtils.refreshExportMask(
                     _dbClient, storageView, exportMask,
                     VPlexControllerUtils.getTargetPortToPwwnMap(client),
-                    _networkDeviceController);
+                    _networkDeviceController, true);
 
             // validate the remove initiator operation against the export mask volumes
             List<URI> volumeURIList = (exportMask.getVolumes() != null) ? URIUtil.toURIList(exportMask.getVolumes().keySet())
@@ -6984,10 +6998,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
 
                     // Once mirror is detached we need to do device collapse so that its not seen as distributed device.
-                    client.deviceCollapse(sourceDeviceName);
+                    client.deviceCollapse(sourceDeviceName, VPlexApiConstants.DISTRIBUTED_DEVICE);
 
-                    // Once device collapse is successful we need to set visibility of device to local because volume
-                    // will be seen from
+                    // Once device collapse is successful we need to set visibility of device to local because volume will be seen from
                     // other cluster still as visibility of device changes to global once mirror is attached.
                     client.setDeviceVisibility(sourceDeviceName);
 

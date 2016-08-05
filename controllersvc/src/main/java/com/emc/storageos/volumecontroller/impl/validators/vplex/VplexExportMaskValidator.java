@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +22,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
@@ -30,13 +30,13 @@ import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 public class VplexExportMaskValidator extends AbstractVplexValidator implements Validator {
-    Logger log = LoggerFactory.getLogger(VplexExportMaskValidator.class);
+    private Logger log = LoggerFactory.getLogger(VplexExportMaskValidator.class);
     private StorageSystem vplex;
     private ExportMask mask;
-    Collection<URI> volumesToValidate = null;
-    Collection<Initiator> initiatorsToValidate = null;
-    VPlexApiClient client = null;
-    String id = null; // identifying string for ExportMask
+    private Collection<URI> volumesToValidate = null;
+    private Collection<Initiator> initiatorsToValidate = null;
+    private VPlexApiClient client = null;
+    private String id = null; // identifying string for ExportMask
 
     public VplexExportMaskValidator(DbClient dbClient, ValidatorConfig config, ValidatorLogger logger, StorageSystem vplex,
                                     ExportMask mask) {
@@ -56,9 +56,9 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         log.info("Initiating validation of Vplex ExportMask: " + id);
         VPlexStorageViewInfo storageView = null;
         try {
-            client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, dbClient);
+            client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, getDbClient());
             // This will throw an exception if the cluster name cannot be determined
-            String vplexClusterName = VPlexUtil.getVplexClusterName(mask, vplex.getId(), client, dbClient);
+            String vplexClusterName = VPlexUtil.getVplexClusterName(mask, vplex.getId(), client, getDbClient());
             // This will throw an exception if the StorageView cannot be found
             storageView = client.getStorageView(vplexClusterName, mask.getMaskName());
             if (volumesToValidate != null) {
@@ -74,15 +74,15 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 return false;
             }
             log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            if (config.validationEnabled()) {
+            if (getValidatorConfig().validationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask: " + ex.getMessage());
             }
         }
-        if (logger.hasErrors()) {
-            if (config.validationEnabled()) {
+        if (getValidatorLogger().hasErrors()) {
+            if (getValidatorConfig().validationEnabled()) {
                 throw DeviceControllerException.exceptions.validationError(
-                        "Export Mask", logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+                        "Export Mask", getValidatorLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
             }
         }
         log.info("Vplex ExportMask validation complete: " + id);
@@ -98,7 +98,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      *            -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalVolumes(VPlexStorageViewInfo storageView) {
-        List<Volume> volumes = dbClient.queryObject(Volume.class, volumesToValidate);
+        List<Volume> volumes = getDbClient().queryObject(Volume.class, volumesToValidate);
         Set<String> storageViewWwns = storageView.getWwnToHluMap().keySet();
         for (Volume volume : volumes) {
             if (volume == null || volume.getInactive()) {
@@ -116,7 +116,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         }
         // Any remaining WWNs in storageViewWwns had no matching volume, and therefore are error
         for (String wwn : storageViewWwns) {
-            logger.logDiff(id, "virtual-volume WWN", "<no matching entry in validation list>", wwn);
+            getValidatorLogger().logDiff(id, "virtual-volume WWN", "<no matching entry in validation list>", wwn);
         }
     }
 
@@ -142,7 +142,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         }
         // Any remaining WWNs in storageViewPwwns had no matching initiator, and therefore are error
         for (String wwn : storageViewPwwns) {
-            logger.logDiff(id, "initiator port WWN", "<no matching entry in validation list>", wwn);
+            getValidatorLogger().logDiff(id, "initiator port WWN", "<no matching entry in validation list>", wwn);
         }
     }
 

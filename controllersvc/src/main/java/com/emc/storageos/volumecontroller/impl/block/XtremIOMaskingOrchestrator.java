@@ -16,11 +16,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -34,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 /**
  * XtremIO Masking Orchestrator
@@ -137,6 +140,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
+        // CTRL-13080 fix
+        refreshExportMask(storage, device, null);
 
         processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI,
                 hostURIs);
@@ -144,8 +149,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI, initiatorURIs,
                 hostURIs);
 
-        // CTRL-13080 fix
-        refreshExportMask(storage, device, null);
         // Export Mask cannot be grouped to an individual construct in XtremIO.
         // Group of LunMaps contribute to a Export Mask, hence there is really no need to determine
         // create mask steps based on existing Masking information on Array.
@@ -293,10 +296,20 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 List<ExportMask> exportMaskstoRemoveVolume = new ArrayList<ExportMask>();
                 String previousStep = null;
                 for (ExportMask exportMask : exportMasks) {
-                    if (isRemoveAllVolumes(exportMask, volumes)) {
-                        exportMaskstoDelete.add(exportMask);
-                    } else {
-                        exportMaskstoRemoveVolume.add(exportMask);
+                    for (URI egVolumeID : volumes) {
+                        String volumeIdStr = egVolumeID.toString();
+                        BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
+                        if (bo != null && exportMask.hasUserCreatedVolume(bo.getId())) {
+                            if (isRemoveAllVolumes(exportMask, volumes)) {
+                                exportMaskstoDelete.add(exportMask);
+                            } else {
+                                exportMaskstoRemoveVolume.add(exportMask);
+                            }
+                        } else {
+                            _log.info(String
+                                    .format("Export mask %s does not contain system-created volume %s, so it will not be removed from this export mask",
+                                            exportMask.getId().toString(), volumeIdStr));
+                        }
                     }
                 }
                 if (!exportMaskstoRemoveVolume.isEmpty()) {
@@ -363,10 +376,11 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
 
-            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
-                    exportGroup, initiatorURIs);
             // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
             refreshExportMask(storage, getDevice(), null);
+
+            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
+                    exportGroup, initiatorURIs);
             log.info("initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -518,11 +532,11 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     storageURI);
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
-            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
-                    exportGroup, initiatorURIs);
-
             // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
             refreshExportMask(storage, getDevice(), null);
+
+            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
+                    exportGroup, initiatorURIs);
 
             log.info("Host to initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
@@ -532,7 +546,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddInitiators", true, token);
+                        "exportGroupRemoveInitiators", true, token);
 
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils
@@ -560,12 +574,25 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         if (exportMask.getStorageDevice().equals(storageURI)) {
                             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
                                     computeResourceToInitiators.get(computeKey));
-                            log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(initiators));
-                            maskToInitiatorsMap.put(exportMask.getId(), computeResourceToInitiators.get(computeKey));
-                            if (isRemoveAllInitiators(exportMask, initiators)) {
-                                exportMaskDelete.add(exportMask);
-                            } else {
-                                exportMaskRemoveInitiator.add(exportMask);
+                            List<Initiator> maskInitiators = new ArrayList<Initiator>();
+                            for (Initiator initiator : initiators) {
+                                if (exportMask.hasUserInitiator(initiator.getId())) {
+                                    maskInitiators.add(initiator);
+                                } else {
+                                    _log.info(String
+                                            .format("Initiator %s was not added by ViPR, so ViPR cannot remove it.  No action will be taken for this initiator",
+                                                    initiator.getId()));
+                                }
+                            }
+                            log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(maskInitiators));
+                            if (!maskInitiators.isEmpty()) {
+                                maskToInitiatorsMap.put(exportMask.getId(), Lists.newArrayList(Collections2.transform(maskInitiators,
+                                        CommonTransformerFunctions.fctnDataObjectToID())));
+                                if (isRemoveAllInitiators(exportMask, initiators)) {
+                                    exportMaskDelete.add(exportMask);
+                                } else {
+                                    exportMaskRemoveInitiator.add(exportMask);
+                                }
                             }
                         }
                     }

@@ -81,7 +81,7 @@ public enum MetricsKeys {
         return value;
     }
 
-    static void putLong(MetricsKeys key, Long value, StringMap map) {
+    static public void putLong(MetricsKeys key, Long value, StringMap map) {
         map.put(key.name(), value.toString());
     }
 

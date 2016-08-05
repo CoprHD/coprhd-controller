@@ -7,12 +7,15 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 
@@ -35,16 +38,28 @@ public class DiscoveredObjectTaskScheduler {
 
         TaskList list = new TaskList();
         for (AsyncTask task : tasks) {
-            DataObject discoveredObject =
-                    (DataObject) _dbClient.queryObject(task._clazz, task._id);
-            Operation op = new Operation();
-            op.setResourceType(_taskExecutor.getOperation());
-            _dbClient.createTaskOpStatus(task._clazz, task._id, task._opId, op);
-            list.getTaskList().add(toTask(discoveredObject, task._opId, op));
+            if (task instanceof ArrayAffinityAsyncTask) {
+                List<URI> systemIds = ((ArrayAffinityAsyncTask) task).getSystemIds();
+                for (URI uri : systemIds) {
+                    DataObject discoveredObject =
+                            (DataObject) _dbClient.queryObject(task._clazz, uri);
+                    Operation op = new Operation();
+                    op.setResourceType(_taskExecutor.getOperation());
+                    _dbClient.createTaskOpStatus(task._clazz, uri, task._opId, op);
+                    list.getTaskList().add(toTask(discoveredObject, task._opId, op));
+                }
+            } else {
+                DataObject discoveredObject =
+                        (DataObject) _dbClient.queryObject(task._clazz, task._id);
+                Operation op = new Operation();
+                op.setResourceType(_taskExecutor.getOperation());
+                _dbClient.createTaskOpStatus(task._clazz, task._id, task._opId, op);
+                list.getTaskList().add(toTask(discoveredObject, task._opId, op));
+            }
         }
         try {
             _taskExecutor.executeTasks(tasks.toArray(new AsyncTask[tasks.size()]));
-        } catch (ControllerException ex) {
+        } catch (ControllerException | APIException ex) {
             for (AsyncTask task : tasks) {
                 DataObject discoveredObject =
                         (DataObject) _dbClient.queryObject(task._clazz, task._id);

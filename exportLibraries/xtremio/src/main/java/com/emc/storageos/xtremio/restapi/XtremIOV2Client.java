@@ -37,7 +37,11 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
@@ -153,6 +157,47 @@ public class XtremIOV2Client extends XtremIOClient {
         }
 
         return volumeList;
+    }
+
+    @Override
+    public List<XtremIOLunMap> getXtremIOLunMaps(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+        log.info("Returned LunMaps Links size : {}", lunMapLinks.getLunMapInfo().length);
+        List<XtremIOLunMap> lunMapList = getXtremIOLunMapsForLinks(Arrays.asList(lunMapLinks.getLunMapInfo()), clusterName);
+
+        return lunMapList;
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOLunMapLinks(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public List<XtremIOLunMap> getXtremIOLunMapsForLinks(List<XtremIOObjectInfo> lunMapLinks, String clusterName) throws Exception {
+        List<XtremIOLunMap> lunMapList = new ArrayList<XtremIOLunMap>();
+        for (XtremIOObjectInfo lunMapInfo : lunMapLinks) {
+            try {
+                URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref().concat(
+                        XtremIOConstants.getInputClusterString(clusterName))));
+                log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
+                ClientResponse response = get(lunMapURI);
+                XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
+                log.debug("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
+                        + lunMaps.getContent().getMappingInfo().get(2));
+                lunMapList.add(lunMaps.getContent());
+            } catch (InternalException ex) {
+                log.warn("Exception while trying to retrieve XtremIO LunMap link {}", lunMapInfo.getHref());
+            }
+        }
+
+        return lunMapList;
     }
 
     @Override
@@ -651,6 +696,25 @@ public class XtremIOV2Client extends XtremIOClient {
                 tagName);
 
         return null;
+    }
+
+    @Override
+    public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
+            String entityName, String... parameters) throws Exception {
+        StringBuilder strBuilder = new StringBuilder(XtremIOConstants.XTREMIO_V2_PERFORMANCE_STR);
+        strBuilder.append(XtremIOConstants.getInputClusterString(clusterName));
+        strBuilder.append(XtremIOConstants.getInputAdditionalParamString(XtremIOConstants.ENTITY, entityName));
+        for (int i = 0; i < parameters.length; i = i + 2) {
+            String parameter = parameters[i];
+            String value = parameters[i + 1];
+            strBuilder.append(XtremIOConstants.getInputAdditionalParamString(parameter, value));
+        }
+        String uriString = strBuilder.toString();
+        log.info("Performance URL to query: {}", uriString);
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOPerformanceResponse performanceResponse = getResponseObject(XtremIOPerformanceResponse.class, response);
+        log.info("Returned performance counters size : {}", performanceResponse.getCounters().length);
+        return performanceResponse;
     }
 
     @Override

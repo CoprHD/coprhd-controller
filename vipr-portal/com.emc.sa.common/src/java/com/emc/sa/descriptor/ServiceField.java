@@ -55,9 +55,6 @@ public class ServiceField extends ServiceItem {
 
     /** For choice fields, defines fixed options. */
     private Map<String, String> options = Maps.newLinkedHashMap();
-    
-    /** The dynamicHelp. */
-    private String dynamicHelp ;
 
     public boolean isRequired() {
         return required;
@@ -106,14 +103,6 @@ public class ServiceField extends ServiceItem {
     public void setValidation(Validation validation) {
         this.validation = validation;
     }
-    
-    public String getDynamicHelp() {
-        return dynamicHelp;
-    }
-
-    public void setDynamicHelp(String dynamicHelp) {
-        this.dynamicHelp = getDynamicHelpType(dynamicHelp);
-    }
 
     public Map<String, String> getOptions() {
         return options;
@@ -142,10 +131,6 @@ public class ServiceField extends ServiceItem {
     public String getAssetType() {
         return StringUtils.substringAfter(getType(), ASSET_TYPE_PREFIX);
     }
-    
-    public String getDynamicHelpType(String input) {
-        return StringUtils.substringAfter(input, ASSET_TYPE_PREFIX);
-    }
 
     @Override
     public String toString() {
@@ -158,7 +143,6 @@ public class ServiceField extends ServiceItem {
         builder.append("select", select);
         builder.append("options", options);
         builder.append("validation", validation);
-        builder.append("dynamicHelp", dynamicHelp);
         return builder.toString();
     }
 

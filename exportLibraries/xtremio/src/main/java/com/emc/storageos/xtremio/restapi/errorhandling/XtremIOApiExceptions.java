@@ -30,6 +30,12 @@ public interface XtremIOApiExceptions {
     XtremIOApiException scanFailed(String xtremIO);
 
     @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
+    XtremIOApiException meteringFailed(String xtremIO, String message);
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
+    XtremIOApiException meteringNotSupportedFor3xVersions();
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
     XtremIOApiException moreThanOneClusterNotSupported(String xtremIO);
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)

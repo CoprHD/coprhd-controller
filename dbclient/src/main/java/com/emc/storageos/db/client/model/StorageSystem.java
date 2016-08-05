@@ -141,6 +141,12 @@ public class StorageSystem extends DiscoveredSystemObject {
     
     private Boolean supportNotificationLimit;
 
+    private String _lastArrayAffinityStatusMessage;
+    private String _arrayAffinityStatus = DataCollectionJobStatus.CREATED.name();
+    private Long _lastArrayAffinityRunTime = 0L;
+    private Long _nextArrayAffinityRunTime = 0L;
+    private Long _successArrayAffinityTime = 0L;
+
     public static enum SupportedFileReplicationTypes {
         REMOTE("remote"), LOCAL("local");
 
@@ -175,7 +181,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     // Namespace denotes the Element used in Discovery
     public static enum Discovery_Namespaces {
-        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, REMOTE_REPLICATION_CONFIGURATION, ALL
+        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY, REMOTE_REPLICATION_CONFIGURATION, ALL
     }
 
     public static enum SupportedReplicationTypes {
@@ -697,6 +703,57 @@ public class StorageSystem extends DiscoveredSystemObject {
     public void setNativeId(String nativeId) {
         _nativeId = nativeId;
         setChanged("nativeId");
+    }
+
+    @Name("lastArrayAffinityStatusMessage")
+    public String getLastArrayAffinityStatusMessage() {
+        return _lastArrayAffinityStatusMessage;
+    }
+
+    public void setLastArrayAffinityStatusMessage(String statusMessage) {
+        _lastArrayAffinityStatusMessage = statusMessage;
+        setChanged("lastArrayAffinityStatusMessage");
+    }
+
+    @EnumType(DataCollectionJobStatus.class)
+    @Name("arrayAffinityStatus")
+    public String getArrayAffinityStatus() {
+        return _arrayAffinityStatus;
+    }
+
+    public void setArrayAffinityStatus(String status) {
+        _arrayAffinityStatus = status;
+        setChanged("arrayAffinityStatus");
+    }
+
+    @Name("lastArrayAffinityRunTime")
+    public Long getLastArrayAffinityRunTime() {
+        return _lastArrayAffinityRunTime;
+    }
+
+    public void setLastArrayAffinityRunTime(Long lastArrayAffinityRunTime) {
+        _lastArrayAffinityRunTime = lastArrayAffinityRunTime;
+        setChanged("lastArrayAffinityRunTime");
+    }
+
+    @Name("nextArrayAffinityRunTime")
+    public Long getNextArrayAffinityRunTime() {
+        return _nextArrayAffinityRunTime;
+    }
+
+    public void setNextArrayAffinityRunTime(Long nextArrayAffinityRunTime) {
+        _nextArrayAffinityRunTime = nextArrayAffinityRunTime;
+        setChanged("nextArrayAffinityRunTime");
+    }
+
+    @Name("successArrayAffinityTime")
+    public Long getSuccessArrayAffinityTime() {
+        return _successArrayAffinityTime;
+    }
+
+    public void setSuccessArrayAffinityTime(Long time) {
+        _successArrayAffinityTime = time;
+        setChanged("successArrayAffinityTime");
     }
 
     @Name("sharedStorageCapacity")

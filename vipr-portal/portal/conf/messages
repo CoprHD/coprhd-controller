@@ -359,6 +359,9 @@ ProvisionType.NONE=None
 ProvisionType.Thin=Thin
 ProvisionType.Thick=Thick
 
+VirtualPoolPlacementPolicy.default_policy=Default - Storage Arrays/Pools selection based on performance metrics and capacity
+VirtualPoolPlacementPolicy.array_affinity=Host/Array Affinity - Storage Arrays/Pools selection based on Host/Cluster array affinity first, then performance metrics and capacity
+
 ProtectionSystemType.rp=EMC RecoverPoint
 ProtectionSystemType.srdf=VMAX SRDF
 
@@ -695,6 +698,7 @@ CustomConfigs.category.XtremIO=XtremIO
 CustomConfigs.category.HDS=HDS
 CustomConfigs.category.VPlex=VPLEX
 CustomConfigs.category.Nas=NAS
+CustomConfigs.category.HostResource=Host Resource Placement
 CustomConfigs.category.Isilon=Isilon
 CustomConfigs.category.VolumeNaming=Volume Naming
 CustomConfigs.category.Other=Other
@@ -740,6 +744,8 @@ CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For P
 CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
+CustomConfigs.configType.HostResourceMaximumNumberOfArrays=Maximum Number Of Arrays That Resources Can be Placed For A Host/Cluster
+CustomConfigs.configType.HostResourceTriggerArrayAffinityDiscoveryInHostDiscovery=Trigger Array Affinity Discovery During Host Creation
 CustomConfigs.configType.IsilonPathCustomization=File System Directory Path
 CustomConfigs.configType.IsilonSystemAccessZoneNameSpace=System Access Zone Directory
 CustomConfigs.configType.IsilonUnmanagedFileSystemLocations=Unmanaged File System Locations
@@ -2196,6 +2202,7 @@ virtualPools.numResources=Resources
 
 # Virtual Pool groups
 vpool.group.hardware=Hardware
+vpool.group.placementPolicy=Resource Placement Policy
 vpool.group.sanPaths=SAN Multi Path
 vpool.group.highAvailability=High Availability
 vpool.group.protection=Data Protection
@@ -2229,6 +2236,10 @@ vpool.maxRetention=Maximum Retention (Days)
 vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 storagePools.numOfDataCenters=Data Center(s)
+
+# Block Specific
+vpool.placementPolicy=Resource Placement Policy
+vpool.placementPolicy.help=Policy to be used for resource placement of the VirtualPool. Applicable only for VMAX, VNX Block, Unity and XtremIO storage systems
 
 # Block Specific
 vpool.minPaths=Minimum Paths
@@ -3048,11 +3059,6 @@ currency.format=$%.2f
 order.submitSuccess=Your order has been successfully received and is being processed. You may leave this page and return at any time through your Orders.
 order.submitFailed=Your order was unable to be submitted due to an internal error.
 order.processingFailed=Error processing order
-order.pausedFailed=Your order was unable to be paused due to an internal error.
-order.resumeFailed=Your order was unable to be resumed due to an internal error.
-
-service.order.pause=Pausing...
-service.order.resume=Resuming...
 
 OrderStatus.PENDING=Preparing Order
 OrderStatus.EXECUTING=Executing...

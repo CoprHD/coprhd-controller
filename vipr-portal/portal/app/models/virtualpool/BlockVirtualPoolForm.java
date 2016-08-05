@@ -99,6 +99,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     public Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     public Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
 
+    // Indicates policy that will be used for resource placement of the VirtualPool
+    public String placementPolicy;
+
     public void deserialize() {
         Gson g = new Gson();
         srdfCopies = g.fromJson(srdfCopiesJson, SrdfCopyForm[].class);
@@ -226,6 +229,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         raidLevels = defaultSet(virtualPool.getRaidLevels());
         hostIOLimitBandwidth = virtualPool.getHostIOLimitBandwidth();
         hostIOLimitIOPs = virtualPool.getHostIOLimitIOPs();
+        placementPolicy = virtualPool.getPlacementPolicy();
 
         VirtualPoolHighAvailabilityParam highAvailabilityType = virtualPool.getHighAvailability();
         if (highAvailabilityType != null && HighAvailability.isHighAvailability(highAvailabilityType.getType())) {
@@ -381,6 +385,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setRaidLevels(raidLevels);
         builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
         builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
+        builder.setPlacementPolicy(placementPolicy);
 
         if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
             builder.enableRecoverPoint(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));
@@ -440,6 +445,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         applyCommon(builder);
         builder.setSnapshots(defaultInt(maxSnapshots));
         builder.setContinuousCopies(maxContinuousCopies, uri(continuousCopyVirtualPool));
+        builder.setPlacementPolicy(placementPolicy);
 
         // Only allow updating these fields if not locked
         if (!isLocked()) {

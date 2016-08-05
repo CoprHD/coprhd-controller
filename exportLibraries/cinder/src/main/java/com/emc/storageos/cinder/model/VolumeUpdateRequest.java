@@ -10,11 +10,14 @@
  */
 package com.emc.storageos.cinder.model;
 
+import java.util.Map;
+
 public class VolumeUpdateRequest {
     public Volume volume;
 
     public class Volume {
         public String name;
         public String description;
+        public Map<String, String> metadata;
     }
 }

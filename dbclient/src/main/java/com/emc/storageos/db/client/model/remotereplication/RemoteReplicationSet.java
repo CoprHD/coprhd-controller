@@ -10,13 +10,14 @@ import java.util.Set;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 
 @Cf("RemoteReplicationSet")
-public class RemoteReplicationSet extends DataObject {
+public class RemoteReplicationSet extends DiscoveredDataObject {
 
     public enum ElementType {
         REPLICATION_GROUP,

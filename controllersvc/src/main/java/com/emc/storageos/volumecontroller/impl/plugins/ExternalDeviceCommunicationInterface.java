@@ -883,7 +883,8 @@ public class ExternalDeviceCommunicationInterface extends
      * Discover remote replication configuration for the specified storage system type.
      *
      * Read all instances of storage systems with specified type.
-     * Call driver to discover remote replication sets and remote replication groups for these systems.
+     * Call driver to discover remote replication sets and remote replication groups for these systems and
+     * their providers.
      * Store this information in database.
      *
      * @param driver storage driver
@@ -920,7 +921,7 @@ public class ExternalDeviceCommunicationInterface extends
         // process discovery results.
         // todo: need to implement support for async case.
         if (task.getStatus() == DriverTask.TaskStatus.READY)  {
-            // process driver remote replication sets and build data base objects for them.
+            // process driver remote replication sets and build database objects for them.
             processDriverRemoteReplicationSets(driverRemoteReplicationSets);
         } else {
             String errorMsg = String.format("Failed to discover remote replication configuration for type %s",
@@ -1044,18 +1045,20 @@ public class ExternalDeviceCommunicationInterface extends
     private void processDriverRemoteReplicationSets(List<RemoteReplicationSet> driverRRSets) {
 
         // For each driver set create persistent set. If a set has groups, process groups from this set.
-        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> systemSets =
-                new ArrayList<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet>();
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> systemSets = new ArrayList<>();
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemGroups = new ArrayList<>();
 
-        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemGroups =
-                new ArrayList<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup>();
+        List<DataObject> objectsToCreate = new ArrayList<>();
+        List<DataObject> objectsToUpdate = new ArrayList<>();
+
         for (RemoteReplicationSet driverSet : driverRRSets) {
             com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemRRSet =
-                    processDriverRRSet(driverSet);
+                    processDriverRRSet(driverSet, objectsToCreate, objectsToUpdate);
+
             systemSets.add(systemRRSet);
 
             List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemRRGroups =
-                    processDriverRRGroups(driverSet.getReplicationGroups());
+                    processDriverRRGroups(driverSet.getReplicationGroups(), systemRRSet, objectsToCreate, objectsToUpdate);
             systemGroups.addAll(systemRRGroups);
         }
 
@@ -1064,19 +1067,61 @@ public class ExternalDeviceCommunicationInterface extends
     }
 
     private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet
-             processDriverRRSet(RemoteReplicationSet driverSet) {
+             processDriverRRSet(RemoteReplicationSet driverSet,
+                                List<DataObject> objectsToCreate, List<DataObject> objectsToUpdate) {
+
+        // check if this replication set is already in database
+        String nativeGuid = NativeGUIDGenerator.generateRemoteReplicationSetNativeGuid(system.getNativeGuid(),
+                driverSet.getNativeId(), NativeGUIDGenerator.REMOTE_REPLICATION_SET);
+
         com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet =
-                new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
+                checkRemoteReplicationSetExistsInDB(nativeGuid);
+        if (systemSet == null) {
+            systemSet = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
+
+            objectsToCreate.add(systemSet);
+        } else {
+
+            objectsToUpdate.add(systemSet);
+        }
+
         return systemSet;
     }
 
     private List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup>
-               processDriverRRGroups(Set<RemoteReplicationGroup> driverGroups) {
+               processDriverRRGroups(Set<RemoteReplicationGroup> driverGroups,
+                                     com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet parentRrSet,
+                                     List<DataObject> objectsToCreate, List<DataObject> objectsToUpdate) {
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemGroups =
                 new ArrayList<>();
 
         return systemGroups;
 
+    }
+
+    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet checkRemoteReplicationSetExistsInDB(String nativeGuid) {
+
+        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet rrSet = null;
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> rrSets =
+                queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
+                        "nativeGuid", nativeGuid);
+
+        if (!(rrSets == null || rrSets.isEmpty()) {
+            rrSet = rrSets.get(0);
+        }
+        return rrSet;
+    }
+
+    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup checkRemoteReplicationGroupExistsInDB(String nativeGuid) {
+        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup rrGroup = null;
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroups =
+                queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
+                        "nativeGuid", nativeGuid);
+
+        if (!(rrGroups == null || rrGroups.isEmpty()) {
+            rrGroup = rrGroups.get(0);
+        }
+        return rrGroup;
     }
 }

@@ -195,7 +195,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
         mountUtils = new MountUtils(dbClient.queryObject(Host.class, hostId));
         // set mount tag on the fs
-        setTag(resId, mountUtils.generateMountTag(hostId, mountPath, subDirectory, security));
+        setTag(resId, mountUtils.generateMountTag(hostId, mountPath, subDirectory == null ? "!nodir" : subDirectory, security));
     }
 
     @Override

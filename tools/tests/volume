@@ -234,10 +234,13 @@ def volume_delete(args):
     total = time.time() - start
     if (args.wait):
        print "Volume delete took", "{0:.2f}".format(total), "seconds to complete"
-       if (s['state'] == 'ready'):
-           print 'Volume(s) deleted successfully'
-       else:
-           print 'Export group update failed.'
+       try:
+           if (s == "ready"):
+               print "Volume(s) deleted successfully"
+           else:
+               sys.exit(1);
+       except:
+           print "Volume delete failed."
            sys.exit(1);
     else:
        print o

@@ -77,6 +77,10 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         persistence.setDriverRegistry(driverRegistry);
     }
 
+    //
+    // Driver common functionality
+    //
+
     /**
      * Get driver registration data.
      *
@@ -140,12 +144,15 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         LOG.info("Request for {} object {} from {}", requestedType, objectId, storageSystemId);
         DellSCUtil util = new DellSCUtil();
         try (StorageCenterAPI api = persistence.getSavedConnection(storageSystemId)) {
-            Map<ScReplayProfile, List<String>> cgInfo = util.getGCInfo(api, storageSystemId);
             if (requestedType.equals(StorageVolume.class.getSimpleName())) {
                 ScVolume volume = api.getVolume(objectId);
+                Map<ScReplayProfile, List<String>> cgInfo = util.getGCInfo(api, storageSystemId);
                 return (T) util.getStorageVolumeFromScVolume(api, volume, cgInfo);
             } else if (requestedType.equals(VolumeConsistencyGroup.class.getSimpleName())) {
-                // TODO: Add with consistency group handling
+                ScReplayProfile cg = api.getConsistencyGroup(objectId);
+                if (cg.instanceId.equals(objectId)) {
+                    return (T) util.getVolumeConsistencyGroupFromReplayProfile(cg, null);
+                }
             } else if (requestedType.equals(VolumeSnapshot.class.getSimpleName())) {
                 return (T) util.getVolumeSnapshotFromReplay(api.getReplay(objectId), null);
             }
@@ -156,6 +163,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
 
         LOG.warn("Requested object of type {} not found.", requestedType);
         return null;
+
     }
 
     @Override
@@ -165,6 +173,10 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         task.setStatus(TaskStatus.READY);
         return task;
     }
+
+    //
+    // Provisioning operations
+    //
 
     /**
      * Create storage volumes with a given set of capabilities.
@@ -209,6 +221,10 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         return provisioningHelper.deleteVolume(volume);
     }
 
+    //
+    // Snapshot operations
+    //
+
     /**
      * Create volume snapshots.
      *
@@ -244,6 +260,10 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         LOG.info("Deleting volume snapshot {}.", snapshot);
         return snapshotHelper.deleteVolumeSnapshot(snapshot);
     }
+
+    //
+    // Clone operations
+    //
 
     /**
      * Create a clone of a volume.
@@ -296,6 +316,10 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         return task;
     }
 
+    //
+    // Mirror operations
+    //
+
     /**
      * Create volume mirrors.
      *
@@ -311,15 +335,6 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         return task;
     }
 
-    @Override
-    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup volumeConsistencyGroup, List<VolumeMirror> list,
-            List<CapabilityInstance> list1) {
-        LOG.info("Creating consistency group mirror");
-        DriverTask task = new DellSCDriverTask("createConsistencyGroupMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
-    }
-
     /**
      * Delete volume mirror.
      *
@@ -330,14 +345,6 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     public DriverTask deleteVolumeMirror(VolumeMirror mirror) {
         LOG.info("Deleting volume mirror {}", mirror);
         DriverTask task = new DellSCDriverTask("deleteVolumeMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
-    }
-
-    @Override
-    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> list) {
-        LOG.info("Deleting consistency group mirror");
-        DriverTask task = new DellSCDriverTask("deleteConsistencyGroupMirror");
         task.setStatus(TaskStatus.FAILED);
         return task;
     }
@@ -378,29 +385,9 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         return task;
     }
 
-    @Override
-    public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume storageVolume) {
-        LOG.info("Getting volume export info for host");
-        return new HashMap<>(0);
-    }
-
-    @Override
-    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot volumeSnapshot) {
-        LOG.info("Getting snapshot export info for host");
-        return new HashMap<>(0);
-    }
-
-    @Override
-    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone volumeClone) {
-        LOG.info("Getting clone export info for host");
-        return new HashMap<>(0);
-    }
-
-    @Override
-    public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror volumeMirror) {
-        LOG.info("Getting mirror export infor host");
-        return new HashMap<>(0);
-    }
+    //
+    // Export/unexport operations
+    //
 
     /**
      * Export volumes to initiators through a given set of ports. If ports are
@@ -428,10 +415,15 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
             Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts,
             List<StoragePort> availablePorts, StorageCapabilities capabilities,
             MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
-        LOG.info("Exporting volumes to inititators");
-        DriverTask task = new DellSCDriverTask("exportVolumes");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return provisioningHelper.exportVolumesToInitiators(
+                initiators,
+                volumes,
+                volumeToHLUMap,
+                recommendedPorts,
+                availablePorts,
+                capabilities,
+                usedRecommendedPorts,
+                selectedPorts);
     }
 
     /**
@@ -443,11 +435,36 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
-        LOG.info("Unexporting volumes from initiators");
-        DriverTask task = new DellSCDriverTask("unexportVolumes");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return provisioningHelper.unexportVolumesFromInitiators(initiators, volumes);
     }
+
+    @Override
+    public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume storageVolume) {
+        LOG.info("Getting volume export info for host");
+        return new HashMap<>(0);
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot volumeSnapshot) {
+        LOG.info("Getting snapshot export info for host");
+        return new HashMap<>(0);
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone volumeClone) {
+        LOG.info("Getting clone export info for host");
+        return new HashMap<>(0);
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror volumeMirror) {
+        LOG.info("Getting mirror export infor host");
+        return new HashMap<>(0);
+    }
+
+    //
+    // Consistency group related operations
+    //
 
     /**
      * Create a consistency group.
@@ -528,6 +545,27 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         LOG.info("Creating consistency group clone");
         return cgHelper.createConsistencyGroupClone(volumeConsistencyGroup, volumes, capabilities);
     }
+
+    @Override
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup volumeConsistencyGroup, List<VolumeMirror> list,
+            List<CapabilityInstance> list1) {
+        LOG.info("Creating consistency group mirror");
+        DriverTask task = new DellSCDriverTask("createConsistencyGroupMirror");
+        task.setStatus(TaskStatus.FAILED);
+        return task;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> list) {
+        LOG.info("Deleting consistency group mirror");
+        DriverTask task = new DellSCDriverTask("deleteConsistencyGroupMirror");
+        task.setStatus(TaskStatus.FAILED);
+        return task;
+    }
+
+    //
+    // Discovery functions
+    //
 
     /**
      * Discover storage systems and their capabilities.

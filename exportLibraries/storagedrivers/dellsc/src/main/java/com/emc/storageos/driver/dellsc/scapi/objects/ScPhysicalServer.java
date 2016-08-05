@@ -16,27 +16,9 @@
  */
 package com.emc.storageos.driver.dellsc.scapi.objects;
 
-import java.util.Date;
-
 /**
- * Storage Center snapshot "replays".
+ * 
  */
-public class ScReplay extends ScObject {
-    public boolean active;
-    public ScObject consistencyGroup;
-    public boolean consistent;
-    public ScObject createVolume;
-    public String description;
-    public Date expireTime;
-    public boolean expires;
-    public Date freezeTime;
-    public String globalIndex;
-    public boolean markedForExpiration;
+public class ScPhysicalServer extends ScServer {
     public ScObject parent;
-    public ScObject replayProfile;
-    public ScObject replayProfileRule;
-    public String size;
-    public String source;
-    public boolean spaceRecovery;
-    public long writesHeldDuration;
 }

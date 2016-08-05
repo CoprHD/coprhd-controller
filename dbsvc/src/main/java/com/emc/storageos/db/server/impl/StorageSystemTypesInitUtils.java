@@ -55,7 +55,7 @@ public class StorageSystemTypesInitUtils {
     private static final List<String> MDM_ENABLE_LIST = asList(SCALEIO, SCALEIOAPI);
     private static final List<String> ONLY_MDM_LIST = asList(SCALEIOAPI);
     private static final List<String> ELEMENT_MANAGER_LIST = asList(SCALEIO);
-    private static final List<String> SECREAT_KEY_ENABLE_MAP = asList(CEPH);
+    private static final List<String> SECREAT_KEY_ENABLE_LIST = asList(CEPH);
     private static final Map<String, String> DISPLAY_NAME_MAP;
     private static final Map<String, String> SSL_PORT_MAP;
     private static final Map<String, String> NON_SSL_PORT_MAP;
@@ -215,7 +215,7 @@ public class StorageSystemTypesInitUtils {
                 type.setIsDefaultMDM(MDM_ENABLE_LIST.contains(system));
                 type.setIsOnlyMDM(ONLY_MDM_LIST.contains(system));
                 type.setIsElementMgr(ELEMENT_MANAGER_LIST.contains(system));
-                type.setIsSecretKey(SECREAT_KEY_ENABLE_MAP.contains(system));
+                type.setIsSecretKey(SECREAT_KEY_ENABLE_LIST.contains(system));
                 type.setSslPort(SSL_PORT_MAP.get(system));
                 type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
 

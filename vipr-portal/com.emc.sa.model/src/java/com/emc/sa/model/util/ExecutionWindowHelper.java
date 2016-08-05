@@ -45,9 +45,6 @@ public class ExecutionWindowHelper {
      * @return
      */
     public boolean isExpired(Calendar fromDate) {
-        boolean expired = false;
-
-        fromDate = inUTC(fromDate);
         Calendar endTime = (Calendar) fromDate.clone();
         if (window == null) {
             endTime.add(Calendar.HOUR_OF_DAY, INFINITE_WINDOW_ORDER_EXECUTION_TIMEOUT);
@@ -56,11 +53,8 @@ public class ExecutionWindowHelper {
         }
 
         Calendar currTime = Calendar.getInstance();
-
         log.debug("currTime:{}, endTime: {}", currTime, endTime);
-
-        expired = currTime.compareTo(endTime) > 0;
-        return expired;
+        return currTime.compareTo(endTime) > 0;
     }
 
     public Calendar calculateCurrentOrNext() {

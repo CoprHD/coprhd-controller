@@ -20,9 +20,6 @@ import org.slf4j.LoggerFactory;
 public class ScheduleTimeHelper {
     private static final Logger log = LoggerFactory.getLogger(ScheduleTimeHelper.class);
 
-    public ScheduleTimeHelper() {
-    }
-
     /**
      * Get the first desired scheduled time which consists of start day and start hour/min of that day.
      * @param scheduleInfo
@@ -34,7 +31,6 @@ public class ScheduleTimeHelper {
         Date date = formatter.parse(scheduleInfo.getStartDate());
 
         Calendar startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
         startTime.setTime(date);
         startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
         startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
@@ -90,30 +86,18 @@ public class ScheduleTimeHelper {
      * @throws Exception
      */
     public static Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
-        Calendar startTime = getScheduledStartTime(scheduleInfo);
-
+        Calendar scheduledTime = getScheduledStartTime(scheduleInfo);
         if (scheduleInfo.getReoccurrence() == 1) {
-            return startTime;
+            return scheduledTime;
         }
 
-        Calendar currTZTime = Calendar.getInstance();
         Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        currTime.setTimeInMillis(currTZTime.getTimeInMillis());
         log.debug("currTime: {}", currTime.toString());
+        if (scheduledTime.after(currTime)) {
+            return scheduledTime;
+        }
 
-        Calendar initTime = startTime.before(currTime)? currTime:startTime;
-        log.debug("initTime: {}", initTime.toString());
-
-        int year = initTime.get(Calendar.YEAR);
-        int month = initTime.get(Calendar.MONTH);
-        int day = initTime.get(Calendar.DAY_OF_MONTH);
-        int hour = scheduleInfo.getHourOfDay();
-        int min = scheduleInfo.getMinuteOfHour();
-
-        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        scheduledTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        scheduledTime.set(year, month, day, hour, min, 0);
-
+        int day;
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
                 day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -132,7 +116,7 @@ public class ScheduleTimeHelper {
                 log.error("not expected schedule cycle.");
         }
 
-        while (scheduledTime != null && scheduledTime.before(initTime)) {
+        while (scheduledTime != null && scheduledTime.before(currTime)) {
             scheduledTime = getNextScheduledTime(scheduledTime, scheduleInfo);
         }
 
@@ -223,7 +207,6 @@ public class ScheduleTimeHelper {
         int min = window.getMinuteOfHourInUTC();
 
         Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        scheduledTime.setTimeZone(TimeZone.getTimeZone("UTC"));
         scheduledTime.set(year, month, day, hour, min, 0);
 
         if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {

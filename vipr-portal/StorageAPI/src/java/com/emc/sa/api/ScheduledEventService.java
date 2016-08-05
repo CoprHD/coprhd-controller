@@ -183,6 +183,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         try {
             DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
             Date date = formatter.parse(scheduleInfo.getStartDate());
+
             currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
             endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
             if (endTime != null && currTime.after(endTime)) {
@@ -231,7 +232,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case DAILY:
             case HOURLY:
             case MINUTELY:
-                if (scheduleInfo.getSectionsInCycle().size() != 0) {
+                if (!scheduleInfo.getSectionsInCycle().isEmpty()) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 break;
@@ -320,8 +321,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         URI scheduledEventId = URIUtil.createId(ScheduledEvent.class);
         param.getOrderCreateParam().setScheduledEventId(scheduledEventId);
-        Calendar firstScheduledTime = ScheduleTimeHelper.getFirstScheduledTime(param.getScheduleInfo());
-        param.getOrderCreateParam().setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(firstScheduledTime));
+        Calendar scheduledTime = ScheduleTimeHelper.getFirstScheduledTime(param.getScheduleInfo());
+        param.getOrderCreateParam().setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(scheduledTime));
 
         OrderRestRep restRep = orderService.createOrder(param.getOrderCreateParam());
 
@@ -425,7 +426,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         }
 
         Order order = client.orders().findById(scheduledEvent.getLatestOrderId());
-        order.setScheduledTime(ScheduleTimeHelper.getFirstScheduledTime(scheduleInfo));
+        Calendar scheduledTime = ScheduleTimeHelper.getFirstScheduledTime(scheduleInfo);
+        order.setScheduledTime(scheduledTime);
         client.save(order);
 
         if (catalogService.getExecutionWindowRequired()) {

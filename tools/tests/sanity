@@ -2979,7 +2979,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -2997,7 +2997,7 @@ rpmp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3017,14 +3017,14 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --haCos rpvplex_ha \
+        --haCos rpvplex_ha-migrate \
         --metropoint true \
         --activeProtectionAtHASite false
 }
@@ -5441,31 +5441,33 @@ recoverpoint_tests()
 
         ### End RecoverPoint test cases ###
 
-        secho 'RP cleanup'
+        if [ "$RP_CLEANUP_VOLUMES" = "1" ]; then
+            secho 'RP cleanup'
 
-        if [ "$RP_TESTS" = "1" ]; then
-            secho 'RP volume cleanup...'
-            recoverpoint_cleanup_volumes ${rpvolume} $RP_VOLUME_COUNT
+            if [ "$RP_TESTS" = "1" ]; then
+                secho 'RP volume cleanup...'
+                recoverpoint_cleanup_volumes ${rpvolume} $RP_VOLUME_COUNT
+            fi
+
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                secho 'RP+VPLEX volume cleanup...'
+                recoverpoint_cleanup_volumes ${rpvplexvolume} $RP_VOLUME_COUNT
+            fi
+
+            if [ "$RPMP_TESTS" = "1" ]; then
+                secho 'MP volume cleanup...'
+                recoverpoint_cleanup_volumes ${rpmpvolume} $RP_VOLUME_COUNT
+            fi
+            if [ "$RPXIO_TESTS" = "1" ]; then
+                secho 'XIO volume cleanup...'
+                recoverpoint_cleanup_volumes ${rpxiovolume} $RP_VOLUME_COUNT
+            fi
+
+            secho 'CG cleanup...'
+            recoverpoint_cleanup_cgs
+
+            secho 'RP tests done'
         fi
-
-        if [ "$RPVPLEX_TESTS" = "1" ]; then
-            secho 'RP+VPLEX volume cleanup...'
-            recoverpoint_cleanup_volumes ${rpvplexvolume} $RP_VOLUME_COUNT
-        fi
-
-        if [ "$RPMP_TESTS" = "1" ]; then
-            secho 'MP volume cleanup...'
-            recoverpoint_cleanup_volumes ${rpmpvolume} $RP_VOLUME_COUNT
-        fi
-        if [ "$RPXIO_TESTS" = "1" ]; then
-            secho 'XIO volume cleanup...'
-            recoverpoint_cleanup_volumes ${rpxiovolume} $RP_VOLUME_COUNT
-        fi
-
-        secho 'CG cleanup...'
-        recoverpoint_cleanup_cgs
-
-        secho 'RP tests done'
     fi
 }
 

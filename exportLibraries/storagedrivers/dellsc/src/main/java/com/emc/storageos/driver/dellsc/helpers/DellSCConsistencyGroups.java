@@ -32,7 +32,6 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
-import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
@@ -57,6 +56,7 @@ public class DellSCConsistencyGroups {
      */
     public DellSCConsistencyGroups(DellSCPersistence persistence) {
         this.persistence = persistence;
+        this.util = new DellSCUtil();
     }
 
     /**
@@ -73,10 +73,7 @@ public class DellSCConsistencyGroups {
                     ssn,
                     volumeConsistencyGroup.getDisplayName());
 
-            volumeConsistencyGroup.setAccessStatus(AccessStatus.READ_WRITE);
-            volumeConsistencyGroup.setNativeId(cg.instanceId);
-            volumeConsistencyGroup.setDeviceLabel(cg.name);
-            volumeConsistencyGroup.setStorageSystemId(ssn);
+            util.getVolumeConsistencyGroupFromReplayProfile(cg, volumeConsistencyGroup);
 
             task.setStatus(TaskStatus.READY);
         } catch (StorageCenterAPIException | DellSCDriverException dex) {
@@ -300,6 +297,7 @@ public class DellSCConsistencyGroups {
             List<CapabilityInstance> capabilities) {
         DriverTask task = new DellSCDriverTask("createCGClone");
         task.setStatus(TaskStatus.FAILED);
+        task.setMessage("Create consistency group clone is not supported at this time.");
         return task;
     }
 }

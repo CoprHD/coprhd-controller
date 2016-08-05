@@ -330,71 +330,6 @@ public class DellSCDiscovery {
     }
 
     /**
-     * Perform discovery for a storage provider.
-     * 
-     * @param storageProvider The provider.
-     * @param storageSystems The storage systems collection to populate.
-     * @return The driver task.
-     */
-    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        DellSCDriverTask task = new DellSCDriverTask("discover");
-
-        try {
-            LOG.info("Getting information for storage provider [{}:{}] as user {}",
-                    storageProvider.getProviderHost(),
-                    storageProvider.getPortNumber(),
-                    storageProvider.getUsername());
-
-            try (StorageCenterAPI api = StorageCenterAPI.openConnection(
-                    storageProvider.getProviderHost(),
-                    storageProvider.getPortNumber(),
-                    storageProvider.getUsername(),
-                    storageProvider.getPassword())) {
-
-                // Populate the provider information
-                storageProvider.setAccessStatus(AccessStatus.READ_WRITE);
-                storageProvider.setManufacturer("Dell");
-                storageProvider.setProviderVersion(driverVersion);
-                storageProvider.setIsSupportedVersion(true);
-
-                // Populate the basic SC information
-                StorageCenter[] scs = api.getStorageCenterInfo();
-                for (StorageCenter sc : scs) {
-                    StorageSystem storageSystem = new StorageSystem();
-                    storageSystem.setSerialNumber(sc.scSerialNumber);
-                    storageSystem.setNativeId(sc.scSerialNumber);
-                    storageSystem.setSystemType(driverName);
-
-                    storageSystem.setIpAddress(storageProvider.getProviderHost());
-                    storageSystem.setPortNumber(storageProvider.getPortNumber());
-
-                    // Set display info
-                    storageSystem.setDeviceLabel(sc.scName);
-                    storageSystem.setDisplayName(sc.scName);
-                    storageSystem.setSystemName(sc.scName);
-
-                    // Parse out version information
-                    String[] version = sc.version.split("\\.");
-                    storageSystem.setMajorVersion(version[0]);
-                    storageSystem.setMinorVersion(version[1]);
-                    storageSystem.setFirmwareVersion(sc.version);
-                    storageSystem.setIsSupportedVersion(true);
-
-                    storageSystems.add(storageSystem);
-                }
-            }
-
-            task.setStatus(DriverTask.TaskStatus.READY);
-        } catch (Exception e) {
-            String msg = String.format("Exception encountered getting storage provider information: %s", e);
-            LOG.error(msg);
-            task.setFailed(msg);
-        }
-
-        return task;
-    }
-
-    /**
      * Discover storage volumes.
      *
      * @param storageSystem The storage system on which to discover.
@@ -507,48 +442,6 @@ public class DellSCDiscovery {
             LOG.warn(msg);
         }
         return result;
-    }
-
-    /**
-     * Sets FC specific info for a port.
-     *
-     * @param api The API connection.
-     * @param scPort The Storage Center port.
-     * @param port The storage port object to populate.
-     */
-    private void setFCPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
-        port.setDeviceLabel(scPort.wwn);
-        port.setTransportType(StoragePort.TransportType.FC);
-
-        ScControllerPortFibreChannelConfiguration portConfig = api.getControllerPortFCConfig(
-                scPort.instanceId);
-        port.setPortNetworkId(scPort.wwn);
-        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
-        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
-        port.setPortSubGroup(String.format("%s", portConfig.slot));
-        port.setTcpPortNumber(0L);
-    }
-
-    /**
-     * Sets iSCSI specific info for a port.
-     *
-     * @param api The API connection.
-     * @param scPort The Storage Center port.
-     * @param port The storage port object to populate.
-     */
-    private void setISCSIPortInfo(StorageCenterAPI api, ScControllerPort scPort, StoragePort port) {
-        port.setDeviceLabel(scPort.iscsiName);
-        port.setTransportType(StoragePort.TransportType.IP);
-
-        ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
-                scPort.instanceId);
-        port.setNetworkId(portConfig.getNetwork());
-        port.setIpAddress(portConfig.ipAddress);
-        port.setPortNetworkId(portConfig.getFormattedMACAddress());
-        port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
-        port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
-        port.setPortSubGroup(String.format("%s", portConfig.slot));
-        port.setTcpPortNumber(portConfig.portNumber);
     }
 
     /**

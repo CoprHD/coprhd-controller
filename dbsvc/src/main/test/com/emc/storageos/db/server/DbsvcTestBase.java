@@ -97,6 +97,7 @@ public class DbsvcTestBase {
     // server is still alive and listening on the port, so the 2nd call to LocateRegistry.createRegistry() will
     // throw an exception. There's no standard way to shutdown a RMI Registry server.
     protected static boolean _startJmx;
+    protected static DbClientContext localCtx;
 
     private static final String args[] = {
             "dbversion-info.xml",
@@ -350,7 +351,7 @@ public class DbsvcTestBase {
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
 
-        DbClientContext localCtx = new MockDbClientContext();
+        localCtx = new MockDbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
@@ -405,5 +406,9 @@ public class DbsvcTestBase {
             }
             
         }
+    }
+    
+    public DbClientContext getDbClientContext() {
+        return localCtx;
     }
 }

@@ -4094,7 +4094,7 @@ public class BlockService extends TaskResourceService {
                 // can be exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
                 if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
                     if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
-                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool);
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);
                         return;
                     }
                 }
@@ -4115,7 +4115,7 @@ public class BlockService extends TaskResourceService {
                     if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)) {
                         if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(volume, currentVpool, newVpool, 
                                 _dbClient, notSuppReasonBuff, null)) {
-                            verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool);                            
+                            verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);                            
                         } else if (!VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
                                 _dbClient, notSuppReasonBuff)) {
                             _log.warn("RP Change Protection VirtualPool change for volume is not supported: {}",
@@ -4148,7 +4148,7 @@ public class BlockService extends TaskResourceService {
                         // created using the target volume of a block snapshot.
                         throw APIException.badRequests.vpoolChangeNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
-                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool);
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);
                     }
                 }
             }
@@ -4265,7 +4265,7 @@ public class BlockService extends TaskResourceService {
      * @param currentVpool The current vpool where the volume is placed
      * @param newVpool The target vpool where the volume will be placed after migration
      */
-    private void verifyVPlexVolumeForDataMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool) {
+    public static void verifyVPlexVolumeForDataMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, DbClient _dbClient) {
         _log.info(String.format("Verifying that the VPlex volume[%s](%s) qualifies for Data Migration"
                 + " moving from current vpool [%s](%s) to new vpool [%s](%s).",
                 volume.getLabel(), volume.getId(),
@@ -4291,7 +4291,7 @@ public class BlockService extends TaskResourceService {
         // can only be migrated if the component structure of
         // the volume is supported by ViPR.
         verifyVPlexVolumeStructureForDataMigration(volume, currentVpool,
-                migrateSourceVolume, migrateHAVolume);
+                migrateSourceVolume, migrateHAVolume, _dbClient);
 
         // Check for snaps, mirrors, and full copies
         if (migrateSourceVolume) {
@@ -4373,8 +4373,8 @@ public class BlockService extends TaskResourceService {
      * @param migrateSourceVolume true if the source side requires migration.
      * @param migrateHAVolume true if the HA side requires migration.
      */
-    private void verifyVPlexVolumeStructureForDataMigration(Volume volume,
-            VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume) {
+    private static void verifyVPlexVolumeStructureForDataMigration(Volume volume,
+            VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume, DbClient _dbClient) {
         boolean structureOK = true;
         if (volume.isIngestedVolume(_dbClient)) {
             if (migrateSourceVolume && migrateHAVolume) {

@@ -4201,14 +4201,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // be thrown.
                         BlockServiceUtils.checkForPendingTasks(rpTargetVolume.getTenant().getURI(), 
                                 Arrays.asList(rpTargetVolume), _dbClient);
+                        // Make sure the target volume does not have any other restrictions and is
+                        // valid for migrations (ex: may have snapshots)
+                        VirtualPool migrateFromVpool = targetMigration.getMigrateFromVpool();
+                        VirtualPool migrateToVpool = targetMigration.getMigrateToVpool();
+                        BlockService.verifyVPlexVolumeForDataMigration(rpTargetVolume, migrateFromVpool, migrateToVpool, _dbClient);
                         
                         Operation op = new Operation();
                         op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
                         op.setDescription("Change vpool operation - Migrate RP+VPLEX Target");
                         op = _dbClient.createTaskOpStatus(Volume.class, rpTargetVolume.getId(), taskId, op);
                         taskList.addTask(toTask(rpTargetVolume, taskId, op));
-                                                
-                        VirtualPool migrateToVpool = targetMigration.getMigrateToVpool();
                         
                         // Group Target migrations by new vpool to Target volumes
                         List<Volume> targetVolumesToMigrate = allTargetVolumesToMigrate.get(migrateToVpool);

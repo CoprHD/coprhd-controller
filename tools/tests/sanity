@@ -3307,7 +3307,7 @@ rpvplexlocal_noprotection()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
         --max_snapshots 10 \
         --multiVolumeConsistency \
         --highavailability vplex_local
@@ -3315,7 +3315,22 @@ rpvplexlocal_noprotection()
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         run cos update block rpvplexlocal_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
     fi
+
+    run cos create block rpvplexlocal_noprotection$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
+        --description 'RP+VPLEX-LOCAL---NO-PROTECTION-MIGRATE'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
+        --multiVolumeConsistency \
+        --highavailability vplex_local
+
+    if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
+        run cos update block rpvplexlocal_noprotection-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+    fi
 }
+
 
 # RP+VPLEX DIST - NO PROTECTION
 rpvplexdist_noprotection()
@@ -3334,6 +3349,22 @@ rpvplexdist_noprotection()
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         run cos update block rpvplexdist_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+    fi
+
+    run cos create block rpvplexdist_noprotection$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
+        --description 'RP+VPLEX-DIST---NO-PROTECTION-MIGRATE'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --max_snapshots 10 \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha-migrate
+
+    if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
+        run cos update block rpvplexdist_noprotection-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
     fi
 }
 
@@ -4940,11 +4971,6 @@ recoverpoint_change_vpool_test()
         rp_migrate_vpool=${5}
         upgrade_to_mp=${6}
 
-        if [ a${rp_migrate_vpool} != a ] ; then
-            secho 'Change Virtual Pool - VPLEX Data Migration (RecoverPoint)'
-            run volume change_cos ${PROJECT}/${base_volume} ${rp_migrate_vpool}
-        fi
-
         # Perform Upgrade to MP if the variable is present,
         # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
         if [ a${upgrade_to_mp} != a ] ; then
@@ -4953,7 +4979,21 @@ recoverpoint_change_vpool_test()
             #run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
         fi
 
-        secho 'Change Virtual Pool - Remove RecoverPoint Protection'
+        if [ a${rp_migrate_vpool} != a ] ; then
+            secho 'Change Virtual Pool - VPLEX Data Migration (RecoverPoint)'
+            run volume change_cos ${PROJECT}/${base_volume} ${rp_migrate_vpool}
+
+            secho 'Change Virtual Pool - Remove RecoverPoint Protection'
+            run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}'-migrate'
+
+            secho 'Change Virtual Pool - Plain VPLEX Migration to prepare for adding RP Protection'
+        else
+            secho 'Change Virtual Pool - Remove RecoverPoint Protection'
+        fi
+
+        # This call will either remove protection from the RP volume OR perform
+        # a plain VPLEX Data Migration depending on what has occured before
+        # getting here.
         run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
         secho 'Change Virtual Pool - Add RecoverPoint Protection'

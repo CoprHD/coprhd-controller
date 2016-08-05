@@ -66,7 +66,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
         this.select = select;
     }
     
-    @XmlElement(name = "dynamic_help")
+    @XmlElement(name = "dynamicHelp")
     public String getDynamicHelp() {
         return dynamicHelp;
     }

@@ -2737,6 +2737,7 @@ rp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -2808,6 +2809,7 @@ rp_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode SYNCHRONOUS \
         --max_snapshots 10 \
@@ -2844,6 +2846,7 @@ rp_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -2883,6 +2886,7 @@ rpvplex_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -2947,6 +2951,7 @@ rpvplex_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -3014,6 +3019,7 @@ rpvplex_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -3083,6 +3089,7 @@ rpmp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -3152,6 +3159,7 @@ rpmp_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -3242,6 +3250,7 @@ rpmp_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
@@ -3292,6 +3301,7 @@ rp_noprotection()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --max_snapshots 10 \
+        --expandable true \
         --multiVolumeConsistency
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
@@ -3309,6 +3319,7 @@ rpvplexlocal_noprotection()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --max_snapshots 10 \
+        --expandable true \
         --multiVolumeConsistency \
         --highavailability vplex_local
 
@@ -3323,6 +3334,7 @@ rpvplexlocal_noprotection()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --max_snapshots 10 \
+        --expandable true \
         --multiVolumeConsistency \
         --highavailability vplex_local
 
@@ -3343,6 +3355,7 @@ rpvplexdist_noprotection()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --max_snapshots 10 \
+        --expandable true \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
@@ -3359,6 +3372,7 @@ rpvplexdist_noprotection()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --max_snapshots 10 \
+        --expandable true \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha-migrate

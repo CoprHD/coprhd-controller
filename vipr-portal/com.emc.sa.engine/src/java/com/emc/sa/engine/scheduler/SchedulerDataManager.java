@@ -91,7 +91,7 @@ public class SchedulerDataManager {
         while (windows.isEmpty()) {
             lock.lock();
             try {
-                if (activeWindows.isEmpty() && (enableInfiniteExecutionWindow == false) ) {
+                if (activeWindows.isEmpty() && enableInfiniteExecutionWindow == false ) {
                     hasActiveWindows.await();
                 }
                 windows.putAll(activeWindows);

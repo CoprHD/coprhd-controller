@@ -332,8 +332,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         newObject.setCatalogServiceId(param.getOrderCreateParam().getCatalogService());
         newObject.setEventType(param.getScheduleInfo().getReoccurrence() == 1 ? ScheduledEventType.ONCE : ScheduledEventType.REOCCURRENCE);
         if (catalogService.getApprovalRequired()) {
+            log.info(String.format("ScheduledEventr %s requires approval", newObject.getId()));
             newObject.setEventStatus(ScheduledEventStatus.APPROVAL);
-            // TODO: send event for approve requirement
         } else {
             newObject.setEventStatus(ScheduledEventStatus.APPROVED);
         }

@@ -1388,51 +1388,6 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
-
-angular.module("portalApp").factory('GuideCookies', function($rootScope, $http, $state, $translate, DateTimeUtil) {
-    //angular ngCookie, and cookieStore pre 1.4 do not allow setting expiration or retrieving persistent cookies.
-    //This is mozilla cookie getter/setter https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
-    return  {
-        getItem: function (sKey) {
-            if (!sKey) { return null; }
-            return decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || null;
-        },
-        setItem: function (sKey, sValue, vEnd, sPath, sDomain, bSecure) {
-            if (!sKey || /^(?:expires|max\-age|path|domain|secure)$/i.test(sKey)) { return false; }
-            var sExpires = "";
-            if (vEnd) {
-                switch (vEnd.constructor) {
-                    case Number:
-                        sExpires = vEnd === Infinity ? "; expires=Fri, 31 Dec 9999 23:59:59 GMT" : "; max-age=" + vEnd;
-                        break;
-                    case String:
-                        sExpires = "; expires=" + vEnd;
-                        break;
-                    case Date:
-                        sExpires = "; expires=" + vEnd.toUTCString();
-                        break;
-                }
-            }
-            document.cookie = encodeURIComponent(sKey) + "=" + encodeURIComponent(sValue) + sExpires + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "") + (bSecure ? "; secure" : "");
-            return true;
-        },
-        removeItem: function (sKey, sPath, sDomain) {
-            if (!this.hasItem(sKey)) { return false; }
-            document.cookie = encodeURIComponent(sKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT" + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "");
-            return true;
-        },
-        hasItem: function (sKey) {
-            if (!sKey) { return false; }
-            return (new RegExp("(?:^|;\\s*)" + encodeURIComponent(sKey).replace(/[\-\.\+\*()]/g, "\\$&") + "\\s*\\=")).test(document.cookie);
-        },
-        keys: function () {
-            var aKeys = document.cookie.replace(/((?:^|\s*;)[^\=]+)(?=;|$)|^\s*|\s*(?:\=[^;]*)?(?:\1|$)/g, "").split(/\s*(?:\=[^;]*)?;\s*/);
-            for (var nLen = aKeys.length, nIdx = 0; nIdx < nLen; nIdx++) { aKeys[nIdx] = decodeURIComponent(aKeys[nIdx]); }
-            return aKeys;
-        }
-    };
-});
-
 angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window) {
 
     cookieObject = {};
@@ -1441,25 +1396,19 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     requiredSteps = 2;
     landingStep = 3;
     maxSteps = 9;
-    currentStep = 0;
-    completedSteps = 0;
-    guideVisible = false;
-    guideDataAvailable = false;
-    optionalStepComplete = false;
 
     $scope.checkGuide = function() {
         cookieObject = angular.fromJson(readCookie(cookieKey));
         if (cookieObject) {
-            $scope.$parent.completedSteps = cookieObject.completedSteps;
-            $scope.$parent.guideMode = cookieObject.guideMode;
-            $scope.$parent.currentStep = cookieObject.currentStep;
-            $scope.$parent.guideDataAvailable = true;
-            $scope.$parent.guideVisible = cookieObject.guideVisible;
-            $scope.$parent.optionalStepComplete=cookieObject.optionalStepComplete;
-            $scope.$parent.maxSteps = maxSteps;
+            $scope.completedSteps = cookieObject.completedSteps;
+            $scope.guideMode = cookieObject.guideMode;
+            $scope.currentStep = cookieObject.currentStep;
+            $scope.guideDataAvailable = true;
+            $scope.guideVisible = cookieObject.guideVisible;
+            $scope.maxSteps = maxSteps;
 
         }
-        $scope.$parent.isMenuPinned = readCookie("isMenuPinned");
+        $scope.isMenuPinned = readCookie("isMenuPinned");
     }
 
     $scope.toggleGuide = function(nonav) {
@@ -1471,19 +1420,19 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             }
         }
 
-        if ($scope.$parent.guideVisible) {
+        if ($scope.guideVisible) {
 		    $scope.closeGuide();
         }
         else {
             if (window.location.pathname != '/security/logout') {
-                $scope.$parent.guideVisible = true;
-                $scope.$parent.guideMode='full';
-                if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
+                $scope.guideVisible = true;
+                $scope.guideMode='full';
+                if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
                     if ($window.location.pathname == '/setup/license') {
-                        if ($scope.$parent.currentStep == 1) {return;};
+                        if ($scope.currentStep == 1) {return;};
                     }
                     if ($window.location.pathname == '/setup/index') {
-                        if ($scope.$parent.currentStep == 2) {return;};
+                        if ($scope.currentStep == 2) {return;};
                     }
                 }
                 $scope.initializeSteps();
@@ -1492,419 +1441,178 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     $scope.closeGuide = function() {
-        $scope.$parent.guideVisible = false;
-        $scope.$parent.guideDataAvailable = false;
+        $scope.guideVisible = false;
+        $scope.guideDataAvailable = false;
         saveGuideCookies();
     }
 
     $scope.initializeSteps = function() {
 
-        $scope.$parent.currentStep = 1;
-        $scope.$parent.completedSteps = 0;
-        $scope.$parent.maxSteps = maxSteps;
-        $scope.$parent.guideDataAvailable = false;
-        $scope.$parent.optionalStepComplete = false;
+        $scope.currentStep = 1;
+        $scope.completedSteps = 0;
+        $scope.maxSteps = maxSteps;
+        $scope.guideDataAvailable = false;
 
-        checkStep(1);
+        checkSteps();
 
     }
 
     $scope.completeStep = function(step) {
-
-        finishChecking = function(){
-            $scope.$parent.guideMode='full';
+        function finishChecking(){
+            $scope.guideMode='full';
             saveGuideCookies();
         }
-
 		if (!step) {
-            step = $scope.$parent.currentStep;
+            step = $scope.currentStep;
         }
-
         switch (step) {
             case 1:
                 updateGuideCookies3(1, 2,'full');
                 return;
                 break;
             case 2:
-
                 updateGuideCookies3(2, 3,'full');
                 return;
                 break;
-            case landingStep:
-                goToNextStep(true);
-                finishChecking();
-                break;
-            case 4:
-                if(checkCookie(dataCookieKey)){
-                    providerid = "";
-                    ssid= "";
-                    guide_data=angular.fromJson(readCookie(dataCookieKey));
-
-                    if(guide_data){
-                        arrayCookie = guide_data.storage_systems;
-                        if (arrayCookie) {
-                            jQuery.each(arrayCookie, function() {
-                                if (this.id.indexOf("StorageProvider") > -1){
-                                    if (providerid){providerid += ","}
-                                    providerid += this.id;
-                                } else {
-                                    if (ssid){ssid += ","}
-                                    ssid += this.id;
-                                }
-                            });
-                        }
-                    }
-                    var promises = [];
-                    failedArray= [];
-                    var failedType;
-                    promises.push($http.get(routes.StorageProviders_discoveryCheckJson({'ids':providerid})).then(function (data) {
-                        if (data.data.length != 0) {
-                            if(!failedType){
-                                failedType="PROVIDER";
-                                failedArray=failedArray.concat(data.data);
-                            }
-                        }
-                    }));
-                    promises.push($http.get(routes.StorageSystems_discoveryCheckJson({'ids':ssid})).then(function (data) {
-                        if (data.data.length != 0) {
-                            if(!failedType){
-                                failedType="SYSTEM";
-                                failedArray=failedArray.concat(data.data);
-                            }
-                        }
-                    }));
-                    $q.all(promises).then(function () {
-                        if (failedArray.length > 0) {
-                            if(failedType=="PROVIDER"){
-                                $scope.$parent.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
-                                finishChecking();
-                            } else {
-                                $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
-                                finishChecking();
-                            }
-                        } else {
-                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(",").concat(ssid)})).then(function (data) {
-                                arrayCookie = guide_data.storage_systems;
-                                storage_systems=[];
-                                console.log("DATA"+data.data)
-                                if (data.data.length > 0) {
-                                    guide_data.storage_systems=data.data;
-                                    createCookie(dataCookieKey,angular.toJson(guide_data),'session');
-                                    $scope.$parent.completedSteps = 4;
-                                    goToNextStep(true);
-                                } else {
-                                    $scope.$parent.guideError = "Error: No All Flash storage systems Discovered or Registered";
-                                    finishChecking();
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    finishChecking();
-                }
-                break;
-            case 5:
-                ssid= "";
-                guide_data=angular.fromJson(readCookie(dataCookieKey));
-                if(guide_data){
-                    arrayCookie = guide_data.storage_systems;
-                    if (arrayCookie) {
-                        jQuery.each(arrayCookie, function() {
-                            if (ssid){ssid += ","}
-                            ssid += this.id;
-                        });
-                    }
-                }
-                $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
-                    if (data.data.length > 0) {
-                        $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
-                        finishChecking();
-                    } else {
-                        $scope.$parent.completedSteps = 5;
-                            $scope.$parent.optionalStepComplete = true;
-                        goToNextStep(true);
-                    }
-                });
-                break;
-            case 6:
-                ssid= "";
-                guide_data=angular.fromJson(readCookie(dataCookieKey));
-                if(guide_data){
-                    arrayCookie = guide_data.storage_systems;
-                    if (arrayCookie) {
-                        jQuery.each(arrayCookie, function() {
-                            if (ssid){ssid += ","}
-                            ssid += this.id;
-                        });
-                    }
-                }
-                guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.VirtualArrays_getDisconnectedStorage(ssid)).then(function (data) {
-                    if (data.data.length > 0) {
-                        $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
-                        finishChecking();
-                    } else {
-                        $scope.$parent.completedSteps = 6;
-                        goToNextStep(true);
-                    }
-                });
-                break;
-            case 7:
-                if(checkCookie(dataCookieKey)){
-                    ssid= "";
-                    guide_data=angular.fromJson(readCookie(dataCookieKey));
-                    if(guide_data){
-                        arrayCookie = guide_data.storage_systems;
-                        if (arrayCookie) {
-                            jQuery.each(arrayCookie, function() {
-                                if (ssid){ssid += ","}
-                                ssid += this.id;
-                            });
-                        }
-                    }
-                    $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
-                        failedArray= [];
-                        console.log(data);
-                        if (data.data.length != 0) {
-                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
-                            finishChecking();
-                        } else {
-                            $scope.$parent.completedSteps = 7;
-                            goToNextStep(true);
-                        }
-                    });
-                } else {
-                    finishChecking();
-                }
-                break;
-            case 8:
-                $http.get(routes.Projects_list()).then(function (data) {
-                    if (data.data.aaData.length != 0) {
-                        $scope.$parent.completedSteps = 8;
-                        goToNextStep(true);
-                    } else {
-                        finishChecking();
-                    }
-                });
-                break;
             default:
-                goToNextStep(true);
-                finishChecking();
+                checkStep(step,function(){goToNextStep(true)},function(){finishChecking()});
         }
-
     }
 
     goToNextStep = function(complete) {
         if(complete) {
-            if ( $scope.$parent.currentStep>$scope.$parent.completedSteps){
-                $scope.$parent.completedSteps=$scope.$parent.currentStep;
+            completedSteps=$scope.completedSteps;
+            currentStep=$scope.currentStep;
+            console.log(currentStep);
+            if ( currentStep>completedSteps){
+                completedSteps=currentStep;
             }
-            if ( $scope.$parent.currentStep<maxSteps){
-                $scope.$parent.currentStep=$scope.$parent.currentStep+1;
+            if ( $scope.currentStep<maxSteps){
+                currentStep=currentStep+1;
             }
             else {
-                $scope.$parent.currentStep=landingStep;
+                currentStep=landingStep;
             }
         }
-        $scope.$parent.guideMode='full';
-        saveGuideCookies();
+        console.log(completedSteps,currentStep);
+        updateGuideCookies3(completedSteps,currentStep,'full');
+        //$scope.guideMode='full';
+        //saveGuideCookies();
+        console.log(currentStep);
+        goToPage(currentStep);
     }
 
-    $scope.goToNextSteps = function(complete) {
-       if(complete) {
-
-           if ( $scope.$parent.currentStep>completedSteps){
-                $scope.$parent.completedSteps=$scope.$parent.currentStep;
-           }
-           if ( $scope.$parent.currentStep<maxSteps){
-               $scope.$parent.currentStep=$scope.$parent.currentStep+1;
-           }
-           else {
-               $scope.$parent.currentStep=landingStep;
-           }
-       }
-       $scope.$parent.guideMode='full';
-       saveGuideCookies();
-   }
-
     $scope.runStep = function(error) {
+        console.log(error);
         openMenu();
-        step = $scope.$parent.currentStep;
-
+        step = $scope.currentStep;
+        console.log(step);
         switch (step) {
             case 1:
+                console.log(step);
                 $scope.$parent.currentStep = 1;
                 $scope.$parent.guideMode = 'side';
                 saveGuideCookies();
                 if ($window.location.pathname != '/setup/license') {
-                    $window.location.href = '/setup/license';
+                    goToPage(1);
                 }
                 else {
-                    $scope.$parent.currentStep=1;
-                    $scope.$parent.guideMode='side';
+                    $scope.currentStep=1;
+                    $scope.guideMode='side';
                 }
                 break;
             case 2:
-                $scope.$parent.currentStep = 2;
-                $scope.$parent.guideMode = 'side';
+                $scope.currentStep = 2;
+                $scope.guideMode = 'side';
                 saveGuideCookies();
                 if ($window.location.pathname != '/setup/index') {
-                    $window.location.href = '/setup/index';
+                    goToPage(2);
                 }
                 else {
                     $scope.$parent.currentStep=2;
                     $scope.$parent.guideMode='side';
                 }
                 break;
+            case 9:
+                updateGuideCookies4(9,9,'side',false);
+                goToPage(9);
+                break;
+            default:
+                updateGuideCookies(step,'side');
+                goToPage(step);
+        }
+    }
+
+    goToPage = function(step,error) {
+
+        switch (step) {
+            case 1:
+                if ($scope.completedSteps>1) {
+                     $window.location.href = '/system/licensing';
+                } else {
+                    $window.location.href = '/setup/license';
+                }
+                break;
+            case 2:
+                if ($scope.completedSteps>2) {
+                     $window.location.href = '/config';
+                } else {
+                $window.location.href = '/setup/index';
+                }
+                break;
             case landingStep:
                 break;
             case 4:
-                updateGuideCookies(4,'side');
                 if (!error) {
-                    if ($window.location.pathname != '/storagesystems/createAllFlash') {
-                        $window.location.href = '/storagesystems/createAllFlash';
-                    }
-                    else {
-                        $scope.$parent.currentStep=4;
-                        $scope.$parent.guideMode='side';
-                    }
+                    $window.location.href = '/storagesystems/createAllFlash';
                 } else {
-
                     if (error.indexOf("Provider") == -1){
-                        if ($window.location.pathname != '/storagesystems/list') {
-                            $window.location.href = '/storagesystems/list';
-                        }
-                        else {
-                            $scope.$parent.currentStep=4;
-                            $scope.$parent.guideMode='side';
-                        }
+                        $window.location.href = '/storagesystems/list';
                     } else {
-                        if ($window.location.pathname != '/storageproviders/list') {
-                            $window.location.href = '/storageproviders/list';
-                        }
-                        else {
-                            $scope.$parent.currentStep=4;
-                            $scope.$parent.guideMode='side';
-                        }
+                        $window.location.href = '/storageproviders/list';
                     }
                 }
                 break;
             case 5:
-                updateGuideCookies(5,'side');
-                if ($window.location.pathname != '/sanswitches/list') {
-                    $window.location.href = '/sanswitches/list';
-                }
-                else {
-                    $scope.$parent.currentStep=5;
-                    $scope.$parent.guideMode='side';
-                }
+                $window.location.href = '/sanswitches/list';
                 break;
             case 6:
-                updateGuideCookies(6,'side');
-                if ($window.location.pathname != '/virtualarrays/defaultvarray') {
-                    $window.location.href = '/virtualarrays/defaultvarray';
-                }
-                else {
-                    $scope.$parent.currentStep=6;
-                    $scope.$parent.guideMode='side';
-                }
+                $window.location.href = '/virtualarrays/defaultvarray';
                 break;
             case 7:
-                updateGuideCookies(7,'side');
-                if ($window.location.pathname != '/blockvirtualpools/createAllFlash') {
-                    $window.location.href = '/blockvirtualpools/createAllFlash';
-                }
-                else {
-                    $scope.$parent.currentStep=7;
-                    $scope.$parent.guideMode='side';
-                }
+                $window.location.href = '/blockvirtualpools/createAllFlash';
                 break;
             case 8:
-                updateGuideCookies(8,'side');
-                if ($window.location.pathname != '/projects/list') {
-                    $window.location.href = '/projects/list';
-                }
-                else {
-                    $scope.$parent.currentStep=8;
-                    $scope.$parent.guideMode='side';
-                }
+                $window.location.href = '/projects/list';
                 break;
             case 9:
-                updateGuideCookies4(9,9,'side',false);
                 $window.location.href = '/Catalog#ServiceCatalog/AllFlashservices';
                 break;
             default:
-                updateGuideCookies(step,'side');
-                $scope.$parent.currentStep=step;
-                $scope.$parent.guideMode='side';
+                console.log("Incorrect step, no page to go to");
             }
     }
 
     $scope.showStep = function(step) {
 
             if (!step) {
-                step = $scope.$parent.currentStep;
+                step = $scope.currentStep;
             }
+            updateGuideCookies(step,'full');
+            goToPage(step);
 
-            $scope.$parent.currentStep = step;
-            saveGuideCookies();
-
-        }
-
-    $scope.nextStep = function(step) {
-
-        if (!step) {
-            step = $scope.$parent.currentStep;
-        }
-
-        switch (step) {
-            case requiredSteps:
-                $scope.$parent.currentStep = 4;
-                saveGuideCookies();
-                break;
-            case maxSteps:
-                $scope.$parent.currentStep = landingStep;
-                saveGuideCookies();
-                break;
-            default:
-                $scope.$parent.currentStep = step+1;
-                saveGuideCookies();
-                break;
-            }
-    }
-
-        $scope.previousStep = function(step) {
-            if (!step) {
-                step = $scope.$parent.currentStep;
-            }
-
-            switch (step) {
-                case requiredSteps+2:
-                    $scope.$parent.currentStep = requiredSteps;
-                    saveGuideCookies();
-                    break;
-                case 1:
-                    $scope.$parent.currentStep = 3;
-                    saveGuideCookies();
-                    break;
-                default:
-                    $scope.$parent.currentStep = step-1;
-                    saveGuideCookies();
-                    break;
-                }
         }
 
     $scope.toggleMode = function(mode) {
-        $scope.$parent.guideMode = mode;
+        $scope.guideMode = mode;
     }
 
     updateGuideCookies = function(currentStep,guideMode) {
         cookieObject = {};
         cookieObject.currentStep=currentStep;
-        cookieObject.completedSteps=$scope.$parent.completedSteps;
+        cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=guideMode;
-        cookieObject.guideVisible=$scope.$parent.guideVisible;
-        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        cookieObject.guideVisible=$scope.guideVisible;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1913,8 +1621,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.currentStep=currentStep;
         cookieObject.completedSteps=completedSteps;
         cookieObject.guideMode=guideMode;
-        cookieObject.guideVisible=$scope.$parent.guideVisible;
-        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        cookieObject.guideVisible=$scope.guideVisible;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1924,15 +1631,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=completedSteps;
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=guideVisible;
-        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
     $scope.startAddMoreStorage = function () {
         removeGuideCookies();
-        $scope.$parent.currentStep = 4;
-        $scope.$parent.completedSteps = 3;
-        $scope.$parent.maxSteps = maxSteps;
+        $scope.currentStep = 4;
+        $scope.completedSteps = 3;
+        $scope.maxSteps = maxSteps;
         saveGuideCookies();
     }
 
@@ -1943,23 +1649,35 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     saveGuideCookies = function() {
         cookieObject = {};
-        cookieObject.currentStep=$scope.$parent.currentStep;
-        cookieObject.completedSteps=$scope.$parent.completedSteps;
-        cookieObject.guideMode=$scope.$parent.guideMode;
-        cookieObject.guideVisible=$scope.$parent.guideVisible;
-        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        cookieObject.currentStep=$scope.currentStep;
+        cookieObject.completedSteps=$scope.completedSteps;
+        cookieObject.guideMode=$scope.guideMode;
+        cookieObject.guideVisible=$scope.guideVisible;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
-    $scope.checkStep = function() {
-        checkStep($scope.$parent.currentStep);
+    checkSteps = function(){
+
+        function finishChecking(){
+            $scope.guideDataAvailable = true;
+            saveGuideCookies();
+        }
+
+        (function generateSteps(step){
+            console.log("--"+step);
+            checkStep(step,function(){
+                console.log("----"+step);
+                if(step<10){
+                    generateSteps(step+1);
+                }
+            },function(){finishChecking()});
+        })(1);
     }
 
-    checkStep = function(step) {
+    checkStep = function(step,callback,callback2) {
 
         finishChecking = function(){
-            $scope.$parent.guideDataAvailable = true;
-            saveGuideCookies();
+            callback2();
         }
 
         switch (step) {
@@ -1967,9 +1685,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $http.get(routes.Setup_license()).then(function (data) {
                     isLicensed = data.data;
                     if (isLicensed == 'true') {
-                        $scope.$parent.completedSteps = 1;
-                        $scope.$parent.currentStep = 2;
-                        return checkStep(2);
+                        $scope.completedSteps = 1;
+                        $scope.currentStep = 2;
+                        callback();
                     }  else {
                         finishChecking();
                     }
@@ -1979,15 +1697,16 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $http.get(routes.Setup_initialSetup()).then(function (data) {
                     isSetup = data.data;
                     if (isSetup == 'true') {
-                        $scope.$parent.completedSteps = 2;
-                        $scope.$parent.currentStep = 3;
-                        return checkStep(4);
+                        $scope.completedSteps = 2;
+                        $scope.currentStep = 3;
+                        callback();
                     } else {
                         finishChecking();
                     }
                 });
                 break;
             case landingStep:
+                callback();
                 return true;
                 break;
             case 4:
@@ -2034,10 +1753,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
                             if(failedType=="PROVIDER"){
-                                $scope.$parent.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
                                 finishChecking();
                             } else {
-                                $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
                                 finishChecking();
                             }
                         } else {
@@ -2048,10 +1767,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                 if (data.data.length > 0) {
                                     guide_data.storage_systems=data.data;
                                     createCookie(dataCookieKey,angular.toJson(guide_data),'session');
-                                    $scope.$parent.completedSteps = 4;
-                                    return checkStep(5);
+                                    $scope.completedSteps = 4;
+                                    callback();
                                 } else {
-                                    $scope.$parent.guideError = "Error: No All Flash storage systems Discovered or Registered";
+                                    $scope.guideError = "Error: No All Flash storage systems Discovered or Registered";
                                     finishChecking();
                                 }
                             });
@@ -2075,12 +1794,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
+                        $scope.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
                         finishChecking();
                     } else {
-                        $scope.$parent.completedSteps = 5;
-                        $scope.$parent.optionalStepComplete = true;
-                        return checkStep(6);
+                        $scope.completedSteps = 5;
+                        callback();
                     }
                 });
                 break;
@@ -2097,13 +1815,13 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                 }
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.VirtualArrays_getDisconnectedStorage(ssid)).then(function (data) {
+                $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
+                        $scope.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
                         finishChecking();
                     } else {
-                        $scope.$parent.completedSteps = 6;
-                        checkStep(7);
+                        $scope.completedSteps = 6;
+                        callback();
                     }
                 });
                 break;
@@ -2122,11 +1840,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
+                            $scope.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
                             finishChecking();
                         } else {
-                            $scope.$parent.completedSteps = 7;
-                            return checkStep(8);
+                            $scope.completedSteps = 7;
+                            callback();
                         }
                     });
                 } else {
@@ -2136,20 +1854,21 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             case 8:
                 $http.get(routes.Projects_list()).then(function (data) {
                     if (data.data.aaData.length != 0) {
-                        $scope.$parent.completedSteps = 8;
-                        return checkStep(9);
+                        $scope.completedSteps = 8;
+                        callback();
                     } else {
                         finishChecking();
                     }
                 });
                 break;
             case maxSteps:
-                $scope.$parent.completedSteps = maxSteps;
+                $scope.completedSteps = maxSteps;
                 finishChecking();
                 break;
         }
 
     }
+
     $scope.getSummary = function() {
 
         $scope.guide_storageArray = "Not Complete";

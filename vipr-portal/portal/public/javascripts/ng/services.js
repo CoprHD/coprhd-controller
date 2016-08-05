@@ -27,6 +27,7 @@ angular.module("services", []).directive({
             controller: function($scope, $attrs) {
                 var fieldDescriptor = $scope.assetFieldDescriptors[$scope.item.name] || {},
                     item = $scope.item;
+                //debugger
 
                 item.fullName = $attrs.name ? $interpolate($attrs.name)($scope) : item.name;
                 if ($attrs.name) {
@@ -77,7 +78,7 @@ angular.module("services", []).directive({
                             	item.value = data[0].value
                             } else {
                                 item.options = data;
-                            }
+                            } 
                             if (item.select != 'many') {
                             	addBlankOptionIfRequired(item);
                             }

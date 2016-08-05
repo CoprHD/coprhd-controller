@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.EventUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.collect.Lists;
@@ -94,17 +95,20 @@ public class ComputeSystemHelper {
         for (IpInterface hostInterface : hostInterfaces) {
             hostInterface.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             dbClient.markForDeletion(hostInterface);
+            EventUtil.deleteResourceEvents(dbClient, hostInterface.getId());
         }
         List<Initiator> initiators = queryInitiators(dbClient, host.getId());
         for (Initiator initiator : initiators) {
             initiator.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             dbClient.markForDeletion(initiator);
+            EventUtil.deleteResourceEvents(dbClient, initiator.getId());
         }
         host.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
         host.setProvisioningStatus(Host.ProvisioningJobStatus.COMPLETE.toString());
         dbClient.persistObject(host);
         _log.info("marking host for deletion: {} {}", host.getLabel(), host.getId());
         dbClient.markForDeletion(host);
+        EventUtil.deleteResourceEvents(dbClient, host.getId());
     }
 
     /**
@@ -169,11 +173,13 @@ public class ComputeSystemHelper {
                 }
                 else {
                     dbClient.markForDeletion(cluster);
+                    EventUtil.deleteResourceEvents(dbClient, cluster.getId());
                 }
             }
         }
         _log.info("marking DC for deletion: {} {}", dataCenter.getLabel(), dataCenter.getId());
         dbClient.markForDeletion(dataCenter);
+        EventUtil.deleteResourceEvents(dbClient, dataCenter.getId());
     }
 
     /**
@@ -209,6 +215,7 @@ public class ComputeSystemHelper {
         }
         _log.info("marking cluster for deletion: {} {}", cluster.getLabel(), cluster.getId());
         dbClient.markForDeletion(cluster);
+        EventUtil.deleteResourceEvents(dbClient, cluster.getId());
     }
 
     /**

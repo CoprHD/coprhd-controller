@@ -103,7 +103,8 @@ public class EventService extends TaggedResource {
         _dbClient.markForDeletion(event);
         _log.info(
                 "Deleting Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
-                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource());
+                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
+                        + event.getEventCode());
         return Response.ok().build();
     }
 
@@ -120,7 +121,8 @@ public class EventService extends TaggedResource {
 
         _log.info(
                 "Approving Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
-                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource());
+                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
+                        + event.getEventCode());
 
         return executeEventMethod(event, true);
     }
@@ -358,7 +360,8 @@ public class EventService extends TaggedResource {
 
         _log.info(
                 "Declining Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
-                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource());
+                        + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
+                        + event.getEventCode());
 
         return executeEventMethod(event, false);
     }
@@ -478,6 +481,7 @@ public class EventService extends TaggedResource {
         to.setEventStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
+        to.setEventCode(from.getEventCode());
         DbObjectMapper.mapDataObjectFields(from, to);
         return to;
     }

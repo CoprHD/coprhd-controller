@@ -153,6 +153,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         if (StorageVolume.class.getSimpleName().equals(type.getSimpleName())) {
             StorageVolume obj = new StorageVolume();
             obj.setAllocatedCapacity(200L);
+            _log.info("getStorageObject: storage volume allocated capacity: {}", obj.getAllocatedCapacity());
             return (T) obj;
         } else if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())) {
             VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
@@ -161,10 +162,16 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             cg.setDeviceLabel(objectId);
             _log.info("Return volume cg {} from array {}", objectId, storageSystemId);
             return (T) cg;
+        } else if (StoragePool.class.getSimpleName().equals(type.getSimpleName())) {
+            StoragePool pool = new StoragePool();
+            pool.setFreeCapacity(40000000L); // 40 GB
+            pool.setSubscribedCapacity(10000000L);  // 10 GB
+            _log.info("getStorageObject: storage pool free capacity: {}, subscribed capacity: {}",
+                    pool.getFreeCapacity(), pool.getSubscribedCapacity());
+            return (T) pool;
         } else {
-            StorageVolume obj = new StorageVolume();
-            obj.setAllocatedCapacity(200L);
-            return (T) obj;
+            _log.error("getStorageObject: not supported for type: {}", type.getSimpleName());
+            return null;
         }
     }
     // DiscoveryDriver implementation

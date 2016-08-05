@@ -340,6 +340,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
 		if (storagePort == null
 				|| storagePort.getInactive()
 				|| storagePort.getTaggedVirtualArrays() == null
+				|| NullColumnValueGetter.isNullURI(storagePort.getNetwork())
 				|| !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
 						storagePort.getRegistrationStatus())
 				|| (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
@@ -357,10 +358,6 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
 				isUsable = false;
 			}
 		}
-		if(NullColumnValueGetter.isNullURI(storagePort.getNetwork())) {
-			isUsable = false;
-		}
-
 		return isUsable;
     }
 }

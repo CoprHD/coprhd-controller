@@ -2824,4 +2824,18 @@
         controlNodeOnly : false,
         value : "300",
     },
+	{
+        key : "file_mount_operations",
+        label : "Timeout in seconds",
+        description : "Timeout for Filesystem mount locking",
+        type : "uint32",
+        userConfigurable : true,
+        userMutable : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : false,
+        value : "300",
+    },
 ]

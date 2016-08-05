@@ -685,15 +685,19 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 if (id != null && !id.isEmpty()) {
                     apiClient.deleteConsistencyGroup(id, false, false);
                     URI systemURI = storage.getId();
-                    consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                    if (consistencyGroup != null) {
+                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                    }
                 }
             }
-            if (markInactive) {
+            if (markInactive && consistencyGroup != null) {
                 consistencyGroup.setInactive(true);
                 logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             }
             
-            dbClient.updateObject(consistencyGroup);
+            if (consistencyGroup != null) {
+                dbClient.updateObject(consistencyGroup);
+            }
 
             taskCompleter.ready(dbClient);
         } catch (Exception e) {

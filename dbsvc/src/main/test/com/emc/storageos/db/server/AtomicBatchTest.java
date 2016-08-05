@@ -150,4 +150,82 @@ public class AtomicBatchTest extends DbsvcTestBase{
             assertFalse(result.iterator().hasNext());
         }
     }
+    
+    @Test
+    public void deleteRecordsWithError() {
+        for (int i = 0; i < objectIds.length; i++) {
+            rowMutator.insertRecordColumn("Volume", objectIds[i], new CompositeColumnName("One", "Two", "Three"), "test");
+        }
+        
+        rowMutator.execute();
+        
+        rowMutator = new RowMutator(this.getDbClientContext(), false);
+        rowMutator.deleteRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+            //exception is expected
+        }
+        
+        for (int i = 0; i < objectIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
+            assertEquals(result.one().getString("key"), objectIds[i]);
+        }
+    }
+    
+    @Test
+    public void deleteIndexesWithError() {
+        for (int i = 0; i < indexIds.length; i++) {
+            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        }
+        
+        rowMutator.execute();
+        
+        rowMutator = new RowMutator(this.getDbClientContext(), false);
+        rowMutator.deleteIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null));
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+            //exception is expected
+        }
+        
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            assertEquals(result.one().getString("key"), indexIds[i]);
+        }
+    }
+    
+    @Test
+    public void deleteRecordsAndIndexesWithError() throws Exception {
+        for (int i = 0; i < objectIds.length; i++) {
+            rowMutator.insertRecordColumn("Volume", objectIds[i], new CompositeColumnName("One", "Two", "Three"), "test");
+        }
+        
+        for (int i = 0; i < indexIds.length; i++) {
+            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        }
+                
+        rowMutator.execute();
+        
+        rowMutator = new RowMutator(this.getDbClientContext(), false);
+        rowMutator.deleteIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null));
+        rowMutator.deleteRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        
+        for (int i = 0; i < objectIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
+            assertEquals(result.one().getString("key"), objectIds[i]);
+        }
+        
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            assertEquals(result.one().getString("key"), indexIds[i]);
+        }
+    }
 }

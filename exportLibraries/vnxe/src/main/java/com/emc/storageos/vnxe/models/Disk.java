@@ -25,8 +25,11 @@ public class Disk {
         SAS(1),
         NL_SAS(2),
         SAS_FLASH(5),
-        SAS_FLASH_VP(6);
-
+        SAS_FLASH_VP(6),
+        SAS_FLASH_3(7),
+        MIXED(50),
+        VIRTUAL(99);
+        
         private static final Map<Integer, DiskTechnologyEnum> diskTechnologyMap = new HashMap<Integer, DiskTechnologyEnum>();
         static {
             for (DiskTechnologyEnum type : DiskTechnologyEnum.values()) {

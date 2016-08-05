@@ -645,7 +645,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 List<Disk> disks = client.getDisksForPool(vnxePool.getId());
                 if (disks != null) {
                     for (Disk disk : disks) {
-                        diskTypes.add(disk.getDiskTechnologyEnum().name());
+                        if (disk.getDiskTechnologyEnum() != null) {
+                            diskTypes.add(disk.getDiskTechnologyEnum().name());
+                        } 
                     }
                 }
                 pool.setSupportedDriveTypes(diskTypes);

@@ -7483,7 +7483,8 @@ export_host()
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2+2" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --addHosts "$hostname2" --remHosts "$hostname1"
+    # FIXME Not supported for VMAX3.  See COP-22496 for details.
+    #run export_group update $exp --addHosts "$hostname2" --remHosts "$hostname1"
     run export_group show $exp
     run export_group update $exp --remInits "$hostname2/$pwwn21,$hostname2/$pwwn23"
     run export_group show $exp

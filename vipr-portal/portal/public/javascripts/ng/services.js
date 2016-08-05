@@ -67,10 +67,12 @@ angular.module("services", []).directive({
                         	$scope[dependencyName].disableCount += 1;
                         });
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
+                        	debugger
                         	if (fieldDescriptor.dynamicHelp != null) {
                         		$http.get("/api/options/" + fieldDescriptor.dynamicHelp, {params: params}).success(function(helperData) {
+//                        			alert(helperData[0].value);
                         			item.description = helperData[0].value;
-                        			angular.element("#"+item.name + "HelpText").scope().field.helpText = item.description;
+                        			$("myhelpText").text = "testing";
                         		});
                         	}
                             item.disabled = false;

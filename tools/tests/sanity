@@ -5082,7 +5082,7 @@ recoverpoint_setup()
     STORAGE_ARRAY_3_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
     STORAGE_ARRAY_4_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_D_GUID
 
-    # Var to determine whether or not to need to use auto-matching
+    # Var to determine whether or not to use auto-matching
     # storgae pools on the vpools or to use manual selection
     # for storage pools.
     POOLS_AUTO_MATCH=true
@@ -5115,8 +5115,10 @@ recoverpoint_setup()
         recoverpoint_common_setup
     fi
 
-    # Setup RP vpools
-    rp_vpool_setup
+    if [ "$RP_RUN_SETUP" = "1" ]; then
+        # Setup RP vpools
+        rp_vpool_setup
+    fi
 }
 
 recoverpoint_cleanup_volumes()

@@ -144,7 +144,10 @@ public class ServiceField extends ServiceItem {
     }
     
     public String getDynamicHelpType(String input) {
-        return StringUtils.substringAfter(input, ASSET_TYPE_PREFIX);
+        if (input != null && !input.isEmpty()) {
+            return StringUtils.substringAfter(input, ASSET_TYPE_PREFIX);
+        }
+        return null;
     }
 
     @Override

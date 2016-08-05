@@ -189,9 +189,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final String NONE_TYPE = "None";
     private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
 
-    private static final String JOURNAL_MAX_SIZE_LOW = "1.09TB";
-    private static final String JOURNAL_MAX_SIZE_HIGH = "10TB";
-
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -2090,38 +2087,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("rpConsistencyGroupByProject")
     public List<AssetOption> getBlockJournalSize(AssetOptionsContext ctx, URI consistencyGroup) {
 
-        String minimumSize = getJournalMinimumSize(ctx, consistencyGroup);
-
-        if (minimumSize == null) {
-            return Lists.newArrayList();
-        } else {
-            return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
-        }
-    }
-    
-    @Asset("blockJournalSizeHelp")
-    @AssetDependencies("rpConsistencyGroupByProject")
-    public List<AssetOption> getBlockJournalSizeHelp(AssetOptionsContext ctx, URI consistencyGroup) {
-        String minimumSize = getJournalMinimumSize(ctx, consistencyGroup);
-
-        if (minimumSize == null) {
-            return Lists.newArrayList();
-        } else {
-            float size = Float.parseFloat(minimumSize) * 3;
-            Long longSizeInBytes = SizeUtil.translateSizeToBytes(Float.valueOf(size).longValue(), SizeUtil.SIZE_GB);
-            if (longSizeInBytes < SizeUtil.translateSize(JOURNAL_MAX_SIZE_LOW)) {
-                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.minDescription")));
-            } else if (longSizeInBytes > SizeUtil.translateSize(JOURNAL_MAX_SIZE_LOW) && longSizeInBytes < SizeUtil.translateSize(JOURNAL_MAX_SIZE_HIGH)) {
-                DecimalFormat df = new DecimalFormat("#.##");
-                return Lists.newArrayList(newAssetOption(minimumSize, 
-                        getMessage("block.addJournalCapacity.specificDescription", df.format(SizeUtil.translateSize(longSizeInBytes, SizeUtil.SIZE_TB)))));
-            } else {
-                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.maxDescription")));
-            }
-        }
-    }
-
-    private String getJournalMinimumSize(AssetOptionsContext ctx, URI consistencyGroup) {
         String minimumSize = null;
 
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
@@ -2143,7 +2108,53 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
-        return minimumSize;
+        if (minimumSize == null) {
+            return Lists.newArrayList();
+        } else {
+            return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
+        }
+    }
+    
+    @Asset("blockJournalSizeHelp")
+    @AssetDependencies("rpConsistencyGroupByProject")
+    public List<AssetOption> getBlockJournalSizeHelp(AssetOptionsContext ctx, URI consistencyGroup) {
+        
+        String minimumSize = null;
+
+        BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
+        for (RelatedResourceRep vol : cg.getVolumes()) {
+            VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
+                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
+                RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+                ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+                for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+                    VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
+                    if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                        String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+                        if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
+                            minimumSize = capacity;
+                        }
+                    }
+                }
+            }
+        }
+
+        float size = Float.parseFloat(minimumSize) * 3;
+        if (minimumSize == null) {
+            return Lists.newArrayList();
+        } else {
+            Long longSizeInBytes = SizeUtil.translateSizeToBytes(Float.valueOf(size).longValue(), "GB");
+            if (longSizeInBytes < SizeUtil.translateSize("1.09TB")) {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.minDescription")));
+            } else if (longSizeInBytes > SizeUtil.translateSize("1.09TB") && longSizeInBytes < SizeUtil.translateSize("10TB")) {
+                DecimalFormat df = new DecimalFormat("#.##");
+                return Lists.newArrayList(newAssetOption(minimumSize, 
+                        getMessage("block.addJournalCapacity.specificDescription", df.format(SizeUtil.translateSize(longSizeInBytes, "TB")))));
+            } else {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.maxDescription")));
+            }
+        }
     }
 
     @Asset("volumeWithoutConsistencyGroup")

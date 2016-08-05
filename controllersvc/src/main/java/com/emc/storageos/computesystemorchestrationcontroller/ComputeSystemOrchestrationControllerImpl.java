@@ -17,12 +17,12 @@ public class ComputeSystemOrchestrationControllerImpl implements ComputeSystemOr
     public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String opId)
             throws ControllerException {
 
-        execOrchestration("mountDevice", opId);
+        execOrchestration("mountDevice", hostId, resId, subDirectory, security, mountPath, fsType, opId);
     }
 
     @Override
     public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException {
-        execOrchestration("unmountDevice", opId);
+        execOrchestration("unmountDevice", hostId, resId, mountPath, opId);
     }
 
     public ComputeSystemOrchestrationController getController() {

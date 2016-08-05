@@ -1074,6 +1074,7 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+                <ref bean="computeSystemOrchestrationDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">

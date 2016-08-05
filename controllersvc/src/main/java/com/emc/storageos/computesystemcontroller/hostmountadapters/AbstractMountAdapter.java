@@ -177,21 +177,6 @@ public abstract class AbstractMountAdapter implements HostMountAdapter {
         return rootCause;
     }
 
-    /**
-     * Looks up controller dependency for given hardware
-     * 
-     * @param clazz
-     *            controller interface
-     * @param hw
-     *            hardware name
-     * @param <T>
-     * @return
-     */
-    protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return coordinator.locateService(
-                clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
-    }
-
     @Override
     public void doMount(HostDeviceInputOutput args) throws ControllerException {
         // TODO Auto-generated method stub
@@ -258,6 +243,7 @@ public abstract class AbstractMountAdapter implements HostMountAdapter {
 
     }
 
+    @Override
     public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId) {
         // TODO Auto-generated method stub
 

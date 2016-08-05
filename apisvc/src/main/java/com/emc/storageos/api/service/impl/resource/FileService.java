@@ -252,14 +252,14 @@ public class FileService extends TaskResourceService {
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
-                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
-                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
-                                                                        "update-rpo",
-                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                "update-rpo",
+                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -2047,18 +2047,6 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        List<MountInfo> unmountList = getMountedExports(id, subDir, param);
-        if (unmount && !unmountList.isEmpty()) {
-            throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
-        }
-
-        if (unmount) {
-            for (MountInfo mount : unmountList) {
-                FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
-                unmount(id, queryResource(id), unmountParam);
-            }
-        }
-
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
@@ -2085,6 +2073,20 @@ public class FileService extends TaskResourceService {
             // Validate the input
             ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
             exportVerificationUtility.verifyExports(fs, null, param);
+
+            // Verify whether any mounts present on the export or not
+            // If mount present on the host, unmount if user wanted to do so!!!
+            List<MountInfo> unmountList = getMountedExports(id, subDir, param);
+            if (unmount && !unmountList.isEmpty()) {
+                throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
+            }
+
+            if (unmount) {
+                for (MountInfo mount : unmountList) {
+                    FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
+                    unmount(id, queryResource(id), unmountParam);
+                }
+            }
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
             FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
@@ -3783,7 +3785,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3838,7 +3840,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3872,7 +3874,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4182,9 +4184,15 @@ public class FileService extends TaskResourceService {
         if (allDirs) {
             return true;
         }
-        if (!(allDirs || mountList.isEmpty())) {
+        if (subDir != null) {
             for (MountInfo mount : mountList) {
-                if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null) || mount.getSubDirectory() == subDir) {
+                if (subDir.equalsIgnoreCase(mount.getSubDirectory())) {
+                    return true;
+                }
+            }
+        } else {
+            for (MountInfo mount : mountList) {
+                if ("!nodir".equalsIgnoreCase(mount.getSubDirectory())) {
                     return true;
                 }
             }

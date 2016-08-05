@@ -37,11 +37,17 @@ public class MountCompleter extends ComputeSystemCompleter {
                     WorkflowStepCompleter.stepFailed(getOpId(), coded);
                 }
                 break;
-            default:
-                dbClient.ready(FileShare.class, this.getId(), getOpId());
+            case ready:
+                dbClient.ready(FileShare.class, getId(), getOpId());
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSucceded(getOpId());
                 }
+                break;
+            default:
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepExecuting(getOpId());
+                }
+                break;
         }
     }
 

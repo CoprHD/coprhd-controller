@@ -390,7 +390,8 @@ COS_VMAXBLOCK_SRDF_SOURCE=vpool_srdf_source
 COS_VMAXBLOCK_SRDF_TARGET=vpool_srdf_target
 COS_VMAXBLOCK_V3_SRDF_SOURCE=vpool_v3_srdf_source
 COS_VMAXBLOCK_V3_SRDF_TARGET=vpool_v3_srdf_target
-COS_VMAXBLOCK_V3_AFA=cosvmaxb_v3_afa
+COS_VMAXBLOCK_V3_COMP_ENABLED=cosvmaxb_v3_comp_enabled
+COS_VMAXBLOCK_V3_COMP_NOTENABLED=cosvmaxb_v3_comp_disabled
 COS_RP=cos_rp
 COS_RP_BASE=cos_rp_base
 COS_HDS=coshds
@@ -2098,15 +2099,35 @@ vmax_cos_setup()
                              --provisionType 'Thick' \
 			 --neighborhoods $NH
 
-    run cos create block $COS_VMAXBLOCK_V3_AFA 				\
-	--description 'VMAX-AFA-Compression-enabled' true      \
-                             --protocols FC iSCSI	    \
+
+
+    if [ $VMAX3_COMPRESSION -eq 1 ]; then
+
+	#Create virtual pools on VMAX all flash array with compression enabled and disabled.
+	AUTO_TIER_POLICY_NAME="SYMMETRIX+000197000143+SLO_POLICY+Diamond SLO (0.8ms)"
+
+    	run cos create block $COS_VMAXBLOCK_V3_COMP_ENABLED 				\
+		--description 'VMAX-AFA-Compression-enabled' true      \
+                             --protocols FC     \
                              --numpaths 1  \
                              --max_snapshots 10 \
 	                     --system_type vmax \
-                             --provisionType 'Thick' \
+                             --provisionType 'Thin' \
+			     --auto_tiering_policy_name "${AUTO_TIER_POLICY_NAME}" \
 			     --compressionEnabled true \
 			 --neighborhoods $NH
+
+    	run cos create block $COS_VMAXBLOCK_V3_COMP_NOTENABLED 				\
+		--description 'VMAX-AFA-Compression-NOT-enabled' true      \
+                             --protocols FC     \
+                             --numpaths 1  \
+                             --max_snapshots 10 \
+	                     --system_type vmax \
+			     --auto_tiering_policy_name "${AUTO_TIER_POLICY_NAME}" \
+                             --provisionType 'Thin' \
+			     --compressionEnabled false \
+			 --neighborhoods $NH
+   fi 
 }
 
 mirrorblock_cos_setup()
@@ -5969,10 +5990,12 @@ vmaxblock_setup_once()
     # do this only once
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
-    # If this is using the simulator, the vnxblock already took care of the SMIS provider
+    # If this is using the simulator, the vnxblock already took care of the SMIS provider 
     if [ $QUICK -eq 0 ]; then
        run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
-       run smisprovider create $VMAX_SMIS_V3_AFA_DEV $VMAX_SMIS_V3_AFA_IP $VMAX_SMIS_V3_AFA_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL 
+       if [ $VMAX3_COMPRESSION -eq 1 ]; then
+       	  run smisprovider create $VMAX_SMIS_V3_AFA_DEV $VMAX_SMIS_V3_AFA_IP $VMAX_SMIS_V3_AFA_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL 
+       fi
     fi
 
     run storagedevice discover_all --ignore_error
@@ -5983,10 +6006,10 @@ vmaxblock_setup_once()
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storagepool update $VMAX_AFA_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX_AFA_NATIVEGUID --nhadd $NH --type block --volume_type THIN_ONLY
     
     if [ $QUICK -eq 0 ]; then
-        secho "VMAX Block storageports update"
+        echo "VMAX Block storageports update"
         if [ $DISCOVER_SAN -eq 0 ]; then
       
            for porta in ${VMAX_PORTS_A}
@@ -5998,8 +6021,9 @@ vmaxblock_setup_once()
            do
               run storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_B --group ${portb}
            done
-	   for port in ${VMAX_AFA_PORTS}
+	   for port in ${VMAX_PORTS_AFA}
            do
+	      echo "adding port " $port
               run storageport update $VMAX_AFA_NATIVEGUID FC --tzone $FCTZ_A --group ${port}
            done
        fi
@@ -6010,7 +6034,11 @@ vmaxblock_setup_once()
     run cos update block $COS_VMAXBLOCK_FC --storage $VMAX_NATIVEGUID
     run cos update block $COS_VMAXBLOCK_ISCSI --storage $VMAX_NATIVEGUID
     run cos update block $COS_VMAXBLOCK_THIN --storage $VMAX_NATIVEGUID
-    run cos update block $COS_VMAXBLOCK_V3_AFA --storage $VMAX_AFA_NATIVEGUID
+ 
+    if [ $VMAX3_COMPRESSION -eq 1 ]; then
+	    run cos update block $COS_VMAXBLOCK_V3_COMP_ENABLED --storage $VMAX_AFA_NATIVEGUID
+	    run cos update block $COS_VMAXBLOCK_V3_COMP_NOTENABLED --storage $VMAX_AFA_NATIVEGUID
+    fi
 }
 
 vmaxblock_setup()
@@ -7083,6 +7111,15 @@ datadomainfile_tests()
 #
 vmaxblock_tests()
 {
+   #--------------------------------------------------------------
+   # VMAX3 compression tests
+   #
+   if [ $VMAX3_COMPRESSION -eq 1 ]; then
+   echo "Executing VMAX3 Compression tests"
+      vmaxblock_compression_tests
+   fi
+
+
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
     volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THIN   # work only for concatenate, stripe tbd
@@ -7120,6 +7157,35 @@ vmaxblock_tests()
 #    run volume delete $PROJECT/${TkOnTk} --wait &
 #    run volume delete $PROJECT/${TnOnTn} --wait &
 #    wait
+
+}
+
+vmaxblock_compression_tests()
+{
+    block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK_V3_COMP_ENABLED $VMAX_VOLUME $COS_VMAXBLOCK_V3_COMP_NOTENABLED
+
+   comptest_vol="${VMAX_VOLUME}-test-vpool-change-c2noc"
+
+    echo "Creating compressed volume" 
+    run volume create ${comptest_vol} $PROJECT $NH $COS_VMAXBLOCK_V3_COMP_ENABLED 1073741825 --thinVolume true
+
+    echo "Change volumes' virtual pool to uncompressed vpool"
+    run volume change_cos $PROJECT/${comptest_vol} $COS_VMAXBLOCK_V3_COMP_NOTENABLED
+
+    echo "delete volume"
+    run volume delete $PROJECT/${comptest_vol} --wait
+
+    comptest_vol = "${VMAX_VOLUME}-test-vpool-change-noc2c"
+
+    echo "Creating non-compressed volume"
+    run volume create ${comptest_vol} $PROJECT $NH $COS_VMAXBLOCK_V3_COMP_NOTENABLED 1073741825 --thinVolume true
+
+    echo "Change volumes' virtual pool to compressed vpool'
+    run volume change_cos $PROJECT/${comptest_vol} $COS_VMAXBLOCK_V3_COMP_ENABLED
+
+    echo "delete volume"
+    run volume delete $PROJECT/${comptest_vol} --wait
+
 }
 
 #

@@ -16,7 +16,6 @@ import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
 
 import java.net.URI;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,7 +48,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -2144,17 +2142,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (minimumSize == null) {
             return Lists.newArrayList();
         } else {
-            Long longSizeInBytes = SizeUtil.translateSizeToBytes(Float.valueOf(size).longValue(), "GB");
-            if (longSizeInBytes < SizeUtil.translateSize("1.09TB")) {
+            if (size < 1.09 * 1024) {
                 return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.minDescription")));
-            } else if (longSizeInBytes > SizeUtil.translateSize("1.09TB") && longSizeInBytes < SizeUtil.translateSize("10TB")) {
-                DecimalFormat df = new DecimalFormat("#.##");
-                return Lists.newArrayList(newAssetOption(minimumSize, 
-                        getMessage("block.addJournalCapacity.specificDescription", df.format(SizeUtil.translateSize(longSizeInBytes, "TB")))));
+            } else if (size > 1.09 * 1024 && size < 10 * 1024) {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.specificDescription", size)));
             } else {
                 return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.maxDescription")));
             }
+            //return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
         }
+//        List<AssetOption> options = Lists.newArrayList();
+//        
+//        options.add(new AssetOption("HelpTest", "DynamicHelp"));
+//        
+//        return options;
     }
 
     @Asset("volumeWithoutConsistencyGroup")

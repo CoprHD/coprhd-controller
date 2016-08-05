@@ -42,6 +42,8 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private List<RelatedResourceRep> volumeGroups;
     private Boolean supportsSnapshotSessions;
     private String systemType;
+    // Compression ratio of the volume if it is compressed
+    private String compressionRatio;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -643,5 +645,14 @@ public class VolumeRestRep extends BlockObjectRestRep {
     public void setSystemType(String systemType) {
         this.systemType = systemType;
     }
+
+    @XmlElement(name = "compression_ratio")
+	public String getCompressionRatio() {
+		return compressionRatio;
+	}
+
+	public void setCompressionRatio(String compressionRatio) {
+		this.compressionRatio = compressionRatio;
+	}
 
 }

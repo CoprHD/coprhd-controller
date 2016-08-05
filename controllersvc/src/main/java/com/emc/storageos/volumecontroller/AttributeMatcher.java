@@ -64,6 +64,7 @@ public abstract class AttributeMatcher {
         high_availability_rp,
         metropoint,
         auto_tiering_policy_name,
+        compression_enabled, 
         thin_volume_preallocation_size,
         storage_system,
         multi_volume_consistency,

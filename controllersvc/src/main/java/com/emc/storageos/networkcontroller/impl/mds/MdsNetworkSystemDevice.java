@@ -135,6 +135,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     itr.remove();
                 }
             }
+            dialog.populateConnectionByIvrZone(routedEndpoints);
             return connections;
         } catch (Exception ex) {
             _log.error("Cannot read FCNS database from device: " + network.getLabel() + ": " + ex.getLocalizedMessage());
@@ -368,10 +369,12 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
+            boolean doZonesetClone = false;
             for (Zone zone : zones) {
                 try {
                     if (createZone(dialog, zone, vsanId, fabricZones, activeZoneset)) {
                         addedZoneNames.put(zone.getName(), SUCCESS);
+                        doZonesetClone = true;
                     } else {
                         addedZoneNames.put(zone.getName(), NO_CHANGE);
                     }
@@ -380,16 +383,22 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
+            
+            //If there was any changes to the zones, do a clone of the zoneset.
+            if (doZonesetClone) {
+            	zonesetClone(dialog, vsanId, activeZoneset);
+            }
 
             // if there were normal zones created, commit them
             if (hasResult(addedZoneNames, SUCCESS)) {
                 // Now add all the zones to the active zoneset.
-                dialog.zonesetNameVsan(activeZoneset.getName(), vsanId);
+                dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
                 for (String zoneName : addedZoneNames.keySet()) {
                     if (SUCCESS.equals(addedZoneNames.get(zoneName))) {
-                        dialog.zonesetMember(zoneName);
+                        dialog.zonesetMember(zoneName, false);
                     }
                 }
+
                 dialog.exitToConfig();
                 commitZones(dialog, vsanId, activateZones ? activeZoneset : null);
                 dialog.copyRunningConfigToStartupFabric();
@@ -446,7 +455,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         _log.info("Attempting to create zoneset: " + zonesetName + " vsan: " + vsanId);
         try {
             dialog.config();
-            dialog.zonesetNameVsan(zonesetName, vsanId);
+            dialog.zonesetNameVsan(zonesetName, vsanId, false);
             dialog.exitToConfig();
             if (dialog.isInSession()) {
                 dialog.zoneCommit(vsanId);
@@ -583,17 +592,21 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         try {
             dialog.config();
-            for (Zone zone : zonesToBeDeleted) {
+            zonesetClone(dialog, vsanId, activeZoneset);       
+            dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
+            for (Zone zone : zonesToBeDeleted) {            	
                 String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
+                _log.info("Removing zone: " + zoneName + "zoneset: " + activeZoneset.getName() +  "vsan: " + vsanId);
                 try {
-                    dialog.zoneNameVsan(zoneName, vsanId, true);
+                	dialog.zonesetMember(zone.getName(), true);
                     removedZoneNames.put(zoneName, SUCCESS);
                 } catch (Exception ex) {
                     removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
+            _log.info("going back to config prompt");
+            dialog.exitToConfig();
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
             }
@@ -823,12 +836,11 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      * @param activeZoneset
      */
     private void commitZones(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
-
         // Activate the active zoneset.
         if (activeZoneset != null) {
             dialog.zonesetActivate(activeZoneset.getName(), vsanId, false);
-        }
-
+        } 
+        
         // dialog.exitToConfig(); -- no need for exitToConfig, because activate zoneset would exit
         // If enhanced zoning is enabled, we will be in a session, and we must commit.
         if (dialog.isInSession()) {
@@ -836,6 +848,39 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.waitForZoneCommit(vsanId);
         }
     }
+
+	/**
+	 * Perform a "zoneset clone" of the zoneset in the zoning operation
+	 * @param dialog
+	 * @param vsanId
+	 * @param activeZoneset
+	 */
+	private void zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
+		boolean doZonesetClone = true;
+		boolean allowZonesIfZonesetCloneFails = true;
+		try {
+			doZonesetClone = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                "controller_mds_clone_zoneset")) ;
+			allowZonesIfZonesetCloneFails = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                "controller_mds_allow_zoneset_commit")) ;
+		} catch (Exception e) {
+			_log.warn("Zoneset clone properties not set");
+		}
+        
+        if (doZonesetClone) {
+        	_log.info(String.format("Cloning zoneset %s", activeZoneset.getName()));
+        	try {
+        		dialog.zonesetClone(vsanId, activeZoneset.getName());
+        	} catch (NetworkDeviceControllerException nde) {
+        		_log.info("Failed to create zoneset clone. Reason : ", nde.getMessage());
+        		if (!allowZonesIfZonesetCloneFails) {        			
+        			throw nde;
+        		}
+        	}        	
+        } else {
+        	_log.info(String.format("controller_mds_clone_zoneset is false, NOT Cloning zoneset %s", activeZoneset.getName()));
+        }
+	}
 
     /**
      * Ivr zones were previously added to fabric, add them to active zone set, then activate it.
@@ -1296,6 +1341,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
+            zonesetClone(dialog, vsanId, activeZoneset);
             for (ZoneUpdate zone : updateZones) {
                 try {
                     if (updateZone(dialog, zone, vsanId, fabricZones, activateZones)) {
@@ -1443,6 +1489,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
+            zonesetClone(dialog, vsanId, activeZoneset);
             commitZones(dialog, vsanId, activeZoneset);
             dialog.copyRunningConfigToStartupFabric();
             dialog.endConfig();

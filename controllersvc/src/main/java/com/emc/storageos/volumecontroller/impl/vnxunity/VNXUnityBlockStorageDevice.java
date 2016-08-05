@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.vnxunity;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -872,8 +873,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                 }
             }
-            String cgId = apiClient.getConsistencyGroupIdByName(cgName);
-            apiClient.removeLunsFromConsistencyGroup(cgId, luns);
+            if (cgName != null) {
+                String cgId = apiClient.getConsistencyGroupIdByName(cgName);
+                apiClient.removeLunsFromConsistencyGroup(cgId, luns);
+            } else {
+                logger.warn(String.format("The block object %s is not in a CG", blockObjects.get(0).toString()));
+            }
             taskCompleter.ready(dbClient);
             logger.info("Remove volumes from the consistency group successfully");
         } catch (Exception e) {
@@ -1173,7 +1178,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException {
         logger.error("This method is not implemented");
         return null;
     }

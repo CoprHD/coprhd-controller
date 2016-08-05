@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -17,9 +18,11 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
     public static final String NON_FAST_POLICY = "NonFast";
     public static final String BANDWIDTH = "bw";
     public static final String IOPS = "iops";
+    public static final String COMP = "Compression";
 
     private String autoTierPolicyName;
     private StorageSystem storage;
+    private boolean compression = false;
 
     StorageGroupPolicyLimitsParam() {
 
@@ -35,6 +38,7 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
             setHostIOLimitBandwidth(volumeURIHlu.getHostIOLimitBandwidth());
             setHostIOLimitIOPs(volumeURIHlu.getHostIOLimitIOPs());
             setStorage(storage);
+            setCompression(helper.isVMAX3VolumeCompressionEnabled(volumeURIHlu.getVolumeURI()));
         }
     }
 
@@ -48,6 +52,12 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
         setHostIOLimitBandwidth(hostIOLimitBandwidth);
         setHostIOLimitIOPs(hostIOLimitIOPs);
         setStorage(storage);
+    }
+
+    public StorageGroupPolicyLimitsParam(String autoTierPolicyName, Integer hostIOLimitBandwidth, Integer hostIOLimitIOPs,
+            boolean compression, StorageSystem storage) {
+        this(autoTierPolicyName, hostIOLimitBandwidth, hostIOLimitIOPs, storage);
+        setCompression(compression);
     }
 
     public StorageGroupPolicyLimitsParam(String autoTierPolicyName, String hostIOLimitBandwidth, String hostIOLimitIOPs,
@@ -77,6 +87,14 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
         this.storage = storage;
     }
 
+    public void setCompression(final boolean compression) {
+        this.compression = compression;
+    }
+
+    public boolean getCompression() {
+        return compression;
+    }
+
     /**
      * Construct a storage group key string based on given FAST policy name, limit bandwidth, and limit IO
      * 
@@ -90,6 +108,10 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
 
         if (isHostIOLimitIOPsSet()) {
             policyName += "_iops" + getHostIOLimitIOPs();
+        }
+
+        if (getCompression()) {
+            policyName += "_" + COMP + getCompression();
         }
 
         return policyName;
@@ -106,6 +128,10 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
 
         if (isHostIOLimitIOPsSet()) {
             policyName += "_" + IOPS + getHostIOLimitIOPs();
+        }
+
+        if (getCompression()) {
+            policyName += "_" + COMP + getCompression();
         }
 
         return policyName;

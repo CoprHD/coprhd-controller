@@ -112,8 +112,8 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String VP_VMAX_DIAMOND = "vp-vmax-diamond";
     private static final String VP_XIO_DIAMOND = "vp-xio-diamond";
     private static final String VP_UNITY_DIAMOND = "vp-unity-diamond";
-    private static final String ALL_FLASH_DESC = "Virtual Pool for All Flash Storage";
-    private static final String VMAX_DIAMOND_DESC = "Virtual Pool for EMC VMAX all Flash Storage";
+    private static final String ALL_FLASH_DESC = "Virtual Pool for All-Flash Storage";
+    private static final String VMAX_DIAMOND_DESC = "Virtual Pool for EMC VMAX All-Flash Storage";
     private static final String XIO_DIAMOND_DESC = "Virtual Pool for EMC XtremIO Storage";
     private static final String UNITY_DIAMOND_DESC = "Virtual Pool for EMC UNITY Storage";
     private static final String DEFAULT_AUTO_TIER = "Diamond SLO (0.8ms)";

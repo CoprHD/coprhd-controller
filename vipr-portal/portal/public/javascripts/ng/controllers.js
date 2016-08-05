@@ -1622,7 +1622,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         finishChecking();
                     } else {
                         $scope.$parent.completedSteps = 5;
-                            $scope.$parent.optionalStepComplete = true;
+                        $scope.$parent.optionalStepComplete = true;
                         goToNextStep(true);
                     }
                 });

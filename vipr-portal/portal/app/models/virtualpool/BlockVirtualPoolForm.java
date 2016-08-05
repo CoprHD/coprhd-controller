@@ -527,7 +527,6 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setUseMatchedPools(true);
         BlockVirtualPoolParam myvpool = builder.getVirtualPool();
         return new MatchingBlockStoragePoolsCall(myvpool);
-        //return new MatchingBlockStoragePoolsCall(builder.getVirtualPool());
     }
 
     public ConnectedBlockVirtualPoolsCall connectedVirtualPools() {

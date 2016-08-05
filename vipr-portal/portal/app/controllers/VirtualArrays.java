@@ -186,7 +186,7 @@ public class VirtualArrays extends ViprResourceController {
 							}
                             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                                 String modelType = storageSystem.getModel();
-                                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                                     ids.add(storageSystem.getId().toString());
                                 }
                             }
@@ -196,35 +196,7 @@ public class VirtualArrays extends ViprResourceController {
 				addStorageSysVarray(existVarrayId, ids);
 			} 
 			else { //First time adding virtual array
-				VirtualArrayForm virtualArray = new VirtualArrayForm();
-				virtualArray.name = ALL_FLASH_VARRAY;
-				virtualArray.validate("virtualArray");
-				if (Validation.hasErrors()) {
-					flash.error(MessagesUtils.get(SAVED_ERROR,
-							virtualArray.name));
-					list();
-				}
-
-				VirtualArrayRestRep varray = virtualArray.save();
-				virtualArray.load(varray);
-                updateVarrayCookie(virtualArray.id, virtualArray.name );
-
-				List<String> ids = Lists.newArrayList();
-				// Read all storage systems
-				for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
-					// Check if storage system is of type UNITY, VMAX or XtremIO
-					if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
-						ids.add(storageSystem.getId().toString());
-					}
-                    if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
-                        String modelType = storageSystem.getModel();
-                        if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
-                            ids.add(storageSystem.getId().toString());
-                        }
-                    }
-				}
-
-				addStorageSysVarray(virtualArray.id, ids);
+				addAllFlashVirtualArray();
 			}
 		} 
 		else if (StringUtils.equals(defaultVarrayType, MAPPING1X1)) {
@@ -265,23 +237,12 @@ public class VirtualArrays extends ViprResourceController {
 				for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
 					if (storageSysVarrayMap.get(storageSystem.getId().toString()) == null) {
 						if (StringUtils.equals(XTREMIO,	storageSystem.getSystemType())) {
-							VirtualArrayForm virtualArray = new VirtualArrayForm();
-							virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
-							VirtualArrayRestRep varray = virtualArray.save();
-							virtualArray.load(varray);
-                            updateVarrayCookie(virtualArray.id, virtualArray.name);
-
-							addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
+							createVirtualArray(storageSystem);
 						}
                         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType()) ) {
                             String modelType = storageSystem.getModel();
-                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
-                                VirtualArrayForm virtualArray = new VirtualArrayForm();
-                                virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
-                                VirtualArrayRestRep varray = virtualArray.save();
-                                virtualArray.load(varray);
-                                updateVarrayCookie(virtualArray.id, virtualArray.name);
-                                addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                            	createVirtualArray(storageSystem);
                             }
                         }
 					}
@@ -316,6 +277,46 @@ public class VirtualArrays extends ViprResourceController {
         jsonvarray.addProperty("name", varrayname);
 
         varrays.add(jsonvarray);
+    }
+
+    private static void addAllFlashVirtualArray() {
+		VirtualArrayForm virtualArray = new VirtualArrayForm();
+		virtualArray.name = ALL_FLASH_VARRAY;
+		virtualArray.validate("virtualArray");
+		if (Validation.hasErrors()) {
+			flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+			list();
+		}
+
+		VirtualArrayRestRep varray = virtualArray.save();
+		virtualArray.load(varray);
+
+		List<String> ids = Lists.newArrayList();
+
+		for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+			// Check if storage system is of type UNITY, VMAX or XtremIO
+			if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
+				ids.add(storageSystem.getId().toString());
+			}
+            if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
+                String modelType = storageSystem.getModel();
+                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                    ids.add(storageSystem.getId().toString());
+                }
+            }
+		}
+		addStorageSysVarray(virtualArray.id, ids);
+		updateVarrayCookie(virtualArray.id, virtualArray.name );
+    }
+
+    private static void createVirtualArray(StorageSystemRestRep storageSystem) {
+		VirtualArrayForm virtualArray = new VirtualArrayForm();
+		virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
+		VirtualArrayRestRep varray = virtualArray.save();
+		virtualArray.load(varray);
+
+		updateVarrayCookie(virtualArray.id, virtualArray.name);
+		addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
     }
 
     /**
@@ -931,8 +932,7 @@ public class VirtualArrays extends ViprResourceController {
             }
         }
         for (String id:ids) {
-            StorageSystemRestRep storageSystem = StorageSystemUtils
-                    .getStorageSystem(id);
+            StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
             if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
                 //ignore for now
                 continue;

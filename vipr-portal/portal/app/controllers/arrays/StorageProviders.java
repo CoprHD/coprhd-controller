@@ -145,14 +145,11 @@ public class StorageProviders extends ViprResourceController {
         List<Map<String,String>> storagesystemslist = new ArrayList<Map<String,String>>();
         for (String id:ids) {
             if(id.contains("StorageProvider")) {
-                StorageProviderRestRep storageProvider = StorageProviderUtils
-                        .getStorageProvider(uri(id));
+                StorageProviderRestRep storageProvider = StorageProviderUtils.getStorageProvider(uri(id));
                 if (storageProvider == null) {
-                    //ignore for now
                     continue;
                 }
-                Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
-                        .getConnectedStorageSystems(uri(id));
+                Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils.getConnectedStorageSystems(uri(id));
 
                 for (NamedRelatedResourceRep storageSystem : storageSystems) {
                     StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
@@ -173,12 +170,9 @@ public class StorageProviders extends ViprResourceController {
                             }
                         }
                         if (StringUtils.equals(UNITY, ss.getSystemType())) {
-                            //String modelType = ss.getModel();
-                            //if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
                             ssMap.put("id", ss.getId().toString());
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
-                            //}
                         }
                     }
                 }
@@ -202,17 +196,13 @@ public class StorageProviders extends ViprResourceController {
                             storagesystemslist.add(ssMap);
                         }
                     }
-                    if (StringUtils.equals(UNITY, ss.getSystemType())) {
-                        //String modelType = ss.getModel();
-                        //if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
-                            ssMap.put("id", ss.getId().toString());
-                            ssMap.put("name", ss.getName());
-                            storagesystemslist.add(ssMap);
-                        //}
-                    }
+					if (StringUtils.equals(UNITY, ss.getSystemType())) {
+						ssMap.put("id", ss.getId().toString());
+						ssMap.put("name", ss.getName());
+						storagesystemslist.add(ssMap);
+					}
                 }
             }
-
         }
         renderJSON(storagesystemslist);
     }
@@ -231,8 +221,7 @@ public class StorageProviders extends ViprResourceController {
     public static void create() {
         addReferenceData();
         StorageProviderForm smisProvider = new StorageProviderForm();
-        // put all "initial create only" defaults here rather than field
-        // initializers
+        // put all "initial create only" defaults here rather than field initializers
         smisProvider.interfaceType = StorageProviderTypes.SMIS;
         smisProvider.portNumber = getDefaultPort(DefaultStorageProviderPortMap.smis_useSSL);
         smisProvider.hyperScalePort = HYPERSCALEPORT;

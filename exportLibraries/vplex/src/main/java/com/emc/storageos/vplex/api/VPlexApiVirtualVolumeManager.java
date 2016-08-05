@@ -2043,7 +2043,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // if detach was a success, we need to flatten the device 
             // to align with standard ViPR 1-1-1 structure 
-            _vplexApiClient.deviceCollapse(sourceDeviceName, VPlexApiConstants.LOCAL_VIRTUAL_VOLUME);
+            _vplexApiClient.deviceCollapse(sourceDeviceName, VPlexApiConstants.LOCAL_DEVICE);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -2084,6 +2084,7 @@ public class VPlexApiVirtualVolumeManager {
                 throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
             }
 
+            String sourceDeviceComponentName = null;
             String sourceDevicePath = null;
             String mirrorDevicePath = null;
             List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
@@ -2093,6 +2094,7 @@ public class VPlexApiVirtualVolumeManager {
                 List<VPlexLocalDeviceComponentInfo> localComponents = discoveryMgr.getLocalDeviceComponents(ddComponent);
                 for (VPlexLocalDeviceComponentInfo localComponent : localComponents) {
                     if (localComponent.getName().equals(mirrorDeviceName)) {
+                        sourceDeviceComponentName = ddComponent.getName();
                         sourceDevicePath = ddComponent.getPath();
                         mirrorDevicePath = localComponent.getPath();
                         break;
@@ -2143,7 +2145,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // if detach was a success, we need to flatten the device 
             // to align with standard ViPR 1-1-1 structure 
-            _vplexApiClient.deviceCollapse(sourceDeviceName, VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME);
+            _vplexApiClient.deviceCollapse(sourceDeviceComponentName, VPlexApiConstants.LOCAL_DEVICE);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -2230,10 +2232,6 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
-
-            // if detach was a success, we need to flatten the device 
-            // to align with standard ViPR 1-1-1 structure 
-            _vplexApiClient.deviceCollapse(ddName, VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME);
 
             s_logger.info("Detached device is {}", detachedDeviceName);
             return detachedDeviceName;
@@ -2426,9 +2424,9 @@ public class VPlexApiVirtualVolumeManager {
 
             // Find the source device.
             VPlexResourceInfo sourceDevice = null;
-            if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equalsIgnoreCase(deviceType)) {
+            if (VPlexApiConstants.DISTRIBUTED_DEVICE.equalsIgnoreCase(deviceType)) {
                 sourceDevice = discoveryMgr.findDistributedDevice(sourceDeviceName);
-            } else if (VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equalsIgnoreCase(deviceType)) {
+            } else if (VPlexApiConstants.LOCAL_DEVICE.equalsIgnoreCase(deviceType)) {
                 sourceDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
             } else {
                 throw new Exception("invalid device type: " + deviceType);

@@ -6539,6 +6539,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolumeAndUpdateInfo(virtualVolumeName);
                     String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
 
+                    // Once mirror is detached we need to do device collapse so that its not seen as distributed device.
+                    client.deviceCollapse(sourceDeviceName, VPlexApiConstants.DISTRIBUTED_DEVICE);
+
                     // Once device collapse is successful we need to set visibility of device to local because volume will be seen from
                     // other cluster still as visibility of device changes to global once mirror is attached.
                     client.setDeviceVisibility(sourceDeviceName);

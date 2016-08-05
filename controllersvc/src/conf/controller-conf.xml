@@ -1677,4 +1677,23 @@
 		<property name="coordinator" ref="coordinator"/>
     </bean>
     
+    <bean id="computeSystemOrchestrationDeviceController" class="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="computeSystemControllerImpl" ref="computeSystemController"/>
+    </bean>
+    
+    <bean id="computeSystemOrchestrationController" class="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="computeSystemOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ComputeSystemOrchestrationController"/>
+        <property name="service" ref="computeSystemOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
 </beans>

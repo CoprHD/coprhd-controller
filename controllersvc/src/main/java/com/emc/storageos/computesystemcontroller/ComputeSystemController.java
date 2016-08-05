@@ -130,9 +130,4 @@ public interface ComputeSystemController extends Controller {
      * @throws ControllerException
      */
     public void synchronizeSharedExports(URI clusterId, String taskId) throws ControllerException;
-
-    void unmountDevice(URI hostId, URI resId, String mountPath, String taskId) throws ControllerException;
-
-    void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String taskId)
-            throws ControllerException;
 }

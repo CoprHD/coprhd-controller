@@ -54,8 +54,8 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
-import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
+import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -4062,7 +4062,7 @@ public class FileService extends TaskResourceService {
         _dbClient.updateObject(fs);
 
         // Now get ready to make calls into the controller
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        ComputeSystemOrchestrationController controller = getController(ComputeSystemOrchestrationController.class, null);
         try {
             controller.mountDevice(param.getHost(), id, param.getSubDir(), param.getSecurity(), param.getPath(),
                     param.getFsType(), task);
@@ -4142,7 +4142,7 @@ public class FileService extends TaskResourceService {
 
         // Now get ready to make calls into the controller
 
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        ComputeSystemOrchestrationController controller = getController(ComputeSystemOrchestrationController.class, null);
         try {
             controller.unmountDevice(param.getHostId(), id, param.getMountPath(), task);
 

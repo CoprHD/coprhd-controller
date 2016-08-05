@@ -21,10 +21,8 @@ import org.apache.commons.logging.LogFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
-import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
-import com.emc.storageos.computesystemcontroller.hostmountadapters.MountCompleter;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
@@ -124,20 +122,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
-
-    private static final String MOUNT_DEVICE_WF_NAME = "MOUNT_DEVICE_WORKFLOW";
-    private static final String UNMOUNT_DEVICE_WF_NAME = "UNMOUNT_DEVICE_WORKFLOW";
-
-    private static final String VERIFY_MOUNT_POINT_STEP = "VerifyMountPointStep";
-    private static final String CREATE_DIRECTORY_STEP = "CreateDirectoryStep";
-    private static final String ADD_TO_FSTAB_STEP = "AddToFSTabStep";
-    private static final String MOUNT_DEVICE_STEP = "MountDeviceStep";
-    private static final String SET_MOUNT_TAG_STEP = "SetMountTagStep";
-
-    private static final String UNMOUNT_DEVICE_STEP = "UnmountDeviceStep";
-    private static final String REMOVE_FROM_FSTAB_STEP = "RemoveFromFSTabStep";
-    private static final String DELETE_DIRECTORY_STEP = "DeleteDirectoryStep";
-    private static final String REMOVE_MOUNT_TAG_STEP = "RemoveMountTagStep";
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
@@ -1683,144 +1667,90 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    @Override
-    public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String opId)
-            throws ControllerException {
-        HostDeviceInputOutput args = new HostDeviceInputOutput();
-        args.setSubDirectory(subDirectory);
-        args.setHostId(hostId);
-        args.setResId(resId);
-        args.setSecurity(security);
-        args.setMountPath(mountPath);
-        args.setFsType(fsType);
-        // Generate the Workflow.
-        Workflow workflow = null;
-        MountCompleter completer = new MountCompleter(args.getResId(), opId);
-        try {
-            // Generate the Workflow.
-            workflow = _workflowService.getNewWorkflow(this, MOUNT_DEVICE_WF_NAME, false, opId);
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(hostId.toString());
-            _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
-            String waitFor = null; // the wait for key returned by previous call
-            _log.info("Generating steps for mounting device");
-            // create a step
-            waitFor = workflow.createStep(null,
-                    String.format("Verifying mount point: %s", args.getMountPath()),
-                    null, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    verifyMountPointMethod(args),
-                    rollbackMethodNullMethod(), null);
+    public String addStepsForMountDevice(Workflow workflow, HostDeviceInputOutput args) {
+        String waitFor = null; // the wait for key returned by previous call
+        _log.info("Generating steps for mounting device");
+        // create a step
+        String hostType = getHostType(args.getHostId());
+        waitFor = workflow.createStep(null,
+                String.format("Verifying mount point: %s", args.getMountPath()),
+                null, args.getHostId(),
+                hostType,
+                this.getClass(),
+                verifyMountPointMethod(args),
+                rollbackMethodNullMethod(), null);
 
-            waitFor = workflow.createStep(null,
-                    String.format("Creating Directory: %s", args.getMountPath()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    createDirectoryMethod(args),
-                    deleteDirectoryMethod(args), null);
+        waitFor = workflow.createStep(null,
+                String.format("Creating Directory: %s", args.getMountPath()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                createDirectoryMethod(args),
+                deleteDirectoryMethod(args), null);
 
-            waitFor = workflow.createStep(null,
-                    String.format("Adding to etc/fstab:%n%s", args.getMountPath()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    addtoFSTabMethod(args),
-                    removeFromFSTabMethod(args), null);
+        waitFor = workflow.createStep(null,
+                String.format("Adding to etc/fstab:%n%s", args.getMountPath()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                addtoFSTabMethod(args),
+                removeFromFSTabMethod(args), null);
 
-            waitFor = workflow.createStep(null,
-                    String.format("Mounting device:%n%s", args.getResId()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    mountDeviceMethod(args),
-                    removeFromFSTabMethod(args), null);
+        waitFor = workflow.createStep(null,
+                String.format("Mounting device:%n%s", args.getResId()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                mountDeviceMethod(args),
+                removeFromFSTabMethod(args), null);
 
-            workflow.createStep(null,
-                    String.format("Setting tag on :%n%s", args.getResId()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    setMountTagMethod(args),
-                    removeMountTagMethod(args), null);
-
-            // Finish up and execute the plan.
-            // The Workflow will handle the TaskCompleter
-            String successMessage = "Mount device successful for: " + args.getHostId().toString();
-            workflow.executePlan(completer, successMessage);
-
-        } catch (Exception ex) {
-            _log.error("Could not mount device: " + args, ex);
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
-                    .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
-            completer.error(_dbClient, exception);
-            _workflowService.releaseAllWorkflowLocks(workflow);
-        }
+        waitFor = workflow.createStep(null,
+                String.format("Setting tag on :%n%s", args.getResId()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                setMountTagMethod(args),
+                removeMountTagMethod(args), null);
+        return waitFor;
     }
 
-    @Override
-    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException {
-        HostDeviceInputOutput args = new HostDeviceInputOutput();
-        args.setHostId(hostId);
-        args.setResId(resId);
-        args.setMountPath(mountPath);
-        // Generate the Workflow.
-        Workflow workflow = null;
-        MountCompleter completer = new MountCompleter(args.getResId(), opId);
-        try {
-            // Generate the Workflow.
-            workflow = _workflowService.getNewWorkflow(this, UNMOUNT_DEVICE_WF_NAME, false, opId);
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(hostId.toString());
-            _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
-            String waitFor = null; // the wait for key returned by previous call
-            _log.info("Generating steps for mounting device");
-            // create a step
-            waitFor = workflow.createStep(null,
-                    String.format("Unmounting device: %s", args.getMountPath()),
-                    null, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    unmountDeviceMethod(args),
-                    mountDeviceMethod(args), null);
+    public String addStepsForUnmountDevice(Workflow workflow, HostDeviceInputOutput args) {
+        String waitFor = null; // the wait for key returned by previous call
+        _log.info("Generating steps for mounting device");
+        // create a step
+        String hostType = getHostType(args.getHostId());
+        waitFor = workflow.createStep(null,
+                String.format("Unmounting device: %s", args.getMountPath()),
+                null, args.getHostId(),
+                hostType,
+                this.getClass(),
+                unmountDeviceMethod(args),
+                mountDeviceMethod(args), null);
 
-            waitFor = workflow.createStep(null,
-                    String.format("removing from etc/fstab:%n%s", args.getMountPath()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    removeFromFSTabMethod(args),
-                    removeFromFSTabRollBackMethod(args), null);
+        waitFor = workflow.createStep(null,
+                String.format("removing from etc/fstab:%n%s", args.getMountPath()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                removeFromFSTabMethod(args),
+                removeFromFSTabRollBackMethod(args), null);
 
-            waitFor = workflow.createStep(null,
-                    String.format("Delete Directory:%n%s", args.getResId()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    deleteDirectoryMethod(args),
-                    createDirectoryMethod(args), null);
+        waitFor = workflow.createStep(null,
+                String.format("Delete Directory:%n%s", args.getResId()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                deleteDirectoryMethod(args),
+                createDirectoryMethod(args), null);
 
-            workflow.createStep(null,
-                    String.format("Removing Tag on :%n%s", args.getResId()),
-                    waitFor, args.getHostId(),
-                    getHostType(args.getHostId()),
-                    this.getClass(),
-                    removeMountTagMethod(args),
-                    setMountTagMethod(args), null);
-
-            // Finish up and execute the plan.
-            // The Workflow will handle the TaskCompleter
-            String successMessage = "Unmount device successful for: " + args.getHostId().toString();
-            workflow.executePlan(completer, successMessage);
-
-        } catch (Exception ex) {
-            _log.error("Could not unmount device: " + args, ex);
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
-                    .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
-            completer.error(_dbClient, exception);
-            _workflowService.releaseAllWorkflowLocks(workflow);
-        }
+        waitFor = workflow.createStep(null,
+                String.format("Removing Tag on :%n%s", args.getResId()),
+                waitFor, args.getHostId(),
+                hostType,
+                this.getClass(),
+                removeMountTagMethod(args),
+                setMountTagMethod(args), null);
+        return waitFor;
     }
 
     public void createDirectory(URI hostId, String mountPath, String stepId) {
@@ -2029,5 +1959,4 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
         return host.getType();
     }
-
 }

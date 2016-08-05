@@ -5,6 +5,9 @@
 package com.emc.sa.service.linux.file;
 
 import static com.emc.sa.service.ServiceParams.FILESYSTEM;
+import static com.emc.sa.service.ServiceParams.MOUNT_PATH;
+import static com.emc.sa.service.ServiceParams.SECURITY_TYPE;
+import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
 
 import java.net.URI;
 
@@ -21,6 +24,15 @@ public class MountNFSExportService extends LinuxService {
     @Param(FILESYSTEM)
     protected URI fsId;
 
+    @Param(MOUNT_PATH)
+    protected String mountPath;
+
+    @Param(SUBDIRECTORY)
+    protected String subDirectory;
+
+    @Param(SECURITY_TYPE)
+    protected String securityType;
+
     private FileShareRestRep fs;
 
     protected MountNFSExportHelper mountNFSExportHelper;
@@ -28,7 +40,7 @@ public class MountNFSExportService extends LinuxService {
     @Override
     public void init() throws Exception {
         super.init();
-        mountNFSExportHelper = MountNFSExportHelper.createHelper(hostId);
+        mountNFSExportHelper = MountNFSExportHelper.createHelper();
     }
 
     @Override
@@ -39,7 +51,7 @@ public class MountNFSExportService extends LinuxService {
 
     @Override
     public void execute() throws Exception {
-        mountNFSExportHelper.mountExport(fs, hostId);
+        mountNFSExportHelper.mountExport(fsId, hostId, subDirectory, mountPath, securityType, host.getHostName());
         ExecutionUtils.addAffectedResource(hostId.toString());
     }
 }

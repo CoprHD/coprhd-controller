@@ -58,19 +58,19 @@ public class CreateNFSExportAndMountService extends ViPRService {
     @Bindable(itemType = FileStorageUtils.Mount.class)
     protected Mount[] mountList;
 
-    protected CreateNFSExportAndMountHelper createNFSExportAndMountHelper;
+    protected MountNFSExportHelper mountNFSExportHelper;
 
     @Override
     public void init() throws Exception {
         super.init();
-        createNFSExportAndMountHelper = CreateNFSExportAndMountHelper.createHelper();
+        mountNFSExportHelper = MountNFSExportHelper.createHelper();
     }
 
     @Override
     public void precheck() throws Exception {
         super.precheck();
         if (mountList == null || mountList.length == 0) {
-            ExecutionUtils.fail("failTask.CreateFileSystemExport.precheck", new Object[] {}, new Object[] {}); // TODO
+            ExecutionUtils.fail("failTask.CreateFileSystemExport.precheck", new Object[] {}, new Object[] {});
         }
     }
 
@@ -94,9 +94,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
         // mount the exports
         for (Mount mount : mountList) {
             Host host = BlockStorageUtils.getHost(mount.host);
-            // acquireHostLock(host, null);
-            createNFSExportAndMountHelper.mountExport(fileSystemId, mount.host, null, mount.mountPath, mount.security, host.getHostName());
-            // releaseHostLock(host, null);
+            mountNFSExportHelper.mountExport(fileSystemId, mount.host, null, mount.mountPath, mount.security, host.getHostName());
             ExecutionUtils.addAffectedResource(mount.host.toString());
         }
     }

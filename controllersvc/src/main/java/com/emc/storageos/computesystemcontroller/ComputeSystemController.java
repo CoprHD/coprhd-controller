@@ -99,7 +99,7 @@ public interface ComputeSystemController extends Controller {
      */
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
             String taskId)
-                    throws ControllerException;
+            throws ControllerException;
 
     public void addInitiatorToExport(URI host, URI init, String taskId) throws ControllerException;
 
@@ -131,8 +131,40 @@ public interface ComputeSystemController extends Controller {
      */
     public void synchronizeSharedExports(URI clusterId, String taskId) throws ControllerException;
 
+    /**
+     * Unmount file system export from host
+     * 
+     * @param hostId
+     *            URI of the host
+     * @param resId
+     *            resource id, file system or snapshot
+     * @param mountPath
+     *            mount path
+     * @param taskId
+     *            task id created by the API
+     * @throws ControllerException
+     */
     void unmountDevice(URI hostId, URI resId, String mountPath, String taskId) throws ControllerException;
 
+    /**
+     * mount file system export to host
+     * 
+     * @param hostId
+     *            URI of the host
+     * @param resId
+     *            resource id, file system or snapshot
+     * @param subDirectory
+     *            sub directory
+     * @param security
+     *            security type
+     * @param mountPath
+     *            mount path
+     * @param fsType
+     *            fsType
+     * @param taskId
+     *            task id created by the API
+     * @throws ControllerException
+     */
     void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String taskId)
             throws ControllerException;
 }

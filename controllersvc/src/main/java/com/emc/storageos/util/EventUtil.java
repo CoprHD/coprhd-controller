@@ -123,9 +123,10 @@ public class EventUtil {
      * @return event if a duplicate is found, else null
      */
     public static ActionableEvent getDuplicateEvent(DbClient dbClient, String eventCode, URI resourceId) {
-        List<ActionableEvent> events = EventUtils.findResourceTasks(dbClient, resourceId);
+        List<ActionableEvent> events = EventUtils.findResourceEvents(dbClient, resourceId);
         for (ActionableEvent event : events) {
-            if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name()) && event.getEventCode() == eventCode) {
+            if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                    && event.getEventCode().equalsIgnoreCase(eventCode)) {
                 return event;
             }
         }

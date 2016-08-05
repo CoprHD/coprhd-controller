@@ -75,7 +75,6 @@ public class ServiceDescriptorBuilder {
         field.setLockable(definition.lockable);
         field.setInitialValue(definition.initialValue);
         field.setSelect(definition.select);
-        field.setDynamicHelp(definition.dynamicHelp);
         field.addOptions(definition.options);
         field.getValidation().setMin(definition.validation.min);
         field.getValidation().setMax(definition.validation.max);

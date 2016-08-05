@@ -2112,16 +2112,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
         }
     }
-    
-    @Asset("blockJournalSizeHelp")
-    @AssetDependencies("rpConsistencyGroupByProject")
-    public List<AssetOption> getBlockJournalSizeHelp(AssetOptionsContext ctx, URI consistencyGroup) {
-        List<AssetOption> options = Lists.newArrayList();
-        
-        options.add(new AssetOption("HelpTest", "DynamicHelp"));
-        
-        return options;
-    }
 
     @Asset("volumeWithoutConsistencyGroup")
     @AssetDependencies("project")

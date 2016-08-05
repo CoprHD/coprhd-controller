@@ -47,8 +47,11 @@ public class RowMutator {
 
     private final int defaultTTL = 0;
 
+    //we use update statement to do the insert operation because it could reduce our cleanup effort.
     private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
+    private static final String updateRecordFormat_without_uuid = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ?";
     private static final String updateIndexFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ? AND column5 = ?";
+    private static final String updateIndexFormat_without_uuid = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
     private static final String insertTimeSeriesFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
     private static final String insertSchemaRecordFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?)";
     private static final String insertGlobalLockFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
@@ -69,22 +72,25 @@ public class RowMutator {
 
     public void insertRecordColumn(String tableName, String recordKey, CompositeColumnName column, Object val) {
         // todo consider 'ttl'
-        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(updateRecordFormat, tableName));
+        String cqlString = column.getTimeUUID() == null ? String.format(updateRecordFormat_without_uuid, tableName) : String.format(updateRecordFormat, tableName);
+        PreparedStatement insertPrepared = context.getPreparedStatement(cqlString);
         BoundStatement insert = insertPrepared.bind();
         insert.setString("key", recordKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
         insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
-        // todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we set column4 with timeBased() not empty. But previously Astyanax allows column4 is null
-        insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        if (column.getTimeUUID() != null) {
+            insert.setUUID("column4", column.getTimeUUID());
+        }
         ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
         atomicBatch.add(insert);
     }
 
     public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
-        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(updateIndexFormat, tableName));
+        String cqlString = column.getTimeUUID() == null ? String.format(updateIndexFormat_without_uuid, tableName) : String.format(updateIndexFormat, tableName);
+        PreparedStatement insertPrepared = context.getPreparedStatement(cqlString);
         BoundStatement insert = insertPrepared.bind();
         insert.setString("key", indexRowKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
@@ -92,7 +98,9 @@ public class RowMutator {
         insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
         insert.setString("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour());
-        insert.setUUID("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        if (column.getTimeUUID() != null) {
+            insert.setUUID("column5", column.getTimeUUID());
+        }
         ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
         atomicBatch.add(insert);

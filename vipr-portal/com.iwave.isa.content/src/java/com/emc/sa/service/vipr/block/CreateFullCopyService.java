@@ -15,6 +15,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
@@ -44,6 +45,7 @@ public class CreateFullCopyService extends ViPRService {
     @Override
     public void execute() throws Exception {
         Tasks<? extends DataObjectRestRep> tasks;
+        name = TimeUtils.formatDateForCurrent(name);
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             tasks = BlockStorageUtils.createFullCopy(volumeId, name, count);
             addAffectedResources(tasks);

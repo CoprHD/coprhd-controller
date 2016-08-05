@@ -328,7 +328,7 @@ public class ExternalDeviceCommunicationInterface extends
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
             if (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
-                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver)driver, storageSystem, _dbClient, _partitionManager);
+                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver) driver, storageSystem, _dbClient, _partitionManager);
             }
 
             // discovery succeeds
@@ -538,8 +538,8 @@ public class ExternalDeviceCommunicationInterface extends
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,
                             autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);     
                     
-                    discoverDeduplicationCapabilityForStoragePool(driverStorageSystem, storagePool, pool,
-                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);
+                    // Discover deduplication capability for storage pool.
+                    discoverDeduplicationCapabilityForStoragePool(driverStorageSystem, storagePool, pool);
                 }
 
                 // Now that all storage pools have been process we can create or update
@@ -605,8 +605,7 @@ public class ExternalDeviceCommunicationInterface extends
                         capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
                 continue;
             }
-            
-            //"deduplication"
+
             // Get the capability definition from the map of supported capability definitions.
             CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
             if (capabilityDefinition == null) {
@@ -642,22 +641,29 @@ public class ExternalDeviceCommunicationInterface extends
             } 
         } 
     }
-    
+
+    /**
+     * Discover deduplication capability for storage pool.
+     * If driver does not report "deduplication" for storage pool, we assume that deduplication is disabled.
+     * If driver reports "deduplication" for storage pool, we assume that it is enabled, unless its ENABLED property is set to false.
+     *
+     * @param driverStorageSystem A reference to the driver storage system.
+     * @param driverPool A reference to the driver storage pool.
+     * @param dbPool A reference to the system storage pool representing the driver storage pool.
+     */
     private void discoverDeduplicationCapabilityForStoragePool(StorageSystem driverStorageSystem,
-			StoragePool storagePool, com.emc.storageos.db.client.model.StoragePool pool,
-			Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap,
-			Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap) {
+			StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
 
 		// Get the capabilities specified for the storage pool and
-		// process any auto tiering policy capabilities.
-		List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+		// process and process deduplication capability if reported by driver
+		List<CapabilityInstance> capabilities = driverPool.getCapabilities();
 		for (CapabilityInstance capability : capabilities) {
 			// Get the capability definition for the capability.
 			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
 			if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
 				_log.error(String.format(
 						"Skipping capability %s with no capability definition UID for storage pool %s on system %s",
-						capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+						capability.getName(), driverPool.getNativeId(), driverStorageSystem.getNativeId()));
 				continue;
 			}
 
@@ -666,17 +672,26 @@ public class ExternalDeviceCommunicationInterface extends
 			CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
 			if (capabilityDefinition == null) {
 				_log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
-						capabilityDefinitionUid, storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+						capabilityDefinitionUid, driverPool.getNativeId(), driverStorageSystem.getNativeId()));
 				continue;
 			}
 
-			// Handle dedup capability.
 			if (DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
-
+                // Handle dedup capability.
+                // Check if dedup is enabled; we assume that if driver reports deduplication in pool capabilities,
+                // it is enabled by default, unless it is explicitly disabled.
+                String isEnabled = capability.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+                if (isEnabled != null && isEnabled.equalsIgnoreCase("false") ) {
+                    _log.info(String.format("StoragePool %s of storage system %s has deduplication disabled",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setDedupCapable(false);
+                } else {
+                    _log.info(String.format("Enable deduplication for StoragePool %s of storage system %s ",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setDedupCapable(true);
+                }
 			}
-
 		}
-
 	}
     
     /**

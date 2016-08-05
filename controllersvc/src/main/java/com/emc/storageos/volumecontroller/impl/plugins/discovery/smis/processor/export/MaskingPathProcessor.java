@@ -47,7 +47,7 @@ public class MaskingPathProcessor extends Processor {
                 }
             }
         } catch (Exception e) {
-            log.error("Fast Policy discovery failed during UnManaged Volume discovery", e);
+            log.error("Masking path discovery failed during array affinity discovery", e);
         }
     }
 }

@@ -90,7 +90,7 @@ public class AtomicBatchTest extends DbsvcTestBase{
     }
     
     @Test
-    public void insertErrorOccurs() throws Exception {
+    public void insertInsertRecordsErrorOccurs() throws Exception {
         rowMutator.insertRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"), "test");
         rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         rowMutator.insertRecordColumn("Volume", objectIds[1], new CompositeColumnName("One", "Two", "Three"), "test");
@@ -100,6 +100,49 @@ public class AtomicBatchTest extends DbsvcTestBase{
             fail();
         } catch (Exception e) {
             //exception is expected
+        }
+        
+        for (int i = 0; i < objectIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
+            assertFalse(result.iterator().hasNext());
+        }
+    }
+    
+    @Test
+    public void insertInsertIndexesErrorOccurs() throws Exception {
+        rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.insertIndexColumn("AltIdIndex", indexIds[1], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+            //exception is expected
+        }
+        
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            assertFalse(result.iterator().hasNext());
+        }
+    }
+    
+    @Test
+    public void insertInsertIndexAndRecordErrorOccurs() throws Exception {
+        rowMutator.insertRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"), "test");
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+            //exception is expected
+        }
+        
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            assertFalse(result.iterator().hasNext());
         }
         
         for (int i = 0; i < objectIds.length; i++) {

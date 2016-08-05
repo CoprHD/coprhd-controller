@@ -1718,11 +1718,12 @@ public class VPlexApiClient {
      * After this device will change back to local device.
      * 
      * @param sourceDeviceName source device name
+     * @param deviceType "local" or "distributed"
      * @throws VPlexApiException
      */
-    public void deviceCollapse(String sourceDeviceName) throws VPlexApiException {
+    public void deviceCollapse(String sourceDeviceName, String deviceType) throws VPlexApiException {
         s_logger.info("Request to collpase device {}", _baseURI);
-        _virtualVolumeMgr.deviceCollapse(sourceDeviceName);
+        _virtualVolumeMgr.deviceCollapse(sourceDeviceName, deviceType);
     }
 
     /**

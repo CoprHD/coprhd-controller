@@ -2040,6 +2040,10 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
+
+            // if detach was a success, we need to flatten the device 
+            // to align with standard ViPR 1-1-1 structure 
+            _vplexApiClient.deviceCollapse(sourceDeviceName, VPlexApiConstants.LOCAL_VIRTUAL_VOLUME);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -2136,6 +2140,10 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
+
+            // if detach was a success, we need to flatten the device 
+            // to align with standard ViPR 1-1-1 structure 
+            _vplexApiClient.deviceCollapse(sourceDeviceName, VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -2222,6 +2230,11 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
+
+            // if detach was a success, we need to flatten the device 
+            // to align with standard ViPR 1-1-1 structure 
+            _vplexApiClient.deviceCollapse(ddName, VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME);
+
             s_logger.info("Detached device is {}", detachedDeviceName);
             return detachedDeviceName;
         } catch (VPlexApiException vae) {
@@ -2404,14 +2417,22 @@ public class VPlexApiVirtualVolumeManager {
      * After this device will change back to local device.
      *
      * @param sourceDeviceName source device name
+     * @param deviceType "local" or "distributed"
      */
-    public void deviceCollapse(String sourceDeviceName) {
+    public void deviceCollapse(String sourceDeviceName, String deviceType) {
         ClientResponse response = null;
         try {
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
 
             // Find the source device.
-            VPlexDistributedDeviceInfo sourceDevice = discoveryMgr.findDistributedDevice(sourceDeviceName);
+            VPlexResourceInfo sourceDevice = null;
+            if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equalsIgnoreCase(deviceType)) {
+                sourceDevice = discoveryMgr.findDistributedDevice(sourceDeviceName);
+            } else if (VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equalsIgnoreCase(deviceType)) {
+                sourceDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
+            } else {
+                throw new Exception("invalid device type: " + deviceType);
+            }
             if (sourceDevice == null) {
                 throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
             }

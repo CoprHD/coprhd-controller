@@ -35,7 +35,6 @@ public class MountNFSExportService extends LinuxService {
     public void precheck() throws Exception {
         super.precheck();
         fs = FileStorageUtils.getFileSystem(fsId);
-        acquireHostsLock();
     }
 
     @Override

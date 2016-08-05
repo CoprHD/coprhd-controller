@@ -24,7 +24,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.volumecontroller.ControllerException;
 
-public class AbstractMountAdapter implements HostMountAdapter {
+public abstract class AbstractMountAdapter implements HostMountAdapter {
     private Logger log;
 
     protected final static String CONTROLLER_SVC = "controllersvc";
@@ -200,6 +200,65 @@ public class AbstractMountAdapter implements HostMountAdapter {
 
     @Override
     public void doUnmount(HostDeviceInputOutput args) throws ControllerException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void createDirectory(URI hostId, String mountPath) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void mountDevice(URI hostId, String mountPath) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void verifyMountPoint(URI hostId, String mountPath) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void deleteDirectory(URI hostId, String mountPath) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void removeFromFSTab(URI hostId, String mountPath) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void unmountDevice(URI hostId, String mountPath) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void removeMountTag(URI hostId, String mountPath, URI resId) {
+        // TODO Auto-generated method stub
+
+    }
+
+    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId) {
         // TODO Auto-generated method stub
 
     }

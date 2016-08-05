@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
@@ -27,11 +28,11 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     private LinuxMountUtils mountUtils;
 
-    public LinuxMountUtils getMountUtils() {
+    public LinuxMountUtils getLinuxMountUtils() {
         return mountUtils;
     }
 
-    public void setMountUtils(LinuxMountUtils mountUtils) {
+    public void setLinuxMountUtils(LinuxMountUtils mountUtils) {
         this.mountUtils = mountUtils;
     }
 
@@ -105,7 +106,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     private List<String> getTags(DataObject object) {
         List<String> mountTags = new ArrayList<String>();
         if (object.getTag() != null) {
-            for (ScopedLabel label : object.getTag()) { // TODO filter tags for nfs
+            for (ScopedLabel label : object.getTag()) {
                 mountTags.add(label.getLabel());
             }
         }
@@ -135,4 +136,83 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         }
         return null;
     }
+
+    @Override
+    public void createDirectory(URI hostId, String mountPath) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // Create directory
+        mountUtils.createDirectory(mountPath);
+    }
+
+    @Override
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        FileShare fs = dbClient.queryObject(FileShare.class, resId);
+        FileExport export = findExport(fs, subDirectory, security);
+        // Add to etc/fstab
+        mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, "nolock,sec=" + security);
+
+    }
+
+    @Override
+    public void mountDevice(URI hostId, String mountPath) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // mount device
+        mountUtils.mountPath(mountPath);
+    }
+
+    @Override
+    public void verifyMountPoint(URI hostId, String mountPath) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // verify if mount point already exists in host
+        mountUtils.verifyMountPoint(mountPath);
+    }
+
+    @Override
+    public void deleteDirectory(URI hostId, String mountPath) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // Delete directory
+        if (mountUtils.isDirectoryEmpty(mountPath)) {
+            mountUtils.deleteDirectory(mountPath);
+        }
+    }
+
+    @Override
+    public void removeFromFSTab(URI hostId, String mountPath) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // remove mount entry from /etc/fstab
+        mountUtils.removeFromFSTab(mountPath);
+    }
+
+    @Override
+    public void unmountDevice(URI hostId, String mountPath) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // unmount device
+        mountUtils.unmountPath(mountPath);
+    }
+
+    @Override
+    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        // set mount tag on the fs
+        setTag(resId, mountUtils.generateMountTag(hostId, mountPath, subDirectory == null ? "!nodir" : subDirectory, security));
+    }
+
+    @Override
+    public void removeMountTag(URI hostId, String mountPath, URI resId) {
+        // remove mount tag
+        String tag = findTag(hostId.toString(), resId.toString(), mountPath);
+        removeTag(resId, tag);
+    }
+
+    @Override
+    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId) {
+        String tag = findTag(hostId.toString(), resId.toString(), mountPath);
+        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
+        List<String> mountTags = new ArrayList<String>();
+        mountTags.add(tag);
+        MountInfo mount = mountUtils.convertNFSTagsToMounts(mountTags).get(0);
+        addToFSTab(hostId, mountPath, resId, mount.getSubDirectory(), mount.getSecurityType(), "auto");
+    }
+
 }

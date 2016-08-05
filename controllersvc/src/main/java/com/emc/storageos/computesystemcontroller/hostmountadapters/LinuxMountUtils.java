@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Host;
@@ -34,6 +36,8 @@ import com.iwave.ext.linux.model.MountPoint;
  *
  */
 public class LinuxMountUtils {
+    private static final Log _log = LogFactory.getLog(LinuxMountUtils.class);
+
     private LinuxSystemCLI cli;
     private Host host;
 
@@ -64,24 +68,29 @@ public class LinuxMountUtils {
 
     public void mountPath(String path) throws InternalException {
         MountCommand command = new MountCommand();
+        command.addArgument("-v");
         command.setPath(path);
+        _log.info("mount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
     }
 
     public void createDirectory(String path) throws InternalException {
         MkdirCommand command = new MkdirCommand(true);
         command.setDir(path);
+        _log.info("Create dir command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
     }
 
     public void addToFSTab(String path, String device, String fsType, String options) throws InternalException {
         AddToFSTabCommand command = new AddToFSTabCommand();
         command.setOptions(device, path, fsType, options);
+        _log.info("add to fstab command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
     }
 
     public void deleteDirectory(String directory) throws InternalException {
         DeleteDirectoryCommand command = new DeleteDirectoryCommand(directory, true);
+        _log.info("delete dir command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
     }
 
@@ -95,15 +104,27 @@ public class LinuxMountUtils {
         }
     }
 
+    public Boolean isDirectoryExists(String directory) throws InternalException {
+        String command = "[ -d \"" + directory + "\" ] &&echo \"exists\"||echo \"not exists\" ";
+        CommandOutput output = cli.executeCommand(command);
+        if ("exists".equalsIgnoreCase(output.getStdout())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void removeFromFSTab(String path) throws InternalException {
         RemoveFromFSTabCommand command = new RemoveFromFSTabCommand();
         command.setMountPoint(path);
+        _log.info("remove from fstab command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
     }
 
     public void unmountPath(String path) throws InternalException {
         UnmountCommand command = new UnmountCommand();
         command.setPath(path);
+        _log.info("unmount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
     }
 
@@ -116,6 +137,7 @@ public class LinuxMountUtils {
 
     protected void checkExistingMountPoints(String mountPoint) throws InternalException {
         ListMountPointsCommand command = new ListMountPointsCommand();
+        _log.info("check existing command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
         Map<String, MountPoint> mountPoints = command.getResults();
         for (MountPoint mp : mountPoints.values()) {

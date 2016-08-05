@@ -193,6 +193,7 @@ public class VPlexApiConstants {
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
     public static final String LOCAL_DEVICE = "local";
+    public static final String DISTRIBUTED_DEVICE = "distributed";
     public static final int LOCAL_BACKEND_VOLUME_COUNT = 1;
     public static final int DISTRIBUTED_BACKEND_VOLUME_COUNT = 2;
 

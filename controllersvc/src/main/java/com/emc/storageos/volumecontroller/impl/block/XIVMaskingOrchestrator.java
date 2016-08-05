@@ -176,7 +176,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             updateVolumeHLU(storage, initiatorURIs, volumesToAdd);
 
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, exportMask, volumesToAdd);
+                                    exportGroup, exportMask, volumesToAdd, null);
                             anyVolumesAdded = true;
                             // Need to check if the mask is not already associated with
                             // ExportGroup. This is case when we are adding volume to
@@ -506,7 +506,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         entry.getKey(),
                         generateDeviceSpecificAddVolumeWorkFlow(workflow,
                                 attachGroupSnapshot, storage, exportGroup, mask,
-                                volumesToAdd, volumeURIs));
+                                volumesToAdd, volumeURIs, null));
                 anyOperationsToDo = true;
             }
 
@@ -529,8 +529,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 maskToInitiatorsMap.put(mask.getId(), initiatorURIs);
 
                 generateDeviceSpecificAddInitiatorWorkFlow(workflow, previousStep,
-                        storage, exportGroup, mask, initiatorsURIs, maskToInitiatorsMap,
-                        token);
+                        storage, exportGroup, mask, null, initiatorsURIs,
+                        maskToInitiatorsMap, token);
 
                 anyOperationsToDo = true;
             }
@@ -577,7 +577,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             zoneMasksToInitiatorsURIs.put(maskURI, newInitiators);
 
                             generateDeviceSpecificExportMaskAddInitiatorsWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, mask, newInitiators, token);
+                                    exportGroup, mask, null, newInitiators, token);
                             foundASystemCreatedMask = true;
                             anyOperationsToDo = true;
                         }
@@ -888,7 +888,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("adding these volumes %s to mask %s",
                         Joiner.on(",").join(volumesToAdd.keySet()), mask.getMaskName()));
                 stepMap.put(entry.getKey(), generateExportMaskAddVolumesWorkflow(workflow, attachGroupSnapshot, storage, exportGroup, mask,
-                        volumesToAdd));
+                        volumesToAdd, null));
             }
 
             for (Entry<URI, Set<Initiator>> entry : existingMasksToUpdateWithNewInitiators.entrySet()) {

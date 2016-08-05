@@ -827,6 +827,18 @@ angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $time
     	return render.localDate(o,datestring);
     }
 });
+
+angular.module("portalApp").controller('eventDetailsCtrl', function($scope, $timeout, $http, $window) {
+    var getEventDetails = function() {
+        $http.get(routes.Events_eventDetailsJson({'eventId':$scope.task.id})).success(function (data) {
+            $scope.event = data;
+        });
+    }
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    };
+});
+
 angular.module("portalApp").controller("summaryCountCtrl", function($scope, $http, $timeout, $window) {
     $scope.pending = 0;
     $scope.error = 0;
@@ -855,6 +867,40 @@ angular.module("portalApp").controller("summaryCountCtrl", function($scope, $htt
      */
     $scope.filterTasks = function(state) {
         window.table.tasks.dataTable.getDataTable().fnFilter(state);
+    }
+
+    poller();
+
+});
+
+angular.module("portalApp").controller("summaryEventCountCtrl", function($scope, $http, $timeout, $window) {
+    $scope.pending = 0;
+    $scope.approved = 0;
+    $scope.declined = 0;
+    $scope.dataReady = false;
+
+    var poller = function() {
+                $http.get(routes.Events_countSummary({tenantId:$scope.tenantId})).success(function(countSummary) {
+                    console.log("Fetching Summary");
+                    $scope.pending = countSummary.pending;
+                    $scope.approved = countSummary.approved;
+                    $scope.declined = countSummary.declined;
+                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined;
+                    $scope.dataReady = true;
+
+                    $timeout(poller, 5000);
+                }).
+                error(function(data, status) {
+                    console.log("Error fetching countSummary "+status);
+                    $timeout(poller, 5000);
+                });
+    };
+
+    /**
+     * Filters the DataTable by entering the filter value into the Datatable Filter Input box
+     */
+    $scope.filterEvents = function(state) {
+        window.table.events.dataTable.getDataTable().fnFilter(state);
     }
 
     poller();

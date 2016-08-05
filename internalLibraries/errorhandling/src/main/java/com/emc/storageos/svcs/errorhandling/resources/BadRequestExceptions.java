@@ -70,6 +70,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeactivateObjectIngestionTask();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException eventCannotBeApproved(final String eventState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException eventCannotBeDeclined(final String eventState);
+
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException cannotDeleteProviderWithManagedStorageSystems(final URI systemId);
 
@@ -1100,6 +1106,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portNotBelongingToSystem(final URI port, final URI system);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException errorInvokingEventMethod(final URI eventId, final String method);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException propertyIsNotValid(final String property);
@@ -2981,10 +2990,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vplexNotSupportedWithSRDFActive();
-
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vplexDistributedNotSupportedOnSRDFTarget();
-
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException srdfNotSupportedOnHighAvailabilityVpool();
 
@@ -2992,17 +3001,29 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotRestoreNotSupported();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noWorkflowAssociatedWithTask(URI task);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noWorkflowAssociatedWithURI(URI workflow);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException workflowCompletionStateNotFound(URI workflow);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unsupportedAccessMode(final String accessMode);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandTargetVirtualVolume(final String label);
-
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandSRDFVolumeWithSnapshots(final String label);
-
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
-
+    
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noStoragePools(final String varrayLabel, final String vpoolLabel, final String errorMessage);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noVolumesForTaskObjects(String vpool, String taskId);
 }

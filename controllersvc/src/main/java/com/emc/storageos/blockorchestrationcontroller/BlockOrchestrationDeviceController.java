@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -46,6 +46,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -60,6 +62,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     private static RPDeviceController _rpDeviceController;
     private static SRDFDeviceController _srdfDeviceController;
     private static ReplicaDeviceController _replicaDeviceController;
+    private static ValidatorFactory validator;
     private ControllerLockingService _locker;
 
     static final String CREATE_VOLUMES_WF_NAME = "CREATE_VOLUMES_WORKFLOW";
@@ -75,7 +78,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createVolumes(java.util.List, java.lang.String)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createVolumes(java.util.List,
+     * java.lang.String)
      */
     @Override
     public void createVolumes(List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
@@ -86,7 +90,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
                     CREATE_VOLUMES_WF_NAME, false, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create Volume");
             // First, call the BlockDeviceController to add its methods.
@@ -109,7 +113,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     workflow, waitFor, volumes, taskId);
 
             s_logger.info("Checking for Replica steps");
-            // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication
+            // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated
+            // with replication
             // group(s)
             waitFor = _replicaDeviceController.addStepsForCreateVolumes(
                     workflow, waitFor, volumes, taskId);
@@ -144,7 +149,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#deleteVolumes(java.util.List, java.lang.String)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#deleteVolumes(java.util.List,
+     * java.lang.String)
      */
     @Override
     public void deleteVolumes(List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
@@ -153,23 +159,26 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         Workflow workflow = null;
 
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
                     DELETE_VOLUMES_WF_NAME, true, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             // Call the RPDeviceController to add its methods if there are RP protections.
             waitFor = _rpDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
-            
+
             // Call the RPDeviceController to add its post-delete methods.
             waitFor = _rpDeviceController.addStepsForPostDeleteVolumes(
                     workflow, waitFor, volumes, taskId, completer, _blockDeviceController);
-            
-            // Call the ReplicaDeviceController to add its methods if volumes are removed from, 
+
+            // Call the ReplicaDeviceController to add its methods if volumes are removed from,
             // and the CG associated with replication group(s)
             waitFor = _replicaDeviceController.addStepsForDeleteVolumes(
-                    workflow, waitFor, volumes, taskId);            
+                    workflow, waitFor, volumes, taskId);
 
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
             waitFor = _vplexDeviceController.addStepsForDeleteVolumes(
@@ -189,7 +198,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = _vplexDeviceController.addStepsForPostDeleteVolumes(
-                    workflow, waitFor, volumes, taskId, completer);            
+                    workflow, waitFor, volumes, taskId, completer);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -209,17 +218,21 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#expandVolume(java.net.URI, long, java.lang.String)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#expandVolume(java.net.URI, long,
+     * java.lang.String)
      */
     @Override
     public void expandVolume(List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumes);
         VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, taskId);
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     EXPAND_VOLUMES_WF_NAME, true, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add methods for RP CG delete
             waitFor = _rpDeviceController.addPreVolumeExpandSteps(
@@ -228,7 +241,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Call the BlockDeviceController to add its methods if there are block or VPLEX backend volumes.
             waitFor = _blockDeviceController.addStepsForExpandVolume(
                     workflow, waitFor, volumes, taskId);
-            
+
             // Call the SRDFDeviceController to add its methods for SRDF Source / SRDF Target volumes.
             waitFor = _srdfDeviceController.addStepsForExpandVolume(
                     workflow, waitFor, volumes, taskId);
@@ -257,7 +270,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#restoreVolume(java.net.URI, java.net.URI,
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#restoreVolume(java.net.URI,
+     * java.net.URI,
      * java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -266,10 +280,13 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         List<URI> volUris = Arrays.asList(volume);
         BlockSnapshotRestoreCompleter completer = new BlockSnapshotRestoreCompleter(snapshot, taskId);
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME, true, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add RP steps for volume restore from snapshot
             waitFor = _rpDeviceController.addPreRestoreVolumeSteps(
@@ -308,29 +325,36 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#changeVirtualPool(java.util.List, java.lang.String)
+     * @see
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#changeVirtualPool(java.util.List,
+     * java.lang.String)
      */
     @Override
     public void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId)
             throws ControllerException {
         Map<URI, URI> changeVpoolVolsMap = VolumeDescriptor.getAllVirtualPoolChangeSourceVolumes(volumes);
         List<URI> volURIs = VolumeDescriptor.getVolumeURIs(volumes);
+        List<URI> cgIds = null;
         List<URI> migrationURIs = new ArrayList<URI>();
         for (VolumeDescriptor desc : volumes) {
             URI migrationURI = desc.getMigrationId();
             if (!NullColumnValueGetter.isNullURI(migrationURI)) {
                 migrationURIs.add(migrationURI);
             }
+            cgIds = Volume.fetchCgIds(s_dbClient, volURIs);
         }
 
         VolumeVpoolChangeTaskCompleter completer = new VolumeVpoolChangeTaskCompleter(
-                volURIs, migrationURIs, changeVpoolVolsMap, taskId);
+                volURIs, migrationURIs, changeVpoolVolsMap, cgIds, taskId);
 
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volURIs, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    CHANGE_VPOOL_WF_NAME, true, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+                    CHANGE_VPOOL_WF_NAME, true, taskId, completer);
+            String waitFor = null; // the wait for key returned by previous call
 
             // Mainly for RP+VPLEX as a change vpool would require new volumes (source-journal, target(s),
             // target-journal) to be created.
@@ -390,6 +414,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 VolumeDescriptor.getVolumeURIs(volumeDescriptors), migrationURIs, taskId);
 
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(changeVArrayVolURIList, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             String waitFor = null;
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -422,10 +449,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     /**
      * Needed to perform post change vpool operations on RP volumes.
      * 
-     * @param workflow The current workflow
-     * @param waitFor The previous operation to wait for
-     * @param volumeDescriptors All the volume descriptors
-     * @param taskId The current task id
+     * @param workflow
+     *            The current workflow
+     * @param waitFor
+     *            The previous operation to wait for
+     * @param volumeDescriptors
+     *            All the volume descriptors
+     * @param taskId
+     *            The current task id
      * @return The previous operation id
      */
     private String postRPChangeVpoolSteps(Workflow workflow, String waitFor,
@@ -433,7 +464,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         // Get the list of descriptors needed for post change virtual pool operations on RP.
         List<VolumeDescriptor> rpVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] {
-                VolumeDescriptor.Type.RP_EXISTING_SOURCE,
+                        VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                 }, null);
 
         // If no volume descriptors match, just return
@@ -442,7 +473,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
 
         List<VolumeDescriptor> migratedBlockDataDescriptors = new ArrayList<VolumeDescriptor>();
-        
+
         // We could be performing a change vpool for RP+VPLEX / MetroPoint. This means
         // we could potentially have migrations that need to be done on the backend
         // volumes. If migration info exists we need to collect that ahead of time.
@@ -459,18 +490,18 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     VolumeDescriptor migrationDesc = migrationIter.next();
                     Migration migration = s_dbClient.queryObject(Migration.class, migrationDesc.getMigrationId());
                     volumesWithMigration.add(migration.getSource());
-                    
+
                     Volume migratedVolume = s_dbClient.queryObject(Volume.class, migration.getVolume());
                     VolumeDescriptor migratedBlockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                             migratedVolume.getStorageController(), migratedVolume.getId(), null,
                             migratedVolume.getConsistencyGroup(), migrationDesc.getCapabilitiesValues());
-                    
+
                     migratedBlockDataDescriptors.add(migratedBlockDataDesc);
                 }
             }
         }
 
-        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();        
+        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();
 
         for (VolumeDescriptor descr : rpVolumeDescriptors) {
             // If there are RP_EXISTING_SOURCE volume descriptors, we need to ensure the
@@ -500,11 +531,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     // deleted so let's skip it.
                     if (volumesWithMigration.contains(assocVolume.getId())) {
                         s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
-                                assocVolume.getLabel()));                                                
+                                assocVolume.getLabel()));
                         continue;
                     }
 
-                    // Only add the change vpool volume's backend volumes to the backend CGs if the getReplicationGroupInstance
+                    // Only add the change vpool volume's backend volumes to the backend CGs if the
+                    // getReplicationGroupInstance
                     // field has been populated during the API prepare volume steps.
                     if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
                         // Create the BLOCK_DATA descriptor with the correct info
@@ -513,11 +545,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                                 assocVolume.getStorageController(), assocVolume.getId(), null,
                                 rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
                         blockDataDescriptors.add(blockDataDesc);
-    
+
                         // Good time to update the backing volume with its new CG
                         assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
                         s_dbClient.updateObject(assocVolume);
-    
+
                         s_logger.info(
                                 String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
                                         assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
@@ -533,16 +565,17 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
-            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);                        
+            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);
         }
-        
+
         // Consolidate all the block data descriptors to see if any replica steps are needed.
         blockDataDescriptors.addAll(migratedBlockDataDescriptors);
         s_logger.info("Checking for Replica steps");
-        // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication
+        // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with
+        // replication
         // group(s)
         waitFor = _replicaDeviceController.addStepsForCreateVolumes(workflow, waitFor, blockDataDescriptors, taskId);
-        
+
         return waitFor;
     }
 
@@ -613,12 +646,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         s_logger.info("Releasing all workflow locks with owner: {}", workflow.getWorkflowURI());
         _workflowService.releaseAllWorkflowLocks(workflow);
     }
-    
+
     @Override
     public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String taskId)
             throws InternalException {
         CloneRestoreCompleter completer = new CloneRestoreCompleter(fullCopyURIs, taskId);
-        
+
         // add the CG to the completer if this is a CG restore
         Iterator<Volume> iter = getDbClient().queryIterativeObjects(Volume.class, fullCopyURIs);
         while (iter.hasNext()) {
@@ -633,13 +666,16 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 }
             }
         }
-        
+
         s_logger.info("Creating steps for restore from full copy.");
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(fullCopyURIs, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     RESTORE_FROM_FULLCOPY_WF_NAME, true, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             // First, call the RP controller to add RP steps for volume restore
             waitFor = _rpDeviceController.addPreRestoreFromFullcopySteps(
@@ -651,7 +687,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the BlockDeviceController to add its steps for restore volume from full copy
             waitFor = _blockDeviceController.addStepsForRestoreFromFullcopy(workflow, waitFor, storage, fullCopyURIs, taskId, completer);
-            
+
             // Call the RPDeviceController to add its steps for post restore volume from full copy
             waitFor = _rpDeviceController.addPostRestoreFromFullcopySteps(workflow, waitFor, storage, fullCopyURIs, taskId);
 
@@ -667,34 +703,48 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createFullCopy(java.util.List, java.lang.String)
+    public static ValidatorFactory getValidator() {
+        return validator;
+    }
+
+    public static void setValidator(ValidatorFactory validator) {
+        BlockOrchestrationDeviceController.validator = validator;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createFullCopy(java.util.List,
+     * java.lang.String)
      */
     @Override
     public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
         Workflow workflow = null;
-        
+
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
         List<URI> blockVolUris = VolumeDescriptor.getVolumeURIs(blockVolmeDescriptors);
-        
+
         // add all consistency groups to the completer
         Set<URI> cgIds = new HashSet<URI>();
         for (URI blockId : blockVolUris) {
             Volume fcVolume = getDbClient().queryObject(Volume.class, blockId);
-            // need to check for a null associated source volume here because the list of full copy volume descriptors includes
-            // the HA side of a vplex distributed volume. By design, this volume is not a clone and so it won't have associated
-            // source volume set. The change was added here to reduce regression testing scope but really belongs in the utility
+            // need to check for a null associated source volume here because the list of full copy volume descriptors
+            // includes
+            // the HA side of a vplex distributed volume. By design, this volume is not a clone and so it won't have
+            // associated
+            // source volume set. The change was added here to reduce regression testing scope but really belongs in the
+            // utility
             // method
             // Filed COP-23075 to move this check for null associated source volume to the utility method in x-wing
             if (fcVolume != null && !fcVolume.getInactive() && !NullColumnValueGetter.isNullURI(fcVolume.getAssociatedSourceVolume())) {
                 BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(blockId, getDbClient());
                 if (group != null) {
                     cgIds.add(group.getId());
-}
+                }
             }
         }
         for (URI cgId : cgIds) {
@@ -703,12 +753,15 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         for (URI appId : ControllerUtils.getApplicationsForFullCopies(blockVolUris, getDbClient())) {
             completer.addVolumeGroupId(appId);
         }
-        
+
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_FULL_COPIES_WF_NAME, false, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+                    CREATE_FULL_COPIES_WF_NAME, false, taskId, completer);
+            String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Adding steps for RecoverPoint create full copy");
             // Call the RPDeviceController to add its methods if there are RP protections
@@ -719,8 +772,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // First, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForCreateFullCopy(
                     workflow, waitFor, volumeDescriptors, taskId);
-            
-            // post recoverpoint steps disables image access which should be done after the 
+
+            // post recoverpoint steps disables image access which should be done after the
             // create clone steps but before the vplex steps.
             s_logger.info("Adding steps for RecoverPoint post create full copy");
             // Call the RPDeviceController to add its methods if there are RP protections
@@ -747,29 +800,33 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
     }
 
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.util.List, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.util.List,
+     * java.lang.String)
      */
     @Override
     public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        
+
         Workflow workflow = null;
-        
+
         List<VolumeDescriptor> snapshotSessionDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
                 new VolumeDescriptor.Type[] {});
         List<URI> snapshotSessionURIs = VolumeDescriptor.getVolumeURIs(snapshotSessionDescriptors);
-        
+
         // we expect just one snapshot session volume descriptor per create snapshot session operation
-        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapshotSessionURIs.get(0), snapshotSessionDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
+        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapshotSessionURIs.get(0),
+                snapshotSessionDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
         ControllerUtils.checkSnapshotSessionConsistencyGroup(snapshotSessionURIs.get(0), getDbClient(), completer);
-        
+
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_SNAPSHOT_SESSION_WF_NAME, false, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+                    CREATE_SNAPSHOT_SESSION_WF_NAME, false, taskId, completer);
+            String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Adding steps for RecoverPoint create snapshot session");
             // Call the RPDeviceController to add its methods if there are RP protections
@@ -780,7 +837,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // First, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForCreateSnapshotSession(
                     workflow, waitFor, volumeDescriptors, taskId);
-            
+
             s_logger.info("Adding steps for RecoverPoint post create snapshot session");
             // Call the RPDeviceController to add its methods if there are RP protections
             waitFor = _rpDeviceController.addStepsForPostCreateReplica(
@@ -798,5 +855,5 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
-        
+
 }

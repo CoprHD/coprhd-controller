@@ -18,18 +18,21 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
     private List<URI> volumeIds;
     private URI targetVirtualPoolId;
     private URI consistencyGroup;
+    private Boolean suspendOnMigration;
 
-    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup) {
+    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration) {
         this.volumeIds = Lists.newArrayList(volumeId);
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
+        this.suspendOnMigration = suspendOnMigration;
         provideDetailArgs(volumeId, targetVirtualPoolId, consistencyGroup);
     }
 
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup) {
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
+        this.suspendOnMigration = suspendOnMigration;
         provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
     }
 
@@ -41,6 +44,8 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
             input.setConsistencyGroup(consistencyGroup);
         }
+        input.setMigrationSuspendBeforeCommit(suspendOnMigration);
+        input.setMigrationSuspendBeforeDeleteSource(suspendOnMigration);
         return getClient().blockVolumes().changeVirtualPool(input);
     }
 }

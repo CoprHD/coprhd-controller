@@ -223,6 +223,7 @@
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxSnapshotOperations">
@@ -336,6 +337,7 @@
         <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
         <property name="locker" ref="locker"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.smis.SmisMetaVolumeOperations">
@@ -359,6 +361,7 @@
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vnxMetaVolumeOperations"/>
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
+        <property name="validator" ref="validatorFactory"/>
         <property name="locker" ref="locker"/>
     </bean>
 
@@ -401,6 +404,7 @@
     <bean id="xtremioExportOperationHelper" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="xtremioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOSnapshotOperations">
@@ -601,12 +605,14 @@
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperations">
         <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     
@@ -795,6 +801,7 @@
                 <entry key="rp" value-ref="rpVplexConsistencyGroupManager"/>
             </map>
         </property>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="vplexlockmgr" class="com.emc.storageos.vplexcontroller.VPlexApiLockManager">
@@ -847,7 +854,7 @@
         <property name="blockDeviceController" ref="blockDeviceController" />
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
     <bean id="vplexXivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexXIVMaskingOrchestrator">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
@@ -1002,6 +1009,11 @@
         </property>
     </bean>
 
+    <bean id="invokeTestFailure" class="com.emc.storageos.util.InvokeTestFailure">
+        <property name="name" value="invokeTestFailure"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
     <bean id="snapshotWorkflowEntryPoints" class=
             "com.emc.storageos.volumecontroller.impl.block.taskcompleter.SnapshotWorkflowEntryPoints">
         <property name="dbClient" ref="dbclient"/>
@@ -1062,10 +1074,10 @@
                 <ref bean="rpVplexConsistencyGroupManager"/>
                 <ref bean="vplexXtremIOMaskingOrchestrator"/> 
                 <ref bean="vplexHDSMaskingOrchestrator"/>
-                <ref bean="vplexVmaxMaskingOrchestrator"/>
-                <ref bean="vplexVnxMaskingOrchestrator"/>
+		        <ref bean="vplexVmaxMaskingOrchestrator"/>
+		        <ref bean="vplexVnxMaskingOrchestrator"/>
                 <ref bean="vplexCinderMaskingOrchestrator"/>
-                <ref bean="vplexXivMaskingOrchestrator"/>
+		        <ref bean="vplexXivMaskingOrchestrator"/>		        	        
                 <ref bean="vplexUnityMaskingOrchestrator"/>
                 <ref bean="computeSystemController"/>
                 <ref bean="computeDeviceController"/>
@@ -1073,6 +1085,7 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+		        <ref bean="workflowService"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -1111,6 +1124,19 @@
         <property name="locker" ref="locker"/>
         <property name="ownerLocker" ref="distributedOwnerLockService" />
         <property name="scrubber" ref="workflowScrubber"/>
+    </bean>
+
+    <bean id="workflowController" class="com.emc.storageos.workflow.WorkflowControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="workflowService" />
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="WorkflowController"/>
+        <property name="service" ref="workflowController"/>
+        <property name="serviceInterface" value="com.emc.storageos.workflow.WorkflowController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
     </bean>
 
     <bean id="distributedOwnerLockService" class="com.emc.storageos.locking.DistributedOwnerLockServiceImpl">
@@ -1433,7 +1459,7 @@
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
 		<property name="workflowService" ref="workflowService" />
-                <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
+        <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
 		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
 		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />
@@ -1548,6 +1574,7 @@
         <property name="srdfDeviceController" ref="srdfDeviceController" />
         <property name="replicaDeviceController" ref="replicaDeviceController" />
         <property name="locker" ref="locker"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="blockOrchestrationController" class="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationControllerImpl">
@@ -1608,8 +1635,6 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
-    <!-- tbd fileorchestrationdevice controller exporter ends-->
-    
 
     <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">
@@ -1656,6 +1681,47 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
     </bean>
+
+    <bean id="validatorConfig" class="com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="vmaxValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.smis.vmax.VmaxSystemValidatorFactory">
+        <property name="helper" ref="vmaxSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+        <property name="cimPath" ref="vmaxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="xtremioValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremioSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+        <property name="clientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+
+    <bean id="vplexValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.vplex.VplexSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+    </bean>
+    
+    <bean id="vnxValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.smis.vnx.VnxSystemValidatorFactory">
+        <property name="helper" ref="vnxSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+        <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="validatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="systemFactories">
+            <map>
+                <entry key="vmax" value-ref="vmaxValidatorFactory"/>
+                <entry key="xtremio" value-ref="xtremioValidatorFactory"/>
+                <entry key="vplex" value-ref="vplexValidatorFactory"/>
+                <entry key="vnxblock" value-ref="vnxValidatorFactory"/>
+            </map>
+        </property>
+    </bean>
     
 	<bean id="xivRestOperationsHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRestOperationsHelper">
         <property name="dbClient" ref="dbclient"/>
@@ -1670,6 +1736,5 @@
         <property name="connManagerTimeout" value="60000" />
         <property name="needCertificateManager" value="true"/>
     </bean>
-    
 </beans>
 

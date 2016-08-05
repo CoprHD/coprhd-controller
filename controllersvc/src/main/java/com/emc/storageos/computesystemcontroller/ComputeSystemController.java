@@ -88,9 +88,10 @@ public interface ComputeSystemController extends Controller {
 
     public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException;
 
-    public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster) throws ControllerException;
+    public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException;
 
-    public void removeHostsFromExport(List<URI> hostId, URI clusterId, String taskId) throws ControllerException;
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, String taskId) throws ControllerException;
 
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 

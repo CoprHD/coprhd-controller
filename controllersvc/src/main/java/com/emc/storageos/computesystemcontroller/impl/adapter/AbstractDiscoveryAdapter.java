@@ -27,6 +27,7 @@ import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Host;
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.EventUtil;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -58,6 +60,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return modelClient;
     }
 
+    @Override
     public void setModelClient(ModelClient modelClient) {
         this.modelClient = modelClient;
     }
@@ -66,14 +69,17 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return dbClient;
     }
 
+    @Override
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
 
+    @Override
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
 
+    @Override
     public ComputeSystemDiscoveryVersionValidator getVersionValidator() {
         return versionValidator;
     }
@@ -121,11 +127,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Removes discovered IP interfaces from its host and ignores manually created IP interfaces
      * 
-     * @param ipInterfaces list of IP interfaces
+     * @param ipInterfaces
+     *            list of IP interfaces
      */
     protected void removeDiscoveredInterfaces(Iterable<IpInterface> ipInterfaces) {
         updateManuallyCreatedInterfaces(ipInterfaces);
         Iterable<IpInterface> discoveredInterfaces = Iterables.filter(ipInterfaces, new Predicate<IpInterface>() {
+            @Override
             public boolean apply(IpInterface ipInterface) {
                 return ipInterface.getIsManualCreation() != null
                         && !ipInterface.getIsManualCreation();
@@ -140,7 +148,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
      * are true. During next discovery, any discovered interfaces will have isManualCreation
      * value set to false.
      * 
-     * @param ipInterfaces list of IP interfaces
+     * @param ipInterfaces
+     *            list of IP interfaces
      */
     protected void updateManuallyCreatedInterfaces(Iterable<IpInterface> ipInterfaces) {
         for (IpInterface ipInterface : ipInterfaces) {
@@ -194,7 +203,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI);
+            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI, false);
         }
     }
 
@@ -207,17 +216,19 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.removeHostsFromExport(hostIds, clusterURI, taskId);
+            controller.removeHostsFromExport(hostIds, clusterURI, false, taskId);
         }
     }
 
     /**
      * Removes discovered initiators from its host and ignores manually created initiators
      * 
-     * @param initiators list of initiators
+     * @param initiators
+     *            list of initiators
      */
     protected void removeDiscoveredInitiators(Iterable<Initiator> initiators) {
         Iterable<Initiator> discoveredInitiators = Iterables.filter(initiators, new Predicate<Initiator>() {
+            @Override
             public boolean apply(Initiator initiator) {
                 return !initiator.getIsManualCreation();
             }
@@ -255,8 +266,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             initiator = new Initiator();
             initiator.setInitiatorPort(port);
             initiator.setLabel(EndpointUtility.changeCase(port));
-        }
-        else {
+        } else {
             initiators.remove(initiator);
         }
         initiator.setIsManualCreation(false);
@@ -286,15 +296,15 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
-        }
-        else {
+        } else {
             models.remove(model);
         }
         return model;
     }
 
     /**
-     * Finds a matching value in the list of IpInterfaces by ipAddress, or creates one if none is found. If a match is found in
+     * Finds a matching value in the list of IpInterfaces by ipAddress, or creates one if none is found. If a match is
+     * found in
      * the list, it will be removed from the list before returning.
      * 
      * @param models
@@ -319,8 +329,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void save(DataObject model) {
         if (model.getCreationTime() == null) {
             debug("Creating %s: %s", model.getClass().getSimpleName(), toString(model));
-        }
-        else {
+        } else {
             debug("Updating %s: %s", model.getClass().getSimpleName(), toString(model));
         }
         modelClient.save(model);
@@ -348,8 +357,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void error(String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().error(String.format(message, args));
-        }
-        else {
+        } else {
             getLog().error(message);
         }
     }
@@ -357,8 +365,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void warn(Throwable t, String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().warn(String.format(message, args), t);
-        }
-        else {
+        } else {
             getLog().warn(message, t);
         }
     }
@@ -366,8 +373,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void warn(String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().warn(String.format(message, args));
-        }
-        else {
+        } else {
             getLog().warn(message);
         }
     }
@@ -376,8 +382,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (getLog().isInfoEnabled()) {
             if (args != null && args.length > 0) {
                 getLog().info(String.format(message, args));
-            }
-            else {
+            } else {
                 getLog().info(message);
             }
         }
@@ -387,8 +392,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (getLog().isDebugEnabled()) {
             if (args != null && args.length > 0) {
                 getLog().debug(String.format(message, args));
-            }
-            else {
+            } else {
                 getLog().debug(message);
             }
         }
@@ -422,8 +426,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (StringUtils.isNotBlank(initiator.getInitiatorNode())) {
             return String.format("%s:%s [%s]", initiator.getInitiatorNode(), initiator.getInitiatorPort(),
                     initiator.getProtocol());
-        }
-        else {
+        } else {
             return String.format("%s [%s]", initiator.getInitiatorPort(), initiator.getProtocol());
         }
     }
@@ -433,14 +436,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         Throwable rootCause = getRootCause(t);
         if (rootCause instanceof UnknownHostException) {
             return "Unknown host: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof ConnectException) {
+        } else if (rootCause instanceof ConnectException) {
             return "Error connecting: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof NoRouteToHostException) {
+        } else if (rootCause instanceof NoRouteToHostException) {
             return "No route to host: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof SSLException) {
+        } else if (rootCause instanceof SSLException) {
             return "SSL error: " + rootCause.getMessage();
         }
         return getClosestErrorMessage(t);
@@ -478,8 +478,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Looks up controller dependency for given hardware
      * 
-     * @param clazz controller interface
-     * @param hw hardware name
+     * @param clazz
+     *            controller interface
+     * @param hw
+     *            hardware name
      * @param <T>
      * @return
      */
@@ -493,9 +495,92 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
-        String taskId = UUID.randomUUID().toString();
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.processHostChanges(changes, deletedHosts, deletedClusters, isVCenter, taskId);
+
+        log.info("There are " + changes.size() + " changes");
+
+        // Iterate through all host state changes and create states for all of the affected export groups
+        for (HostStateChange change : changes) {
+
+            log.info("HostChange: " + change);
+
+            Host host = dbClient.queryObject(Host.class, change.getHost().getId());
+
+            // For every host change (added/removed initiator, cluster change), get all exports that this host
+            // currently belongs to
+            List<Initiator> newInitiatorObjects = dbClient.queryObject(Initiator.class, change.getNewInitiators());
+            List<Initiator> oldInitiatorObjects = dbClient.queryObject(Initiator.class, change.getOldInitiators());
+
+            if ((change.getOldCluster() == null && change.getNewCluster() != null)
+                    || (change.getOldCluster() != null && change.getNewCluster() == null)
+                    || (change.getOldCluster() != null && change.getNewCluster() != null
+                            && !change.getOldCluster().equals(change.getNewCluster()))) {
+
+                Cluster cluster = null;
+                if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {
+                    cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
+                }
+
+                URI oldClusterURI = change.getOldCluster();
+                Cluster oldCluster = null;
+                if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+                    oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
+                }
+
+                boolean oldClusterInUse = oldCluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, oldCluster.getId());
+                boolean newClusterInUse = cluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, cluster.getId());
+
+                if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
+                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                            "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
+                                    + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
+                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                    + (cluster == null ? " N/A " : cluster.getLabel()),
+                            host,
+                            "hostClusterChange",
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    isVCenter });
+                } else {
+                    host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
+                    dbClient.updateObject(host);
+                    ComputeSystemHelper.updateInitiatorClusterName(dbClient, host.getCluster(), host.getId());
+                }
+            }
+
+            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+                for (Initiator oldInitiator : oldInitiatorObjects) {
+                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                            "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorPort(),
+                            "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
+                            oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
+                }
+                for (Initiator newInitiator : newInitiatorObjects) {
+                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                            "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorPort(),
+                            "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
+                            newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+                }
+            }
+        }
+
+        log.info("Number of deleted hosts: " + deletedHosts.size());
+
+        for (URI deletedHost : deletedHosts) {
+            Host host = dbClient.queryObject(Host.class, deletedHost);
+            EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
+                    "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
+                    "deleteHost", new Object[] { deletedHost });
+        }
+
+        log.info("Number of deleted clusters: " + deletedClusters.size());
+
+        for (URI deletedCluster : deletedClusters) {
+            Cluster cluster = dbClient.queryObject(Cluster.class, deletedCluster);
+            EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
+                    + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
+                    "deleteCluster", new Object[] { deletedCluster });
+        }
+
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it

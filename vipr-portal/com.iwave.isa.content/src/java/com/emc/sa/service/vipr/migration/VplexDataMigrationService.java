@@ -23,12 +23,16 @@ public class VplexDataMigrationService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
 
-    @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
+    @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
+
+    @Param(value = ServiceParams.MIGRATION_SUSPEND, required = false)
+    private Boolean migrationSuspend;
 
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup));
+        Tasks<VolumeRestRep> tasks = execute(
+                new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, migrationSuspend));
         addAffectedResources(tasks);
     }
 }

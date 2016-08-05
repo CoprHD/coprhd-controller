@@ -57,6 +57,7 @@ import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -69,6 +70,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -1693,20 +1695,55 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         args.setFsType(fsType);
         // Generate the Workflow.
         Workflow workflow = null;
-        MountCompleter completer = new MountCompleter(args.getHostId(), opId);
-        Host host = _dbClient.queryObject(Host.class, args.getHostId());
-        HostMountAdapter adapter = getMountAdapters().get(host.getType());
+        MountCompleter completer = new MountCompleter(args.getResId(), opId);
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this, MOUNT_DEVICE_WF_NAME, false, opId);
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(hostId.toString());
-            // _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
+            _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
             String waitFor = null; // the wait for key returned by previous call
-
             _log.info("Generating steps for mounting device");
+            // create a step
+            waitFor = workflow.createStep(null,
+                    String.format("Verifying mount point: %s", args.getMountPath()),
+                    null, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    verifyMountPointMethod(args),
+                    rollbackMethodNullMethod(), null);
 
-            adapter.addStepsForMountingDevice(workflow, waitFor, args, opId);
+            waitFor = workflow.createStep(null,
+                    String.format("Creating Directory: %s", args.getMountPath()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    createDirectoryMethod(args),
+                    deleteDirectoryMethod(args), null);
+
+            waitFor = workflow.createStep(null,
+                    String.format("Adding to etc/fstab:%n%s", args.getMountPath()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    addtoFSTabMethod(args),
+                    removeFromFSTabMethod(args), null);
+
+            waitFor = workflow.createStep(null,
+                    String.format("Mounting device:%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    mountDeviceMethod(args),
+                    removeFromFSTabMethod(args), null);
+
+            workflow.createStep(null,
+                    String.format("Setting tag on :%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    setMountTagMethod(args),
+                    removeMountTagMethod(args), null);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -1718,6 +1755,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
                     .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
             completer.error(_dbClient, exception);
+            _workflowService.releaseAllWorkflowLocks(workflow);
         }
     }
 
@@ -1729,9 +1767,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         args.setMountPath(mountPath);
         // Generate the Workflow.
         Workflow workflow = null;
-        MountCompleter completer = new MountCompleter(args.getHostId(), opId);
-        Host host = _dbClient.queryObject(Host.class, args.getHostId());
-        HostMountAdapter adapter = getMountAdapters().get(host.getType());
+        MountCompleter completer = new MountCompleter(args.getResId(), opId);
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this, UNMOUNT_DEVICE_WF_NAME, false, opId);
@@ -1739,10 +1775,39 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             lockKeys.add(hostId.toString());
             _workflowService.acquireWorkflowLocks(workflow, lockKeys, 300);
             String waitFor = null; // the wait for key returned by previous call
-
             _log.info("Generating steps for mounting device");
+            // create a step
+            waitFor = workflow.createStep(null,
+                    String.format("Unmounting device: %s", args.getMountPath()),
+                    null, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    unmountDeviceMethod(args),
+                    mountDeviceMethod(args), null);
 
-            adapter.addStepsForUnmountingDevice(workflow, waitFor, args, opId);
+            waitFor = workflow.createStep(null,
+                    String.format("removing from etc/fstab:%n%s", args.getMountPath()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    removeFromFSTabMethod(args),
+                    removeFromFSTabRollBackMethod(args), null);
+
+            waitFor = workflow.createStep(null,
+                    String.format("Delete Directory:%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    deleteDirectoryMethod(args),
+                    createDirectoryMethod(args), null);
+
+            workflow.createStep(null,
+                    String.format("Removing Tag on :%n%s", args.getResId()),
+                    waitFor, args.getHostId(),
+                    getHostType(args.getHostId()),
+                    this.getClass(),
+                    removeMountTagMethod(args),
+                    setMountTagMethod(args), null);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -1754,7 +1819,215 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
                     .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
             completer.error(_dbClient, exception);
+            _workflowService.releaseAllWorkflowLocks(workflow);
         }
+    }
+
+    public void createDirectory(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.createDirectory(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.addToFSTab(hostId, mountPath, resId, subDirectory, security, fsType);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void mount(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.mountDevice(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void verifyMountPoint(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.verifyMountPoint(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void deleteDirectory(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.deleteDirectory(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void removeFromFSTab(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.removeFromFSTab(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void unmount(URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.unmountDevice(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.setMountTag(hostId, mountPath, resId, subDirectory, security, fsType);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void removeMountTag(URI hostId, String mountPath, URI resId, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.removeMountTag(hostId, mountPath, resId);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            adapter.removeFromFSTabRollBack(hostId, mountPath, resId);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public Method createDirectoryMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("createDirectory", args.getHostId(), args.getMountPath());
+    }
+
+    public Method addtoFSTabMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("addToFSTab", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    public Method mountDeviceMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("mount", args.getHostId(), args.getMountPath());
+    }
+
+    public Method verifyMountPointMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("verifyMountPoint", args.getHostId(), args.getMountPath());
+    }
+
+    public Method unmountDeviceMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("unmount", args.getHostId(), args.getMountPath());
+    }
+
+    public Method removeFromFSTabMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeFromFSTab", args.getHostId(), args.getMountPath());
+    }
+
+    public Method removeFromFSTabRollBackMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeFromFSTabRollBack", args.getHostId(), args.getMountPath(), args.getResId());
+    }
+
+    public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("deleteDirectory", args.getHostId(), args.getMountPath());
+    }
+
+    public Method setMountTagMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("setMountTag", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
+    }
+
+    public Method removeMountTagMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("removeMountTag", args.getHostId(), args.getMountPath(), args.getResId());
+    }
+
+    /**
+     * Get the deviceType for a StorageSystem.
+     * 
+     * @param deviceURI
+     *            -- StorageSystem URI
+     * @return deviceType String
+     */
+    public String getHostType(URI hostURI) throws ControllerException {
+        Host host = _dbClient.queryObject(Host.class, hostURI);
+        if (host == null) {
+            throw DeviceControllerException.exceptions.getDeviceTypeFailed(hostURI.toString());
+        }
+        return host.getType();
     }
 
 }

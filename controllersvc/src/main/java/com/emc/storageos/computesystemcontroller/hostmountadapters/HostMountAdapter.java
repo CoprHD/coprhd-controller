@@ -4,13 +4,12 @@
  */
 package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
+import java.net.URI;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.Workflow.Method;
 
 /**
  * 
@@ -30,27 +29,23 @@ public interface HostMountAdapter {
 
     public void doUnmount(HostDeviceInputOutput args) throws ControllerException;
 
-    public Method createDirectoryMethod(HostDeviceInputOutput args);
+    public void createDirectory(URI hostId, String mountPath);
 
-    public Method addtoFSTabMethod(HostDeviceInputOutput args);
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType);
 
-    public Method mountDeviceMethod(HostDeviceInputOutput args);
+    public void mountDevice(URI hostId, String mountPath);
 
-    public Method verifyMountPointMethod(HostDeviceInputOutput args);
+    public void verifyMountPoint(URI hostId, String mountPath);
 
-    public Method unmountDeviceMethod(HostDeviceInputOutput args);
+    public void deleteDirectory(URI hostId, String mountPath);
 
-    public Method removeFromFSTabMethod(HostDeviceInputOutput args);
+    public void removeFromFSTab(URI hostId, String mountPath);
 
-    public Method deleteDirectoryMethod(HostDeviceInputOutput args);
+    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId);
 
-    public Method setMountTagMethod(HostDeviceInputOutput args);
+    public void unmountDevice(URI hostId, String mountPath);
 
-    public Method removeMountTagMethod(HostDeviceInputOutput args);
+    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType);
 
-    public String addStepsForMountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
-            throws InternalException;
-
-    String addStepsForUnmountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
-            throws InternalException;
+    public void removeMountTag(URI hostId, String mountPath, URI resId);
 }

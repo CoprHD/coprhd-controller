@@ -22,12 +22,9 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.Workflow.Method;
 
-public class AbstractMountAdapter implements HostMountAdapter {
+public abstract class AbstractMountAdapter implements HostMountAdapter {
     private Logger log;
 
     protected final static String CONTROLLER_SVC = "controllersvc";
@@ -208,70 +205,61 @@ public class AbstractMountAdapter implements HostMountAdapter {
     }
 
     @Override
-    public Method createDirectoryMethod(HostDeviceInputOutput args) {
+    public void createDirectory(URI hostId, String mountPath) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method addtoFSTabMethod(HostDeviceInputOutput args) {
+    public void addToFSTab(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method mountDeviceMethod(HostDeviceInputOutput args) {
+    public void mountDevice(URI hostId, String mountPath) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method verifyMountPointMethod(HostDeviceInputOutput args) {
+    public void verifyMountPoint(URI hostId, String mountPath) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method unmountDeviceMethod(HostDeviceInputOutput args) {
+    public void deleteDirectory(URI hostId, String mountPath) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method removeFromFSTabMethod(HostDeviceInputOutput args) {
+    public void removeFromFSTab(URI hostId, String mountPath) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
+    public void unmountDevice(URI hostId, String mountPath) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method setMountTagMethod(HostDeviceInputOutput args) {
+    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
     @Override
-    public Method removeMountTagMethod(HostDeviceInputOutput args) {
+    public void removeMountTag(URI hostId, String mountPath, URI resId) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
-    @Override
-    public String addStepsForMountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
-            throws InternalException {
+    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId) {
         // TODO Auto-generated method stub
-        return null;
-    }
 
-    @Override
-    public String addStepsForUnmountingDevice(Workflow workflow, String waitFor, HostDeviceInputOutput args, String taskId)
-            throws InternalException {
-        // TODO Auto-generated method stub
-        return null;
     }
 }

@@ -16,27 +16,18 @@
  */
 package com.emc.storageos.driver.dellsc.scapi.objects;
 
-import java.util.Date;
-
 /**
- * Storage Center snapshot "replays".
+ * Mapping profile definitions.
  */
-public class ScReplay extends ScObject {
-    public boolean active;
-    public ScObject consistencyGroup;
-    public boolean consistent;
-    public ScObject createVolume;
-    public String description;
-    public Date expireTime;
-    public boolean expires;
-    public Date freezeTime;
-    public String globalIndex;
-    public boolean markedForExpiration;
-    public ScObject parent;
-    public ScObject replayProfile;
-    public ScObject replayProfileRule;
-    public String size;
-    public String source;
-    public boolean spaceRecovery;
-    public long writesHeldDuration;
+public class ScMappingProfile extends ScObject {
+    public String connectivity;
+    public ScObject controller;
+    public boolean hostCache;
+    public String lunRequested;
+    public int[] lunUsed;
+    public int mapCount;
+    public String mappedVia;
+    public boolean readOnly;
+    public ScObject server;
+    public ScObject volume;
 }

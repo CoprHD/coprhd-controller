@@ -30,12 +30,16 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChanne
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScCopyMirrorMigrate;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScMapping;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScMappingProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScObject;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScPhysicalServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayConsistencyGroup;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScServerOperatingSystem;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageTypeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
@@ -301,7 +305,7 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
-     * Gets all server definions on the array.
+     * Gets all server definitions on the array.
      * 
      * @param ssn The Storage Center system serial number.
      * @return The server definitions.
@@ -316,6 +320,36 @@ public class StorageCenterAPI implements AutoCloseable {
         }
 
         return new ScServer[0];
+    }
+
+    /**
+     * Gets a specific server definition.
+     *
+     * @param instanceId The server instance ID.
+     * @return The server or null if not found.
+     */
+    public ScServer getServerDefinition(String instanceId) {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScServer/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScServer.class);
+        }
+
+        return null;
+    }
+
+    /**
+     * Gets a specific physical server definition.
+     *
+     * @param instanceId The server instance ID.
+     * @return The server or null if not found.
+     */
+    public ScPhysicalServer getPhysicalServerDefinition(String instanceId) {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScPhysicalServer/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScPhysicalServer.class);
+        }
+
+        return null;
     }
 
     /**
@@ -858,6 +892,265 @@ public class StorageCenterAPI implements AutoCloseable {
         rr = restClient.put(String.format("StorageCenter/ScVolumeConfiguration/%s", instanceId), params.toJson());
         if (!checkResults(rr)) {
             throw new StorageCenterAPIException(String.format("Error updating volume replay profile membership: %s", rr.getErrorMsg()));
+        }
+    }
+
+    /**
+     * Gets a replay profile with the given ID.
+     *
+     * @param instanceId The replay profile instance ID.
+     * @return The replay profile.
+     * @throws StorageCenterAPIException
+     */
+    public ScReplayProfile getConsistencyGroup(String instanceId) throws StorageCenterAPIException {
+
+        RestResult rr = restClient.get(String.format("StorageCenter/ScReplayProfile/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScReplayProfile.class);
+        }
+
+        String message = String.format("Error getting replay profile : %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets existing mapping profiles between a server and volume.
+     *
+     * @param volInstanceId The volume instance ID.
+     * @param serverInstanceId The server instance ID.
+     * @return The mapping profiles between the two.
+     */
+    public ScMappingProfile[] getServerVolumeMapping(String volInstanceId, String serverInstanceId) {
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("volume", volInstanceId);
+        filter.append("server", serverInstanceId);
+
+        RestResult rr = restClient.post("StorageCenter/ScMappingProfile/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScMappingProfile[].class);
+        }
+
+        return new ScMappingProfile[0];
+    }
+
+    /**
+     * Maps a volume to a server.
+     *
+     * @param volInstanceId The volume instance ID.
+     * @param serverInstanceId The server instance ID.
+     * @param preferredLun The preferred LUN to use or -1 to let the system decided.
+     * @return The created mapping profile.
+     * @throws StorageCenterAPIException
+     */
+    public ScMappingProfile createVolumeMappingProfile(String volInstanceId, String serverInstanceId, int preferredLun)
+            throws StorageCenterAPIException {
+        Parameters advancedParams = new Parameters();
+        advancedParams.add("MapToDownServerHbas", true);
+        if (preferredLun != -1) {
+            // TODO: Will add later
+            LOG.warn("Preferred LUN not supported at this time.");
+        }
+        Parameters params = new Parameters();
+        params.add("server", serverInstanceId);
+        params.add("Advanced", advancedParams.toJson());
+
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScVolume/%s/MapToServer", volInstanceId), params.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScMappingProfile.class);
+        }
+
+        throw new StorageCenterAPIException(
+                String.format("Error creating volume mapping: %s", rr.getErrorMsg()));
+    }
+
+    /**
+     * Gets the individual maps created for a mapping profile.
+     *
+     * @param instanceId The mapping profile instance ID.
+     * @return The mappings.
+     * @throws StorageCenterAPIException
+     */
+    public ScMapping[] getMappingProfileMaps(String instanceId) throws StorageCenterAPIException {
+
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScMappingProfile/%s/MappingList", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScMapping[].class);
+        }
+
+        String message = String.format("Error getting volume maps: %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets a controller port.
+     *
+     * @param instanceId The controller port ID.
+     * @return The controller port.
+     * @throws StorageCenterAPIException
+     */
+    public ScControllerPort getControllerPort(String instanceId) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(
+                String.format("/StorageCenter/ScControllerPort/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScControllerPort.class);
+        }
+
+        String error = String.format("Error getting controller port %s: %s", instanceId, rr.getErrorMsg());
+        throw new StorageCenterAPIException(error);
+    }
+
+    /**
+     * Add an HBA to a server definition.
+     *
+     * @param instanceId The server instance ID.
+     * @param iqnOrWwn The IQN or WWN to add.
+     * @param isIscsi Whether it is iSCSI or FC.
+     * @return True if successful, false otherwise.
+     */
+    public boolean addHbaToServer(String instanceId, String iqnOrWwn, boolean isIscsi) {
+        Parameters params = new Parameters();
+        params.add("HbaPortType", isIscsi ? "Iscsi" : "FibreChannel");
+        params.add("WwnOrIscsiName", iqnOrWwn);
+        params.add("AllowManual", true);
+
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScPhysicalServer/%s/AddHba", instanceId), params.toJson());
+        return checkResults(rr);
+    }
+
+    /**
+     * Create a new server definition.
+     *
+     * @param ssn The Storage Center system serial number.
+     * @param hostName The host name.
+     * @param iqnOrWwn The IQN or WWN to add.
+     * @param isIscsi Whether it is iSCSI or FC.
+     * @param osId The OS instance ID.
+     * @return The created server.
+     * @throws StorageCenterAPIException
+     */
+    public ScPhysicalServer createServer(String ssn, String hostName, String iqnOrWwn, boolean isIscsi, String osId)
+            throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        params.add("Name", hostName);
+        params.add("StorageCenter", ssn);
+        params.add("Notes", "Created by CoprHD driver");
+        params.add("OperatingSystem", osId);
+
+        RestResult rr = restClient.post("StorageCenter/ScPhysicalServer", params.toJson());
+        if (!checkResults(rr)) {
+            String error = String.format("Error creating server '%s': %s", hostName, rr.getErrorMsg());
+            throw new StorageCenterAPIException(error);
+        }
+
+        ScPhysicalServer server = gson.fromJson(rr.getResult(), ScPhysicalServer.class);
+        if (!addHbaToServer(server.instanceId, iqnOrWwn, isIscsi)) {
+            String error = String.format(
+                    "Server '%s' created, but failed to add initiator %s", hostName, iqnOrWwn);
+            throw new StorageCenterAPIException(error);
+        }
+
+        return server;
+    }
+
+    /**
+     * Creates a new cluster server definition.
+     *
+     * @param ssn The Storage Center serial number.
+     * @param clusterName The cluster name.
+     * @param osId The OS instance ID.
+     * @return The created server.
+     * @throws StorageCenterAPIException
+     */
+    public ScServer createClusterServer(String ssn, String clusterName, String osId) throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        params.add("Name", clusterName);
+        params.add("StorageCenter", ssn);
+        params.add("Notes", "Created by CoprHD driver");
+        params.add("OperatingSystem", osId);
+
+        RestResult rr = restClient.post("StorageCenter/ScServerCluster", params.toJson());
+        if (!checkResults(rr)) {
+            String error = String.format("Error creating cluster server '%s': %s", clusterName, rr.getErrorMsg());
+            throw new StorageCenterAPIException(error);
+        }
+
+        return gson.fromJson(rr.getResult(), ScServer.class);
+    }
+
+    /**
+     * Move a server under a cluster.
+     *
+     * @param serverId The server instance ID.
+     * @param clusterId The cluster instance ID.
+     * @return True if successful, false otherwise.
+     */
+    public boolean setAddServerToCluster(String serverId, String clusterId) {
+        Parameters params = new Parameters();
+        params.add("Parent", clusterId);
+
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScPhysicalServer/%s/AddToCluster", serverId), params.toJson());
+        return checkResults(rr);
+    }
+
+    /**
+     * Gets the OS types.
+     * 
+     * @param ssn The Storage Center system serial number.
+     * @param product The product to filter on or null.
+     * @return The OS types.
+     */
+    public ScServerOperatingSystem[] getServerOperatingSystems(String ssn, String product) {
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("scSerialNumber", ssn);
+        if (product != null && !product.isEmpty()) {
+            filter.append("product", product);
+        }
+
+        RestResult rr = restClient.post("StorageCenter/ScServerOperatingSystem/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScServerOperatingSystem[].class);
+        }
+
+        return new ScServerOperatingSystem[0];
+    }
+
+    /**
+     * Finds mapping between a server and volume.
+     *
+     * @param serverId The server instance ID.
+     * @param volumeId The volume instance ID.
+     * @return The mapping profiles.
+     * @throws StorageCenterAPIException
+     */
+    public ScMappingProfile[] findMappingProfiles(String serverId, String volumeId) throws StorageCenterAPIException {
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("server", serverId);
+        filter.append("volume", volumeId);
+
+        RestResult rr = restClient.post("StorageCenter/ScMappingProfile/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScMappingProfile[].class);
+        }
+
+        String message = String.format("Error getting mapping profiles from server %s and volume %s: %s",
+                serverId, volumeId, rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Deletes a mapping profile.
+     *
+     * @param instanceId The mapping profile instance ID.
+     * @throws StorageCenterAPIException
+     */
+    public void deleteMappingProfile(String instanceId) throws StorageCenterAPIException {
+        RestResult rr = restClient.delete(String.format("StorageCenter/ScMappingProfile/%s", instanceId));
+        if (!checkResults(rr)) {
+            throw new StorageCenterAPIException(rr.getErrorMsg());
         }
     }
 }

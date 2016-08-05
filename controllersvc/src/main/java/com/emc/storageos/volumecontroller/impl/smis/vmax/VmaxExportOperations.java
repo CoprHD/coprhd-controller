@@ -4345,8 +4345,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     List<String> newChildGroups = childGroupsByFast.get(newVirtualPoolPolicyLimits);
                     CIMObjectPath newChildGroupPath = null;
                     boolean newGroup = false;
+                    String newChildGroupName = null;
                     if (newChildGroups != null && !newChildGroups.isEmpty()) {
-                        String newChildGroupName = newChildGroups.iterator().next();
+                        newChildGroupName = newChildGroups.iterator().next();
                         newChildGroupPath = _cimPath.getMaskingGroupPath(storage, newChildGroupName,
                                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                     } else {
@@ -4365,12 +4366,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         }
                         addGroupsToCascadedVolumeGroup(storage, parentGroupName, newChildGroupPath, null, null, forceFlag);
                     }
+                    
+                    // We need a no-op if old child group is same as new child group
+                    //COP 24436: ViPR was upgraded post SMI-S upgrade to AFA due to which ViPR was not aware that 
+                    //the SG characteristics were matching the current Virtual Pool characteristics relating to compression.
+                    //We could enter the same situation if any of the SG characteristics were modified without ViPR knowledge.
+                    if (newChildGroupName == childGroupName) {
+                        _log.info("Current Storage Group {} has the required charcteristics" +
+                                "No need to invoke SMI-S moveMembers method. Performing NO-OP", newChildGroupName);
+                    }
+                    else {
+                        SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
+                                SmisConstants.MOVE_MEMBERS);
+                        _helper.moveVolumesFromOneStorageGroupToAnother(storage,
+                                childGroupPath, newChildGroupPath, volumeURIs,
+                                moveVolumesToSGJob);
+                    }
 
-                    SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
-                            SmisConstants.MOVE_MEMBERS);
-                    _helper.moveVolumesFromOneStorageGroupToAnother(storage,
-                            childGroupPath, newChildGroupPath, volumeURIs,
-                            moveVolumesToSGJob);
 
                     if (newGroup) {
                         // update host IO limits if need be

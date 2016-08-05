@@ -57,7 +57,7 @@ public class ServiceField extends ServiceItem {
     private Map<String, String> options = Maps.newLinkedHashMap();
     
     /** The dynamicHelp. */
-    private String dynamicHelp ;
+    private String dynamicHelp;
 
     public boolean isRequired() {
         return required;
@@ -108,11 +108,11 @@ public class ServiceField extends ServiceItem {
     }
     
     public String getDynamicHelp() {
-        return dynamicHelp;
+        return initialValue;
     }
 
     public void setDynamicHelp(String dynamicHelp) {
-        this.dynamicHelp = getDynamicHelpType(dynamicHelp);
+        this.dynamicHelp = dynamicHelp;
     }
 
     public Map<String, String> getOptions() {
@@ -141,13 +141,6 @@ public class ServiceField extends ServiceItem {
 
     public String getAssetType() {
         return StringUtils.substringAfter(getType(), ASSET_TYPE_PREFIX);
-    }
-    
-    public String getDynamicHelpType(String input) {
-        if (input != null && !input.isEmpty()) {
-            return StringUtils.substringAfter(input, ASSET_TYPE_PREFIX);
-        }
-        return null;
     }
 
     @Override

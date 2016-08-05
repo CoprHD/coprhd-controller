@@ -3782,10 +3782,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         if (removeVolumes != null && !removeVolumes.isEmpty()) {
-            removeVolumesURI = new ArrayList<URI>();
-            for (Volume vol : removeVolumes) {
-                removeVolumesURI.add(vol.getId());
-            }
+            removeVolumesURI = getValidVolumesToRemoveFromCG(removeVolumes);
             if (firstVolume == null) {
                 firstVolume = removeVolumes.get(0);
             }
@@ -3844,6 +3841,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 "Volume has to be added to a different replication group than it is currently in");
                     }
                 }
+                // Check if the backend volume is unity, and the subgroup already has snapshot.
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(volumeList.getReplicationGroupName(), backendVol, _dbClient, true)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "the Unity subgroup has snapshot.");
+                }
+
+            } else {
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(volumeList.getReplicationGroupName(), volume, _dbClient, true)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "the Unity subgroup has snapshot.");
+                }
             }
         }
 
@@ -3853,6 +3861,39 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         outVolumesList.setVolumes(addVolumeURIs);
 
         return outVolumesList;
+    }
+    
+    /**
+     * Get valid volumes to remove for volume group updating
+     * Unity array does not support remove volumes from the CG, which has snapshots.
+     * 
+     * @param removeVolumes The volumes to be removed from the application
+     * @return the validated to-beremoved volumes URI list
+     */
+    List<URI> getValidVolumesToRemoveFromCG(List<Volume> removeVolumes) {
+        List<URI> result = new ArrayList<URI>();
+        for (Volume vol : removeVolumes) {
+            boolean vplex = RPHelper.isVPlexVolume(vol);
+            if (vplex) {
+             // get the backend volume
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(vol, true, _dbClient);
+                if (backendVol != null) {
+                    // Check if the backend volume is unity, and the subgroup already has snapshot.
+                    if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backendVol, _dbClient, false)) {
+                        throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(vol.getLabel(),
+                                "the Unity subgroup has snapshot.");
+                    }
+                }
+            } else {
+                if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, vol, _dbClient, false)) {
+                    throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(vol.getLabel(),
+                            "the Unity subgroup has snapshot.");
+                }
+            }
+            result.add(vol.getId());
+        }
+        return result;
+        
     }
 
     /*

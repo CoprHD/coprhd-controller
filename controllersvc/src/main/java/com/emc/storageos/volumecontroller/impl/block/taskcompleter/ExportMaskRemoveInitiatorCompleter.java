@@ -70,4 +70,8 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
             super.ready(dbClient);
         }
     }
+
+    public boolean removeInitiator(URI initiator) {
+        return _initiatorURIs.remove(initiator);
+    }
 }

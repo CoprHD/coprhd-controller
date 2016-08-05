@@ -530,6 +530,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vPoolCapabilities, volume.getCapacity());
             
             // Set the compute resource in the descriptor if the volume to be created will be exported
+
             // to a host/cluster after it has been created so that the compute resource name can be 
             // included in the volume name if the custom volume naming is so configured. Do not set the
             // compute resource if the descriptor is for an SRDF target as the target is not exported
@@ -3885,7 +3886,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
         controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
     }
-
+    
     /**
      * Sort the recommendations by VirtualArray. There can be up to two
      * VirtualArrays, the requested VirtualArray and the HA VirtualArray
@@ -3893,16 +3894,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * are being created. We also set the VPlex storage system, which
      * should be the same for all recommendations.
      * 
-     * @param recommendations
-     *            -- list of Recommendations
-     * @param vplexSystemURIOut
-     *            -- Output parameter the Vplex system URI
+     * @param recommendations -- list of Recommendations
+     * @param vplexSystemURIOut -- Output parameter the Vplex system URI
      * @return
      */
     private Map<String, List<VPlexRecommendation>> sortRecommendationsByVarray(
             List<Recommendation> recommendations, URI[] vplexSystemURIOut) {
         URI vplexStorageSystemURI = null;
-        Map<String, List<VPlexRecommendation>> varrayRecommendationsMap = new HashMap<String, List<VPlexRecommendation>>();
+        Map<String, List<VPlexRecommendation>> varrayRecommendationsMap =
+                new HashMap<String, List<VPlexRecommendation>>();
         for (Recommendation recommendation : recommendations) {
             VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendation;
             String varrayId = vplexRecommendation.getVirtualArray().toString();
@@ -3921,51 +3921,39 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         return varrayRecommendationsMap;
     }
-
     /**
-     * Takes a list of recommendations and makes the backend volumes and volume descriptors needed to
+     * Takes a list of recommendations and makes the backend volumes and volume descriptors needed to 
      * provision. When possible (e.g. for SRDF and Block), All recommendations must be in single varray.
      * calls the underlying storage routine createVolumesAndDescriptors().
-     * 
-     * @param recommendations
-     *            -- a VPlex recommendation list
-     * @param project
-     *            - Project containing the Vplex volumes
-     * @param vplexProject
-     *            -- private project of the Vplex
-     * @param rootVpool
-     *            -- top level Virtual Pool (VpoolUse.ROOT)
-     * @param varrayCount
-     *            -- instance count of the varray being provisioned
-     * @param size
-     *            -- size of each volume
-     * @param backendCG
-     *            -- the CG to be used on the backend Storage Systems
-     * @param vPoolCapabilities
-     *            - a VirtualPoolCapabilityValuesWrapper containing provisioning arguments
-     * @param createTask
-     *            -- boolean if true creates a task
-     * @param task
-     *            -- Overall task id
+     * @param recommendations -- a VPlex recommendation list
+     * @param project - Project containing the Vplex volumes
+     * @param vplexProject -- private project of the Vplex
+     * @param rootVpool -- top level Virtual Pool (VpoolUse.ROOT)
+     * @param varrayCount -- instance count of the varray being provisioned
+     * @param size -- size of each volume
+     * @param backendCG -- the CG to be used on the backend Storage Systems
+     * @param vPoolCapabilities - a VirtualPoolCapabilityValuesWrapper containing provisioning arguments
+     * @param createTask -- boolean if true creates a task
+     * @param task -- Overall task id
      * @return -- list of VolumeDescriptors to be provisioned
      */
     private List<VolumeDescriptor> makeBackendVolumeDescriptors(
-            List<VPlexRecommendation> recommendations,
+            List<VPlexRecommendation> recommendations, 
             Project project, Project vplexProject, VirtualPool rootVpool,
-            String volumeLabel, int varrayCount, long size,
+            String volumeLabel, int varrayCount, long size, 
             BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             boolean createTask, String task) {
         VPlexRecommendation firstRecommendation = recommendations.get(0);
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
         URI varrayId = firstRecommendation.getVirtualArray();
         VirtualPool vpool = firstRecommendation.getVirtualPool();
-
-        s_logger.info("Generated backend descriptors for {} recommendations varray {}",
+        
+        s_logger.info("Generated backend descriptors for {} recommendations varray {}", 
                 recommendations.size(), varrayCount);
-
+        
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
                 vpool.getAutoTierPolicyName());
-
+        
         if (firstRecommendation.getRecommendation() != null) {
             // If these recommendations have lower level recommendation, process them.
             // This path is used for the source side of Distributed Volumes and for Local volumes
@@ -3977,12 +3965,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 childRecommendations.add(childRecommendation);
             }
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
-
+            
             String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, 0, 0);
             boolean srdfTarget = (childRecommendation instanceof SRDFCopyRecommendation);
             boolean srdfSource = (childRecommendation instanceof SRDFRecommendation);
             if (srdfTarget) {
-                newVolumeLabel = newVolumeLabel + "-target";
+                newVolumeLabel = newVolumeLabel+"-target";
             } else if (srdfSource) {
             } else {
                 // nothing special about these volumes, hide them in the vplex project
@@ -3990,19 +3978,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // grom the project.
                 project = vplexProject;
             }
-
+            
             TaskList taskList = new TaskList();
-            descriptors = super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project,
-                    varray, vpool, childRecommendations, taskList, task, vPoolCapabilities);
+            descriptors = 
+                    super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project, 
+                            varray, vpool, childRecommendations, taskList, task, vPoolCapabilities);
             VolumeDescriptor.Type[] types;
             if (srdfTarget) {
-                types = new VolumeDescriptor.Type[] {
-                        VolumeDescriptor.Type.SRDF_TARGET };
+                types =  new VolumeDescriptor.Type[] { 
+                        VolumeDescriptor.Type.SRDF_TARGET};
             } else {
-                types = new VolumeDescriptor.Type[] {
-                        VolumeDescriptor.Type.BLOCK_DATA,
-                        VolumeDescriptor.Type.SRDF_SOURCE,
-                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE };
+                types =  new VolumeDescriptor.Type[] { 
+                                VolumeDescriptor.Type.BLOCK_DATA, 
+                                VolumeDescriptor.Type.SRDF_SOURCE, 
+                                VolumeDescriptor.Type.SRDF_EXISTING_SOURCE};
             }
             descriptors = VolumeDescriptor.filterByType(descriptors, types);
             for (VolumeDescriptor descriptor : descriptors) {
@@ -4015,29 +4004,29 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
             return descriptors;
         }
-
+        
         // Sum resourceCount across all recommendations
         int totalResourceCount = 0;
-        for (VPlexRecommendation recommendation : recommendations) {
+        for (VPlexRecommendation recommendation: recommendations) {
             totalResourceCount += recommendation.getResourceCount();
         }
         // The code below is used for the HA side of distributed volumes.
         // The HA side does not currently call the lower level schedulers to get descriptors.
         s_logger.info("Processing recommendations for Virtual Array {}", varrayId);
         int volumeCounter = 0;
-
+        
         for (VPlexRecommendation recommendation : recommendations) {
             for (int i = 0; i < recommendation.getResourceCount(); i++) {
                 vpool = recommendation.getVirtualPool();
                 URI storageDeviceURI = recommendation.getSourceStorageSystem();
                 URI storagePoolURI = recommendation.getSourceStoragePool();
-
+                
                 String newVolumeLabel = generateVolumeLabel(
                         volumeLabel, varrayCount, volumeCounter, totalResourceCount);
                 validateVolumeLabel(newVolumeLabel, project);
 
                 s_logger.info("Volume label is {}", newVolumeLabel);
-                VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
+                VirtualArray varray = _dbClient.queryObject(VirtualArray.class,varrayId);
 
                 // This is also handled in StorageScheduler.prepareRecomendedVolumes
                 long thinVolumePreAllocationSize = 0;
@@ -4064,25 +4053,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 VolumeDescriptor descriptor = new VolumeDescriptor(
                         VolumeDescriptor.Type.BLOCK_DATA, storageDeviceURI, volume.getId(),
                         storagePoolURI, backendCG == null ? null : backendCG.getId(),
-                        vPoolCapabilities, size);
+                                vPoolCapabilities, size);
                 descriptors.add(descriptor);
                 volumeCounter++;
-            }
+            } 
         }
         return descriptors;
     }
-
+    
     /**
      * Configures the consistency group(s) and sets the volume replicationGroupInstance.
-     * 
-     * @param rootVpool
-     *            - root VirtualPool
-     * @param vPoolCapabilities
-     *            -- a VirtualPoolCapabilitiesWrapper
-     * @param backendCG
-     *            -- the consistency group for the backend array
-     * @param volume
-     *            -- volume being configured
+     * @param rootVpool - root VirtualPool
+     * @param vPoolCapabilities -- a VirtualPoolCapabilitiesWrapper
+     * @param backendCG -- the consistency group for the backend array
+     * @param volume -- volume being configured
      */
     private void configureCGAndReplicationGroup(VirtualPool rootVpool, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             BlockConsistencyGroup backendCG, Volume volume) {
@@ -4091,9 +4075,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             return;
         }
         // If this is the HA side of a VPLEX-SRDF virtual volume, then don't allow a consistency group.
-        // This is necessary so that we want try to set up snapshot sessions or replicationGroupInstances on the HA
-        // volume.
-        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(rootVpool)
+        // This is necessary so that we want try to set up snapshot sessions or replicationGroupInstances on the HA volume.
+        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(rootVpool) 
                 && !VirtualPool.getRemoteProtectionSettings(rootVpool, _dbClient).isEmpty()
                 && !volume.checkForSRDF()) {
             if (volume.getConsistencyGroup() != null) {
@@ -4108,7 +4091,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // This is not handled in StorageScheduler.
         String rpPersonality = vPoolCapabilities.getPersonality();
         boolean isRPTargetOrJournal = false;
-        if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name())
+        if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name()) 
                 || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
             s_logger.info("{} {} is RP target or journal volume", volume.getLabel(), volume.getId());
             isRPTargetOrJournal = true;
@@ -4128,13 +4111,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
             volume.setReplicationGroupInstance(repGroupInstance);
         }
-
+        
         // Set the volume's consistency group
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
         }
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -4166,10 +4149,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * get backing volumes to be removed from the application
      *
-     * @param removeVolIds
-     *            output list of volume ids
-     * @param removeVolumes
-     *            input list of volumes
+     * @param removeVolIds output list of volume ids
+     * @param removeVolumes input list of volumes
      * @return URI of the storage system the backing volumes are in (this will need to change)
      */
     private URI getVolumesToRemoveFromApplication(List<URI> removeVolIds, List<Volume> removeVolumes) {
@@ -4179,6 +4160,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             for (Volume removeVol : removeVolumes) {
                 if (systemURI == null) {
                     systemURI = removeVol.getStorageController();
+                }
+                StringSet backingVolumes = removeVol.getAssociatedVolumes();
+                if (backingVolumes != null ) {
+                    for (String backingVolId : backingVolumes) {
+                        URI backingVolUri = URI.create(backingVolId);
+                        Volume backingVol = _dbClient.queryObject(Volume.class, backingVolUri);
+                        if (backingVol != null &&
+                                !BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(null, backingVol, _dbClient, false)) {
+                            throw APIException.badRequests.volumeCantBeRemovedFromVolumeGroup(removeVol.getLabel(),
+                                "the Unity subgroup has snapshot");
+                        }
+                    }
                 }
                 removeVolIds.add(removeVol.getId());
             }
@@ -4190,14 +4183,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * get backing volumes to be added the the application
      *
-     * @param addVols
-     *            output list of volumes to be added after validation
-     * @param addVolumes
-     *            input list of volumes to add
-     * @param volumeGroup
-     *            application to add to
-     * @param taskId
-     *            task id used if some volumes are already in a backend array CG
+     * @param addVols output list of volumes to be added after validation
+     * @param addVolumes input list of volumes to add
+     * @param volumeGroup application to add to
+     * @param taskId task id used if some volumes are already in a backend array CG
      * @return URI of the storage system the backing volumes are in (this will need to change)
      */
     public URI getVolumesToAddToApplication(ApplicationAddVolumeList addVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup,
@@ -4235,10 +4224,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         String error = String.format("the backing volume %s for the VPLEX virtual volume has been deleted", backingVolId);
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(), error);
                     }
-
+                    
                     if (backingVol.checkForSRDF()) {
-                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
-                                "Vplex volumes with SRDF protection are not supported with applications");
+                    	throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(), 
+                    			"Vplex volumes with SRDF protection are not supported with applications");
                     }
 
                     String rgName = backingVol.getReplicationGroupInstance();
@@ -4247,6 +4236,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
                                     "Volume has to be added to a different replication group than it is currently in");
                         }
+                    }
+                    if (!BlockServiceUtils.checkUnityVolumeCanBeAddedOrRemovedToCG(addVolumes.getReplicationGroupName(), backingVol, _dbClient, true)) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
+                                "the Unity subgroup has snapshot.");
                     }
                 }
             }
@@ -4263,8 +4256,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * (non-Javadoc)
      *
      * @see
-     * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.
-     * model.VolumeGroup)
+     * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
      */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
@@ -4334,13 +4326,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
 
     /**
-     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage
-     * system
+     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
      *
-     * @param groupName
-     *            The replication group name
-     * @param storageSystemUri
-     *            The backend storage system URI
+     * @param groupName The replication group name
+     * @param storageSystemUri The backend storage system URI
      * @return The list of Vplex virtual volumes
      */
     private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
@@ -4373,8 +4362,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *
      * @param backnedVol
      * @param allVolumes
-     * @param checkedRGMap
-     *            a map contained RG that has been checked
+     * @param checkedRGMap a map contained RG that has been checked
      * @return boolean
      */
     public boolean checkAllVPlexVolsInRequest(Volume backendVol, Set<URI> allVolumes, Map<String, Boolean> checkedRGMap) {
@@ -4406,8 +4394,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * consistency group with corresponding consistency group(s) for the backend
      * storage.
      *
-     * @param volumes
-     *            The list of volumes to check
+     * @param volumes The list of volumes to check
      *
      * @return A reference to the CG if any of the passed volumes is A VPLEX
      *         volume in a VPLEX consistency group with corresponding
@@ -4433,11 +4420,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         return cg;
     }
-
+    
     /**
-     * The underlying layers may generate volume names in a different ordering than we do so
+     * The underlying layers may generate volume names in a different ordering than we do so 
      * make sure that the volume names match the underlying volume names.
-     * 
      * @param assocVolume
      * @return
      */
@@ -4453,5 +4439,5 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("generateLabelFromAssociatedVolume: " + builder.toString());
         return builder.toString();
     }
-
+    
 }

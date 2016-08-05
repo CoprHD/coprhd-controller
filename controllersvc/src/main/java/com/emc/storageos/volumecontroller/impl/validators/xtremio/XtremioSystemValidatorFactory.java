@@ -11,7 +11,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -22,6 +21,7 @@ import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidator
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 
 /**
@@ -34,7 +34,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     private DbClient dbClient;
     private XtremIOClientFactory clientFactory;
     private ValidatorLogger logger;
-    private CoordinatorClient coordinator;
+    private ValidatorConfig config;
 
     public DbClient getDbClient() {
         return dbClient;
@@ -44,12 +44,12 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         this.dbClient = dbClient;
     }
 
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
+    public ValidatorConfig getConfig() {
+        return config;
     }
 
-    public CoordinatorClient getCoordinator() {
-        return coordinator;
+    public void setConfig(ValidatorConfig config) {
+        this.config = config;
     }
 
     public XtremIOClientFactory getClientFactory() {
@@ -82,7 +82,8 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         XtremIOExportMaskVolumesValidator volumesValidator = new XtremIOExportMaskVolumesValidator(storage, exportMask, volumeURIList);
         configureValidators(logger, initiatorsValidator, volumesValidator);
 
-        XtremIOExportMaskValidator exportMaskvalidator = new XtremIOExportMaskValidator(initiatorsValidator, volumesValidator, logger);
+        XtremIOExportMaskValidator exportMaskvalidator = new XtremIOExportMaskValidator(initiatorsValidator,
+                volumesValidator, logger, config);
 
         return exportMaskvalidator;
     }

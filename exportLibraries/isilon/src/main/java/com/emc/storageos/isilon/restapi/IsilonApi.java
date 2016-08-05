@@ -643,6 +643,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifySnapshotSchedule(String id, IsilonSnapshotSchedule s) throws IsilonException {
+        id = id.replaceAll(" ", "%20");
         modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
     }
 
@@ -653,6 +654,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteSnapshotSchedule(String id) throws IsilonException {
+        id = id.replaceAll(" ", "%20");
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
     }
 

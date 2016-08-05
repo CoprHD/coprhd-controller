@@ -520,10 +520,10 @@ public class XtremIOProvUtils {
             igLunMaps = client.getLunMapsForInitiatorGroup(igName, clusterName);
         } else {
             XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, clusterName);
-            List<XtremIOObjectInfo> lunMaps = client.getLunMaps(clusterName);
             if (ig == null) {
                 return igVolumes;
             }
+            List<XtremIOObjectInfo> lunMaps = client.getLunMaps(clusterName);
             String igIndex = ig.getIndex();
             for (XtremIOObjectInfo lunMap : lunMaps) {
                 String[] lunInfo = lunMap.getName().split(XtremIOConstants.UNDERSCORE);

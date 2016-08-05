@@ -1219,7 +1219,7 @@ public class XIVExportOperations implements ExportMaskOperations {
      * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#refreshExportMask(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask)
      */
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         if(isClusterExportMask(storage, mask.getId())){
             _log.debug("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
@@ -1299,7 +1299,7 @@ public class XIVExportOperations implements ExportMaskOperations {
      * @return Map of port name to Set of ExportMask URIs
      */
     @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         _log.info("{} findExportMasks START...", storage.getLabel());
         Map<String, Set<URI>> result = new HashMap<String, Set<URI>>();
         List<Initiator> initiators = new ArrayList<Initiator>();

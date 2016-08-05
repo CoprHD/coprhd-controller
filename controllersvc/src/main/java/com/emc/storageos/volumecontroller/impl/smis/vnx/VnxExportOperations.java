@@ -288,7 +288,7 @@ public class VnxExportOperations implements ExportMaskOperations {
      */
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllPorts) {
+            boolean mustHaveAllPorts) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         CloseableIterator<CIMInstance> lunMaskingIter = null;
@@ -439,7 +439,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         try {
             CIMInstance instance =
                     _helper.getLunMaskingProtocolController(storage, mask);

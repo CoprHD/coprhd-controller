@@ -1287,7 +1287,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
@@ -1554,7 +1554,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-                                                 List<String> initiatorNames, boolean mustHaveAllPorts) {
+                                                 List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
     }
 

@@ -332,13 +332,13 @@ public class CinderExportOperations implements ExportMaskOperations {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         // not supported for Cinder. There are no masking concepts. So, return null.
         return null;
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // not supported for Cinder. There are no masking concepts. So, return the given mask as it is.
         return mask;
     }

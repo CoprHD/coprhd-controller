@@ -1343,7 +1343,7 @@ public class HDSExportOperations implements ExportMaskOperations {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         log.info("finding export masks for storage {}", storage.getId());
         HDSApiClient client = hdsApiFactory.getClient(
@@ -1674,7 +1674,7 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
 
         try {
             HDSApiClient client = hdsApiFactory.getClient(

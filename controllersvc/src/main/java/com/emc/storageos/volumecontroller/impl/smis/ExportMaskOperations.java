@@ -67,10 +67,11 @@ public interface ExportMaskOperations {
      *            a mask with *any* of the specified initiators will be
      *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
+     * @throws DeviceControllerException TODO
      */
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllPorts);
+            boolean mustHaveAllPorts) throws DeviceControllerException;
 
     /**
      * This call will be used to update the ExportMask with the latest data from the
@@ -80,8 +81,9 @@ public interface ExportMaskOperations {
      * @param mask [in] - ExportMask object to be refreshed
      * @return instance of ExportMask object that has been refreshed with data from the
      *         array.
+     * @throws DeviceControllerException TODO
      */
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask);
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException;
 
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,

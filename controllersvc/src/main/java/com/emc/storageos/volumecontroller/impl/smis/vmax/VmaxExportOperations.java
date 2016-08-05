@@ -1605,7 +1605,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllInitiators) {
+            boolean mustHaveAllInitiators) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         Map<URI, ExportMask> maskMap = new HashMap<>();
@@ -1755,7 +1755,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         try {
             CIMInstance instance =

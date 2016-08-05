@@ -568,12 +568,12 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return null;
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return null;
     }
 

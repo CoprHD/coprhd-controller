@@ -574,13 +574,13 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-                                                 List<String> initiatorNames, boolean mustHaveAllPorts) {
+                                                 List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         // not supported. There are no common masking concepts. So, return null.
         return null;
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // No common masking concept for driver managed systems. Return export mask as is.
         return mask;
     }

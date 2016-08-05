@@ -1523,7 +1523,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             default:
                 updateGuideCookies(step,'side');
-                goToPage(step);
+                goToPage(step,error);
         }
     }
 
@@ -1570,7 +1570,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $window.location.href = '/projects/list';
                 break;
             case 9:
-                $window.location.href = '/Catalog#ServiceCatalog/AllFlashservices';
+                $window.location.href = '/Catalog#ServiceCatalog/AllFlashServices';
+                if ($window.location.pathname == '/Catalog') {
+                    $window.location.reload(true);
+                }
                 break;
             default:
                 console.log("Incorrect step, no page to go to");

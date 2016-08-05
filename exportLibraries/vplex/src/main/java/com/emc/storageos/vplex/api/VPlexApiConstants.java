@@ -337,4 +337,11 @@ public class VPlexApiConstants {
 
     // The value returned by VPLEX when the volume has no expandable capacity.
     public static final String NO_EXPANDABLE_CAPACITY = "0B";
+
+    // Match string for device name when a Storage Volume is not used (either claimed or unclaimed)
+    public static final String STORAGE_VOLUME_NOT_IN_USE = "Storage-volume.*is not in use.*";
+
+    // used to indicate the device collapse command should just use the
+    // given path instead of trying to locate a device component
+    public static final String COLLAPSE_BY_PATH = "collapse-by-path";
 }

@@ -17,8 +17,8 @@ import com.google.common.collect.Lists;
 
 public class EventUtils {
 
-    public static List<ActionableEvent> findResourceTasks(DbClient dbClient, URI resourceId) {
-        return getEvents(dbClient, ContainmentConstraint.Factory.getResourceTaskConstraint(resourceId));
+    public static List<ActionableEvent> findResourceEvents(DbClient dbClient, URI resourceId) {
+        return getEvents(dbClient, ContainmentConstraint.Factory.getResourceEventConstraint(resourceId));
     }
 
     private static List<ActionableEvent> getEvents(DbClient dbClient, Constraint constraint) {

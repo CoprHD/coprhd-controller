@@ -29,6 +29,18 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
     private static final String MOUNT_DEVICE_WF_NAME = "MOUNT_DEVICE_WORKFLOW";
     private static final String UNMOUNT_DEVICE_WF_NAME = "UNMOUNT_DEVICE_WORKFLOW";
 
+    public void setDbClient(DbClient dbc) {
+        _dbClient = dbc;
+    }
+
+    public void setWorkflowService(WorkflowService workflowService) {
+        _workflowService = workflowService;
+    }
+
+    public void setComputeSystemControllerImpl(ComputeSystemControllerImpl computeSystemControllerImpl) {
+        _computeSystemControllerImpl = computeSystemControllerImpl;
+    }
+
     @Override
     public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String opId)
             throws ControllerException {

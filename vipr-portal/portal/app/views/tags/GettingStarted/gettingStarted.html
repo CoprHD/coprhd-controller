@@ -1,14 +1,11 @@
-
-
-<section ng-controller="wizardController" id="gs-wiz">
+<section>
     <div ng-class="{'wizard-panel center-content':guideMode=='full'}" ng-show="guideVisible">
-        <div ng-class="{'panel-heading':guideMode=='full'}">
+        <div ng-show="currentStep != 3" ng-class="{'panel-heading':guideMode=='full'}">
             <div class='btn-toolbar pull-right'>
                 <div ng-class="{'wizard-buttons-full':guideMode=='full'}" class='wizard-buttons btn-group'>
                     <span ng-show="guideMode=='side'">
                         <a ng-show="currentStep <= 2" ng-click="toggleMode('full');"><i class="glyphicon glyphicon-fullscreen"></i></a>
-                        <a ng-show="currentStep > completedSteps && currentStep > 2" ng-click="completeStep();"><i class="glyphicon glyphicon-arrow-right"></i></a>
-                        <a ng-show="currentStep <= completedSteps && currentStep > 2" ng-click="toggleMode('full'); nextStep();"><i class="glyphicon glyphicon-arrow-right"></i></a>
+                        <a ng-show="currentStep > 2" ng-click="completeStep();"><i class="glyphicon glyphicon-arrow-right"></i></a>
                     </span>
                     <a ng-show="completedSteps > 2" ng-click="closeGuide();"><i class="glyphicon glyphicon-remove-circle" ></i></a>
                 </div>
@@ -171,7 +168,7 @@
             </guidestep>
             <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
                 <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="optionalStepComplete" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
+                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">

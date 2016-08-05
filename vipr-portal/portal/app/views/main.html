@@ -12,7 +12,7 @@
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
 #{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
 
-<body>
+<body ng-controller="wizardController">
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
@@ -53,7 +53,7 @@
           #{/else}
         </li>
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
-        <li ng-controller="wizardController" id="colWiz">
+        <li id="colWiz">
           <a href ng-init="checkGuide()" ng-click="toggleGuide()">
             #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
           </a>

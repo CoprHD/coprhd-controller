@@ -25,6 +25,7 @@ import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshotSession;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateBlockSnapshot")
@@ -83,6 +84,7 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
+        nameParam = TimeUtils.formatDateForCurrent(nameParam);
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {

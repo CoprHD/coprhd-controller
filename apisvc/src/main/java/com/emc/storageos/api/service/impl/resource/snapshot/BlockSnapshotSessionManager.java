@@ -13,10 +13,8 @@ import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
 
 import java.net.URI;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -75,6 +72,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -308,9 +306,7 @@ public class BlockSnapshotSessionManager {
         s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
         // Get the snapshot session label.
-        String snapshotNamePattern = param.getName();
-        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        String snapSessionLabel = MessageFormat.format(snapshotNamePattern, current);
+        String snapSessionLabel = TimeUtils.formatDateForCurrent(param.getName());
         
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
@@ -319,8 +315,7 @@ public class BlockSnapshotSessionManager {
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
-            String newTargetsNamePattern = linkedTargetsParam.getTargetName();
-            newTargetsName = MessageFormat.format(newTargetsNamePattern, current);
+            newTargetsName = TimeUtils.formatDateForCurrent(linkedTargetsParam.getTargetName());
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
         }
 

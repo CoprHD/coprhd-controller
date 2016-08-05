@@ -11,16 +11,13 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -148,6 +145,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -1512,9 +1510,7 @@ public class FileService extends TaskResourceService {
             throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
         }
         
-        String labelPattern = param.getLabel();
-        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        String label = MessageFormat.format(labelPattern, current);
+        String label = TimeUtils.formatDateForCurrent(param.getLabel());
         
         // check duplicate fileshare snapshot names for this fileshare
         checkForDuplicateName(label, Snapshot.class, id, "parent", _dbClient);

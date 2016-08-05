@@ -19,10 +19,8 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -164,6 +161,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
@@ -2248,8 +2246,7 @@ public class BlockService extends TaskResourceService {
         // Validate the snapshot creation request parameters for the volume(s)
         // to be snapped.
         String snapshotNamePattern = param.getName();
-        Calendar current = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        String snapshotName = MessageFormat.format(snapshotNamePattern, current);
+        String snapshotName = TimeUtils.formatDateForCurrent(snapshotNamePattern);
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
                 snapshotType, snapshotName, getFullCopyManager());
 

@@ -66,7 +66,7 @@ public class FileSystemIngestionUtil {
                     dbClient, unManagedFileSystemUri);
 
             checkVirtualPoolValidForGivenUnManagedFileSystemUris(unManagedFileSystem.getSupportedVpoolUris(), unManagedFileSystemUri,
-                    cos.getId());            
+                    cos.getId());
             // TODO: Today, We bring in all the volumes that are exported.We need to add support to bring in all the related FS exports
             // checkUnManagedFileSystemAlreadyExported(unManagedFileSystem);
         }
@@ -93,6 +93,7 @@ public class FileSystemIngestionUtil {
     /**
      * Get Supported Vpool from PreExistingFileSystem Storage Pools.
      * Verify if the given vpool is part of the supported vpool List.
+     * 
      * @param stringSetVpoolUris
      * @param unManagedFileSystemUri
      * @param vpoolUri
@@ -103,13 +104,13 @@ public class FileSystemIngestionUtil {
         if (null == stringSetVpoolUris) {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPool("FileSystem", unManagedFileSystemUri);
         }
-        _logger.info("supported vpools :"+ Joiner.on("\t").join(stringSetVpoolUris));
+        _logger.info("supported vpools :" + Joiner.on("\t").join(stringSetVpoolUris));
         if (!stringSetVpoolUris.contains(vpoolUri.toString())) {
-            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(vpoolUri, "FileSystem", unManagedFileSystemUri, Joiner
-                    .on("\t").join(stringSetVpoolUris));
+            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(vpoolUri, "FileSystem", unManagedFileSystemUri,
+                    Joiner
+                            .on("\t").join(stringSetVpoolUris));
         }
     }
-
 
     /**
      * Check if valid storage Pool is associated with UnManaged FileSystem Uri is valid.
@@ -133,7 +134,6 @@ public class FileSystemIngestionUtil {
         }
     }
 
-    
     /**
      * Gets and verifies the CoS passed in the request.
      * 
@@ -209,5 +209,30 @@ public class FileSystemIngestionUtil {
             throw APIException.internalServerErrors.capacityComputationFailed();
         }
         return totalUnManagedFileSystemCapacity.longValue();
+    }
+
+    /**
+     * Get Supported characteristics of virtual pool.
+     * Verify the virtual pool is capable of holding the unmanaged file systems.
+     * 
+     * @param stringSetVpoolUris
+     * @param unManagedFileSystemUri
+     * @param vpoolUri
+     */
+    public static boolean checkVirtualPoolValidForUnManagedFileSystem(
+            DbClient dbClient, VirtualPool vPool, URI unManagedFileSystemUri) {
+
+        UnManagedFileSystem unManagedFileSystem = dbClient.queryObject(
+                UnManagedFileSystem.class, unManagedFileSystemUri);
+
+        if (unManagedFileSystem != null) {
+            StringSet vPoolProtocols = vPool.getProtocols();
+            if (unManagedFileSystem.getHasNFSAcl() && !vPoolProtocols.contains("NFSv4")) {
+                _logger.warn("UnManaged FileSystem {} has NFS ACLs, But vPool protocol(s) are {}, Hence skipping filesystem.",
+                        unManagedFileSystem.getLabel(), vPoolProtocols);
+                return false;
+            }
+        }
+        return true;
     }
 }

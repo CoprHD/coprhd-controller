@@ -218,6 +218,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
 
         mirror.setProvisionedCapacity(returnProvisionedCapacity(volumeInstance,
                 keyMap));
+        mirror.setCompressionRatio(getCompressionRatio(volumeInstance, _isVMAX3));
         _updateMirrors.add(mirror);
     }
 
@@ -239,6 +240,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
             _logger.info("Set volume {} to composite (meta volume)",
                     volume.getId());
         }
+        volume.setCompressionRatio(getCompressionRatio(volumeInstance, _isVMAX3));
         _updateVolumes.add(volume);
     }
 }

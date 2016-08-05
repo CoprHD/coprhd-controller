@@ -28,6 +28,7 @@ addProjects(
 	"exportLibraries/ceph",
         "exportLibraries/xiv",
 	"exportLibraries/storagedrivers/storagedriversimulator",    
+	    "exportLibraries/storagedrivers/3par",
         "geodbsvc",
         "geosvc",
         "internalLibraries/security",

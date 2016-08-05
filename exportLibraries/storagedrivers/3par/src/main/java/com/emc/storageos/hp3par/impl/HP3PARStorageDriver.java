@@ -55,7 +55,9 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
@@ -239,6 +241,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		_log.info("3PARDriver: discoverStoragePools information for storage system {}, nativeId {} - start",
 				storageSystem.getIpAddress(), storageSystem.getNativeId());
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
+		
+		DeduplicationCapabilityDefinition dedupCapabilityDefinition = new DeduplicationCapabilityDefinition();
 
 		try {
 			// get Api client
@@ -318,7 +322,18 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setDisplayName(currMember.getName());
 				storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
                 List<CapabilityInstance> capabilities = new ArrayList<>(); // SDK requires initialization
+                //pool.setCapabilities(capabilities);
+                
+                // setting appropriate capability for dedup supported pool
+                if(currMember.isDedupCapable()) {
+                    Boolean dedupEnabled = true;
+                    Map<String, List<String>> props = new HashMap<>();
+                    props.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(), Arrays.asList(dedupEnabled.toString()));
+                    CapabilityInstance capabilityInstance = new CapabilityInstance(dedupCapabilityDefinition.getId(), dedupCapabilityDefinition.getId(), props);
+                    capabilities.add(capabilityInstance);
+                }
                 pool.setCapabilities(capabilities);
+                
 
 				_log.info("3PARDriver: added storage pool {}, native id {}", pool.getPoolName(), pool.getNativeId());
 				storagePools.add(pool);

@@ -53,6 +53,7 @@ import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -535,7 +536,10 @@ public class ExternalDeviceCommunicationInterface extends
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,
-                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);            
+                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);     
+                    
+                    discoverDeduplicationCapabilityForStoragePool(driverStorageSystem, storagePool, pool,
+                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);
                 }
 
                 // Now that all storage pools have been process we can create or update
@@ -574,7 +578,8 @@ public class ExternalDeviceCommunicationInterface extends
 
     }
     
-    /**
+
+	/**
      * Discovers the auto tiering policies supported by the passed driver storage pool
      * and updates the passed auto tiering policy maps.
      * 
@@ -601,6 +606,7 @@ public class ExternalDeviceCommunicationInterface extends
                 continue;
             }
             
+            //"deduplication"
             // Get the capability definition from the map of supported capability definitions.
             CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
             if (capabilityDefinition == null) {
@@ -636,6 +642,42 @@ public class ExternalDeviceCommunicationInterface extends
             } 
         } 
     }
+    
+    private void discoverDeduplicationCapabilityForStoragePool(StorageSystem driverStorageSystem,
+			StoragePool storagePool, com.emc.storageos.db.client.model.StoragePool pool,
+			Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap,
+			Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap) {
+
+		// Get the capabilities specified for the storage pool and
+		// process any auto tiering policy capabilities.
+		List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+		for (CapabilityInstance capability : capabilities) {
+			// Get the capability definition for the capability.
+			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+			if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
+				_log.error(String.format(
+						"Skipping capability %s with no capability definition UID for storage pool %s on system %s",
+						capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+				continue;
+			}
+
+			// Get the capability definition from the map of supported
+			// capability definitions.
+			CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
+			if (capabilityDefinition == null) {
+				_log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
+						capabilityDefinitionUid, storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+				continue;
+			}
+
+			// Handle dedup capability.
+			if (DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+
+			}
+
+		}
+
+	}
     
     /**
      * Creates and/or updates the auto tiering policies in the controller database after

@@ -436,11 +436,11 @@ public class HP3PARApi {
         } //end try/catch/finally
     }    
 
-    public void createVolume(String name, String cpg, Boolean thin, Long size) throws Exception {
+    public void createVolume(String name, String cpg, Boolean thin, Boolean dedup, Long size) throws Exception {
         _log.info("3PARDriver:createVolume enter");
         ClientResponse clientResp = null;
         String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
-                "\", \"tpvv\":" + thin.toString() + ", \"sizeMiB\":" + size.toString() + ", \"snapCPG\":\"" + cpg + "\"}";
+                "\", \"tpvv\":" + thin.toString() + ", \"tdvv\":" + dedup.toString() + ", \"sizeMiB\":" + size.toString() + ", \"snapCPG\":\"" + cpg + "\"}";
         try {
             clientResp = post(URI_CREATE_VOLUME, body);
             if (clientResp == null) {
@@ -559,20 +559,17 @@ public class HP3PARApi {
                 	baseVolumeUserCPG = volResult.getUserCPG();
                 	baseVolumeSnapCPG = volResult.getSnapCPG();
                 	Boolean tpvv = true;
-                	// Use below code when we add TDVV support and different snap CPG 
-/*
-                    Boolean online = true;
                     Boolean tdvv = false;
 
                 	if (volResult.getProvisioningType() == 6) {
                 		tdvv = true;
                 		tpvv = false;
                 	}
-                	*/
+                	
                 	_log.info("3PARDriver: createVolumeClone base volume exists, id {}, baseVolumeSnapCPG {} , baseVolumeUserCPG {} , copyOf {}, copyType {} , name {}, volume type {} - ",
                 			baseVolumeName, baseVolumeSnapCPG, baseVolumeUserCPG,volResult.getCopyOf(), volResult.getCopyType(), volResult.getName(), volResult.getProvisioningType());
                 
-                createVolume(cloneName, baseVolumeSnapCPG, tpvv, volResult.getSizeMiB());
+                createVolume(cloneName, baseVolumeSnapCPG, tpvv, tdvv, volResult.getSizeMiB());
                 // sleep for some milliseconds required ?
                 
                 try {
@@ -1647,11 +1644,15 @@ public class HP3PARApi {
 	                	String baseVolumeUserCPG = volResult.getUserCPG();
 	                	String baseVolumeSnapCPG = volResult.getSnapCPG();
 	                	Boolean tpvv = true;
-	                
+	                	Boolean tdvv = false;
+	                	if (volResult.getProvisioningType() == 6) {
+	                		tdvv = true;
+	                		tpvv = false;
+	                	}
 	                	_log.info("3PARDriver: createVolumeClone base volume exists, id {}, baseVolumeSnapCPG {} , baseVolumeUserCPG {} , copyOf {}, copyType {} , name {}, volume type {} - ",
 	                			baseVolumeName, baseVolumeSnapCPG, baseVolumeUserCPG,volResult.getCopyOf(), volResult.getCopyType(), volResult.getName(), volResult.getProvisioningType());
 	                
-	                createVolume(generatedCloneName, baseVolumeSnapCPG, tpvv, volResult.getSizeMiB());
+	                createVolume(generatedCloneName, baseVolumeSnapCPG, tpvv,tdvv, volResult.getSizeMiB());
 	                vvSetClones = vvSetClones+"\""+generatedCloneName+"\",";
 	                
 	                }

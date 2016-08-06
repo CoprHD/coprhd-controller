@@ -40,16 +40,23 @@ public class HP3PARProvisioningHelper {
         
         // get deduplicationCapability
         CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilitis();
+		if (commonCapabilities != null) {
+			List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
+			if (dataService != null) {
+				for (DataStorageServiceOption dataServiceOption : dataService) {
+					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();
+					if (capabilityList != null) {
+						for (CapabilityInstance ci : capabilityList) {
+							String provTypeValue = ci
+									.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+							if (provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
+								IsDeDupEnabled = true;
+							}
+						}
+					}
 
-		for (DataStorageServiceOption dataServiceOption : commonCapabilities.getDataStorage()) {
-			for (CapabilityInstance ci : dataServiceOption.getCapabilities()) {
-				String provTypeValue = ci
-						.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
-				if (provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
-					IsDeDupEnabled = true;
 				}
 			}
-
 		}
 
         // For each requested volume

@@ -40,13 +40,12 @@ public class HP3PARProvisioningHelper {
         
         // get deduplicationCapability
         CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilitis();
-        //List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
 
 		for (DataStorageServiceOption dataServiceOption : commonCapabilities.getDataStorage()) {
 			for (CapabilityInstance ci : dataServiceOption.getCapabilities()) {
 				String provTypeValue = ci
 						.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
-				if (provTypeValue.equals(true)) {
+				if (provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
 					IsDeDupEnabled = true;
 				}
 			}
@@ -55,7 +54,7 @@ public class HP3PARProvisioningHelper {
 
         // For each requested volume
         for (StorageVolume volume : volumes) {
-//        	Boolean tdvv = true;
+
             try {
                 _log.info("3PARDriver:createVolumes for storage system native id {}, volume name {} - start",
                         volume.getStorageSystemId(), volume.getDisplayName());
@@ -66,10 +65,13 @@ public class HP3PARProvisioningHelper {
 
                 // Create volume
                 VolumeDetailsCommandResult volResult = null;
+                Boolean isThin = volume.getThinlyProvisioned();
+                if (IsDeDupEnabled) {
+                	isThin = false;
+                }
                 hp3parApi.createVolume(volume.getDisplayName(), volume.getStoragePoolId(),
-                        volume.getThinlyProvisioned(), IsDeDupEnabled, volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
- //               hp3parApi.createVolume(volume.getDisplayName(), volume.getStoragePoolId(),
-   //                     false, tdvv, volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
+                		isThin, IsDeDupEnabled, volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
+
                 volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
 
                 // Attributes of the volume in array
@@ -79,6 +81,7 @@ public class HP3PARProvisioningHelper {
                 volume.setNativeId(volume.getDisplayName()); // required for volume delete
                 volume.setDeviceLabel(volume.getDisplayName());
                 volume.setAccessStatus(AccessStatus.READ_WRITE);
+                volume.setIsDeduplicated(IsDeDupEnabled);
 
                 // Update Consistency Group
                 String volumeCGName = volume.getConsistencyGroup();

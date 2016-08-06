@@ -834,7 +834,7 @@ public class HP3PARApi {
             
             volResult = getVolumeDetails(name);
             
-            if (volResult != null && volResult.getProvisioningType() == 2) {
+            if (volResult != null && volResult.getProvisioningType() != 3) {
             	// get intermediate snapshot of clone/physical copy 
             	intermediateSnapshot = volResult.getCopyOf();
             }

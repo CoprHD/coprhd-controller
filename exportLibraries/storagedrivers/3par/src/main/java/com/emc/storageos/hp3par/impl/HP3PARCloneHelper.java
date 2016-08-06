@@ -50,11 +50,14 @@ public class HP3PARCloneHelper {
 				// Actual size of the volume in array
 				clone.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				clone.setWwn(volResult.getWwn());
-				clone.setNativeId(clone.getNativeId()); // required for volume
+				clone.setNativeId(volResult.getName()); // required for volume
 														// delete
 				clone.setDeviceLabel(clone.getDisplayName());
 				clone.setAccessStatus(clone.getAccessStatus());
 				clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+				if (volResult.getProvisioningType() == 6) {
+					clone.setIsDeduplicated(true);
+				}
 
 				task.setStatus(DriverTask.TaskStatus.READY);
 				_log.info("createVolumeClone for storage system native id {}, volume clone name {} - end",

@@ -383,7 +383,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setRaidLevels(raidLevels);
         builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
         builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
-        builder.setDedupCapable(this.enableDeDup);
+        builder.setDedupCapable(defaultBoolean(enableDeDup));
 
         if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
             builder.enableRecoverPoint(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));
@@ -459,7 +459,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             builder.setRaidLevels(defaultSet(raidLevels));
             builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
             builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
-            builder.setDedupCapable(this.enableDeDup);
+            builder.setDedupCapable(defaultBoolean(enableDeDup));
 
             if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
                 builder.setRecoverPointJournalSize(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));

@@ -28,7 +28,20 @@ public class StorageVolume extends StorageBlockObject {
     // thin or thick volume type. Type: Input.
     Boolean thinlyProvisioned = false;
 
-    public String getStorageSystemId() {
+    /**
+     * Indicates if volume is deduplicated.
+     */
+    private Boolean isDeduplicated = false;
+    
+    public Boolean getIsDeduplicated() {
+		return isDeduplicated;
+	}
+
+	public void setIsDeduplicated(Boolean isDeduplicated) {
+		this.isDeduplicated = isDeduplicated;
+	}
+
+	public String getStorageSystemId() {
         return storageSystemId;
     }
 

@@ -158,7 +158,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     // All volumes created in a request will have the same capabilities.
                     storageCapabilities = new StorageCapabilities();
                     addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
-                    addDeduplicationCapability(storageCapabilities, volume.getIsDeduplicated());
+                    addDeduplicationCapability(storageCapabilities, storagePool.getDedupCapable());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -1352,6 +1352,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
                 volume.setNativeId(driverVolume.getNativeId());
                 volume.setDeviceLabel(driverVolume.getDeviceLabel());
+                volume.setIsDeduplicated(driverVolume.getIsDeduplicated());
                 volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
 
                 if (driverVolume.getWwn() == null) {

@@ -114,6 +114,24 @@ public class HostStateChange implements Serializable {
     }
 
     /**
+     * Set new cluster
+     * 
+     * @param new cluster
+     */
+    public void setNewCluster(URI newCluster) {
+        this.newCluster = newCluster;
+    }
+
+    /**
+     * Set old cluster
+     * 
+     * @param old cluster
+     */
+    public void setOldCluster(URI oldCluster) {
+        this.oldCluster = oldCluster;
+    }
+
+    /**
      * Return old cluster id
      * 
      * @return old cluster id

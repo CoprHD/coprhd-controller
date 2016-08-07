@@ -61,7 +61,9 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         host.setOsVersion(version.toString());
 
         if (getVersionValidator().isValidWindowsVersion(version)) {
-            host.setCluster(findCluster(host));
+            URI cluster = findCluster(host);
+            changes.setOldCluster(host.getCluster());
+            changes.setNewCluster(cluster);
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             save(host);
             super.discoverHost(host, changes);
@@ -79,54 +81,47 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
         try {
             if (system.isClustered()) {
-                if (NullColumnValueGetter.isNullURI(host.getCluster())) { // Windows clustered, but Not already in a ViPR cluster
-                    Map<String, List<MSClusterNetworkInterface>> clusterToNetworkInterfaces = system.getClusterToNetworkInterfaces();
-                    String clusterName = WindowsClusterUtils.findWindowsClusterHostIsIn(host.getHostName(), clusterToNetworkInterfaces);
-                    if (clusterName == null) {
-                        if (clusterToNetworkInterfaces.size() == 1) {
-                            clusterName = clusterToNetworkInterfaces.keySet().iterator().next();
-                        }
-                        else if (clusterToNetworkInterfaces.isEmpty()) {
-                            warn("Host '%s' appears to be clustered, but cannot find any cluster interfaces",
-                                    host.getHostName());
-                            return NullColumnValueGetter.getNullURI();
-                        }
-                        else {
-                            warn("Host '%s' is configured in multiple clusters %s, cannot determine primary cluster by network interface",
-                                    host.getHostName(), clusterToNetworkInterfaces.keySet());
-                            return NullColumnValueGetter.getNullURI();
-                        }
-                    }
-
-                    List<String> clusterIpAddresses = WindowsClusterUtils
-                            .getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
-
-                    // Find the cluster by address
-                    URI cluster = findClusterByAddresses(host.getTenant(), HostType.Windows, clusterIpAddresses);
-                    if (cluster != null) {
-                        return cluster;
-                    }
-
-                    // Find the cluster by name
-                    cluster = findClusterByName(host.getTenant(), clusterName);
-                    if (cluster != null) {
-                        // Ensure the cluster is empty before using it
-                        if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))) {
-                            return cluster;
-                        }
-                        // Log a warning
-                        warn("Host '%s' is in a cluster named '%s' which could not be matched by address. "
-                                + "An existing non-empty ViPR cluster exists with the same name; "
-                                + "manual cluster assignment required", host.getHostName(), clusterName);
+                Map<String, List<MSClusterNetworkInterface>> clusterToNetworkInterfaces = system.getClusterToNetworkInterfaces();
+                String clusterName = WindowsClusterUtils.findWindowsClusterHostIsIn(host.getHostName(), clusterToNetworkInterfaces);
+                if (clusterName == null) {
+                    if (clusterToNetworkInterfaces.size() == 1) {
+                        clusterName = clusterToNetworkInterfaces.keySet().iterator().next();
+                    } else if (clusterToNetworkInterfaces.isEmpty()) {
+                        warn("Host '%s' appears to be clustered, but cannot find any cluster interfaces",
+                                host.getHostName());
+                        return NullColumnValueGetter.getNullURI();
+                    } else {
+                        warn("Host '%s' is configured in multiple clusters %s, cannot determine primary cluster by network interface",
+                                host.getHostName(), clusterToNetworkInterfaces.keySet());
                         return NullColumnValueGetter.getNullURI();
                     }
+                }
 
-                    // No cluster matched by address or name, create a new one
-                    return createNewCluster(host.getTenant(), clusterName);
+                List<String> clusterIpAddresses = WindowsClusterUtils
+                        .getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
+
+                // Find the cluster by address
+                URI cluster = findClusterByAddresses(host.getTenant(), HostType.Windows, clusterIpAddresses);
+                if (cluster != null) {
+                    return cluster;
                 }
-                else {
-                    return host.getCluster();
+
+                // Find the cluster by name
+                cluster = findClusterByName(host.getTenant(), clusterName);
+                if (cluster != null) {
+                    // Ensure the cluster is empty before using it
+                    if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))) {
+                        return cluster;
+                    }
+                    // Log a warning
+                    warn("Host '%s' is in a cluster named '%s' which could not be matched by address. "
+                            + "An existing non-empty ViPR cluster exists with the same name; "
+                            + "manual cluster assignment required", host.getHostName(), clusterName);
+                    return NullColumnValueGetter.getNullURI();
                 }
+
+                // No cluster matched by address or name, create a new one
+                return createNewCluster(host.getTenant(), clusterName);
             }
 
             // Host is not currently in a Windows Cluster

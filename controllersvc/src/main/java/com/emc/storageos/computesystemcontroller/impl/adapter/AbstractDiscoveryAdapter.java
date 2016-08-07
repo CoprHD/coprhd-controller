@@ -525,7 +525,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
                     || (change.getOldCluster() != null && change.getNewCluster() != null
-                            && !change.getOldCluster().equals(change.getNewCluster()))) {
+                            && !change.getOldCluster().toString().equals(change.getNewCluster().toString()))) {
 
                 Cluster cluster = null;
                 if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {

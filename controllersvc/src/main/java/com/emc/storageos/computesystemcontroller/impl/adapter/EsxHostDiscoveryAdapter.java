@@ -691,6 +691,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         initiator.setInitiatorNode("");
         initiator.setInitiatorPort(hba.getIScsiName());
         initiator.setIsManualCreation(false);
+        initiator.setLabel(hba.device);
         save(initiator);
     }
 

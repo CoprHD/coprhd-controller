@@ -109,9 +109,8 @@ public class LinuxMountUtils {
         CommandOutput output = cli.executeCommand(command);
         if ("exists".equalsIgnoreCase(output.getStdout())) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public void removeFromFSTab(String path) throws InternalException {

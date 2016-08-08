@@ -1192,9 +1192,9 @@ class Fileshare(object):
     def mount(self, ouri, hosturi, subdirectory, securitystyle, path, fstype, sync, synctimeout):
         parms = {
         }
-        if(path):
+        if path:
             parms["path"] = path
-        if(securitystyle):
+        if securitystyle:
             parms["security"] = securitystyle
         if subdirectory:
             parms['sub_directory'] = subdirectory
@@ -1213,7 +1213,7 @@ class Fileshare(object):
 
         o = common.json_decode(s)
 
-        if(sync):
+        if sync:
             return (
                 self.block_until_complete(
                     o['resource']['id'],
@@ -1227,7 +1227,7 @@ class Fileshare(object):
         params = dict()
         if hosturi:
             params['host'] = hosturi
-        if(mountpath):
+        if mountpath:
             params["mount_path"] = mountpath
      
         body = json.dumps(params)
@@ -1239,7 +1239,7 @@ class Fileshare(object):
 
         o = common.json_decode(s)
 
-        if(sync):
+        if sync:
             return (
                 self.block_until_complete(
                     o['resource']['id'],
@@ -1249,7 +1249,7 @@ class Fileshare(object):
             return o
 
     def mount_list(self, resourceUri):
-        if(resourceUri is not None):
+        if resourceUri is not None:
             return self.mount_list_uri(resourceUri)
         return None
 
@@ -1266,11 +1266,11 @@ class Fileshare(object):
                               project,
                               tenant):
         resourcepath = "/" + project + "/"
-        if(tenant is not None):
+        if tenant is not None:
             resourcepath = tenant + resourcepath
         resourceObj = None
         resourceObj = Fileshare(self.__ipAddr, self.__port)
-        return (resourceObj.fileshare_query(resourcepath + fileshareName))
+        return resourceObj.fileshare_query(resourcepath + fileshareName)
     
     def mount_show_task_opid(self, taskid):
         (s, h) = common.service_json_request(
@@ -1278,7 +1278,7 @@ class Fileshare(object):
             "GET",
             Fileshare.URI_MOUNT_TASKS_BY_OPID.format(taskid),
             None)
-        if (not s):
+        if not s:
             return None
         o = common.json_decode(s)
         return o
@@ -3424,7 +3424,7 @@ def fileshare_mount(args):
         obj.mount(resourceUri, host_uri, args.subdirectory, args.security, args.mountpath, args.fstype, args.sync, args.synctimeout)
 
     except SOSError as e:
-        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+        if e.err_code == SOSError.SOS_FAILURE_ERR:
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
                 "fileshare Mount: " + 
@@ -3463,14 +3463,14 @@ def mountlist_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='Name of tenant')
-    mountlist_parser.set_defaults(func=mountNFS_list)
+    mountlist_parser.set_defaults(func=mountnfs_list)
 
 
 '''
 Preprocessor for mount list operation
 '''
 
-def mountNFS_list(args):
+def mountnfs_list(args):
     obj = Fileshare(args.ip, args.port)    
     try:
         resourceUri = obj.storageResource_query(
@@ -3479,7 +3479,7 @@ def mountNFS_list(args):
             args.tenant)
 
         mount_obj = obj.mount_list(resourceUri)
-        if(mount_obj):
+        if mount_obj:
             return common.format_json_object(mount_obj) 
         else:
             return
@@ -3538,7 +3538,7 @@ def unmount_parser(subcommand_parsers, common_parser):
                                default=0,
                                type=int)
 
-    unmount_parser.set_defaults(func=mountNFS_unmount)
+    unmount_parser.set_defaults(func=mountnfs_unmount)
 
 
 
@@ -3546,7 +3546,7 @@ def unmount_parser(subcommand_parsers, common_parser):
 Preprocessor for the mount operation
 '''
 
-def mountNFS_unmount(args):
+def mountnfs_unmount(args):
     if not args.sync and args.synctimeout != 0:
         raise SOSError(SOSError.CMD_LINE_ERR, "error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)

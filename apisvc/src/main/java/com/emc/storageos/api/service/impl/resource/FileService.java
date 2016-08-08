@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -170,6 +171,7 @@ import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.iwave.ext.command.CommandException;
 
 @Path("/file/filesystems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -251,15 +253,14 @@ public class FileService extends TaskResourceService {
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
-                "update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
+        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO("update-rpo",
+        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -2080,12 +2081,15 @@ public class FileService extends TaskResourceService {
             if (unmount && !unmountList.isEmpty()) {
                 throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
             }
-
-            if (unmount) {
-                for (MountInfo mount : unmountList) {
-                    FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
-                    unmount(id, queryResource(id), unmountParam);
+            try {
+                if (unmount) {
+                    for (MountInfo mount : unmountList) {
+                        FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
+                        unmount(id, queryResource(id), unmountParam);
+                    }
                 }
+            } catch (CommandException ex) {
+                throw new UnexpectedException(ex.getMessage());
             }
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -2141,9 +2145,12 @@ public class FileService extends TaskResourceService {
         if (!unmount && isExportMounted(id, subDir, allDirs)) {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
-
-        if (unmount) {
-            unmountAllAssociatedExports(id, subDir);
+        try {
+            if (unmount) {
+                unmountAllAssociatedExports(id, subDir);
+            }
+        } catch (CommandException ex) {
+            throw APIException.internalServerErrors.unexpectedHostOperationError(ex.getMessage());
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -3785,7 +3792,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3840,7 +3847,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-        // Refresh operation can be performed without any check.
+            // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3874,7 +3881,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4096,7 +4103,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/mount")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public MountInfoList getMountList(@PathParam("id") URI id) {
+    public MountInfoList getMountListForFS(@PathParam("id") URI id) {
 
         _log.info(String.format("Get list of quota directories for file system: %1$s", id));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
@@ -4254,7 +4261,8 @@ public class FileService extends TaskResourceService {
     private void unmountAllAssociatedExports(URI id, String subDir) {
         List<MountInfo> mountList = getAllMounts(id);
         for (MountInfo mount : mountList) {
-            if ((mount.getSubDirectory() == "!nodir" && subDir == null) || mount.getSubDirectory() == subDir) {
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null)
+                    || subDir.equalsIgnoreCase(mount.getSubDirectory())) {
                 FileSystemUnmountParam param = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
                 unmount(id, queryResource(id), param);
             }

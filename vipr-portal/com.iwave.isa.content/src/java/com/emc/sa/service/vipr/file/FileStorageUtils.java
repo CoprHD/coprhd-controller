@@ -23,7 +23,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
-import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ChangeFileVirtualPool;
 import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
@@ -637,13 +636,13 @@ public class FileStorageUtils {
 
     public static class FileExportRule {
         @Param
-        protected List<String> exportHosts;
+        public List<String> exportHosts;
 
         @Param
-        protected String security;
+        public String security;
 
         @Param
-        protected String permission;
+        public String permission;
     }
 
     public static class Mount {
@@ -658,80 +657,5 @@ public class FileStorageUtils {
 
         @Param
         public String mountPath;
-    }
-
-    public static String createFileSystemExport(URI fileSystemId, String comment, Mount mountList, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, mountList.security, mountList.permission, DEFAULT_ROOT_USER,
-                mountList.host, subDirectory);
-    }
-
-    private static String createFileSystemExport(URI fileSystemId, String comment, String security, String permission,
-            String defaultRootUser, URI hostId, String subDirectory) {
-        List<String> exportHosts = new ArrayList<String>();
-        exportHosts.add(BlockStorageUtils.getHost(hostId).getHostName());
-        Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permission,
-                defaultRootUser, exportHosts, subDirectory));
-        addAffectedResource(task);
-        String exportId = task.getResourceId().toString();
-        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null));
-        logInfo("file.storage.export.task", exportId, task.getOpId());
-        return exportId;
-    }
-
-    public static String updateFileSystemExport(URI fileSystemId, String subDirectory, Mount[] mountList) {
-        List<ExportRule> exportRuleList = getFileSystemExportRules(fileSystemId, false, subDirectory);
-        Set<String> existingRuleSet = Sets.newHashSet();
-        for (ExportRule rule : exportRuleList) {
-            existingRuleSet.add(rule.getSecFlavor());
-        }
-
-        Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
-        for (Mount mount : mountList) {
-            String hostName = BlockStorageUtils.getHost(mount.host).getHostName();
-            if (!rules.containsKey(mount.security)) {
-                Map<String, Set<String>> rule = Maps.newHashMap();
-                rule.put(mount.permission, Sets.newHashSet(hostName));
-                rules.put(mount.security, rule);
-            } else if (!rules.get(mount.security).containsKey(mount.permission)) {
-                rules.get(mount.security).put(mount.permission, Sets.newHashSet(hostName));
-            } else {
-                rules.get(mount.security).get(mount.permission).add(hostName);
-            }
-        }
-        List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
-        List<ExportRule> exportRuleListToModify = Lists.newArrayList();
-        for (String sec : rules.keySet()) {
-            Map<String, Set<String>> rule = rules.get(sec);
-            ExportRule exportRule = new ExportRule();
-            exportRule.setFsID(fileSystemId);
-            exportRule.setSecFlavor(sec);
-            exportRule.setReadOnlyHosts(rule.get(FileShareExport.Permissions.ro.name()));
-            exportRule.setReadWriteHosts(rule.get(FileShareExport.Permissions.rw.name()));
-            exportRule.setRootHosts(rule.get(FileShareExport.Permissions.root.name()));
-            exportRule.setAnon(DEFAULT_ROOT_USER);
-            if (existingRuleSet.contains(exportRule.getSecFlavor())) {
-                exportRuleListToModify.add(exportRule);
-            } else {
-                exportRuleListToAdd.add(exportRule);
-            }
-        }
-
-        FileShareExportUpdateParams params = new FileShareExportUpdateParams();
-        if (!exportRuleListToAdd.isEmpty()) {
-            ExportRules exportRulesToAdd = new ExportRules();
-            exportRulesToAdd.setExportRules(exportRuleListToAdd);
-            params.setExportRulesToAdd(exportRulesToAdd);
-        }
-        if (!exportRuleListToModify.isEmpty()) {
-            ExportRules exportRulesToModify = new ExportRules();
-            exportRulesToModify.setExportRules(exportRuleListToModify);
-            params.setExportRulesToModify(exportRulesToModify);
-        }
-        Task<FileShareRestRep> task = execute(new UpdateFileSystemExport(fileSystemId, subDirectory, params));
-        addAffectedResource(task);
-        String exportId = task.getResourceId().toString();
-        logInfo("file.storage.export.task", exportId, task.getOpId());
-        return exportId;
-
     }
 }

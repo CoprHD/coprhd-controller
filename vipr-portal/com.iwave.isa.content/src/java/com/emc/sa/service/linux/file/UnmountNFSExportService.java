@@ -36,12 +36,12 @@ public class UnmountNFSExportService extends LinuxService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        mountList = MachineTagUtils.convertNFSTagsToMounts(mountTags);
-        unmountNFSExportHelper.setMounts(mountList);
     }
 
     @Override
     public void execute() {
+        mountList = MachineTagUtils.convertNFSTagsToMounts(mountTags);
+        unmountNFSExportHelper.setMounts(mountList);
         unmountNFSExportHelper.unmountExports();
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());

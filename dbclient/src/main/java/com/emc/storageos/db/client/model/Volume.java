@@ -776,6 +776,17 @@ public class Volume extends BlockObject implements ProjectResource {
     	}    		
 		return false;
     }
+    
+    /**
+     * Returns true if the volume is of the personality of the passed in param.
+     * 
+     * @param personality to check
+     * 
+     * @return true if the volume is of that personality, false otherwise
+     */
+    public boolean checkPersonality(Volume.PersonalityTypes personality) {       
+       return checkPersonality(personality.name());
+    }
 
     @AlternateId("AltIdIndex")
     @Name("fullCopySetName")

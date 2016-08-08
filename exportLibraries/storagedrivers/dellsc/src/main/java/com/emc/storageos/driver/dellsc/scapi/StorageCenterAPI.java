@@ -60,9 +60,12 @@ import com.google.gson.GsonBuilder;
 public class StorageCenterAPI implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(StorageCenterAPI.class);
+<<<<<<< HEAD
 
     private static final String NOTES_STRING = "Created by CoprHD driver";
 
+=======
+>>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
     private RestClient restClient;
     private Gson gson;
 
@@ -183,7 +186,11 @@ public class StorageCenterAPI implements AutoCloseable {
 
         Parameters params = new Parameters();
         params.add("Name", name);
+<<<<<<< HEAD
         params.add("Notes", NOTES_STRING);
+=======
+        params.add("Notes", "Created by CoprHD");
+>>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
         params.add("Size", String.format("%d GB", sizeInGB));
         params.add("StorageCenter", ssn);
         if (cgID != null && !cgID.isEmpty()) {
@@ -377,6 +384,10 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * <<<<<<< HEAD
+>>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
      * Gets the storage usage information for a storage type.
      *
      * @param instanceId The storage type to get.
@@ -392,6 +403,11 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * =======
+     * >>>>>>> b18b4bee2546578f15bcc6eb15bd41598a97d917
+>>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
      * Gets the Storage Center usage data.
      * 
      * @param ssn The Storage Center system serial number.

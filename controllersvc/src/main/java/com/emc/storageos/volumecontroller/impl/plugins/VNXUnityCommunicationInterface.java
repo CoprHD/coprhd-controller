@@ -436,6 +436,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             viprStorageSystem.setReachableStatus(true);
 
             viprStorageSystem.setAutoTieringEnabled(isFASTVPEnabled);
+            viprStorageSystem.setModel(system.getModel());
 
             StringSet supportedActions = new StringSet();
             supportedActions.add(StorageSystem.AsyncActions.CreateElementReplica.name());

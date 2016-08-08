@@ -103,10 +103,10 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -161,7 +161,6 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -214,6 +213,7 @@ public class BlockService extends TaskResourceService {
         SUSPEND("suspend", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND),
         RESUME("resume", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME),
         CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
+        CHANGE_ACCESS_MODE("change-access-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_ACCESS_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
@@ -403,7 +403,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.START.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already started all copies
                 if (copyID == null) {
@@ -492,7 +492,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are stopped
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.STOP.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.STOP.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 taskList = stopMirrors(id, copyID);
@@ -836,10 +836,9 @@ public class BlockService extends TaskResourceService {
             if (!VirtualPool.vPoolSpecifiesSRDF(vpool) && consistencyGroup.checkForType(Types.SRDF)) {
                 throw APIException.badRequests.nonSRDFVolumeCannotbeAddedToSRDFCG();
             }
-            
+
             if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
-                List<Volume> nativeVolumesInCG = 
-                        BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(consistencyGroup, _dbClient);
+                List<Volume> nativeVolumesInCG = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(consistencyGroup, _dbClient);
                 for (Volume nativeVolume : nativeVolumesInCG) {
                     // Cannot add volumes if in swapped state. This is a limitation that will eventually be removed.
                     if (Volume.LinkStatus.SWAPPED.name().equals(nativeVolume.getLinkStatus())) {
@@ -934,11 +933,11 @@ public class BlockService extends TaskResourceService {
                             }
                         }
 
-                        // Ensure the replication mode is logically equivalent 
-                        String requestedRpCopyMode = NullColumnValueGetter.isNullValue(requestedVpool.getRpCopyMode()) ?
-                                RPCopyMode.ASYNCHRONOUS.name() : requestedVpool.getRpCopyMode();
-                        String existingRpCopyMode = NullColumnValueGetter.isNullValue(existingVpool.getRpCopyMode()) ?
-                                RPCopyMode.ASYNCHRONOUS.name() : existingVpool.getRpCopyMode();
+                        // Ensure the replication mode is logically equivalent
+                        String requestedRpCopyMode = NullColumnValueGetter.isNullValue(requestedVpool.getRpCopyMode())
+                                ? RPCopyMode.ASYNCHRONOUS.name() : requestedVpool.getRpCopyMode();
+                        String existingRpCopyMode = NullColumnValueGetter.isNullValue(existingVpool.getRpCopyMode())
+                                ? RPCopyMode.ASYNCHRONOUS.name() : existingVpool.getRpCopyMode();
                         if (!requestedRpCopyMode.equalsIgnoreCase(existingRpCopyMode)) {
                             throw APIException.badRequests.vPoolRPCopyModeNotCompatibleForCG(consistencyGroup.getLabel());
                         }
@@ -973,6 +972,12 @@ public class BlockService extends TaskResourceService {
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");
+
+        // set compute param
+        URI computeURI = param.getComputeResource();
+        if (!NullColumnValueGetter.isNullURI(computeURI)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
+        }
 
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
@@ -1287,7 +1292,7 @@ public class BlockService extends TaskResourceService {
                 (!getFullCopyManager().volumeCanBeExpanded(volume))) {
             throw APIException.badRequests.fullCopyExpansionNotAllowed(volume.getLabel());
         }
-        
+
         // Check for an SRDF volume with snapshots which cannot be expanded.
         if (VirtualPool.vPoolSpecifiesSRDF(virtualPool)) {
             validateExpandingSrdfVolume(volume);
@@ -1422,8 +1427,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_TEST.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1471,7 +1475,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1518,8 +1522,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1580,8 +1583,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), Volume.class, "id");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1643,8 +1645,7 @@ public class BlockService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1707,7 +1708,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.SYNC.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.SYNC.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already synced all copies
                 if (copyID == null) {
@@ -1782,6 +1783,68 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.invalidSRDFCopyMode(volume.getNativeId());
             }
 
+        }
+
+        return taskList;
+    }
+
+    /**
+     * Request to change the access mode on the provided copy.
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     * Currently only supported for RecoverPoint protected volumes. If volume is SRDF protected,
+     * then we do nothing and return the task.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source volume
+     * @param param Copy to change access mode on
+     *
+     * @brief Changes the access mode for a copy.
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/accessmode")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList changeAccessMode(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+
+        // Validate the source volume URI
+        ArgValidator.checkFieldUriType(id, Volume.class, "id");
+        boolean vplexVolume = checkIfVolumeIsForVplex(id);
+
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+
+        List<Copy> copies = param.getCopies();
+
+        if (copies.size() != 1) {
+            // Change access mode operations can only be performed on a single copy
+            throw APIException.badRequests.changeAccessCopiesParamCanOnlyBeOne();
+        }
+
+        Copy copy = copies.get(0);
+        if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
+        }
+
+        ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+        ArgValidator.checkFieldNotEmpty(copy.getAccessMode(), "accessMode");
+        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+            taskResp = performProtectionAction(id, copy, ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            _log.warn("Changing access mode is currently not supported for SRDF.  Returning empty task list (no-op).");
+            return taskList;
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
         }
 
         return taskList;
@@ -2216,7 +2279,7 @@ public class BlockService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the volume
         checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
-        
+
         // validate the volume is not part of a RP or VPlex CG that is part of an application
         validateCGIsNotInApplication(requestedVolume, snapshotType);
 
@@ -2279,6 +2342,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * validates that the volume is not part of a RP or VPlex CG that is part of an application
+     *
      * @param requestedVolume
      * @param snapshotType indicates if this is an array snapshot or RP bookmark request
      */
@@ -2288,7 +2352,8 @@ public class BlockService extends TaskResourceService {
             return;
         }
         if (NullColumnValueGetter.isNotNullValue(requestedVolume.getReplicationGroupInstance())
-                && (VPlexUtil.isVplexVolume(requestedVolume, _dbClient) || NullColumnValueGetter.isNullURI(requestedVolume.getProtectionController()))) {
+                && (VPlexUtil.isVplexVolume(requestedVolume, _dbClient)
+                || NullColumnValueGetter.isNullURI(requestedVolume.getProtectionController()))) {
             VolumeGroup application = requestedVolume.getApplication(_dbClient);
             if (application != null) {
                 throw APIException.badRequests.cannotCreateSnapshotCgPartOfApplication(application.getLabel());
@@ -2541,7 +2606,7 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.PAUSE.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.PAUSE.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
@@ -2617,7 +2682,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are paused
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.RESUME.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.RESUME.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList resumeTaskList = resumeMirrors(id, copyID);
@@ -2831,9 +2896,8 @@ public class BlockService extends TaskResourceService {
             } else if (isSuspendCopyRequest(op, copy)) {
                 op = ProtectionOp.SUSPEND.getRestOp();
             }
-            ProtectionOrchestrationController protectionController = 
-                    getController(ProtectionOrchestrationController.class, 
-                            ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
+            ProtectionOrchestrationController protectionController = getController(ProtectionOrchestrationController.class,
+                    ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
             StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                     copyVolume.getStorageController());
             protectionController.performSRDFProtectionOperation(system.getId(), copy, op, task);
@@ -2917,15 +2981,21 @@ public class BlockService extends TaskResourceService {
      * @return task resource rep
      * @throws InternalException
      */
-    private TaskResourceRep performProtectionAction(URI id, URI copyID, String pointInTime, String op)
+    private TaskResourceRep performProtectionAction(URI id, Copy copy, String op)
             throws InternalException {
-        ArgValidator.checkFieldUriType(copyID, Volume.class, "copyID");
+        ArgValidator.checkFieldUriType(copy.getCopyID(), Volume.class, "copyID");
         // Get the volume associated with the URI
         Volume volume = queryVolumeResource(id);
-        Volume copyVolume = queryVolumeResource(copyID);
+        Volume copyVolume = queryVolumeResource(copy.getCopyID());
 
         ArgValidator.checkEntity(volume, id, true);
-        ArgValidator.checkEntity(copyVolume, copyID, true);
+        ArgValidator.checkEntity(copyVolume, copy.getCopyID(), true);
+
+        // Catch any attempts to use an invalid access mode
+        if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
+                !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {
+            throw APIException.badRequests.unsupportedAccessMode(copy.getAccessMode());
+        }
 
         if (isNullURI(volume.getProtectionController())) {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
@@ -2955,7 +3025,8 @@ public class BlockService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), id, copyID, pointInTime, op, task);
+        controller.performProtectionOperation(system.getId(), id, copy.getCopyID(), copy.getPointInTime(), copy.getAccessMode(), op,
+                task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());
@@ -3256,7 +3327,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Checking on volume: {}", volume.getId());
 
             // Don't operate on VPLEX backend or RP Journal volumes.
-            BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+            BlockServiceUtils.validateNotAnInternalBlockObject(volume, param.getForceFlag());
 
             // Don't operate on ingested volumes.
             VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
@@ -3362,7 +3433,7 @@ public class BlockService extends TaskResourceService {
         } catch (Exception e) {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
-            _log.error(errorMsg, e);            
+            _log.error(errorMsg, e);
             for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);
@@ -3935,7 +4006,6 @@ public class BlockService extends TaskResourceService {
      * @param volume A reference to the volume.
      * @param newVpool A reference to the new VirtualPool.
      */
-
     private void verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool(Volume volume, VirtualPool newVpool) {
         // Currently, Vpool change is only supported for volumes on
         // VPlex storage systems and volumes (both regular and VPLEX i.e. RP+VPLEX) that are currently
@@ -4023,6 +4093,17 @@ public class BlockService extends TaskResourceService {
                         new Object[] { newVpool.getId() });
             } else {
                 notSuppReasonBuff.setLength(0);
+                // If this a RP+VPLEX Journal check to see if a straight up VPLEX Data migration is
+                // allowed.
+                //
+                // RP+VPLEX Journals are normally hidden in the UI since they are internal volumes, however they 
+                // can be exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
+                if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
+                    if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);
+                        return;
+                    }
+                }
                 // Check to see if this is a RP protected VPLEX volume and
                 // if the request is trying to remove RP protection.
                 if (volume.checkForRp()
@@ -4036,12 +4117,12 @@ public class BlockService extends TaskResourceService {
                     }
                 } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
                     notSuppReasonBuff.setLength(0);
-
-                    // If the current vpool also has Protection and High Availability, check to see if we can change the
-                    // protection. This is usually for RP+VPLEX upgrade to MetroPoint but other operations could be
-                    // supported in the future.
+                    // Check to see if any of the operations for protected vpool to protected vpool changes are supported
                     if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)) {
-                        if (!VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
+                        if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(volume, currentVpool, newVpool, 
+                                _dbClient, notSuppReasonBuff, null)) {
+                            verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);                            
+                        } else if (!VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
                                 _dbClient, notSuppReasonBuff)) {
                             _log.warn("RP Change Protection VirtualPool change for volume is not supported: {}",
                                     notSuppReasonBuff.toString());
@@ -4073,99 +4154,16 @@ public class BlockService extends TaskResourceService {
                         // created using the target volume of a block snapshot.
                         throw APIException.badRequests.vpoolChangeNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
-                        // Determine if source side will be migrated.
-                        boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
-                                .vpoolChangeRequiresMigration(currentVpool, newVpool);
-
-                        // Determine if HA side will be migrated.
-                        boolean migrateHAVolume = false;
-                        VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer
-                                .getHaVpool(currentVpool, _dbClient);
-                        if (currentHaVpool != null) {
-                            VirtualPool newHaVpool = VirtualPoolChangeAnalyzer
-                                    .getNewHaVpool(currentVpool, newVpool, _dbClient);
-                            migrateHAVolume = VirtualPoolChangeAnalyzer
-                                    .vpoolChangeRequiresMigration(currentHaVpool, newHaVpool);
-                        }
-
-                        // Verify the VPLEX volume structure. Ingested volumes
-                        // can only be migrated if the component structure of
-                        // the volume is supported by ViPR.
-                        verifyVPlexVolumeStructureForDataMigration(volume, currentVpool,
-                                migrateSourceVolume, migrateHAVolume);
-
-                        // Check for snaps, mirrors, and full copies
-                        if (migrateSourceVolume) {
-                            // The vpool change is a data migration and the source
-                            // side backend volume will be migrated. If the volume
-                            // has snapshots, then the vpool change will not be
-                            // allowed because VPLEX snapshots are just snapshots
-                            // of this backend volume. The user would lose all
-                            // snapshots if we allowed the vpool change. The user
-                            // must explicitly go and delete their snapshots first.
-                            // the same is true for volumes that have full copies
-                            // from which they are not detached and also full copy
-                            // volumes that are not detached from their source. If
-                            // not detached a full copy session still exists between
-                            // this backend volume and some other volume.
-                            //
-                            // Note: We make this validation here instead of in the
-                            // verification VirtualPoolChangeAnalyzer method
-                            // "getSupportedVPlexVolumeVirtualPoolChangeOperation"
-                            // because this method is called from not only the API
-                            // to change the volume virtual pool, but also the API
-                            // that determines the virtual pools to which a volume
-                            // can be changed. The latter API is used by the UI to
-                            // populate the list of volumes. We want volumes with
-                            // snaps to appear in the list, so that the user will
-                            // know that if they remove the snapshots, they can
-                            // perform the vpool change.
-                            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
-                            if (srcVolume != null) {
-                                // Has a source volume, so not ingested.
-                                List<BlockSnapshot> snapshots = CustomQueryUtility
-                                        .queryActiveResourcesByConstraint(_dbClient,
-                                                BlockSnapshot.class, ContainmentConstraint.Factory
-                                                        .getVolumeSnapshotConstraint(srcVolume.getId()));
-                                if (!snapshots.isEmpty()) {
-                                    throw APIException.badRequests
-                                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
-                                }
-
-                                // Check for snapshot sessions for the volume.
-                                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
-                                    throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
-                                }
-
-                                // Can't migrate the source side backend volume if it is
-                                // has full copy sessions.
-                                if (BlockFullCopyUtils.volumeHasFullCopySession(srcVolume, _dbClient)) {
-                                    throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
-                                }
-                            }
-
-                            // If the volume has mirrors then Vpool change will not
-                            // be allowed. User needs to explicitly delete mirrors first.
-                            // This is applicable for both Local and Distributed volumes.
-                            // For distributed volume getMirrors will get mirror if any
-                            // on source or HA side.
-                            StringSet mirrorURIs = volume.getMirrors();
-                            if (mirrorURIs != null && !mirrorURIs.isEmpty()) {
-                                List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class,
-                                        StringSetUtil.stringSetToUriList(mirrorURIs));
-                                if (mirrors != null && !mirrors.isEmpty()) {
-                                    throw APIException.badRequests
-                                            .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
-                                }
-                            }
-                        }
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);
                     }
                 }
             }
         } else if (DiscoveredDataObject.Type.vmax.name().equals(systemType)
                 || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.hds.name().equals(systemType)
-                || DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+                || DiscoveredDataObject.Type.xtremio.name().equals(systemType)
+                || DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)
+                || DiscoveredDataObject.Type.unity.name().equals(systemType)) {
             if (VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 // VNX/VMAX import to VPLEX cases
                 notSuppReasonBuff.setLength(0);
@@ -4265,6 +4263,108 @@ public class BlockService extends TaskResourceService {
                     new Object[] { volume.getId() });
         }
     }
+    
+    /**
+     * Performs verification on the VPLEX volume to ensure it is a candidate for migration.
+     * 
+     * @param volume VPLEX volume to check
+     * @param currentVpool The current vpool where the volume is placed
+     * @param newVpool The target vpool where the volume will be placed after migration
+     */
+    public static void verifyVPlexVolumeForDataMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, DbClient _dbClient) {
+        _log.info(String.format("Verifying that the VPlex volume[%s](%s) qualifies for Data Migration"
+                + " moving from current vpool [%s](%s) to new vpool [%s](%s).",
+                volume.getLabel(), volume.getId(),
+                currentVpool.getLabel(), currentVpool.getId(),
+                newVpool.getLabel(), newVpool.getId()));
+        
+        // Determine if source side will be migrated.
+        boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
+                .vpoolChangeRequiresMigration(currentVpool, newVpool);
+
+        // Determine if HA side will be migrated.
+        boolean migrateHAVolume = false;
+        VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer
+                .getHaVpool(currentVpool, _dbClient);
+        if (currentHaVpool != null) {
+            VirtualPool newHaVpool = VirtualPoolChangeAnalyzer
+                    .getNewHaVpool(currentVpool, newVpool, _dbClient);
+            migrateHAVolume = VirtualPoolChangeAnalyzer
+                    .vpoolChangeRequiresMigration(currentHaVpool, newHaVpool);
+        }
+
+        // Verify the VPLEX volume structure. Ingested volumes
+        // can only be migrated if the component structure of
+        // the volume is supported by ViPR.
+        verifyVPlexVolumeStructureForDataMigration(volume, currentVpool,
+                migrateSourceVolume, migrateHAVolume, _dbClient);
+
+        // Check for snaps, mirrors, and full copies
+        if (migrateSourceVolume) {
+            // The vpool change is a data migration and the source
+            // side backend volume will be migrated. If the volume
+            // has snapshots, then the vpool change will not be
+            // allowed because VPLEX snapshots are just snapshots
+            // of this backend volume. The user would lose all
+            // snapshots if we allowed the vpool change. The user
+            // must explicitly go and delete their snapshots first.
+            // the same is true for volumes that have full copies
+            // from which they are not detached and also full copy
+            // volumes that are not detached from their source. If
+            // not detached a full copy session still exists between
+            // this backend volume and some other volume.
+            //
+            // Note: We make this validation here instead of in the
+            // verification VirtualPoolChangeAnalyzer method
+            // "getSupportedVPlexVolumeVirtualPoolChangeOperation"
+            // because this method is called from not only the API
+            // to change the volume virtual pool, but also the API
+            // that determines the virtual pools to which a volume
+            // can be changed. The latter API is used by the UI to
+            // populate the list of volumes. We want volumes with
+            // snaps to appear in the list, so that the user will
+            // know that if they remove the snapshots, they can
+            // perform the vpool change.
+            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (srcVolume != null) {
+                // Has a source volume, so not ingested.
+                List<BlockSnapshot> snapshots = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient,
+                                BlockSnapshot.class, ContainmentConstraint.Factory
+                                        .getVolumeSnapshotConstraint(srcVolume.getId()));
+                if (!snapshots.isEmpty()) {
+                    throw APIException.badRequests
+                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
+                }
+
+                // Check for snapshot sessions for the volume.
+                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
+                    throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
+                }
+
+                // Can't migrate the source side backend volume if it is
+                // has full copy sessions.
+                if (BlockFullCopyUtils.volumeHasFullCopySession(srcVolume, _dbClient)) {
+                    throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
+                }
+            }
+
+            // If the volume has mirrors then Vpool change will not
+            // be allowed. User needs to explicitly delete mirrors first.
+            // This is applicable for both Local and Distributed volumes.
+            // For distributed volume getMirrors will get mirror if any
+            // on source or HA side.
+            StringSet mirrorURIs = volume.getMirrors();
+            if (mirrorURIs != null && !mirrorURIs.isEmpty()) {
+                List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class,
+                        StringSetUtil.stringSetToUriList(mirrorURIs));
+                if (mirrors != null && !mirrors.isEmpty()) {
+                    throw APIException.badRequests
+                            .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
+                }
+            }
+        }
+    }
 
     /**
      * Verifies that the component structure of an ingested VPLEX volume is such
@@ -4279,8 +4379,8 @@ public class BlockService extends TaskResourceService {
      * @param migrateSourceVolume true if the source side requires migration.
      * @param migrateHAVolume true if the HA side requires migration.
      */
-    private void verifyVPlexVolumeStructureForDataMigration(Volume volume,
-            VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume) {
+    private static void verifyVPlexVolumeStructureForDataMigration(Volume volume,
+            VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume, DbClient _dbClient) {
         boolean structureOK = true;
         if (volume.isIngestedVolume(_dbClient)) {
             if (migrateSourceVolume && migrateHAVolume) {
@@ -4291,7 +4391,7 @@ public class BlockService extends TaskResourceService {
                         volume.getVirtualArray(), _dbClient);
             } else if (migrateHAVolume) {
                 structureOK = VPlexDeviceController.migrationSupportedForVolume(volume,
-                        VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient),
+                        VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool),
                         _dbClient);
             }
         }
@@ -5202,9 +5302,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
@@ -5368,10 +5468,11 @@ public class BlockService extends TaskResourceService {
     private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
         return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
     }
-    
+
     /**
      * Validate volume being expanded is not an SRDF volume with snapshots attached,
      * which isn't handled.
+     *
      * @param volume -- Volume being expanded
      * @throws Exception if cannot be expanded
      */
@@ -5385,13 +5486,13 @@ public class BlockService extends TaskResourceService {
             // Find associated SRDF volume
             srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(_dbClient, volume);
             if (srdfVolume != null) {
-                if (ControllerUtils.checkIfVolumeHasSnapshot(srdfVolume, _dbClient) 
+                if (ControllerUtils.checkIfVolumeHasSnapshot(srdfVolume, _dbClient)
                         || BlockSnapshotSessionUtils.volumeHasSnapshotSession(srdfVolume, _dbClient)) {
                     throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(srdfVolume.getLabel());
                 }
             }
-        }   
-        // Check target volumes    
+        }
+        // Check target volumes
         if (srdfVolume.getSrdfTargets() != null) {
             for (String target : srdfVolume.getSrdfTargets()) {
                 Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));

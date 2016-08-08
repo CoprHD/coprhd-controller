@@ -11,10 +11,11 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
@@ -29,7 +30,8 @@ public class ActivePoolMatcher extends AttributeMatcher {
             .getLogger(ActivePoolMatcher.class);
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         // Filter out inactive/unregistered/non-ready pools.
         _logger.info("Active Pools Matcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
@@ -47,7 +49,11 @@ public class ActivePoolMatcher extends AttributeMatcher {
                             .equalsIgnoreCase(pool.getDiscoveryStatus())) {
                 matchedPools.add(pool);
             }
+        }
 
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No active storage pools are available. ");
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Active Pools Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

@@ -12,7 +12,7 @@
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
 #{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
 
-<body>
+<body ng-controller="wizardController">
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
@@ -52,6 +52,14 @@
             </a>
           #{/else}
         </li>
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+        <li id="colWiz">
+          <a href ng-init="checkGuide()" ng-click="toggleGuide()">
+            #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
+          </a>
+
+        </li>
+        #{/deadbolt.restrict}
 
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.tenantName} -  ${currentUser?.commonName} <b class="caret"></b></a>
@@ -286,6 +294,11 @@
               #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
+			  #{if util.SetupUtils.isOssBuild() || !util.SetupUtils.isAppliance()}
+              	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+            		#{nav.item 'storageSystemTypes', href: @arrays.StorageSystemTypes.list()/}
+              	#{/deadbolt.restrict}
+			  #{/if}
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
               #{if isActiveSite }
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
@@ -321,7 +334,9 @@
 
 #{/nav.mainMenu}
 #{get 'menu'/}
-
+<div id="wizard" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
+  #{GettingStarted.gettingStarted/}
+</div>
 #{nav.contentArea}
   #{get 'breadcrumbs'/}
   #{doLayout /}

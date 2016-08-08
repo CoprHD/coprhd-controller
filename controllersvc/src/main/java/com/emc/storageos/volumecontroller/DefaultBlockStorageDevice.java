@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -800,5 +801,29 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

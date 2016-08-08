@@ -40,6 +40,16 @@ public class WorkflowStepCompleter implements Serializable {
     static public void stepSucceded(String stepId) throws WorkflowException {
         WorkflowService.completerStepSucceded(stepId);
     }
+    
+    /**
+     * Sets the step state to success but puts a warning message in the status entry.
+     * @param stepId
+     * @param warningMessage
+     * @throws WorkflowException
+     */
+    static public void stepSucceeded(String stepId, String warningMessage) throws WorkflowException {
+        WorkflowService.completerStepSucceeded(stepId, warningMessage);
+    }
 
     /**
      * Sets the step state to error and records the overall task status as error

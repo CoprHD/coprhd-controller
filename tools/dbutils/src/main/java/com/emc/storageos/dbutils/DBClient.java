@@ -9,6 +9,8 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -1120,6 +1122,15 @@ public class DBClient {
         }
     }
 
+    /**
+     * This db consistency check is for the whole database and we could detect,
+     * 1. The data object record exists but related indices are missing, the scope is the whole db, it will scan all the CFs, from one to
+     * next.
+     * 2. The index exists but related data object records are missing, the scope is the whole db too, it will scan from one index to next.
+     * 
+     * The indices here means all the indices of each filed of the data object record. If inconsistency found, it will generate several
+     * files to do the cleanup work, including rebuilding index.
+     */
     public void checkDB() {
         try {
             DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
@@ -1142,7 +1153,48 @@ public class DBClient {
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");
         }
+    }
 
+    /**
+     * This db consistency check is for a specific CF,
+     * It could also detect the 2 paths same as {@link DBClient#checkDB()}
+     * 
+     * @param cfName
+     */
+    public void checkDB(String cfName) {
+        final Class clazz = getClassFromCFName(cfName);
+        if (clazz == null) {
+            return;
+        }
+        DataObjectType dataCf = TypeMap.getDoType(clazz);
+        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+        try {
+
+            logMsg("\nStart to check DataObject records id that is illegal.\n");
+            int illegalCount = helper.checkDataObject(dataCf, true);
+            logMsg(String.format("\nFinish to check DataObject records id for CF %s "
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), illegalCount));
+
+            logMsg("\nStart to check DataObject records that the related index is missing.\n");
+            int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
+            logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), cfCorruptedCount));
+
+            logMsg("\nStart to check INDEX data that the related object records are missing.\n");
+            Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
+            int indexCorruptCount = 0;
+            for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
+                indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
+            }
+            logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
+                    idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
+        } catch (ConnectionException e) {
+            log.error("Database connection exception happens, fail to connect: ", e);
+            System.err.println("The checker has been stopped by database connection exception. "
+                    + "Please see the log for more information.");
+        } finally {
+            DbCheckerFileWriter.close();
+        }
     }
     
     public void printDependencies(String cfName, URI uri) {
@@ -1213,18 +1265,77 @@ public class DBClient {
     }
 
     public boolean rebuildIndex(String id, String cfName) {
+        return rebuildIndex(URI.create(id), getClassFromCFName(cfName));
+    }
+    
+    public boolean rebuildIndex(String cfName) {
+        boolean runResult = true;
+        Class cfClazz = getClassFromCFName(cfName);
+        if (cfClazz == null) {
+            return false;
+        }
+        List<URI> objUris = getColumnUris(cfClazz, false);
+        for (URI id : objUris) {
+            boolean eachResult = rebuildIndex(id, cfClazz);
+            if (runResult && !eachResult) {// mark some error happens
+                runResult = eachResult;
+            }
+        }
+        return runResult;
+    }
+    
+    public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
-            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
-            if(queryObject != null) {
-                BeanUtils.copyProperties(queryObject, queryObject);
-                _dbClient.updateObject(queryObject);
-                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+            DataObject queryObject = queryObject(id, clazz);
+            if (queryObject != null) {
+                DataObject newObject = queryObject.getClass().newInstance();
+                newObject.trackChanges();
+                ConvertUtils.register(new CalendarConverter(null), Calendar.class);
+                BeanUtils.copyProperties(newObject, queryObject);
+
+                // special change tracking for customized types
+                BeanInfo bInfo;
+                try {
+                    bInfo = Introspector.getBeanInfo(clazz);
+
+                } catch (IntrospectionException ex) {
+                    log.error("Unexpected exception getting bean info", ex);
+                    throw new RuntimeException("Unexpected exception getting bean info",
+                            ex);
+
+                }
+                PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
+                for (PropertyDescriptor pd : pds) {
+                    Object val = pd.getReadMethod().invoke(newObject);
+                    if (val instanceof AbstractChangeTrackingSet) {
+                        AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet) val;
+                        valueSet.markAllForOverwrite();
+
+                    } else if (val instanceof AbstractChangeTrackingMap) {
+                        AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap) val;
+                        valueMap.markAllForOverwrite();
+
+                    } else if (val instanceof AbstractChangeTrackingSetMap) {
+                        AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap) val;
+                        Set<String> keys = valueMap.keySet();
+                        if (keys != null) {
+                            Iterator<String> it = keys.iterator();
+                            while (it.hasNext()) {
+                                String key = it.next();
+                                AbstractChangeTrackingSet valueSet = valueMap.get(key);
+                                valueSet.markAllForOverwrite();
+                            }
+                        }
+                    }
+                }
+
+                _dbClient.updateObject(newObject);
+                logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));
                 runResult = true;
             }
         } catch (Exception e) {
-            System.err.println(String.format("Error when rebuilding index for %s in cf %s", id, cfName));
-            e.printStackTrace();
+            logMsg(String.format("Error when rebuilding index for %s in cf %s", id, clazz), true, e);
         }
         return runResult;
     }
@@ -1240,5 +1351,19 @@ public class DBClient {
             return null;
         }
         return clazz;
+    }
+    
+    private void logMsg(String msg, boolean isError, Exception e) {
+        if (isError) {
+            log.error(msg, e);
+            System.err.println(msg);
+        } else {
+            log.info(msg);
+            System.out.println(msg);
+        }
+    }
+    
+    private void logMsg(String msg) {
+        logMsg(msg, false, null);
     }
 }

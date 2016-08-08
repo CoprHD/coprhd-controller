@@ -44,7 +44,9 @@ public class VolumeDescriptor implements Serializable {
         SRDF_SOURCE(15),     // SRDF remote mirror source
         SRDF_TARGET(16),     // SRDF remote mirror target
         SRDF_EXISTING_SOURCE(17),  // SRDF existing source volume
-        VPLEX_MIGRATE_VOLUME(18);
+        VPLEX_MIGRATE_VOLUME(18),
+        BLOCK_SNAPSHOT_SESSION(19), // snapshot session
+        DUMMY_MIGRATE(20); // Used to pass through without migrating 
 
         private final int order;
 
@@ -66,6 +68,7 @@ public class VolumeDescriptor implements Serializable {
     private Long volumeSize;        // Used to separate multi-volume create requests
     private URI migrationId;        // Reference to the migration object for this volume
     private URI computeResource;    // Host/Cluster to which the volume will be exported to, as part of the provisioning.
+    private List<List<URI>> snapSessionSnapshotURIs; // list of snapshot id's to link sessions to
 
     // Layer/device specific parameters (key/value) for this volume (serializable!)
     private Map<String, Object> parameters = new HashMap<String, Object>();
@@ -106,6 +109,24 @@ public class VolumeDescriptor implements Serializable {
             URI deviceURI, URI volumeURI, URI poolURI,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         this(type, deviceURI, volumeURI, poolURI, null, capabilities);
+    }
+    
+    /**
+     * constructor for snapshot session volume descriptor
+     * 
+     * @param type type of volume desccriptor (snapshot session)
+     * @param deviceURI storage controller id
+     * @param volumeURI BlockSnapshotSession id
+     * @param poolURI virtual pool id
+     * @param consistencyGroupURI consistency group id
+     * @param capabilities capabilities object
+     * @param snapSessionSnapshotURIs list of snapshot ids for create and link to snapshot
+     */
+    public VolumeDescriptor(Type type,
+            URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
+            VirtualPoolCapabilityValuesWrapper capabilities, List<List<URI>> snapSessionSnapshotURIs) {
+        this(type, deviceURI, volumeURI, poolURI, consistencyGroupURI, capabilities);
+        this.setSnapSessionSnapshotURIs(snapSessionSnapshotURIs);
     }
 
     /**
@@ -276,25 +297,49 @@ public class VolumeDescriptor implements Serializable {
     }
 
     /**
-     * Helper method to retrieve the source vpool change volume hiding in the volume descriptors.
+     * Helper method to retrieve the change vpool volume hiding in the volume descriptors and
+     * to find the old vpool.
      * 
      * @param descriptors list of volumes
      * @return Map<URI,URI> of the vpool change volume and the old vpool associated to it.
      */
-    public static Map<URI, URI> getAllVirtualPoolChangeSourceVolumes(List<VolumeDescriptor> descriptors) {
-        Map<URI, URI> sourceVolumes = new HashMap<URI, URI>();
+    public static Map<URI, URI> createVolumeToOldVpoolMap(List<VolumeDescriptor> descriptors) {
+        Map<URI, URI> volumesToOldVpoolMap = new HashMap<URI, URI>();
         if (descriptors != null) {
             for (VolumeDescriptor volumeDescriptor : descriptors) {
                 if (volumeDescriptor.getParameters() != null) {
                     if (volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID) != null) {
                         URI volumeURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);
                         URI oldVpoolURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID);
-                        sourceVolumes.put(volumeURI, oldVpoolURI);
+                        volumesToOldVpoolMap.put(volumeURI, oldVpoolURI);
                     }
                 }
             }
         }
-        return sourceVolumes;
+        return volumesToOldVpoolMap;
+    }
+    
+    /**
+     * Helper method to retrieve the change vpool volume hiding in the volume descriptors and
+     * to find the new vpool.
+     * 
+     * @param descriptors list of volumes
+     * @return Map<URI,URI> of the vpool change volume and the old vpool associated to it.
+     */
+    public static Map<URI, URI> createVolumeToNewVpoolMap(List<VolumeDescriptor> descriptors) {
+        Map<URI, URI> volumesToNewVpoolMap = new HashMap<URI, URI>();
+        if (descriptors != null) {
+            for (VolumeDescriptor volumeDescriptor : descriptors) {
+                if (volumeDescriptor.getParameters() != null) {
+                    if (volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID) != null) {
+                        URI volumeURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);
+                        URI newVpoolURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
+                        volumesToNewVpoolMap.put(volumeURI, newVpoolURI);
+                    }
+                }
+            }
+        }
+        return volumesToNewVpoolMap;
     }
 
     /**
@@ -429,4 +474,18 @@ public class VolumeDescriptor implements Serializable {
 	public void setComputeResource(URI _computeResource) {
 		this.computeResource = _computeResource;
 	}
+
+    /**
+     * @return the snapSessionSnapshotURIs
+     */
+    public List<List<URI>> getSnapSessionSnapshotURIs() {
+        return snapSessionSnapshotURIs;
+    }
+
+    /**
+     * @param snapSessionSnapshotURIs the snapSessionSnapshotURIs to set
+     */
+    public void setSnapSessionSnapshotURIs(List<List<URI>> snapSessionSnapshotURIs) {
+        this.snapSessionSnapshotURIs = snapSessionSnapshotURIs;
+    }
 }

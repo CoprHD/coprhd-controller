@@ -185,6 +185,7 @@ public enum ResourceOperationTypeEnum {
     DISCOVER_ALL_STORAGE_SYSTEM("DISCOVER ALL STORAGESYSTEMS", "discover all storage systems"),
     DISCOVER_STORAGE_SYSTEM("DISCOVER STORAGESYSTEM", "discover a storage systems"),
     METERING_STORAGE_SYSTEM("METERING STORAGE SYSTEM", "obtain metering information on a storage system"),
+    ARRAYAFFINITY_STORAGE_SYSTEM("DISCOVER ARRAY AFFINITY", "obtain array affinity information on a storage system"),
     DEREGISTER_STORAGE_SYSTEM("UNREGISTER STORAGESYSTEM", "unregister a storage systems"),
     CREATE_STORAGE_POOL("CREATE STORAGEPOOL", "create storagepool operation"),
     CREATE_STORAGE_PORT("CREATE STORAGEPORT", "create storageport operation"),
@@ -230,6 +231,8 @@ public enum ResourceOperationTypeEnum {
     PERFORM_PROTECTION_ACTION_RESUME("PERFORM PROTECTION ACTION RESUME", "resume the replication link between source and target"),
     PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE("PERFORM PROTECTION ACTION CHANGE COPY MODE",
             "change copy mode for the replication link between source and target"),
+    PERFORM_PROTECTION_ACTION_CHANGE_ACCESS_MODE("PERFORM PROTECTION ACTION CHANGE ACCESS MODE",
+            "change copy access mode for the replication copy"),
     CREATE_AUTHPROVIDER("CREATE AUTH PROVIDER", "create an authentication provider"),
     UPDATE_AUTHPROVIDER("UPDATE AUTH PROVIDER", "update an authentication provider"),
     DELETE_AUTHPROVIDER("DELETE AUTH PROVIDER", "delete an authentication provider"),
@@ -253,6 +256,7 @@ public enum ResourceOperationTypeEnum {
     ESTABLISH_VOLUME_MIRROR("ESTABLISH VOLUME MIRROR GROUP", "establish group relation between volume group and mirror group"),
     DEACTIVATE_VOLUME_MIRROR("DEACTIVATE VOLUME MIRROR", "deactivate a volume mirror"),
     DISCOVER_HOST("DISCOVER HOST", "discover a compute host"),
+    DISCOVER_HOST_ARRAY_AFFINITY("DISCOVER HOST_ARRAY_AFFINITY", "discover host array affinity"),
     CREATE_HOST("CREATE HOST", "create a compute host"),
     DELETE_CLUSTER("DELETE CLUSTER", "delete a compute cluster"),
     UPDATE_CLUSTER("UPDATE CLUSTER", "delete a compute cluster"),
@@ -334,7 +338,8 @@ public enum ResourceOperationTypeEnum {
     CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("CREATE CONSISTENCY GROUP SNAPSHOT SESSION", "create a consistency group snapshot session"),
     LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session"),
     RELINK_SNAPSHOT_SESSION_TARGETS("RELINK SNAPSHOT SESSION TARGETS", "re-links target volumes to a snapshot session"),
-    RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS("RELINK CONSISTENCY GROUP SNAPSHOT SESSION TARGETS", "re-links consistency group target volumes to a snapshot session"),
+    RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS("RELINK CONSISTENCY GROUP SNAPSHOT SESSION TARGETS",
+            "re-links consistency group target volumes to a snapshot session"),
     UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session"),
     RESTORE_SNAPSHOT_SESSION("RESTORE SNAPSHOT SESSION", "restore source from snapshot session"),
     DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session"),
@@ -353,7 +358,7 @@ public enum ResourceOperationTypeEnum {
 
     /**
      * The name of the resource operation
-     * 
+     *
      */
     @XmlElement
     public String getName() {

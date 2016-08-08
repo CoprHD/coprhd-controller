@@ -7,6 +7,7 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 
@@ -101,10 +102,10 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Delete volumes.
-     * @param volumes Volumes to delete.
+     * @param volume Volume to delete. Type: Input.
      * @return task
      */
-    public DriverTask deleteVolumes(List<StorageVolume> volumes);
+    public DriverTask deleteVolume(StorageVolume volume);
 
     // Block Snapshot operations
 
@@ -132,12 +133,12 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots);
 
     /**
-     * Delete snapshots.
-     * @param snapshots Type: Input.
+     * Delete snapshot.
+     * @param snapshot snapshot to delete. Type: Input.
 
      * @return task
      */
-    public DriverTask  deleteVolumeSnapshot(List<VolumeSnapshot> snapshots);
+    public DriverTask  deleteVolumeSnapshot(VolumeSnapshot snapshot);
 
     // Block clone operations
 
@@ -178,11 +179,11 @@ public interface BlockStorageDriver extends StorageDriver {
      * Deprecated:
      * CoprHD uses detach clone followed delete volume requests to deleted volume clone.
      *
-     * @param clones clones to delete. Type: Input.
+     * @param clone clone to delete. Type: Input.
      * @return
      */
     @Deprecated
-    public DriverTask deleteVolumeClone(List<VolumeClone> clones);
+    public DriverTask deleteVolumeClone(VolumeClone clone);
 
     // Block Mirror operations
 
@@ -208,10 +209,10 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Delete mirrors.
      *
-     * @param mirrors mirrors to delete. Type: Input.
+     * @param mirror mirror to delete. Type: Input.
      * @return task
      */
-    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors);
+    public DriverTask deleteVolumeMirror(VolumeMirror mirror);
 
     /**
      * Delete mirrors of entire volume consistency group.
@@ -390,5 +391,13 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
                                                   List<CapabilityInstance> capabilities);
+
+    /**
+     * Validate connection to storage provider.
+     *
+     * @param storageProvider provider to validate connection to.
+     * @return true/false
+     */
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider);
 
 }

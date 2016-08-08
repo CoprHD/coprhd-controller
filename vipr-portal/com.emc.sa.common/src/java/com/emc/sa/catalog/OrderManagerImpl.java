@@ -505,24 +505,8 @@ public class OrderManagerImpl implements OrderManager {
 
     private void processPendingOrder(Order order, CatalogService service) {
         if (Boolean.TRUE.equals(service.getApprovalRequired())) {
-            if (order.getScheduledEventId() != null) {
-                ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
-                if (scheduledEvent != null) {
-                    if (scheduledEvent.getEventStatus() == ScheduledEventStatus.APPROVAL) {
-                        requireApproval(order, service);
-                        return;
-                    }
-
-                    // For scheduled event, the APPROVAL procedure will go along with the latest order APPROVAL procedure
-                    // For the following orders, we would skip order approval request after the event is already APPROVED.
-                } else {
-                    requireApproval(order, service);
-                    return;
-                }
-            } else {
-                requireApproval(order, service);
-                return;
-            }
+            requireApproval(order, service);
+            return;
         }
 
         if (order.getScheduledEventId() != null) {

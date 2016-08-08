@@ -30,6 +30,7 @@ public class VolumeVirtualPoolChangeParam {
     // Optional fields for migration
     private boolean migrationSuspendBeforeCommit = false;
     private boolean migrationSuspendBeforeDeleteSource = false;
+    boolean forceFlag = false;
 
     public VolumeVirtualPoolChangeParam() {
     }
@@ -141,4 +142,17 @@ public class VolumeVirtualPoolChangeParam {
         this.migrationSuspendBeforeDeleteSource = migrationSuspendBeforeDeleteSource;
     }
 
+    /*
+     * Force Flag used to operate on internal objects.
+     * 
+     * @return True if force flag should be enabled
+     */
+    @XmlElement(name = "forceFlag")
+    public boolean getForceFlag() {
+        return forceFlag;
+    }
+
+    public void setForceFlag(boolean forceFlag) {
+        this.forceFlag = forceFlag;
+    }
 }

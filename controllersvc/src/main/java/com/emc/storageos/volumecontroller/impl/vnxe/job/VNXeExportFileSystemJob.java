@@ -88,9 +88,12 @@ public class VNXeExportFileSystemJob extends VNXeJob {
             }
             _logger.info(logMsgBuilder.toString());
             if (isFile) {
+                fsObj = dbClient.queryObject(FileShare.class, objId);
                 FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.EXPORT_FILE_SYSTEM,
                         _isSuccess, logMsgBuilder.toString(), "", fsObj, storageObj);
             } else {
+                snapObj = dbClient.queryObject(Snapshot.class, objId);
+                fsObj = dbClient.queryObject(FileShare.class, snapObj.getParent().getURI());
                 FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.EXPORT_FILE_SNAPSHOT,
                         _isSuccess, logMsgBuilder.toString(), "", snapObj, fsObj, storageObj);
             }

@@ -189,6 +189,12 @@
             </control-group>
         </div>
       </collapse>
+
+	  <collapse title-key='vpool.group.placementPolicy' icon='vipricon-hand'>
+		<control-group v-field='vpool.placementPolicy' required>
+			<select-one options="placementPolicyOptions" auto-default ng-disabled="vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}'"></select-one>
+		</control-group>
+	  </collapse>
       
       <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.sanPaths' icon='random'>

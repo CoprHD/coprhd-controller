@@ -12,25 +12,54 @@
 # Agreement under which it is provided by or on behalf of EMC.
 #--------------------------------------------------------------------
 #
-# Modified 06/12/2015: Padmakumar.Pillai@emc.com
-# The following changes were done based on the SRM feedback on
-# ReviewBoard: https://prospherereviewboard.isus.emc.com/r/18066/
-# - Rearranged the code
-# - exported logMessage function & logFile variable to be made available
-#   to the child scripts
-# - Included the trap signal to catch unexpected errors and clean up code
-# - Removed the chmod +x of pre and post update scripts
-# - Removed calling pre and post update scripts using /bin/bash
-# - Introduced exit codes
-# - Argument parsing changed to use getopt
+# Created 08/06/2016: Padmakumar.Pillai@emc.com
+# This script updates the appliance image from one version to another.
 #
-# Modified 07/31/2015: Padmakumar.Pillai@emc.com
-# - Removed the tmp-update repo from the zypper repos before the update starts
+# It happens through the following steps:
 #
-# Modified 05/06/2016: Pdmakumar.Pillai@emc.com
-# - Updated the help text
-# - Error in calling showHelp
-# - Updated copyright information
+# 1. Validates the appliance image name and version
+#    - Returns success if:
+#      (a) the product name of the appliance and that of the update 
+#          media is same.
+#      (b) the product version of update media is greater than the 
+#          appliance version
+#
+# 2. Calls the optional pre-update script (preUpdate.sh) to do any 
+#    pre-update processing on the image. The script can be used to 
+#    make any configuration changes or call some custom scripts prior 
+#    to upgrading the appliance.  In the pre update process, user can 
+#    do any backup activities, stopping of services, archiving of log 
+#    files, etc. that needs to happen before the appliance is actually 
+#    updated.
+#
+# 3. Does the actual appliance update in two phases:
+#    (a) Updates the existing packages in the appliance using the
+#	 zypper distribution upgrade process. In this process, all the 
+#        existing packages are updated to their latest versions that
+#        are bundled in the update media.
+#    (b) Installs new packages present in the update media through 
+#        the zypper pattern installation. There may be new packages 
+#        that gets added to the update media, as part of the 
+#        dependencies or new functionality getting added to the
+#        application. This process takes care of installing those 
+#        new packages in the image.
+#  
+# 4. After the appliance update process is complete, the script
+#    executes the optional post-update script (postUpdate.sh). User can 
+#    use this script to handle any activities that can happen after a 
+#    successful update, like starting the services, etc.
+#
+#
+# How to call the script
+# ======================
+# In a linux host, after unzipping the update media, please execute:
+# 
+# /bin/bash applianceUpdate
+#          OR
+# ./applianceUpdate
+#
+#
+# Please refer the user guide for more information.
 
 
 PATH=/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin

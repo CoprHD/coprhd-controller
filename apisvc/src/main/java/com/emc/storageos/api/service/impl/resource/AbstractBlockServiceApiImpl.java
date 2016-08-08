@@ -1984,8 +1984,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
             // Determine if the copy mode setting has changed. For this type of change, all source volumes
             // in the consistency group are affected.
-            String currentCopyMode = currentVpool.getRpCopyMode() == null ? "" : currentVpool.getRpCopyMode();
-            String newCopyMode = vpool.getRpCopyMode() == null ? "" : vpool.getRpCopyMode();
+            String currentCopyMode = NullColumnValueGetter.isNullValue(currentVpool.getRpCopyMode()) ?
+                    "" : currentVpool.getRpCopyMode();
+            String newCopyMode = NullColumnValueGetter.isNullValue(vpool.getRpCopyMode()) ?
+                    "" : vpool.getRpCopyMode();
 
             if (!newCopyMode.equals(currentCopyMode)) {
                 // The copy mode setting has changed.
@@ -1998,7 +2000,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Create a task list for the volumes sent in.
+     * Create a task list for the volumes sent in using the operation CHANGE_BLOCK_VOLUME_VPOOL.
      * 
      * @param vPool
      *            virtual pool
@@ -2054,7 +2056,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Create a task for the replication group and volumes sent in.
+     * Create a task for the replication group and volumes sent in using operation CHANGE_BLOCK_VOLUME_VPOOL.
      * Since replication groups are not a primary resource, we cannot associate a Task to a replication
      * group. We get around this by associating the task to the first volume in the list, and the other
      * volumes are associated resources. This is not an ideal approach, so we will pursue a better approach

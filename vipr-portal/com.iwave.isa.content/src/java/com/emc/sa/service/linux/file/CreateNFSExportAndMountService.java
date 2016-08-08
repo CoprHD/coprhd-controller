@@ -89,10 +89,10 @@ public class CreateNFSExportAndMountService extends ViPRService {
         for (Mount mount : mountList) {
             FileExportRule export = new FileExportRule();
             List<String> exportHosts = new ArrayList<String>();
-            exportHosts.add(BlockStorageUtils.getHost(mount.host).getHostName());
-            export.exportHosts = exportHosts;
-            export.permission = mount.permission;
-            export.security = mount.security;
+            exportHosts.add(BlockStorageUtils.getHost(mount.getHost()).getHostName());
+            export.setExportHosts(exportHosts);
+            export.setPermission(mount.getPermission());
+            export.setSecurity(mount.getSecurity());
             exportList.add(export);
         }
 
@@ -109,9 +109,10 @@ public class CreateNFSExportAndMountService extends ViPRService {
         }
         // mount the exports
         for (Mount mount : mountList) {
-            Host host = BlockStorageUtils.getHost(mount.host);
-            mountNFSExportHelper.mountExport(fileSystemId, mount.host, null, mount.mountPath, mount.security, host.getHostName());
-            ExecutionUtils.addAffectedResource(mount.host.toString());
+            Host host = BlockStorageUtils.getHost(mount.getHost());
+            mountNFSExportHelper.mountExport(fileSystemId, mount.getHost(), null, mount.getMountPath(), mount.getSecurity(),
+                    host.getHostName());
+            ExecutionUtils.addAffectedResource(mount.getHost().toString());
         }
     }
 }

@@ -636,26 +636,82 @@ public class FileStorageUtils {
 
     public static class FileExportRule {
         @Param
-        public List<String> exportHosts;
+        protected List<String> exportHosts;
 
         @Param
-        public String security;
+        protected String security;
 
         @Param
-        public String permission;
+        protected String permission;
+
+        public List<String> getExportHosts() {
+            return exportHosts;
+        }
+
+        public void setExportHosts(List<String> exportHosts) {
+            this.exportHosts = exportHosts;
+        }
+
+        public String getSecurity() {
+            return security;
+        }
+
+        public void setSecurity(String security) {
+            this.security = security;
+        }
+
+        public String getPermission() {
+            return permission;
+        }
+
+        public void setPermission(String permission) {
+            this.permission = permission;
+        }
     }
 
     public static class Mount {
         @Param
-        public URI host;
+        private URI host;
 
         @Param
-        public String security;
+        private String security;
 
         @Param
-        public String permission;
+        private String permission;
 
         @Param
-        public String mountPath;
+        private String mountPath;
+
+        public URI getHost() {
+            return host;
+        }
+
+        public void setHost(URI host) {
+            this.host = host;
+        }
+
+        public String getSecurity() {
+            return security;
+        }
+
+        public void setSecurity(String security) {
+            this.security = security;
+        }
+
+        public String getPermission() {
+            return permission;
+        }
+
+        public void setPermission(String permission) {
+            this.permission = permission;
+        }
+
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        public void setMountPath(String mountPath) {
+            this.mountPath = mountPath;
+        }
     }
 }

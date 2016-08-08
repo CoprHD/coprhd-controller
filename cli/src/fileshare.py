@@ -3566,7 +3566,7 @@ def mountnfs_unmount(args):
         obj.unmount(resourceUri, host_uri, args.mountpath, args.sync, args.synctimeout)
 
     except SOSError as e:
-        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+        if e.err_code == SOSError.SOS_FAILURE_ERR:
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
                 "MountNFS: " + 

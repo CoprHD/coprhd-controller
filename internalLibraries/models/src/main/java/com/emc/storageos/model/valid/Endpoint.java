@@ -30,6 +30,7 @@ public @interface Endpoint {
         IQN("IQN port"),
         EUI("EUI port"),
         ISCSI("IQN or EUI port"),
+        RBD("Ceph's RBD pseudo port"), // starts with 'rbd:'
         IPV4("IPv4 address"),
         IPV6("IPv6 address"),
         IP("IP address"), // any IP port: IPV6 or IPV4

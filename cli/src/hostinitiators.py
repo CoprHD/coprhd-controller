@@ -40,7 +40,7 @@ class HostInitiator(object):
     URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias/{1}"
     URI_INITIATOR_ALIASSET = "/compute/initiators/{0}/alias"
 
-    INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI']
+    INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI', 'RBD']
 
     __hostObject = None
 
@@ -515,7 +515,7 @@ def create_parser(subcommand_parsers, common_parser):
 
     mandatory_args.add_argument(
         '-pwwn', '-initiatorportwwn',
-        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI',
+        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI, or pseudo RBD port for Ceph',
         dest='initiatorportwwn',
         metavar='<initiatorportwwn>',
         required=True)
@@ -536,11 +536,11 @@ def initiator_create(args):
             " " + sys.argv[2] + ": error:" +
             "-initiatorwwn is required for FC type initiator")
 
-    if(args.protocol == "iSCSI" and args.initiatorwwn):
+    if(args.protocol in ("iSCSI", "RBD") and args.initiatorwwn):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
             " " + sys.argv[2] + ": error:" +
-            "-initiatorwwn is not required for iSCSI type initiator")
+            "-initiatorwwn is not required for " + args.protocol + " type initiator")
 
     initiatorObj = HostInitiator(args.ip, args.port)
     try:
@@ -796,7 +796,7 @@ def update_parser(subcommand_parsers, common_parser):
 
     mandatory_args.add_argument(
         '-npwwn', '-newinitiatorportwwn',
-        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI',
+        help='Port wwn, it can be WWN for FC, IQN/EUI for iSCSI, or pseudo RBD port for Ceph',
         dest='newinitiatorportwwn',
         metavar='<newinitiatorportwwn>',
         required=True)
@@ -819,10 +819,10 @@ def initiator_update(args):
                        "At least one of the arguments :"
                        "-newprotocol -newinitiatorwwn -newinitiatorportwwn"
                        " should be provided to update the Host")
-    if(args.newprotocol == "iSCSI" and args.newinitiatorwwn):
+    if(args.newprotocol in ("iSCSI", "RBD") and args.newinitiatorwwn):
         raise SOSError(SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
                        " " + sys.argv[2] + ": error: -newinititorwwn " +
-                       "is not required for iSCSI type initiator")
+                       "is not required for " + args.newprotocol + " type initiator")
 
     initiatorObj = HostInitiator(args.ip, args.port)
     try:

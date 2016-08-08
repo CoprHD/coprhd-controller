@@ -98,6 +98,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.RBDUtility;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -823,8 +824,9 @@ public class HostService extends TaskResourceService {
                 (initiator != null ? initiator.getInitiatorPort() : null);
         ArgValidator.checkFieldValueWithExpected(param == null
                 || HostInterface.Protocol.FC.toString().equals(protocol)
-                || HostInterface.Protocol.iSCSI.toString().equals(protocol),
-                "protocol", protocol, HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI);
+                || HostInterface.Protocol.iSCSI.toString().equals(protocol)
+                || HostInterface.Protocol.RBD.toString().equals(protocol),
+                "protocol", protocol, HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI, HostInterface.Protocol.RBD);
         // Validate the passed node and port based on the protocol.
         // Note that for iSCSI the node is optional.
         if (HostInterface.Protocol.FC.toString().equals(protocol)) {
@@ -840,13 +842,21 @@ public class HostService extends TaskResourceService {
             if (!WWNUtility.isValidWWN(node)) {
                 throw APIException.badRequests.invalidWwnForFcInitiatorNode();
             }
-        } else {
+        } else if (HostInterface.Protocol.iSCSI.toString().equals(protocol)) {
             // Make sure the port is a valid iSCSI port.
             if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port)) {
                 throw APIException.badRequests.invalidIscsiInitiatorPort();
             }
             if (param.getNode() != null) {
                 throw APIException.badRequests.invalidNodeForiScsiPort();
+            }
+        } else {
+            // Make sure the port is a valid RBD pseudo port
+            if (!RBDUtility.isValidRBDPseudoPort(port)) {
+                throw APIException.badRequests.invalidRBDInitiatorPort();
+            }
+            if (param.getNode() != null) {
+                throw APIException.badRequests.invalidNodeForRBDPort();
             }
         }
         // last validate that the initiator port is unique

@@ -119,7 +119,9 @@ public class HostInitiators extends ViprResourceController {
         if (StringUtils.startsWith(wwn, "iqn.")) {
             return BlockProtocols.iSCSI;
         }
-        else {
+        else if (StringUtils.startsWith(wwn, "rbd:")) {
+            return BlockProtocols.RBD;
+        } else {
             return BlockProtocols.FC;
         }
     }
@@ -177,10 +179,16 @@ public class HostInitiators extends ViprResourceController {
                     Validation.addError(formName + ".port", "initiators.port.invalidWWN");
                 }
             }
-            else {
+            else if (BlockProtocols.isISCSI(protocol)){
                 boolean valid = EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.IQN);
                 if (!valid) {
                     Validation.addError(formName + ".port", "initiators.port.invalidIQN");
+                }
+            }
+            else {
+                boolean valid = EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.RBD);
+                if (!valid) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidRBD");
                 }
             }
         }

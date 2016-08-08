@@ -410,8 +410,8 @@ public class NetAppClusterModeCommIntf extends
             List<Quota> quotas;
             try {// Currently there are no API's available to check the quota status in general
                 quotas = netAppCApi.listQuotas();// TODO check weather quota is on before doing this call
-            } catch (Throwable e) {
-                _logger.error("Error while fetching quotas", e);
+            } catch (Exception e) {
+                _logger.error("Error while fetching quotas", e.getMessage());
                 return;
             }
             if (quotas != null) {

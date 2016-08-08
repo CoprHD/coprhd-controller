@@ -884,15 +884,15 @@ public class NetAppFileCommunicationInterface extends
             List<Qtree> qtrees = netAppApi.listQtrees();
             List<Quota> quotas;
             try {// Currently there are no API's available to check the quota status in general
-                quotas = netAppApi.listQuotas();// TODO check weather quota is on before doing this call
-            } catch (Throwable e) {
-                _logger.error("Error while fetching quotas", e);
+                quotas = netAppApi.listQuotas();
+            } catch (Exception e) {
+                _logger.error("Error while fetching quotas", e.getMessage());
                 return;
             }
             if (quotas != null) {
                 Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
                 qtrees.forEach(qtree -> {
-                    if (qtree.getQtree() != null && !qtree.getQtree().equals("")) {
+                    if(!"".equals(qtree.getQtree())){
                         qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
                     }
                 });
@@ -926,7 +926,7 @@ public class NetAppFileCommunicationInterface extends
                     }
 
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                   
                     unManagedFileQuotaDirectory.setLabel(quota.getQtree());
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
@@ -937,6 +937,8 @@ public class NetAppFileCommunicationInterface extends
                     unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
 
                     if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                      //Set ID only for new UnManagedQuota Directory 
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     } else {
                         existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);

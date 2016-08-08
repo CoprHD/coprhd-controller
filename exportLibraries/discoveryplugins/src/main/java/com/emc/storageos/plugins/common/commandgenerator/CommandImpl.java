@@ -59,11 +59,9 @@ public final class CommandImpl implements Command {
             if (isInvoke) {
                 result = outputarg;
             }
-        }catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-        finally {
+        } catch (Exception e) {
+            _logger.error("Method invoke command execution failed :" + e.getLocalizedMessage());
+        } finally {
             _instance = null;
         }
         return result;

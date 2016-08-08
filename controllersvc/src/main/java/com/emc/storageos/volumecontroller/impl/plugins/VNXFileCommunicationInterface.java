@@ -1659,7 +1659,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     }
 
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    
                     unManagedFileQuotaDirectory.setLabel(qdName);
 
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
@@ -1671,6 +1671,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     }
 
                     if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        //Set ID only for new UnManagedQuota Directory 
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     } else {
                         existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -1695,7 +1697,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (null != storageSystem) {
                 cleanupDiscovery(storageSystem);
             }
-            _logger.error("discoverStorage failed.  Storage system: "
+            _logger.error("discovery of UMFS Quota Directory failed. Storage system: "
                     + storageSystemId);
             throw e;
         }

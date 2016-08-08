@@ -101,7 +101,6 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         .getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
 
                 // Find the cluster by address
-                // TODO this may be incorrect if it finds the ip addresses in the current host cluster.. which is wrong because
                 URI cluster = findClusterByAddresses(host, host.getTenant(), HostType.Windows, clusterIpAddresses);
                 if (cluster != null) {
                     return cluster;

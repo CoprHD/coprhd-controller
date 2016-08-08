@@ -377,6 +377,10 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * <<<<<<< HEAD
+     * =======
+     * <<<<<<< HEAD
+     * >>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
      * Gets the storage usage information for a storage type.
      *
      * @param instanceId The storage type to get.
@@ -392,6 +396,11 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * <<<<<<< HEAD
+     * =======
+     * =======
+     * >>>>>>> b18b4bee2546578f15bcc6eb15bd41598a97d917
+     * >>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
      * Gets the Storage Center usage data.
      * 
      * @param ssn The Storage Center system serial number.

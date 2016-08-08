@@ -21,10 +21,6 @@ def get_scheduled_event(args):
 
     print(common.to_pretty_json(body))
 
-def load_event_payload_from_file(path):
-    with open(path) as event_file:
-        return json.dumps(json.load(event_file))
-
 def create_scheduled_event(args):
     """
     Create a scheduled event from a file in JSON format. For example:
@@ -115,12 +111,35 @@ def update_scheduled_event(args):
 
     (body, headers) = common.service_json_request(
         args.ip, args.port, "PUT",
-        "{}/{}".format(SCHEDULED_EVENT_BASE_URI, args.id),
+        "{}/{}".format(SCHEDULED_EVENT_BASE_URI, args.event_id),
         update_payload, None)
 
     print("Scheduled Event is updated successfully.")
 
+def delete_scheduled_event(args):
+    common.service_json_request(
+        args.ip, args.port, "POST",
+        "{}/{}/deactivate".format(SCHEDULED_EVENT_BASE_URI, args.event_id),
+        None, None)
 
+    print("Scheduled Event is deleted successfully.")
+
+def cancel_scheduled_event(args):
+    common.service_json_request(
+        args.ip, args.port, "POST",
+        "{}/{}/cancel".format(SCHEDULED_EVENT_BASE_URI, args.event_id),
+        None, None)
+
+    print("Scheduled Event is canceled successfully.")
+
+
+# Private functions
+def load_event_payload_from_file(path):
+    with open(path) as event_file:
+        return json.dumps(json.load(event_file))
+
+
+# Sub command parsers
 def get_event_parser(subcommand_parsers, common_parser):
 
     parser = subcommand_parsers.add_parser(
@@ -174,7 +193,7 @@ def update_event_parser(subcommand_parsers, common_parser):
 
     mandatory_args.add_argument('-id',
                                 help='The Id of the event to be updated',
-                                dest='id',
+                                dest='event_id',
                                 required=True)
 
     mandatory_args.add_argument('-f',
@@ -185,9 +204,45 @@ def update_event_parser(subcommand_parsers, common_parser):
     parser.set_defaults(func=update_scheduled_event)
 
 
+def delete_event_parser(subcommand_parsers, common_parser):
+    parser = subcommand_parsers.add_parser(
+        'delete',
+        description='ViPR Delete Scheduled Event CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Delete a Scheduled Event by Id')
+
+    mandatory_args = parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-id',
+                                help='The Id of Event',
+                                dest='event_id',
+                                required=True)
+
+    parser.set_defaults(func=delete_scheduled_event)
+
+def cancel_event_parser(subcommand_parsers, common_parser):
+    parser = subcommand_parsers.add_parser(
+        'cancel',
+        description='ViPR Cancel Scheduled Event CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Cancel a Scheduled Event by Id')
+
+    mandatory_args = parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-id',
+                                help='The Id of Event',
+                                dest='event_id',
+                                required=True)
+
+    parser.set_defaults(func=cancel_scheduled_event)
+
 def schedule_event_parser(parent_subparser, common_parser):
     """
-    truststore Main parser routine
+    Main parser routine
     Args:
         parent_subparser:
         common_parser:
@@ -210,4 +265,6 @@ def schedule_event_parser(parent_subparser, common_parser):
     get_event_parser(subcommand_parsers, common_parser)
     create_event_parser(subcommand_parsers, common_parser)
     update_event_parser(subcommand_parsers, common_parser)
+    delete_event_parser(subcommand_parsers, common_parser)
+    cancel_event_parser(subcommand_parsers, common_parser)
 

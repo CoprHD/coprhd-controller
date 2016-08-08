@@ -79,7 +79,7 @@ public class DellSCDiscovery {
         this.driverName = driverName;
         this.driverVersion = driverVersion;
         this.persistence = persistence;
-        this.util = new DellSCUtil();
+        this.util = DellSCUtil.getInstance();
     }
 
     /**

@@ -71,7 +71,7 @@ public class DellSCProvisioning {
      */
     public DellSCProvisioning(DellSCPersistence persistence) {
         this.persistence = persistence;
-        this.util = new DellSCUtil();
+        this.util = DellSCUtil.getInstance();
     }
 
     /**
@@ -95,7 +95,7 @@ public class DellSCProvisioning {
             String ssn = volume.getStorageSystemId();
             try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
                 // See if we need to add to a consistency group
-                String cgID = new DellSCUtil().findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
+                String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
 
                 ScVolume scVol = api.createVolume(
                         ssn,

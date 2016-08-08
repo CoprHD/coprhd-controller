@@ -198,7 +198,7 @@ def schedule_event_parser(parent_subparser, common_parser):
 
     # root parser of scheduled event
     parser = parent_subparser.add_parser(
-        'schedevent',
+        'scheduled_event',
         description='ViPR Scheduled Event CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',

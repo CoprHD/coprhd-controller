@@ -189,6 +189,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new UpgradePropertyPage(properties));
             addPage(excludePages, new DefaultPropertyPage(OTHER));
             addPage(excludePages, new PasswordPropertyPage(properties));
+            addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
         }
 
@@ -247,8 +248,10 @@ public class ConfigProperties extends Controller {
                 String name = entry.getKey();
                 String value = values.get(name);
                 PropertyMetadata meta = entry.getValue();
-                if (meta.getType().equals(TEXT) || meta.getType().equals(ENCRYPTEDTEXT)) {
-                    value = value.replace("\\\\n", "\r\n");
+                if (value != null) {
+                    if (meta.getType().equals(TEXT) || meta.getType().equals(ENCRYPTEDTEXT)) {
+                        value = value.replace("\\\\n", "\r\n");
+                    }
                 }
                 Set<String> allSupportPageProperties = SupportPropertyPage.getAllProperties();
                 if (!(allSupportPageProperties.contains(name) && SetupUtils.isOssBuild())) {

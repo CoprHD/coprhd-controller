@@ -2632,24 +2632,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param snapshots snapshot list
-     *
+     * 
      * @param initatorURIs initiators to send to the block controller
-     *
+     * 
      * @param token The task object
      */
     @Override
@@ -2857,19 +2857,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2987,15 +2987,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     *
+     * 
      * @param workflow Workflow
-     *
+     * 
      * @param waitFor waitFor step id
-     *
+     * 
      * @param snapshots list of snapshot to disable
-     *
+     * 
      * @param rpSystem RP system
-     *
+     * 
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -3163,24 +3163,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportGroupID The export group
-     *
+     * 
      * @param snapshot RP snapshot
-     *
+     * 
      * @param lun HLU
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -4135,7 +4135,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4591,7 +4591,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4691,7 +4691,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow
      * .Workflow, java.lang.String, java.util.List, java.lang.String)
@@ -6640,7 +6640,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
@@ -7030,7 +7030,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow
      * , java.lang.String, java.util.List, java.lang.String)
@@ -7049,17 +7049,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         if (protectionSystemURI != null && volumeURIs != null) {
             // Validate that all volumeURIs share the same protection system that is passed in.
+            // Also, create a WWN to volume URI map so we can tie the WWN volume access state back
+            // to the ViPR volume URI.
+            Map<String, URI> wwnToVolumeUri = new HashMap<String, URI>();
+
             for (URI volumeURI : volumeURIs) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 if (!protectionSystemURI.equals(volume.getProtectionController())) {
                     throw DeviceControllerExceptions.recoverpoint.failedToGetCopyAccessStateProtectionSystemMismatch(volume.getId(),
                             protectionSystemURI);
                 }
-            }
 
-            Map<String, URI> wwnToVolumeUri = new HashMap<String, URI>();
-
-            for (URI volumeURI : volumeURIs) {
                 String wwn = RPHelper.getRPWWn(volumeURI, _dbClient);
                 wwnToVolumeUri.put(wwn, volumeURI);
             }

@@ -233,6 +233,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 _dbClient.updateAndReindexObject(exportGroup);
                             }
                         }
+                        break;
                     }
                 }
                 if (!anyVolumesAdded) {

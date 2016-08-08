@@ -44,7 +44,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
-import com.emc.storageos.api.service.impl.resource.utils.FileSystemRepliationUtils;
+import com.emc.storageos.api.service.impl.resource.utils.FileSystemReplicationUtils;
 import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -1631,7 +1631,7 @@ public class FileService extends TaskResourceService {
         }
         StringBuffer notSuppReasonBuff = new StringBuffer();
         // Verify the file system is having any active replication targets!!
-        if (FileSystemRepliationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
+        if (FileSystemReplicationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
                 param.getForceDelete())) {
             throw APIException.badRequests
                     .resourceCannotBeDeleted(notSuppReasonBuff.toString());
@@ -2700,7 +2700,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system and its vPool are capable of doing replication!!!
-        if (!FileSystemRepliationUtils.isSupportedFileReplicationCreate(fs, currentVpool, notSuppReasonBuff)) {
+        if (!FileSystemReplicationUtils.isSupportedFileReplicationCreate(fs, currentVpool, notSuppReasonBuff)) {
             _log.error("create mirror copies is not supported for file system {} due to {}",
                     fs.getId().toString(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToCreateMirrorCopies(
@@ -2807,7 +2807,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system and its vPool are capable of doing replication!!!
-        if (!FileSystemRepliationUtils.validateDeleteMirrorCopies(fs, currentVpool, notSuppReasonBuff)) {
+        if (!FileSystemReplicationUtils.validateDeleteMirrorCopies(fs, currentVpool, notSuppReasonBuff)) {
             _log.error("delete mirror copies is not supported for file system {} due to {}",
                     fs.getId().toString(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToDeleteMirrorCopies(
@@ -2918,7 +2918,7 @@ public class FileService extends TaskResourceService {
         validateProtectionSettings(vpool, param);
 
         StringBuffer notSuppReasonBuff = new StringBuffer();
-        if (!FileSystemRepliationUtils.doBasicMirrorValidation(fs, vpool, notSuppReasonBuff)) {
+        if (!FileSystemReplicationUtils.doBasicMirrorValidation(fs, vpool, notSuppReasonBuff)) {
             throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.UPDATE_RPO.toString(), fs.getId(),
                     notSuppReasonBuff.toString());
         }
@@ -3087,7 +3087,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         String operation = ProtectionOp.FAILOVER.getRestOp();
-        if (!FileSystemRepliationUtils.validateMirrorOperationSupported(fs, currentVpool, notSuppReasonBuff, operation)) {
+        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(fs, currentVpool, notSuppReasonBuff, operation)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
                     fs.getLabel(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), fs.getId(),
@@ -3177,7 +3177,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         String operation = ProtectionOp.FAILBACK.getRestOp();
-        if (!FileSystemRepliationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, operation)) {
+        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, operation)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
                     sourceFileShare.getLabel(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), sourceFileShare.getId(),
@@ -3284,7 +3284,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system and its vPool are capable of doing replication!!!
-        if (!FileSystemRepliationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
+        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op.toUpperCase(),
                     sourceFileShare.getLabel(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),

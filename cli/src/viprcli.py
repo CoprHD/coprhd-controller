@@ -91,7 +91,7 @@ vipr_cli_dir = common.getenv('VIPR_CLI_INSTALL_DIR')
 # parser having common arguments across all modules
 
 common_parser = argparse.ArgumentParser()
-common_parser.add_argument('-hostname', '-hsn',
+common_parser.add_argument('-hostname', '-hn',
                            metavar='<hostname>',
                            default=vipr_ip,
                            dest='ip',

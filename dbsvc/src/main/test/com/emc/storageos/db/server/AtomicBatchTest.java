@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.server;
 
 import static org.junit.Assert.assertEquals;
@@ -40,36 +44,36 @@ public class AtomicBatchTest extends DbsvcTestBase{
     
     @Test
     public void insertRecords() throws Exception {
-        for (int i = 0; i < objectIds.length; i++) {
-            rowMutator.insertRecordColumn("Volume", objectIds[i], new CompositeColumnName("One", "Two", "Three"), "test");
+        for (String objectId : objectIds) {
+            rowMutator.insertRecordColumn("Volume", objectId, new CompositeColumnName("One", "Two", "Three"), "test");
         }
                 
         rowMutator.execute();
         
-        for (int i = 0; i < objectIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
-            assertEquals(result.one().getString("key"), objectIds[i]);
+        for (String objectId : objectIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
+            assertEquals(result.one().getString("key"), objectId);
         }
     }
     
     @Test
     public void insertIndexes() throws Exception {
-        for (int i = 0; i < indexIds.length; i++) {
-            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        for (String indexId : indexIds) {
+            rowMutator.insertIndexColumn("AltIdIndex", indexId, new IndexColumnName("One", "Two", "Three", "Four", null), "test");
         }
                 
         rowMutator.execute();
         
-        for (int i = 0; i < indexIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
-            assertEquals(result.one().getString("key"), indexIds[i]);
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
+            assertEquals(result.one().getString("key"), indexId);
         }
     }
     
     @Test
     public void insertRecordsAndIndexes() throws Exception {
-        for (int i = 0; i < objectIds.length; i++) {
-            rowMutator.insertRecordColumn("Volume", objectIds[i], new CompositeColumnName("One", "Two", "Three"), "test");
+        for (String objectId : objectIds) {
+            rowMutator.insertRecordColumn("Volume", objectId, new CompositeColumnName("One", "Two", "Three"), "test");
         }
         
         for (int i = 0; i < indexIds.length; i++) {
@@ -78,14 +82,14 @@ public class AtomicBatchTest extends DbsvcTestBase{
                 
         rowMutator.execute();
         
-        for (int i = 0; i < objectIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
-            assertEquals(result.one().getString("key"), objectIds[i]);
+        for (String objectId : objectIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
+            assertEquals(result.one().getString("key"), objectId);
         }
         
-        for (int i = 0; i < indexIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
-            assertEquals(result.one().getString("key"), indexIds[i]);
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
+            assertEquals(result.one().getString("key"), indexId);
         }
     }
     
@@ -102,8 +106,8 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (int i = 0; i < objectIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
+        for (String objectId : objectIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
             assertFalse(result.iterator().hasNext());
         }
     }
@@ -121,8 +125,8 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (int i = 0; i < indexIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
             assertFalse(result.iterator().hasNext());
         }
     }
@@ -140,13 +144,13 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (int i = 0; i < indexIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
             assertFalse(result.iterator().hasNext());
         }
         
-        for (int i = 0; i < objectIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
+        for (String objectId : objectIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
             assertFalse(result.iterator().hasNext());
         }
     }
@@ -170,9 +174,9 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (int i = 0; i < objectIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
-            assertEquals(result.one().getString("key"), objectIds[i]);
+        for (String objectId : objectIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
+            assertEquals(result.one().getString("key"), objectId);
         }
     }
     
@@ -195,16 +199,16 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (int i = 0; i < indexIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
-            assertEquals(result.one().getString("key"), indexIds[i]);
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
+            assertEquals(result.one().getString("key"), indexId);
         }
     }
     
     @Test
     public void deleteRecordsAndIndexesWithError() throws Exception {
-        for (int i = 0; i < objectIds.length; i++) {
-            rowMutator.insertRecordColumn("Volume", objectIds[i], new CompositeColumnName("One", "Two", "Three"), "test");
+        for (String objectId : objectIds) {
+            rowMutator.insertRecordColumn("Volume", objectId, new CompositeColumnName("One", "Two", "Three"), "test");
         }
         
         for (int i = 0; i < indexIds.length; i++) {
@@ -218,14 +222,14 @@ public class AtomicBatchTest extends DbsvcTestBase{
         rowMutator.deleteRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"));
         rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         
-        for (int i = 0; i < objectIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectIds[i]));
-            assertEquals(result.one().getString("key"), objectIds[i]);
+        for (String objectId : objectIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
+            assertEquals(result.one().getString("key"), objectId);
         }
         
-        for (int i = 0; i < indexIds.length; i++) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
-            assertEquals(result.one().getString("key"), indexIds[i]);
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
+            assertEquals(result.one().getString("key"), indexId);
         }
     }
 }

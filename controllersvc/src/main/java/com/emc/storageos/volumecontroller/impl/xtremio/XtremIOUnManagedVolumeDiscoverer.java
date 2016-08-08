@@ -100,21 +100,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
         this.networkDeviceController = networkDeviceController;
     }
 
-    private StoragePool getXtremIOStoragePool(URI systemId, DbClient dbClient) {
-        StoragePool storagePool = null;
-        URIQueryResultList storagePoolURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getStorageDeviceStoragePoolConstraint(systemId),
-                storagePoolURIs);
-        Iterator<URI> poolsItr = storagePoolURIs.iterator();
-        while (poolsItr.hasNext()) {
-            URI storagePoolURI = poolsItr.next();
-            storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
-        }
-
-        return storagePool;
-    }
-
     private StringSet discoverVolumeSnaps(StorageSystem system, List<List<Object>> snapDetails, String parentGUID,
             StringSet parentMatchedVPools, XtremIOClient xtremIOClient, String xioClusterName, DbClient dbClient,
             Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap, Map<String, StringSet> igKnownVolumesMap) throws Exception {
@@ -216,7 +201,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         unManagedCGToUpdateMap = new HashMap<String, UnManagedConsistencyGroup>();
 
         // get the storage pool associated with the xtremio system
-        StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
+        StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(storageSystem.getId(), dbClient);
         if (storagePool == null) {
             log.error("Skipping unmanaged volume discovery as the volume storage pool doesn't exist in ViPR");
             return;

@@ -40,13 +40,11 @@ import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
-import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -178,23 +176,6 @@ public class EventService extends TaggedResource {
     }
 
     /**
-     * Method to delete a host.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host to delete
-     * @return task for deleting a host
-     */
-    public TaskResourceRep deleteHost(URI hostId) {
-        ComputeSystemController computeController = getController(ComputeSystemController.class, null);
-        Host host = queryObject(Host.class, hostId, true);
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
-                ResourceOperationTypeEnum.DELETE_HOST);
-        computeController.detachHostStorage(hostId, true, true, taskId);
-        return toTask(host, taskId, op);
-    }
-
-    /**
      * Method to add an initiator to existing exports for a host.
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
@@ -252,25 +233,6 @@ public class EventService extends TaggedResource {
     }
 
     /**
-     * Method to delete a cluster and unexport shared exports for the cluster.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param clusterId the cluster to delete
-     * @return task for deleting a cluster
-     */
-    public TaskResourceRep deleteCluster(URI clusterId) {
-        String taskId = UUID.randomUUID().toString();
-        Cluster cluster = queryObject(Cluster.class, clusterId, true);
-        Operation op = _dbClient.createTaskOpStatus(Cluster.class, clusterId, taskId,
-                ResourceOperationTypeEnum.DELETE_CLUSTER);
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachClusterStorage(clusterId, true, true, taskId);
-        auditOp(OperationTypeEnum.DELETE_CLUSTER, true, op.getStatus(),
-                cluster.auditParameters());
-        return toTask(cluster, taskId, op);
-    }
-
-    /**
      * Method to move a host to a new cluster and update shared exports.
      * 
      * @param hostId the host that is moving clusters
@@ -310,25 +272,6 @@ public class EventService extends TaggedResource {
         }
 
         return new TaskResourceRep();
-    }
-
-    /**
-     * Method to delete a vcenter datacenter
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param id the id of the datacenter
-     * @return task for deleting a datacenter
-     */
-    public TaskResourceRep deleteDatacenter(URI id) {
-        VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, id, true);
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(VcenterDataCenter.class, dataCenter.getId(), taskId,
-                ResourceOperationTypeEnum.DELETE_VCENTER_DATACENTER_STORAGE);
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachDataCenterStorage(dataCenter.getId(), true, taskId);
-        auditOp(OperationTypeEnum.DELETE_VCENTER_DATACENTER, true, null,
-                dataCenter.auditParameters());
-        return toTask(dataCenter, taskId, op);
     }
 
     /**

@@ -1397,6 +1397,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     landingStep = 3;
     maxSteps = 9;
     initialNav = $(".navMenu .active").text();
+    initialNavParent = $(".rootNav.active").text();
 
     $scope.checkGuide = function() {
         cookieObject = angular.fromJson(readCookie(cookieKey));
@@ -1445,7 +1446,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.guideVisible = false;
         $scope.guideDataAvailable = false;
         saveGuideCookies();
-        setActiveMenu(initialNav);
+        setActiveMenu(initialNav,initialNavParent);
     }
 
     $scope.initializeSteps = function() {
@@ -2011,7 +2012,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("General Configuration");
                     break;
                 case 3:
-                    setActiveMenu(initialNav);
+                    setActiveMenu("Overview");
                     break;
                 case 4:
                     setActiveMenu("Storage Systems");
@@ -2038,11 +2039,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
 
 
-    function setActiveMenu(name) {
+
+    function setActiveMenu(name,parent) {
         $(".navMenu .active , #mainMenu .active").removeClass("active");
-        parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
-        $(".navMenu li:contains("+name+")").addClass("active");
-        $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        if(name){
+            parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
+            $(".navMenu li:contains("+name+")").addClass("active");
+            $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        } else if (parent){
+            $(".rootNav:contains("+parent+")").addClass("active");
+        }
+
         openMenu();
     }
 

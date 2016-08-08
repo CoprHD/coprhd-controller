@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.File;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -177,12 +179,14 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
                 URI storagePortURI = storagePortsIter.next();
                 StoragePort storagePort = _objectCache.queryObject(StoragePort.class,
                         storagePortURI);
+
                 // only usable storage port will be checked
                 Set<String> varrays = new HashSet<String>();
                 varrays.add(varrayId.toString());
-                if (!isPortUsable(storagePort, varrays)) {
-                    continue;
-                }
+
+				if (!isPortUsable(storagePort, varrays)) {
+					continue;
+				}
                 portProtocols.addAll(transport2Protocol(storagePort.getTransportType()));
                 if (portProtocols.containsAll(poolProtocols)) {
                     break;
@@ -284,8 +288,8 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
             boolean isMatching = false;
             while (storagePortsIter.hasNext()) {
                 URI storagePortURI = storagePortsIter.next();
-                StoragePort storagePort = _objectCache.queryObject(StoragePort.class,
-                        storagePortURI);
+                StoragePort storagePort = _objectCache.queryObject(StoragePort.class, storagePortURI);
+
                 // only usable storage port will be checked
                 if (!isPortUsable(storagePort, vArrays)) {
                     continue;
@@ -332,27 +336,28 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
      */
     private boolean isPortUsable(StoragePort storagePort, Set<String> varrays) {
         boolean isUsable = true;
-        if (storagePort == null ||
-                storagePort.getInactive() ||
-                storagePort.getTaggedVirtualArrays() == null ||
-                NullColumnValueGetter.isNullURI(storagePort.getNetwork()) ||
-                !RegistrationStatus.REGISTERED.toString()
-                        .equalsIgnoreCase(storagePort.getRegistrationStatus()) ||
-                (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
-                        .equals(StoragePort.OperationalStatus.NOT_OK) ||
-                !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                        .equals(storagePort.getCompatibilityStatus()) ||
-                !DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
 
-            isUsable = false;
-        } else {
-            StringSet portVarrays = storagePort.getTaggedVirtualArrays();
-            portVarrays.retainAll(varrays);
-            if (portVarrays.isEmpty()) {
-                // the storage port does not belongs to any varrays
-                isUsable = false;
-            }
-        }
-        return isUsable;
+		if (storagePort == null
+				|| storagePort.getInactive()
+				|| storagePort.getTaggedVirtualArrays() == null
+				|| NullColumnValueGetter.isNullURI(storagePort.getNetwork())
+				|| !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+						storagePort.getRegistrationStatus())
+				|| (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))
+						.equals(StoragePort.OperationalStatus.NOT_OK)
+				|| !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+						.equals(storagePort.getCompatibilityStatus())
+				|| !DiscoveryStatus.VISIBLE.name().equals(
+						storagePort.getDiscoveryStatus())) {
+			isUsable = false;
+		} else {
+			StringSet portVarrays = storagePort.getTaggedVirtualArrays();
+			portVarrays.retainAll(varrays);
+			if (portVarrays.isEmpty()) {
+				// the storage port does not belongs to any varrays
+				isUsable = false;
+			}
+		}
+		return isUsable;
     }
 }

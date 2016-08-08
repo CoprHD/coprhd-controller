@@ -19,6 +19,7 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
     private URI targetVirtualPoolId;
     private URI consistencyGroup;
     private Boolean suspendOnMigration;
+    private boolean forceFlag = false;
 
     public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration) {
         this.volumeIds = Lists.newArrayList(volumeId);
@@ -35,12 +36,22 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         this.suspendOnMigration = suspendOnMigration;
         provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
     }
+    
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration, boolean forceFlag) {
+        this.volumeIds = volumeIds;
+        this.targetVirtualPoolId = targetVirtualPoolId;
+        this.consistencyGroup = consistencyGroup;
+        this.suspendOnMigration = suspendOnMigration;
+        this.forceFlag = forceFlag;
+        provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
+    }
 
     @Override
     protected Tasks<VolumeRestRep> doExecute() throws Exception {
         VolumeVirtualPoolChangeParam input = new VolumeVirtualPoolChangeParam();
         input.setVolumes(volumeIds);
         input.setVirtualPool(targetVirtualPoolId);
+        input.setForceFlag(forceFlag);
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
             input.setConsistencyGroup(consistencyGroup);
         }

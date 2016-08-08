@@ -121,6 +121,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -1743,7 +1744,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 // We might need to update the vpools of the backing volumes if this is an RP+VPLEX
                 // or MetroPoint change vpool.
-                updateVPlexBackingVolumeVpools(volume, newVpoolURI);
+                VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolURI, _dbClient);
 
                 // Record Audit operation. (virtualpool change only)
                 AuditBlockUtil.auditBlock(_dbClient, OperationTypeEnum.CHANGE_VOLUME_VPOOL, true, AuditLogManager.AUDITOP_END, token);
@@ -1902,7 +1903,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            list of volumes
      * @return URI of the vpool change vpool
      */
-    private URI getVirtualPoolChangeNewVirtualPool(List<VolumeDescriptor> volumeDescriptors) {
+    public URI getVirtualPoolChangeNewVirtualPool(List<VolumeDescriptor> volumeDescriptors) {
         if (volumeDescriptors != null) {
             for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
                 if (volumeDescriptor.getParameters() != null) {
@@ -6780,7 +6781,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (RPHelper.isVPlexVolume(volume)) {
                     // We might need to update the vpools of the backing volumes after the
                     // change vpool operation to remove protection
-                    updateVPlexBackingVolumeVpools(volume, newVpoolURI);
+                    VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolURI, _dbClient);
                 }
 
                 // Rollback protection on the volume

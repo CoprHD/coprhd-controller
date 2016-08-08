@@ -82,6 +82,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDiscoverUnmanagedResourcesForUnsupportedSystem();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDiscoverArrayAffinityForUnsupportedSystem(String type);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotExpandMirrorsUsingMetaVolumes();
 
@@ -955,6 +958,12 @@ public interface BadRequestExceptions {
             final String varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noCandidateStoragePoolsForArrayAffinity();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException arrayAffinityTaskNotExecutedWithUnfinishedHostDiscovery(int waitedMinutes);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
             final String varrayLabel, final URI volumeId, String errorMessage);
 
@@ -1403,6 +1412,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedParameterForStorageSystem(final String propertyName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException unsupportedPlacementPolicy(final String placementPolicy);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateVirtualPoolOnlyAllowedToChange();

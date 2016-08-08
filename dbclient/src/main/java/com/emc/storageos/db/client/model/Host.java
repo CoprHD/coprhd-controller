@@ -41,6 +41,7 @@ public class Host extends AbstractComputeSystem {
     private Boolean discoverable;
     private String provisioningStatus;
     private StringSet volumeGroupIds;
+    private StringMap _preferredPoolIds;
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
@@ -401,4 +402,24 @@ public class Host extends AbstractComputeSystem {
         setChanged("volumeGroupIds");
     }
 
+    /**
+     * Getter for the ids of the preferred storage pools
+     * 
+     * @return The set of storage pool ids
+     */
+    @Name("preferredPoolIds")
+    public StringMap getPreferredPoolIds() {
+        if (_preferredPoolIds == null) {
+            _preferredPoolIds = new StringMap();
+        }
+        return _preferredPoolIds;
+    }
+
+    /**
+     * Setter for the the preferred storage pool ids
+     */
+    public void setPreferredPoolIds(StringMap preferredPoolIds) {
+        _preferredPoolIds = preferredPoolIds;
+        setChanged("preferredPoolIds");
+    }
 }

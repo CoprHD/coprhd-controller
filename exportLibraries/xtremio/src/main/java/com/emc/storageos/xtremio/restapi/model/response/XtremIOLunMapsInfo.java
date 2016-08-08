@@ -5,35 +5,31 @@
 package com.emc.storageos.xtremio.restapi.model.response;
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
+@JsonRootName(value = "xtremio_lun_maps_info")
 public class XtremIOLunMapsInfo {
 
     @SerializedName("lun-maps")
     @JsonProperty(value = "lun-maps")
-    private XtremIOObjectInfo[] lunMapsInfo;
-
-    public XtremIOObjectInfo[] getLunMapsInfo() {
-        XtremIOObjectInfo[] result = null;
-        if (lunMapsInfo != null) {
-            result = lunMapsInfo.clone();
-        }
-        return result;
-    }
-
-    public void setTagsInfo(XtremIOObjectInfo[] lunMapsInfo) {
-        XtremIOObjectInfo[] input = null;
-        if (lunMapsInfo != null) {
-            input = lunMapsInfo.clone();
-        }
-        this.lunMapsInfo = input;
-    }
+    private XtremIOObjectInfo[] lunMapInfo;
 
     @Override
     public String toString() {
         return new Gson().toJson(this).toString();
     }
 
+
+    public XtremIOObjectInfo[] getLunMapInfo() {
+        return lunMapInfo != null ? lunMapInfo.clone() : lunMapInfo;
+    }
+
+    public void setLunMapInfo(XtremIOObjectInfo[] lunMapInfo) {
+        if (lunMapInfo != null) {
+            this.lunMapInfo = lunMapInfo.clone();
+        }
+    }
 }

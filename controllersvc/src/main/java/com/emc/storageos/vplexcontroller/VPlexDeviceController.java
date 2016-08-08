@@ -11466,8 +11466,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         Volume migTgt = getDataObject(Volume.class, migTgtURI, _dbClient);
                         if ((migSrc != null) && (!migTgt.getStorageController().equals(migSrc.getStorageController())) &&
                                 (!localSystemsToRemoveCG.contains(migSrc.getStorageController()))) {
-                            _log.info("Will remove CG on local system {}", migSrc.getStorageController());
-                            localSystemsToRemoveCG.add(migSrc.getStorageController());
+                            // If we have a volume to migrate and the RG field is NOT set on the volume, 
+                            // do not remove the RG on the local system.
+                            //
+                            // Volumes that are in RGs that are being migrated are grouped together so otherwise
+                            // we're good as the replication instance will be set on those volumes.
+                            if (NullColumnValueGetter.isNotNullValue(migSrc.getReplicationGroupInstance())) {                                    
+                                _log.info("Will remove CG on local system {}", migSrc.getStorageController());
+                                localSystemsToRemoveCG.add(migSrc.getStorageController());
+                            } else {
+                                _log.info("Will not remove CG on local system {}", migSrc.getStorageController());
+                            }
                         }
                     }
 
@@ -12928,9 +12937,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         int versionValue = VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion());
         boolean isCompatible = versionValue >= 0;
-        _log.info("minimum VPLEX thin provisioning firmware version is {}, discovered firmeware version for VPLEX {} is {}",
-                VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.forDisplay(), vplex.getFirmwareVersion());
         _log.info("VPLEX support for thin volumes is " + isCompatible);
+        if (!isCompatible) {
+            _log.info("minimum VPLEX thin provisioning firmware version is {}, discovered firmeware version for VPLEX {} is {}", 
+                    VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.forDisplay(), vplex.getFirmwareVersion());
+        }
         return isCompatible;
     }
 

@@ -57,6 +57,8 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.computecontroller.ComputeController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -74,6 +76,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -81,6 +84,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
@@ -137,7 +141,9 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 /**
@@ -156,6 +162,12 @@ public class HostService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "host";
     private static final String BLADE_RESERVATION_LOCK_NAME = "BLADE_RESERVATION_LOCK";
+
+    private CustomConfigHandler _customConfigHandler;
+
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        _customConfigHandler = customConfigHandler;
+    }
 
     @Autowired
     private ComputeSystemService computeSystemService;
@@ -361,6 +373,13 @@ public class HostService extends TaskResourceService {
             tasks.add(new AsyncTask(Host.class, host.getId(), taskId));
 
             TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
+
+            boolean runArrayAffinity = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY, CustomConfigConstants.GLOBAL_KEY, null));
+            // COP-24307: Trigger array affinity discoveries only when the host is created. Skip during host re-discovery.
+            if (runArrayAffinity && host.getLastDiscoveryRunTime() == 0) {
+                ArrayAffinityTasksSchedulingThread.scheduleArrayAffinityTasks(this, _asyncTaskService.getExecutorService(), host.getId(), taskId, _dbClient);
+            }
             return taskList.getTaskList().iterator().next();
         } else {
             // if not discoverable, manually create a ready task
@@ -369,6 +388,71 @@ public class HostService extends TaskResourceService {
             op.ready("Host is not discoverable");
             _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
             return toTask(host, taskId, op);
+        }
+    }
+
+    /**
+     * Schedule array affinity tasks for a host
+     *
+     * @param hostId the host whose preferred systems need to be discovered
+     * @param hostDiscoveryTaskId task Id of host discovery
+     */
+    public void scheduleHostArrayAffinityTasks(URI hostId, String hostDiscoveryTaskId) {
+        String jobType = "";
+        Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> providerToSystemTypeMap = new HashMap<URI, String>();
+        List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
+        Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
+        while (storageSystems.hasNext()) {
+            StorageSystem systemObj = storageSystems.next();
+            if (systemObj == null) {
+                _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
+                continue;
+            }
+
+            if (systemObj.deviceIsType(Type.vmax) || systemObj.deviceIsType(Type.vnxblock) || systemObj.deviceIsType(Type.xtremio)) {
+                if (systemObj.getActiveProviderURI() == null
+                        || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        systemObj.getActiveProviderURI());
+                if (provider == null || provider.getInactive()) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                if (systemIds == null) {
+                    systemIds = new ArrayList<URI>();
+                    providerToSystemsMap.put(provider.getId(), systemIds);
+                    providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
+                }
+                systemIds.add(systemObj.getId());
+            } else if (systemObj.deviceIsType(Type.unity)) {
+                List<URI> systemIds = new ArrayList<URI>();
+                systemIds.add(systemObj.getId());
+                providerToSystemsMap.put(systemObj.getId(), systemIds);
+                providerToSystemTypeMap.put(systemObj.getId(), systemObj.getSystemType());
+            } else {
+                _log.info("Skip unsupported system {}, system type {}", systemObj.getLabel(), systemObj.getSystemType());
+                continue;
+            }
+        }
+
+        for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
+            List<URI> systemIds = entry.getValue();
+            BlockController controller = getController(BlockController.class, providerToSystemTypeMap.get(entry.getKey()));
+            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,
+                    new StorageSystemService.ArrayAffinityJobExec(controller));
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
+            String taskId = UUID.randomUUID().toString();
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, hostId, taskId));
+            scheduler.scheduleAsyncTasks(tasks);
         }
     }
 

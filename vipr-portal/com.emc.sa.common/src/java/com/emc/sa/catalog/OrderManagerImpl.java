@@ -542,11 +542,11 @@ public class OrderManagerImpl implements OrderManager {
         switch (status) {
             case APPROVED:
                 approveOrder(order, service);
-                approveScheduledEvent(order, service, true);
+                authorizeScheduledEvent(order, service, true);
                 break;
             case REJECTED:
                 rejectOrder(order, service);
-                approveScheduledEvent(order, service, false);
+                authorizeScheduledEvent(order, service, false);
                 break;
         }
     }
@@ -597,7 +597,7 @@ public class OrderManagerImpl implements OrderManager {
         processApprovedOrder(order, service);
     }
 
-    private void approveScheduledEvent(Order order, CatalogService service, boolean approved) {
+    private void authorizeScheduledEvent(Order order, CatalogService service, boolean approved) {
         ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
         if (scheduledEvent != null) {
             scheduledEvent.setEventStatus(approved? ScheduledEventStatus.APPROVED: ScheduledEventStatus.REJECTED);
@@ -626,7 +626,9 @@ public class OrderManagerImpl implements OrderManager {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalStatus(ApprovalStatus.PENDING.name());
         approvalRequest.setOrderId(order.getId());
-        approvalRequest.setScheduledEventId(order.getScheduledEventId());
+        if (order.getScheduledEventId() != null) {
+            approvalRequest.setScheduledEventId(order.getScheduledEventId());
+        }
         approvalRequest.setTenant(order.getTenant());
         approvalManager.createApproval(approvalRequest);
 

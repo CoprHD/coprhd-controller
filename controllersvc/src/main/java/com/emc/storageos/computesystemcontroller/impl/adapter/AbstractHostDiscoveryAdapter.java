@@ -191,7 +191,7 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
                 continue;
             }
             // Skip the current discovered host because the cluster may have changed
-            if (host.getId().toString().equals(discoveredHost.getId())) {
+            if (host.getId().toString().equals(discoveredHost.getId().toString())) {
                 continue;
             }
 

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import com.emc.storageos.volumecontroller.impl.validators.ChainingValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,10 +83,14 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         XtremIOExportMaskVolumesValidator volumesValidator = new XtremIOExportMaskVolumesValidator(storage, exportMask, volumeURIList);
         configureValidators(logger, initiatorsValidator, volumesValidator);
 
-        XtremIOExportMaskValidator exportMaskvalidator = new XtremIOExportMaskValidator(initiatorsValidator,
-                volumesValidator, logger, config);
+        initiatorsValidator.setErrorOnMismatch(false);
+        volumesValidator.setErrorOnMismatch(false);
 
-        return exportMaskvalidator;
+        ChainingValidator chain = new ChainingValidator(logger, config, "Export Mask");
+        chain.addValidator(volumesValidator);
+        chain.addValidator(initiatorsValidator);
+
+        return chain;
     }
 
     @Override

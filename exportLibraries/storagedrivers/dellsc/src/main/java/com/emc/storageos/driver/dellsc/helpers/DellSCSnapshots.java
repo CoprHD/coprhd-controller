@@ -67,7 +67,7 @@ public class DellSCSnapshots {
         for (VolumeSnapshot snapshot : snapshots) {
             try (StorageCenterAPI api = persistence.getSavedConnection(snapshot.getStorageSystemId())) {
                 ScReplay replay = api.createReplay(snapshot.getParentId());
-                new DellSCUtil().getVolumeSnapshotFromReplay(replay, snapshot);
+                util.getVolumeSnapshotFromReplay(replay, snapshot);
                 createCount++;
             } catch (DellSCDriverException | StorageCenterAPIException dex) {
                 String error = String.format(

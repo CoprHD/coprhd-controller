@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.driver.dellsc.scapi.objects.EmDataCollector;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
@@ -189,14 +190,6 @@ public class StorageCenterAPI implements AutoCloseable {
         if (cgID != null && !cgID.isEmpty()) {
             String[] ids = { cgID };
             params.add("ReplayProfileList", ids);
-        }
-
-        ScStorageType[] storageTypes = getStorageTypes(ssn);
-        for (ScStorageType storType : storageTypes) {
-            if (storType.name.equals(storageType)) {
-                params.add("StorageType", storType.instanceId);
-                break;
-            }
         }
 
         ScStorageType[] storageTypes = getStorageTypes(ssn);
@@ -385,13 +378,29 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Gets a specific storage type.
+     *
+     * @param instanceId The storage type instance ID.
+     * @return The storage type.
+     */
+    public ScStorageType getStorageType(String instanceId) {
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScStorageType/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScStorageType.class);
+        }
+
+        return null;
+    }
+
+    /**
      * Gets the storage usage information for a storage type.
      *
      * @param instanceId The storage type to get.
      * @return The storage usage.
      */
     public ScStorageTypeStorageUsage getStorageTypeStorageUsage(String instanceId) {
-        RestResult rr = restClient.get(String.format("/StorageCenter/ScStorageType/%s/StorageUsage", instanceId));
+        RestResult rr = restClient.get(String.format("StorageCenter/ScStorageType/%s/StorageUsage", instanceId));
         if (checkResults(rr)) {
             return gson.fromJson(rr.getResult(), ScStorageTypeStorageUsage.class);
         }
@@ -485,6 +494,22 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Gets a server HBA.
+     *
+     * @param instanceId The server HBA instance ID.
+     * @return The server HBA.
+     */
+    public ScServerHba getServerHba(String instanceId) {
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScServerHba/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScServerHba.class);
+        }
+
+        return null;
+    }
+
+    /**
      * Get the fault domains configured for a port.
      * 
      * @param instanceId The port instance ID.
@@ -492,7 +517,7 @@ public class StorageCenterAPI implements AutoCloseable {
      */
     public ScFaultDomain[] getControllerPortFaultDomains(String instanceId) {
         RestResult rr = restClient.get(
-                String.format("/StorageCenter/ScControllerPort/%s/FaultDomainList", instanceId));
+                String.format("StorageCenter/ScControllerPort/%s/FaultDomainList", instanceId));
         if (checkResults(rr)) {
             return gson.fromJson(rr.getResult(), ScFaultDomain[].class);
         }
@@ -781,7 +806,7 @@ public class StorageCenterAPI implements AutoCloseable {
      * @return The replay.
      */
     public ScReplay getReplay(String instanceId) {
-        RestResult rr = restClient.get(String.format("StorageCenter/ScReplayProfile/%s", instanceId));
+        RestResult rr = restClient.get(String.format("StorageCenter/ScReplay/%s", instanceId));
         if (checkResults(rr)) {
             return gson.fromJson(rr.getResult(), ScReplay.class);
         }
@@ -810,7 +835,7 @@ public class StorageCenterAPI implements AutoCloseable {
      */
     public ScReplay createReplay(String instanceId, int expireTime) throws StorageCenterAPIException {
         Parameters params = new Parameters();
-        params.add("description", "Created by CoprHD");
+        params.add("description", NOTES_STRING);
         params.add("expireTime", expireTime);
 
         RestResult rr = restClient.post(
@@ -959,20 +984,30 @@ public class StorageCenterAPI implements AutoCloseable {
      * @param volInstanceId The volume instance ID.
      * @param serverInstanceId The server instance ID.
      * @param preferredLun The preferred LUN to use or -1 to let the system decided.
+     * @param preferredPorts The preferred server HBA ports to use.
+     * @param maxPathCount The maximum paths to map or -1 for no restriction.
      * @return The created mapping profile.
      * @throws StorageCenterAPIException
      */
-    public ScMappingProfile createVolumeMappingProfile(String volInstanceId, String serverInstanceId, int preferredLun)
-            throws StorageCenterAPIException {
+    public ScMappingProfile createVolumeMappingProfile(
+            String volInstanceId, String serverInstanceId, int preferredLun,
+            String[] preferredPorts, int maxPathCount)
+                    throws StorageCenterAPIException {
         Parameters advancedParams = new Parameters();
         advancedParams.add("MapToDownServerHbas", true);
         if (preferredLun != -1) {
-            // TODO: Will add later
-            LOG.warn("Preferred LUN not supported at this time.");
+            advancedParams.add("PreferredLun", preferredLun);
         }
+        if (preferredPorts != null && preferredPorts.length > 0) {
+            advancedParams.add("PreferredServerHbaList", preferredPorts);
+        }
+        if (maxPathCount > 0) {
+            advancedParams.add("MaximumPathCount", maxPathCount);
+        }
+
         Parameters params = new Parameters();
         params.add("server", serverInstanceId);
-        params.add("Advanced", advancedParams.toJson());
+        params.add("Advanced", advancedParams.getRawPayload());
 
         RestResult rr = restClient.post(
                 String.format("StorageCenter/ScVolume/%s/MapToServer", volInstanceId), params.toJson());
@@ -995,6 +1030,24 @@ public class StorageCenterAPI implements AutoCloseable {
 
         RestResult rr = restClient.get(
                 String.format("StorageCenter/ScMappingProfile/%s/MappingList", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScMapping[].class);
+        }
+
+        String message = String.format("Error getting volume maps: %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets the individual maps for a volume.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The mappings.
+     * @throws StorageCenterAPIException
+     */
+    public ScMapping[] getVolumeMaps(String instanceId) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScVolume/%s/MappingList", instanceId));
         if (checkResults(rr)) {
             return gson.fromJson(rr.getResult(), ScMapping[].class);
         }
@@ -1027,9 +1080,9 @@ public class StorageCenterAPI implements AutoCloseable {
      * @param instanceId The server instance ID.
      * @param iqnOrWwn The IQN or WWN to add.
      * @param isIscsi Whether it is iSCSI or FC.
-     * @return True if successful, false otherwise.
+     * @return The added ScServerHba.
      */
-    public boolean addHbaToServer(String instanceId, String iqnOrWwn, boolean isIscsi) {
+    public ScServerHba addHbaToServer(String instanceId, String iqnOrWwn, boolean isIscsi) {
         Parameters params = new Parameters();
         params.add("HbaPortType", isIscsi ? "Iscsi" : "FibreChannel");
         params.add("WwnOrIscsiName", iqnOrWwn);
@@ -1037,7 +1090,12 @@ public class StorageCenterAPI implements AutoCloseable {
 
         RestResult rr = restClient.post(
                 String.format("StorageCenter/ScPhysicalServer/%s/AddHba", instanceId), params.toJson());
-        return checkResults(rr);
+        if (!checkResults(rr)) {
+            LOG.warn("Error adding HBA to server {}", rr.getErrorMsg());
+            return null;
+        }
+
+        return gson.fromJson(rr.getResult(), ScServerHba.class);
     }
 
     /**
@@ -1065,14 +1123,7 @@ public class StorageCenterAPI implements AutoCloseable {
             throw new StorageCenterAPIException(error);
         }
 
-        ScPhysicalServer server = gson.fromJson(rr.getResult(), ScPhysicalServer.class);
-        if (!addHbaToServer(server.instanceId, iqnOrWwn, isIscsi)) {
-            String error = String.format(
-                    "Server '%s' created, but failed to add initiator %s", hostName, iqnOrWwn);
-            throw new StorageCenterAPIException(error);
-        }
-
-        return server;
+        return gson.fromJson(rr.getResult(), ScPhysicalServer.class);
     }
 
     /**
@@ -1088,7 +1139,7 @@ public class StorageCenterAPI implements AutoCloseable {
         Parameters params = new Parameters();
         params.add("Name", clusterName);
         params.add("StorageCenter", ssn);
-        params.add("Notes", "Created by CoprHD driver");
+        params.add("Notes", NOTES_STRING);
         params.add("OperatingSystem", osId);
 
         RestResult rr = restClient.post("StorageCenter/ScServerCluster", params.toJson());
@@ -1206,5 +1257,79 @@ public class StorageCenterAPI implements AutoCloseable {
             errorMessage = String.format("Unable to create view volume %s from replay %s", name, instanceId);
         }
         throw new StorageCenterAPIException(errorMessage);
+    }
+
+    /**
+     * Create a mirror from one volume to another.
+     *
+     * @param ssn The Storage Center to create the mirror.
+     * @param srcId The source volume ID.
+     * @param dstId The destination volume ID.
+     * @return The CMM operation.
+     * @throws StorageCenterAPIException
+     */
+    public ScCopyMirrorMigrate createMirror(String ssn, String srcId, String dstId) throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        params.add("StorageCenter", ssn);
+        params.add("SourceVolume", srcId);
+        params.add("DestinationVolume", dstId);
+        params.add("CopyReplays", false);
+
+        RestResult rr = restClient.post("StorageCenter/ScCopyMirrorMigrate/Mirror", params.toJson());
+        if (!checkResults(rr)) {
+            String msg = String.format("Error creating mirror from %s to %s: %s", srcId, dstId, rr.getErrorMsg());
+            LOG.warn(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+
+        return gson.fromJson(rr.getResult(), ScCopyMirrorMigrate.class);
+    }
+
+    /**
+     * Gets a mirror operation.
+     *
+     * @param instanceId The CMM instance ID.
+     * @return The CMM operation.
+     * @throws StorageCenterAPIException
+     */
+    public ScCopyMirrorMigrate getMirror(String instanceId) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScCopyMirrorMigrate/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScCopyMirrorMigrate.class);
+        }
+
+        String message = String.format("Error getting mirror operation: %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Delete a mirror operation.
+     *
+     * @param instanceId The CMM instance ID.
+     * @throws StorageCenterAPIException
+     */
+    public void deleteMirror(String instanceId) throws StorageCenterAPIException {
+        LOG.debug("Deleting mirror '{}'", instanceId);
+
+        RestResult rr = restClient.delete(String.format("StorageCenter/ScCopyMirrorMigrate/%s", instanceId));
+        if (!checkResults(rr)) {
+            String msg = String.format("Error deleting mirror %s: %s", instanceId, rr.getErrorMsg());
+            LOG.error(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+    }
+
+    /**
+     * Gets some basic DSM (EM) information.
+     * 
+     * @return The EmDataCollector information.
+     */
+    public EmDataCollector getDSMInfo() {
+        RestResult rr = restClient.get("EnterpriseManager/EmDataCollector");
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), EmDataCollector.class);
+        }
+
+        return null;
     }
 }

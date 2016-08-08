@@ -670,6 +670,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         initiator
                 .setInitiatorPort(SanUtils.normalizeWWN(hba.portWorldWideName));
         initiator.setIsManualCreation(false);
+        initiator.setLabel(hba.device);
         save(initiator);
     }
 

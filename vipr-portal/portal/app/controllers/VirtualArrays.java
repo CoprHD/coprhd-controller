@@ -151,7 +151,6 @@ public class VirtualArrays extends ViprResourceController {
 				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
 					existVarrayId = availVarray.getId().toString();
 					isVarrayAvail = true;
-                    updateVarrayCookie(existVarrayId, availVarray.getName() );
 					break;
 				}
 			}
@@ -306,7 +305,6 @@ public class VirtualArrays extends ViprResourceController {
             }
 		}
 		addStorageSysVarray(virtualArray.id, ids);
-		updateVarrayCookie(virtualArray.id, virtualArray.name );
     }
 
     private static void createVirtualArray(StorageSystemRestRep storageSystem) {
@@ -981,10 +979,11 @@ public class VirtualArrays extends ViprResourceController {
 					.getStoragePortsByStorageSystem(storageSystemId);
 			storagePorts.addAll(ResourceUtils.ids(ports));
 		}
+        VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
 		if (!storagePorts.isEmpty()) {
-			VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
 			updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
 		}
+        updateVarrayCookie(virtualArray.getId().toString(), virtualArray.getName() );
 		list();
 	}
 

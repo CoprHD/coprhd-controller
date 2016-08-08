@@ -1151,7 +1151,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     color: white;
     display: inline-block;
     padding: 12px;
-    width: 306px;
+    width: 226px;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
 }
@@ -1164,11 +1164,39 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     bottom: 0px;
     min-height: 900px;
 
-    -webkit-transition: padding .2s ease,opacity .2s ease;
-    -moz-transition: padding .2s ease,opacity .2s ease;
-    -ms-transition: padding .2s ease,opacity .2s ease;
-    -o-transition: padding .2s ease,opacity .2s ease;
-    transition: padding .2s ease,opacity .2s ease;
+    -webkit-transition: opacity .2s ease;
+    -moz-transition: opacity .2s ease;
+    -ms-transition: opacity .2s ease;
+    -o-transition: opacity .2s ease;
+    transition: opacity .2s ease;
+}
+
+.wizard-side-close {
+    top: -5px;
+    right: -5px;
+    font-size: small;
+    position: absolute;
+}
+
+.wizard-side-next {
+    position: absolute;
+    font-size: 50px;
+    top: -8px;
+    right: 20px;
+}
+
+.popover {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    border: none;
+}
+
+.popover.bottom .arrow:after {
+     border-bottom-color: rgba(0, 0, 0, 0.75);
+}
+
+.popover.bottom .arrow {
+     border-bottom-color: rgba(0, 0, 0, 0);
 }
 
 .guide-menuopen{
@@ -1196,6 +1224,11 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-dialog .action-btn {
+    padding-top: 10px;
+    text-align: left;
+}
+
+.landingstep .action-btn {
     padding-top: 10px;
     text-align: center;
 }
@@ -1228,7 +1261,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .guide-textpanel .guide-error {
     margin-top: 10px;
-    color: red;
+    color: #d9534f;
 }
 
 .wizard-dialog p {

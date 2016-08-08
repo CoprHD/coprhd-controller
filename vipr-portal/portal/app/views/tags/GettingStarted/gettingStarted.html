@@ -11,7 +11,8 @@
                 </div>
             </div>
             <h4 ng-show="guideMode=='full'" class="">&{'gettingStarted.header.full'}</h4>
-            <div ng-show="guideMode=='side'" class="title-side">&{'gettingStarted.header.side'}</div>
+            <div ng-show="guideMode=='side' && currentStep > 2" class="title-side-next">&{'gettingStarted.header.side.next'}</div>
+            <div ng-show="guideMode=='side' && currentStep <= 2" class="title-side">&{'gettingStarted.header.side'}</div>
 
         </div>
         <div class="{'panel-body':guideMode=='full'}">
@@ -131,9 +132,9 @@
                 <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="storagesystemsteup" ng-show="guideDataAvailable && currentStep == 4">
-                <div ng-if="guideMode=='side'">
+                <!--div ng-if="guideMode=='side'">
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagesystem.title'}</step-side>
-                </div>
+                </div-->
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
@@ -167,9 +168,9 @@
                 <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
-                <div ng-if="guideMode=='side'">
+                <!--div ng-if="guideMode=='side'">
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
-                </div>
+                </div-->
                 <div ng-if="guideVisible && currentStep == 5">
                     #{set navSelected: ['nav.virtualStorage', 'nav.block.virtualPools'] /}
                 </div>
@@ -205,9 +206,9 @@
                 <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="virtualarraysetup" ng-show="guideDataAvailable && currentStep == 6">
-                <div ng-if="guideMode=='side'">
+                <!--div ng-if="guideMode=='side'">
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.virtualarray.title'}</step-side>
-                </div>
+                </div-->
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
@@ -240,9 +241,9 @@
                 <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="virtualpoolsetup" ng-show="guideDataAvailable && currentStep == 7">
-                <div ng-if="guideMode=='side'">
+                <!--div ng-if="guideMode=='side'">
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.virtualpool.title'}</step-side>
-                </div>
+                </div-->
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
@@ -275,9 +276,9 @@
                 <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="projectsetup" ng-show="guideDataAvailable && currentStep == 8">
-                <div ng-if="guideMode=='side'">
+                <!--div ng-if="guideMode=='side'">
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.project.title'}</step-side>
-                </div>
+                </div-->
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
@@ -310,9 +311,9 @@
                 <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="provisionstep" ng-show="guideDataAvailable && currentStep == 9">
-                <div ng-if="guideMode=='side'">
+                <!--div ng-if="guideMode=='side'">
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.provision.title'}</step-side>
-                </div>
+                </div-->
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">

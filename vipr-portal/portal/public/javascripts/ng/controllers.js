@@ -1953,6 +1953,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $(colWiz).popover('show');
             }
         }
+        if(newValue) {
+            $('.rootNav , .navMenu a').on('click', function(event) {
+                $('.wizard-side-next').popover('show');
+                return false;
+            });
+        } else {
+             $('.rootNav , .navMenu a').off('click');
+        }
     });
     var PINNED_COOKIE = 'isMenuPinned';
         var MAIN_MENU = '#mainMenu';
@@ -2066,6 +2074,22 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         trigger : 'manual',
         content : translate("gettingStarted.popover"),
         selector : 'colWiz'
+
+    });
+
+    $('.wizard-side-next').on('shown.bs.popover', function(){
+        $('.wizard-side-next').popover('toggle');
+    });
+    $('.wizard-side-next').popover({
+        delay : {
+            show : 0,
+            hide : 2000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : "Please complete this step then click the arrow to continue.",
+        selector : '.wizard-side-next'
 
     });
 });

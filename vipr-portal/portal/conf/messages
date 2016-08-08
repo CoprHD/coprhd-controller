@@ -4637,6 +4637,7 @@ mobilityGroupResources.tenant=Tenant
 
 gettingStarted.header.full=Getting Started Guide
 gettingStarted.header.side=Return To Guide
+gettingStarted.header.side.next=Next Step
 gettingStarted.navigation.next=Next >>
 gettingStarted.navigation.previous=<< Previous
 gettingStarted.loader.welcome=Welcome to the Getting Started Guide

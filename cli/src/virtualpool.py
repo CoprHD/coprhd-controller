@@ -691,7 +691,7 @@ class VirtualPool(object):
                     autotierpolicynames
 
             if(enablecompression):
-                parms['enable_compression'] = enablecompression
+                parms['compression_enabled'] = enablecompression
 
             if (multivolconsistency is not None):
                 if(multivolconsistency.upper() == 'TRUE'):

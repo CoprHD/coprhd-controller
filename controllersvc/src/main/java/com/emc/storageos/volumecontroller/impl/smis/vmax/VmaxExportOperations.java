@@ -1776,11 +1776,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             while (inits.hasNext()) {
                                 URI init = inits.next();
                                 Initiator obj = _dbClient.queryObject(Initiator.class, init);
-                                if (exportMask.getUserAddedInitiators() == null
-                                        || !exportMask.getUserAddedInitiators().containsKey(portName)) {
-                                    exportMask.addToUserCreatedInitiators(obj);
-                                    exportMask.addInitiator(obj);
-                                    _log.info("Adding managed initiator:{} to mask:{}", obj.getInitiatorPort(),
+                                exportMask.addInitiator(obj);
+                                if (obj != null) {
+                                    _log.info("Added managed initiator:{} to mask:{}", obj.getInitiatorPort(),
                                             exportMask.getId());
                                 }
                             }

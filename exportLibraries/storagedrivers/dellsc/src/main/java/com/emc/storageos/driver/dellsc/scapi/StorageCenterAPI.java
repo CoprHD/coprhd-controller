@@ -989,7 +989,7 @@ public class StorageCenterAPI implements AutoCloseable {
         }
         Parameters params = new Parameters();
         params.add("server", serverInstanceId);
-        params.add("Advanced", advancedParams.toJson());
+        params.add("Advanced", advancedParams.getRawPayload());
 
         RestResult rr = restClient.post(
                 String.format("StorageCenter/ScVolume/%s/MapToServer", volInstanceId), params.toJson());
@@ -1223,5 +1223,65 @@ public class StorageCenterAPI implements AutoCloseable {
             errorMessage = String.format("Unable to create view volume %s from replay %s", name, instanceId);
         }
         throw new StorageCenterAPIException(errorMessage);
+    }
+
+    /**
+     * Create a mirror from one volume to another.
+     *
+     * @param ssn The Storage Center to create the mirror.
+     * @param srcId The source volume ID.
+     * @param dstId The destination volume ID.
+     * @return The CMM operation.
+     * @throws StorageCenterAPIException
+     */
+    public ScCopyMirrorMigrate createMirror(String ssn, String srcId, String dstId) throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        params.add("StorageCenter", ssn);
+        params.add("SourceVolume", srcId);
+        params.add("DestinationVolume", dstId);
+        params.add("CopyReplays", false);
+
+        RestResult rr = restClient.post("StorageCenter/ScCopyMirrorMigrate/Mirror", params.toJson());
+        if (!checkResults(rr)) {
+            String msg = String.format("Error creating mirror from %s to %s: %s", srcId, dstId, rr.getErrorMsg());
+            LOG.warn(msg);
+            throw new StorageCenterAPIException(msg);
+        }
+
+        return gson.fromJson(rr.getResult(), ScCopyMirrorMigrate.class);
+    }
+
+    /**
+     * Gets a mirror operation.
+     *
+     * @param instanceId The CMM instance ID.
+     * @return The CMM operation.
+     * @throws StorageCenterAPIException
+     */
+    public ScCopyMirrorMigrate getMirror(String instanceId) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScCopyMirrorMigrate/%s", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScCopyMirrorMigrate.class);
+        }
+
+        String message = String.format("Error getting mirror operation: %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Delete a mirror operation.
+     *
+     * @param instanceId The CMM instance ID.
+     * @throws StorageCenterAPIException
+     */
+    public void deleteMirror(String instanceId) throws StorageCenterAPIException {
+        LOG.debug("Deleting mirror '{}'", instanceId);
+
+        RestResult rr = restClient.delete(String.format("StorageCenter/ScCopyMirrorMigrate/%s", instanceId));
+        if (!checkResults(rr)) {
+            String msg = String.format("Error deleting mirror %s: %s", instanceId, rr.getErrorMsg());
+            LOG.error(msg);
+            throw new StorageCenterAPIException(msg);
+        }
     }
 }

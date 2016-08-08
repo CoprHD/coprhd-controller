@@ -130,9 +130,9 @@ elif [ ${SS} = "backuprestore" ]; then
     BACKUP_SERVER_DOMAIN=$7
 
     if [[ $BACKUP_SERVER_URL == smb* ]]; then
-    BACKUP_SERVER_TYPE="cifs"
+    BACKUP_SERVER_TYPE="CIFS"
     elif [[ $BACKUP_SERVER_URL == ftp* ]] || [[ $BACKUP_SERVER_URL == ftps* ]];then
-    BACKUP_SERVER_TYPE="ftp"
+    BACKUP_SERVER_TYPE="FTP"
     fi
 
     if [ -n "${BOURNE_IPV6_MODE}" ]; then
@@ -7110,31 +7110,47 @@ vmaxblock_tests()
 # Before proceeding with ingestion, we need to substitute volumes & host details here.
 ingestblock_setup() {
     secho "Ingest Block Tests Setup"
-
-    xtremio_setup
-
-    run storagedevice discover_namespace $XTREMIO_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run hosts create $XTREMIO_INGEST_HOST_LABEL $TENANT Windows $XTREMIO_INGEST_HOST --port 8111 --username user --password 'password' --osversion 1.0 
-
-    PWWN1=10:00:00:E0:E0:E0:E0:E0
-    WWNN1=20:00:00:E0:E0:E0:E0:E0
-    PWWN2=10:00:00:E0:E0:E0:E0:E1
-    WWNN2=20:00:00:E0:E0:E0:E0:E1
-
-    run initiator create 'ingesthost' FC ${PWWN1} --node ${WWNN1}
-    run initiator create 'ingesthost' FC ${PWWN2} --node ${WWNN2}
+    vmaxblock_setup
 }
 
 ingestblock_tests() {
     secho "VMAX Ingest Block Tests BEGIN"
-    vol1=ingestvol1
-
-    run unmanagedvolume ingest_export --host $XTREMIO_INGEST_HOST_LABEL $NH $XTREMIO_COS_FC $PROJECT --volspec $vol1
-
-#   unmanagedvolume ingest_unexport $NH $XTREMIO_COS_FC $PROJECT --volspec "vol1,vol2"
-#   unmanagedvolume ingest_unexport $NH $vpool $PROJECT --volspec $vol1
-   
+	vmaxblock_non_cg_ingest_tests
     secho "VMAX Ingest Block Tests END"
+}
+
+vmaxblock_non_cg_ingest_tests(){
+	secho "VMAX Ingest Block Tests BEGIN"
+	# Labels
+    
+    VMAX_RANDOM=${RANDOM}
+    VMAX_INGEST_CG=vmaxingest${VMAX_RANDOM}
+    VMAX_INGEST_VOL1=vmaxingest1${VMAX_RANDOM}
+    VMAX_INGEST_VOL2=vmaxingest2${VMAX_RANDOM}
+
+    run volume create ${VMAX_INGEST_VOL1} ${PROJECT} ${NH} ${COS_VMAXBLOCK_FC} 1GB
+    run volume create ${VMAX_INGEST_VOL2} ${PROJECT} ${NH} ${COS_VMAXBLOCK_FC} 1GB
+
+    # Delete the volume
+    run volume delete ${PROJECT}/${VMAX_INGEST_VOL1} --vipronly
+    run volume delete ${PROJECT}/${VMAX_INGEST_VOL2} --vipronly
+
+    secho "VMAX ingest discovery"
+
+    # Discover unmanaged volumes on the array
+    run storagedevice discover_namespace $VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    run unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_VOL1}"
+    run unmanagedvolume ingest_unexport ${NH} ${COS_VMAXBLOCK_FC} $PROJECT --volspec "${VMAX_INGEST_VOL2}"
+
+    # Verify the volumes got created; fail script if this fails.
+    run volume show ${PROJECT}/${VMAX_INGEST_VOL1}
+    run volume show ${PROJECT}/${VMAX_INGEST_VOL2}
+    
+    run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL1} 
+    run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL2} 
+
+	secho "VMAX Ingest Block Tests END"
 }
 
 vmaxblock_flex_varray_tests() {
@@ -9915,8 +9931,8 @@ backuprestore_setup()
 
 backuprestore_tests()
 {
-    backupname='sanity-${seed}'
-    backupname2='abc-${seed}'
+    backupname="sanity-${seed}"
+    backupname2="abc-${seed}"
     filepath='/tmp/sanity.zip'
     remote_backup_file=""
 
@@ -10153,7 +10169,7 @@ recovery_setup()
     echo "Simulating vipr${corrupted_node_id}($RECOVERY_CORRUPTED_NODE_IP) crash"
     recovery_node_crash $RECOVERY_CORRUPTED_NODE_IP
     echo "Make vipr${corrupted_node_id}($RECOVERY_CORRUPTED_NODE_IP) corrupted done"
- 
+
     sleep 60
     echo "Setup minority node corrupted cluster($BOURNE_IPADDR) successful"
 }
@@ -10162,7 +10178,7 @@ recovery_tests()
 {
     echo "Begin to run node recovery on $BOURNE_IPADDR"
     recovery trigger
- 
+
     for(( i=0; i<10; i++ )); do
        recovery_status=`recovery get_status`
        echo "Cuttent recovery status is: $recovery_status"
@@ -10180,7 +10196,7 @@ recovery_tests()
     else
         echo "Unexcepted error"
         recovery_node_startup $RECOVERY_CORRUPTED_NODE_IP
-        exit 1                         
+        exit 1
     fi
 
     while true; do

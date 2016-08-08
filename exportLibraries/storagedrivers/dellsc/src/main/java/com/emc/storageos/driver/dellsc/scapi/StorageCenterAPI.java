@@ -184,6 +184,7 @@ public class StorageCenterAPI implements AutoCloseable {
         Parameters params = new Parameters();
         params.add("Name", name);
         params.add("Notes", NOTES_STRING);
+        params.add("Notes", "Created by CoprHD");
         params.add("Size", String.format("%d GB", sizeInGB));
         params.add("StorageCenter", ssn);
         if (cgID != null && !cgID.isEmpty()) {
@@ -378,9 +379,16 @@ public class StorageCenterAPI implements AutoCloseable {
 
     /**
      * <<<<<<< HEAD
+     * <<<<<<< HEAD
      * =======
      * <<<<<<< HEAD
      * >>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
+     * =======
+     * <<<<<<< HEAD
+     * =======
+     * <<<<<<< HEAD
+     * >>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
+     * >>>>>>> 3e29e14e11745d1e41fb61fd747a31aada2aec0b
      * Gets the storage usage information for a storage type.
      *
      * @param instanceId The storage type to get.
@@ -397,10 +405,18 @@ public class StorageCenterAPI implements AutoCloseable {
 
     /**
      * <<<<<<< HEAD
+     * <<<<<<< HEAD
      * =======
      * =======
      * >>>>>>> b18b4bee2546578f15bcc6eb15bd41598a97d917
      * >>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
+     * =======
+     * <<<<<<< HEAD
+     * =======
+     * =======
+     * >>>>>>> b18b4bee2546578f15bcc6eb15bd41598a97d917
+     * >>>>>>> 1a3772f65d2234ad971d79359d9698f2707adb19
+     * >>>>>>> 3e29e14e11745d1e41fb61fd747a31aada2aec0b
      * Gets the Storage Center usage data.
      * 
      * @param ssn The Storage Center system serial number.

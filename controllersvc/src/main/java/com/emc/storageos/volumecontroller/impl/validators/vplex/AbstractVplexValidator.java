@@ -8,7 +8,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 
-public class AbstractVplexValidator {
+public abstract class AbstractVplexValidator {
     private DbClient dbClient;
     private ValidatorConfig config;
     private ValidatorLogger logger;

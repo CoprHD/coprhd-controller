@@ -12,6 +12,7 @@ import java.util.Set;
 
 import models.DriveTypes;
 import models.HighAvailability;
+import models.VirtualPoolPlacementPolicy;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
@@ -85,6 +86,16 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 
     public BlockVirtualPoolUpdateBuilder setHostIOLimitIOPs(int limit) {
         virtualPool.setHostIOLimitIOPs(limit);
+        return this;
+    }
+
+    public BlockVirtualPoolUpdateBuilder setPlacementPolicy(String placementPolicy) {
+        String policyName = StringUtils.defaultIfBlank(placementPolicy, VirtualPoolPlacementPolicy.DEFAULT);
+        String oldPolicyName = StringUtils.defaultIfBlank(oldVirtualPool.getPlacementPolicy(),
+                VirtualPoolPlacementPolicy.DEFAULT);
+        if (!StringUtils.equals(policyName, oldPolicyName)) {
+            virtualPool.setPlacementPolicy(policyName);
+        }
         return this;
     }
 

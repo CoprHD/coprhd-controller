@@ -38,6 +38,9 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     // De-duplication supported vpool
     private Boolean dedupCapable;
 
+    // resource placement policy
+    private String placementPolicy;
+
     public BlockVirtualPoolUpdateParam() {
     }
 
@@ -297,4 +300,20 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
 	public void setDedupCapable(Boolean dedupCapable) {
 		this.dedupCapable = dedupCapable;
 	}
+
+    /**
+     * Resource placement policy used by the virtual pool.
+     * Valid values:
+     *  default_policy (storage system/pool selection based on metrics and capacity)
+     *  array_affinity (storage system/pool selection based on host/cluster's array affinity first, then metrics and capacity)
+     */
+    @XmlElement(name = "placement_policy")
+    public String getPlacementPolicy() {
+        return placementPolicy;
+    }
+
+    public void setPlacementPolicy(String placementPolicy) {
+        this.placementPolicy = placementPolicy;
+    }
+
 }

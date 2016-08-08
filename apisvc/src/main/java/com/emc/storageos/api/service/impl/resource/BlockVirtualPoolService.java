@@ -510,6 +510,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             updateProtectionParamsForVirtualPool(vpool, param.getProtection(), param.getHighAvailability());
         }
 
+        // update placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+        
         // non-dedep vpool can NOT be made dedup if it has volumes created
         // dedup vpool can be made non-dedup because dedup storage pools will always remain
         if (null != param.getDedupCapable()) {
@@ -1755,6 +1760,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set limit for host i/o
         if (param.getHostIOLimitIOPs() != null) {
             vpool.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        }
+        
+        // set placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
         }
         
         // set dedup capable or not

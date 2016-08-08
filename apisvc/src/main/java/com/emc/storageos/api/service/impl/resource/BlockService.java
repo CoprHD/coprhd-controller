@@ -978,6 +978,12 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");
 
+        // set compute param
+        URI computeURI = param.getComputeResource();
+        if (!NullColumnValueGetter.isNullURI(computeURI)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
+        }
+
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:
@@ -3326,7 +3332,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Checking on volume: {}", volume.getId());
 
             // Don't operate on VPLEX backend or RP Journal volumes.
-            BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+            BlockServiceUtils.validateNotAnInternalBlockObject(volume, param.getForceFlag());
 
             // Don't operate on ingested volumes.
             VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
@@ -4005,7 +4011,6 @@ public class BlockService extends TaskResourceService {
      * @param volume A reference to the volume.
      * @param newVpool A reference to the new VirtualPool.
      */
-
     private void verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool(Volume volume, VirtualPool newVpool) {
         // Currently, Vpool change is only supported for volumes on
         // VPlex storage systems and volumes (both regular and VPLEX i.e. RP+VPLEX) that are currently
@@ -4093,6 +4098,17 @@ public class BlockService extends TaskResourceService {
                         new Object[] { newVpool.getId() });
             } else {
                 notSuppReasonBuff.setLength(0);
+                // If this a RP+VPLEX Journal check to see if a straight up VPLEX Data migration is
+                // allowed.
+                //
+                // RP+VPLEX Journals are normally hidden in the UI since they are internal volumes, however they 
+                // can be exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
+                if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
+                    if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);
+                        return;
+                    }
+                }
                 // Check to see if this is a RP protected VPLEX volume and
                 // if the request is trying to remove RP protection.
                 if (volume.checkForRp()
@@ -4106,12 +4122,12 @@ public class BlockService extends TaskResourceService {
                     }
                 } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
                     notSuppReasonBuff.setLength(0);
-
-                    // If the current vpool also has Protection and High Availability, check to see if we can change the
-                    // protection. This is usually for RP+VPLEX upgrade to MetroPoint but other operations could be
-                    // supported in the future.
+                    // Check to see if any of the operations for protected vpool to protected vpool changes are supported
                     if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)) {
-                        if (!VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
+                        if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(volume, currentVpool, newVpool, 
+                                _dbClient, notSuppReasonBuff, null)) {
+                            verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);                            
+                        } else if (!VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
                                 _dbClient, notSuppReasonBuff)) {
                             _log.warn("RP Change Protection VirtualPool change for volume is not supported: {}",
                                     notSuppReasonBuff.toString());
@@ -4143,92 +4159,7 @@ public class BlockService extends TaskResourceService {
                         // created using the target volume of a block snapshot.
                         throw APIException.badRequests.vpoolChangeNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
-                        // Determine if source side will be migrated.
-                        boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
-                                .vpoolChangeRequiresMigration(currentVpool, newVpool);
-
-                        // Determine if HA side will be migrated.
-                        boolean migrateHAVolume = false;
-                        VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer
-                                .getHaVpool(currentVpool, _dbClient);
-                        if (currentHaVpool != null) {
-                            VirtualPool newHaVpool = VirtualPoolChangeAnalyzer
-                                    .getNewHaVpool(currentVpool, newVpool, _dbClient);
-                            migrateHAVolume = VirtualPoolChangeAnalyzer
-                                    .vpoolChangeRequiresMigration(currentHaVpool, newHaVpool);
-                        }
-
-                        // Verify the VPLEX volume structure. Ingested volumes
-                        // can only be migrated if the component structure of
-                        // the volume is supported by ViPR.
-                        verifyVPlexVolumeStructureForDataMigration(volume, currentVpool,
-                                migrateSourceVolume, migrateHAVolume);
-
-                        // Check for snaps, mirrors, and full copies
-                        if (migrateSourceVolume) {
-                            // The vpool change is a data migration and the source
-                            // side backend volume will be migrated. If the volume
-                            // has snapshots, then the vpool change will not be
-                            // allowed because VPLEX snapshots are just snapshots
-                            // of this backend volume. The user would lose all
-                            // snapshots if we allowed the vpool change. The user
-                            // must explicitly go and delete their snapshots first.
-                            // the same is true for volumes that have full copies
-                            // from which they are not detached and also full copy
-                            // volumes that are not detached from their source. If
-                            // not detached a full copy session still exists between
-                            // this backend volume and some other volume.
-                            //
-                            // Note: We make this validation here instead of in the
-                            // verification VirtualPoolChangeAnalyzer method
-                            // "getSupportedVPlexVolumeVirtualPoolChangeOperation"
-                            // because this method is called from not only the API
-                            // to change the volume virtual pool, but also the API
-                            // that determines the virtual pools to which a volume
-                            // can be changed. The latter API is used by the UI to
-                            // populate the list of volumes. We want volumes with
-                            // snaps to appear in the list, so that the user will
-                            // know that if they remove the snapshots, they can
-                            // perform the vpool change.
-                            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
-                            if (srcVolume != null) {
-                                // Has a source volume, so not ingested.
-                                List<BlockSnapshot> snapshots = CustomQueryUtility
-                                        .queryActiveResourcesByConstraint(_dbClient,
-                                                BlockSnapshot.class, ContainmentConstraint.Factory
-                                                        .getVolumeSnapshotConstraint(srcVolume.getId()));
-                                if (!snapshots.isEmpty()) {
-                                    throw APIException.badRequests
-                                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
-                                }
-
-                                // Check for snapshot sessions for the volume.
-                                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
-                                    throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
-                                }
-
-                                // Can't migrate the source side backend volume if it is
-                                // has full copy sessions.
-                                if (BlockFullCopyUtils.volumeHasFullCopySession(srcVolume, _dbClient)) {
-                                    throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
-                                }
-                            }
-
-                            // If the volume has mirrors then Vpool change will not
-                            // be allowed. User needs to explicitly delete mirrors first.
-                            // This is applicable for both Local and Distributed volumes.
-                            // For distributed volume getMirrors will get mirror if any
-                            // on source or HA side.
-                            StringSet mirrorURIs = volume.getMirrors();
-                            if (mirrorURIs != null && !mirrorURIs.isEmpty()) {
-                                List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class,
-                                        StringSetUtil.stringSetToUriList(mirrorURIs));
-                                if (mirrors != null && !mirrors.isEmpty()) {
-                                    throw APIException.badRequests
-                                            .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
-                                }
-                            }
-                        }
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool, _dbClient);
                     }
                 }
             }
@@ -4337,6 +4268,108 @@ public class BlockService extends TaskResourceService {
                     new Object[] { volume.getId() });
         }
     }
+    
+    /**
+     * Performs verification on the VPLEX volume to ensure it is a candidate for migration.
+     * 
+     * @param volume VPLEX volume to check
+     * @param currentVpool The current vpool where the volume is placed
+     * @param newVpool The target vpool where the volume will be placed after migration
+     */
+    public static void verifyVPlexVolumeForDataMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, DbClient _dbClient) {
+        _log.info(String.format("Verifying that the VPlex volume[%s](%s) qualifies for Data Migration"
+                + " moving from current vpool [%s](%s) to new vpool [%s](%s).",
+                volume.getLabel(), volume.getId(),
+                currentVpool.getLabel(), currentVpool.getId(),
+                newVpool.getLabel(), newVpool.getId()));
+        
+        // Determine if source side will be migrated.
+        boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
+                .vpoolChangeRequiresMigration(currentVpool, newVpool);
+
+        // Determine if HA side will be migrated.
+        boolean migrateHAVolume = false;
+        VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer
+                .getHaVpool(currentVpool, _dbClient);
+        if (currentHaVpool != null) {
+            VirtualPool newHaVpool = VirtualPoolChangeAnalyzer
+                    .getNewHaVpool(currentVpool, newVpool, _dbClient);
+            migrateHAVolume = VirtualPoolChangeAnalyzer
+                    .vpoolChangeRequiresMigration(currentHaVpool, newHaVpool);
+        }
+
+        // Verify the VPLEX volume structure. Ingested volumes
+        // can only be migrated if the component structure of
+        // the volume is supported by ViPR.
+        verifyVPlexVolumeStructureForDataMigration(volume, currentVpool,
+                migrateSourceVolume, migrateHAVolume, _dbClient);
+
+        // Check for snaps, mirrors, and full copies
+        if (migrateSourceVolume) {
+            // The vpool change is a data migration and the source
+            // side backend volume will be migrated. If the volume
+            // has snapshots, then the vpool change will not be
+            // allowed because VPLEX snapshots are just snapshots
+            // of this backend volume. The user would lose all
+            // snapshots if we allowed the vpool change. The user
+            // must explicitly go and delete their snapshots first.
+            // the same is true for volumes that have full copies
+            // from which they are not detached and also full copy
+            // volumes that are not detached from their source. If
+            // not detached a full copy session still exists between
+            // this backend volume and some other volume.
+            //
+            // Note: We make this validation here instead of in the
+            // verification VirtualPoolChangeAnalyzer method
+            // "getSupportedVPlexVolumeVirtualPoolChangeOperation"
+            // because this method is called from not only the API
+            // to change the volume virtual pool, but also the API
+            // that determines the virtual pools to which a volume
+            // can be changed. The latter API is used by the UI to
+            // populate the list of volumes. We want volumes with
+            // snaps to appear in the list, so that the user will
+            // know that if they remove the snapshots, they can
+            // perform the vpool change.
+            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (srcVolume != null) {
+                // Has a source volume, so not ingested.
+                List<BlockSnapshot> snapshots = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient,
+                                BlockSnapshot.class, ContainmentConstraint.Factory
+                                        .getVolumeSnapshotConstraint(srcVolume.getId()));
+                if (!snapshots.isEmpty()) {
+                    throw APIException.badRequests
+                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
+                }
+
+                // Check for snapshot sessions for the volume.
+                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
+                    throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
+                }
+
+                // Can't migrate the source side backend volume if it is
+                // has full copy sessions.
+                if (BlockFullCopyUtils.volumeHasFullCopySession(srcVolume, _dbClient)) {
+                    throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
+                }
+            }
+
+            // If the volume has mirrors then Vpool change will not
+            // be allowed. User needs to explicitly delete mirrors first.
+            // This is applicable for both Local and Distributed volumes.
+            // For distributed volume getMirrors will get mirror if any
+            // on source or HA side.
+            StringSet mirrorURIs = volume.getMirrors();
+            if (mirrorURIs != null && !mirrorURIs.isEmpty()) {
+                List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class,
+                        StringSetUtil.stringSetToUriList(mirrorURIs));
+                if (mirrors != null && !mirrors.isEmpty()) {
+                    throw APIException.badRequests
+                            .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
+                }
+            }
+        }
+    }
 
     /**
      * Verifies that the component structure of an ingested VPLEX volume is such
@@ -4351,8 +4384,8 @@ public class BlockService extends TaskResourceService {
      * @param migrateSourceVolume true if the source side requires migration.
      * @param migrateHAVolume true if the HA side requires migration.
      */
-    private void verifyVPlexVolumeStructureForDataMigration(Volume volume,
-            VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume) {
+    private static void verifyVPlexVolumeStructureForDataMigration(Volume volume,
+            VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume, DbClient _dbClient) {
         boolean structureOK = true;
         if (volume.isIngestedVolume(_dbClient)) {
             if (migrateSourceVolume && migrateHAVolume) {
@@ -4363,7 +4396,7 @@ public class BlockService extends TaskResourceService {
                         volume.getVirtualArray(), _dbClient);
             } else if (migrateHAVolume) {
                 structureOK = VPlexDeviceController.migrationSupportedForVolume(volume,
-                        VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient),
+                        VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool),
                         _dbClient);
             }
         }

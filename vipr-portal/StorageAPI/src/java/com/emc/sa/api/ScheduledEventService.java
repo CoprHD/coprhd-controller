@@ -22,6 +22,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ExecutionWindowHelper;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -146,7 +147,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         ScheduledEvent newObject = null;
         try {
-            newObject = createScheduledEvent(tenantId, createParam, catalogService);
+            newObject = createScheduledEvent(user, tenantId, createParam, catalogService);
         } catch (APIException ex){
             log.error(ex.getMessage(), ex);
             throw ex;
@@ -173,50 +174,70 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         if (scheduleInfo.getHourOfDay() < 0 || scheduleInfo.getHourOfDay() > 23) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.HOUR_OF_DAY);
         }
+
         if (scheduleInfo.getMinuteOfHour() < 0 || scheduleInfo.getMinuteOfHour() > 59) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.MINUTE_OF_HOUR);
         }
+
+        Calendar currTime, endTime;
+        try {
+            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+            Date date = formatter.parse(scheduleInfo.getStartDate());
+
+            currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
+            if (endTime != null && currTime.after(endTime)) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
+            }
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+        }
+
+        /* TODO: enable it later when we support customized duration
         if (scheduleInfo.getDurationLength() < 1 || scheduleInfo.getHourOfDay() > 60*24) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DURATION_LENGTH);
         }
+        */
 
-        if (scheduleInfo.getReoccurrence() < 0 ) {
+        if (scheduleInfo.getReoccurrence() < 0) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
-        } 
-        if (scheduleInfo.getReoccurrence() > 1 ) {
-            if (scheduleInfo.getCycleFrequency() < 1 ) {
-                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
-            }
+        } else if (scheduleInfo.getReoccurrence() == 1) {
+            return;
+        }
 
-            switch (scheduleInfo.getCycleType()) {
-                case MONTHLY:
-                    if (scheduleInfo.getSectionsInCycle().size() != 1) {
-                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                    }
-                    int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                    if (day < 1 || day > 31) {
-                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                    }
-                    break;
-                case WEEKLY:
-                    if (scheduleInfo.getSectionsInCycle().size() != 1) {
-                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                    }
-                    int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                    if (dayOfWeek < 1 || dayOfWeek > 7) {
-                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                    }
-                    break;
-                case DAILY:
-                case HOURLY:
-                case MINUTELY:
-                    if (scheduleInfo.getSectionsInCycle().size() != 0) {
-                        throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
-                    }
-                    break;
-                default:
-                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
-            }
+        if (scheduleInfo.getCycleFrequency() < 1 ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
+        }
+        switch (scheduleInfo.getCycleType()) {
+            case MONTHLY:
+                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                if (day < 1 || day > 31) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                break;
+            case WEEKLY:
+                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                if (dayOfWeek < 1 || dayOfWeek > 7) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                break;
+            case DAILY:
+            case HOURLY:
+            case MINUTELY:
+                if (!scheduleInfo.getSectionsInCycle().isEmpty()) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                break;
+            default:
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
         }
 
         if (scheduleInfo.getDateExceptions() != null) {
@@ -259,7 +280,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case WEEKLY:
                 if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
                     msg = "Schedule cycle type has conflicts with execution window.";
-                } else {
+                } else if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
                     if (window.getDayOfWeek() != Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0))) {
                         msg = "Scheduled date has conflicts with execution window.";
                     }
@@ -289,18 +310,19 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @return                   ScheduledEvent
      * @throws Exception
      */
-    private ScheduledEvent createScheduledEvent(URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
+    private ScheduledEvent createScheduledEvent(StorageOSUser user, URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         if (catalogService.getExecutionWindowRequired()) {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
             String msg = match(param.getScheduleInfo(), executionWindow);
             if (!msg.isEmpty()) {
-                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow(msg);
+                throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
         }
 
         URI scheduledEventId = URIUtil.createId(ScheduledEvent.class);
         param.getOrderCreateParam().setScheduledEventId(scheduledEventId);
-        param.getOrderCreateParam().setScheduledTime(convertCalendarToStr(getFirstScheduledTime(param.getScheduleInfo())));
+        Calendar scheduledTime = ScheduleTimeHelper.getFirstScheduledTime(param.getScheduleInfo());
+        param.getOrderCreateParam().setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(scheduledTime));
 
         OrderRestRep restRep = orderService.createOrder(param.getOrderCreateParam());
 
@@ -310,132 +332,27 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         newObject.setCatalogServiceId(param.getOrderCreateParam().getCatalogService());
         newObject.setEventType(param.getScheduleInfo().getReoccurrence() == 1 ? ScheduledEventType.ONCE : ScheduledEventType.REOCCURRENCE);
         if (catalogService.getApprovalRequired()) {
+            log.info(String.format("ScheduledEventr %s requires approval", newObject.getId()));
             newObject.setEventStatus(ScheduledEventStatus.APPROVAL);
-            // TODO: send event for approve requirement
         } else {
             newObject.setEventStatus(ScheduledEventStatus.APPROVED);
         }
         newObject.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getScheduleInfo().serialize()), UTF_8));
         if (catalogService.getExecutionWindowRequired()) {
             newObject.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
-        } else {
-            newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         newObject.setLatestOrderId(restRep.getId());
         Integer maxNumOfCopies = param.getOrderCreateParam().getMaxNumOfRetainedCopies();
         if (maxNumOfCopies != null) {
         	newObject.setMaxNumOfRetainedCopies(maxNumOfCopies);
         }
+        newObject.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
+        newObject.setStorageOSUser(new String(org.apache.commons.codec.binary.Base64.encodeBase64(user.serialize()), UTF_8));
+
         client.save(newObject);
 
-        //auditOpSuccess(OperationTypeEnum.CREATE_SCHEDULED_EVENT, order.auditParameters());
+        log.info("Created a new scheduledEvent {}:{}", newObject.getId(),param.getScheduleInfo().toString());
         return newObject;
-    }
-
-    /**
-     * Convert a Calendar to a readable time string.
-     * @param cal
-     * @return String time with format: "yyyy-MM-dd HH:mm:ss"
-     * @throws Exception
-     */
-    private String convertCalendarToStr(Calendar cal) throws Exception {
-        SimpleDateFormat format = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
-        String formatted = format.format(cal.getTime());
-        log.info("converted calendar time:{}", formatted);
-        return formatted;
-    }
-
-    /**
-     * Get the first desired schedule time based on current time, start time and schedule schema
-     * @param scheduleInfo  schedule schema
-     * @return                calendar for the first desired schedule time
-     * @throws Exception
-     */
-    private Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
-
-        DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-        Date date = formatter.parse(scheduleInfo.getStartDate());
-
-        Calendar startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        startTime.setTime(date);
-        startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
-        startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
-        startTime.set(Calendar.SECOND, 0);
-        log.info("startTime: {}", startTime.toString());
-
-        Calendar currTZTime = Calendar.getInstance();
-        Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        currTime.setTimeInMillis(currTZTime.getTimeInMillis());
-        log.info("currTime: {}", currTime.toString());
-
-        Calendar initTime = startTime.before(currTime)? currTime:startTime;
-        log.info("initTime: {}", initTime.toString());
-
-        int year = initTime.get(Calendar.YEAR);
-        int month = initTime.get(Calendar.MONTH);
-        int day = initTime.get(Calendar.DAY_OF_MONTH);
-        int hour = scheduleInfo.getHourOfDay();
-        int min = scheduleInfo.getMinuteOfHour();
-
-        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        scheduledTime.set(year, month, day, hour, min, 0);
-
-        switch (scheduleInfo.getCycleType()) {
-            case MONTHLY:
-                day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                scheduledTime.set(Calendar.DAY_OF_MONTH, day);
-                break;
-            case WEEKLY:
-                day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                int daysDiff = (day%7 + 1) - scheduledTime.get(Calendar.DAY_OF_WEEK); // java dayOfWeek starts from Sun.
-                scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
-                break;
-            case DAILY:
-            case HOURLY:
-            case MINUTELY:
-                 break;
-            default:
-                 log.error("not expected schedule cycle - {}", scheduleInfo.getCycleType());
-        }
-        log.info("scheduledTime: {}", scheduledTime.toString());
-
-        while (scheduledTime.before(initTime)) {
-            scheduledTime = getNextScheduledTime(scheduledTime, scheduleInfo);
-            log.info("scheduledTime in loop: {}", scheduledTime.toString());
-        }
-
-        return scheduledTime;
-    }
-
-    /**
-     * Get next desired schedule time based on the previous one and schedule schema
-     * @param scheduledTime     previous schedule time
-     * @param scheduleInfo      schedule schema
-     * @return
-     */
-    private Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
-        switch (scheduleInfo.getCycleType()) {
-            case MONTHLY:
-                scheduledTime.add(Calendar.MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case WEEKLY:
-                scheduledTime.add(Calendar.WEEK_OF_MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case DAILY:
-                scheduledTime.add(Calendar.DAY_OF_MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case HOURLY:
-                scheduledTime.add(Calendar.HOUR_OF_DAY, scheduleInfo.getCycleFrequency());
-                break;
-            case MINUTELY:
-                scheduledTime.add(Calendar.MINUTE, scheduleInfo.getCycleFrequency());
-                break;
-            default:
-                log.error("not expected schedule cycle.");
-        }
-        return scheduledTime;
     }
 
     /**
@@ -451,6 +368,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(scheduledEvent.getTenant()), user);
+
+        try {
+            log.info("Fetched a scheduledEvent {}:{}", scheduledEvent.getId(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getScheduleInfo().getBytes(UTF_8))).toString());
+        } catch (Exception e) {
+            log.error("Failed to parse scheduledEvent.");
+        }
 
         return map(scheduledEvent);
     }
@@ -503,24 +427,24 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
             String msg = match(scheduleInfo, executionWindow);
             if (!msg.isEmpty()) {
-                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow(msg);
+                throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
         }
 
         Order order = client.orders().findById(scheduledEvent.getLatestOrderId());
-        order.setScheduledTime(convertCalendarToStr(getFirstScheduledTime(scheduleInfo)));
+        Calendar scheduledTime = ScheduleTimeHelper.getFirstScheduledTime(scheduleInfo);
+        order.setScheduledTime(scheduledTime);
         client.save(order);
 
         if (catalogService.getExecutionWindowRequired()) {
             scheduledEvent.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
-        } else {
-            scheduledEvent.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         // TODO: update execution window when admin change it in catalog service
 
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
         client.save(scheduledEvent);
 
+        log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());
         return scheduledEvent;
     }
 
@@ -553,6 +477,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         scheduledEvent.setEventStatus(ScheduledEventStatus.CANCELLED);
         client.save(scheduledEvent);
+
+        try {
+            log.info("Cancelled a scheduledEvent {}:{}", scheduledEvent.getId(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getScheduleInfo().getBytes(UTF_8))).toString());
+        } catch (Exception e) {
+            log.error("Failed to parse scheduledEvent.");
+        }
         return Response.ok().build();
     }
 
@@ -581,7 +512,14 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             client.delete(order);
         }
 
-        // deactive the scheduled event
+        try {
+            log.info("Deleting a scheduledEvent {}:{}", scheduledEvent.getId(),
+                    ScheduleInfo.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getScheduleInfo().getBytes(UTF_8))).toString());
+        } catch (Exception e) {
+            log.error("Failed to parse scheduledEvent.");
+        }
+
+        // deactivate the scheduled event
         client.delete(scheduledEvent);
         return Response.ok().build();
     }

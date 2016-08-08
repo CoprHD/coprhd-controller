@@ -10,6 +10,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 import java.net.URI;
+import java.util.Calendar;
 import java.util.Date;
 
 @Cf("Order")
@@ -53,7 +54,7 @@ public class Order extends ModelObject implements TenantDataObject {
 
     private URI scheduledEventId;
 
-    private String scheduledTime; // Format: "yyyy/MM/dd HH:mm:ss"
+    private Calendar scheduledTime;
 
     /**
      * Field used for indexing updated time
@@ -176,11 +177,11 @@ public class Order extends ModelObject implements TenantDataObject {
     }
 
     @Name(SCHEDULED_TIME)
-    public String getScheduledTime() {
+    public Calendar getScheduledTime() {
         return scheduledTime;
     }
 
-    public void setScheduledTime(String scheduledTime) {
+    public void setScheduledTime(Calendar scheduledTime) {
         this.scheduledTime = scheduledTime;
         setChanged(SCHEDULED_TIME);
     }

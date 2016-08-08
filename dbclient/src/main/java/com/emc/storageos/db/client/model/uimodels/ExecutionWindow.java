@@ -14,7 +14,6 @@ public class ExecutionWindow extends ModelObject implements TenantDataObject {
 
     /** URI to indicate that the next execution window should be used. */
     public static final URI NEXT = URI.create("urn:storageos:ExecutionWindow:NEXT:");
-    public static final URI INFINITE = URI.create("urn:storageos:ExecutionWindow:INFINITE:");
 
     public static final String HOUR_OF_DAY_IN_UTC = "hourOfDayInUTC";
     public static final String MINUTE_OF_DAY_IN_UTC = "mintueOfHourInUTC";

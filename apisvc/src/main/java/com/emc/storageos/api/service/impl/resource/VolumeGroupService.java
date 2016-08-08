@@ -121,6 +121,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -2122,9 +2123,9 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT_SESSION);
 
         // validate name
-        String name = param.getName();
+        String name = TimeUtils.formatDateForCurrent(param.getName());
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
-
+        
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {
             // original name has special chars only

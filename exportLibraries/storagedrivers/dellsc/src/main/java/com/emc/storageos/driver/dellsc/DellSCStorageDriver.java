@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.dellsc.helpers.DellSCCloning;
 import com.emc.storageos.driver.dellsc.helpers.DellSCConsistencyGroups;
 import com.emc.storageos.driver.dellsc.helpers.DellSCDiscovery;
+import com.emc.storageos.driver.dellsc.helpers.DellSCMirroring;
 import com.emc.storageos.driver.dellsc.helpers.DellSCPersistence;
 import com.emc.storageos.driver.dellsc.helpers.DellSCProvisioning;
 import com.emc.storageos.driver.dellsc.helpers.DellSCSnapshots;
@@ -72,6 +73,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     private DellSCConsistencyGroups cgHelper = new DellSCConsistencyGroups(persistence);
     private DellSCDiscovery discoveryHelper = new DellSCDiscovery(DRIVER_NAME, DRIVER_VERSION, persistence);
     private DellSCCloning cloneHelper = new DellSCCloning(persistence);
+    private DellSCMirroring mirrorHelper = new DellSCMirroring(persistence);
 
     @Override
     public synchronized void setDriverRegistry(com.emc.storageos.storagedriver.Registry driverRegistry) {
@@ -325,10 +327,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask createVolumeMirror(List<VolumeMirror> list, StorageCapabilities storageCapabilities) {
-        LOG.info("Creating volume mirror");
-        DriverTask task = new DellSCDriverTask("createVolumeMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return mirrorHelper.createVolumeMirror(list, storageCapabilities);
     }
 
     /**
@@ -339,10 +338,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask deleteVolumeMirror(VolumeMirror mirror) {
-        LOG.info("Deleting volume mirror {}", mirror);
-        DriverTask task = new DellSCDriverTask("deleteVolumeMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return mirrorHelper.deleteVolumeMirror(mirror);
     }
 
     /**
@@ -353,10 +349,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask splitVolumeMirror(List<VolumeMirror> list) {
-        LOG.info("Splitting volume mirror");
-        DriverTask task = new DellSCDriverTask("splitVolumeMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return mirrorHelper.splitVolumeMirror(list);
     }
 
     /**
@@ -367,18 +360,12 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask resumeVolumeMirror(List<VolumeMirror> list) {
-        LOG.info("Resuming volume mirror");
-        DriverTask task = new DellSCDriverTask("resumeVolumeMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return mirrorHelper.resumeVolumeMirror(list);
     }
 
     @Override
     public DriverTask restoreVolumeMirror(List<VolumeMirror> list) {
-        LOG.info("Restoring volume mirror");
-        DriverTask task = new DellSCDriverTask("restoreVolumeMirror");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return mirrorHelper.restoreVolumeMirror(list);
     }
 
     //

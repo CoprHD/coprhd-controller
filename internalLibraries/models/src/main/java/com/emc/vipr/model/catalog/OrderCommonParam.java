@@ -4,15 +4,15 @@
  */
 package com.emc.vipr.model.catalog;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
+import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import org.codehaus.jackson.annotate.JsonProperty;
 
-public class OrderCommonParam {
+public class OrderCommonParam implements Serializable {
 
     /**
      * Parameters to an order

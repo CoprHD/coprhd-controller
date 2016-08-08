@@ -17,6 +17,11 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.uimodels.*;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.vipr.model.catalog.OrderRestRep;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,17 +32,6 @@ import com.emc.sa.asset.AssetOptionsManager;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
-import com.emc.storageos.db.client.model.uimodels.ApprovalRequest;
-import com.emc.storageos.db.client.model.uimodels.ApprovalStatus;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
-import com.emc.storageos.db.client.model.uimodels.ExecutionStatus;
-import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderAndParams;
-import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
@@ -48,29 +42,6 @@ import com.emc.sa.zookeeper.OrderExecutionQueue;
 import com.emc.sa.zookeeper.OrderMessage;
 import com.emc.sa.zookeeper.OrderNumberSequence;
 import com.emc.storageos.auth.TokenManager;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -137,6 +108,13 @@ public class OrderManagerImpl implements OrderManager {
         order.setSummary(catalogService.getTitle());
         if (catalogService.getExecutionWindowRequired()) {
             order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+            if (order.getScheduledEventId() == null) {
+                // Not created via new scheduler, so set schedule time to
+                // either 1) the next execution window starting time
+                // or     2) the current time if it is in current execution window
+                ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
+                order.setScheduledTime(ScheduleTimeHelper.getScheduledTime(executionWindow));
+            }
         }
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());
@@ -516,9 +494,11 @@ public class OrderManagerImpl implements OrderManager {
                 break;
             case SUCCESS:
                 processSuccessOrder(order, service);
+                processScheduledEvent(order);
                 break;
             case ERROR:
                 processErrorOrder(order, service);
+                processScheduledEvent(order);
                 break;
         }
     }
@@ -546,9 +526,11 @@ public class OrderManagerImpl implements OrderManager {
         switch (status) {
             case APPROVED:
                 approveOrder(order, service);
+                approveScheduledEvent(order, service, true);
                 break;
             case REJECTED:
                 rejectOrder(order, service);
+                approveScheduledEvent(order, service, false);
                 break;
         }
     }
@@ -599,6 +581,14 @@ public class OrderManagerImpl implements OrderManager {
         processApprovedOrder(order, service);
     }
 
+    private void approveScheduledEvent(Order order, CatalogService service, boolean approved) {
+        ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
+        if (scheduledEvent != null) {
+            scheduledEvent.setEventStatus(approved? ScheduledEventStatus.APPROVED: ScheduledEventStatus.REJECTED);
+            client.save(scheduledEvent);
+        }
+    }
+
     private void rejectOrder(Order order, CatalogService service) {
         order.setOrderStatus(OrderStatus.REJECTED.name());
         updateOrder(order);
@@ -620,6 +610,7 @@ public class OrderManagerImpl implements OrderManager {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalStatus(ApprovalStatus.PENDING.name());
         approvalRequest.setOrderId(order.getId());
+        approvalRequest.setScheduledEventId(order.getScheduledEventId());
         approvalRequest.setTenant(order.getTenant());
         approvalManager.createApproval(approvalRequest);
 
@@ -659,4 +650,21 @@ public class OrderManagerImpl implements OrderManager {
         updateOrder(order);
     }
 
+    public void processScheduledEvent(Order order) {
+        URI scheduledEventId = order.getScheduledEventId();
+        ScheduledEvent scheduledEvent = client.scheduledEvents().findById(scheduledEventId);
+        if (scheduledEvent != null) {
+            if (scheduledEvent.getEventType() == ScheduledEventType.ONCE) {
+                // For ONCE event, update its status to FINISHED after order finished.
+                // For REOCCURRENCE event, update its status during scheduler thread.
+                if (OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.SUCCESS) ||
+                    OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PARTIAL_SUCCESS) ||
+                    OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.ERROR) ) {
+                    scheduledEvent.setEventStatus(ScheduledEventStatus.FINISHED);
+                    client.save(scheduledEvent);
+                }
+            }
+        }
+        return;
+    }
 }

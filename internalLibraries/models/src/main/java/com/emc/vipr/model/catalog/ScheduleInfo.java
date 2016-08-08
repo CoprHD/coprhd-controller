@@ -4,16 +4,26 @@
  */
 package com.emc.vipr.model.catalog;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import java.io.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 /*
  * Schedule Info for ScheduledEvent (will launch a set of orders)
  * Note: all the time here is UTC.
  */
 public class ScheduleInfo implements Serializable {
+    private static final Logger log = LoggerFactory.getLogger(ScheduleInfo.class);
+
     public static final String HOUR_OF_DAY = "hourOfDay";
     public static final String MINUTE_OF_HOUR = "minuteOfHour";
     public static final String DURATION_LENGTH = "durationLength";
@@ -33,7 +43,7 @@ public class ScheduleInfo implements Serializable {
     private Integer minuteOfHour;    // [0..59)
     private Integer durationLength;  // in minutes [1..60*24]
 
-    private ScheduleCycleType cycleType; // Minutely, Hourly, Daily, Weekly, Monthly, Yearly
+    private ScheduleCycleType cycleType = ScheduleCycleType.DAILY; // Minutely, Hourly, Daily, Weekly, Monthly, Yearly
 
     // frequency for each cycle; e.g. 2 for every 2 hours, if the cycleType is Hourly
     private Integer cycleFrequency;  // [1..)
@@ -61,7 +71,7 @@ public class ScheduleInfo implements Serializable {
     // date format: "yyyy-MM-dd HH:mm:ss"
     private List<String> dateExceptions;
 
-    @XmlElement(name = HOUR_OF_DAY)
+    @XmlElement(name = HOUR_OF_DAY, required = true)
     public Integer getHourOfDay() {
         return hourOfDay;
     }
@@ -79,7 +89,7 @@ public class ScheduleInfo implements Serializable {
         this.minuteOfHour = minuteOfHour;
     }
 
-    @XmlElement(name = DURATION_LENGTH, required = true)
+    @XmlElement(name = DURATION_LENGTH)
     public Integer getDurationLength() {
         return durationLength;
     }
@@ -88,7 +98,7 @@ public class ScheduleInfo implements Serializable {
         this.durationLength = durationLength;
     }
 
-    @XmlElement(name = CYCLE_TYPE, required = true)
+    @XmlElement(name = CYCLE_TYPE)
     public ScheduleCycleType getCycleType() {
         return cycleType;
     }
@@ -174,5 +184,29 @@ public class ScheduleInfo implements Serializable {
             in.close();
         }
         return (ScheduleInfo) obj;
+    }
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        try {
+            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+            Date date = formatter.parse(getStartDate());
+            Calendar startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
+            startTime.setTime(date);
+            startTime.set(Calendar.HOUR_OF_DAY, getHourOfDay());
+            startTime.set(Calendar.MINUTE, getMinuteOfHour());
+            startTime.set(Calendar.SECOND, 0);
+
+            sb.append("StartTime=").append(startTime.toString()).append(";");
+            sb.append(CYCLE_TYPE).append("=").append(cycleType.toString()).append(";");
+            sb.append(CYCLE_FREQUENCE).append("=").append(cycleFrequency).append(";");
+            sb.append(REOCCURRENCE).append("=").append(reoccurrence).append(";");
+
+        } catch (Exception e) {
+            log.error("Failed to execute toString", e);
+        }
+
+        return sb.toString();
     }
 }

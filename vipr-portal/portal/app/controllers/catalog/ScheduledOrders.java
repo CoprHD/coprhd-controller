@@ -192,26 +192,41 @@ public class ScheduledOrders extends Controller {
         
         public void save() {
             ScheduledEventUpdateParam update = new ScheduledEventUpdateParam();
+            // See ScheduleInfo know detailed information of each fields and
+            // the expected default values
             ScheduleInfo scheduleInfo = new ScheduleInfo();
-            scheduleInfo.setCycleFrequency(cycleFrequency);
-            ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
-            scheduleInfo.setCycleType(cycleTypeEnum);
-            List<String> sectionsInCycle = new ArrayList<String>();
-            if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
-                sectionsInCycle.add(String.valueOf(dayOfWeek));
-            } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
-                sectionsInCycle.add(String.valueOf(dayOfMonth));
+            if (cycleFrequency != null) {
+                scheduleInfo.setCycleFrequency(cycleFrequency);
+            } else {
+                scheduleInfo.setCycleFrequency(1);
             }
-            scheduleInfo.setSectionsInCycle(sectionsInCycle);
+            if (cycleType != null) {
+                ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
+                scheduleInfo.setCycleType(cycleTypeEnum);
+                List<String> sectionsInCycle = new ArrayList<String>();
+                if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
+                    sectionsInCycle.add(String.valueOf(dayOfWeek));
+                } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
+                    sectionsInCycle.add(String.valueOf(dayOfMonth));
+                }
+                scheduleInfo.setSectionsInCycle(sectionsInCycle);
+            } else {
+                scheduleInfo.setCycleType(ScheduleCycleType.DAILY);
+            }
             
             scheduleInfo.setStartDate(startDate);
             String pair[] = startTime.split(":");
             scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
             scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
-            if (recurrence == -1) {
-                recurrence = rangeOfRecurrence;
+            if (recurrence != null) {
+                if (recurrence == -1) {
+                    recurrence = rangeOfRecurrence;
+                }
+                scheduleInfo.setReoccurrence(recurrence);
+            } else {
+                scheduleInfo.setReoccurrence(1);
             }
-            scheduleInfo.setReoccurrence(recurrence);
+
             scheduleInfo.setDurationLength(3600);
             update.setScheduleInfo(scheduleInfo);
             

@@ -11,7 +11,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2089,7 +2088,7 @@ public class FileService extends TaskResourceService {
                     }
                 }
             } catch (CommandException ex) {
-                throw new UnexpectedException(ex.getMessage());
+                throw APIException.internalServerErrors.unexpectedHostOperationError(ex.getMessage());
             }
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -4264,7 +4263,11 @@ public class FileService extends TaskResourceService {
             if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null)
                     || subDir.equalsIgnoreCase(mount.getSubDirectory())) {
                 FileSystemUnmountParam param = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
-                unmount(id, queryResource(id), param);
+                try {
+                    unmount(id, queryResource(id), param);
+                } catch (CommandException ex) {
+                    throw APIException.internalServerErrors.unexpectedHostOperationError(ex.getMessage());
+                }
             }
         }
     }

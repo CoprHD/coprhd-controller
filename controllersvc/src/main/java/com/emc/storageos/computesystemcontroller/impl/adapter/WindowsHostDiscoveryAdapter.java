@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.KerberosUtil;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
@@ -109,8 +110,10 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 // Find the cluster by name
                 cluster = findClusterByName(host.getTenant(), clusterName);
                 if (cluster != null) {
-                    // Ensure the cluster is empty before using it
-                    if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))) {
+                    // Ensure the cluster is empty before using it or if host already belongs to this cluster
+                    if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))
+                            || (!NullColumnValueGetter.isNullURI(host.getCluster())
+                                    && host.getCluster().toString().equals(cluster.toString()))) {
                         return cluster;
                     }
                     // Log a warning

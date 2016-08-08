@@ -220,6 +220,7 @@ angular.module("portalApp").controller({
         current = new Date().getTime();                
         $scope.scheduler.startDate = formatDate(current, "YYYY-MM-DD");
         $scope.scheduler.startTime = '00:00';
+        $scope.scheduler.maxNumOfCopies = 5;
         
         $scope.isSchedulerEnabled = function() {
            return $scope.schedulerEnabled;

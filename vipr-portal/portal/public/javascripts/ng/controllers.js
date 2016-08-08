@@ -1473,7 +1473,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 return;
                 break;
             case 2:
-                updateGuideCookies3(3, 4,'full');
+                updateGuideCookies3(2, 3,'full');
                 return;
                 break;
             default:
@@ -2002,7 +2002,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     $scope.$watch('currentStep', function(currentStep) {
-        if($scope.guideVisible) {
+        if($scope.guideVisible && $scope.completedSteps >= 2) {
             switch(currentStep) {
                 case 1:
                     setActiveMenu("License");

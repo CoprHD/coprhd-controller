@@ -248,8 +248,8 @@ class Storageport(object):
                 else:
                     for porturi in porturis:
                         sport = self.storageport_show_id(ssuri, porturi['id'])
-                        if(sport['transport_type'] == transportType and
-                           groupname == sport['port_group']):
+                        if((sport['transport_type'] == transportType) and
+                           (groupname == sport['port_group']) and portname == sport['port_name']):
                             self.storageport_update_uri(
                                                         sport['id'],
                                                         tzuri,

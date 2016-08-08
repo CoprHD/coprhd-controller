@@ -203,8 +203,8 @@ public class ScheduleTimeHelper {
         int year = currTime.get(Calendar.YEAR);
         int month = currTime.get(Calendar.MONTH);
         int day = currTime.get(Calendar.DAY_OF_MONTH);
-        int hour = window.getHourOfDayInUTC();
-        int min = window.getMinuteOfHourInUTC();
+        int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+        int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
 
         Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         scheduledTime.set(year, month, day, hour, min, 0);

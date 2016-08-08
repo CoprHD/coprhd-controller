@@ -280,7 +280,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case WEEKLY:
                 if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
                     msg = "Schedule cycle type has conflicts with execution window.";
-                } else {
+                } else if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
                     if (window.getDayOfWeek() != Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0))) {
                         msg = "Scheduled date has conflicts with execution window.";
                     }

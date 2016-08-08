@@ -173,6 +173,7 @@ public class StoragePortAssociationHelper {
             if (varraysToRemove != null) {
                 varraysToRemoveIds = varraysToRemove.getVarrays();
             }
+
             Set<String> varraysWithOutChangedConnectivity = new HashSet<>(varraysToAddIds);
             varraysWithOutChangedConnectivity.addAll(varraysToRemoveIds);
 
@@ -199,6 +200,7 @@ public class StoragePortAssociationHelper {
                     }
                 }
             }
+
             if (!varraysWithChangedConnectivity.isEmpty()) {
                 // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
                 // our system's storage pools.

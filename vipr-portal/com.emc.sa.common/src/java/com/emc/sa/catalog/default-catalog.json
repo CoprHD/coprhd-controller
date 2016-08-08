@@ -676,6 +676,37 @@
           "baseService": "DeleteBucket"
         }
       ]
+    },
+    {
+      "title": "guide.title",
+      "image": "icon_host.png",
+      "description": "guide.description",
+      "services": [
+        {
+          "image": "icon_db_create.png",
+          "baseService": "CreateVolume"
+        },
+        {
+          "image": "icon_db_unexport_remove.png",
+          "baseService": "RemoveBlockStorage"
+        },
+        {
+          "image": "icon_db_expand.png",
+          "baseService": "ExpandBlockStorage"
+        },
+        {
+          "image": "Service_Create_Block_Snapshot.png",
+          "baseService": "CreateBlockSnapshot"
+        },
+		{
+          "image": "Service_Restore_Block_Snapshot.png",
+          "baseService": "RestoreBlockSnapshot"
+        },
+		{
+          "image": "Service_Remove_Block_Snapshot.png",
+          "baseService": "RemoveBlockSnapshot"
+        }
+      ]
     }
   ]
 }

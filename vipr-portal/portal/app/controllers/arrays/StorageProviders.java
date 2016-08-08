@@ -4,11 +4,16 @@
  */
 package controllers.arrays;
 
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.backToReferrer;
 import static controllers.Common.copyRenderArgsToAngular;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import play.Logger;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
@@ -42,6 +47,8 @@ import util.DefaultStorageProviderPortMap;
 import util.EnumOption;
 import util.MessagesUtils;
 import util.StorageProviderUtils;
+import util.StorageSystemUtils;
+import util.StringOption;
 import util.validation.HostNameOrIpAddress;
 
 @With(Common.class)
@@ -57,6 +64,11 @@ public class StorageProviders extends ViprResourceController {
     private static final int SAVE_WAIT_MILLIS = 300000;
     private static final String HTTPS = "https";
     private static final String HYPERSCALEPORT = "8443"; //hardcode to be removed in next check-in
+
+    private static final String UNITY = "unity";
+    private static final String VMAX = "vmax";
+    private static final String XTREMIO = "xtremio";
+    private static final String SUFFIX_ALL_FLASH = "F";
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
@@ -91,6 +103,110 @@ public class StorageProviders extends ViprResourceController {
                 new JsonItemOperation());
     }
 
+    public static void discoveryCheckJson(@As(",") String[] ids) {
+        List<String> failedDiscovery = new ArrayList<String>();
+        for (String id:ids) {
+            StorageProviderRestRep storageProvider = StorageProviderUtils
+                    .getStorageProvider(uri(id));
+            if (storageProvider == null || storageProvider.getRegistrationStatus().equals("UNREGISTERED")) {
+                //ignore for now
+                continue;
+            }
+            if (!storageProvider.getScanStatus().equals("COMPLETE")){
+                failedDiscovery.add(storageProvider.getName());
+                continue;
+            }
+            Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
+                    .getConnectedStorageSystems(uri(id));
+
+            boolean ssFound = false;
+
+            for (NamedRelatedResourceRep storageSystem:storageSystems){
+                StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
+                if (ss != null) {
+                    if (!ss.getDiscoveryJobStatus().equals("COMPLETE")) {
+                        continue;
+                    } else {
+                        ssFound = true;
+                    }
+                }
+            }
+
+            if (!ssFound){
+                failedDiscovery.add(storageProvider.getName());
+                continue;
+            }
+        }
+        renderJSON(failedDiscovery);
+
+    }
+
+    public static void getAllFlashStorageSystemsList(@As(",") String[] ids) {
+        List<Map<String,String>> storagesystemslist = new ArrayList<Map<String,String>>();
+        for (String id:ids) {
+            if(id.contains("StorageProvider")) {
+                StorageProviderRestRep storageProvider = StorageProviderUtils.getStorageProvider(uri(id));
+                if (storageProvider == null) {
+                    continue;
+                }
+                Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils.getConnectedStorageSystems(uri(id));
+
+                for (NamedRelatedResourceRep storageSystem : storageSystems) {
+                    StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
+                    if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                        Map<String, String> ssMap = new HashMap<String, String>();
+                        // Check if storage system is of type UNITY, VMAX or XtremIO
+                        if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
+                            storagesystemslist.add(ssMap);
+                        }
+                        if (StringUtils.equals(VMAX, ss.getSystemType())) {
+                            String modelType = ss.getModel();
+                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                                ssMap.put("id", ss.getId().toString());
+                                ssMap.put("name", ss.getName());
+                                storagesystemslist.add(ssMap);
+                            }
+                        }
+                        if (StringUtils.equals(UNITY, ss.getSystemType())) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
+                            storagesystemslist.add(ssMap);
+                        }
+                    }
+                }
+            } else {
+                StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(id);
+                Logger.info("Occurred");
+                if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                    Logger.info(ss.getId()+"-----"+ss.getSystemType());
+                    Map<String, String> ssMap = new HashMap<String, String>();
+                    // Check if storage system is of type UNITY, VMAX or XtremIO
+                    if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
+                        ssMap.put("id", ss.getId().toString());
+                        ssMap.put("name", ss.getName());
+                        storagesystemslist.add(ssMap);
+                    }
+                    if (StringUtils.equals(VMAX, ss.getSystemType())) {
+                        String modelType = ss.getModel();
+                        if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            ssMap.put("id", ss.getId().toString());
+                            ssMap.put("name", ss.getName());
+                            storagesystemslist.add(ssMap);
+                        }
+                    }
+					if (StringUtils.equals(UNITY, ss.getSystemType())) {
+						ssMap.put("id", ss.getId().toString());
+						ssMap.put("name", ss.getName());
+						storagesystemslist.add(ssMap);
+					}
+                }
+            }
+        }
+        renderJSON(storagesystemslist);
+    }
+
     public static void itemDetails(String id) {
         StorageProviderRestRep storageProvider = StorageProviderUtils
                 .getStorageProvider(uri(id));
@@ -105,8 +221,7 @@ public class StorageProviders extends ViprResourceController {
     public static void create() {
         addReferenceData();
         StorageProviderForm smisProvider = new StorageProviderForm();
-        // put all "initial create only" defaults here rather than field
-        // initializers
+        // put all "initial create only" defaults here rather than field initializers
         smisProvider.interfaceType = StorageProviderTypes.SMIS;
         smisProvider.portNumber = getDefaultPort(DefaultStorageProviderPortMap.smis_useSSL);
         smisProvider.hyperScalePort = HYPERSCALEPORT;

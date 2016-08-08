@@ -1388,3 +1388,600 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
+angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window) {
+
+    cookieObject = {};
+    cookieKey = "VIPR_START_GUIDE";
+    dataCookieKey = "GUIDE_DATA";
+    requiredSteps = 2;
+    landingStep = 3;
+    maxSteps = 9;
+
+    $scope.checkGuide = function() {
+        cookieObject = angular.fromJson(readCookie(cookieKey));
+        if (cookieObject) {
+            $scope.completedSteps = cookieObject.completedSteps;
+            $scope.guideMode = cookieObject.guideMode;
+            $scope.currentStep = cookieObject.currentStep;
+            $scope.guideDataAvailable = true;
+            $scope.guideVisible = cookieObject.guideVisible;
+            $scope.maxSteps = maxSteps;
+
+        }
+        $scope.isMenuPinned = readCookie("isMenuPinned");
+    }
+
+    $scope.toggleGuide = function(nonav) {
+
+        //we need to check that the guide only appears on the license and initial setup nonav pages
+        if (nonav) {
+            if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
+                return;
+            }
+        }
+
+        if ($scope.guideVisible) {
+		    $scope.closeGuide();
+        }
+        else {
+            if (window.location.pathname != '/security/logout') {
+                $scope.guideVisible = true;
+                $scope.guideMode='full';
+                if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
+                    if ($window.location.pathname == '/setup/license') {
+                        if ($scope.currentStep == 1) {return;};
+                    }
+                    if ($window.location.pathname == '/setup/index') {
+                        if ($scope.currentStep == 2) {return;};
+                    }
+                }
+                $scope.initializeSteps();
+		    }
+        }
+    }
+
+    $scope.closeGuide = function() {
+        $scope.guideVisible = false;
+        $scope.guideDataAvailable = false;
+        saveGuideCookies();
+    }
+
+    $scope.initializeSteps = function() {
+
+        $scope.currentStep = 1;
+        $scope.completedSteps = 0;
+        $scope.maxSteps = maxSteps;
+        $scope.guideDataAvailable = false;
+
+        checkSteps();
+
+    }
+
+    $scope.completeStep = function(step) {
+        function finishChecking(){
+            $scope.guideMode='full';
+            saveGuideCookies();
+        }
+		if (!step) {
+            step = $scope.currentStep;
+        }
+        switch (step) {
+            case 1:
+                updateGuideCookies3(1, 2,'full');
+                return;
+                break;
+            case 2:
+                updateGuideCookies3(2, 3,'full');
+                return;
+                break;
+            default:
+                checkStep(step,function(){goToNextStep(true)},function(){finishChecking()});
+        }
+    }
+
+    goToNextStep = function(complete) {
+        if(complete) {
+            completedSteps=$scope.completedSteps;
+            currentStep=$scope.currentStep;
+            if ( currentStep>completedSteps){
+                completedSteps=currentStep;
+            }
+            if ( $scope.currentStep<maxSteps){
+                currentStep=currentStep+1;
+            }
+            else {
+                currentStep=landingStep;
+            }
+        }
+        updateGuideCookies3(completedSteps,currentStep,'full');
+        goToPage(currentStep);
+    }
+
+    $scope.runStep = function(error) {
+        openMenu();
+        step = $scope.currentStep;
+        switch (step) {
+            case 1:
+                $scope.currentStep = 1;
+                $scope.guideMode = 'side';
+                saveGuideCookies();
+                if ($window.location.pathname != '/setup/license') {
+                    goToPage(1);
+                }
+                break;
+            case 2:
+                $scope.currentStep = 2;
+                $scope.guideMode = 'side';
+                saveGuideCookies();
+                if ($window.location.pathname != '/setup/index') {
+                    goToPage(2);
+                }
+                break;
+            case 9:
+                updateGuideCookies4(9,9,'side',false);
+                goToPage(9);
+                break;
+            default:
+                updateGuideCookies(step,'side');
+                goToPage(step,error);
+        }
+    }
+
+    goToPage = function(step,error) {
+
+        switch (step) {
+            case 1:
+                if ($scope.completedSteps>1) {
+                     $window.location.href = '/system/licensing';
+                } else {
+                    $window.location.href = '/setup/license';
+                }
+                break;
+            case 2:
+                if ($scope.completedSteps>2) {
+                     $window.location.href = '/config';
+                } else {
+                $window.location.href = '/setup/index';
+                }
+                break;
+            case landingStep:
+                break;
+            case 4:
+                if (!error) {
+                    $window.location.href = '/storagesystems/createAllFlash';
+                } else {
+                    if (error.indexOf("Provider") == -1){
+                        $window.location.href = '/storagesystems/list';
+                    } else {
+                        $window.location.href = '/storageproviders/list';
+                    }
+                }
+                break;
+            case 5:
+                $window.location.href = '/sanswitches/list';
+                break;
+            case 6:
+                $window.location.href = '/virtualarrays/defaultvarray';
+                break;
+            case 7:
+                $window.location.href = '/blockvirtualpools/createAllFlash';
+                break;
+            case 8:
+                $window.location.href = '/projects/list';
+                break;
+            case 9:
+                $window.location.href = '/Catalog#ServiceCatalog/AllFlashServices';
+                if ($window.location.pathname == '/Catalog') {
+                    $window.location.reload(true);
+                }
+                break;
+            default:
+                console.log("Incorrect step, no page to go to");
+            }
+    }
+
+    $scope.showStep = function(step) {
+
+            if (!step) {
+                step = $scope.currentStep;
+            }
+            updateGuideCookies(step,'full');
+            goToPage(step);
+
+        }
+
+    $scope.toggleMode = function(mode) {
+        $scope.guideMode = mode;
+    }
+
+    updateGuideCookies = function(currentStep,guideMode) {
+        cookieObject = {};
+        cookieObject.currentStep=currentStep;
+        cookieObject.completedSteps=$scope.completedSteps;
+        cookieObject.guideMode=guideMode;
+        cookieObject.guideVisible=$scope.guideVisible;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    updateGuideCookies3 = function(completedSteps,currentStep,guideMode) {
+        cookieObject = {};
+        cookieObject.currentStep=currentStep;
+        cookieObject.completedSteps=completedSteps;
+        cookieObject.guideMode=guideMode;
+        cookieObject.guideVisible=$scope.guideVisible;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    updateGuideCookies4 = function(completedSteps,currentStep,guideMode,guideVisible) {
+        cookieObject = {};
+        cookieObject.currentStep=currentStep;
+        cookieObject.completedSteps=completedSteps;
+        cookieObject.guideMode=guideMode;
+        cookieObject.guideVisible=guideVisible;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    $scope.startAddMoreStorage = function () {
+        removeGuideCookies();
+        $scope.currentStep = 4;
+        $scope.completedSteps = 3;
+        $scope.maxSteps = maxSteps;
+        saveGuideCookies();
+    }
+
+    removeGuideCookies = function() {
+        eraseCookie(cookieKey);
+        eraseCookie(dataCookieKey);
+    }
+
+    saveGuideCookies = function() {
+        cookieObject = {};
+        cookieObject.currentStep=$scope.currentStep;
+        cookieObject.completedSteps=$scope.completedSteps;
+        cookieObject.guideMode=$scope.guideMode;
+        cookieObject.guideVisible=$scope.guideVisible;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    checkSteps = function(){
+
+        function finishChecking(){
+            $scope.guideDataAvailable = true;
+            saveGuideCookies();
+        }
+
+        (function generateSteps(step){
+            checkStep(step,function(){
+                if(step<10){
+                    generateSteps(step+1);
+                }
+            },function(){finishChecking()});
+        })(1);
+    }
+
+    checkStep = function(step,callback,callback2) {
+
+        finishChecking = function(){
+            callback2();
+        }
+
+        switch (step) {
+            case 1:
+                $http.get(routes.Setup_license()).then(function (data) {
+                    isLicensed = data.data;
+                    if (isLicensed == 'true') {
+                        $scope.completedSteps = 1;
+                        $scope.currentStep = 2;
+                        callback();
+                    }  else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 2:
+                $http.get(routes.Setup_initialSetup()).then(function (data) {
+                    isSetup = data.data;
+                    if (isSetup == 'true') {
+                        $scope.completedSteps = 2;
+                        $scope.currentStep = 3;
+                        callback();
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case landingStep:
+                callback();
+                return true;
+                break;
+            case 4:
+                if(checkCookie(dataCookieKey)){
+                    providerid = "";
+                    ssid= "";
+                    guide_data=angular.fromJson(readCookie(dataCookieKey));
+
+                    if(guide_data){
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                if (this.id.indexOf("StorageProvider") > -1){
+                                    if (providerid){providerid += ","}
+                                    providerid += this.id;
+                                } else {
+                                    if (ssid){ssid += ","}
+                                    ssid += this.id;
+                                }
+                            });
+                        }
+                    }
+                    var promises = [];
+                    failedArray= [];
+                    var failedType;
+                    promises.push($http.get(routes.StorageProviders_discoveryCheckJson({'ids':providerid})).then(function (data) {
+                        if (data.data.length != 0) {
+                            if(!failedType){
+                                failedType="PROVIDER";
+                                failedArray=failedArray.concat(data.data);
+                            }
+                        }
+                    }));
+                    promises.push($http.get(routes.StorageSystems_discoveryCheckJson({'ids':ssid})).then(function (data) {
+                        if (data.data.length != 0) {
+                            if(!failedType){
+                                failedType="SYSTEM";
+                                failedArray=failedArray.concat(data.data);
+                            }
+                        }
+                    }));
+                    $q.all(promises).then(function () {
+                        if (failedArray.length > 0) {
+                            if(failedType=="PROVIDER"){
+                                $scope.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
+                                finishChecking();
+                            }
+                        } else {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid.concat(",").concat(ssid)})).then(function (data) {
+                                arrayCookie = guide_data.storage_systems;
+                                storage_systems=[];
+                                if (data.data.length > 0) {
+                                    guide_data.storage_systems=data.data;
+                                    createCookie(dataCookieKey,angular.toJson(guide_data),'session');
+                                    $scope.completedSteps = 4;
+                                    callback();
+                                } else {
+                                    $scope.guideError = "Error: No All Flash storage systems Discovered or Registered";
+                                    finishChecking();
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    finishChecking();
+                }
+                break;
+            case 5:
+                ssid= "";
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                if(guide_data){
+                    arrayCookie = guide_data.storage_systems;
+                    if (arrayCookie) {
+                        jQuery.each(arrayCookie, function() {
+                            if (ssid){ssid += ","}
+                            ssid += this.id;
+                        });
+                    }
+                }
+                $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
+                    if (data.data.length > 0) {
+                        $scope.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
+                        finishChecking();
+                    } else {
+                        $scope.completedSteps = 5;
+                        callback();
+                    }
+                });
+                break;
+            case 6:
+                ssid= "";
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                if(guide_data){
+                    arrayCookie = guide_data.storage_systems;
+                    if (arrayCookie) {
+                        jQuery.each(arrayCookie, function() {
+                            if (ssid){ssid += ","}
+                            ssid += this.id;
+                        });
+                    }
+                }
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
+                    if (data.data.length > 0) {
+                        $scope.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
+                        finishChecking();
+                    } else {
+                        $scope.completedSteps = 6;
+                        callback();
+                    }
+                });
+                break;
+            case 7:
+                if(checkCookie(dataCookieKey)){
+                    ssid= "";
+                    guide_data=angular.fromJson(readCookie(dataCookieKey));
+                    if(guide_data){
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                if (ssid){ssid += ","}
+                                ssid += this.id;
+                            });
+                        }
+                    }
+                    $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
+                        if (data.data.length != 0) {
+                            $scope.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
+                            finishChecking();
+                        } else {
+                            $scope.completedSteps = 7;
+                            callback();
+                        }
+                    });
+                } else {
+                    finishChecking();
+                }
+                break;
+            case 8:
+                $http.get(routes.Projects_list()).then(function (data) {
+                    if (data.data.aaData.length != 0) {
+                        $scope.completedSteps = 8;
+                        callback();
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case maxSteps:
+                $scope.completedSteps = maxSteps;
+                finishChecking();
+                break;
+        }
+
+    }
+
+    $scope.getSummary = function() {
+
+        $scope.guide_storageArray = "Not Complete";
+        $scope.guide_varray = "Not Complete";
+        $scope.guide_vpool = "Not Complete";
+        $scope.guide_fabric = "Not Complete";
+        $scope.guide_project = "Not Complete";
+
+        guide_data=angular.fromJson(readCookie("GUIDE_DATA"));
+
+        if(guide_data){
+            arrayCookie = guide_data.storage_systems;
+            if (arrayCookie) {
+                $scope.guide_storageArray = "";
+                jQuery.each(arrayCookie, function() {
+                    if ($scope.guide_storageArray){$scope.guide_storageArray += ","}
+                    $scope.guide_storageArray += this.name;
+                });
+            }
+            else if ($scope.completedSteps > 3){
+                $scope.guide_storageArray = "Skipped";
+            }
+            varrayCookie = guide_data.varrays;
+            if (varrayCookie) {
+                $scope.guide_varray = "";
+                jQuery.each(varrayCookie, function() {
+                    if ($scope.guide_varray){$scope.guide_varray += ","}
+                    $scope.guide_varray += this.name;
+                });
+            }
+            else if ($scope.completedSteps > 5){
+                $scope.guide_varray = "Skipped";
+            }
+            vpoolCookie = guide_data.vpools;
+            if (vpoolCookie) {
+                $scope.guide_vpool = "";
+                jQuery.each(vpoolCookie, function() {
+                    if ($scope.guide_vpool){$scope.guide_vpool += ","}
+                    $scope.guide_vpool += this.name;
+                });
+            }
+            else if ($scope.completedSteps > 6){
+                $scope.guide_vpool = "Skipped";
+            }
+            fabricCookie = guide_data.fabrics;
+            if (fabricCookie) {
+                $scope.guide_fabric = "";
+                jQuery.each(fabricCookie, function() {
+                    if ($scope.guide_fabric){$scope.guide_fabric += ","}
+                    $scope.guide_fabric += this.name;
+                });
+            }
+            else if ($scope.completedSteps > 4){
+                $scope.guide_fabric = "Skipped";
+            }
+            projectCookie = guide_data.projects;
+            if (projectCookie) {
+                $scope.guide_project = "";
+                jQuery.each(projectCookie, function() {
+                    if ($scope.guide_project){$scope.guide_project += ","}
+                    $scope.guide_project += this.name;
+                });
+            }
+            else if ($scope.completedSteps > 7){
+                $scope.guide_project = "Skipped";
+            }
+        }
+    }
+
+    checkCookie = function(cookie) {
+        cookieObject = readCookie(cookie);
+
+        if (cookieObject) {
+            return true;
+        }
+        return false;
+    }
+
+    $scope.$watch('guideVisible', function() {
+        if($scope.guideVisible){
+            openMenu();
+        }
+        else {
+            closeMenus();
+        }
+    });
+    var PINNED_COOKIE = 'isMenuPinned';
+        var MAIN_MENU = '#mainMenu';
+        var NAV = '.rootNav';
+        var MAIN_MENU_NAV = MAIN_MENU + ' ' + NAV;
+        var MENU = '.navMenu';
+        var MENU_NAME = 'subnav';
+        var MENU_PIN = '.menuPin';
+        var CONTENT_AREA = '#contentArea';
+
+        // --- CSS Classes ---
+        var MAIN_MENU_OPEN = 'selected';
+        var MENU_OPEN = 'menu-open';
+        var MENU_PINNED = 'menu-pinned';
+        var ACTIVE_INDICATOR = 'blueArrow';
+
+        function openMenu() {
+            $menu = $('a.rootNav.active');
+            closeMenus();
+            var name = $menu.data(MENU_NAME);
+            if (name) {
+                var $subMenu = $('#' + name);
+                if ($subMenu) {
+                    $menu.addClass(MAIN_MENU_OPEN);
+                    $subMenu.addClass(MENU_OPEN);
+                    $(CONTENT_AREA).addClass(MENU_OPEN);
+                    $(CONTENT_AREA).addClass(MENU_PINNED);
+                    $("#wizard").addClass('guide-menuopen');
+                    createCookie(PINNED_COOKIE, 'true', 'session');
+                }
+            }
+            //updateActiveIndicator();
+        }
+            function closeMenus() {
+                createCookie(PINNED_COOKIE, 'false', 'session');
+                $(MAIN_MENU_NAV).removeClass(MAIN_MENU_OPEN);
+                $(MENU).removeClass(MENU_OPEN);
+                $(CONTENT_AREA).removeClass(MENU_OPEN);
+                $("#wizard").removeClass('guide-menuopen');
+                //updateActiveIndicator();
+            }
+    function isMenuOpened() {
+        var elements = $('div.'+MENU_OPEN);
+        if (elements.length > 0) {
+            return true;
+        }
+        return false;
+    }
+});

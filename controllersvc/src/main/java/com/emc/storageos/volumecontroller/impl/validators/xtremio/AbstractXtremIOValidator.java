@@ -19,14 +19,14 @@ import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
  */
 public abstract class AbstractXtremIOValidator implements Validator {
 
+    public static final String NO_MATCH = "<no match>";
     private XtremioSystemValidatorFactory factory;
     private ValidatorLogger logger;
-    static final String NO_MATCH = "<no match>";
 
-    final StorageSystem storage;
-    final ExportMask exportMask;
-    boolean errorOnMismatch = true;
-    String id = null; // identifying string for ExportMask
+    protected final StorageSystem storage;
+    protected final ExportMask exportMask;
+    protected boolean errorOnMismatch = true;
+    protected String id = null; // identifying string for ExportMask
 
     public AbstractXtremIOValidator(StorageSystem storage, ExportMask exportMask) {
         this.storage = storage;

@@ -50,10 +50,6 @@ public class ExportMaskInitiatorsValidator extends AbstractExportMaskValidator {
 
             @Override
             public String apply(String input) {
-                // TODO Simulator bug - we can remove this when its fixed.
-                if (input.length() > 16) {
-                    input = input.substring(16);
-                }
                 return Initiator.normalizePort(input);
             }
         };

@@ -63,6 +63,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String META_VOLUME_MEMBER_COUNT = "metaVolumeMemberCount";
     public static final String META_VOLUME_TYPE = "metaVolumeType";
 
+    // compute resource capabilities
+    public static final String COMPUTE = "compute";
+    public static final String ARRAY_AFFINITY = "array_affinity";
+
     // replica options
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
@@ -199,6 +203,14 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
         }
 
+        if (capabilities.contains(COMPUTE)) {
+            _vpoolCapabilities.put(COMPUTE, capabilities.getCompute());
+        }
+
+        if (capabilities.contains(ARRAY_AFFINITY)) {
+            _vpoolCapabilities.put(ARRAY_AFFINITY, capabilities.getArrayAffinity());
+        }
+        
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
         }
@@ -390,4 +402,13 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
 }
 
+    public String getCompute() {
+        Object value = _vpoolCapabilities.get(COMPUTE);
+        return value != null ? (String) value : null;
+    }
+
+    public boolean getArrayAffinity() {
+        Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
+        return value != null ? (Boolean) value : false;
+    }
 }

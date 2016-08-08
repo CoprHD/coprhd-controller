@@ -17,6 +17,7 @@ public class HostLunRequests extends KHRequests<HostLun> {
 
     private static final Logger _logger = LoggerFactory.getLogger(HostLunRequests.class);
     private static String URL = "/api/types/hostLUN/instances";
+    private static final String URL_HOSTLUN = "/api/instances/hostLUN/";
     public static String ID_SEQUENCE_LUN = "prod";
     public static String ID_SEQUENCE_SNAP = "snap";
     private static final String FIELDS = "host,type,hlu,lun,snap,isReadOnly";
@@ -76,6 +77,17 @@ public class HostLunRequests extends KHRequests<HostLun> {
         }
 
         return result;
+    }
+
+    /**
+     * Get a HostLun's detail using its id.
+     *
+     * @param hostLunId
+     * @return HostLun
+     */
+    public HostLun getHostLun(String hostLunId) {
+        _url = URL_HOSTLUN + hostLunId;
+        return getDataForOneObject(HostLun.class);
     }
 
 }

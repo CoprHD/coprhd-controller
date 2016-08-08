@@ -23,6 +23,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public static final String LATEST_ORDER_ID = "latestOrderId";
     public static final String EXECUTION_WINDOW_ID = "executionWindowId";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
+    public static final String ORDER_CREATION_PARAM = "orderCreationParam";
 
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
     public static final String MAX_NUM_OF_RETAINED_COPIES = "maxNumOfRetainedCopies";
@@ -32,9 +33,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     private String scheduleInfo; // concrete schedule info
 
     private ScheduledEventStatus eventStatus; // even status
-
-    // TODO: for scheduler framework later
-    // private OrderCommonParam orderCommonParam; // the common order info
 
     private URI latestOrderId;               // the latest to-be scheduled associated orderId
 
@@ -49,6 +47,11 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     
     private StringSet retainedCopies;
     
+    private String orderCreationParam;     // order creation related params
+
+    private String storageOSUser;           // user info
+
+    @AlternateId("AltIdIndex")
     @Name(EVENT_TYPE)
     public ScheduledEventType getEventType() {
         return eventType;
@@ -128,7 +131,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
 		setChanged(MAX_NUM_OF_RETAINED_COPIES);
 	}
-	
+
 	@Name("RetainedCopies")
 	public StringSet getRetainedCopies() {
 		return this.retainedCopies;
@@ -138,5 +141,25 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 		this.retainedCopies = retainedCopies;
 		setChanged("RetainedCopies");
 	}
-	
+
+    @Name(ORDER_CREATION_PARAM)
+    public String getOrderCreationParam() {
+        return orderCreationParam;
+    }
+
+    public void setOrderCreationParam(String orderCreationParam) {
+        this.orderCreationParam = orderCreationParam;
+        setChanged(ORDER_CREATION_PARAM);
+    }
+
+    @Name("storageOSUser")
+    public String getStorageOSUser() {
+        return storageOSUser;
+    }
+
+    public void setStorageOSUser(String storageOSUser) {
+        this.storageOSUser = storageOSUser;
+        setChanged("storageOSUser");
+    }
+
 }

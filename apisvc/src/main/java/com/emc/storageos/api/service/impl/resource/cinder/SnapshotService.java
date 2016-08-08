@@ -190,8 +190,8 @@ public class SnapshotService extends TaskResourceService {
         
 
         if (volume == null) {
-        	_log.error("Invalid Source Volume ID to create snapshot ={} ",param.snapshot.volume_id);
-    		return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Source Volume ID " + param.snapshot.volume_id);
+        	_log.error("Invalid source volume id to create snapshot ={} ",param.snapshot.volume_id);
+    		return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id " + param.snapshot.volume_id);
         }
 
         VirtualPool pool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -513,13 +513,13 @@ public class SnapshotService extends TaskResourceService {
     @Path("/{snapshot_id}/metadata")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public CinderSnapshotMetadata creatSnapshotMetadata(
-            @PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("snapshot_id") String snapshot_id,
+            @PathParam("tenant_id") String openstackTenantId,
+            @PathParam("snapshot_id") String snapshotId,
             CinderSnapshotMetadata param) {
-        BlockSnapshot snap = findSnapshot(snapshot_id, openstack_tenant_id);
+        BlockSnapshot snap = findSnapshot(snapshotId, openstackTenantId);
 
         if (snap == null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+            throw APIException.badRequests.parameterIsNotValid(snapshotId);
         }
             
         _log.debug("Create metadata for snapshot {}: ", snap.getLabel());
@@ -567,15 +567,15 @@ public class SnapshotService extends TaskResourceService {
     @Path("/{snapshot_id}/metadata/{key}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public CinderSnapshotMetadata deleteSnapshotMetadataItem(
-            @PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("snapshot_id") String snapshot_id,
+            @PathParam("tenant_id") String openstackTenantId,
+            @PathParam("snapshot_id") String snapshotId,
             @PathParam("key") String key,
             @Context HttpHeaders header,
             @HeaderParam("X-Cinder-V1-Call") String isV1Call) {
-        BlockSnapshot snap = findSnapshot(snapshot_id, openstack_tenant_id);
+        BlockSnapshot snap = findSnapshot(snapshotId, openstackTenantId);
 
         if (snap == null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+            throw APIException.badRequests.parameterIsNotValid(snapshotId);
         }
             
 
@@ -592,7 +592,7 @@ public class SnapshotService extends TaskResourceService {
         	    _dbClient.updateObject(snap);
         		
 
-                BlockSnapshot snapRag = findSnapshot(snapshot_id, openstack_tenant_id);        		
+                BlockSnapshot snapRag = findSnapshot(snapshotId, openstackTenantId);        		
                 return getSnapshotMetadataDetail(snapRag);
         	} else {
             	_log.info ("Invalid metadata key ={} ",key);
@@ -806,12 +806,12 @@ public class SnapshotService extends TaskResourceService {
     @Path("/{snapshot_id}/metadata")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public CinderSnapshotMetadata getSnapShotMetadata(
-            @PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("snapshot_id") String snapshot_id) {
-        BlockSnapshot snapshot = findSnapshot(snapshot_id, openstack_tenant_id);
+            @PathParam("tenant_id") String openstackTenantId,
+            @PathParam("snapshot_id") String snapshotId) {
+        BlockSnapshot snapshot = findSnapshot(snapshotId, openstackTenantId);
         if(snapshot==null) {
-        	_log.error("Invalid snapshot ID ={} ",snapshot_id);
-        	throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+        	_log.error("Invalid snapshot ID ={} ",snapshotId);
+        	throw APIException.badRequests.parameterIsNotValid(snapshotId);
         }
         return getSnapshotMetadataDetail(snapshot);
         

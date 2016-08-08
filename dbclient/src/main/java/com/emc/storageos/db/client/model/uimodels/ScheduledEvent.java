@@ -47,6 +47,8 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     private Integer maxNumOfRetainedCopies; // max number of retained copies for recurrent orders. 
                                             // For snapshot related orders only.
     
+    private StringSet retainedCopies;
+    
     @Name(EVENT_TYPE)
     public ScheduledEventType getEventType() {
         return eventType;
@@ -126,4 +128,15 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
 		setChanged(MAX_NUM_OF_RETAINED_COPIES);
 	}
+	
+	@Name("RetainedCopies")
+	public StringSet getRetainedCopies() {
+		return this.retainedCopies;
+	}
+	
+	public void setRetainedCopies(StringSet retainedCopies) {
+		this.retainedCopies = retainedCopies;
+		setChanged("RetainedCopies");
+	}
+	
 }

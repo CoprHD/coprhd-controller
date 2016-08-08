@@ -13,6 +13,7 @@ import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,8 +24,13 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshotSession;
+import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateBlockSnapshot")
@@ -83,7 +89,9 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
-        Tasks<? extends DataObjectRestRep> tasks;
+        checkRetainedSnapshots();
+        
+    	Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
                 if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
@@ -91,8 +99,10 @@ public class CreateBlockSnapshotService extends ViPRService {
                                                                     linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
                 } else {
                     tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly));
+                    
                 }
                 addAffectedResources(tasks);
+                addRetainedSnapshots(tasks);
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
@@ -104,6 +114,45 @@ public class CreateBlockSnapshotService extends ViPRService {
                 }
                 addAffectedResources(tasks);
             }
+        }
+    }
+
+    private void addRetainedSnapshots(Tasks<? extends DataObjectRestRep> tasks) {
+    	ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
+        if (event == null) {
+        	return;
+        }
+    	if (tasks != null) {
+            for (Task<? extends DataObjectRestRep> task : tasks.getTasks()) {
+                URI resourceId = task.getResourceId();
+                if (resourceId != null) {
+                	StringSet retainedCopies = event.getRetainedCopies();
+                	if (retainedCopies == null) {
+                		retainedCopies = new StringSet();
+                	}
+                	retainedCopies.add(resourceId.toString());
+                	getModelClient().save(event);
+                }
+            }
+        }
+    }
+    
+    private void checkRetainedSnapshots() {
+    	ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
+        if (event == null) {
+        	return;
+        }
+        info("Scheduled Event %d", event.getId());
+        Integer maxNumOfCopies = event.getMaxNumOfRetainedCopies();
+        if (maxNumOfCopies == null) {
+        	return;
+        }
+        info("Max number of copies %d", maxNumOfCopies);
+        StringSet retainedCopies = event.getRetainedCopies();
+        if (retainedCopies.size() > maxNumOfCopies) {
+        	String snapshotId = retainedCopies.iterator().next();//TODO - find the old one
+        	info("Remove snapshot %s", snapshotId);
+        	execute(new DeactivateBlockSnapshot(uri(snapshotId), VolumeDeleteTypeEnum.FULL));
         }
     }
 }

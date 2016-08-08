@@ -33,7 +33,7 @@ import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeClone.ReplicationState;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import com.emc.storageos.storagedriver.model.VolumeClone.SourceType;
 
 /**
  * Helper for cloning operations.
@@ -57,10 +57,9 @@ public class DellSCCloning {
      * Create a clone of a volume.
      *
      * @param clones The clones to create.
-     * @param storageCapabilities The requested capabilities for the clones.
      * @return The clone task.
      */
-    public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities storageCapabilities) {
+    public DriverTask createVolumeClone(List<VolumeClone> clones) {
         LOG.info("Creating volume clone");
         DellSCDriverTask task = new DellSCDriverTask("createVolumeClone");
         StringBuilder errBuffer = new StringBuilder();
@@ -68,8 +67,15 @@ public class DellSCCloning {
 
         for (VolumeClone clone : clones) {
             try (StorageCenterAPI api = persistence.getSavedConnection(clone.getStorageSystemId())) {
-                // Create temporary replay to create the clone from
-                ScReplay replay = api.createReplay(clone.getParentId(), 5);
+
+                ScReplay replay = null;
+
+                if (clone.getSourceType() == SourceType.SNAPSHOT) {
+                    replay = api.getReplay(clone.getParentId());
+                } else {
+                    // Create temporary replay to create the clone from
+                    replay = api.createReplay(clone.getParentId(), 5);
+                }
 
                 // Now create a new volume from the snapshot
                 ScVolume scVol = api.createViewVolume(clone.getDisplayName(), replay.instanceId);

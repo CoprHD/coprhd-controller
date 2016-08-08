@@ -32,7 +32,6 @@ import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeMirror.SynchronizationState;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
  * Helper for mirroring operations.
@@ -56,10 +55,9 @@ public class DellSCMirroring {
      * Create volume mirrors.
      *
      * @param mirrors The volume mirrors to create.
-     * @param storageCapabilities The requested capabilities.
      * @return The creation task.
      */
-    public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities storageCapabilities) {
+    public DriverTask createVolumeMirror(List<VolumeMirror> mirrors) {
         LOG.info("Creating volume mirror");
         DriverTask task = new DellSCDriverTask("createVolumeMirror");
 

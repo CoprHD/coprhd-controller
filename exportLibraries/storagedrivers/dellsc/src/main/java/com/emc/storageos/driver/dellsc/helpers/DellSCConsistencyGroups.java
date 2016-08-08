@@ -33,7 +33,6 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.StorageVolume;
-import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
@@ -247,57 +246,5 @@ public class DellSCConsistencyGroups {
             }
         }
         return complete;
-    }
-
-    /**
-     * Delete a consistency group snapshot set.
-     *
-     * @param snapshots The snapshots to delete.
-     * @return The delete task.
-     */
-    public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
-        DellSCDriverTask task = new DellSCDriverTask("deleteCGSnapshot");
-
-        StringBuilder errBuffer = new StringBuilder();
-        int expireCount = 0;
-        for (VolumeSnapshot snapshot : snapshots) {
-            try (StorageCenterAPI api = persistence.getSavedConnection(snapshot.getStorageSystemId())) {
-                api.expireReplay(snapshot.getNativeId());
-                expireCount++;
-            } catch (StorageCenterAPIException | DellSCDriverException dex) {
-                String error = String.format(
-                        "Error deleting CG snapshot %s: %s", snapshot.getNativeId(), dex);
-                errBuffer.append(String.format("%s%n", error));
-            }
-        }
-
-        task.setMessage(errBuffer.toString());
-
-        if (expireCount == snapshots.size()) {
-            task.setStatus(TaskStatus.READY);
-        } else if (expireCount == 0) {
-            task.setStatus(TaskStatus.FAILED);
-        } else {
-            task.setStatus(TaskStatus.PARTIALLY_FAILED);
-        }
-
-        return task;
-    }
-
-    /**
-     * Create clone of consistency group.
-     *
-     * @param volumeConsistencyGroup The consistency group.
-     * @param volumes The volumes to clone.
-     * @param capabilities The requested capabilities.
-     * @return The clone creation task.
-     */
-    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup volumeConsistencyGroup,
-            List<VolumeClone> volumes,
-            List<CapabilityInstance> capabilities) {
-        DriverTask task = new DellSCDriverTask("createCGClone");
-        task.setStatus(TaskStatus.FAILED);
-        task.setMessage("Create consistency group clone is not supported at this time.");
-        return task;
     }
 }

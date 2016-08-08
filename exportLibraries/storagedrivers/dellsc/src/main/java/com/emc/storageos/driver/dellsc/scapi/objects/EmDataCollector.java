@@ -14,33 +14,15 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.driver.dellsc.scapi.rest;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import com.google.gson.Gson;
+package com.emc.storageos.driver.dellsc.scapi.objects;
 
 /**
- * REST call parameters.
+ * Data collector information.
  */
-public class Parameters {
-    private Map<String, Object> payload;
-
-    public Parameters() {
-        payload = new HashMap<>();
-    }
-
-    public void add(String key, Object value) {
-        payload.put(key, value);
-    }
-
-    public String toJson() {
-        Gson gson = new Gson();
-        return gson.toJson(payload);
-    }
-
-    public Map<String, Object> getRawPayload() {
-        return payload;
-    }
+public class EmDataCollector {
+    public String javaVersion;
+    public String loginBannerMessage;
+    public String type;
+    public String version;
+    public String webSite;
 }

@@ -39,10 +39,12 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScMappingProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScPhysicalServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerOperatingSystem;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
+import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.Initiator.HostOsType;
 import com.emc.storageos.storagedriver.model.Initiator.Protocol;
@@ -50,6 +52,7 @@ import com.emc.storageos.storagedriver.model.Initiator.Type;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
@@ -214,10 +217,19 @@ public class DellSCProvisioning {
         DellSCDriverTask task = new DellSCDriverTask("exportVolumes");
 
         ScServer server = null;
+        List<ScServerHba> preferredHbas = new ArrayList<>();
         StringBuilder errBuffer = new StringBuilder();
         int volumesMapped = 0;
         Set<StoragePort> usedPorts = new HashSet<>();
         List<String> discoveredPorts = new ArrayList<>();
+
+        // See if a max port count has been specified
+        int maxPaths = -1;
+        List<ExportPathsServiceOption> pathOptions = capabilities.getCommonCapabilitis().getExportPathParams();
+        for (ExportPathsServiceOption pathOption : pathOptions) {
+            // List but appears to only ever have one option?
+            maxPaths = pathOption.getMaxPath();
+        }
 
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
@@ -231,7 +243,7 @@ public class DellSCProvisioning {
 
                 // Look up the server if needed
                 if (server == null) {
-                    server = createOrFindScServer(api, ssn, initiators);
+                    server = createOrFindScServer(api, ssn, initiators, preferredHbas);
                 }
 
                 if (server == null) {
@@ -259,7 +271,7 @@ public class DellSCProvisioning {
                     profile = mappingProfiles[0];
                 } else {
                     profile = api.createVolumeMappingProfile(
-                            scVol.instanceId, server.instanceId, preferredLun);
+                            scVol.instanceId, server.instanceId, preferredLun, new String[0], maxPaths);
                 }
 
                 ScMapping[] maps = api.getMappingProfileMaps(profile.instanceId);
@@ -315,7 +327,7 @@ public class DellSCProvisioning {
      * @return The server object or null.
      */
     private ScServer findScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators) {
-        return createOrFindScServer(api, ssn, initiators, false);
+        return createOrFindScServer(api, ssn, initiators, new ArrayList<>(0), false);
     }
 
     /**
@@ -324,10 +336,11 @@ public class DellSCProvisioning {
      * @param ssn The Storage Center to check.
      * @param api The API connection.
      * @param initiators The list of initiators.
+     * @param matchedHbas The ScServerHbas that matched the provided initiators.
      * @return The server object or null.
      */
-    private ScServer createOrFindScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators) {
-        return createOrFindScServer(api, ssn, initiators, true);
+    private ScServer createOrFindScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators, List<ScServerHba> matchedHbas) {
+        return createOrFindScServer(api, ssn, initiators, matchedHbas, true);
     }
 
     /**
@@ -336,10 +349,12 @@ public class DellSCProvisioning {
      * @param ssn The Storage Center to check.
      * @param api The API connection.
      * @param initiators The list of initiators.
+     * @param matchedHbas The ScServerHbas that matched the provided initiators.
      * @param createIfNotFound Whether to create the server if it's not found.
      * @return The server object or null.
      */
-    private ScServer createOrFindScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators, boolean createIfNotFound) {
+    private ScServer createOrFindScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators, List<ScServerHba> matchedHbas,
+            boolean createIfNotFound) {
         boolean isCluster = false;
         String clusterName = "";
         ScServerOperatingSystem os = null;
@@ -359,19 +374,14 @@ public class DellSCProvisioning {
                 // Make sure it's in the format we expect
                 iqnOrWwn = iqnOrWwn.replace(":", "").toUpperCase();
             }
-            ScServer individualServer = api.findServer(ssn, iqnOrWwn);
 
+            ScServer individualServer = api.findServer(ssn, iqnOrWwn);
             if (individualServer == null && createIfNotFound) {
-                if (serverLookup.containsKey(init.getHostName())) {
-                    // Need to add this initiator to existing server definition
+                if (!serverLookup.containsKey(init.getHostName())) {
+                    // Get the reference to our existing server
                     individualServer = serverLookup.get(init.getHostName());
-                    api.addHbaToServer(
-                            individualServer.instanceId,
-                            iqnOrWwn,
-                            init.getProtocol().equals(Protocol.iSCSI));
                 } else {
                     // Need to create a new server definition
-
                     try {
                         individualServer = api.createServer(
                                 ssn,
@@ -384,6 +394,15 @@ public class DellSCProvisioning {
                         LOG.warn(String.format("Error creating server: %s", e));
                         continue;
                     }
+                }
+
+                // Need to add this initiator to existing server definition
+                ScServerHba hba = api.addHbaToServer(
+                        individualServer.instanceId,
+                        iqnOrWwn,
+                        init.getProtocol().equals(Protocol.iSCSI));
+                if (hba != null && !matchedHbas.contains(hba)) {
+                    matchedHbas.add(hba);
                 }
             }
 
@@ -572,5 +591,154 @@ public class DellSCProvisioning {
         }
 
         return task;
+    }
+
+    /**
+     * Gets the mapping information for a volume to initiators.
+     *
+     * @param volumeId The volume instance ID.
+     * @param systemId The storage system ID.
+     * @return The mapping details. Map of HostName:HostExportInfo
+     */
+    public Map<String, HostExportInfo> getVolumeExportInfo(String volumeId, String systemId) {
+        Map<String, HostExportInfo> result = new HashMap<>();
+
+        Map<String, ScServer> serverCache = new HashMap<>();
+        Map<String, Initiator> serverPortCache = new HashMap<>();
+        Map<String, StoragePort> portCache = new HashMap<>();
+
+        try (StorageCenterAPI api = persistence.getSavedConnection(systemId)) {
+            ScVolume scVol = api.getVolume(volumeId);
+            if (scVol == null) {
+                throw new DellSCDriverException(String.format("Volume %s could not be found.", volumeId));
+            }
+
+            ScMapping[] maps = api.getVolumeMaps(scVol.instanceId);
+            for (ScMapping map : maps) {
+                populateVolumeExportInfo(api, volumeId, map, result, serverCache, serverPortCache, portCache);
+            }
+        } catch (StorageCenterAPIException | DellSCDriverException dex) {
+            String message = String.format("Error getting export info for volume %s: %s", volumeId, dex);
+            LOG.warn(message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Fills in export information for a specific volume mapping.
+     *
+     * @param volumeId The volume instance ID.
+     * @param map The mapping.
+     * @param result The export info map.
+     * @param serverCache The server cache.
+     * @param serverPortCache The server HBA cache.
+     * @param portCache The controller port cache.
+     * @throws StorageCenterAPIException
+     */
+    private void populateVolumeExportInfo(StorageCenterAPI api, String volumeId, ScMapping map, Map<String, HostExportInfo> result,
+            Map<String, ScServer> serverCache, Map<String, Initiator> serverPortCache, Map<String, StoragePort> portCache)
+                    throws StorageCenterAPIException {
+        ScServer server;
+        Initiator initiator;
+        StoragePort port;
+
+        // Get our server info
+        if (serverCache.containsKey(map.server.instanceId)) {
+            server = serverCache.get(map.server.instanceId);
+        } else {
+            server = api.getServerDefinition(map.server.instanceId);
+            serverCache.put(server.instanceId, server);
+        }
+
+        // Find the server HBA
+        if (serverPortCache.containsKey(map.serverHba.instanceId)) {
+            initiator = serverPortCache.get(map.serverHba.instanceId);
+        } else {
+            ScServerHba hba = api.getServerHba(map.serverHba.instanceId);
+            initiator = getInitiatorInfo(api, server, hba);
+            serverPortCache.put(hba.instanceId, initiator);
+        }
+
+        // Get the controller port info
+        if (portCache.containsKey(map.controllerPort.instanceId)) {
+            port = portCache.get(map.controllerPort.instanceId);
+        } else {
+            ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
+            port = util.getStoragePortForControllerPort(api, scPort, null);
+            portCache.put(scPort.instanceId, port);
+        }
+
+        String hostName = initiator.getHostName();
+        if (initiator.getInitiatorType() == Type.Cluster) {
+            hostName = initiator.getClusterName();
+        }
+
+        HostExportInfo exportInfo;
+        if (result.containsKey(hostName)) {
+            exportInfo = result.get(hostName);
+        } else {
+            exportInfo = new HostExportInfo(
+                    hostName,
+                    new ArrayList<>(),
+                    new ArrayList<>(),
+                    new ArrayList<>());
+        }
+
+        // Now populate all the info
+        if (!exportInfo.getStorageObjectNativeIds().contains(volumeId)) {
+            exportInfo.getStorageObjectNativeIds().add(volumeId);
+        }
+
+        if (!exportInfo.getTargets().contains(port)) {
+            exportInfo.getTargets().add(port);
+        }
+
+        if (!exportInfo.getInitiators().contains(initiator)) {
+            exportInfo.getInitiators().add(initiator);
+        }
+
+        result.put(hostName, exportInfo);
+    }
+
+    /**
+     * Gets Initiator details from servers and ports.
+     *
+     * @param api The Storage Center API connection.
+     * @param server The ScServer.
+     * @param hba The server HBA.
+     * @return The initiator.
+     */
+    private Initiator getInitiatorInfo(StorageCenterAPI api, ScServer server, ScServerHba hba) {
+        Initiator result = new Initiator();
+
+        ScServer cluster = null;
+        if (server.type.contains("Physical")) {
+            ScPhysicalServer physicalServer = api.getPhysicalServerDefinition(server.instanceId);
+            if (physicalServer != null &&
+                    physicalServer.parent != null &&
+                    physicalServer.parent.instanceId != null) {
+                cluster = api.getServerDefinition(physicalServer.parent.instanceId);
+            }
+        }
+
+        result.setHostName(server.name);
+        result.setInitiatorType(Type.Host);
+
+        if (cluster != null) {
+            result.setClusterName(cluster.name);
+            result.setInitiatorType(Type.Cluster);
+        }
+
+        result.setNativeId(hba.instanceId);
+        result.setPort(hba.instanceId);
+
+        Protocol protocol = Protocol.iSCSI;
+        if ("FibreChannel".equals(hba.portType)) {
+            protocol = Protocol.FC;
+        }
+        result.setProtocol(protocol);
+
+        return result;
     }
 }

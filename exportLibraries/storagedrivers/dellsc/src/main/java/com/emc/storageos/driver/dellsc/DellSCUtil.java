@@ -18,8 +18,10 @@ package com.emc.storageos.driver.dellsc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +35,18 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfig
 import com.emc.storageos.driver.dellsc.scapi.objects.ScFaultDomain;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageType;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScStorageTypeStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeStorageUsage;
+import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenter;
+import com.emc.storageos.storagedriver.model.Initiator.Protocol;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
+import com.emc.storageos.storagedriver.model.StoragePool;
+import com.emc.storageos.storagedriver.model.StoragePool.Protocols;
 import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
@@ -284,9 +294,129 @@ public class DellSCUtil {
         port.setEndPointID(scPort.iscsiName);
         port.setIpAddress(portConfig.ipAddress);
         port.setPortNetworkId(scPort.iscsiName);
+        port.setNetworkId(portConfig.getNetwork());
         port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
         port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
         port.setPortSubGroup(String.format("%s", portConfig.slot));
         port.setTcpPortNumber(portConfig.portNumber);
+    }
+
+    /**
+     * Gets a StoragePool object for a storage type.
+     *
+     * @param api The Storage Center API connection.
+     * @param storageType The storage type.
+     * @param pool The StoragePool object to populate or null.
+     * @return The StoragePool.
+     */
+    public StoragePool getStoragePoolFromStorageType(StorageCenterAPI api, ScStorageType storageType, StoragePool pool) {
+        if (pool == null) {
+            pool = new StoragePool();
+        }
+        pool.setNativeId(storageType.instanceId);
+        pool.setStorageSystemId(storageType.scSerialNumber);
+        LOG.info("Discovered Pool {}, storageSystem {}",
+                pool.getNativeId(), pool.getStorageSystemId());
+
+        pool.setDeviceLabel(storageType.name);
+        pool.setDisplayName(storageType.name);
+        pool.setPoolName(storageType.name);
+        pool.setCapabilities(new ArrayList<>(0));
+
+        // Get the supported transport protocols
+        Set<StoragePool.Protocols> protocols = new HashSet<>();
+        List<String> transportProtocols = getSupportedProtocols(api, storageType.scSerialNumber);
+        if (transportProtocols.contains(Protocol.FC.toString())) {
+            protocols.add(StoragePool.Protocols.FC);
+        }
+        if (transportProtocols.contains(Protocol.iSCSI.toString())) {
+            protocols.add(StoragePool.Protocols.iSCSI);
+        }
+        pool.setProtocols(protocols);
+
+        pool.setPoolServiceType(StoragePool.PoolServiceType.block);
+        pool.setMaximumThickVolumeSize(0L);
+        pool.setMinimumThickVolumeSize(0L);
+        pool.setMaximumThinVolumeSize(549755813888L); // Max 512 TB
+        pool.setMinimumThinVolumeSize(1048576L); // Min 1 GB
+        pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_ONLY);
+
+        ScStorageTypeStorageUsage su = api.getStorageTypeStorageUsage(storageType.instanceId);
+        LOG.info("Space info: {} {} {}", su.allocatedSpace, su.freeSpace, su.usedSpace);
+        pool.setSubscribedCapacity(SizeUtil.sizeStrToKBytes(su.usedSpace));
+        pool.setFreeCapacity(SizeUtil.sizeStrToKBytes(su.freeSpace));
+        pool.setTotalCapacity(SizeUtil.sizeStrToKBytes(su.allocatedSpace));
+        pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
+
+        return pool;
+    }
+
+    /**
+     * Gets the transport protocols supported by an array.
+     *
+     * @param api The SC API connection.
+     * @param scSerialNumber The Storage Center serial number to check.
+     * @return The supported protocols.
+     */
+    private List<String> getSupportedProtocols(StorageCenterAPI api, String scSerialNumber) {
+
+        List<String> protocols = new ArrayList<>();
+        boolean hasIScsi = false;
+        boolean hasFC = false;
+        ScControllerPort[] controllerPorts = api.getTargetPorts(scSerialNumber, null);
+        for (ScControllerPort scPort : controllerPorts) {
+            if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                hasFC = true;
+            } else if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType)) {
+                hasIScsi = true;
+            }
+        }
+
+        if (hasIScsi) {
+            protocols.add(Protocols.iSCSI.toString());
+        }
+        if (hasFC) {
+            protocols.add(Protocols.FC.toString());
+        }
+
+        return protocols;
+    }
+
+    /**
+     * Populate a StorageSystem object with Storage Center info.
+     *
+     * @param api The SC API connection.
+     * @param sc The Storage Center.
+     * @param storageSystemOrNull The StorageSystem to populate or null.
+     * @return The StorageSystem.
+     */
+    public StorageSystem getStorageSystemFromStorageCenter(StorageCenterAPI api, StorageCenter sc,
+            StorageSystem storageSystemOrNull) {
+        StorageSystem storageSystem = storageSystemOrNull;
+        if (storageSystem == null) {
+            storageSystem = new StorageSystem();
+        }
+
+        storageSystem.setSerialNumber(sc.scSerialNumber);
+        storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
+        storageSystem.setModel(sc.modelSeries);
+        storageSystem.setProvisioningType(SupportedProvisioningType.THIN);
+        storageSystem.setNativeId(sc.scSerialNumber);
+
+        // Parse out version information
+        String[] version = sc.version.split("\\.");
+        storageSystem.setMajorVersion(version[0]);
+        storageSystem.setMinorVersion(version[1]);
+        storageSystem.setFirmwareVersion(sc.version);
+        storageSystem.setIsSupportedVersion(true);
+
+        storageSystem.setDeviceLabel(sc.scName);
+        storageSystem.setDisplayName(sc.name);
+
+        // Check the supported protocols for this array
+        List<String> protocols = getSupportedProtocols(api, sc.scSerialNumber);
+        storageSystem.setProtocols(protocols);
+
+        return storageSystem;
     }
 }

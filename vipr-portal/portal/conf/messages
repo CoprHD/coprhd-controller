@@ -1623,6 +1623,7 @@ approvalConfig.approverEmail=Approver Email
 approvalConfig.approverEmail.help=The email addresses for approvers (comma separated)
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
+customWorkflow.title=Custom Workflow
 
 Introspection.Started=%s assets added to the discovery queue.
 

@@ -23,13 +23,10 @@ public class EventUtil {
     private static Logger log = LoggerFactory.getLogger(EventUtil.class);
 
     public enum EventCode {
-        HOST_DELETE("100"),
         HOST_CLUSTER_CHANGE("101"),
         HOST_INITIATOR_ADD("102"),
         HOST_INITIATOR_DELETE("103"),
-        CLUSTER_DELETE("104"),
-        VCENTER_DATACENTER_DELETE("105"),
-        HOST_DATACENTER_CHANGE("106");
+        HOST_DATACENTER_CHANGE("104");
 
         private String code;
 

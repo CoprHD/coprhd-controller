@@ -82,7 +82,7 @@ public class Events extends Controller {
         renderJSON(DataTablesSupport.createJSON(events, params));
     }
 
-    public static void getActiveCount() {
+    public static void getPendingCount() {
         ViPRCoreClient client = getViprClient();
 
         int activeCount = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant())).getPending();

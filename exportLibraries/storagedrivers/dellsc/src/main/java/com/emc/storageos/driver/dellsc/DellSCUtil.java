@@ -47,6 +47,28 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 public class DellSCUtil {
     private static final Logger LOG = LoggerFactory.getLogger(DellSCUtil.class);
 
+    private static DellSCUtil instance;
+
+    /**
+     * Private constructor.
+     */
+    private DellSCUtil() {
+
+    }
+
+    /**
+     * Gets the util instance.
+     * 
+     * @return The util instance.
+     */
+    public static DellSCUtil getInstance() {
+        if (instance == null) {
+            instance = new DellSCUtil();
+        }
+
+        return instance;
+    }
+
     /**
      * Locates a consistency group.
      *

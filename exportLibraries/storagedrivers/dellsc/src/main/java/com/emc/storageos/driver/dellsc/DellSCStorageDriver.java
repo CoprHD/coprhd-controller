@@ -26,6 +26,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.driver.dellsc.helpers.DellSCCloning;
 import com.emc.storageos.driver.dellsc.helpers.DellSCConsistencyGroups;
 import com.emc.storageos.driver.dellsc.helpers.DellSCDiscovery;
 import com.emc.storageos.driver.dellsc.helpers.DellSCPersistence;
@@ -70,6 +71,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     private DellSCSnapshots snapshotHelper = new DellSCSnapshots(persistence);
     private DellSCConsistencyGroups cgHelper = new DellSCConsistencyGroups(persistence);
     private DellSCDiscovery discoveryHelper = new DellSCDiscovery(DRIVER_NAME, DRIVER_VERSION, persistence);
+    private DellSCCloning cloneHelper = new DellSCCloning(persistence);
 
     @Override
     public synchronized void setDriverRegistry(com.emc.storageos.storagedriver.Registry driverRegistry) {
@@ -142,7 +144,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
         String requestedType = type.getSimpleName();
         LOG.info("Request for {} object {} from {}", requestedType, objectId, storageSystemId);
-        DellSCUtil util = new DellSCUtil();
+        DellSCUtil util = DellSCUtil.getInstance();
         try (StorageCenterAPI api = persistence.getSavedConnection(storageSystemId)) {
             if (requestedType.equals(StorageVolume.class.getSimpleName())) {
                 ScVolume volume = api.getVolume(objectId);
@@ -291,10 +293,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> list, StorageCapabilities storageCapabilities) {
-        LOG.info("Creating volume clone");
-        DriverTask task = new DellSCDriverTask("createVolumeClone");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return cloneHelper.createVolumeClone(list, storageCapabilities);
     }
 
     /**
@@ -305,18 +304,18 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> list) {
-        LOG.info("Detaching volume clone");
-        DriverTask task = new DellSCDriverTask("detachVolumeClone");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return cloneHelper.detachVolumeClone(list);
     }
 
+    /**
+     * Restore a cloned volume.
+     *
+     * @param list The volume clones.
+     * @return The driver task.
+     */
     @Override
     public DriverTask restoreFromClone(List<VolumeClone> list) {
-        LOG.info("Restoring volume clone");
-        DriverTask task = new DellSCDriverTask("restoreVolumeClone");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return cloneHelper.restoreFromClone(list);
     }
 
     /**
@@ -327,10 +326,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
      */
     @Override
     public DriverTask deleteVolumeClone(VolumeClone clone) {
-        LOG.info("Deleting volume clone {}", clone);
-        DriverTask task = new DellSCDriverTask("deleteVolumeClone");
-        task.setStatus(TaskStatus.FAILED);
-        return task;
+        return cloneHelper.deleteVolumeClone(clone);
     }
 
     //

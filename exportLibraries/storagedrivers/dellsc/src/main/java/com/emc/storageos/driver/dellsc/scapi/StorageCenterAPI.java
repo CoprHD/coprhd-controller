@@ -60,6 +60,9 @@ import com.google.gson.GsonBuilder;
 public class StorageCenterAPI implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(StorageCenterAPI.class);
+
+    private static final String NOTES_STRING = "Created by CoprHD driver";
+
     private RestClient restClient;
     private Gson gson;
 
@@ -180,7 +183,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
         Parameters params = new Parameters();
         params.add("Name", name);
-        params.add("Notes", "Created by CoprHD");
+        params.add("Notes", NOTES_STRING);
         params.add("Size", String.format("%d GB", sizeInGB));
         params.add("StorageCenter", ssn);
         if (cgID != null && !cgID.isEmpty()) {
@@ -636,7 +639,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
         Parameters params = new Parameters();
         params.add("Name", name);
-        params.add("Notes", "Created by CoprHD");
+        params.add("Notes", NOTES_STRING);
         params.add("Type", "Consistent");
         params.add("StorageCenter", ssn);
 
@@ -794,9 +797,21 @@ public class StorageCenterAPI implements AutoCloseable {
      * @throws StorageCenterAPIException
      */
     public ScReplay createReplay(String instanceId) throws StorageCenterAPIException {
+        return createReplay(instanceId, 0);
+    }
+
+    /**
+     * Creates a replay on a volume.
+     *
+     * @param instanceId The volume instance ID.
+     * @param expireTime The number of minutes before the snapshot expires.
+     * @return The created replay.
+     * @throws StorageCenterAPIException
+     */
+    public ScReplay createReplay(String instanceId, int expireTime) throws StorageCenterAPIException {
         Parameters params = new Parameters();
         params.add("description", "Created by CoprHD");
-        params.add("expireTime", 0);
+        params.add("expireTime", expireTime);
 
         RestResult rr = restClient.post(
                 String.format("StorageCenter/ScVolume/%s/CreateReplay", instanceId), params.toJson());
@@ -1041,7 +1056,7 @@ public class StorageCenterAPI implements AutoCloseable {
         Parameters params = new Parameters();
         params.add("Name", hostName);
         params.add("StorageCenter", ssn);
-        params.add("Notes", "Created by CoprHD driver");
+        params.add("Notes", NOTES_STRING);
         params.add("OperatingSystem", osId);
 
         RestResult rr = restClient.post("StorageCenter/ScPhysicalServer", params.toJson());
@@ -1157,5 +1172,39 @@ public class StorageCenterAPI implements AutoCloseable {
         if (!checkResults(rr)) {
             throw new StorageCenterAPIException(rr.getErrorMsg());
         }
+    }
+
+    /**
+     * Creates a volume from a snapshot.
+     *
+     * @param name The name for the new volume.
+     * @param instanceId The replay instance ID.
+     * @return The created volume.
+     * @throws StorageCenterAPIException
+     */
+    public ScVolume createViewVolume(String name, String instanceId) throws StorageCenterAPIException {
+        LOG.debug("Creating view volume of replay {}", instanceId);
+        String errorMessage = "";
+
+        Parameters params = new Parameters();
+        params.add("Name", name);
+        params.add("Notes", NOTES_STRING);
+
+        try {
+            RestResult result = restClient.post(
+                    String.format("StorageCenter/ScReplay/%s/CreateView", instanceId),
+                    params.toJson());
+            if (checkResults(result)) {
+                return gson.fromJson(result.getResult(), ScVolume.class);
+            }
+        } catch (Exception e) {
+            errorMessage = String.format("Error creating view volume: %s", e);
+            LOG.warn(errorMessage);
+        }
+
+        if (errorMessage.length() == 0) {
+            errorMessage = String.format("Unable to create view volume %s from replay %s", name, instanceId);
+        }
+        throw new StorageCenterAPIException(errorMessage);
     }
 }

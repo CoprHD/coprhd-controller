@@ -56,7 +56,7 @@ public class DellSCConsistencyGroups {
      */
     public DellSCConsistencyGroups(DellSCPersistence persistence) {
         this.persistence = persistence;
-        this.util = new DellSCUtil();
+        this.util = DellSCUtil.getInstance();
     }
 
     /**

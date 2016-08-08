@@ -242,6 +242,8 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                     raise SOSError(e.errno, e.strerror)
 
         elif (http_method == 'POST'):
+            print("post body {}".format(body))
+
             if(filename):
                 with open(filename, "rb") as f:
                     response = requests.post(url, data=f, headers=headers,

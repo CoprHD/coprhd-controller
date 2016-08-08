@@ -4,6 +4,8 @@
  */
 package com.emc.vipr.model.catalog;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +36,13 @@ public class OrderCommonParam {
         this.parameters = parameters;
     }
 
+    @JsonProperty("catalogService")
     @XmlElement(name = "catalog_service", required = true)
     public URI getCatalogService() {
         return catalogService;
     }
 
+    @JsonProperty("catalogService")
     public void setCatalogService(URI catalogService) {
         this.catalogService = catalogService;
     }

@@ -130,21 +130,23 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // Get the context from the task completer, in case this is a rollback.
             ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
             if (context != null && context.getOperations() != null) {
+                _log.info("Handling deleteExportMask as a result of rollback");
+                List<URI> addedVolumes = new ArrayList<URI>();
                 ListIterator li = context.getOperations().listIterator(context.getOperations().size());
                 while (li.hasPrevious()) {
-                    _log.info("Handling deleteExportMask as a result of rollback");
                     ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                     if (operation != null
-                            && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                        initiatorList = (List<Initiator>) operation.getArgs().get(0);
-                        _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiatorList));
-                    } else if (operation != null
                             && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                        volumesToBeUnmapped = (List<URI>) operation.getArgs().get(0);
+                        addedVolumes = (List<URI>) operation.getArgs().get(0);
                         _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
                     }
                 }
-
+                volumesToBeUnmapped = addedVolumes;
+                if (volumesToBeUnmapped == null || volumesToBeUnmapped.isEmpty()) {
+                    _log.info("There was no context found for add volumes. So there is nothing to rollback.");
+                    taskCompleter.ready(dbClient);
+                    return;
+                }
             } else {
                 volumesToBeUnmapped = volumeURIList;
             }
@@ -223,21 +225,23 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // Get the context from the task completer, in case this is a rollback.
             ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
             if (context != null && context.getOperations() != null) {
+                _log.info("Handling removeVolumes as a result of rollback");
+                List<URI> addedVolumes = new ArrayList<URI>();
                 ListIterator li = context.getOperations().listIterator(context.getOperations().size());
                 while (li.hasPrevious()) {
                     ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    _log.info("Handling removeVolumes as a result of rollback");
                     if (operation != null
                             && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                        volumeUris = (List<URI>) operation.getArgs().get(0);
+                        addedVolumes = (List<URI>) operation.getArgs().get(0);
                         _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeUris));
-                    } else {
-                        _log.info("There was no context found for add volumes. So there is nothing to rollback.");
-                        taskCompleter.ready(dbClient);
-                        return;
                     }
                 }
-
+                volumeUris = addedVolumes;
+                if (volumeUris == null || volumeUris.isEmpty()) {
+                    _log.info("There was no context found for add volumes. So there is nothing to rollback.");
+                    taskCompleter.ready(dbClient);
+                    return;
+                }
             }
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
             if (exportMask == null || exportMask.getInactive()) {
@@ -319,21 +323,23 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // Get the context from the task completer, in case this is a rollback.
         ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
         if (context != null && context.getOperations() != null) {
+            _log.info("Handling removeInitiators as a result of rollback");
+            List<Initiator> addedInitiators = new ArrayList<Initiator>();
             ListIterator li = context.getOperations().listIterator(context.getOperations().size());
             while (li.hasPrevious()) {
                 ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                _log.info("Handling removeInitiators as a result of rollback");
                 if (operation != null
                         && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                    initiators = (List<Initiator>) operation.getArgs().get(0);
+                    addedInitiators = (List<Initiator>) operation.getArgs().get(0);
                     _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiators));
-                } else {
-                    _log.info("There was no context found for add initiator. So there is nothing to rollback.");
-                    taskCompleter.ready(dbClient);
-                    return;
                 }
             }
-
+            initiators = addedInitiators;
+            if (initiators == null || initiators.isEmpty()) {
+                _log.info("There was no context found for add initiator. So there is nothing to rollback.");
+                taskCompleter.ready(dbClient);
+                return;
+            }
         }
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportMask == null || exportMask.getInactive()) {

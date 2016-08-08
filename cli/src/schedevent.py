@@ -68,7 +68,7 @@ def create_scheduled_event(args):
         "scheduledTime": null
       }
     }
-    
+
     Args:
         args:
 

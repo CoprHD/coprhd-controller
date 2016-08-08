@@ -242,8 +242,6 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                     raise SOSError(e.errno, e.strerror)
 
         elif (http_method == 'POST'):
-            print("post body {}".format(body))
-
             if(filename):
                 with open(filename, "rb") as f:
                     response = requests.post(url, data=f, headers=headers,
@@ -377,7 +375,6 @@ def to_pretty_json(orig_json):
     Returns:
         a string of formatted JSON object
     '''
-    json.load(orig_json)
     return json.dumps(json.load(orig_json), sort_keys=True, indent=3)
 
 def pyc_cleanup(directory, path):

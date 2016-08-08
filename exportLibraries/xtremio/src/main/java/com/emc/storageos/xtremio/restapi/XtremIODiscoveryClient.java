@@ -10,7 +10,9 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
@@ -81,6 +83,33 @@ public interface XtremIODiscoveryClient {
      * @throws Exception
      */
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception;
+
+    /**
+     * Get all the lun map and their details for the given cluster.
+     *
+     * @param clusterName
+     * @return lun maps
+     * @throws Exception
+     */
+    public List<XtremIOLunMap> getXtremIOLunMaps(String clusterName) throws Exception;
+
+    /**
+     * Get all the lun map links for the given cluster
+     *
+     * @param clusterName
+     * @return lun map links
+     * @throws Exception
+     */
+    public List<XtremIOObjectInfo> getXtremIOLunMapLinks(String clusterName) throws Exception;
+
+    /**
+     * Get the lun map details for the passed lun map links
+     *
+     * @param clusterName
+     * @return lun maps
+     * @throws Exception
+     */
+    public List<XtremIOLunMap> getXtremIOLunMapsForLinks(List<XtremIOObjectInfo> lunMapLinks, String clusterName) throws Exception;
     
     /**
      * Get all the Consistency groups for a given cluster
@@ -185,6 +214,20 @@ public interface XtremIODiscoveryClient {
      * @throws Exception
      */
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception;
+
+    /**
+     * Get the object performance metrics for the given cluster and entity.
+     * Additional parameters are provided in the order
+     *  param-3 name, param-3 value, param-4 name, param-4 value and so on.
+     *
+     * @param clusterName the cluster name
+     * @param entityName the entity name
+     * @param parameters the parameters
+     * @return the xtremio object performance
+     * @throws Exception the exception
+     */
+    public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
+            String entityName, String... parameters) throws Exception;
 
     /**
      * Get the snapshot set details for the given name and cluster

@@ -135,7 +135,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     itr.remove();
                 }
             }
-            
+            dialog.populateConnectionByIvrZone(routedEndpoints);
             return connections;
         } catch (Exception ex) {
             _log.error("Cannot read FCNS database from device: " + network.getLabel() + ": " + ex.getLocalizedMessage());

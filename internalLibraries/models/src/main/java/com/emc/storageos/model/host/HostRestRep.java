@@ -36,6 +36,7 @@ public class HostRestRep extends ComputeSystemRestRep {
     private Boolean discoverable;
     private String provisioningJobStatus;
     private List<RelatedResourceRep> volumeGroups;
+    private List<PreferredPoolParam> preferredPoolIds;
 
     public HostRestRep() {
     }
@@ -228,4 +229,19 @@ public class HostRestRep extends ComputeSystemRestRep {
         this.volumeGroups = volumeGroups;
     }
 
+    @XmlElementWrapper(name = "preferred_pools")
+    /**
+     * List of preferred pools.
+     */
+    @XmlElement(name = "preferred_pool")
+    public List<PreferredPoolParam> getPreferredPoolIds() {
+        if (preferredPoolIds == null) {
+            preferredPoolIds = new ArrayList<PreferredPoolParam>();
+        }
+        return preferredPoolIds;
+    }
+
+    public void setpPreferredPoolIds(List<PreferredPoolParam> preferredPoolIds) {
+        this.preferredPoolIds = preferredPoolIds;
+    }
 }

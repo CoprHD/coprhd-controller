@@ -10,6 +10,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import models.DriveTypes;
+import models.HighAvailability;
+import models.VirtualPoolPlacementPolicy;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
@@ -26,9 +30,6 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsPa
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
 import com.google.common.collect.Sets;
-
-import models.DriveTypes;
-import models.HighAvailability;
 
 public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
     private final BlockVirtualPoolParam virtualPool;
@@ -54,6 +55,12 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
 
     public BlockVirtualPoolBuilder setHostIOLimitIOPs(int limit) {
         virtualPool.setHostIOLimitIOPs(limit);
+        return this;
+    }
+
+    public BlockVirtualPoolBuilder setPlacementPolicy(String placementPolicy) {
+        String policyName = StringUtils.defaultIfBlank(placementPolicy, VirtualPoolPlacementPolicy.DEFAULT);
+        virtualPool.setPlacementPolicy(policyName);
         return this;
     }
 

@@ -21,6 +21,7 @@ public class VNXeHost extends VNXeBase {
     private List<VNXeBase> hostIPPorts;
     private List<VNXeBase> iscsiHostInitiators;
     private List<VNXeBase> fcHostInitiators;
+    private List<VNXeBase> hostLUNs;
 
     public List<Integer> getOperationalStatus() {
         return operationalStatus;
@@ -102,4 +103,11 @@ public class VNXeHost extends VNXeBase {
         this.fcHostInitiators = fcHostInitiators;
     }
 
+    public List<VNXeBase> getHostLUNs() {
+        return hostLUNs;
+    }
+
+    public void setHostLUNs(List<VNXeBase> hostLUNs) {
+        this.hostLUNs = hostLUNs;
+    }
 }

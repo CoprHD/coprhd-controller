@@ -27,6 +27,7 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
+    private String placementPolicy;
     
     // vmax all flash arrays
     private Boolean compressionEnabled;
@@ -286,5 +287,20 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     public void setHostIOLimitIOPs(Integer hostIOLimitIOPs) {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
+    }
+
+    /**
+     * Resource placement policy used by the virtual pool.
+     * Valid values:
+     *  default_policy (storage system/pool selection based on metrics and capacity)
+     *  array_affinity (storage system/pool selection based on host/cluster's array affinity first, then metrics and capacity)
+     */
+    @XmlElement(name = "placement_policy")
+    public String getPlacementPolicy() {
+        return placementPolicy;
+    }
+
+    public void setPlacementPolicy(String placementPolicy) {
+        this.placementPolicy = placementPolicy;
     }
 }

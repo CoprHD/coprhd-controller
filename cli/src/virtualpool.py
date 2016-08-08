@@ -51,6 +51,7 @@ class VirtualPool(object):
     DRIVE_TYPE_LIST = ['SSD', 'FC', 'SAS', 'NL_SAS', 'SATA', 'HARD_DISK_DRIVE']
     RPO_UNITS = ['SECONDS', 'MINUTES', 'HOURS', 'WRITES',
                  'BYTES', 'KB', 'MB', 'GB', 'TB']
+    PLACEMENT_POLICY_TYPE_LIST = ['default_policy', 'array_affinity']
 
     ALREADY_EXISTS_STR = 'label {0} already exists'
 
@@ -544,8 +545,7 @@ class VirtualPool(object):
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-                     fr_policy, fr_copies, mindatacenters, snapshotsched):
-
+                     fr_policy, fr_copies, mindatacenters, snapshotsched, placementpolicy):
         '''
         This is the function will create the VPOOL with given name and type.
         It will send REST API request to ViPR instance.
@@ -647,6 +647,8 @@ class VirtualPool(object):
                 parms['paths_per_initiator'] = pathsperinitiator
             if (thinpreallocper):
                 parms['thin_volume_preallocation_percentage'] = thinpreallocper
+            if (placementpolicy):
+                parms['placement_policy'] = placementpolicy
 
             if(raidlevel):
                 if(systemtype is None):
@@ -788,8 +790,7 @@ class VirtualPool(object):
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched):
-
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched, placementpolicy):
         '''
         This is the function will update the VPOOL.
         It will send REST API request to ViPR instance.
@@ -997,6 +998,9 @@ class VirtualPool(object):
 
         if(autotierpolicynames):
             parms['unique_auto_tier_policy_names'] = autotierpolicynames
+
+        if (placementpolicy):
+            parms['placement_policy'] = placementpolicy
 
         # A path is an Initiator Target combination, Is applied as a per Host
         # limit
@@ -1275,6 +1279,13 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<srdf>',
                                nargs='+')
 
+    create_parser.add_argument('-placementpolicy', '-pp',
+                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
+                               'if not set, default_policy will be used for the virtual pool',
+                               dest='placementpolicy',
+                               metavar='<placementpolicy>',
+                               choices=VirtualPool.PLACEMENT_POLICY_TYPE_LIST)
+
     create_parser.set_defaults(func=vpool_create)
 
 
@@ -1324,7 +1335,8 @@ def vpool_create(args):
                                args.fr_policy,
                                args.fr_copies,
                                args.mindatacenters,
-                               args.snapshotsched)
+                               args.snapshotsched,
+                               args.placementpolicy)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1417,14 +1429,12 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Supported System Types',
                                metavar='<systemtype>',
                                choices=StorageSystem.SYSTEM_TYPE_LIST,
-                               dest='systemtype',
-                               default='NONE')
+                               dest='systemtype')
     update_parser.add_argument('-drivetype', '-dt',
                                help='Supported Drive Types',
                                metavar='<drivetype>',
                                choices=VirtualPool.DRIVE_TYPE_LIST,
-                               dest='drivetype',
-                               default='NONE')
+                               dest='drivetype')
     update_parser.add_argument('-multivolconsistency', '-mvc',
                                help=' multi volume consistency',
                                metavar='<multivolconsistency>',
@@ -1550,7 +1560,14 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='fr_removecopies',
                                metavar='<fr_removecopies>',
                                nargs='+')
-    
+
+    update_parser.add_argument('-placementpolicy', '-pp',
+                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
+                               'if not set, default_policy will be used for the virtual pool',
+                               dest='placementpolicy',
+                               metavar='<placementpolicy>',
+                               choices=VirtualPool.PLACEMENT_POLICY_TYPE_LIST)
+
     quota.add_update_parser_arguments(update_parser)
     update_parser.set_defaults(func=vpool_update)
 
@@ -1583,7 +1600,8 @@ def vpool_update(args):
            args.quota_enable is not None or args.quota_capacity is not None or
            args.systemtype is not None or args.drivetype is not None or
            args.fr_policy is not None or args.fr_addcopies is not None or
-           args.fr_removecopies is not None):
+           args.fr_removecopies is not None or
+           args.placementpolicy is not None):
             obj = VirtualPool(args.ip, args.port)
             obj.vpool_update(args.name,
                              args.label,
@@ -1623,7 +1641,8 @@ def vpool_update(args):
                              args.fr_policy, args.fr_addcopies,
                              args.fr_removecopies,
                              args.mindatacenters,
-                             args.snapshotsched)
+                             args.snapshotsched,
+                             args.placementpolicy)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide at least one of parameters")

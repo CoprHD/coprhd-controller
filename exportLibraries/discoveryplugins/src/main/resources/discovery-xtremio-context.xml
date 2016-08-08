@@ -7,15 +7,30 @@
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
     
+    <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor" />
+    
     <bean id="unManagedVolumeDiscoverer"
         class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer">
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory" />
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
     
+    <bean id="arrayAffinityDiscoverer"
+        class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOArrayAffinityDiscoverer">
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory" />
+    </bean>
+        
+    <bean id="metricsCollector"
+        class="com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio.XtremIOMetricsCollector">
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory" />
+        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+    </bean>
+    
     <bean id="xtremio" class="com.emc.storageos.volumecontroller.impl.plugins.XtremIOCommunicationInterface">
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
-        <property name="unManagedVolumeDiscoverer" ref="unManagedVolumeDiscoverer" />        
+        <property name="unManagedVolumeDiscoverer" ref="unManagedVolumeDiscoverer" />
+        <property name="arrayAffinityDiscoverer" ref="arrayAffinityDiscoverer" />
+        <property name="metricsCollector" ref="metricsCollector" />
         <property name="partitionManager" ref="partitionManager" />
     </bean>    
 

@@ -501,9 +501,10 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
             logger.info(String.format("Restore the image to copy name: %s for CG name: %s", cgCopyName, cgName));
             recoverProductionAndWait(impl, cgCopyUID);
-            // For restore, just wait for link state of the copy being restored
+            // For restore, just wait for link state of the copy being restored. Wait for active of paused link state.
+            // If one of the copies is in direct access mode, paused is a valid link state.
             waitForCGLinkState(impl, cgCopyUID.getGroupUID(),
-                    RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()));
+                    RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()), PipeState.PAUSED);
             logger.info("Successful restore to copy name: " + cgCopyName + " for CG Name: " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);

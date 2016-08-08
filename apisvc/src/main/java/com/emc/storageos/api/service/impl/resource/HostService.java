@@ -57,8 +57,6 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.computecontroller.ComputeController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
-import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -117,6 +115,7 @@ import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
@@ -162,12 +161,6 @@ public class HostService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "host";
     private static final String BLADE_RESERVATION_LOCK_NAME = "BLADE_RESERVATION_LOCK";
-
-    private CustomConfigHandler _customConfigHandler;
-
-    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
-        _customConfigHandler = customConfigHandler;
-    }
 
     @Autowired
     private ComputeSystemService computeSystemService;
@@ -381,13 +374,6 @@ public class HostService extends TaskResourceService {
             tasks.add(new AsyncTask(Host.class, host.getId(), taskId));
 
             TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
-
-            boolean runArrayAffinity = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
-                    CustomConfigConstants.HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY, CustomConfigConstants.GLOBAL_KEY, null));
-            // COP-24307: Trigger array affinity discoveries only when the host is created. Skip during host re-discovery.
-            if (runArrayAffinity && host.getLastDiscoveryRunTime() == 0) {
-                ArrayAffinityTasksSchedulingThread.scheduleArrayAffinityTasks(this, _asyncTaskService.getExecutorService(), host.getId(), taskId, _dbClient);
-            }
             return taskList.getTaskList().iterator().next();
         } else {
             // if not discoverable, manually create a ready task
@@ -400,12 +386,37 @@ public class HostService extends TaskResourceService {
     }
 
     /**
-     * Schedule array affinity tasks for a host
+     * Discovers the array affinity information on all supported storage systems for the given hosts.
+     * This is an asynchronous call.
      *
-     * @param hostId the host whose preferred systems need to be discovered
-     * @param hostDiscoveryTaskId task Id of host discovery
+     * @param param ArrayAffinityHostParam
+     * @return the task list
      */
-    public void scheduleHostArrayAffinityTasks(URI hostId, String hostDiscoveryTaskId) {
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/discover-array-affinity")
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskList discoverArrayAffinityForHosts(ArrayAffinityHostParam param) {
+        List<URI> hostIds = param.getHosts();
+        ArgValidator.checkFieldNotEmpty(hostIds, "hosts");
+        // validate host URIs
+        for (URI hostId : hostIds) {
+            ArgValidator.checkFieldUriType(hostId, Host.class, "host");
+            queryObject(Host.class, hostId, true);
+        }
+
+        return createHostArrayAffinityTasks(hostIds);
+    }
+
+    /**
+     * Create array affinity tasks for hosts.
+     *
+     * @param hostIds the hosts whose preferred systems need to be discovered
+     */
+    public TaskList createHostArrayAffinityTasks(List<URI> hostIds) {
+        TaskList taskList = new TaskList();
+        String taskId = UUID.randomUUID().toString();
         String jobType = "";
         Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
         Map<URI, String> providerToSystemTypeMap = new HashMap<URI, String>();
@@ -458,10 +469,10 @@ public class HostService extends TaskResourceService {
             DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,
                     new StorageSystemService.ArrayAffinityJobExec(controller));
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
-            String taskId = UUID.randomUUID().toString();
-            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, hostId, taskId));
-            scheduler.scheduleAsyncTasks(tasks);
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, hostIds, taskId));
+            taskList.getTaskList().addAll(scheduler.scheduleAsyncTasks(tasks).getTaskList());
         }
+        return taskList;
     }
 
     /**

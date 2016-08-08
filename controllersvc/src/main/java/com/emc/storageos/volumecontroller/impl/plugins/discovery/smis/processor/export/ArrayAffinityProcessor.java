@@ -53,17 +53,21 @@ public class ArrayAffinityProcessor {
 
         try {
             if (profile != null && profile.getProps() != null) {
-                String hostIdStr = profile.getProps().get(Constants.HOST);
+                String hostIdsStr = profile.getProps().get(Constants.HOST_IDS);
                 String systemIdsStr = profile.getProps().get(Constants.SYSTEM_IDS);
                 String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
                 Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
 
-                if (StringUtils.isNotEmpty(hostIdStr)) {
-                    Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
-                    if (host != null && !host.getInactive()) {
-                        Map<String, String> preferredPoolURIs = getPreferredPoolMap(host.getId(), profile, cimClient, dbClient);
-                        if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIdSet, dbClient, preferredPoolURIs)) {
-                            dbClient.updateObject(host);
+                if (StringUtils.isNotEmpty(hostIdsStr)) {
+                    String[] hostIds = hostIdsStr.split(Constants.ID_DELIMITER);
+                    for (String hostId : hostIds) {
+                        _logger.info("Processing Host {}", hostId);
+                        Host host = dbClient.queryObject(Host.class, URI.create(hostId));
+                        if (host != null && !host.getInactive()) {
+                            Map<String, String> preferredPoolURIs = getPreferredPoolMap(host.getId(), profile, cimClient, dbClient);
+                            if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIdSet, dbClient, preferredPoolURIs)) {
+                                dbClient.updateObject(host);
+                            }
                         }
                     }
                 }

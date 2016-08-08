@@ -242,11 +242,6 @@ public class Property {
                 Validation.addError(fieldName, "configProperties.error.ipportlist");
             }
         }
-        else if (SVCSTRLIST.equals(type)) {
-            if (!VALIDATOR.validateSvcStrList(value)) {
-                Validation.addError(fieldName, "configProperties.error.svcstrlist");
-            }
-        }        
         else if (STRING.equals(type) || ENCRYPTEDSTRING.equals(type) || TEXT.equals(type) || ENCRYPTEDTEXT.equals(type)) {
             Integer minLen = metadata.getMinLen();
             Integer maxLen = metadata.getMaxLen();
@@ -263,7 +258,7 @@ public class Property {
 
         // Check the allowed values
         Set<String> allowedValues = getAllowedValues();
-        if ((allowedValues != null) && (!allowedValues.isEmpty()) && !type.equals(SVCSTRLIST)) {
+        if ((allowedValues != null) && (!allowedValues.isEmpty())) {
             if (!allowedValues.contains(value)) {
                 String values = StringUtils.join(allowedValues, ",");
                 Validation.addError(fieldName, "configProperties.error.allowedValues", values);

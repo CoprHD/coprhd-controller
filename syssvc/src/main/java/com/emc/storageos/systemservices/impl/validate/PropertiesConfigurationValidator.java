@@ -141,8 +141,7 @@ public class PropertiesConfigurationValidator {
 		// allowable values, it should throw a exception. Because we might not
 		// explicitly specify null as allowed value, we
 		// have to put this logic after the null test.
-		// We don't need to verify allowedValues for svcstrlist, validator has special rules for it
-		if (metaData.getAllowedValues() != null && metaData.getAllowedValues().length > 0 && !metaData.getType().equals(SVCSTRLIST)) {
+		if (metaData.getAllowedValues() != null && metaData.getAllowedValues().length > 0 ) {
 			if (!validateAllowedValues(propertyValue, metaData.getAllowedValues())) {
 				throw APIException.badRequests.propertyValueDoesNotMatchAllowedValues(propertyName,
 						Arrays.toString(metaData.getAllowedValues()));
@@ -223,8 +222,6 @@ public class PropertiesConfigurationValidator {
 			return validateIpList(propertyValue);
 		} else if (metaData.getType().equalsIgnoreCase(IPPORTLIST)) {
 			return validateIpPortList(propertyValue);
-		} else if (metaData.getType().equalsIgnoreCase(SVCSTRLIST)) {
-			return validateSvcStrList(propertyValue);		
 		} else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDSTRING)) {
 			return true;
 		} else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDTEXT)) {
@@ -650,29 +647,6 @@ public class PropertiesConfigurationValidator {
 		return true;
 	}
 
-	/**
-	 * Validate the user selected services against the existing services
-	 * 
-	 * @param svcStrList
-	 * @return
-	 */
-	public static boolean validateSvcStrList(String svcStrList) {
-
-		if(svcStrList.isEmpty()){
-			return false;
-		}
-
-		String[] svcList = svcStrList.split(",");
-
-		for (String svc : svcList) {
-			boolean validSvc = ORIGSVCLIST.contains(svc);
-			if (!validSvc) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
 	/**
 	 * Return the map of the properties metadata.
 	 * 

@@ -700,7 +700,7 @@ public abstract class StorageProcessor extends PoolProcessor {
         if (isVMAX3) {
             String compressionRatio = getCIMPropertyValue(volumeInstance,
                     EMC_COMPRESSION_RATIO);
-            if ((compressionRatio != null) && compressionRatio !="0") {
+            if ((compressionRatio != null) && !compressionRatio.equals("0")) {
                 //VMAX compression ratio is provider as units of 1/10
                 //i.e if it 2.5:1 or 5:2, it will be reported as 25
                 //We need to divide it by 10.

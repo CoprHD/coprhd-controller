@@ -61,6 +61,7 @@ public class VNXeApiClientFactory {
         } else {
             KHClient client = new KHClient(host, port, user, password, true);
             apiClient = new VNXeApiClient(client);
+            apiClient.isFASTVPEnabled();
             clientMap.putIfAbsent(key, apiClient);
         }
         return apiClient;

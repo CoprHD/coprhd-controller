@@ -35,7 +35,7 @@ QCOW2 := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).qcow2
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downloadISO downloadRPM downloadTGZ createREPO ovf vmx tbz box vhd vbox qcow2 appliance devkit clean destroy
+.PHONY: downloadISO downloadRPM createREPO ovf vmx tbz box vhd vbox qcow2 appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -64,6 +64,7 @@ ifeq ($(USE_CACHE),false)
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-http --no-gpgcheck http://download.opensuse.org/repositories/server:/http/openSUSE_13.2 suse-13.2-http
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
@@ -71,13 +72,14 @@ ifeq ($(USE_CACHE),false)
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-http
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
@@ -85,16 +87,7 @@ ifeq ($(USE_CACHE),false)
 endif
 	$(call targetLog,-)
 
-downloadTGZ:
-	$(call targetLog,+)
-ifeq ($(USE_CACHE),false)
-	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
-	wget --no-check-certificate https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
-	wget --no-check-certificate https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
-endif
-	$(call targetLog,-)
-
-createREPO: | downloadRPM downloadTGZ
+createREPO: | downloadRPM
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
@@ -175,10 +168,7 @@ $(VMDK): | downloadISO createREPO
 	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
 ifeq ($(USE_CACHE),true)
-	sed -i /installNginx/d $(WORKSPACE)/templates/config.sh
 	sed -i "/__REPO__/ i\        <source path=\"/disks/adgbuild/OPENSUSE13.2/repo\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
-	sed -i s/"<archive name=\"nginx.*\"\/>"/"<package name=\"nginx\"\/>"/g $(WORKSPACE)/templates/config.xml
-	sed -i /"<archive name=.*>"/d $(WORKSPACE)/templates/config.xml
 endif
 	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
 	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
@@ -195,7 +185,6 @@ endif
 	mkdir -p $(WORKSPACE)/build
 	mkdir -p $(WORKSPACE)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile appliance --force-new-root --root $(IMAGE_DIR)
-	@[ -x $(IMAGE_DIR)/usr/sbin/nginx ] || ( echo "[ERROR] Failed to download/install nginx" && exit -1 )
 	kiwi --verbose 3 --yes --create $(IMAGE_DIR) --add-profile appliance --type vmx --destdir $(OUTPUT_DIR)
 	-umount $(WORKSPACE)/iso/mount
 	$(call targetLog,-)
@@ -288,10 +277,7 @@ $(QCOW2): | downloadISO createREPO
 	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
 ifeq ($(USE_CACHE),true)
-	sed -i /installNginx/d $(WORKSPACE)/templates/config.sh
 	sed -i "/__REPO__/ i\        <source path=\"/disks/adgbuild/OPENSUSE13.2/repo\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
-	sed -i s/"<archive name=\"nginx.*\"\/>"/"<package name=\"nginx\"\/>"/g $(WORKSPACE)/templates/config.xml
-	sed -i /"<archive name=.*>"/d $(WORKSPACE)/templates/config.xml
 endif
 	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
 	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
@@ -308,7 +294,6 @@ endif
 	mkdir -p $(OPENSTACK_DIR)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile openstack --force-new-root --root $(OPENSTACK_DIR)/image
 	touch $(OPENSTACK_DIR)/image/var/lib/docker-storage.btrfs
-	@[ -x $(OPENSTACK_DIR)/image/usr/sbin/nginx ] || ( echo "[ERROR] Failed to download/install nginx" && exit -1 )
 	kiwi --verbose 3 --yes --create $(OPENSTACK_DIR)/image --add-profile openstack --type vmx --destdir $(OPENSTACK_DIR)/output
 	-umount $(WORKSPACE)/iso/mount
 	qemu-img convert -O qcow2 $(OPENSTACK_DIR)/output/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)

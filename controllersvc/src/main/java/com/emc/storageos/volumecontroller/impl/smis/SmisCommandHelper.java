@@ -1960,7 +1960,9 @@ public class SmisCommandHelper implements SmisConstants {
         // even if storage group is part of expected parent storage group already, there is no
         // action needed
         // as its already part of parent group.
-        return (cimPathItr != null && cimPathItr.hasNext());
+        boolean result = cimPathItr != null && cimPathItr.hasNext();
+        closeCIMIterator(cimPathItr);
+        return result;
     }
 
     private <E> void closeCIMIterator(CloseableIterator<E> itr) {

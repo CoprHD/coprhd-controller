@@ -82,7 +82,7 @@ public class Events extends Controller {
         renderJSON(DataTablesSupport.createJSON(events, params));
     }
 
-    public static void getActiveCount() {
+    public static void getPendingCount() {
         ViPRCoreClient client = getViprClient();
 
         int activeCount = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant())).getPending();
@@ -224,6 +224,7 @@ public class Events extends Controller {
         public String resourceName;
         public URI resourceId;
         public String eventStatus;
+        public String eventCode;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
@@ -233,6 +234,7 @@ public class Events extends Controller {
             resourceName = event.getResource().getName();
             resourceId = event.getResource().getId();
             eventStatus = event.getEventStatus();
+            eventCode = event.getEventCode();
         }
     }
 }

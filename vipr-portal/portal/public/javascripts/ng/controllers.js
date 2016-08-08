@@ -804,6 +804,37 @@ angular.module("portalApp").controller('taskController', function($rootScope, $s
     }
 });
 
+angular.module("portalApp").controller('eventController', function($rootScope, $scope, $timeout, $document, $http, $window) {
+    $scope.numOfPendingEvents = -1;
+
+    var SHORT_POLL_SECS = 5000;
+    var LONG_POLL_SECS = 15000;
+
+    var poll_timeout = LONG_POLL_SECS;
+
+    var countPoller;
+
+    var setCountPoller = function() {
+        countPoller = $timeout(pollForCount, poll_timeout);
+    }
+
+    // Polls just for the count
+    var pollForCount = function() {
+        $http.get(routes.Events_pendingEventCount()).success(function(numberOfEvents) {
+            $scope.numOfPendingEvents = numberOfEvents;
+            setCountPoller();
+        })
+        .error(function(data, status) {
+            console.log("Error fetching pending event count " + status);
+        });
+    };
+
+    // Poll for event counts
+    (function() {
+        pollForCount();
+    })();
+});
+
 angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $timeout, $http, $window) {
     var getTaskDetails = function() {
         $http.get(routes.Tasks_taskDetailsJson({'taskId':$scope.task.id})).success(function (data) {

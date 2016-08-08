@@ -16,6 +16,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private URI tenant;
     private byte[] approveMethod;
     private byte[] declineMethod;
+    private String eventCode;
 
     public enum Status {
         pending, approved, declined
@@ -94,6 +95,8 @@ public class ActionableEvent extends DataObject implements TenantResource {
         return this;
     }
 
+    @NamedRelationIndex(cf = "NamedRelation", types = { Host.class, Initiator.class, Cluster.class, Vcenter.class,
+            VcenterDataCenter.class })
     @Name("resource")
     public NamedURI getResource() {
         return resource;
@@ -113,6 +116,16 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setEventStatus(String eventStatus) {
         this.eventStatus = eventStatus;
         setChanged("eventStatus");
+    }
+
+    @Name("eventCode")
+    public String getEventCode() {
+        return eventCode;
+    }
+
+    public void setEventCode(String eventCode) {
+        this.eventCode = eventCode;
+        setChanged("eventCode");
     }
 
     public static class Method implements Serializable {

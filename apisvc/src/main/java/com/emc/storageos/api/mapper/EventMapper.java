@@ -14,8 +14,9 @@ import com.emc.storageos.model.event.EventRestRep;
 
 public class EventMapper {
 
-    private EventMapper() {};
-    
+    private EventMapper() {
+    };
+
     public static EventRestRep map(ActionableEvent from) {
         if (from == null) {
             return null;
@@ -26,6 +27,7 @@ public class EventMapper {
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setEventStatus(from.getEventStatus());
         to.setDescription(from.getDescription());
+        to.setEventCode(from.getEventCode());
         return to;
     }
 

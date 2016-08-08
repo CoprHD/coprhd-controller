@@ -25,7 +25,7 @@ import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
-import com.emc.storageos.security.authentication.InternalTenantSvcClient;
+import com.emc.storageos.security.authentication.InternalTenantServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,14 +56,14 @@ public class OpenStackSynchronizationTask extends ResourceService {
     // Services
     private KeystoneUtils _keystoneUtilsService;
 
-    private InternalTenantSvcClient _internalTenantSvcClient;
+    private InternalTenantServiceClient _internalTenantServiceClient;
 
     private ScheduledExecutorService _dataCollectionExecutorService;
 
     private ScheduledFuture _synchronizationTask;
 
-    public void setInternalTenantSvcClient(InternalTenantSvcClient internalTenantSvcClient) {
-        this._internalTenantSvcClient = internalTenantSvcClient;
+    public void setInternalTenantServiceClient(InternalTenantServiceClient internalTenantServiceClient) {
+        this._internalTenantServiceClient = internalTenantServiceClient;
     }
 
     public ScheduledFuture getSynchronizationTask() {
@@ -275,7 +275,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     public URI createTenant(KeystoneTenant tenant) {
 
-        TenantOrgRestRep tenantResp = _internalTenantSvcClient.createTenant(_keystoneUtilsService.prepareTenantParam(tenant));
+        TenantOrgRestRep tenantResp = _internalTenantServiceClient.createTenant(_keystoneUtilsService.prepareTenantParam(tenant));
 
         return tenantResp.getId();
     }
@@ -292,7 +292,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     public URI createProject(URI tenantOrgId, KeystoneTenant tenant) {
 
         ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
-        ProjectElement projectResp = _internalTenantSvcClient.createProject(tenantOrgId, projectParam);
+        ProjectElement projectResp = _internalTenantServiceClient.createProject(tenantOrgId, projectParam);
 
         return projectResp.getId();
     }
@@ -350,7 +350,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
                     }
                 }
 
-                _internalTenantSvcClient.setServer(_keystoneUtilsService.getVIP());
+                _internalTenantServiceClient.setServer(_keystoneUtilsService.getVIP());
 
                 StringSet syncOptions = keystoneProvider.getTenantsSynchronizationOptions();
 

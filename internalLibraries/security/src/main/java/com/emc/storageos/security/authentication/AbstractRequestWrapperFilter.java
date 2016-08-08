@@ -44,7 +44,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
 import com.emc.storageos.cinder.CinderConstants;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.KeystoneTenant;
@@ -90,7 +89,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     private KeystoneUtils _keystoneUtils;
 
     @Autowired
-    private InternalTenantSvcClient _internalTenantSvcClient;
+    private InternalTenantServiceClient _internalTenantServiceClient;
 
     @Context
     protected HttpHeaders headers;
@@ -286,14 +285,14 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     private void createTenantNProject(KeystoneTenant tenant) {
 
-        _internalTenantSvcClient.setServer(_keystoneUtils.getVIP());
+        _internalTenantServiceClient.setServer(_keystoneUtils.getVIP());
 
         // Create Tenant via internal API call.
-        TenantOrgRestRep tenantResp = _internalTenantSvcClient.createTenant(_keystoneUtils.prepareTenantParam(tenant));
+        TenantOrgRestRep tenantResp = _internalTenantServiceClient.createTenant(_keystoneUtils.prepareTenantParam(tenant));
 
         // Create Project via internal API call.
         ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
-        ProjectElement projectResp = _internalTenantSvcClient.createProject(tenantResp.getId(), projectParam);
+        ProjectElement projectResp = _internalTenantServiceClient.createProject(tenantResp.getId(), projectParam);
 
         _keystoneUtils.tagProjectWithOpenstackId(projectResp.getId(), tenant.getId(), tenantResp.getId().toString());
 

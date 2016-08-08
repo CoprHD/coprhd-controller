@@ -111,7 +111,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
         for (Mount mount : mountList) {
             Host host = BlockStorageUtils.getHost(mount.getHost());
             mountNFSExportHelper.mountExport(fileSystemId, mount.getHost(), null, mount.getMountPath(), mount.getSecurity(),
-                    host.getHostName());
+                    host.getHostName(), mount.getFsType());
             ExecutionUtils.addAffectedResource(mount.getHost().toString());
         }
     }

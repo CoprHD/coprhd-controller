@@ -682,6 +682,9 @@ public class FileStorageUtils {
         @Param
         private String mountPath;
 
+        @Param
+        private String fsType;
+
         public URI getHost() {
             return host;
         }
@@ -712,6 +715,14 @@ public class FileStorageUtils {
 
         public void setMountPath(String mountPath) {
             this.mountPath = mountPath;
+        }
+
+        public String getFsType() {
+            return fsType;
+        }
+
+        public void setFsType(String fsType) {
+            this.fsType = fsType;
         }
     }
 }

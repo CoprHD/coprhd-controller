@@ -50,6 +50,7 @@ public class ScheduledEventMapper {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
+        to.setMaxNumOfRetainedCopies(from.getMaxNumOfRetainedCopies());
         return to;
     }
 

@@ -322,7 +322,10 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         newObject.setLatestOrderId(restRep.getId());
-
+        Integer maxNumOfCopies = param.getOrderCreateParam().getMaxNumOfRetainedCopies();
+        if (maxNumOfCopies != null) {
+        	newObject.setMaxNumOfRetainedCopies(maxNumOfCopies);
+        }
         client.save(newObject);
 
         //auditOpSuccess(OperationTypeEnum.CREATE_SCHEDULED_EVENT, order.auditParameters());
@@ -472,7 +475,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         ArgValidator.checkEntity(scheduledEvent, uri(id), true);
 
         validateParam(updateParam.getScheduleInfo());
-
+        Integer maxNumOfCopies = updateParam.getMaxNumOfRetainedCopies();
+        scheduledEvent.setMaxNumOfRetainedCopies(maxNumOfCopies);
+        
         try {
             updateScheduledEvent(scheduledEvent, updateParam.getScheduleInfo());
         } catch (APIException ex){

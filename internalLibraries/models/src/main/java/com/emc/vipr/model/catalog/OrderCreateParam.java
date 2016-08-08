@@ -17,7 +17,9 @@ public class OrderCreateParam extends OrderCommonParam {
     private URI scheduledEventId;
 
     private String scheduledTime;
-
+    
+    private Integer maxNumOfRetainedCopies;
+    
     @XmlElement(name = "tenantId")
     public URI getTenantId() {
         return tenantId;
@@ -46,4 +48,13 @@ public class OrderCreateParam extends OrderCommonParam {
         this.scheduledTime = scheduledTime;
     }
 
+    @XmlElement(name = "maxNumOfRetainedCopies")
+	public Integer getMaxNumOfRetainedCopies() {
+		return maxNumOfRetainedCopies;
+	}
+
+	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
+		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
+	}
+    
 }

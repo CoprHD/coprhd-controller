@@ -25,7 +25,8 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
 
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
-
+    public static final String MAX_NUM_OF_RETAINED_COPIES = "maxNumOfRetainedCopies";
+    
     private ScheduledEventType eventType;
 
     private String scheduleInfo; // concrete schedule info
@@ -43,6 +44,9 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private String tenant;                   // the owner tenant
 
+    private Integer maxNumOfRetainedCopies; // max number of retained copies for recurrent orders. 
+                                            // For snapshot related orders only.
+    
     @Name(EVENT_TYPE)
     public ScheduledEventType getEventType() {
         return eventType;
@@ -112,4 +116,14 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
         this.tenant = tenant;
         setChanged(TENANT);
     }
+	
+    @Name(MAX_NUM_OF_RETAINED_COPIES)
+    public Integer getMaxNumOfRetainedCopies() {
+		return maxNumOfRetainedCopies;
+	}
+
+	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
+		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
+		setChanged(MAX_NUM_OF_RETAINED_COPIES);
+	}
 }

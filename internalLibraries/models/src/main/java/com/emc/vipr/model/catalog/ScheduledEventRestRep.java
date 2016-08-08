@@ -45,6 +45,7 @@ public class ScheduledEventRestRep extends DataObjectRestRep {
 
     private RelatedResourceRep tenant;
 
+    private Integer maxNumOfRetainedCopies;
 
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {
@@ -99,6 +100,15 @@ public class ScheduledEventRestRep extends DataObjectRestRep {
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
+
+    @XmlElement(name = "maxNumOfRetainedCopies")
+	public Integer getMaxNumOfRetainedCopies() {
+		return maxNumOfRetainedCopies;
+	}
+
+	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
+		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
+	}
 
     @Override
     public String toString() {

@@ -4603,3 +4603,4 @@ scheduler.onlyonce=Only Once
 scheduler.indefinitely=Indefinitely
 scheduler.endAfterRecurrences=End after recurrences
 scheduler.rangeOfRecurrence=Number of recurrences
+scheduler.maxNumOfCopies=Maximum number of retained copies

@@ -4,12 +4,8 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.tenantsettings', 'nav.customWorkflow'] /}
 #{set 'title'}&{titleKey}#{/set}
+#{script 'workflow.js'/}
 
-<head>
-  <link rel="stylesheet" href="css/diagram-js.css" />
-  <link rel="stylesheet" href="vendor/bpmn-font/css/bpmn-embedded.css" />
-  <link rel="stylesheet" href="css/app.css" />
-</head>
 <body>
   <div class="content" id="js-drop-zone">
 
@@ -50,4 +46,3 @@
     </li>
   </ul>
 
-  <script src="workflow.js"></script>

@@ -22,7 +22,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_WWN_
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * TODO
+ * Checks for differences in volume identity between ViPR DB and SMI-S.
  */
 public class ValidateVolumeIdentity extends AbstractSMISValidator {
 

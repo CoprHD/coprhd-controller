@@ -1388,7 +1388,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
-angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window) {
+angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window, translate) {
 
     cookieObject = {};
     cookieKey = "VIPR_START_GUIDE";
@@ -1396,6 +1396,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     requiredSteps = 2;
     landingStep = 3;
     maxSteps = 9;
+    initialNav = $(".navMenu .active").text();
 
     $scope.checkGuide = function() {
         cookieObject = angular.fromJson(readCookie(cookieKey));
@@ -1444,6 +1445,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.guideVisible = false;
         $scope.guideDataAvailable = false;
         saveGuideCookies();
+        setActiveMenu(initialNav);
     }
 
     $scope.initializeSteps = function() {
@@ -1471,7 +1473,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 return;
                 break;
             case 2:
-                updateGuideCookies3(2, 3,'full');
+                updateGuideCookies3(3, 4,'full');
                 return;
                 break;
             default:
@@ -1532,45 +1534,45 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         switch (step) {
             case 1:
                 if ($scope.completedSteps>1) {
-                     $window.location.href = '/system/licensing';
+                     loadPage('/system/licensing');
                 } else {
-                    $window.location.href = '/setup/license';
+                    loadPage('/setup/license');
                 }
                 break;
             case 2:
                 if ($scope.completedSteps>2) {
-                     $window.location.href = '/config';
+                     loadPage('/config');
                 } else {
-                $window.location.href = '/setup/index';
+                loadPage('/setup/index');
                 }
                 break;
             case landingStep:
                 break;
             case 4:
                 if (!error) {
-                    $window.location.href = '/storagesystems/createAllFlash';
+                    loadPage('/storagesystems/createAllFlash');
                 } else {
                     if (error.indexOf("Provider") == -1){
-                        $window.location.href = '/storagesystems/list';
+                        loadPage('/storagesystems/list');
                     } else {
-                        $window.location.href = '/storageproviders/list';
+                        loadPage('/storageproviders/list');
                     }
                 }
                 break;
             case 5:
-                $window.location.href = '/sanswitches/list';
+                loadPage('/sanswitches/list');
                 break;
             case 6:
-                $window.location.href = '/virtualarrays/defaultvarray';
+                loadPage('/virtualarrays/defaultvarray');
                 break;
             case 7:
-                $window.location.href = '/blockvirtualpools/createAllFlash';
+                loadPage('/blockvirtualpools/createAllFlash');
                 break;
             case 8:
-                $window.location.href = '/projects/list';
+                loadPage('/projects/list');
                 break;
             case 9:
-                $window.location.href = '/Catalog#ServiceCatalog/AllFlashServices';
+                loadPage('/Catalog#ServiceCatalog/AllFlashServices');
                 if ($window.location.pathname == '/Catalog') {
                     $window.location.reload(true);
                 }
@@ -1580,13 +1582,23 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             }
     }
 
+    loadPage = function(link) {
+        if ($window.location.pathname != link) {
+            $window.location.href = link;
+        } else {
+            //already on page, reload from cookies
+            $scope.checkGuide();
+        }
+    }
+
     $scope.showStep = function(step) {
 
             if (!step) {
                 step = $scope.currentStep;
             }
-            updateGuideCookies(step,'full');
-            goToPage(step);
+            $scope.currentStep = step;
+            //updateGuideCookies(step,'full');
+            //goToPage(step);
 
         }
 
@@ -1929,12 +1941,16 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         return false;
     }
 
-    $scope.$watch('guideVisible', function() {
-        if($scope.guideVisible){
-            openMenu();
-        }
-        else {
-            closeMenus();
+    $scope.$watch('guideVisible', function(newValue, oldValue) {
+        if (newValue != oldValue){
+            if(newValue){
+                openMenu();
+                $(colWiz).popover('hide');
+            }
+            else {
+                closeMenus();
+                $(colWiz).popover('show');
+            }
         }
     });
     var PINNED_COOKIE = 'isMenuPinned';
@@ -1984,4 +2000,65 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
         return false;
     }
+
+    $scope.$watch('currentStep', function(currentStep) {
+        if($scope.guideVisible) {
+            switch(currentStep) {
+                case 1:
+                    setActiveMenu("License");
+                    break;
+                case 2:
+                    setActiveMenu("General Configuration");
+                    break;
+                case 3:
+                    setActiveMenu(initialNav);
+                    break;
+                case 4:
+                    setActiveMenu("Storage Systems");
+                    break;
+                case 5:
+                    setActiveMenu("Fabric Managers");
+                    break;
+                case 6:
+                    setActiveMenu("Virtual Arrays");
+                    break;
+                case 7:
+                    setActiveMenu("Block Virtual Pools");
+                    break;
+                case 8:
+                    setActiveMenu("Projects");
+                    break;
+                case 9:
+                    setActiveMenu("View Catalog");
+                    break;
+            }
+        }
+
+    });
+
+
+
+    function setActiveMenu(name) {
+        $(".navMenu .active , #mainMenu .active").removeClass("active");
+        parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
+        $(".navMenu li:contains("+name+")").addClass("active");
+        $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        openMenu();
+    }
+
+    $(colWiz).on('shown.bs.popover', function(){
+        $(colWiz).popover('toggle');
+    });
+    $(colWiz).popover({
+        delay : {
+            show : 0,
+            hide : 5000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.popover"),
+        selector : 'colWiz'
+
+    });
 });

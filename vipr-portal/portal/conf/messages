@@ -4636,7 +4636,7 @@ mobilityGroupResources.hostname=Hostname
 mobilityGroupResources.tenant=Tenant
 
 gettingStarted.header.full=Getting Started Guide
-gettingStarted.header.side=Getting Started Guide
+gettingStarted.header.side=Return To Guide
 gettingStarted.navigation.next=Next >>
 gettingStarted.navigation.previous=<< Previous
 gettingStarted.loader.welcome=Welcome to the Getting Started Guide
@@ -4679,3 +4679,4 @@ gettingStarted.provision.title=Summary
 gettingStarted.provision.text=Here is a summary of what you have created.
 gettingStarted.provision.text2=You can now start provisioning from the ViPR catalog.
 gettingStarted.incompletesteps.text=You must complete all prerequisite steps to start this step
+gettingStarted.popover=The Guide has been closed. <br/> Click Guide to return to it at any time.

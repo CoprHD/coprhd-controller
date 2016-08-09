@@ -65,6 +65,7 @@ public class EventUtil {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());
+            duplicateEvent.setDescription(description);
             setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
             dbClient.updateObject(duplicateEvent);
         } else {

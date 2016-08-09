@@ -342,10 +342,10 @@ public class BlockStorageUtils {
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
-            addRollback(new DeactivateVolume(volumeId, VolumeDeleteTypeEnum.FULL));
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
+        addRollback(new DeactivateVolumes(volumeIds, VolumeDeleteTypeEnum.FULL));
         return volumeIds;
     }
 

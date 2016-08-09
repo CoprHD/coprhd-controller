@@ -26,7 +26,8 @@ public class EventUtil {
         HOST_CLUSTER_CHANGE("101"),
         HOST_INITIATOR_ADD("102"),
         HOST_INITIATOR_DELETE("103"),
-        HOST_DATACENTER_CHANGE("104");
+        HOST_DATACENTER_CHANGE("104"),
+        HOST_VCENTER_CHANGE("105");
 
         private String code;
 
@@ -64,6 +65,8 @@ public class EventUtil {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());
+            duplicateEvent.setDescription(description);
+            setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
             dbClient.updateObject(duplicateEvent);
         } else {
             ActionableEvent event = new ActionableEvent();
@@ -73,16 +76,7 @@ public class EventUtil {
             event.setDescription(description);
             event.setEventStatus(ActionableEvent.Status.pending.name());
             event.setResource(new NamedURI(resource.getId(), resource.getLabel()));
-            if (approveMethod != null) {
-                com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
-                        approveMethod, approveParameters);
-                event.setApproveMethod(method.serialize());
-            }
-            if (declineMethod != null) {
-                com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
-                        declineMethod, declineParameters);
-                event.setDeclineMethod(method.serialize());
-            }
+            setEventMethods(event, approveMethod, approveParameters, declineMethod, declineParameters);
             event.setLabel(name);
             dbClient.createObject(event);
             log.info("Created Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: "
@@ -147,6 +141,30 @@ public class EventUtil {
                     + event.getEventCode());
             dbClient.markForDeletion(event);
         }
+    }
+
+    /**
+     * Serialize and set the approve and decline methods for an event
+     * 
+     * @param event
+     * @param approveMethod
+     * @param approveParameters
+     * @param declineMethod
+     * @param declineParameters
+     */
+    private static void setEventMethods(ActionableEvent event, String approveMethod, Object[] approveParameters, String declineMethod,
+            Object[] declineParameters) {
+        if (approveMethod != null) {
+            com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                    approveMethod, approveParameters);
+            event.setApproveMethod(method.serialize());
+        }
+        if (declineMethod != null) {
+            com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                    declineMethod, declineParameters);
+            event.setDeclineMethod(method.serialize());
+        }
+
     }
 
 }

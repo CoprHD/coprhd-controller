@@ -525,8 +525,8 @@ Hosts.unknown=Unknown Host with ID '%s'
 Hosts.deleteHosts.title=Delete Hosts
 Hosts.deleteConfirm=Are you sure you want to delete the selected Hosts?
 Hosts.detachStorageModal=Detach Storage
-Hosts.detachStorageModal.help=Detach any storage from the selected host(s) before deactivating.
-Hosts.detachStorageConfirm=Are you sure you want to detach storage from the selected Hosts?
+Hosts.detachStorageModal.help=Detach any storage from the selected host(s) before deactivating. The hosts will lose access to all exclusive and shared volumes.
+Hosts.detachStorageConfirm=Are you sure you want to detach storage from the selected Hosts? The hosts will lose access to all exclusive and shared volumes.
 Hosts.detachStorage=Task initiated to detach storage from selected hosts.
 
 Hosts.initiators.title=Host Initiators
@@ -568,13 +568,13 @@ HostClusters.editHosts.shortTitle=Edit Hosts
 HostClusters.addHosts.title=Add Hosts to Cluster
 HostClusters.addedHosts=Successfully added hosts to the cluster
 HostClusters.removedHosts=Successfully removed hosts from the cluster
-HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster.
-HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster.
+HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster. The host will lose access to the volumes it is sharing in this cluster.
+HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster and the host's current cluster. The host will lose access to the volumes it is sharing in the current cluster.
 HostClusters.hosts=Hosts
 HostClusters.deleteClusters.title=Delete Clusters
 HostClusters.detachStorageModal=Detach Storage
-HostClusters.detachStorageModal.help=Detach any storage from the selected cluster(s) before deactivating.
-HostClusters.detachStorageConfirm=Are you sure you want to detach storage from the selected Clusters?
+HostClusters.detachStorageModal.help=Detach any storage from the selected cluster(s) before deactivating. All hosts in the cluster will lose access to the shared volumes.
+HostClusters.detachStorageConfirm=Are you sure you want to detach storage from the selected Clusters? All hosts in the selected clusters will lose access to the shared volumes.
 HostClusters.detachStorage=Task initiated to detach storage from selected clusters.
 
 addHosts.name=Name
@@ -671,8 +671,8 @@ VCenters.unknown=Unknown vCenter with ID '%s'
 VCenters.deleteVcenters.title=Delete vCenters
 VCenters.deleteConfirm=Are you sure you want to delete the selected vCenters?
 VCenters.detachStorageModal=Detach Storage
-VCenters.detachStorageModal.help=Detach any storage from the selected vCenter(s) before deactivating.
-VCenters.detachStorageConfirm=Are you sure you want to detach storage from the selected vCenter(s)?
+VCenters.detachStorageModal.help=Detach any storage from the selected vCenter(s) before deactivating. All hosts managed by this vCenter will lose access to exclusive and shared volumes.
+VCenters.detachStorageConfirm=Are you sure you want to detach storage from the selected vCenter(s)? All hosts managed by this vCenter will lose access to exclusive and shared volumes.
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
@@ -2632,6 +2632,14 @@ configProperties.backup.interval.invalid=WARNING: Invalid backup interval, pleas
 configProperties.backup.interval.invalid.inline=Please select an option value
 configProperties.backup.testSuccessful=Test external server settings successful
 configProperties.backup.credential.invalid=Bad user credential to access external server
+
+configProperties.syslog.settings=Syslog Settings
+configProperties.syslog.servers=Remote Server Settings
+configProperties.syslog.logs=Log Settings
+configProperties.syslog.setToZero.ip=Required ip value is empty.
+configProperties.syslog.setToZero.port=Required port value is empty.
+configProperties.syslog.setToZero.cert=Required cert is empty.
+configProperties.error.ipportlist=Invalid IP or Port in list.
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -4694,7 +4702,7 @@ mobilityGroupResources.hostname=Hostname
 mobilityGroupResources.tenant=Tenant
 
 gettingStarted.header.full=Getting Started Guide
-gettingStarted.header.side=Getting Started Guide
+gettingStarted.header.side=Return To Guide
 gettingStarted.navigation.next=Next >>
 gettingStarted.navigation.previous=<< Previous
 gettingStarted.loader.welcome=Welcome to the Getting Started Guide
@@ -4737,3 +4745,4 @@ gettingStarted.provision.title=Summary
 gettingStarted.provision.text=Here is a summary of what you have created.
 gettingStarted.provision.text2=You can now start provisioning from the ViPR catalog.
 gettingStarted.incompletesteps.text=You must complete all prerequisite steps to start this step
+gettingStarted.popover=The Guide has been closed. <br/> Click Guide to return to it at any time.

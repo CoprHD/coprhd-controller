@@ -951,7 +951,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 personalityType.toString(), (vplex ? "(VPLEX) -" : "-"),
                 rpVolumeName, varray.getLabel(), vpool.getLabel(),
                 (isChangeVpool ? ". This is an existing volume that is involved in a change virtual pool operation." : ""),
-                consistencyGroup.getLabel(), protectionSystemURI.toString(), copyName, 
+                consistencyGroup.getLabel(), protectionSystemURI.toString(), copyName,
                 rpInternalSiteName, rsetName));
 
         if (vplex) {
@@ -1022,10 +1022,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param changeVpoolVolume The change vpool volume if needed
      * @return Prepared VPLEX volume
      */
-    private Volume prepareVPlexVolume(List<Recommendation> vplexRecommendations, Project project, VirtualArray varray, VirtualPool vpool,
-            URI storagePoolUri, URI storageSystemId, VirtualPoolCapabilityValuesWrapper capabilities,
-            BlockConsistencyGroup consistencyGroup, VolumeCreate param, String volumeName, String size, List<VolumeDescriptor> descriptors,
-            TaskList taskList, String task, Volume.PersonalityTypes personality, boolean isChangeVpool, Volume changeVpoolVolume) {
+    private Volume prepareVPlexVolume(List<Recommendation> vplexRecommendations, Project project, VirtualArray varray,
+            VirtualPool vpool, URI storagePoolUri, URI storageSystemId,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            BlockConsistencyGroup consistencyGroup, VolumeCreate param,
+            String volumeName, String size, List<VolumeDescriptor> descriptors,
+            TaskList taskList, String task, Volume.PersonalityTypes personality,
+            boolean isChangeVpool, Volume changeVpoolVolume) {
 
         Volume vplexVirtualVolume = null;
 
@@ -1048,9 +1051,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volumeCreateParam.setVpool(vpool.getId());
 
             boolean createTask = Volume.PersonalityTypes.SOURCE.equals(personality);
-            List<VolumeDescriptor> vplexVolumeDescriptors = vplexBlockServiceApiImpl.createVPlexVolumeDescriptors(volumeCreateParam,
-                    project, varray, vpool, vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList,
-                    volumes, createTask);
+            List<VolumeDescriptor> vplexVolumeDescriptors = vplexBlockServiceApiImpl
+                    .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool,
+                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes,
+                            createTask);
             // Set the compute resource into the VPLEX volume descriptors for RP source
             // volumes so that the compute resource name can be reflected in the volume
             // name if the custom volume naming is configured as such.
@@ -1063,9 +1067,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
         } else {
             if (Volume.PersonalityTypes.SOURCE.equals(personality)) {
-                VolumeDescriptor changeVpoolDescriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-                        changeVpoolVolume.getStorageController(), changeVpoolVolume.getId(), null, consistencyGroup.getId(), capabilities,
-                        changeVpoolVolume.getCapacity());
+                VolumeDescriptor changeVpoolDescriptor = new VolumeDescriptor(
+                        VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
+                        changeVpoolVolume.getStorageController(), changeVpoolVolume.getId(),
+                        null, consistencyGroup.getId(),
+                        capabilities, changeVpoolVolume.getCapacity());
                 Map<String, Object> descParams = new HashMap<String, Object>();
                 descParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID, changeVpoolVolume.getId());
                 descParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, vpool.getId());
@@ -2081,10 +2087,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     @Override
-    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
-        _log.info(String.format("RP change virtual pool operation for volume [%s](%s) moving to new vpool [%s](%s).", volume.getLabel(),
-                volume.getId(), newVpool.getLabel(), newVpool.getId()));
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+        _log.info(String.format("RP change virtual pool operation for volume [%s](%s) moving to new vpool [%s](%s).",
+                volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
 
         ArrayList<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
@@ -2487,17 +2493,43 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
                 // For protection-based snapshots, get the protection domains we
                 // need to create snapshots on
-                for (String targetVolumeStr : volume.getRpTargets()) {
-                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeStr));
-                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0, snapshotType,
-                            isInApplication);
-                    snapshot.setOpStatus(new OpStatusMap());
-                    snapshot.setEmName(snapshotName);
-                    snapshot.setEmInternalSiteName(targetVolume.getInternalSiteName());
-                    snapshot.setVirtualArray(targetVolume.getVirtualArray());
-                    snapshots.add(snapshot);
+                if (!volume.getRpTargets().isEmpty()) {
+                    List<URI> targetVolumeURIs = new ArrayList<URI>();
 
-                    _log.info(String.format("Prepared snapshot : [%s]", snapshot.getLabel()));
+                    // Build a URI list of target volumes for the call to obtain copy access states
+                    for (String targetVolumeStr : volume.getRpTargets()) {
+                        targetVolumeURIs.add(URI.create(targetVolumeStr));
+                    }
+
+                    // Get a handle on the RPController so we can query the access states associated with the
+                    // target volumes.
+                    RPController rpController = getController(RPController.class, ProtectionSystem._RP);
+                    Map<URI, String> copyAccessStates = rpController
+                            .getCopyAccessStates(volume.getProtectionController(), targetVolumeURIs);
+
+                    for (URI targetVolumeURI : targetVolumeURIs) {
+                        Volume targetVolume = _dbClient.queryObject(Volume.class, targetVolumeURI);
+
+                        // Only prepare the snapshot if the copy corresponding to the target is NOT in direct
+                        // access mode. When a RecoverPoint copy is in direct access mode, no RP bookmarks
+                        // can be created for that copy.
+                        if (copyAccessStates != null && !copyAccessStates.isEmpty()
+                                && RPHelper.isValidBookmarkState(copyAccessStates.get(targetVolume.getId()))) {
+                            BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0, snapshotType,
+                                    isInApplication);
+                            snapshot.setOpStatus(new OpStatusMap());
+                            snapshot.setEmName(snapshotName);
+                            snapshot.setEmInternalSiteName(targetVolume.getInternalSiteName());
+                            snapshot.setVirtualArray(targetVolume.getVirtualArray());
+                            snapshots.add(snapshot);
+
+                            _log.info(String.format("Prepared snapshot : [%s]", snapshot.getLabel()));
+                        } else {
+                            _log.warn(String
+                                    .format("A BlockSnapshot is not being prepared for target volume %s because copy %s is currently in a state [%s] that does not allow bookmarks to be created.",
+                                            targetVolume.getId(), targetVolume.getRpCopyName(), copyAccessStates.get(targetVolume.getId())));
+                        }
+                    }
                 }
             } else {
                 boolean vplex = RPHelper.isVPlexVolume(volume);
@@ -2565,16 +2597,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
 
-        for (BlockSnapshot snapshot : snapshots) {
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT);
-            op.setStartTime(Calendar.getInstance());
-            snapshot.getOpStatus().createTaskStatus(taskId, op);
-            snapshotURIs.add(snapshot.getId());
-        }
+        if (!snapshots.isEmpty()) {
+            for (BlockSnapshot snapshot : snapshots) {
+                Operation op = new Operation();
+                op.setResourceType(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT);
+                op.setStartTime(Calendar.getInstance());
+                snapshot.getOpStatus().createTaskStatus(taskId, op);
+                snapshotURIs.add(snapshot.getId());
+            }
 
-        // Create all the snapshot objects
-        _dbClient.createObject(snapshots);
+            // Create all the snapshot objects
+            _dbClient.createObject(snapshots);
+        } else {
+            // No snapshots are prepared so we must fail. The likely culprit here is trying to create a RP bookmark when all target copies
+            // are in direct access mode (invalid bookmark state).
+            throw APIException.badRequests.cannotCreateSnapshots();
+        }
 
         // But only return the unique ones
         return snapshots;
@@ -2812,9 +2850,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             List<Volume> rpSourceVolumes = RPHelper.getCgSourceVolumes(cgUri, _dbClient);
 
             for (Volume rpSourceVolume : rpSourceVolumes) {
-                // Get all RP bookmarks for this RP Volume. Since bookmarks are not assigned to any source volumes in
-                // the CG, we need to query all the
-                // source volumes in the CG and fetch them.
+                // Get all RP bookmarks for this RP Volume. Since bookmarks are not assigned to any source volumes in the CG, we need to
+                // query all the source volumes in the CG and fetch them.
                 List<BlockSnapshot> allSnapshots = super.getSnapshots(rpSourceVolume);
                 for (BlockSnapshot snapshot : allSnapshots) {
                     if (BlockSnapshot.TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())) {

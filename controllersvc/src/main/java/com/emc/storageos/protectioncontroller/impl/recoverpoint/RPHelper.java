@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
@@ -2247,5 +2248,20 @@ public class RPHelper {
                         + ", can not perform cleanup of snapshots.");
             }
         }
+    }
+
+    /**
+     * Determines if the provided copy state is valid for creating RP bookmarks.
+     *
+     * @param copyState the copy state
+     * @return true if the copy state if valid for creating bookmarks, false otherwise
+     */
+    public static boolean isValidBookmarkState(String copyState) {
+        // The only invalid copy bookmark states we care about are null and DIRECT_ACCESS.
+        if (copyState == null || copyState.equalsIgnoreCase(Copy.ImageAccessMode.DIRECT_ACCESS.name())) {
+            return false;
+        }
+
+        return true;
     }
 }

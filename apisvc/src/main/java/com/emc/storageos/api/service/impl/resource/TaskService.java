@@ -335,7 +335,7 @@ public class TaskService extends TaggedResource {
 
         // Rollback the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
-                ResourceOperationTypeEnum.WORKFLOW_RESUME);
+                ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
         getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
         return Response.ok().build();
     }

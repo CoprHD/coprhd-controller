@@ -23,6 +23,7 @@ import com.emc.sa.machinetags.vmware.DatastoreMachineTag;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -204,10 +205,38 @@ public class MachineTagUtils {
         return client.fileSystems().getTags(fsId);
     }
 
+    public static MountInfo getMountInfo(String strMountInfo) {
+        if (strMountInfo != null && !strMountInfo.isEmpty()) {
+            MountInfo mountInfo = new MountInfo();
+
+            String[] mountAttrs = strMountInfo.split(";");
+
+            if (mountAttrs.length > 0) {
+                mountInfo.setHostId(URIUtil.uri(mountAttrs[0]));
+            }
+            if (mountAttrs.length > 1) {
+                mountInfo.setFsId(URIUtil.uri(mountAttrs[1]));
+            }
+            if (mountAttrs.length > 2) {
+                mountInfo.setSecurityType(mountAttrs[2]);
+            }
+
+            if (mountAttrs.length > 3) {
+                mountInfo.setMountPath(mountAttrs[3]);
+            }
+
+            if (mountAttrs.length > 4) {
+                mountInfo.setSubDirectory(mountAttrs[4]);
+            }
+            return mountInfo;
+        }
+        return null;
+    }
+
     public static List<MountInfo> convertMountStringToMounts(List<String> mountTags) {
         List<MountInfo> mountList = new ArrayList<MountInfo>();
         for (String strMount : mountTags) {
-            mountList.add(MountInfo.getMountInfo(strMount));
+            mountList.add(getMountInfo(strMount));
         }
         return mountList;
     }

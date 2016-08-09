@@ -254,14 +254,14 @@ public class FileService extends TaskResourceService {
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
-                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
-                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
-                                                                        "update-rpo",
-                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                "update-rpo",
+                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -3826,7 +3826,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3881,7 +3881,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3915,7 +3915,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4224,20 +4224,8 @@ public class FileService extends TaskResourceService {
         return toTask(updatedfs, task, op);
     }
 
-    private List<MountInfo> getAllMounts(URI resId) {
-        LinuxMountUtils mountUtils = new LinuxMountUtils();
-        List<String> mountTags = new ArrayList<String>();
-        FileShare fs = _dbClient.queryObject(FileShare.class, resId);
-        if (fs.getTag() != null) {
-            for (ScopedLabel label : fs.getTag()) {
-                mountTags.add(label.getLabel());
-            }
-        }
-        return mountUtils.convertNFSTagsToMounts(mountTags);
-    }
-
     private boolean isExportMounted(URI fsId, String subDir, boolean allDirs) {
-        List<MountInfo> mountList = getAllMounts(fsId);
+        List<MountInfo> mountList = queryDBFSMounts(fsId);
         if (mountList == null || mountList.isEmpty()) {
             return false;
         }
@@ -4261,7 +4249,7 @@ public class FileService extends TaskResourceService {
     }
 
     private List<MountInfo> getMountedExports(URI fsId, String subDir, FileShareExportUpdateParams param) {
-        List<MountInfo> mountList = getAllMounts(fsId);
+        List<MountInfo> mountList = queryDBFSMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         if (param.getExportRulesToDelete() != null) {
             unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
@@ -4312,7 +4300,7 @@ public class FileService extends TaskResourceService {
     }
 
     private void unmountAllAssociatedExports(URI id, String subDir) {
-        List<MountInfo> mountList = getAllMounts(id);
+        List<MountInfo> mountList = queryDBFSMounts(id);
         for (MountInfo mount : mountList) {
             if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null)
                     || subDir.equalsIgnoreCase(mount.getSubDirectory())) {

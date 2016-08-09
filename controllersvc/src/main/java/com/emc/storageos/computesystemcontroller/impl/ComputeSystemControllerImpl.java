@@ -1944,7 +1944,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         fsMount.setMountPath(mountPath);
         fsMount.setSecurityType(security);
         fsMount.setSubDirectory(subDir);
-        _log.debug("Storing New DB Mount Info {}", fsMount);
+        _log.debug("Storing New DB Mount Info {}" + fsMount);
         _dbClient.createObject(fsMount);
 
     }

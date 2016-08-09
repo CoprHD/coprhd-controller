@@ -4,12 +4,7 @@ import java.net.URI;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.annotate.JsonProperty;
-
-import com.emc.sa.service.vipr.ViPRExecutionUtils;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.vipr.model.catalog.AssetOption;
 
 /**
  * Holds the mount attributes for operations
@@ -103,33 +98,4 @@ public class MountInfo {
 
         return strMount.toString();
     }
-
-    public static MountInfo getMountInfo(String strMountInfo) {
-        if (strMountInfo != null && !strMountInfo.isEmpty()) {
-            MountInfo mountInfo = new MountInfo();
-
-            String[] mountAttrs = strMountInfo.split(";");
-
-            if (mountAttrs.length > 0) {
-                mountInfo.setHostId(URIUtil.uri(mountAttrs[0]));
-            }
-            if (mountAttrs.length > 1) {
-                mountInfo.setFsId(URIUtil.uri(mountAttrs[1]));
-            }
-            if (mountAttrs.length > 2) {
-                mountInfo.setSecurityType(mountAttrs[2]);
-            }
-
-            if (mountAttrs.length > 3) {
-                mountInfo.setMountPath(mountAttrs[3]);
-            }
-
-            if (mountAttrs.length > 4) {
-                mountInfo.setSubDirectory(mountAttrs[4]);
-            }
-            return mountInfo;
-        }
-        return null;
-    }
-
 }

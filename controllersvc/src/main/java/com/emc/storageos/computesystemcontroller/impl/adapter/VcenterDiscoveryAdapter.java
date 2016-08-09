@@ -17,7 +17,6 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.testng.collections.Sets;
 
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
@@ -41,6 +40,7 @@ import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VcenterVersion;
 import com.vmware.vim25.AboutInfo;

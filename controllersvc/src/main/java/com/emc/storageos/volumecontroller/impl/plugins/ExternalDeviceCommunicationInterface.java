@@ -828,6 +828,10 @@ public class ExternalDeviceCommunicationInterface extends
                         existingStoragePorts.add(storagePort);
                     }
                     storagePort.setPortNetworkId(driverPort.getPortNetworkId());
+                    if (driverPort.getTransportType()!= null &&
+                            driverPort.getTransportType().equalsIgnoreCase(StoragePort.TransportType.IP.toString())) {
+                        storagePort.setIpAddress(driverPort.getIpAddress());
+                    }
                     storagePort.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
                     storagePort.setOperationalStatus(driverPort.getOperationalStatus());

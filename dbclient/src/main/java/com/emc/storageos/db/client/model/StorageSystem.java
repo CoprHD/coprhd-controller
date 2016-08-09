@@ -767,4 +767,13 @@ public class StorageSystem extends DiscoveredSystemObject {
             setChanged("sharedStorageCapacity");
         }
     }
+
+    /**
+     * V3 All Flash Array's model name would be like 250F/FX, 450F/FX and 850F/FX
+     * 
+     * @return true if the storage system is V3 and All Flash Array Otherwise return false
+     */
+    public boolean isV3AllFlashArray() {
+        return (checkIfVmax3() && getModel() != null && getModel().contains("F"));
+    }
 }

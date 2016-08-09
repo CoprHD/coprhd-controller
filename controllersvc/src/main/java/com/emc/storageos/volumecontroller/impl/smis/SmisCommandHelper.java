@@ -5214,8 +5214,8 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             String srp = storagePool.getPoolName();
-            // default values in case autoTierPolicy is not set then used Optimized SLO
-            String slo = Constants.OPTIMIZED_SLO;
+            // default values in case autoTierPolicy is not set then use NONE SLO for V3 AFA and Optimized SLO for V3
+            String slo = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
             String workload = Constants.NONE.toUpperCase();
 
             URI policyURI = volume.getAutoTieringPolicyUri();

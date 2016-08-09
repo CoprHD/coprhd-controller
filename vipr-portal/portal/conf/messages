@@ -4681,3 +4681,4 @@ gettingStarted.provision.text=Here is a summary of what you have created.
 gettingStarted.provision.text2=You can now start provisioning from the ViPR catalog.
 gettingStarted.incompletesteps.text=You must complete all prerequisite steps to start this step
 gettingStarted.popover=The Guide has been closed. <br/> Click Guide to return to it at any time.
+gettingStarted.step.popover=Please complete this step then click the arrow to continue.

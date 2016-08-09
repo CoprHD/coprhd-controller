@@ -2088,7 +2088,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         placement : 'bottom',
         html : true,
         trigger : 'manual',
-        content : "Please complete this step then click the arrow to continue.",
+        content : translate("gettingStarted.step.popover"),
         selector : '.wizard-side-next'
 
     });

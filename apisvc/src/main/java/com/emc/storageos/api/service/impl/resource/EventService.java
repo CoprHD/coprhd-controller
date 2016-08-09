@@ -233,6 +233,24 @@ public class EventService extends TaggedResource {
     }
 
     /**
+     * Method to move a host to a new datacenter and update shared exports.
+     * 
+     * @param hostId the host that is moving datacenters
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return task for updating export groups
+     */
+
+    public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        Host host = queryObject(Host.class, hostId, true);
+        host.setVcenterDataCenter(datacenterId);
+        _dbClient.updateObject(host);
+        return hostClusterChange(hostId, clusterId, isVcenter);
+    }
+
+    /**
      * Method to move a host to a new cluster and update shared exports.
      * 
      * @param hostId the host that is moving clusters

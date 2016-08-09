@@ -27,6 +27,8 @@ public class HostStateChange implements Serializable {
     protected Collection<URI> newInitiators;
     protected URI oldCluster;
     protected URI newCluster;
+    protected URI oldDatacenterURI;
+    protected URI newDatacenterURI;
 
     /**
      * Create a new host state
@@ -37,7 +39,7 @@ public class HostStateChange implements Serializable {
      * @param addedInitiators list of new initiators
      */
     public HostStateChange(Host target, URI oldClusterURI, URI newClusterURI, Collection<Initiator> oldInitiators,
-            Collection<Initiator> addedInitiators) {
+            Collection<Initiator> addedInitiators, URI oldDatacenterURI, URI newDatacenterURI) {
         this.host = target;
         this.oldInitiators = Sets.newHashSet();
         this.newInitiators = Sets.newHashSet();
@@ -49,6 +51,8 @@ public class HostStateChange implements Serializable {
                 CommonTransformerFunctions.fctnDataObjectToID()));
         this.oldInitiators.addAll(oldInitiatorIds);
         this.newInitiators.addAll(addedInitiatorIds);
+        this.oldDatacenterURI = oldDatacenterURI;
+        this.newDatacenterURI = newDatacenterURI;
     }
 
     /**
@@ -145,10 +149,29 @@ public class HostStateChange implements Serializable {
         return this.newCluster;
     }
 
+    /**
+     * Return new datacenter id
+     * 
+     * @return new datacenter id
+     */
+    public URI getNewDatacenter() {
+        return this.newDatacenterURI;
+    }
+
+    /**
+     * Return old datacenter id
+     * 
+     * @return old datacenter id
+     */
+    public URI getOldDatacenter() {
+        return this.oldDatacenterURI;
+    }
+
     @Override
     public String toString() {
         return "HostStateChange: [Host: " + this.host.getLabel() + " with cluster: "
                 + (this.newCluster == null ? "null" : this.newCluster) + ", OldInitiators: " + this.oldInitiators
-                + ", NewInitators: " + this.newInitiators + ", OldCluster: " + this.oldCluster + "]";
+                + ", NewInitators: " + this.newInitiators + ", OldCluster: " + this.oldCluster + ", Datacenter: "
+                + this.newDatacenterURI + ", Old Datacenter: " + this.oldDatacenterURI + "]";
     }
 }

@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.EventUtil;
@@ -519,7 +520,37 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 }
             }
 
-            if ((change.getOldCluster() == null && change.getNewCluster() != null)
+            // check for changes as the following
+            // 1) Detect vCenterDatacenter change
+            // 2) If no datacenter change, detect cluster change
+            // 3) If no datacenter or cluster change, make sure we have updated atleast the new datacenter for the host
+            if (!NullColumnValueGetter.isNullURI(change.getOldDatacenter()) && !NullColumnValueGetter.isNullURI(change.getNewDatacenter())
+                    && !change.getOldDatacenter().toString().equalsIgnoreCase(change.getNewDatacenter().toString())) {
+                VcenterDataCenter oldDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getOldDatacenter());
+
+                VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
+
+                Cluster cluster = null;
+                if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {
+                    cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
+                }
+
+                URI oldClusterURI = change.getOldCluster();
+                Cluster oldCluster = null;
+                if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+                    oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
+                }
+                EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
+                        "Host " + host.getLabel() + " changed datacenter from " + oldDatacenter.getLabel()
+                                + " to " + currentDatacenter.getLabel(),
+                        "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                + (cluster == null ? " N/A " : cluster.getLabel()),
+                        host,
+                        "hostDatacenterChange",
+                        new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                currentDatacenter.getId(), isVCenter });
+            } else if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
                     || (change.getOldCluster() != null && change.getNewCluster() != null
                             && !change.getOldCluster().toString().equals(change.getNewCluster().toString()))) {
@@ -554,6 +585,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     dbClient.updateObject(host);
                     ComputeSystemHelper.updateInitiatorClusterName(dbClient, host.getCluster(), host.getId());
                 }
+            } else if (!NullColumnValueGetter.isNullURI(change.getNewDatacenter())) {
+                VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
+                host.setTenant(currentDatacenter.getTenant());
+                host.setVcenterDataCenter(currentDatacenter.getId());
+                dbClient.updateObject(host);
             }
 
             if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {

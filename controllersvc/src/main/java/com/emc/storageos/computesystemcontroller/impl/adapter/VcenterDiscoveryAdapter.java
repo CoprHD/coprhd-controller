@@ -342,6 +342,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     }
                 }
 
+                if (deletedHosts != null && deletedHosts.contains(target.getId())) {
+                    deletedHosts.remove(target.getId());
+                    info("Removing host " + target.getId() + " from deletedHosts. It may have been rediscovered in a different datacenter");
+                }
+
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(), targetHost);
                 try {
                     discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
@@ -462,9 +467,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
         private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, VcenterDataCenter targetDatacenter,
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
-            // TODO check for vcenter datacenter change COP-24240
-            target.setVcenterDataCenter(targetDatacenter.getId());
-            target.setTenant(targetDatacenter.getTenant());
+            URI oldDatacenterURI = target.getVcenterDataCenter();
+            URI newDatacenterURI = targetDatacenter.getId();
+            if (NullColumnValueGetter.isNullURI(oldDatacenterURI) || (!NullColumnValueGetter.isNullURI(newDatacenterURI)
+                    && newDatacenterURI.toString().equalsIgnoreCase(oldDatacenterURI.toString()))) {
+                target.setVcenterDataCenter(targetDatacenter.getId());
+                target.setTenant(targetDatacenter.getTenant());
+            }
             target.setDiscoverable(true);
 
             if (target.getId() == null) {
@@ -509,7 +518,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         : targetCluster != null && !oldClusterURI.toString().equals(targetCluster.toString());
 
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
-                    changes.add(new HostStateChange(target, oldClusterURI, targetCluster, oldInitiators, addedInitiators));
+                    changes.add(new HostStateChange(target, oldClusterURI, targetCluster, oldInitiators, addedInitiators, oldDatacenterURI,
+                            newDatacenterURI));
                 }
             }
             else {

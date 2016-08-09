@@ -25,11 +25,12 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("unused")
 public class PropertiesConfigurationValidator {
-    private static final Logger _log = LoggerFactory.getLogger(PropertiesConfigurationValidator.class);
+    private static final Logger _log = LoggerFactory.getLogger
+            (PropertiesConfigurationValidator.class);
 
-    private static List<String> PROPERTIES_ALLOW_EMPTY_VALUE = Arrays.asList("system_update_repo");
+    private static List<String> PROPERTIES_ALLOW_EMPTY_VALUE =
+            Arrays.asList("system_update_repo");
 
     private PropertiesMetadata _propertiesMetadata = null;
     private EncryptionProvider _encryptionProvider;
@@ -99,8 +100,8 @@ public class PropertiesConfigurationValidator {
      * @param metaData
      * @return
      */
-    private String validateProperty(String propertyName, String propertyValue, PropertyMetadata metaData,
-                                    boolean bReset) {
+    private String validateProperty(String propertyName, String propertyValue,
+             PropertyMetadata metaData,boolean bReset) {
 
         // If the property is not the encrypted string, trip the leading
         // and trailing whitespaces. That is because, the propertyValue
@@ -469,14 +470,11 @@ public class PropertiesConfigurationValidator {
                 if (ip.contains("/")) {
                     // Handle subnet specification
                     String[] ipcomps = ip.split("/");
-                    // We have to trim the each component to handle the
-                    // situation when there are spaces in the left or in the
-                    // right of "/"
+                    // We have to trim the each component to handle the situation when there are spaces in the left or in the right of "/"
                     if (ipcomps.length != 2 || !InetAddresses.isInetAddress(ipcomps[0].trim())) {
                         return false;
                     } else {
-                        // We have to put the test on maskBits in a separate try
-                        // block otherwise a non-integer will cause problem.
+                        // We have to put the test on maskBits in a separate try block otherwise a non-integer will cause problem.
                         try {
                             int maskBits = Integer.parseInt(ipcomps[1].trim());
                             if (maskBits > 32 || maskBits < 0) {
@@ -652,7 +650,6 @@ public class PropertiesConfigurationValidator {
      *
      * @return
      */
-    @SuppressWarnings("static-access")
     private Map<String, PropertyMetadata> getMetaData() {
         return _propertiesMetadata.getGlobalMetadata();
     }
@@ -662,8 +659,7 @@ public class PropertiesConfigurationValidator {
         _propertiesMetadata = propertiesMetadata;
     }
 
-    // display will be like: Property Error for {propName}. Property value
-    // {propvalue} {error description}
+    // display will be like: Property Error for {propName}. Property value {propvalue} {error description}
     public String getDisplayError(String name, String value, String errDesc) {
         if (errDesc == null || errDesc.isEmpty()) {
             return null;

@@ -4371,7 +4371,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     //COP 24436: ViPR was upgraded post SMI-S upgrade to AFA due to which ViPR was not aware that 
                     //the SG characteristics were matching the current Virtual Pool characteristics relating to compression.
                     //We could enter the same situation if any of the SG characteristics were modified without ViPR knowledge.
-                    if (newChildGroupName == childGroupName) {
+                    if (childGroupName.equalsIgnoreCase(newChildGroupName)) {
                         _log.info("Current Storage Group {} has the required charcteristics" +
                                 "No need to invoke SMI-S moveMembers method. Performing NO-OP", newChildGroupName);
                     }

@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -540,16 +541,32 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
                     oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 }
-                EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
-                        "Host " + host.getLabel() + " changed datacenter from " + oldDatacenter.getLabel()
-                                + " to " + currentDatacenter.getLabel(),
-                        "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                + (cluster == null ? " N/A " : cluster.getLabel()),
-                        host,
-                        "hostDatacenterChange",
-                        new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
-                                currentDatacenter.getId(), isVCenter });
+
+                if (!oldDatacenter.getVcenter().toString().equals(currentDatacenter.toString())) {
+                    Vcenter oldVcenter = dbClient.queryObject(Vcenter.class, oldDatacenter.getVcenter());
+                    Vcenter currentVcenter = dbClient.queryObject(Vcenter.class, currentDatacenter.getVcenter());
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_VCENTER_CHANGE, host.getTenant(),
+                            "Host " + host.getLabel() + " changed vcenter from " + oldVcenter.getLabel()
+                                    + " to " + currentVcenter.getLabel(),
+                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                    + (cluster == null ? " N/A " : cluster.getLabel()),
+                            host,
+                            "hostVcenterChange",
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter });
+                } else {
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
+                            "Host " + host.getLabel() + " changed datacenter from " + oldDatacenter.getLabel()
+                                    + " to " + currentDatacenter.getLabel(),
+                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                    + (cluster == null ? " N/A " : cluster.getLabel()),
+                            host,
+                            "hostDatacenterChange",
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter });
+                }
             } else if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
                     || (change.getOldCluster() != null && change.getNewCluster() != null

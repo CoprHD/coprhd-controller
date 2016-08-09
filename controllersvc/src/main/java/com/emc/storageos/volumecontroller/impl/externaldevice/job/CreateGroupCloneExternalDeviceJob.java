@@ -90,7 +90,7 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
         try {
             // post process storage pool capacity for clone's pools
             // map clones to their storage pool
-            updateStoragePoolCapacityAfterCompletion(updatedVolumes, dbClient);
+            updateStoragePoolCapacityAfterOperationComplete(updatedVolumes, dbClient);
         } catch (Exception ex) {
             s_logger.error("Failed to update storage pool after create group clone operation completion.", ex);
         }
@@ -118,7 +118,7 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
         try {
             // post process storage pool capacity for clone's pools
             // map clones to their storage pool
-            updateStoragePoolCapacityAfterCompletion(volumes, dbClient);
+            updateStoragePoolCapacityAfterOperationComplete(volumes, dbClient);
         } catch (Exception ex) {
             s_logger.error("Failed to update storage pool after create group clone operation completion.", ex);
         }
@@ -126,11 +126,11 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
 
     /**
      * Updates capacity of storage pools used for clones.
-     * 
+     *
      * @param clones list of clones
      * @param dbClient db client
      */
-    private void updateStoragePoolCapacityAfterCompletion(List<Volume> clones, DbClient dbClient) {
+    private void updateStoragePoolCapacityAfterOperationComplete(List<Volume> clones, DbClient dbClient) {
         Map<URI, List<URI>> dbPoolToClone = new HashMap<>();
         for (Volume clone : clones) {
             URI dbPoolUri = clone.getPool();

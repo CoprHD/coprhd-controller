@@ -70,9 +70,7 @@ public class ExpandVolumeExternalDeviceJob extends ExternalDeviceJob {
 
         try {
             // Update storage pool capacity in database.
-            StoragePool dbPool = dbClient.queryObject(StoragePool.class, volume.getPool());
-            StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, _storageSystemURI);
-            ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
+            ExternalDeviceUtils.updateStoragePoolCapacityAfterOperationComplete(volume.getPool(), _storageSystemURI,
                     Collections.singletonList(_volumeURI), dbClient);
         } catch (Exception ex) {
             s_logger.error("Failed to update storage pool {} after volume expand operation completion.", volume.getPool(), ex);
@@ -94,9 +92,7 @@ public class ExpandVolumeExternalDeviceJob extends ExternalDeviceJob {
         } else {
             try {
                 // Update storage pool capacity in database.
-                StoragePool dbPool = dbClient.queryObject(StoragePool.class, volume.getPool());
-                StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, _storageSystemURI);
-                ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
+                ExternalDeviceUtils.updateStoragePoolCapacityAfterOperationComplete(volume.getPool(), _storageSystemURI,
                         Collections.singletonList(_volumeURI), dbClient);
             } catch (Exception ex) {
                 s_logger.error("Failed to update storage pool {} after volume expand operation completion.", volume.getPool(), ex);

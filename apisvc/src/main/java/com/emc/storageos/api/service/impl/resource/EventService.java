@@ -53,6 +53,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventBulkRep;
+import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
@@ -125,6 +126,62 @@ public class EventService extends TaggedResource {
         return executeEventMethod(event, true);
     }
 
+    @GET
+    @Path("/{id}/details")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public EventDetailsRestRep eventDetails(@PathParam("id") URI id) throws DatabaseException {
+        ActionableEvent event = queryObject(ActionableEvent.class, id, false);
+        verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+        EventDetailsRestRep eventDetails = new EventDetailsRestRep();
+        eventDetails.setApproveDetails(getEventDetails(event, true));
+        eventDetails.setDeclineDetails(getEventDetails(event, false));
+        return eventDetails;
+    }
+
+    /**
+     * Gets details for an event
+     * 
+     * @param event the event to get details for
+     * @param approve if true, get the approve details, if false the get the decline details
+     * @return event details
+     */
+    public String getEventDetails(ActionableEvent event, boolean approve) {
+
+        byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
+
+        if (method == null || method.length == 0) {
+            _log.info("Method is null or empty for event " + event.getId());
+            return "N/A";
+        }
+
+        ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
+        if (eventMethod == null) {
+            _log.info("Event method is null or empty for event " + event.getId());
+            return "N/A";
+        }
+
+        try {
+            Method classMethod = getMethod(EventService.class, eventMethod.getMethodName() + "Details");
+            if (classMethod == null) {
+                return "N/A";
+            } else {
+                return (String) classMethod.invoke(this, eventMethod.getArgs());
+            }
+        } catch (SecurityException e) {
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+        } catch (IllegalAccessException e) {
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+        } catch (IllegalArgumentException e) {
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+        } catch (InvocationTargetException e) {
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+        }
+    }
+
     /**
      * Executes an actionable event method
      * 
@@ -175,6 +232,12 @@ public class EventService extends TaggedResource {
         }
     }
 
+    @SuppressWarnings("unused")
+    private String addInitiatorDetails(URI initiatorId) {
+        // TODO current placeholder
+        return "addInitiatorDetails";
+    }
+
     /**
      * Method to add an initiator to existing exports for a host.
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
@@ -202,6 +265,12 @@ public class EventService extends TaggedResource {
         auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
         return toTask(initiator, taskId, op);
+    }
+
+    @SuppressWarnings("unused")
+    private String removeInitiatorDetails(URI initiatorId) {
+        // TODO current placeholder
+        return "removeInitiatorDetails";
     }
 
     /**
@@ -232,6 +301,12 @@ public class EventService extends TaggedResource {
         return toTask(initiator, taskId, op);
     }
 
+    @SuppressWarnings("unused")
+    private String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        // TODO current placeholder
+        return "hostDatacenterChangeDetails";
+    }
+
     /**
      * Method to move a host to a new datacenter and update shared exports.
      * 
@@ -250,6 +325,12 @@ public class EventService extends TaggedResource {
         return hostClusterChange(hostId, clusterId, isVcenter);
     }
 
+    @SuppressWarnings("unused")
+    private String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        // TODO current placeholder
+        return "hostVcenterChangeDetails";
+    }
+
     /**
      * Method to move a host to a new vcenter and update shared exports.
      * 
@@ -266,6 +347,12 @@ public class EventService extends TaggedResource {
         host.setVcenterDataCenter(datacenterId);
         _dbClient.updateObject(host);
         return hostClusterChange(hostId, clusterId, isVcenter);
+    }
+
+    @SuppressWarnings("unused")
+    private String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
+        // TODO current placeholder
+        return "hostClusterChangeDetails";
     }
 
     /**

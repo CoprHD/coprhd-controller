@@ -3406,7 +3406,7 @@ rp_vpool_setup()
         rpvplexdist_noprotection
     fi
 
-    if [ "${RP_TESTS}" = "1"]; then
+    if [ "${RP_TESTS}" = "1" ]; then
         if [ "${RP_CDP}" = "1" ]; then
             rp_cdp
         fi

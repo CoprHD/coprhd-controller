@@ -87,7 +87,7 @@ import com.google.common.base.Strings;
  */
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
-    private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
+    private static Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
     // Storage drivers for block  devices
     private Map<String, AbstractStorageDriver> drivers;
     private DbClient dbClient;
@@ -151,6 +151,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Map<StorageVolume, Volume> driverVolumeToVolumeMap = new HashMap<>();
         Set<URI> consistencyGroups = new HashSet<>();
         StorageCapabilities storageCapabilities = null;
+        DriverTask task = null;
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         try {
             for (Volume volume : volumes) {
                 if (storageCapabilities == null) {
@@ -174,8 +176,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverVolumeToVolumeMap.put(driverVolume, volume);
             }
             // Call driver
-            BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), storageCapabilities);
+            task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), storageCapabilities);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY || task.getStatus() == DriverTask.TaskStatus.PARTIALLY_FAILED ) {
 
@@ -200,6 +201,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("doCreateVolumes -- Failed to create volumes. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("doCreateVolumes", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        } finally {
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    updateStoragePoolCapacity(storagePool, storageSystem,
+                            URIUtil.toUris(volumes), dbClient);
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool {} after create volumes operation completion.", storagePool.getId(), ex);
+            }
         }
     }
     
@@ -295,11 +305,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception e) {
-            _log.error("doCreateVolumes -- Failed to expand volume. ", e);
+            _log.error("doExpandVolume -- Failed to expand volume. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.expandVolumeFailed("doExpandVolume", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         } finally {
-            storagePool.removeReservedCapacityForVolumes(Collections.singletonList(volume.getId().toString()));
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    updateStoragePoolCapacity(storagePool, storageSystem,
+                            URIUtil.toUris(Collections.singletonList(volume)), dbClient);
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool {} after expand volume operation completion.", storagePool.getId(), ex);
+            }
         }
     }
 
@@ -545,6 +562,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateClone(StorageSystem storageSystem, URI volume, URI clone, Boolean createInactive,
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
+        DriverTask task = null;
         try {
         	cloneObject = dbClient.queryObject(Volume.class, clone);
             BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
@@ -573,7 +591,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task ;
         	List<VolumeClone> driverClones = new ArrayList<>();
         	driverClones.add(driverClone);
         	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
@@ -608,6 +625,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Failed to create volume clone. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        } finally {
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    StoragePool dbPool = dbClient.queryObject(StoragePool.class, cloneObject.getPool());
+                    updateStoragePoolCapacity(dbPool, storageSystem,
+                            Collections.singletonList(clone), dbClient);
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool {} after create clone operation completion.", cloneObject.getPool(), ex);
+            }
         }
     }
     
@@ -667,14 +694,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.error(String.format("Add volumes to Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                        		consistencyGroup.getLabel(), task.getMessage()));
+                                consistencyGroup.getLabel(), task.getMessage()));
             }   
             _log.info("{} doAddVolumesToConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Add volumes from Consistency Group operation failed %s", e.getMessage()));
             taskCompleter.error(dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                    		consistencyGroup.getLabel(), e.getMessage()));
+                            consistencyGroup.getLabel(), e.getMessage()));
         }
     }
     
@@ -713,14 +740,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                        		consistencyGroup.getLabel(), task.getMessage()));
+                                consistencyGroup.getLabel(), task.getMessage()));
             }
             _log.info("{} doRemoveVolumesFromConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
             taskCompleter.error(dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                    		consistencyGroup.getLabel(), e.getMessage()));
+                            consistencyGroup.getLabel(), e.getMessage()));
         }
     }
 
@@ -734,6 +761,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Set<URI> consistencyGroups = new HashSet<>();
 
         List<Volume> clones = null;
+        DriverTask task = null;
         try {
             clones = dbClient.queryObject(Volume.class, cloneURIs);
             // We assume here that all volumes belong to the same consistency group
@@ -770,7 +798,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverCloneToCloneMap.put(driverClone, clone);
             }
             // Call driver to create group snapshot
-            DriverTask task = driver.createConsistencyGroupClone(driverCG, Collections.unmodifiableList(driverClones), null);
+            task = driver.createConsistencyGroupClone(driverCG, Collections.unmodifiableList(driverClones), null);
             if (!isTaskInTerminalState(task.getStatus())) {
                 // If the task is not in a terminal state and will be completed asynchronously
                 // create a job to monitor the progress of the request and update the clone 
@@ -813,6 +841,30 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Failed to create group clone. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createGroupCloneFailed("doCreateGroupClone", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        } finally {
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    // post process storage pool capacity for clone's pools
+                    // map clones to their storage pool
+                    Map<URI, List<URI>> dbPoolToClone = new HashMap<>();
+                    for (Volume clone : clones) {
+                        URI dbPoolUri = clone.getPool();
+                        List<URI> poolClones = dbPoolToClone.get(dbPoolUri);
+                        if (poolClones == null) {
+                            poolClones = new ArrayList<>();
+                            dbPoolToClone.put(dbPoolUri, poolClones);
+                        }
+                        poolClones.add(clone.getId());
+                    }
+                    for (URI dbPoolUri : dbPoolToClone.keySet()) {
+                        StoragePool dbPool = dbClient.queryObject(StoragePool.class, dbPoolUri);
+                        updateStoragePoolCapacity(dbPool, storageSystem,
+                                dbPoolToClone.get(dbPoolUri), dbClient);
+                    }
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool after create group clone operation completion.", ex);
+            }
         }
     }
 
@@ -1658,6 +1710,39 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     ipAddress, portNumber, ex);
         }
         return isConnectionValid;
+    }
+
+    /**
+     * Update storage pool capacity to the most recent values from  driver.
+     * Release reserved capacity in the pool for set of reservedObjects.
+     *
+     * @param dbPool storage pool to update capacity
+     * @param dbSystem storage system where the pool is located
+     * @param reservedObjects list of reserved object (volumes/clones/mirrors)
+     * @param dbClient db client
+     */
+    public static void updateStoragePoolCapacity(StoragePool dbPool, StorageSystem dbSystem,
+                                                 List<URI> reservedObjects, DbClient dbClient) {
+        _log.info(String.format("Update storage pool capacity for pool %s, system %s ", dbPool.getId(),
+                dbSystem.getId()));
+        BlockStorageDriver driver = getBlockStorageDriver(dbSystem.getSystemType());
+        // refresh the pool
+        dbPool = dbClient.queryObject(StoragePool.class, dbPool.getId());
+        // rediscover driver storage pool
+        com.emc.storageos.storagedriver.model.StoragePool driverPool = driver.getStorageObject(dbSystem.getNativeId(),
+                dbPool.getNativeId(), com.emc.storageos.storagedriver.model.StoragePool.class);
+        // update pool capacity in db
+        if (driverPool != null) {
+            _log.info(String.format("Driver pool %s info: free capacity %s, subscribed capacity %s ", driverPool.getNativeId(),
+                    driverPool.getFreeCapacity(), driverPool.getSubscribedCapacity()));
+            dbPool.setFreeCapacity(driverPool.getFreeCapacity());
+            dbPool.setSubscribedCapacity(driverPool.getSubscribedCapacity());
+        } else {
+            _log.error("Driver pool for storage pool {} and storage system {} is null.", dbPool.getNativeId(), dbSystem.getNativeId());
+        }
+        // release reserved capacity
+        dbPool.removeReservedCapacityForVolumes(URIUtil.asStrings(reservedObjects));
+        dbClient.updateObject(dbPool);
     }
 
 }

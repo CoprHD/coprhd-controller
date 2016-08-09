@@ -47,6 +47,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssh \
     $(ETCDIR)/genconfig.d/ssh_auth_key \
     $(ETCDIR)/genconfig.d/ssl \
+	$(ETCDIR)/genconfig.d/syslog \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \

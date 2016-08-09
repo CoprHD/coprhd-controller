@@ -94,17 +94,26 @@ public class DefaultVplexVolumeNameFormatter {
                 _volumeInfo.getVolumeNativeId(),
                 shortenBy);
 
-        // in this case, lets shave off some of the front of the storage system serial number
+        // First, lets try shave off some of the front of the storage system serial number
         if (_storageSystemSerialNumber.length() > shortenBy) {
             return assembleDefaultName(
                     _storageSystemSerialNumber.substring(shortenBy), _volumeNativeId);
+        } else if (_volumeNativeId.length() > shortenBy) {
+            // Second - lets try shave off some of the front of the volume native id
+            return assembleDefaultName(
+                    _storageSystemSerialNumber, _volumeNativeId.substring(shortenBy));
         } else {
-            s_logger.warn("the storage system serial number {} is not long enough to be "
+            // Otherwise - just shorten the combined name
+            s_logger.warn("The storage system serial number {}  and volume native id"
+                    + "{} is not long enough to be "
                     + "used for shortening the volume name by {} characters, so we "
-                    + "are just going to truncate the beginning of the whole name",
-                    _storageSystemSerialNumber, shortenBy);
+                    + "are going to truncate the beginning of the whole name",
+                    _storageSystemSerialNumber, _volumeNativeId, shortenBy);
             String volumeName = assembleDefaultName(_storageSystemSerialNumber, _volumeNativeId);
-            return volumeName.substring(shortenBy);
+            // Just removing beginning of the assembled name may have number in the start
+            // Safeguard it by adding the "V" to the start again, as VPLEX does not accept virtual
+            // volume names starting with number
+            return VPlexApiConstants.VOLUME_NAME_PREFIX + volumeName.substring(shortenBy + 1);
         }
     }
 

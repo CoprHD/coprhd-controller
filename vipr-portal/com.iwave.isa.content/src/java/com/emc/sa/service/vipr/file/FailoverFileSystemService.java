@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FAILOVER_TARGET_FILE;
+import static com.emc.sa.service.ServiceParams.REPLICATE_CONFIG_FAILOVER;
 import static com.emc.sa.service.ServiceParams.FILESYSTEM;
 
 import java.net.URI;
@@ -22,9 +23,12 @@ public class FailoverFileSystemService extends ViPRService {
     @Param(FAILOVER_TARGET_FILE)
     protected URI failoverTarget;
     
+    @Param(REPLICATE_CONFIG_FAILOVER)
+    protected boolean replicationConf;
+    
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.failoverFileSystem(failoverSource, failoverTarget);
+        FileStorageUtils.failoverFileSystem(failoverSource, failoverTarget, replicationConf);
     }
 
 }

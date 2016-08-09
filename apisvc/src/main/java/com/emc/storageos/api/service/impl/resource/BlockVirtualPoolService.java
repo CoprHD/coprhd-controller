@@ -518,8 +518,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // non-dedep vpool can NOT be made dedup if it has volumes created
         // dedup vpool can be made non-dedup because dedup storage pools will always remain
         if (null != param.getDedupCapable()) {
-            if (vpool.getDedupCapable() != null && vpool.getDedupCapable() == false &&
-            		param.getDedupCapable() == true) {
+            if (vpool.getDedupCapable() != null && !vpool.getDedupCapable() &&
+            		param.getDedupCapable()) {
                 ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
             }
             vpool.setDedupCapable(param.getDedupCapable());

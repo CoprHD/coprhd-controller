@@ -43,11 +43,11 @@ public class DedupMatcher extends AttributeMatcher {
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(allPools);
         
-        if (dedupCapable == true) {
+        if (dedupCapable) {
         	Iterator<StoragePool> poolIterator = allPools.iterator();
         	while (poolIterator.hasNext()) {
         		StoragePool pool = poolIterator.next();
-        		if (pool.getDedupCapable() == false) {
+        		if (!pool.getDedupCapable()) {
         			_logger.info("Ignoring pool {} as dedup is not supported", pool.getNativeGuid());
         			filteredPoolList.remove(pool);
         		}

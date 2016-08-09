@@ -136,7 +136,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         }
         
         putAttributeInMap(Attributes.min_datacenters.toString(), _vpool.getMinDataCenters());
-        if (_vpool.getDedupCapable() != null &&  _vpool.getDedupCapable() != false) {
+        if (_vpool.getDedupCapable() != null &&  _vpool.getDedupCapable()) {
         	putAttributeInMap(Attributes.dedup.toString(), _vpool.getDedupCapable());
         }
         return _attributeMap;

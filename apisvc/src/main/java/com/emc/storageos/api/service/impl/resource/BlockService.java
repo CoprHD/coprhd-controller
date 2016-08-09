@@ -775,7 +775,7 @@ public class BlockService extends TaskResourceService {
         }
 
         // Does vpool supports dedup
-        if (null != vpool.getDedupCapable() &&  true == vpool.getDedupCapable()) {
+        if (null != vpool.getDedupCapable() &&  vpool.getDedupCapable()) {
         	capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
         }
         

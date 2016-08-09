@@ -1308,7 +1308,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected Set<String> mergeWithExportGroupMaskURIs(ExportGroup exportGroup,
             Collection<Set<URI>> maskURIs) {
         Set<String> set = new HashSet<String>();
-        if (exportGroup != null && maskURIs != null &&
+        if (maskURIs != null) {
+            for (Set<URI> entry : maskURIs) {
+                Collection<String> uris = Collections2.transform(entry,
+                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
+                set.addAll(uris);
+            }
+        }
+        if (exportGroup != null &&
                 exportGroup.getExportMasks() != null) {
             Set<String> exportGroupMaskNames = new HashSet<String>();
             for (String it : exportGroup.getExportMasks()) {
@@ -1317,11 +1324,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 exportGroupMaskNames.add(exportMask.getMaskName());
             }
             set.addAll(exportGroup.getExportMasks());
-            for (Set<URI> entry : maskURIs) {
-                Collection<String> uris = Collections2.transform(entry,
-                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
-                set.addAll(uris);
-            }
+            
             Iterator<String> currMaskIter = set.iterator();
             while (currMaskIter.hasNext()) {
                 URI currMaskURI = URI.create(currMaskIter.next());

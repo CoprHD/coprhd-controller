@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -138,8 +139,12 @@ public class NumPathsMatcher extends AttributeMatcher {
                             + " because insufficient IP ports");
                     continue;
                 }
+
+                StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                        StorageDriverManager.STORAGE_DRIVER_MANAGER);
                 // If we need two or more paths, must have at least two HA Domains
-                if (!system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
+                if (!storageDriverManager.isDriverManaged(system.getSystemType())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
                         && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())
                         && !system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name())) {
                     if (maxPaths >= 2 && cachedUsableIPHADomains.get(dev) < 2) {

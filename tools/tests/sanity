@@ -12106,7 +12106,7 @@ unityblock_cos_setup()
 
 vplexunity_setup()
 {
-    #run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     
     # Discover the VPLEX storage systems 
     echo "Discovering VPLEX"

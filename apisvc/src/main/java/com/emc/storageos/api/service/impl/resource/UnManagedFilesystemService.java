@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -416,6 +417,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
                 }
+
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
                 if (full_systems.contains(storageSystemUri)) {
@@ -536,6 +538,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
+
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
                                                                           // FileSystem.
                             if (umNfsAcl.getPermissions().isEmpty()) {
@@ -673,7 +676,6 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setOpStatus(new OpStatusMap());
             quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), unManagedFileQuotaDirectory.getLabel()));
             quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
-            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
             quotaDirectory.setInactive(false);
 
             quotaDirectory.setSoftLimit(
@@ -699,7 +701,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
-
+            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
             quotaDirectories.add(quotaDirectory);
         }
 

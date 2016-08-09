@@ -10,8 +10,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Enumeration;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
@@ -22,14 +21,19 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.services.OperationTypeEnum;
+import org.apache.log4j.Logger;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
 
 /**
  * AuditLogManager is used to store system auditlogs to the Cassandra database.
  */
 public class AuditLogManager {
 
-    final private Logger _log = LoggerFactory
+    final private org.slf4j.Logger _log = org.slf4j.LoggerFactory
             .getLogger(AuditLogManager.class);
 
     private static final String PRODUCT_ID = "ViPR 1.0";
@@ -44,6 +48,7 @@ public class AuditLogManager {
     private static final List<SiteState> ENABLE_AUDITLOG_SITESTATES =
             Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
 
+    private static final String SYSLOG_ENALBE="system_syslog_enable";
     // auditlog version, to compatible with the possible changes in the future.
     public static final String AUDITLOG_VERSION = "1";
 
@@ -53,7 +58,8 @@ public class AuditLogManager {
     private CoordinatorClient _coordinator;
     
     // The logger.
-    private static Logger s_logger = LoggerFactory.getLogger(AuditLogManager.class);
+    private static org.slf4j.Logger s_logger = org.slf4j.LoggerFactory.getLogger(AuditLogManager.class);
+    private static Logger logger = Logger.getLogger("AuditLog");
 
     private DrUtil drUtil;
 
@@ -99,6 +105,15 @@ public class AuditLogManager {
         for (RecordableAuditLog auditlog : auditlogs) {
             AuditLog dbAuditlog = AuditLogUtils.convertToAuditLog(auditlog);
             dbAuditLogs[i++] = dbAuditlog;
+            AuditLog auditSyslog = dbAuditlog;
+            PropertyInfo propInfo = _coordinator.getPropertyInfo();
+            if (propInfo.getProperty(SYSLOG_ENALBE).equalsIgnoreCase("true")) {
+                Locale locale = new Locale("en", "US");
+                ResourceBundle resb = ResourceBundle.getBundle("SDSAuditlogRes", locale);
+                AuditLogUtils.resetDesc(auditSyslog,resb);
+                logger.info("audit log is " + dbAuditlog.getServiceType() + " " + dbAuditlog.getUserId()
+                        + " " + dbAuditlog.getOperationalStatus() + " " + dbAuditlog.getDescription());
+            }
         }
         
         // Now insert the events into the database.

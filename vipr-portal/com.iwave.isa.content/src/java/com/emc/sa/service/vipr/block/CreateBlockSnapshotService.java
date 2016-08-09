@@ -18,7 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.asset.providers.BlockProvider;
+import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.ViPRTaskMonitor;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -125,12 +127,15 @@ public class CreateBlockSnapshotService extends ViPRService {
     	if (tasks != null) {
             for (Task<? extends DataObjectRestRep> task : tasks.getTasks()) {
                 URI resourceId = task.getResourceId();
+                info("Get snapshot id %s", resourceId);
                 if (resourceId != null) {
                 	StringSet retainedCopies = event.getRetainedCopies();
                 	if (retainedCopies == null) {
                 		retainedCopies = new StringSet();
+                		event.setRetainedCopies(retainedCopies);
                 	}
                 	retainedCopies.add(resourceId.toString());
+                	info("Save %s", event.getId());
                 	getModelClient().save(event);
                 }
             }
@@ -142,17 +147,23 @@ public class CreateBlockSnapshotService extends ViPRService {
         if (event == null) {
         	return;
         }
-        info("Scheduled Event %d", event.getId());
         Integer maxNumOfCopies = event.getMaxNumOfRetainedCopies();
         if (maxNumOfCopies == null) {
         	return;
         }
         info("Max number of copies %d", maxNumOfCopies);
         StringSet retainedCopies = event.getRetainedCopies();
-        if (retainedCopies.size() > maxNumOfCopies) {
+        if (retainedCopies != null && retainedCopies.size() > maxNumOfCopies) {
         	String snapshotId = retainedCopies.iterator().next();//TODO - find the old one
         	info("Remove snapshot %s", snapshotId);
-        	execute(new DeactivateBlockSnapshot(uri(snapshotId), VolumeDeleteTypeEnum.FULL));
+        	Tasks<? extends DataObjectRestRep> task = execute(new DeactivateBlockSnapshot(uri(snapshotId), VolumeDeleteTypeEnum.FULL));
+        	task.firstTask().doTaskWait();
+        	if (task.firstTask().isComplete()) {
+	        	retainedCopies.remove(snapshotId);
+	        	getModelClient().save(event);
+        	} else {
+        		error("Deactivate previous snapshot error");
+        	}
         }
     }
 }

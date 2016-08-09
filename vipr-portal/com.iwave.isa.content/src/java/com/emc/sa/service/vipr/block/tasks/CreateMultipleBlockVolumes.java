@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.util.List;
+import java.util.Set;
 
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
@@ -13,6 +14,8 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 /**
  * Task that will create multiple block volumes in parallel. Executes a single create volume API
@@ -32,6 +35,7 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
 
     @Override
     public Tasks<VolumeRestRep> doExecute() throws Exception {
+        Set<String> errorMessages = Sets.newHashSet();
         Tasks<VolumeRestRep> tasks = null;
         for (CreateBlockVolumeHelper param : helpers) {
             String volumeSize = BlockStorageUtils.gbToVolumeSize(param.getSizeInGb());
@@ -56,12 +60,13 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
                     tasks.getTasks().addAll(getClient().blockVolumes().create(create).getTasks());
                 }
             } catch (ServiceErrorException ex) {
+                errorMessages.add(ex.getDetailedMessage());
                 logError(getMessage("CreateMultipleBlockVolumes.getTask.error", create.getName(), ex.getDetailedMessage()));
             }
         }
         
         if (tasks == null) {
-            throw stateException("CreateMultipleBlockVolumes.illegalState.invalid");
+            throw stateException("CreateMultipleBlockVolumes.illegalState.invalid", Joiner.on('\n').join(errorMessages));
         }
         return tasks;
     }

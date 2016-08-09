@@ -23,6 +23,7 @@ import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -744,6 +745,12 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             throws WBEMException {
         return getConnection(storageDevice).getCimClient().associatorInstances(
                 path, null, resultClass, null, null, false, prop);
+    }
+    
+    public CloseableIterator<CIMInstance> getReferenceInstances(
+            StorageSystem storageDevice, CIMObjectPath path, String resultClass, String role, String[] prop)
+            throws WBEMException {
+        return getConnection(storageDevice).getCimClient().referenceInstances(path, resultClass, role, false, prop);
     }
 
     /*

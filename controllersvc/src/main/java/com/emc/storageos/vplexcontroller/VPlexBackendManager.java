@@ -54,8 +54,10 @@ import com.emc.storageos.volumecontroller.impl.block.VPlexBackEndOrchestratorUti
 import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.VPlexXIVMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.VplexUnityMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
@@ -171,6 +173,14 @@ public class VPlexBackendManager {
 
         if (system.getSystemType().equals(SystemType.openstack.name())) {
             return new VplexCinderMaskingOrchestrator(_dbClient, _blockDeviceController);
+        }
+        
+        if (system.getSystemType().equals(SystemType.ibmxiv.name())) {
+            return new VPlexXIVMaskingOrchestrator(_dbClient, _blockDeviceController);
+        }
+        
+        if (system.getSystemType().equals(SystemType.unity.name())) {
+            return new VplexUnityMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
 
         throw DeviceControllerException.exceptions.unsupportedVPlexArray(

@@ -31,6 +31,8 @@ import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
+import com.emc.storageos.vnxe.models.Feature;
+import com.emc.storageos.vnxe.models.Feature.FeatureStateEnum;
 import com.emc.storageos.vnxe.models.FileSystemParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaConfigParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaCreateParam;
@@ -38,6 +40,7 @@ import com.emc.storageos.vnxe.models.FileSystemQuotaModifyParam;
 import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
 import com.emc.storageos.vnxe.models.HostCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
+import com.emc.storageos.vnxe.models.HostInitiatorModifyParam;
 import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
 import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.HostLunModifyParam;
@@ -105,6 +108,7 @@ import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
 import com.emc.storageos.vnxe.requests.FcPortRequests;
+import com.emc.storageos.vnxe.requests.FeatureRequest;
 import com.emc.storageos.vnxe.requests.FileInterfaceListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
 import com.emc.storageos.vnxe.requests.FileSystemListRequest;
@@ -289,6 +293,17 @@ public class VNXeApiClient {
         HostRequest req = new HostRequest(_khClient, hostId);
         return req.get();
 
+    }
+
+    /**
+     * Get hostLun based on hostLun id
+     *
+     * @param hostlunId
+     * @return HostLun
+     */
+    public HostLun getHostLun(String hostlunId) {
+        HostLunRequests req = new HostLunRequests(_khClient);
+        return req.getHostLun(hostlunId);
     }
 
     public String getNetBios() {
@@ -1252,8 +1267,14 @@ public class VNXeApiClient {
             lunModifyParam.setLun(new VNXeBase(lunID));
             lunModifyParamList.add(lunModifyParam);
             param.setLunModify(lunModifyParamList);
-            LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
-            job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
+            if (isUnityClient()) {
+                ConsistencyGroupRequests cgRequest = new ConsistencyGroupRequests(_khClient);
+                job = cgRequest.modifyConsistencyGroupAsync(lunGroupID, param);
+                
+            } else {
+                LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
+                job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
+            }
 
         } else if (vnxeLun.getType() == STANDALONE_LUN_TYPE) {
             BlockLunRequests req = new BlockLunRequests(_khClient);
@@ -1864,13 +1885,31 @@ public class VNXeApiClient {
     }
 
     public boolean isFASTVPEnabled() {
-        FastVPRequest req = new FastVPRequest(_khClient);
-        List<FastVP> fastVP = req.get();
-        if (fastVP != null && !fastVP.isEmpty()) {
-            return true;
-        } else {
-            return false;
-        }
+        
+        boolean result = false;
+        try {
+            if(_khClient.isUnity()) {
+                FeatureRequest req = new FeatureRequest(_khClient, VNXeConstants.FASTVP_FEATURE);
+                Feature fastVP = req.get();
+                if (fastVP != null && fastVP.getState()==FeatureStateEnum.FeatureStateEnabled.getValue()) {
+                    result = true;
+                } else {
+                    _logger.info("FASTVP is disabled");
+                    result = false;
+                }
+            } else {
+                FastVPRequest req = new FastVPRequest(_khClient);
+                List<FastVP> fastVP = req.get();
+                if (fastVP != null && !fastVP.isEmpty()) {
+                    result = true;
+                }
+                
+            }
+        } catch (Exception e) {
+            result = false;
+        } 
+        _khClient.setFastVPEnabled(result);
+        return result;
     }
 
     public VNXeLun getLunByLunGroup(String lunGroupId, String lunName) {
@@ -2003,6 +2042,7 @@ public class VNXeApiClient {
 
         String hostId = null;
         Set<VNXeHostInitiator> notExistingInits = new HashSet<VNXeHostInitiator>();
+        Set<VNXeHostInitiator> existingNoHostInits = new HashSet<VNXeHostInitiator>();
         String hostOsType = null;
         for (VNXeHostInitiator init : hostInitiators) {
             VNXeHostInitiator existingInit = null;
@@ -2013,6 +2053,8 @@ public class VNXeApiClient {
             if (existingInit != null && existingInit.getParentHost() != null) {
                 hostId = existingInit.getParentHost().getId();
 
+            } else if (existingInit != null)  {
+                existingNoHostInits.add(existingInit);
             } else {
                 notExistingInits.add(init);
             }
@@ -2049,6 +2091,14 @@ public class VNXeApiClient {
             HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
             req.createHostInitiator(initCreateParam);
 
+        }
+        
+        for (VNXeHostInitiator exitInit : existingNoHostInits) {
+            HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
+            VNXeBase host = new VNXeBase(hostId);
+            initModifyParam.setHost(host);
+            HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
+            req.modifyHostInitiator(initModifyParam, exitInit.getId());
         }
 
         return new VNXeBase(hostId);

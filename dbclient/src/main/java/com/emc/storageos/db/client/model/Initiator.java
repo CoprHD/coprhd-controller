@@ -22,7 +22,8 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     private String _clusterName;
     // Lazily initialized, cached hashCode
     private volatile int hashCode;
-    // COP-18937: Initiator may be registered to multiple storage systems using different names.
+    // COP-18937: Initiator may be registered to multiple storage systems using different names. XIO Arrays
+    // COP-18551: Initiator may be registered to multiple storage systems using different Aliases. VMAX Arrays
     private StringMap initiatorNames;
 
     /**

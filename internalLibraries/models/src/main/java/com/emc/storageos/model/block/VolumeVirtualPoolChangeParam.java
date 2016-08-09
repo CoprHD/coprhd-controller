@@ -26,7 +26,8 @@ public class VolumeVirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
-    private String transferSpeed; 
+    private String transferSpeed;
+    boolean forceFlag = false;
 
     public VolumeVirtualPoolChangeParam() {
     }
@@ -94,8 +95,6 @@ public class VolumeVirtualPoolChangeParam {
     public void setTransferSpeedParam(String transferspeed) {
     	this.transferSpeed = transferspeed; 
     }
-    
-    
 
     /**
      * The ViPR consistency group to associate the volume with for
@@ -112,4 +111,17 @@ public class VolumeVirtualPoolChangeParam {
         this.consistencyGroup = consistencyGroup;
     }
 
+    /**
+     * Force Flag used to operate on internal objects.
+     * 
+     * @return True if force flag should be enabled
+     */
+    @XmlElement(name = "forceFlag")
+    public boolean getForceFlag() {
+        return forceFlag;
+    }
+
+    public void setForceFlag(boolean forceFlag) {
+        this.forceFlag = forceFlag;
+    }
 }

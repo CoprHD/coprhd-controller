@@ -44,6 +44,8 @@ public abstract class AttributeMatcher {
 
     public static final String CONNECTIVITY_PLACEMENT_MATCHERS = "connectivityMatchers";
 
+    public static final String ERROR_MESSAGE = "errorMessage";
+
     public static enum Attributes {
         vpool_type,
         varrays,
@@ -81,8 +83,8 @@ public abstract class AttributeMatcher {
         min_datacenters,
         quota,
         source_storage_system,
-        remote_copy_mode
-
+        remote_copy_mode,
+        array_affinity
     }
 
     /**
@@ -91,12 +93,15 @@ public abstract class AttributeMatcher {
      * attributeOff => match pools when a CoS attribute value not set.
      * 
      * @param pools : List of pools to match this attribute.
+     * @param attributeMap :
+     * @param errorMessage : Error Message
      * @return matchedPools : list of pools matching.
      */
-    public List<StoragePool> runMatchStoragePools(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> runMatchStoragePools(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = null;
         if (isAttributeOn(attributeMap)) {
-            matchedPools = matchStoragePoolsWithAttributeOn(pools, attributeMap);
+            matchedPools = matchStoragePoolsWithAttributeOn(pools, attributeMap, errorMessage);
         } else {
             matchedPools = matchStoragePoolsWithAttributeOff(pools, attributeMap);
         }
@@ -148,9 +153,11 @@ public abstract class AttributeMatcher {
      * 
      * @param allPools : List of pools to match against each vpool attribute.
      * @param attributeMap : map contains the list of attribute values to match.
+     * @param errorMessage : contains the the error message
      * @return matchedpools:
      */
-    protected abstract List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap);
+    protected abstract List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage);
 
     /**
      * For debug purpose, which lists the matched Pool Native Guids

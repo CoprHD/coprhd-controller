@@ -68,6 +68,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -3275,6 +3276,50 @@ public class FileService extends TaskResourceService {
         return null;
     }
 
+    private List<MountInfo> queryDBFSMounts(URI fsId) {
+        _log.info("Querying File System mounts using FsId {}", fsId);
+        List<MountInfo> fsMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(fsId);
+            List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fsDBMounts != null && !fsDBMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fsDBMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    fsMounts.add(mountInfo);
+                }
+            }
+            return fsMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return fsMounts;
+    }
+
+    private List<MountInfo> queryDBHostMounts(URI host) {
+        _log.info("Querying NFS mounts for host {}", host);
+        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
+            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fileMounts != null && !fileMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fileMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    hostMounts.add(mountInfo);
+                }
+            }
+            return hostMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return hostMounts;
+    }
+
     private List<ExportRule> queryFSExports(FileShare fs) {
         List<ExportRule> rules = null;
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
@@ -3293,6 +3338,15 @@ public class FileService extends TaskResourceService {
         }
 
         return rules;
+    }
+
+    private void getMountInfo(FileMountInfo orig, MountInfo dest) {
+
+        dest.setFsId(orig.getFsId());
+        dest.setHostId(orig.getHostId());
+        dest.setMountPath(orig.getMountPath());
+        dest.setSecurityType(dest.getSecurityType());
+        dest.setSubDirectory(orig.getSubDirectory());
     }
 
     private void getExportRule(FileExportRule orig, ExportRule dest) {
@@ -4085,6 +4139,26 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Get list of mounts for the specified host.
+     * 
+     * @param id
+     *            the URN of a hist
+     * @brief List file system mounts
+     * @return List of file system mounts.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/mounts")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MountInfoList getHostNFSMounts(@QueryParam("host") URI host) {
+
+        ArgValidator.checkFieldUriType(host, Host.class, "id");
+        _log.info(String.format("Get list of mounts for host %1$s", host));
+
+        return queryDBHostMounts(host);
+    }
+
+    /**
      * Get list of mounts for the specified file system.
      * 
      * @param id
@@ -4098,11 +4172,10 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public MountInfoList getMountList(@PathParam("id") URI id) {
 
-        _log.info(String.format("Get list of quota directories for file system: %1$s", id));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        MountInfoList mountList = new MountInfoList();
-        mountList.setMountList(getAllMounts(id));
-        return mountList;
+        _log.info(String.format("Get list of file system mounts: %1$s", id));
+
+        return queryDBFSMounts(id);
     }
 
     /**

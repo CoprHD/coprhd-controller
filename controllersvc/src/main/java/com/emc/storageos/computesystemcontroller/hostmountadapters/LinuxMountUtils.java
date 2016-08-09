@@ -33,7 +33,7 @@ import com.iwave.ext.linux.model.MountPoint;
 /**
  * 
  * @author yelkaa
- *
+ * 
  */
 public class LinuxMountUtils {
     private static final Log _log = LogFactory.getLog(LinuxMountUtils.class);
@@ -175,6 +175,34 @@ public class LinuxMountUtils {
             mountList.add(convertNFSTag(tag));
         }
         return mountList;
+    }
+
+    public MountInfo setMountInfo(String strMountInfo) {
+        if (strMountInfo != null && !strMountInfo.isEmpty()) {
+            MountInfo mountInfo = new MountInfo();
+
+            String[] mountAttrs = strMountInfo.split(";");
+
+            if (mountAttrs.length > 0) {
+                mountInfo.setHostId(URIUtil.uri(mountAttrs[0]));
+            }
+            if (mountAttrs.length > 1) {
+                mountInfo.setFsId(URIUtil.uri(mountAttrs[1]));
+            }
+            if (mountAttrs.length > 2) {
+                mountInfo.setSecurityType(mountAttrs[2]);
+            }
+
+            if (mountAttrs.length > 3) {
+                mountInfo.setMountPath(mountAttrs[3]);
+            }
+
+            if (mountAttrs.length > 4) {
+                mountInfo.setSubDirectory(mountAttrs[4]);
+            }
+            return mountInfo;
+        }
+        return null;
     }
 
     public static MountInfo convertNFSTag(String tag) {

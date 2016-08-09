@@ -22,7 +22,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 /**
  * 
  * @author yelkaa
- *
+ * 
  */
 public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
@@ -55,9 +55,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         mountUtils.addToFSTab(args.getMountPath(), export.getMountPoint(), fsType, "nolock,sec=" + args.getSecurity());
         // Mount the device
         mountUtils.mountPath(args.getMountPath());
-        // Set the fs tag containing mount info
-        setTag(fs.getId(), mountUtils.generateMountTag(args.getHostId(), args.getMountPath(),
-                subDirectory, args.getSecurity()));
     }
 
     @Override
@@ -71,8 +68,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         if (mountUtils.isDirectoryEmpty(args.getMountPath())) {
             mountUtils.deleteDirectory(args.getMountPath());
         }
-        String tag = findTag(args.getHostId().toString(), args.getResId().toString(), args.getMountPath());
-        removeTag(args.getResId(), tag);
     }
 
     public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
@@ -101,40 +96,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
             fileExports.addAll(exportMap.values());
         }
         return fileExports;
-    }
-
-    private List<String> getTags(DataObject object) {
-        List<String> mountTags = new ArrayList<String>();
-        if (object.getTag() != null) {
-            for (ScopedLabel label : object.getTag()) {
-                mountTags.add(label.getLabel());
-            }
-        }
-        return mountTags;
-    }
-
-    private void setTag(URI fsId, String tag) {
-        ScopedLabelSet tags = new ScopedLabelSet();
-        FileShare fs = dbClient.queryObject(FileShare.class, fsId);
-        tags.add(new ScopedLabel(fs.getTenant().getURI().toString(), tag));
-        fs.setTag(tags);
-        dbClient.updateObject(fs);
-    }
-
-    private void removeTag(URI fsId, String tag) {
-        FileShare fs = dbClient.queryObject(FileShare.class, fsId);
-        fs.getTag().remove(new ScopedLabel(fs.getTenant().getURI().toString(), tag));
-        dbClient.updateObject(fs);
-    }
-
-    private String findTag(String hostId, String fsId, String mountPath) {
-        List<String> tags = getTags(dbClient.queryObject(FileShare.class, URIUtil.uri(fsId)));
-        for (String tag : tags) {
-            if (tag.contains(hostId) && tag.contains(mountPath)) {
-                return tag;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -189,30 +150,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
         // unmount device
         mountUtils.unmountPath(mountPath);
-    }
-
-    @Override
-    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
-        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
-        // set mount tag on the fs
-        setTag(resId, mountUtils.generateMountTag(hostId, mountPath, subDirectory == null ? "!nodir" : subDirectory, security));
-    }
-
-    @Override
-    public void removeMountTag(URI hostId, String mountPath, URI resId) {
-        // remove mount tag
-        String tag = findTag(hostId.toString(), resId.toString(), mountPath);
-        removeTag(resId, tag);
-    }
-
-    @Override
-    public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId) {
-        String tag = findTag(hostId.toString(), resId.toString(), mountPath);
-        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
-        List<String> mountTags = new ArrayList<String>();
-        mountTags.add(tag);
-        MountInfo mount = mountUtils.convertNFSTagsToMounts(mountTags).get(0);
-        addToFSTab(hostId, mountPath, resId, mount.getSubDirectory(), mount.getSecurityType(), "auto");
     }
 
 }

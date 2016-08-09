@@ -204,55 +204,12 @@ public class MachineTagUtils {
         return client.fileSystems().getTags(fsId);
     }
 
-    public static List<MountInfo> convertNFSTagsToMounts(List<String> mountTags) {
+    public static List<MountInfo> convertMountStringToMounts(List<String> mountTags) {
         List<MountInfo> mountList = new ArrayList<MountInfo>();
-        for (String tag : mountTags) {
-            mountList.add(convertNFSTag(tag));
+        for (String strMount : mountTags) {
+            mountList.add(MountInfo.getMountInfo(strMount));
         }
         return mountList;
-    }
-
-    public static Map<String, MountInfo> getNFSMountInfoFromTags(ViPRCoreClient client) {
-        List<URI> fsIds = client.fileSystems().listBulkIds();
-        Map<String, MountInfo> results = new HashMap<String, MountInfo>();
-        for (URI fsId : fsIds) {
-            List<String> mountTags = new ArrayList<String>();
-            mountTags.addAll(client.fileSystems().getTags(fsId));
-            for (String tag : mountTags) {
-                MountInfo mountInfo = convertNFSTag(tag);
-                if (mountInfo != null) {
-                    mountInfo.setFsId(fsId);
-                    results.put(tag, mountInfo);
-                }
-            }
-        }
-        return results;
-    }
-
-    public static MountInfo convertNFSTag(String tag) {
-        MountInfo mountInfo = new MountInfo();
-        if (tag.startsWith("mountNFS")) {
-            String[] pieces = StringUtils.trim(tag).split(";");
-            if (pieces.length > 1) {
-                mountInfo.setHostId(ViPRExecutionUtils.uri(pieces[1]));
-            }
-            if (pieces.length > 2) {
-                mountInfo.setMountPath(pieces[2]);
-            }
-            if (pieces.length > 3) {
-                mountInfo.setSubDirectory(pieces[3]);
-            }
-            if (pieces.length > 4) {
-                mountInfo.setSecurityType(pieces[4]);
-            }
-            if (pieces.length > 5) {
-                mountInfo.setFsId(ViPRExecutionUtils.uri(pieces[5]));
-            }
-            mountInfo.setTag(tag);
-            return mountInfo;
-        } else {
-            return null;
-        }
     }
 
 }

@@ -23,13 +23,16 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
+import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
@@ -37,6 +40,8 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -54,6 +59,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -176,10 +182,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * to continue to prior steps back up the workflow chain. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
-     *
+     * 
      * @param stepId
      *            The id of the step being rolled back.
-     *
+     * 
      * @throws WorkflowException
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
@@ -1296,7 +1302,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
             String taskId)
-                    throws ControllerException {
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
 
@@ -1392,7 +1398,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && !NullColumnValueGetter.isNullURI(currentCluster)
                             && !oldCluster.equals(currentCluster)
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
-                                    || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
+                            || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
                     // Host is added to a cluster or has moved to a different cluster
                     if ((isAddedToCluster && currentClusterRef.getAutoExportEnabled())
@@ -1703,14 +1709,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 this.getClass(),
                 mountDeviceMethod(args),
                 removeFromFSTabMethod(args), null);
-
-        waitFor = workflow.createStep(null,
-                String.format("Setting tag on :%n%s", args.getResId()),
-                waitFor, args.getHostId(),
-                hostType,
-                this.getClass(),
-                setMountTagMethod(args),
-                removeMountTagMethod(args), null);
         return waitFor;
     }
 
@@ -1742,14 +1740,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 this.getClass(),
                 deleteDirectoryMethod(args),
                 createDirectoryMethod(args), null);
-
-        waitFor = workflow.createStep(null,
-                String.format("Removing Tag on :%n%s", args.getResId()),
-                waitFor, args.getHostId(),
-                hostType,
-                this.getClass(),
-                removeMountTagMethod(args),
-                setMountTagMethod(args), null);
         return waitFor;
     }
 
@@ -1783,12 +1773,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void mount(URI hostId, String mountPath, String stepId) {
+    public void mount(URI resId, URI hostId, String mountPath, String subDir,
+            String security, String fsType, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
             adapter.mountDevice(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
+            createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
         } catch (ControllerException e) {
             WorkflowStepCompleter.stepFailed(stepId, e);
             throw e;
@@ -1813,12 +1805,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void deleteDirectory(URI hostId, String mountPath, String stepId) {
+    public void deleteDirectory(URI resId, URI hostId, String mountPath, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
             adapter.deleteDirectory(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
+            removeMountDBEntry(resId, hostId, mountPath);
         } catch (ControllerException e) {
             WorkflowStepCompleter.stepFailed(stepId, e);
             throw e;
@@ -1858,41 +1851,30 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType, String stepId) {
-        try {
-            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
-            WorkflowStepCompleter.stepExecuting(stepId);
-            adapter.setMountTag(hostId, mountPath, resId, subDirectory, security, fsType);
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (ControllerException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            throw e;
-        } catch (Exception ex) {
-            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
-            throw ex;
-        }
-    }
+    public FileMountInfo getMountInfo(URI hostId, String mountPath, URI resId) {
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(resId);
+        List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                containmentConstraint);
 
-    public void removeMountTag(URI hostId, String mountPath, URI resId, String stepId) {
-        try {
-            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
-            WorkflowStepCompleter.stepExecuting(stepId);
-            adapter.removeMountTag(hostId, mountPath, resId);
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (ControllerException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            throw e;
-        } catch (Exception ex) {
-            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
-            throw ex;
+        if (fsDBMounts != null && !fsDBMounts.isEmpty()) {
+            for (FileMountInfo dbMount : fsDBMounts) {
+                if (dbMount.getHostId().toString().equalsIgnoreCase(hostId.toString())
+                        && dbMount.getMountPath().equalsIgnoreCase(mountPath)) {
+                    _log.debug("Found DB entry with mountpath {} " + mountPath);
+                    return dbMount;
+
+                }
+            }
         }
+        return null;
     }
 
     public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId, String stepId) {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
-            adapter.removeFromFSTabRollBack(hostId, mountPath, resId);
+            FileMountInfo fsMount = getMountInfo(hostId, mountPath, resId);
+            adapter.addToFSTab(hostId, mountPath, resId, fsMount.getSubDirectory(), fsMount.getSecurityType(), "auto");
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
             WorkflowStepCompleter.stepFailed(stepId, e);
@@ -1913,7 +1895,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Method mountDeviceMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("mount", args.getHostId(), args.getMountPath());
+        return new Workflow.Method("mount", args.getResId(), args.getHostId(), args.getMountPath(),
+                args.getSubDirectory(), args.getSecurity(), args.getFsType());
     }
 
     public Method verifyMountPointMethod(HostDeviceInputOutput args) {
@@ -1933,16 +1916,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("deleteDirectory", args.getHostId(), args.getMountPath());
-    }
-
-    public Method setMountTagMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("setMountTag", args.getHostId(), args.getMountPath(), args.getResId(), args.getSubDirectory(),
-                args.getSecurity(), args.getFsType());
-    }
-
-    public Method removeMountTagMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("removeMountTag", args.getHostId(), args.getMountPath(), args.getResId());
+        return new Workflow.Method("deleteDirectory", args.getResId(), args.getHostId(), args.getMountPath());
     }
 
     /**
@@ -1958,5 +1932,38 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             throw DeviceControllerException.exceptions.getDeviceTypeFailed(hostURI.toString());
         }
         return host.getType();
+    }
+
+    private void createMountDBEntry(URI resId, URI hostId, String mountPath, String subDir,
+            String security, String fsType) {
+        FileMountInfo fsMount = new FileMountInfo();
+        fsMount.setId(URIUtil.createId(FileMountInfo.class));
+        fsMount.setFsId(resId);
+        fsMount.setFsType(fsType);
+        fsMount.setHostId(hostId);
+        fsMount.setMountPath(mountPath);
+        fsMount.setSecurityType(security);
+        fsMount.setSubDirectory(subDir);
+        _log.debug("Storing New DB Mount Info {}", fsMount);
+        _dbClient.createObject(fsMount);
+
+    }
+
+    private void removeMountDBEntry(URI resId, URI hostId, String mountPath) {
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(resId);
+        List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                containmentConstraint);
+        if (fsDBMounts != null && !fsDBMounts.isEmpty()) {
+            for (FileMountInfo dbMount : fsDBMounts) {
+                if (dbMount.getHostId().toString().equalsIgnoreCase(hostId.toString())
+                        && dbMount.getMountPath().equalsIgnoreCase(mountPath)) {
+                    _log.debug("Found DB entry with mountpath {} " + mountPath);
+                    // Deactivate the entry!!
+                    dbMount.setInactive(true);
+                    _dbClient.updateObject(dbMount);
+
+                }
+            }
+        }
     }
 }

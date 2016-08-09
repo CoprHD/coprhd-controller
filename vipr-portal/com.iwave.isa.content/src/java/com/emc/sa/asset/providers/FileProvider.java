@@ -826,22 +826,16 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    // for unmount operation
     @Asset("mountedNFSExport")
     @AssetDependencies("linuxFileHost")
-    public List<AssetOption> getMountedNFSExports(AssetOptionsContext ctx, URI host) {
+    public List<AssetOption> getNFSMountsForHost(AssetOptionsContext ctx, URI host) {
         List<AssetOption> options = Lists.newArrayList();
-        Map<String, MountInfo> mountTagMap = MachineTagUtils.getNFSMountInfoFromTags(api(ctx));
-        for (Map.Entry<String, MountInfo> entry : mountTagMap.entrySet()) {
-            if (entry.getValue().getHostId().equals(host)) {
-                options.add(new AssetOption(entry.getKey() + ";" + entry.getValue().getFsId(),
-                        entry.getValue().getSecurityType() + ";"
-                                + api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
-                                + (entry.getValue().getSubDirectory().equalsIgnoreCase("!nodir") ? ""
-                                        : ("/" + entry.getValue().getSubDirectory()))
-                                + ";" + entry.getValue().getMountPath()));
-            }
+        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsHostMounts(host.toString());
+        for (MountInfo mountInfo : hostMounts) {
+            String mountString = mountInfo.getMountString();
+            options.add(new AssetOption(mountString, mountString));
         }
+
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }

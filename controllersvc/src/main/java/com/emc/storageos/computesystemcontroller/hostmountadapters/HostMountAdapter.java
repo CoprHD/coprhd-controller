@@ -14,7 +14,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 /**
  * 
  * @author yelkaa
- *
+ * 
  */
 public interface HostMountAdapter {
     public String getErrorMessage(Throwable t);
@@ -45,7 +45,4 @@ public interface HostMountAdapter {
 
     public void unmountDevice(URI hostId, String mountPath);
 
-    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType);
-
-    public void removeMountTag(URI hostId, String mountPath, URI resId);
 }

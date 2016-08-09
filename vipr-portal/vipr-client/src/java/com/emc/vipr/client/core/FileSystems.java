@@ -39,6 +39,7 @@ import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemUnmountParam;
 import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLs;
@@ -120,6 +121,24 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     protected String getNfsACLsUrl() {
         return "/file/filesystems/{id}/acl";
+    }
+
+    /**
+     * Gets the base URL for NFS mounts for a filesystem: <tt>/file/filesystems/{id}/mount</tt>
+     * 
+     * @return the NFS mounts URL.
+     */
+    protected String getNfsMountsUrl() {
+        return "/file/filesystems/{id}/mount";
+    }
+
+    /**
+     * Gets the base URL for NFS mounts for a host: <tt>/file/filesystems/mounts</tt>
+     * 
+     * @return the NFS mounts URL.
+     */
+    protected String getNfsHostMountsUrl() {
+        return "/file/filesystems/{id}/mount";
     }
 
     @Override
@@ -256,8 +275,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call:
-     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -759,7 +777,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
 
     public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam input) {
-    	return postTasks(input, getContinuousCopiesUrl() + "/failback", id);
+        return postTasks(input, getContinuousCopiesUrl() + "/failback", id);
     }
 
     /**
@@ -837,5 +855,37 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> unmountNFS(URI id, FileSystemUnmountParam input) {
         return postTask(input, getIdUrl() + "/unmount", id);
+    }
+
+    /**
+     * Gets the NFS mounts for the given file system by ID.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/mount</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @return the list of NFS mounts for the given file system.
+     */
+    public List<MountInfo> getNfsMounts(URI id) {
+        MountInfoList response;
+        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), id);
+        return defaultList(response.getMountList());
+    }
+
+    /**
+     * Gets the NFS mounts for the given host by ID.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/mounts/?host</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @return the list of NFS mounts for the given file system.
+     */
+    public List<MountInfo> getNfsHostMounts(String id) {
+        MountInfoList response;
+        Properties queryParam = new Properties();
+        queryParam.setProperty("host", id);
+        response = client.get(MountInfoList.class, getNfsMountsUrl(), queryParam, id);
+        return defaultList(response.getMountList());
     }
 }

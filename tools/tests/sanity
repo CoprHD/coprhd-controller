@@ -4857,14 +4857,13 @@ recoverpoint_direct_access_test()
 
             for tgt_varray in ${rp_tgt_varrays[@]}
             do
-                #if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
-                    # TODO: Uncomment this test and the if/else once COP-22617 has been resolved
-                    #secho 'Verifying that the bookmark associated with the target copy has not been created'
-                    #fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${direct_access_mode_varray}
-                #else
+                if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
+                    secho 'Verifying that the bookmark associated with the target copy has not been created'
+                    fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${direct_access_mode_varray}
+                else
                     secho 'Verifying that the bookmark associated with target copy NOT in direct access mode exists'
                     run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${tgt_varray}
-                #fi
+                fi
             done
         fi
 
@@ -9501,6 +9500,8 @@ dr_multisite_tests()
 
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
+    # COP-23445: We should check if Standby C is SYNCED before initiating a pause command.
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     # pause standby c
     echo "---PAUSE SITE $standby_site_c---"
     time_start pause_standby_c
@@ -12122,7 +12123,7 @@ unityblock_cos_setup()
 
 vplexunity_setup()
 {
-    #run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     
     # Discover the VPLEX storage systems 
     echo "Discovering VPLEX"

@@ -3330,7 +3330,7 @@ public class FileService extends TaskResourceService {
         dest.setFsId(orig.getFsId());
         dest.setHostId(orig.getHostId());
         dest.setMountPath(orig.getMountPath());
-        dest.setSecurityType(dest.getSecurityType());
+        dest.setSecurityType(orig.getSecurityType());
         dest.setSubDirectory(orig.getSubDirectory());
     }
 

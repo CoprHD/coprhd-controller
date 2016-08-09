@@ -23,7 +23,6 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
-import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
@@ -40,7 +39,6 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
-import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
@@ -59,7 +57,6 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -1302,7 +1299,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
             String taskId)
-            throws ControllerException {
+                    throws ControllerException {
         TaskCompleter completer = null;
         try {
 
@@ -1398,7 +1395,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && !NullColumnValueGetter.isNullURI(currentCluster)
                             && !oldCluster.equals(currentCluster)
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
+                                    || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
                     // Host is added to a cluster or has moved to a different cluster
                     if ((isAddedToCluster && currentClusterRef.getAutoExportEnabled())
@@ -1779,8 +1776,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
             adapter.mountDevice(hostId, mountPath);
-            WorkflowStepCompleter.stepSucceded(stepId);
             createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
             WorkflowStepCompleter.stepFailed(stepId, e);
             throw e;

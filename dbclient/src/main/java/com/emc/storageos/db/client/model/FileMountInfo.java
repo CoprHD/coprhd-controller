@@ -27,6 +27,7 @@ public class FileMountInfo extends DataObject {
 
     public void setHostId(URI hostId) {
         this.hostId = hostId;
+        setChanged("hostId");
     }
 
     @RelationIndex(cf = "RelationIndex", type = FileShare.class)
@@ -37,6 +38,7 @@ public class FileMountInfo extends DataObject {
 
     public void setFsId(URI fsId) {
         this.fileSystemId = fsId;
+        setChanged("fileSystemId");
     }
 
     @Name("mountPath")
@@ -46,6 +48,7 @@ public class FileMountInfo extends DataObject {
 
     public void setMountPath(String mountPath) {
         this.mountPath = mountPath;
+        setChanged("mountPath");
     }
 
     @Name("subDirectory")
@@ -55,6 +58,7 @@ public class FileMountInfo extends DataObject {
 
     public void setSubDirectory(String subDirectory) {
         this.subDirectory = subDirectory;
+        setChanged("subDirectory");
     }
 
     @Name("securityType")
@@ -64,6 +68,7 @@ public class FileMountInfo extends DataObject {
 
     public void setSecurityType(String securityType) {
         this.securityType = securityType;
+        setChanged("securityType");
     }
 
     @Name("fsType")
@@ -73,6 +78,7 @@ public class FileMountInfo extends DataObject {
 
     public void setFsType(String fsType) {
         this.fsType = fsType;
+        setChanged("fsType");
     }
 
 }

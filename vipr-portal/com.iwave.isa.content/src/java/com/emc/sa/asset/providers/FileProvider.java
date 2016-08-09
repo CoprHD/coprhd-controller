@@ -833,10 +833,27 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsHostMounts(host.toString());
         for (MountInfo mountInfo : hostMounts) {
             String mountString = mountInfo.getMountString();
-            options.add(new AssetOption(mountString, mountString));
+            options.add(new AssetOption(mountString, getDisplayMount(ctx, mountInfo)));
         }
 
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
+    }
+
+    public String getDisplayMount(AssetOptionsContext ctx, MountInfo mount) {
+        StringBuffer strMount = new StringBuffer();
+
+        String subDirPath = "";
+        if (mount.getSubDirectory() != null && !mount.getSubDirectory().equalsIgnoreCase("!nodir")) {
+            subDirPath = "/" + mount.getSubDirectory();
+        }
+        String fsName = api(ctx).fileSystems().get(mount.getFsId()).getName();
+        strMount.append(mount.getMountPath())
+                .append("(")
+                .append(mount.getSecurityType()).append(",")
+                .append(fsName)
+                .append(subDirPath).append(")");
+
+        return strMount.toString();
     }
 }

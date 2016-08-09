@@ -138,7 +138,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @return the NFS mounts URL.
      */
     protected String getNfsHostMountsUrl() {
-        return "/file/filesystems/{id}/mount";
+        return "/file/filesystems/mounts";
     }
 
     @Override
@@ -275,7 +275,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call:
+     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -868,7 +869,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public List<MountInfo> getNfsMounts(URI id) {
         MountInfoList response;
-        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), id);
+        response = client.get(MountInfoList.class, getNfsMountsUrl(), id);
         return defaultList(response.getMountList());
     }
 
@@ -885,7 +886,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         MountInfoList response;
         Properties queryParam = new Properties();
         queryParam.setProperty("host", id);
-        response = client.get(MountInfoList.class, getNfsMountsUrl(), queryParam, id);
+        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), queryParam, id);
         return defaultList(response.getMountList());
     }
 }

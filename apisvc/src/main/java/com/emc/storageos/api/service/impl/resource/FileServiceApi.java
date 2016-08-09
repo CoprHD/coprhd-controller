@@ -6,6 +6,7 @@ import java.util.List;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -190,4 +191,29 @@ public interface FileServiceApi {
      */
     void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
 
+    /**
+     * Fail over the File System to target system
+     * 
+     * @param fsURI
+     * @param nfsPort
+     * @param cifsPort
+     * @param replicateConfiguration
+     * @param taskId
+     * @throws InternalException
+     */
+    public void failoverFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws InternalException;
+
+    /**
+     * Fail Back to source File System.
+     * 
+     * @param fsURI
+     * @param nfsPort
+     * @param cifsPort
+     * @param replicateConfiguration
+     * @param taskId
+     * @throws InternalException
+     */
+    public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws InternalException;
 }

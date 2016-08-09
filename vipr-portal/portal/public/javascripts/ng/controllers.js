@@ -1388,7 +1388,18 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
+
+angular.module("portalApp").controller('navBarController', function($rootScope, $scope) {
+        $scope.toggleGuide = function(nonav) {
+            $rootScope.$emit("toggleGuideMethod", nonav);
+        }
+});
+
 angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window, translate) {
+
+    $rootScope.$on("toggleGuideMethod", function(event, args){
+       $scope.toggleGuide(args);
+    });
 
     cookieObject = {};
     cookieKey = "VIPR_START_GUIDE";

@@ -113,7 +113,7 @@ public class DefaultVplexVolumeNameFormatter {
             // Just removing beginning of the assembled name may have number in the start
             // Safeguard it by adding the "V" to the start again, as VPLEX does not accept virtual
             // volume names starting with number
-            return VPlexApiConstants.VOLUME_NAME_PREFIX + volumeName.substring(shortenBy);
+            return VPlexApiConstants.VOLUME_NAME_PREFIX + volumeName.substring(shortenBy + 1);
         }
     }
 

@@ -45,8 +45,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     private Integer maxNumOfRetainedCopies; // max number of retained copies for recurrent orders. 
                                             // For snapshot related orders only.
     
-    private StringSet retainedCopies;
-    
     private String orderCreationParam;     // order creation related params
 
     private String storageOSUser;           // user info
@@ -130,16 +128,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
 		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
 		setChanged(MAX_NUM_OF_RETAINED_COPIES);
-	}
-
-	@Name("RetainedCopies")
-	public StringSet getRetainedCopies() {
-		return this.retainedCopies;
-	}
-	
-	public void setRetainedCopies(StringSet retainedCopies) {
-		this.retainedCopies = retainedCopies;
-		setChanged("RetainedCopies");
 	}
 
     @Name(ORDER_CREATION_PARAM)

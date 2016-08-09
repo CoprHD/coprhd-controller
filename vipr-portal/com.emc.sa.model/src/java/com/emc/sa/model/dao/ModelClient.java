@@ -101,6 +101,10 @@ public class ModelClient {
     public <T extends DataObject> T findById(Class<T> clazz, URI id) {
         return client.findById(clazz, id);
     }
+    
+    public <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id) {
+        return client.findBy(clazz, columnField, id);
+    }
 
     /**
      * Finds an object by ID.

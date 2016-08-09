@@ -520,15 +520,12 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 }
             }
 
-            boolean dataCenterChangeDetected = false;
             // check for changes as the following
             // 1) Detect vCenterDatacenter change
             // 2) If no datacenter change, detect cluster change
             // 3) If no datacenter or cluster change, make sure we have updated atleast the new datacenter for the host
             if (!NullColumnValueGetter.isNullURI(change.getOldDatacenter()) && !NullColumnValueGetter.isNullURI(change.getNewDatacenter())
                     && !change.getOldDatacenter().toString().equalsIgnoreCase(change.getNewDatacenter().toString())) {
-                // TODO create event for datacenter change. event will update datacenter, cluster, and tenant for the host (based on
-                // datacenter)
                 VcenterDataCenter oldDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getOldDatacenter());
 
                 VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
@@ -543,7 +540,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
                     oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 }
-                EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
+                EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
                         "Host " + host.getLabel() + " changed datacenter from " + oldDatacenter.getLabel()
                                 + " to " + currentDatacenter.getLabel(),
                         "Host " + host.getLabel() + " will be removed from shared exports for cluster "
@@ -552,10 +549,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         host,
                         "hostDatacenterChange",
                         new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
-                                oldDatacenter.getId(), currentDatacenter.getId(),
-                                isVCenter });
-                dataCenterChangeDetected = true;
-            } else if (!dataCenterChangeDetected && (change.getOldCluster() == null && change.getNewCluster() != null)
+                                currentDatacenter.getId(), isVCenter });
+            } else if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
                     || (change.getOldCluster() != null && change.getNewCluster() != null
                             && !change.getOldCluster().toString().equals(change.getNewCluster().toString()))) {

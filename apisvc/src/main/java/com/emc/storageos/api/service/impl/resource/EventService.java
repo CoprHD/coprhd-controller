@@ -233,7 +233,7 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    private String addInitiatorDetails(URI initiatorId) {
+    public String addInitiatorDetails(URI initiatorId) {
         // TODO current placeholder
         return "addInitiatorDetails";
     }
@@ -268,7 +268,7 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    private String removeInitiatorDetails(URI initiatorId) {
+    public String removeInitiatorDetails(URI initiatorId) {
         // TODO current placeholder
         return "removeInitiatorDetails";
     }
@@ -302,7 +302,7 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    private String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+    public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         // TODO current placeholder
         return "hostDatacenterChangeDetails";
     }
@@ -326,7 +326,7 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    private String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+    public String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         // TODO current placeholder
         return "hostVcenterChangeDetails";
     }
@@ -350,7 +350,7 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    private String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
+    public String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
         // TODO current placeholder
         return "hostClusterChangeDetails";
     }

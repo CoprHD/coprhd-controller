@@ -12,6 +12,7 @@ package com.emc.storageos.cinder.model;
 
 import java.util.Map;
 
+@SuppressWarnings("ClassVariableVisibilityCheck")
 public class VolumeUpdateRequest {
     public Volume volume;
 

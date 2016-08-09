@@ -1352,7 +1352,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
                 volume.setNativeId(driverVolume.getNativeId());
                 volume.setDeviceLabel(driverVolume.getDeviceLabel());
-                volume.setIsDeduplicated(driverVolume.getIsDeduplicated());
                 volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
 
                 if (driverVolume.getWwn() == null) {

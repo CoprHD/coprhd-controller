@@ -88,7 +88,6 @@ public class HP3PARProvisioningHelper {
                 volume.setNativeId(volume.getDisplayName()); // required for volume delete
                 volume.setDeviceLabel(volume.getDisplayName());
                 volume.setAccessStatus(AccessStatus.READ_WRITE);
-                volume.setIsDeduplicated(IsDeDupEnabled);
 
                 // Update Consistency Group
                 String volumeCGName = volume.getConsistencyGroup();

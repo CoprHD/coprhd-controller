@@ -117,8 +117,6 @@ public class StoragePool extends StorageObject {
 
     private SupportedResourceType supportedResourceType;
     
-    private Boolean dedupCapable;
-
 	public static enum SupportedResourceType {
         THICK_ONLY,
         THIN_ONLY,

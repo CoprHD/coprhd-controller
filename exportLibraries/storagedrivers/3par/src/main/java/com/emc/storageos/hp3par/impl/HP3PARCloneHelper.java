@@ -55,9 +55,6 @@ public class HP3PARCloneHelper {
 				clone.setDeviceLabel(clone.getDisplayName());
 				clone.setAccessStatus(clone.getAccessStatus());
 				clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
-				if (volResult.getProvisioningType() == 6) {
-					clone.setIsDeduplicated(true);
-				}
 
 				task.setStatus(DriverTask.TaskStatus.READY);
 				_log.info("createVolumeClone for storage system native id {}, volume clone name {} - end",

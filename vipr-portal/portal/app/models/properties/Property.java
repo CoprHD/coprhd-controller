@@ -165,8 +165,7 @@ public class Property {
         }
     }
 
-    @SuppressWarnings("static-access")
-	protected void validateField(String fieldName, String value) {
+    protected void validateField(String fieldName, String value) {
         if (isPasswordField()) {
             value = PasswordUtil.decryptedValue(value);
         }

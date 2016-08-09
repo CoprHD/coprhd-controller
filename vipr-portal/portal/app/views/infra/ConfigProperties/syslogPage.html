@@ -141,41 +141,38 @@
         var certsArray = [];
 
         $("table#server-table tbody tr").each(function() {
-            var serverIp = $(this).find('input[name=serverIp]');
-            var serverPort = $(this).find('input[name=serverPort]');
-            var hasError = false;
-            if (isBlank(serverIp.val())){
-               setTableError(serverIp);
-               hasError = true;
-            }
-            else { clearTableError(serverIp); }
-
-            if (isBlank(serverPort.val())) {
-               setTableError(serverPort);
-               hasError = true;
-            }
-            else { clearTableError(serverPort); }
-
-            if (hasError) {
-                return true;
-            }
-
-            ipPortArray.push(serverIp.val()+":"+serverPort.val());
-            if ( enableEncrypt === 'yes' ) {
-                var cert = $(this).find('input[name=serverCert]');
-            $('#alerts_error .message').html(cert.val());
-            $('#alerts_error').slideDown('fast');
-                if (isBlank(cert.val())){
-                    setTableError(cert);
-                    hasError = true;
-                 } else { clearTableError(serverIp); }
+            var trId = this.id;
+            if (trId.substring(0,11) !== "server_cert") {
+                var serverIp = $(this).find('input[name=serverIp]');
+                var serverPort = $(this).find('input[name=serverPort]');
+                var hasError = false;
+                if (isBlank(serverIp.val())){
+                   setTableError(serverIp);
+                   hasError = true;
+                } else { clearTableError(serverIp); }
+                if (isBlank(serverPort.val())) {
+                   setTableError(serverPort);
+                   hasError = true;
+                } else { clearTableError(serverPort); }
                 if (hasError) {
-                    return true;
+                   return true;
                 }
-                certsArray.push(cert.val());
-            }
-        });
 
+                ipPortArray.push(serverIp.val()+":"+serverPort.val());
+            } else {
+                if ( enableEncrypt === 'yes' ) {
+                    var cert = $(this).find('textarea[name=serverCert]');
+                    if (isBlank(cert.val())){
+                        cert.siblings().removeClass('ng-hide');
+                        hasError = true;
+                    } else { cert.siblings().addClass('ng-hide'); }
+                    if (hasError) {
+                        return true;
+                    }
+                    certsArray.push(cert.val());
+                }
+            }    
+        });
         updateServers(ipPortArray,certsArray);
     }
 
@@ -217,7 +214,28 @@
 
 #{ConfigProperties.property property:page.syslogEnable, disabled:unstable/}
 #{ConfigProperties.property property:page.syslogEnableTls, disabled:unstable/}
-#{ConfigProperties.property property:page.syslogDriverCa, disabled:unstable/}
+%{
+property = page.syslogDriverCa
+id = property.name
+name = property.name
+originalValue = property.value
+value = flash[name] ?: originalValue
+disabled:unstable;
+}%
+#{set 'error'}#{error name /}#{/set}
+
+<div id="${id}ControlGroup" class="form-group">
+
+    <div class="col-sm-6 controls">
+        <div class="row col-gap-sm" id="backup-time">
+            <textarea id="${id}" style="display:none" name="${name}" class="form-control"  data-originalvalue="${originalValue}">${value}</textarea>
+        </div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
 #{/ConfigProperties.propertySet}
 
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.servers'}

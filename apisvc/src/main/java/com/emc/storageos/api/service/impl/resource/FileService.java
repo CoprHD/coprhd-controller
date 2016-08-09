@@ -54,7 +54,6 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
-import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
 import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -83,7 +82,6 @@ import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
-import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -254,14 +252,14 @@ public class FileService extends TaskResourceService {
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
-                "update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -3826,7 +3824,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3881,7 +3879,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-        // Refresh operation can be performed without any check.
+            // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3915,7 +3913,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4142,7 +4140,9 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(host, Host.class, "id");
         _log.info(String.format("Get list of mounts for host %1$s", host));
 
-        return queryDBHostMounts(host);
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(queryDBHostMounts(host));
+        return mountList;
     }
 
     /**
@@ -4162,7 +4162,9 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         _log.info(String.format("Get list of file system mounts: %1$s", id));
 
-        return queryDBFSMounts(id);
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(queryDBFSMounts(id));
+        return mountList;
     }
 
     /**

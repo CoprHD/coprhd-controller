@@ -8,15 +8,18 @@ import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StringSet;
 
-@Cf("ScheduledEvent")
-public class ScheduledRetention extends DataObject {
+/**
+ * For recurring orders, we keep records of newly created resources to assist resource retention. 
+ */
+@Cf("RetainedResources")
+public class RetainedResource extends DataObject {
     public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
     public static final String RESOURCE_ID = "resourceId";
     public static final String RETAINED_RESOURCE_IDS = "retainedResourceIds";
     
-    private URI scheduledEventId;
-    private URI resourceId;
-    private StringSet retainedResourceIds;
+    private URI scheduledEventId; // which scheduled events create the resource
+    private URI resourceId;       // source volume or cg
+    private StringSet retainedResourceIds; // newly created snapshots or fullcopies for retention
     
     @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)
     @Name(SCHEDULED_EVENT_ID)

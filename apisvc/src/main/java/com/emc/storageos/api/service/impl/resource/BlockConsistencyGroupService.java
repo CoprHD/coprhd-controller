@@ -133,6 +133,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.services.util.TimeUtils;
 
 @Path("/block/consistency-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN,
@@ -559,7 +560,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // Set snapshot type.
             String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
             // Validate the snapshot request.
-            String snapshotName = param.getName();
+            String snapshotName = TimeUtils.formatDateForCurrent(param.getName());
             blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());
             // Set the create inactive flag.
             final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE

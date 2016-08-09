@@ -30,7 +30,7 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
-import com.emc.storageos.db.client.model.uimodels.ScheduledRetention;
+import com.emc.storageos.db.client.model.uimodels.RetainedResource;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -94,14 +94,10 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
-        boolean retentionRequired = isRetentionRequired();
-        
     	Tasks<? extends DataObjectRestRep> tasks = null;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                if (retentionRequired) {
-                    checkRetainedSnapshots(volume.getId().toString());
-                }
+                checkRetainedSnapshots(volume.getId().toString());
                 
                 if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
@@ -111,16 +107,11 @@ public class CreateBlockSnapshotService extends ViPRService {
                     
                 }
                 addAffectedResources(tasks);
-                if (retentionRequired && tasks != null) {
-                    addRetentionResources(volume.getId().toString(), tasks);
-                }
-                
+                addRetainedResources(volume.getId().toString(), tasks);
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
-                if (retentionRequired) {
-                    checkRetainedSnapshots(consistencyGroupId);
-                }
+                checkRetainedSnapshots(consistencyGroupId);
                 
                 if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = ConsistencyUtils.createSnapshotSession(uri(consistencyGroupId), nameParam, 
@@ -129,9 +120,7 @@ public class CreateBlockSnapshotService extends ViPRService {
                     tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
                 }
                 addAffectedResources(tasks);
-                if (retentionRequired && tasks != null) {
-                    addRetentionResources(consistencyGroupId, tasks);
-                }
+                addRetainedResources(consistencyGroupId, tasks);
             }
         }
     }
@@ -148,25 +137,33 @@ public class CreateBlockSnapshotService extends ViPRService {
         return true;
     }
         
-    private void addRetentionResources(String sourceResourceId, Tasks<? extends DataObjectRestRep> tasks) {
+    private void addRetainedResources(String sourceResourceId, Tasks<? extends DataObjectRestRep> tasks) {
+        if (!isRetentionRequired()) {
+            return;
+        }
+        if (tasks == null) {
+            return;
+        }
+        
         ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
-        ScheduledRetention retention = new ScheduledRetention();
+        RetainedResource retention = new RetainedResource();
         retention.setScheduledEventId(event.getId());
         retention.setResourceId(uri(sourceResourceId));
         StringSet retainedResource = new StringSet();
         retention.setRetainedResourceIds(retainedResource);
         
     	for (Task<? extends DataObjectRestRep> task : tasks.getTasks()) {
-            URI resourceId = task.getResourceId();
-            if (resourceId != null) {
-            	retainedResource.add(resourceId.toString());
-            	info("Add %s to scheduled event %s as retention resource", resourceId, event.getId());
-            }
-            if (task.getAssociatedResources() != null
+    	    if (task.getAssociatedResources() != null
                     && !task.getAssociatedResources().isEmpty()) {
                 for (URI id : ResourceUtils.refIds(task.getAssociatedResources())) {
                     retainedResource.add(id.toString());
-                    info("Add %s to scheduled event %s as retention resource", resourceId, event.getId());
+                    info("Add task associated resource %s to scheduled event %s", id, event.getId());
+                }
+            } else {
+    	        URI resourceId = task.getResourceId();
+                if (resourceId != null) {
+                	retainedResource.add(resourceId.toString());
+                	info("Add task resource %s to scheduled event %s", resourceId, event.getId());
                 }
             }
         }
@@ -175,46 +172,49 @@ public class CreateBlockSnapshotService extends ViPRService {
     }
     
     private void checkRetainedSnapshots(String resourceId) {
-    	ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
+        if (!isRetentionRequired()) {
+            return;
+        }
+        RetainedResource retainedResource = findObsoleteResource(resourceId);
+    	info("Deactivating block snapshot %s since it exceeds max snapshots allowed", retainedResource.getId());
+    	for (String obsoleteResourceId : retainedResource.getRetainedResourceIds()) {
+        	if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+        	    execute(new DeactivateBlockSnapshot(uri(obsoleteResourceId), VolumeDeleteTypeEnum.FULL));
+        	} else {
+        	    ConsistencyUtils.removeSnapshot(uri(resourceId), uri(obsoleteResourceId));
+        	}
+    	}
+    	getModelClient().delete(retainedResource);
+        info("Remove block snapshot %s from retention list of scheduled event", retainedResource.getId());
+    }
+    
+    private RetainedResource findObsoleteResource(String resourceId) {
+        ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
         Integer maxNumOfCopies = event.getMaxNumOfRetainedCopies(); 
         
         ModelClient modelClient = getModelClient();
-        List<NamedElement> retentionList = modelClient.findBy(ScheduledRetention.class, "scheduledEventId", event.getId());
+        List<NamedElement> retentionList = modelClient.findBy(RetainedResource.class, "scheduledEventId", event.getId());
         
-        List<ScheduledRetention> retentions = new ArrayList<ScheduledRetention>();
+        List<RetainedResource> retentions = new ArrayList<RetainedResource>();
         for (NamedElement uri : retentionList) {
-            ScheduledRetention retention = modelClient.findById(ScheduledRetention.class, uri.getId());
+            RetainedResource retention = modelClient.findById(RetainedResource.class, uri.getId());
             if (retention.getResourceId().toString().equals(resourceId)) {
                 retentions.add(retention);
             }
         }
-        
-        while (retentions.size() >= maxNumOfCopies) {
-            ScheduledRetention retention = getOldestResource(retentions);
-        	info("Deactivating block snapshot %s since it exceeds max snapshots allowed %d", retention.getId(), maxNumOfCopies);
-        	for (String retainedResourceId : retention.getRetainedResourceIds()) {
-            	if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            	    execute(new DeactivateBlockSnapshot(uri(retainedResourceId), VolumeDeleteTypeEnum.FULL));
-            	} else {
-            	    ConsistencyUtils.removeSnapshot(uri(resourceId), uri(retainedResourceId));
-            	}
-        	}
-        	modelClient.delete(retention);
-        	retentionList.remove(retention);
-            info("Remove block snapshot %s from retention list of scheduled event", retention.getId());
-        }
-    }
-    
-    private ScheduledRetention getOldestResource(List<ScheduledRetention> retentions) {
-        Calendar oldest = Calendar.getInstance();
-        ScheduledRetention oldestObjectId = null;
-        for(ScheduledRetention retention : retentions) {
-            Calendar creationTime = retention.getCreationTime();
-            if (creationTime.before(oldest)) {
-                oldestObjectId = retention;
-                oldest = creationTime;
+        if (retentions.size() >= maxNumOfCopies) {
+            // find the oldest one to remove
+            Calendar oldest = Calendar.getInstance();
+            RetainedResource oldestResource = null;
+            for(RetainedResource resource : retentions) {
+                Calendar creationTime = resource.getCreationTime();
+                if (creationTime.before(oldest)) {
+                    oldestResource = resource;
+                    oldest = creationTime;
+                }
             }
+            return oldestResource;
         }
-        return oldestObjectId;
+        return null;
     }
 }

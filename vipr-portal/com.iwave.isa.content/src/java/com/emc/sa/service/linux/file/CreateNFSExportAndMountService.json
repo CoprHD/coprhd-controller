@@ -65,7 +65,18 @@
                     validation: {
                         regEx: "/[A-Za-z0-9/_\.\-]*"
                     }
-                }
+                },
+                fsType:{
+      				type: "choice",
+      				initialValue: "auto",
+      				select: "one",
+      				options: {
+        				"auto": "auto",
+        				"nfs": "nfs",
+        				"nfs4": "nfs4"
+      				},
+      				lockable: true
+    			}
             }
         },
         

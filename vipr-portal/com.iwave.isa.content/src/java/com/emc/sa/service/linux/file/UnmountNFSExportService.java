@@ -42,6 +42,8 @@ public class UnmountNFSExportService extends LinuxService {
 
     @Override
     public void execute() {
+        mountList = MachineTagUtils.convertMountStringToMounts(mountTags);
+        unmountNFSExportHelper.setMounts(mountList);
         unmountNFSExportHelper.unmountExports();
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());

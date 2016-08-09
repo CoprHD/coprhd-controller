@@ -23,7 +23,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
-import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ChangeFileVirtualPool;
 import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
@@ -644,94 +643,86 @@ public class FileStorageUtils {
 
         @Param
         protected String permission;
+
+        public List<String> getExportHosts() {
+            return exportHosts;
+        }
+
+        public void setExportHosts(List<String> exportHosts) {
+            this.exportHosts = exportHosts;
+        }
+
+        public String getSecurity() {
+            return security;
+        }
+
+        public void setSecurity(String security) {
+            this.security = security;
+        }
+
+        public String getPermission() {
+            return permission;
+        }
+
+        public void setPermission(String permission) {
+            this.permission = permission;
+        }
     }
 
     public static class Mount {
         @Param
-        public URI host;
+        private URI host;
 
         @Param
-        public String security;
+        private String security;
 
         @Param
-        public String permission;
+        private String permission;
 
         @Param
-        public String mountPath;
-    }
+        private String mountPath;
 
-    public static String createFileSystemExport(URI fileSystemId, String comment, Mount mountList, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, mountList.security, mountList.permission, DEFAULT_ROOT_USER,
-                mountList.host, subDirectory);
-    }
+        @Param
+        private String fsType;
 
-    private static String createFileSystemExport(URI fileSystemId, String comment, String security, String permission,
-            String defaultRootUser, URI hostId, String subDirectory) {
-        List<String> exportHosts = new ArrayList<String>();
-        exportHosts.add(BlockStorageUtils.getHost(hostId).getHostName());
-        Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permission,
-                defaultRootUser, exportHosts, subDirectory));
-        addAffectedResource(task);
-        String exportId = task.getResourceId().toString();
-        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null));
-        logInfo("file.storage.export.task", exportId, task.getOpId());
-        return exportId;
-    }
-
-    public static String updateFileSystemExport(URI fileSystemId, String subDirectory, Mount[] mountList) {
-        List<ExportRule> exportRuleList = getFileSystemExportRules(fileSystemId, false, subDirectory);
-        Set<String> existingRuleSet = Sets.newHashSet();
-        for (ExportRule rule : exportRuleList) {
-            existingRuleSet.add(rule.getSecFlavor());
+        public URI getHost() {
+            return host;
         }
 
-        Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
-        for (Mount mount : mountList) {
-            String hostName = BlockStorageUtils.getHost(mount.host).getHostName();
-            if (!rules.containsKey(mount.security)) {
-                Map<String, Set<String>> rule = Maps.newHashMap();
-                rule.put(mount.permission, Sets.newHashSet(hostName));
-                rules.put(mount.security, rule);
-            } else if (!rules.get(mount.security).containsKey(mount.permission)) {
-                rules.get(mount.security).put(mount.permission, Sets.newHashSet(hostName));
-            } else {
-                rules.get(mount.security).get(mount.permission).add(hostName);
-            }
-        }
-        List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
-        List<ExportRule> exportRuleListToModify = Lists.newArrayList();
-        for (String sec : rules.keySet()) {
-            Map<String, Set<String>> rule = rules.get(sec);
-            ExportRule exportRule = new ExportRule();
-            exportRule.setFsID(fileSystemId);
-            exportRule.setSecFlavor(sec);
-            exportRule.setReadOnlyHosts(rule.get(FileShareExport.Permissions.ro.name()));
-            exportRule.setReadWriteHosts(rule.get(FileShareExport.Permissions.rw.name()));
-            exportRule.setRootHosts(rule.get(FileShareExport.Permissions.root.name()));
-            exportRule.setAnon(DEFAULT_ROOT_USER);
-            if (existingRuleSet.contains(exportRule.getSecFlavor())) {
-                exportRuleListToModify.add(exportRule);
-            } else {
-                exportRuleListToAdd.add(exportRule);
-            }
+        public void setHost(URI host) {
+            this.host = host;
         }
 
-        FileShareExportUpdateParams params = new FileShareExportUpdateParams();
-        if (!exportRuleListToAdd.isEmpty()) {
-            ExportRules exportRulesToAdd = new ExportRules();
-            exportRulesToAdd.setExportRules(exportRuleListToAdd);
-            params.setExportRulesToAdd(exportRulesToAdd);
+        public String getSecurity() {
+            return security;
         }
-        if (!exportRuleListToModify.isEmpty()) {
-            ExportRules exportRulesToModify = new ExportRules();
-            exportRulesToModify.setExportRules(exportRuleListToModify);
-            params.setExportRulesToModify(exportRulesToModify);
-        }
-        Task<FileShareRestRep> task = execute(new UpdateFileSystemExport(fileSystemId, subDirectory, params));
-        addAffectedResource(task);
-        String exportId = task.getResourceId().toString();
-        logInfo("file.storage.export.task", exportId, task.getOpId());
-        return exportId;
 
+        public void setSecurity(String security) {
+            this.security = security;
+        }
+
+        public String getPermission() {
+            return permission;
+        }
+
+        public void setPermission(String permission) {
+            this.permission = permission;
+        }
+
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        public void setMountPath(String mountPath) {
+            this.mountPath = mountPath;
+        }
+
+        public String getFsType() {
+            return fsType;
+        }
+
+        public void setFsType(String fsType) {
+            this.fsType = fsType;
+        }
     }
 }

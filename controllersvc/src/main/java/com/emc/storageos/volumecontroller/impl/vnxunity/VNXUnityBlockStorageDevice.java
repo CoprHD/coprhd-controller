@@ -268,6 +268,10 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             Set<URI> updateStoragePools = new HashSet<URI>();
             for (Volume volume : volumes) {
                 String lunId = volume.getNativeId();
+                if (NullColumnValueGetter.isNullValue(lunId)) {
+                    logger.info(String.format("The volume %s does not have native id, do nothing", volume.getLabel()));
+                    continue;
+                }
                 updateStoragePools.add(volume.getPool());
                 if (!apiClient.checkLunExists(lunId)) {
                     logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));
@@ -681,15 +685,19 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 if (id != null && !id.isEmpty()) {
                     apiClient.deleteConsistencyGroup(id, false, false);
                     URI systemURI = storage.getId();
-                    consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                    if (consistencyGroup != null) {
+                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                    }
                 }
             }
-            if (markInactive) {
+            if (markInactive && consistencyGroup != null) {
                 consistencyGroup.setInactive(true);
                 logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             }
             
-            dbClient.updateObject(consistencyGroup);
+            if (consistencyGroup != null) {
+                dbClient.updateObject(consistencyGroup);
+            }
 
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -873,8 +881,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                 }
             }
-            String cgId = apiClient.getConsistencyGroupIdByName(cgName);
-            apiClient.removeLunsFromConsistencyGroup(cgId, luns);
+            if (cgName != null) {
+                String cgId = apiClient.getConsistencyGroupIdByName(cgName);
+                apiClient.removeLunsFromConsistencyGroup(cgId, luns);
+            } else {
+                logger.warn(String.format("The block object %s is not in a CG", blockObjects.get(0).toString()));
+            }
             taskCompleter.ready(dbClient);
             logger.info("Remove volumes from the consistency group successfully");
         } catch (Exception e) {

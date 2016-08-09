@@ -40,6 +40,9 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
 
+    // resource placement policy
+    private String placementPolicy;
+
     public BlockVirtualPoolParam() {
     }
 
@@ -344,5 +347,20 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     @JsonIgnore
     public boolean isHostIOLimitIOPsSet() {
         return hostIOLimitIOPs != null && hostIOLimitIOPs > 0;
+    }
+
+    /**
+     * Resource placement policy used by the virtual pool.
+     * Valid values:
+     *  default_policy (storage system/pool selection based on metrics and capacity)
+     *  array_affinity (storage system/pool selection based on host/cluster's array affinity first, then metrics and capacity)
+     */
+    @XmlElement(name = "placement_policy")
+    public String getPlacementPolicy() {
+        return placementPolicy;
+    }
+
+    public void setPlacementPolicy(String placementPolicy) {
+        this.placementPolicy = placementPolicy;
     }
 }

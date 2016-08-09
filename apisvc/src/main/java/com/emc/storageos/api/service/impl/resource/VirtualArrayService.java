@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collection;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -428,8 +427,8 @@ public class VirtualArrayService extends TaggedResource {
         VirtualArray varray = new VirtualArray();
         varray.setId(URIUtil.createId(VirtualArray.class));
         varray.setLabel(param.getLabel());
-        if (param.getAutoSanZoning() != null) {
-            varray.setAutoSanZoning(param.getAutoSanZoning());
+        if (param.getBlockSettings().getAutoSanZoning() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
         } else {
             varray.setAutoSanZoning(true);
         }
@@ -468,8 +467,8 @@ public class VirtualArrayService extends TaggedResource {
             varray.setLabel(param.getLabel());
         }
 
-        if (param.getAutoSanZoning() != null) {
-            varray.setAutoSanZoning(param.getAutoSanZoning());
+        if (param.getBlockSettings().getAutoSanZoning() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {
@@ -979,12 +978,14 @@ public class VirtualArrayService extends TaggedResource {
         list.setVArrayId(id);
         ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
         List<StoragePool> pools = getVirtualArrayPools(Arrays.asList(id), cache).get(id);
+
         Map<String, Set<String>> availableAttrs = _matcherFramework.getAvailableAttributes(id, pools, cache,
                 AttributeMatcher.VPOOL_MATCHERS);
         cache.clearCache();
         for (Map.Entry<String, Set<String>> entry : availableAttrs.entrySet()) {
             list.getAttributes().add(new VirtualPoolAvailableAttributesResourceRep(entry.getKey(), entry.getValue()));
         }
+
         return list;
     }
 

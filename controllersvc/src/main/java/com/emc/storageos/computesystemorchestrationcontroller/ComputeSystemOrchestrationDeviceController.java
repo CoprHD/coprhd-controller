@@ -81,6 +81,7 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
                     .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
             completer.error(_dbClient, exception);
             _workflowService.releaseAllWorkflowLocks(workflow);
+            throw ex;
         }
     }
 
@@ -117,6 +118,7 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
                     .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
             completer.error(_dbClient, exception);
             _workflowService.releaseAllWorkflowLocks(workflow);
+            throw ex;
         }
     }
 }

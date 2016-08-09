@@ -44,8 +44,16 @@ var routes = {
   Hosts_edit: #{jsAction @compute.Hosts.edit(':id')/},
   HostClusters_edit: #{jsAction @compute.HostClusters.edit(':id')/},
   StorageSystems_edit: #{jsAction @arrays.StorageSystems.edit(':id')/},
+  StorageSystems_list: #{jsAction @arrays.StorageSystems.listJson()/},
+  StorageSystems_itemDetails: #{jsAction @arrays.StorageSystems.arrayPoolsJson(':id')/},
+  StorageSystems_itemsJson: #{jsAction @arrays.StorageSystems.itemsJson(':ids')/},
+  StorageProviders_itemsJson: #{jsAction @arrays.StorageProviders.itemsJson(':ids')/},
+  StorageProviders_discoveryCheckJson: #{jsAction @arrays.StorageProviders.discoveryCheckJson(':ids')/},
+  StorageSystems_discoveryCheckJson: #{jsAction @arrays.StorageSystems.discoveryCheckJson(':ids')/},
+  StorageProviders_getAllFlashStorageSystemsList: #{jsAction @arrays.StorageProviders.getAllFlashStorageSystemsList(':ids')/},
   StorageSystems_getProjectsForNas: #{jsAction @arrays.StorageSystems.getProjectsForNas()/},
   SanSwitches_edit: #{jsAction @arrays.SanSwitches.edit(':id')/},
+  SanSwitches_list: #{jsAction @arrays.SanSwitches.listJson()/},
   DataProtectionSystems_edit: #{jsAction @arrays.DataProtectionSystems.edit(':id')/},
   StorageProviders_edit: #{jsAction @arrays.StorageProviders.edit(':id')/},
   VCenter_edit: #{jsAction @compute.VCenters.edit(':id')/},
@@ -75,11 +83,24 @@ var routes = {
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
-  
+
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},
 
   ComputeSystem_edit: #{jsAction @compute.ComputeSystems.edit(':id  ') /},
   
-  Common_clusterInfoJson: #{jsAction @Common.clusterInfoWithRoleCheckJson() /}
+  Common_clusterInfoJson: #{jsAction @Common.clusterInfoWithRoleCheckJson() /},
+
+  Setup_license: #{jsAction @Setup.isLicensed() /},
+  Setup_initialSetup: #{jsAction @Setup.isInitialSetupComplete() /},
+  Projects_list: #{jsAction @tenant.Projects.listJson() /},
+  BlockVirtualPools_list: #{jsAction @arrays.BlockVirtualPools.listJson() /},
+  BlockVirtualPools_pools: #{jsAction @arrays.BlockVirtualPools.listStoragePoolsbyIdJson(':id') /},
+  FileVirtualPools_list: #{jsAction @arrays.FileVirtualPools.listJson() /},
+  VirtualArrays_list: #{jsAction @VirtualArrays.listJson() /},
+  VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /},
+  Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
+  VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
+  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /}
+
 };

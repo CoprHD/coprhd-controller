@@ -23,6 +23,18 @@
     securityType:{
       type:"assetType.vipr.securityType"
     },
+    
+    fsType:{
+      type: "choice",
+      initialValue: "auto",
+      select: "one",
+      options: {
+        "auto": "auto",
+        "nfs": "nfs",
+        "nfs4": "nfs4"
+      },
+      lockable: true
+    },
         
     mountPath:{
       type:"text",

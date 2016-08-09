@@ -50,11 +50,12 @@ public class MountNFSExportHelper {
         throw new IllegalArgumentException("no exports found");
     }
 
-    public void mountExport(URI fsId, URI hostId, String subDirectory, String mountPath, String securityType, String hostName) {
+    public void mountExport(URI fsId, URI hostId, String subDirectory, String mountPath, String securityType, String hostName,
+            String fsType) {
         FileShareRestRep fs = FileStorageUtils.getFileSystem(fsId);
         FileSystemExportParam export = findExport(fs, subDirectory, securityType);
         logInfo("linux.mount.file.export.mount", export.getMountPoint(), mountPath, hostName);
-        FileStorageUtils.mountNfsExport(hostId, fs.getId(), subDirectory, mountPath, securityType, "auto");
+        FileStorageUtils.mountNfsExport(hostId, fs.getId(), subDirectory, mountPath, securityType, fsType);
         ExecutionUtils.addAffectedResource(fs.getId().toString());
     }
 }

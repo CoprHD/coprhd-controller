@@ -171,6 +171,7 @@ import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.iwave.ext.command.CommandException;
 
 @Path("/file/filesystems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -253,14 +254,14 @@ public class FileService extends TaskResourceService {
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
-                "update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -2037,7 +2038,7 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateFSExportRules(@PathParam("id") URI id, @QueryParam("subDir") String subDir,
-            @QueryParam("unmount") boolean unmount, FileShareExportUpdateParams param) throws InternalException {
+            FileShareExportUpdateParams param) throws InternalException {
 
         // log input received.
         _log.info("Update FS Export Rules : request received for {}  with {}", id, param);
@@ -2076,19 +2077,10 @@ public class FileService extends TaskResourceService {
             exportVerificationUtility.verifyExports(fs, null, param);
 
             // Verify whether any mounts present on the export or not
-            // If mount present on the host, unmount if user wanted to do so!!!
             List<MountInfo> unmountList = getMountedExports(id, subDir, param);
-            if (unmount && !unmountList.isEmpty()) {
+            if (!unmountList.isEmpty()) {
                 throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
             }
-
-            if (unmount) {
-                for (MountInfo mount : unmountList) {
-                    FileSystemUnmountParam unmountParam = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
-                    unmount(id, queryResource(id), unmountParam);
-                }
-            }
-
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
             FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
             fileServiceApi.updateExportRules(device.getId(), fs.getId(), param, task);
@@ -2128,7 +2120,7 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep deleteFSExportRules(@PathParam("id") URI id, @QueryParam("allDirs") boolean allDirs,
-            @QueryParam("subDir") String subDir, @QueryParam("unmount") boolean unmount) {
+            @QueryParam("subDir") String subDir) {
 
         // log input received.
         _log.info("Delete Export Rules : request received for {}, with allDirs : {}, subDir : {}", new Object[] { id, allDirs, subDir });
@@ -2139,14 +2131,9 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        if (!unmount && isExportMounted(id, subDir, allDirs)) {
+        if (isExportMounted(id, subDir, allDirs)) {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
-
-        if (unmount) {
-            unmountAllAssociatedExports(id, subDir);
-        }
-
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         String path = fs.getPath();
@@ -3839,7 +3826,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3894,7 +3881,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-        // Refresh operation can be performed without any check.
+            // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3928,7 +3915,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4170,7 +4157,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/mount")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public MountInfoList getMountList(@PathParam("id") URI id) {
+    public MountInfoList getMountListForFS(@PathParam("id") URI id) {
 
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         _log.info(String.format("Get list of file system mounts: %1$s", id));
@@ -4277,7 +4264,7 @@ public class FileService extends TaskResourceService {
         List<MountInfo> mountList = getAllMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         if (param.getExportRulesToDelete() != null) {
-            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
+            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
         }
         if (param.getExportRulesToModify() != null) {
             unmountList.addAll(getModifyRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
@@ -4327,9 +4314,14 @@ public class FileService extends TaskResourceService {
     private void unmountAllAssociatedExports(URI id, String subDir) {
         List<MountInfo> mountList = getAllMounts(id);
         for (MountInfo mount : mountList) {
-            if ((mount.getSubDirectory() == "!nodir" && subDir == null) || mount.getSubDirectory() == subDir) {
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null)
+                    || subDir.equalsIgnoreCase(mount.getSubDirectory())) {
                 FileSystemUnmountParam param = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
-                unmount(id, queryResource(id), param);
+                try {
+                    unmount(id, queryResource(id), param);
+                } catch (CommandException ex) {
+                    throw APIException.internalServerErrors.unexpectedHostOperationError(ex.getMessage());
+                }
             }
         }
     }

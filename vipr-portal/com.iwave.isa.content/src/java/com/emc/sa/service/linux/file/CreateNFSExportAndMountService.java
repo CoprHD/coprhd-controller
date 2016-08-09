@@ -15,6 +15,8 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -23,6 +25,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
+import com.emc.sa.service.vipr.file.FileStorageUtils.FileExportRule;
 import com.emc.sa.service.vipr.file.FileStorageUtils.Mount;
 import com.emc.storageos.db.client.model.Host;
 
@@ -80,22 +83,36 @@ public class CreateNFSExportAndMountService extends ViPRService {
         int tempSoftLimit = (softLimit != null) ? softLimit.intValue() : 0;
         int tempAdvisoryLimit = (advisoryLimit != null) ? advisoryLimit.intValue() : 0;
         int tempGracePeriod = (gracePeriod != null) ? gracePeriod.intValue() : 0;
+
+        // convert mount object to export
+        List<FileExportRule> exportList = new ArrayList<FileExportRule>();
+        for (Mount mount : mountList) {
+            FileExportRule export = new FileExportRule();
+            List<String> exportHosts = new ArrayList<String>();
+            exportHosts.add(BlockStorageUtils.getHost(mount.getHost()).getHostName());
+            export.setExportHosts(exportHosts);
+            export.setPermission(mount.getPermission());
+            export.setSecurity(mount.getSecurity());
+            exportList.add(export);
+        }
+
         // create filesystem
         URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempAdvisoryLimit,
                 tempSoftLimit, tempGracePeriod);
 
         // create nfs export
         if (mountList != null) {
-            FileStorageUtils.createFileSystemExport(fileSystemId, comment, mountList[0], null);
+            FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportList.get(0), null);
             if (mountList.length > 1) {
-                FileStorageUtils.updateFileSystemExport(fileSystemId, null, mountList);
+                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));
             }
         }
         // mount the exports
         for (Mount mount : mountList) {
-            Host host = BlockStorageUtils.getHost(mount.host);
-            mountNFSExportHelper.mountExport(fileSystemId, mount.host, null, mount.mountPath, mount.security, host.getHostName());
-            ExecutionUtils.addAffectedResource(mount.host.toString());
+            Host host = BlockStorageUtils.getHost(mount.getHost());
+            mountNFSExportHelper.mountExport(fileSystemId, mount.getHost(), null, mount.getMountPath(), mount.getSecurity(),
+                    host.getHostName(), mount.getFsType());
+            ExecutionUtils.addAffectedResource(mount.getHost().toString());
         }
     }
 }

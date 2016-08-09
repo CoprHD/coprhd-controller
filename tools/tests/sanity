@@ -7686,7 +7686,9 @@ export_initiator()
     run export_group delete $exp
     run blocksnapshot delete $snap1
     # TODO Only for vmax3
-    run snapshotsession delete $snap1
+    if ! [ ${SS} = "vnxblock" -o ${SS} = "vnxblock_flex_varray" ]; then
+        run snapshotsession delete $snap1
+    fi
 }
 
 # =======================================================================================

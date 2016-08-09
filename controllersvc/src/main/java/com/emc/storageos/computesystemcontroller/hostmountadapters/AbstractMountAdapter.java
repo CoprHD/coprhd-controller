@@ -232,18 +232,6 @@ public abstract class AbstractMountAdapter implements HostMountAdapter {
     }
 
     @Override
-    public void setMountTag(URI hostId, String mountPath, URI resId, String subDirectory, String security, String fsType) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void removeMountTag(URI hostId, String mountPath, URI resId) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
     public void removeFromFSTabRollBack(URI hostId, String mountPath, URI resId) {
         // TODO Auto-generated method stub
 

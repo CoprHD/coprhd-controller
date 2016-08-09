@@ -527,6 +527,7 @@ Hosts.detachStorageModal=Detach Storage
 Hosts.detachStorageModal.help=Detach any storage from the selected host(s) before deactivating.
 Hosts.detachStorageConfirm=Are you sure you want to detach storage from the selected Hosts?
 Hosts.detachStorage=Task initiated to detach storage from selected hosts.
+Hosts.arrayAffinityDiscoveryInitiated=Tasks initiated to discover array affinity on all supported storage systems for the selected hosts.
 
 Hosts.initiators.title=Host Initiators
 Hosts.initiators.description=
@@ -3912,6 +3913,7 @@ button.done=Done
 button.ok=OK
 button.remove=Remove
 button.rediscover=Rediscover
+button.discoverArrayAffinity=Discover Array Affinity
 button.manage=Manage
 button.detachStorage=Detach Storage
 button.register=Register

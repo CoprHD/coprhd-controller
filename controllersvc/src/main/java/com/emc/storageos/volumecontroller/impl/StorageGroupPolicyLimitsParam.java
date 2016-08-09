@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;

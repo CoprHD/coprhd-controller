@@ -309,10 +309,9 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     + ", " + HOST_IO_LIMIT_IOPS
                     + ", " + HOST_IO_LIMIT_BANDWIDTH
                     + ", " + IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED
-                    + ", " + ASSIGNED_STORAGE_POOLS);
-            //TODO : Bharath, is vmax compression an option here?
-            
-            
+                    + ", " + ASSIGNED_STORAGE_POOLS
+                    + ", " + VMAX_COMPRESSION_ENABLED);
+                                  
             if (!isRPVPlex) {
                 // For VPLEX, return null because the migrate operation is not valid.
                 // For RP+VPLEX, all this means is that there is no migration required
@@ -449,11 +448,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // provisioningType, useMatchedPools, arrayInfo, driveType,
         // autoTierPolicyName, host io limits, host io bandwidth,
         // thin volume allocation, assigned storage pools.
-        
-        //TODO: Bharath - does compression necessitate migration? check. 
+                
         String[] include = new String[] { PROTOCOLS, PROVISIONING_TYPE,
                 USE_MATCHED_POOLS, ARRAY_INFO,
-                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH,
+                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED,
                 IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED,
                 ASSIGNED_STORAGE_POOLS };
 

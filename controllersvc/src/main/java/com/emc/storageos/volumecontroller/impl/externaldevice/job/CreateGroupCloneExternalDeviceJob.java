@@ -90,22 +90,7 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
         try {
             // post process storage pool capacity for clone's pools
             // map clones to their storage pool
-            Map<URI, List<URI>> dbPoolToClone = new HashMap<>();
-            for (Volume clone : updatedVolumes) {
-                URI dbPoolUri = clone.getPool();
-                List<URI> poolClones = dbPoolToClone.get(dbPoolUri);
-                if (poolClones == null) {
-                    poolClones = new ArrayList<>();
-                    dbPoolToClone.put(dbPoolUri, poolClones);
-                }
-                poolClones.add(clone.getId());
-            }
-            StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, _storageSystemURI);
-            for (URI dbPoolUri : dbPoolToClone.keySet()) {
-                StoragePool dbPool = dbClient.queryObject(StoragePool.class, dbPoolUri);
-                ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
-                        dbPoolToClone.get(dbPoolUri), dbClient);
-            }
+            updateStoragePoolCapacityAfterCompletion(updatedVolumes, dbClient);
         } catch (Exception ex) {
             s_logger.error("Failed to update storage pool after create group clone operation completion.", ex);
         }
@@ -133,24 +118,34 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
         try {
             // post process storage pool capacity for clone's pools
             // map clones to their storage pool
-            Map<URI, List<URI>> dbPoolToClone = new HashMap<>();
-            for (Volume clone : volumes) {
-                URI dbPoolUri = clone.getPool();
-                List<URI> poolClones = dbPoolToClone.get(dbPoolUri);
-                if (poolClones == null) {
-                    poolClones = new ArrayList<>();
-                    dbPoolToClone.put(dbPoolUri, poolClones);
-                }
-                poolClones.add(clone.getId());
-            }
-            StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, _storageSystemURI);
-            for (URI dbPoolUri : dbPoolToClone.keySet()) {
-                StoragePool dbPool = dbClient.queryObject(StoragePool.class, dbPoolUri);
-                ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
-                        dbPoolToClone.get(dbPoolUri), dbClient);
-            }
+            updateStoragePoolCapacityAfterCompletion(volumes, dbClient);
         } catch (Exception ex) {
             s_logger.error("Failed to update storage pool after create group clone operation completion.", ex);
+        }
+    }
+
+    /**
+     * Updates capacity of storage pools used for clones.
+     * 
+     * @param clones list of clones
+     * @param dbClient db client
+     */
+    private void updateStoragePoolCapacityAfterCompletion(List<Volume> clones, DbClient dbClient) {
+        Map<URI, List<URI>> dbPoolToClone = new HashMap<>();
+        for (Volume clone : clones) {
+            URI dbPoolUri = clone.getPool();
+            List<URI> poolClones = dbPoolToClone.get(dbPoolUri);
+            if (poolClones == null) {
+                poolClones = new ArrayList<>();
+                dbPoolToClone.put(dbPoolUri, poolClones);
+            }
+            poolClones.add(clone.getId());
+        }
+        StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, _storageSystemURI);
+        for (URI dbPoolUri : dbPoolToClone.keySet()) {
+            StoragePool dbPool = dbClient.queryObject(StoragePool.class, dbPoolUri);
+            ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
+                    dbPoolToClone.get(dbPoolUri), dbClient);
         }
     }
 }

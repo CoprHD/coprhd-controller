@@ -253,13 +253,14 @@ public class FileService extends TaskResourceService {
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO("update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -4190,7 +4191,7 @@ public class FileService extends TaskResourceService {
         List<MountInfo> mountList = getAllMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         if (param.getExportRulesToDelete() != null) {
-            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
+            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
         }
         if (param.getExportRulesToModify() != null) {
             unmountList.addAll(getModifyRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));

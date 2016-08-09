@@ -322,7 +322,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setDisplayName(currMember.getName());
 				storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
                 List<CapabilityInstance> capabilities = new ArrayList<>(); // SDK requires initialization
-                //pool.setCapabilities(capabilities);
                 
                 // setting appropriate capability for dedup supported pool
                 if(currMember.isDedupCapable()) {

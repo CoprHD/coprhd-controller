@@ -99,7 +99,7 @@ public class HP3PARCloneHelper {
 				// restore virtual copy
 				hp3parApi.restorePhysicalCopy(clone.getNativeId());
 
-				clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
+			//	clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
 
 				task.setStatus(DriverTask.TaskStatus.READY);
 				_log.info(

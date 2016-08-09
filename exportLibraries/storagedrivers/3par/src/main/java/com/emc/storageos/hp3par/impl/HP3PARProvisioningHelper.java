@@ -49,7 +49,7 @@ public class HP3PARProvisioningHelper {
 						for (CapabilityInstance ci : capabilityList) {
 							String provTypeValue = ci
 									.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
-							if (provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
+							if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
 								IsDeDupEnabled = true;
 							}
 						}

@@ -244,7 +244,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 commonCapabilities.setDataStorage(dataStorageSvcOptions);
             }
             
-            // Create a new data storage service option for the auto tiering policy capability
+            // Create a new data storage service option for the AutoTiering policy capability
             // and add it to the list.
             DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Arrays.asList(autoTieringCapability));
             dataStorageSvcOptions.add(dataStorageSvcOption);
@@ -384,6 +384,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setDeviceLabel(volume.getDeviceLabel());
+                    driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
                     task = driver.deleteVolume(driverVolume);
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {

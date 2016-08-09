@@ -4,6 +4,12 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.tenantsettings', 'nav.customWorkflow'] /}
 #{set 'title'}&{titleKey}#{/set}
+
+  <link rel="stylesheet" href="../../stylesheets/diagram-js.css" />
+  <link rel="stylesheet" href="../../stylesheets/bpmn-embedded.css" />
+  <link rel="stylesheet" href="../../stylesheets/app.css" />
+  <link rel="stylesheet" href="../../stylesheets/bpmn.css" />
+
 #{script 'workflow.js'/}
 
 <div class="container">

@@ -1441,7 +1441,7 @@ angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
     };
     
     $scope.isRentionAllowed = function() {
-        return $scope.scheduler.maxNumOfCopies > 0;	
+        return $scope.isRecurring() && $scope.scheduler.maxNumOfCopies > 0;	
     }
 });
 

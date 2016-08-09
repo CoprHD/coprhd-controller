@@ -306,8 +306,7 @@ public class OrderExecution extends Controller {
         
         String maxNumOfCopies = params.get("scheduler.maxNumOfCopies");
         if (maxNumOfCopies != null) {
-        	int maxNumOfCopiesNum = Integer.parseInt(maxNumOfCopies);
-        	orderParam.setMaxNumOfRetainedCopies(maxNumOfCopiesNum);
+        	orderParam.setAdditionalScheduleInfo(maxNumOfCopies);
         }
         
         scheduleInfo.setDurationLength(3600);

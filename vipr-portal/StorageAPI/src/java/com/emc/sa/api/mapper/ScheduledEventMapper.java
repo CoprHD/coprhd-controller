@@ -50,7 +50,13 @@ public class ScheduledEventMapper {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-        to.setMaxNumOfRetainedCopies(from.getMaxNumOfRetainedCopies());
+        
+        try {
+            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(from.getOrderCreationParam().getBytes(UTF_8));
+            to.setOrderCreateParam(orderCreateParam);
+        } catch (Exception ex) {
+            log.error(e.getMessage(), e);
+        }
         return to;
     }
 

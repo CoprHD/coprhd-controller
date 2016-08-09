@@ -3744,7 +3744,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             StorageGroupPolicyLimitsParam storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(policyName,
-                    hostIOLimitBandwidth, hostIOLimitIOPs, storage); // HY TODO: Does the compression attribute matter here
+                    hostIOLimitBandwidth, hostIOLimitIOPs, storage);
             if (volumeGroup.get(storageGroupPolicyLimitsParam) == null) {
                 volumeGroup.put(storageGroupPolicyLimitsParam, new ArrayList<URI>());
             }

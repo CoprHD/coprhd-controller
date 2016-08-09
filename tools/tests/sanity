@@ -827,7 +827,7 @@ cisco_mds_quick_setup_once()
         FCTZ_B=$NH2/$FC_ZONE_B
 
         run transportzone assign VSAN_11 $NH
-        run transportzone assign VSAN_12 $NH
+        run transportzone assign VSAN_12 $NH2
 
         # add ports to VSAN_11
         run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1

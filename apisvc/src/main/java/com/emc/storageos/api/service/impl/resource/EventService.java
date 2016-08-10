@@ -165,8 +165,10 @@ public class EventService extends TaggedResource {
             return "N/A";
         }
 
+        String eventMethodName = eventMethod.getMethodName() + "Details";
+
         try {
-            Method classMethod = getMethod(EventService.class, eventMethod.getMethodName() + "Details");
+            Method classMethod = getMethod(EventService.class, eventMethodName);
             if (classMethod == null) {
                 return "N/A";
             } else {
@@ -174,16 +176,16 @@ public class EventService extends TaggedResource {
             }
         } catch (SecurityException e) {
             _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
         } catch (IllegalAccessException e) {
             _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
         } catch (IllegalArgumentException e) {
             _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
         } catch (InvocationTargetException e) {
             _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
         }
     }
 
@@ -241,24 +243,27 @@ public class EventService extends TaggedResource {
     public String addInitiatorDetails(URI initiatorId) {
         String result = "";
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
-        List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
+        if (initiator != null) {
+            List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
 
-        for (ExportGroup export : exportGroups) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            for (ExportGroup export : exportGroups) {
+                List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
 
-            List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(initiator));
-            if (!validInitiator.isEmpty()) {
-                boolean update = false;
-                for (Initiator initiatorObj : validInitiator) {
-                    // if the initiators is not already in the list add it.
-                    if (!updatedInitiators.contains(initiator.getId())) {
-                        updatedInitiators.add(initiator.getId());
-                        update = true;
+                List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
+                        Lists.newArrayList(initiator));
+                if (!validInitiator.isEmpty()) {
+                    boolean update = false;
+                    for (Initiator initiatorObj : validInitiator) {
+                        // if the initiators is not already in the list add it.
+                        if (!updatedInitiators.contains(initiator.getId())) {
+                            updatedInitiators.add(initiator.getId());
+                            update = true;
+                        }
                     }
-                }
 
-                if (update) {
-                    result += "Add initiator to export group " + export.getLabel() + " (" + export.getId() + ")";
+                    if (update) {
+                        result += "Add initiator to export group " + export.getLabel() + " (" + export.getId() + ")";
+                    }
                 }
             }
         }
@@ -300,14 +305,16 @@ public class EventService extends TaggedResource {
         String result = "";
 
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
-        List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
-                Lists.newArrayList(initiator));
+        if (initiator != null) {
+            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
+                    Lists.newArrayList(initiator));
 
-        for (ExportGroup export : exportGroups) {
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            // Only update if the list as changed
-            if (updatedInitiators.remove(initiatorId)) {
-                result += "Remove initiator from export group " + export.getLabel() + " (" + export.getId() + ")\n";
+            for (ExportGroup export : exportGroups) {
+                List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+                // Only update if the list as changed
+                if (updatedInitiators.remove(initiatorId)) {
+                    result += "Remove initiator from export group " + export.getLabel() + " (" + export.getId() + ")\n";
+                }
             }
         }
 
@@ -346,10 +353,13 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        String result = "";
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, clusterId, true);
-        String result = "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
-        result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+        if (host != null && datacenter != null) {
+            result += "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
+            result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+        }
         return result;
     }
 
@@ -373,10 +383,13 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        String result = "";
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, clusterId, true);
-        String result = "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
-        result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+        if (host != null && datacenter != null) {
+            result += "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
+            result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+        }
         return result;
     }
 

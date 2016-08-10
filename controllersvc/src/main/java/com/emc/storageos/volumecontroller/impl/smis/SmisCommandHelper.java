@@ -1960,7 +1960,9 @@ public class SmisCommandHelper implements SmisConstants {
         // even if storage group is part of expected parent storage group already, there is no
         // action needed
         // as its already part of parent group.
-        return (cimPathItr != null && cimPathItr.hasNext());
+        boolean result = cimPathItr != null && cimPathItr.hasNext();
+        closeCIMIterator(cimPathItr);
+        return result;
     }
 
     private <E> void closeCIMIterator(CloseableIterator<E> itr) {
@@ -5322,8 +5324,8 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             String srp = storagePool.getPoolName();
-            // default values in case autoTierPolicy is not set then used Optimized SLO
-            String slo = Constants.OPTIMIZED_SLO;
+            // default values in case autoTierPolicy is not set then use NONE SLO for V3 AFA and Optimized SLO for V3
+            String slo = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
             String workload = Constants.NONE.toUpperCase();
 
             URI policyURI = volume.getAutoTieringPolicyUri();

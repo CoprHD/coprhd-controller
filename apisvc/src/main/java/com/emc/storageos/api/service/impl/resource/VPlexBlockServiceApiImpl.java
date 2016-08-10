@@ -736,28 +736,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Prepare a new Bourne Volume.
      *
-     * @param volume
-     *            pre-created volume (optional)
-     * @param size
-     *            The volume capacity.
-     * @param thinVolumePreAllocationSize
-     *            preallocation size for thin provisioning or 0.
-     * @param project
-     *            A reference to the project.
-     * @param vArray
-     *            A reference to the virtual array
-     * @param vPool
-     *            The requested virtual pool.
-     * @param storageSystemURI
-     *            The URI of the storage system.
-     * @param storagePoolURI
-     *            The URI of the storage pool.
-     * @param label
-     *            The label for the new volume.
-     * @param consistencyGroup
-     *            The consistency group.
-     * @param capabilities
-     *            The virtual pool capabilities
+     * @param volume pre-created volume (optional)
+     * @param size The volume capacity.
+     * @param thinVolumePreAllocationSize preallocation size for thin provisioning or 0.
+     * @param project A reference to the project.
+     * @param vArray A reference to the virtual array
+     * @param vPool The requested virtual pool.
+     * @param storageSystemURI The URI of the storage system.
+     * @param storagePoolURI The URI of the storage pool.
+     * @param label The label for the new volume.
+     * @param consistencyGroup The consistency group.
+     * @param capabilities The virtual pool capabilities
      *
      * @return A reference to the newly persisted Volume.
      */
@@ -793,16 +782,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Adds a VplexMirror structure for a Volume. It also calls addMirrorToVolume to
      * link the mirror into the volume's mirror set.
      *
-     * @param vplexVolume
-     *            The volume for which mirror needs to be created
-     * @param vPool
-     *            The virtual pool for the mirror
-     * @param varray
-     *            The virtual array for the mirror
-     * @param mirrorLabel
-     *            The label for the new vplex mirror
-     * @param thinPreAllocationSize
-     *            preallocation size for thin provisioning or 0.
+     * @param vplexVolume The volume for which mirror needs to be created
+     * @param vPool The virtual pool for the mirror
+     * @param varray The virtual array for the mirror
+     * @param mirrorLabel The label for the new vplex mirror
+     * @param thinPreAllocationSize preallocation size for thin provisioning or 0.
      * @param dbClient
      */
     private static VplexMirror initializeMirror(Volume vplexVolume, VirtualPool vPool, VirtualArray varray,
@@ -853,8 +837,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             long thinVolumePreAllocationSize, VirtualPoolCapabilityValuesWrapper capabilities,
             DbClient dbClient) {
 
-        // Encapsulate the storage system and storage pool in a volume recommendation and use the default
-        // implementation.
+        // Encapsulate the storage system and storage pool in a volume recommendation and use the default implementation.
         VolumeRecommendation volRecomendation = new VolumeRecommendation(VolumeType.BLOCK_VOLUME, backendVolume.getProvisionedCapacity(),
                 vPool, varray.getId());
         Project project = dbClient.queryObject(Project.class, backendVolume.getProject().getURI());
@@ -892,10 +875,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Returns the Project assigned to this VPlex for its artifacts.
      * If there is no existing Project, one is created.
      *
-     * @param vplexSystem
-     *            A StorageSystem instance representing a VPlex.
-     * @param dbClient
-     *            A reference to a database client.
+     * @param vplexSystem A StorageSystem instance representing a VPlex.
+     * @param dbClient A reference to a database client.
      *
      * @return Project instance that was created for holding this VPlex's private volumes/export groups.
      */
@@ -941,15 +922,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * volume, create a new Volume and link it to the virtual volume. 5. Format
      * the parameters and call the controller.
      *
-     * @param arrayURI
-     *            -- the URI of the Storage Array holding the existing
+     * @param arrayURI -- the URI of the Storage Array holding the existing
      *            Volume.
-     * @param importVolume
-     *            -- An existing Volume that has been provisioned.
-     * @param vpool
-     *            -- The vpool requested on the vpool change request.
-     * @param taskId
-     *            -- The taskId
+     * @param importVolume -- An existing Volume that has been provisioned.
+     * @param vpool -- The vpool requested on the vpool change request.
+     * @param taskId -- The taskId
      * @throws InternalException
      */
     public void importVirtualVolume(URI arrayURI, Volume importVolume, VirtualPool vpool,
@@ -1098,12 +1075,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Upgrade a local VPLEX volume to a distributed VPLEX volume.
      *
-     * @param vplexURI
-     *            -- VPLEX System URI
-     * @param vplexVolume
-     *            -- VPlex volume (existing).
-     * @param vpool
-     *            -- Requested vpool.
+     * @param vplexURI -- VPLEX System URI
+     * @param vplexVolume -- VPlex volume (existing).
+     * @param vpool -- Requested vpool.
      * @param taskId
      * @throws InternalException
      */
@@ -1372,8 +1346,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Check if any of the volumes passed is a VPLEX volume
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
-        BlockConsistencyGroup cg = null;
-        if ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null) {
+        BlockConsistencyGroup cg = isVPlexVolumeInCgWithLocalType(volumes);
+        if (cg != null) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all
@@ -1388,97 +1362,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if ((vpoolChange != null) && (vpoolChange == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
                 s_logger.info("Vpool change is a data migration");
 
-                Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
                 List<Volume> volumesNotInRG = new ArrayList<Volume>();
-                // Group volumes by array groups
-                for (Volume volume : volumes) {
-                    Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-                    URI backStorage = backedVol.getStorageController();
-                    String replicaGroup = backedVol.getReplicationGroupInstance();
-                    if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
-                        List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
-                        if (volumeList == null) {
-                            volumeList = new ArrayList<Volume>();
-                            groupVolumes.put(backStorage, replicaGroup, volumeList);
-                        }
-                        volumeList.add(volume);
-                    } else {
-                        volumesNotInRG.add(volume);
-                    }
-                }
-
-                for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
-                    List<Volume> volumesInRGRequest = cell.getValue();
-                    List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey());
-                    if (volumesInRGRequest.size() != rgVolumes.size()) {
-                        throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
-                    }
-
-                    // All volumes will be migrated in the same workflow.
-                    // If there are many volumes in the CG, the workflow
-                    // will have many steps. Worse, if an error occurs
-                    // additional workflow steps get added for rollback.
-                    // An issue can then arise trying to persist the
-                    // workflow to Zoo Keeper because the workflow
-                    // persistence is restricted to 250000 bytes. So
-                    // we add a restriction on the number of volumes in
-                    // the CG that will be allowed for a data migration
-                    // vpool change.
-                    if (volumesInRGRequest.size() > _maxCgVolumesForMigration) {
-                        throw APIException.badRequests
-                                .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
-                                        volumes.size(), _maxCgVolumesForMigration);
-                    }
-
-                    // When migrating multiple volumes in the CG we
-                    // want to be sure the target vpool ensures the
-                    // migration targets will be placed on the same
-                    // storage system as the migration targets will
-                    // be placed in a CG on the target storage system.
-                    if (volumesInRGRequest.size() > 1) {
-                        s_logger.info("Multiple volume request, verifying target storage systems");
-                        verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
-                    }
-
-                    // Get all volume descriptors for all volumes to be migrated.
-                    URI systemURI = changeVPoolVolume.getStorageController();
-                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
-                    List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-                    ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
-                    operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
-                            vpoolChangeParam.getMigrationSuspendBeforeCommit());
-                    operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
-                            vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
-                    for (Volume volume : volumesInRGRequest) {
-                        descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                                volume, vpool, taskId, null, null, operationsWrapper));
-                    }
-
-                    if (rgVolumes != null && !rgVolumes.isEmpty() && rgVolumes.get(0).getConsistencyGroup() != null) {
-                        cg = _dbClient.queryObject(BlockConsistencyGroup.class, rgVolumes.get(0).getConsistencyGroup());
-                    }
-
-                    // Create a task object associated with the CG
-                    taskList.getTaskList().add(createTaskForRG(vpool, rgVolumes, taskId));
-
-                    // Orchestrate the vpool changes of all volumes as a single request.
-                    orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
-
-                }
+                migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, taskId);
+                
                 if (!volumesNotInRG.isEmpty()) {
-                    // Create a task object associated with the Volumes
-                    taskList.getTaskList().addAll(createTasksForVolumes(vpool, volumes, taskId).getTaskList());
-
                     for (Volume volume : volumesNotInRG) {
-                        TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(),
+                        TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
                                 volume, vpool, vpoolChangeParam, taskId);
                         if (taskList2 != null && taskList2.getTaskList().isEmpty()) {
                             taskList.getTaskList().addAll(taskList2.getTaskList());
-
+                            
                         }
                     }
-                    return taskList;
                 }
+                
                 return taskList;
             }
         }
@@ -1486,27 +1383,112 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Otherwise proceed as we normally would performing
         // individual vpool changes for each volume.
         for (Volume volume : volumes) {
-            TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(),
+            TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
                     volume, vpool, vpoolChangeParam, taskId);
             if (taskList2 != null && !taskList2.getTaskList().isEmpty()) {
                 taskList.getTaskList().addAll(taskList2.getTaskList());
-
+                
             }
-            return createTasksForVolumes(vpool, volumes, taskId);
         }
         return taskList;
+    }
+    
+    /**
+     * Group all volumes in RGs and create a WF to migrate those volumes together.
+     * 
+     * @param volumes All volumes being considered for migration
+     * @param vpool The vpool to migrate to
+     * @param volumesNotInRG A container to store all volumes NOT in an RG
+     * @param volumesInRG A container to store all the volumes in an RG
+     * @param taskId The Task Id
+     */
+    protected void migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
+            List<Volume> volumesNotInRG, List<Volume> volumesInRG, String taskId) {
+        Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+
+        // Group volumes by array groups
+        for (Volume volume : volumes) {
+            Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            URI backStorage = backedVol.getStorageController();
+            String replicaGroup = backedVol.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                if (volumeList == null) {
+                    volumeList = new ArrayList<Volume>();
+                    groupVolumes.put(backStorage, replicaGroup, volumeList);
+                }
+                volumeList.add(volume);
+                // Keeps track of the volumes that will be processed because
+                // they are in found to be in an RG.
+                if (volumesInRG != null) {
+                    volumesInRG.add(volume);
+                }
+            } else {
+                // Keeps track of the volumes that will not be processed here
+                // since they are not in a RG.
+                if (volumesNotInRG != null) {
+                    volumesNotInRG.add(volume);
+                }
+            }
+        }
+        for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
+            List<Volume> volumesInRGRequest = cell.getValue();
+            Volume firstVolume = volumesInRGRequest.get(0);
+            
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey(), firstVolume.getPersonality());
+            if (volumesInRGRequest.size() != rgVolumes.size()) {
+                throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
+            }
+                        
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, firstVolume.getConsistencyGroup());
+            URI systemURI = firstVolume.getStorageController();
+
+            // All volumes will be migrated in the same workflow.
+            // If there are many volumes in the CG, the workflow
+            // will have many steps. Worse, if an error occurs
+            // additional workflow steps get added for rollback.
+            // An issue can then arise trying to persist the
+            // workflow to Zoo Keeper because the workflow
+            // persistence is restricted to 250000 bytes. So
+            // we add a restriction on the number of volumes in
+            // the CG that will be allowed for a data migration
+            // vpool change.
+            if (volumesInRGRequest.size() > _maxCgVolumesForMigration) {
+                throw APIException.badRequests
+                        .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
+                                volumes.size(), _maxCgVolumesForMigration);
+            }
+                        
+            // When migrating multiple volumes in the CG we
+            // want to be sure the target vpool ensures the
+            // migration targets will be placed on the same
+            // storage system as the migration targets will
+            // be placed in a CG on the target storage system.
+            if (volumesInRGRequest.size() > 1) {
+                s_logger.info("Multiple volume request, verifying target storage systems");
+                verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
+            }
+
+            // Get all volume descriptors for all volumes to be migrated.
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+            List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+            for (Volume volume : volumesInRGRequest) {
+                descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
+                        volume, vpool, taskId, null, null, null));
+            }
+
+            // Orchestrate the vpool changes of all volumes as a single request.
+            orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
+        }
     }
 
     /**
      * Verifies if the valid storage pools for the target vpool specify a single
      * target storage system.
      *
-     * @param currentVPool
-     *            The source vpool for a vpool change
-     * @param newVPool
-     *            The target vpool for a vpool change.
-     * @param srcVarrayURI
-     *            The virtual array for the volumes being migrated.
+     * @param currentVPool The source vpool for a vpool change
+     * @param newVPool The target vpool for a vpool change.
+     * @param srcVarrayURI The virtual array for the volumes being migrated.
      */
     private void verifyTargetSystemsForCGDataMigration(List<Volume> volumes,
             VirtualPool newVPool, URI srcVarrayURI) {
@@ -1540,7 +1522,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // The same restriction applies to the target HA virtual pool
             // when the HA side is being migrated.
-            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool, _dbClient);
+            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool);
             if (!NullColumnValueGetter.isNullURI(haVArrayURI)) {
                 // The HA varray is not null so must be distributed.
                 VirtualPool currentHAVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVPool, _dbClient);
@@ -1568,12 +1550,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Invokes the block orchestrator for a vpool change operation.
      *
-     * @param volumes
-     *            The volumes undergoing the vpool change.
-     * @param descriptors
-     *            The prepared volume descriptors.
-     * @param taskId
-     *            The task identifier.
+     * @param volumes The volumes undergoing the vpool change.
+     * @param descriptors The prepared volume descriptors.
+     * @param taskId The task identifier.
      */
     private void orchestrateVPoolChanges(List<Volume> volumes, List<VolumeDescriptor> descriptors, String taskId) {
         try {
@@ -1597,16 +1576,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Change the VirtualPool for the passed virtual volume on the passed VPlex
      * storage system.
      *
-     * @param vplexSystem
-     *            A reference to the VPlex storage system.
-     * @param volume
-     *            A reference to the virtual volume.
-     * @param newVpool
-     *            The desired VirtualPool.
-     * @param taskId
-     *            The task identifier.
-     * @param operationsWrapper
-     *            a wrapper of various controller options
+     * @param vplexSystem A reference to the VPlex storage system.
+     * @param volume A reference to the virtual volume.
+     * @param newVpool The desired VirtualPool.
+     * @param taskId The task identifier.
+     * @param operationsWrapper a wrapper of various controller options
      * @throws InternalException
      */
     protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem vplexSystem, Volume volume,
@@ -1664,7 +1638,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Now determine if the backend volume in the HA varray
         // needs to be migrated.
-        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient);
+        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool);
         if (haVarrayURI != null) {
             VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, haVarrayURI);
             VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVpool, _dbClient);
@@ -1685,10 +1659,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Returns the backend volume of the passed VPLEX volume in the passed
      * virtual array.
      *
-     * @param vplexVolume
-     *            A reference to the VPLEX volume.
-     * @param varrayURI
-     *            The URI of the virtual array.
+     * @param vplexVolume A reference to the VPLEX volume.
+     * @param varrayURI The URI of the virtual array.
      *
      * @return A reference to the backend volume for the passed VPLEX volume in
      *         the passed virtual array, or null if the backend volumes are not
@@ -1715,26 +1687,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Does the work necessary to prepare the passed backend volume for the
      * passed virtual volume to be migrated to a new volume with a new VirtualPool.
      *
-     * @param vplexSystem
-     *            A reference to the Vplex storage system
-     * @param virtualVolume
-     *            A reference to the virtual volume.
-     * @param sourceVolume
-     *            A reference to the backend volume to be migrated.
-     * @param nh
-     *            A reference to the varray for the backend volume.
-     * @param vpool
-     *            A reference to the VirtualPool for the new volume.
-     * @param capacity
-     *            The capacity for the migration target.
-     * @param taskId
-     *            The task identifier.
-     * @param newVolumes
-     *            An OUT parameter to which the new volume is added.
-     * @param migrationMap
-     *            A OUT parameter to which the new migration is added.
-     * @param poolVolumeMap
-     *            An OUT parameter associating the new Volume to the
+     * @param vplexSystem A reference to the Vplex storage system
+     * @param virtualVolume A reference to the virtual volume.
+     * @param sourceVolume A reference to the backend volume to be migrated.
+     * @param nh A reference to the varray for the backend volume.
+     * @param vpool A reference to the VirtualPool for the new volume.
+     * @param capacity The capacity for the migration target.
+     * @param taskId The task identifier.
+     * @param newVolumes An OUT parameter to which the new volume is added.
+     * @param migrationMap A OUT parameter to which the new migration is added.
+     * @param poolVolumeMap An OUT parameter associating the new Volume to the
      *            storage pool in which it will be created.
      */
     @Deprecated
@@ -1849,26 +1811,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Does the work necessary to prepare the passed backend volume for the
      * passed virtual volume to be migrated to a new volume with a new VirtualPool.
      *
-     * @param vplexSystem
-     *            A reference to the Vplex storage system
-     * @param virtualVolume
-     *            A reference to the virtual volume.
-     * @param sourceVolume
-     *            A reference to the backend volume to be migrated.
-     * @param nh
-     *            A reference to the varray for the backend volume.
-     * @param vpool
-     *            A reference to the VirtualPool for the new volume.
-     * @param capacity
-     *            The capacity for the migration target.
-     * @param taskId
-     *            The task identifier.
-     * @param newVolumes
-     *            An OUT parameter to which the new volume is added.
-     * @param migrationMap
-     *            A OUT parameter to which the new migration is added.
-     * @param poolVolumeMap
-     *            An OUT parameter associating the new Volume to the
+     * @param vplexSystem A reference to the Vplex storage system
+     * @param virtualVolume A reference to the virtual volume.
+     * @param sourceVolume A reference to the backend volume to be migrated.
+     * @param nh A reference to the varray for the backend volume.
+     * @param vpool A reference to the VirtualPool for the new volume.
+     * @param capacity The capacity for the migration target.
+     * @param taskId The task identifier.
+     * @param newVolumes An OUT parameter to which the new volume is added.
+     * @param migrationMap A OUT parameter to which the new migration is added.
+     * @param poolVolumeMap An OUT parameter associating the new Volume to the
      *            storage pool in which it will be created.
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem vplexSystem,
@@ -1988,6 +1940,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             targetVolume.setReplicationGroupInstance(sourceVolume.getReplicationGroupInstance());
         }
 
+        // Retain any previous RP fields on the new target volumes
+        targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+        targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 
@@ -2034,24 +1989,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * completed by Stalin. Just pass size instead of getting from VolumeCreate
      * parameter.
      *
-     * @param size
-     *            The volume size.
-     * @param project
-     *            A reference to the volume's Project.
-     * @param neighborhood
-     *            A reference to the volume's varray.
-     * @param vpool
-     *            A reference to the volume's VirtualPool.
-     * @param storageSystemURI
-     *            The URI of the volume's storage system.
-     * @param storagePoolURI
-     *            The URI of the volume's storage pool.
-     * @param label
-     *            The volume label.
-     * @param token
-     *            The task id for volume creation.
-     * @param dbClient
-     *            A reference to a database client.
+     * @param size The volume size.
+     * @param project A reference to the volume's Project.
+     * @param neighborhood A reference to the volume's varray.
+     * @param vpool A reference to the volume's VirtualPool.
+     * @param storageSystemURI The URI of the volume's storage system.
+     * @param storagePoolURI The URI of the volume's storage pool.
+     * @param label The volume label.
+     * @param token The task id for volume creation.
+     * @param dbClient A reference to a database client.
      *
      * @return A reference to the new volume.
      */
@@ -2113,14 +2059,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Prepares a migration for the passed virtual volume specifying the source
      * and target volumes for the migration.
      *
-     * @param virtualVolumeURI
-     *            The URI of the virtual volume.
-     * @param sourceURI
-     *            The URI of the source volume for the migration.
-     * @param targetURI
-     *            The URI of the target volume for the migration.
-     * @param token
-     *            The task identifier.
+     * @param virtualVolumeURI The URI of the virtual volume.
+     * @param sourceURI The URI of the source volume for the migration.
+     * @param targetURI The URI of the target volume for the migration.
+     * @param token The task identifier.
      *
      * @return A reference to a newly created Migration.
      */
@@ -2414,12 +2356,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Creates the volumes descriptors for a varray change for the passed
      * list of VPLEX volumes.
      *
-     * @param volumes
-     *            The VPLEX volumes being moved
-     * @param newVarray
-     *            The target virtual array
-     * @param taskId
-     *            The task identifier
+     * @param volumes The VPLEX volumes being moved
+     * @param newVarray The target virtual array
+     * @param taskId The task identifier
      *
      * @return A list of volume descriptors
      */
@@ -2488,8 +2427,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (isNativeVolumeExpansionSupported(vplexVolume, newSize)) {
             // Expand the passed VPlex virtual volume by natively
             // expanding the backend volume(s).
-            // TODO: At the moment, native expansion go via block orchestration controller. JIRA CTRL-5336 filed for
-            // this.
+            // TODO: At the moment, native expansion go via block orchestration controller. JIRA CTRL-5336 filed for this.
             // Expand via migration still follows the old way of doing things and this needs to be changed.
             List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptorsForNativeExpansion(Arrays.asList(vplexVolume.getId()));
             BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
@@ -2543,10 +2481,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Determines if the VPlex volume can be expanded by natively expanding
      * the backend volumes.
      *
-     * @param vplexVolume
-     *            A reference to the VPlex volume.
-     * @param newSize
-     *            The new desired size.
+     * @param vplexVolume A reference to the VPlex volume.
+     * @param newSize The new desired size.
      *
      * @return true if the volume can be expanded natively, false otherwise.
      */
@@ -2833,8 +2769,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             } else {
                 if (sourceVirtualPool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_local.name())) {
                     s_logger.info("Mirror vpool is not specified, use the source volume virtual pool and virtual array");
-                    // In case of Vplex local if mirror pool is not provided then we can use source vpool as mirror
-                    // vpool.
+                    // In case of Vplex local if mirror pool is not provided then we can use source vpool as mirror vpool.
                     sourceMirrorVPool = backendVolumeVpool;
                     mirrorVpool = backendVolumeVpool;
                     backendVolumeToMirrorVpoolMap.put(backendVolume, sourceMirrorVPool);
@@ -2975,18 +2910,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * In case if there is already mirror for the vplex volume, this method ensures
      * to add entry to the map only if there isn't already mirror on either leg.
      *
-     * @param vplexVolume
-     *            The reference to vplex distributed volume
-     * @param associatedVolumeIds
-     *            URIs of the associated volumes
-     * @param sourceVirtualPool
-     *            The reference to virtual pool to which vplex volume is associated with
-     * @param sourceMirrorVPool
-     *            The reference to virtual pool for the mirror on the source side
-     * @param haMirrorVPool
-     *            The reference to virtual pool for the mirror on the HA side
-     * @param backendVolumeToMirrorVpoolMap
-     *            OUT param containing map of backend volume to mirror vpool
+     * @param vplexVolume The reference to vplex distributed volume
+     * @param associatedVolumeIds URIs of the associated volumes
+     * @param sourceVirtualPool The reference to virtual pool to which vplex volume is associated with
+     * @param sourceMirrorVPool The reference to virtual pool for the mirror on the source side
+     * @param haMirrorVPool The reference to virtual pool for the mirror on the HA side
+     * @param backendVolumeToMirrorVpoolMap OUT param containing map of backend volume to mirror vpool
      */
     private void updateBackendVolumeToMirrorVpoolMap(Volume vplexVolume, StringSet associatedVolumeIds, VirtualPool sourceVirtualPool,
             VirtualPool sourceMirrorVPool, VirtualPool haMirrorVPool, Map<Volume, VirtualPool> backendVolumeToMirrorVpoolMap) {
@@ -3020,8 +2949,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 vplexVolume.getStorageController(), _dbClient);
                         checkIfClusterIsUnknown(cluster, vplexVolume.getVirtualArray().toString(), vplexVolume.getStorageController()
                                 .toString());
-                        // If there isn't already mirror on the source side then add entry to
-                        // backendVolumeToMirrorVpoolMap
+                        // If there isn't already mirror on the source side then add entry to backendVolumeToMirrorVpoolMap
                         if (!vplexClusterWithMirrorForVolume.contains(cluster)) {
                             backendVolumeToMirrorVpoolMap.put(associatedVolume, sourceMirrorVPool);
                         }
@@ -3051,8 +2979,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             String cluster = ConnectivityUtil.getVplexClusterForVarray(haVarrayURI, vplexVolume.getStorageController(),
                                     _dbClient);
                             checkIfClusterIsUnknown(cluster, haVarrayURI.toString(), vplexVolume.getStorageController().toString());
-                            // If there isn't already mirror on the HA side then add entry to
-                            // backendVolumeToMirrorVpoolMap
+                            // If there isn't already mirror on the HA side then add entry to backendVolumeToMirrorVpoolMap
                             if (!vplexClusterWithMirrorForVolume.contains(cluster)) {
                                 backendVolumeToMirrorVpoolMap.put(associatedVolume, haMirrorVPool);
                             }
@@ -3139,10 +3066,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
 
     /**
-     * @param vplexMirrors
-     *            The vplex mirrors for the source volume.
-     * @param sourceVolume
-     *            The vplex virtual volume.
+     * @param vplexMirrors The vplex mirrors for the source volume.
+     * @param sourceVolume The vplex virtual volume.
      */
     private List<URI> getVplexCopiesToStop(List<VplexMirror> vplexMirrors, Volume sourceVolume) {
         List<URI> copiesToStop = new ArrayList<URI>();
@@ -3270,12 +3195,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Creates and returns a new ViPR BlockSnapshot instance with the passed
      * name for the passed volume.
      *
-     * @param volume
-     *            The volume for which the snapshot is being created.
-     * @param snapsetLabel
-     *            The snapset label for grouping this snapshot.
-     * @param label
-     *            The label for the new snapshot.
+     * @param volume The volume for which the snapshot is being created.
+     * @param snapsetLabel The snapset label for grouping this snapshot.
+     * @param label The label for the new snapshot.
      *
      * @return A reference to the new BlockSnapshot instance.
      */
@@ -3318,8 +3240,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * Returns the backend volume of the passed VPLEX volume to be used as the
      * source volume for a snapshot of the VPLEX volume.
      *
-     * @param vplexVolume
-     *            A reference to the VPLEX volume.
+     * @param vplexVolume A reference to the VPLEX volume.
      *
      * @return A reference to the backend volume to serve as the snapshot
      *         source.
@@ -3380,19 +3301,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Uses the appropriate controller to create the snapshots.
      *
-     * @param reqVolume
-     *            The volume from the snapshot request.
-     * @param snapshotURIs
-     *            The URIs of the prepared snapshots
-     * @param snapshotType
-     *            The snapshot technology type.
-     * @param createInactive
-     *            true if the snapshots should be created but not
+     * @param reqVolume The volume from the snapshot request.
+     * @param snapshotURIs The URIs of the prepared snapshots
+     * @param snapshotType The snapshot technology type.
+     * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
-     * @param readOnly
-     *            true if the snapshot should be read only, false otherwise
-     * @param taskId
-     *            The unique task identifier.
+     * @param readOnly true if the snapshot should be read only, false otherwise
+     * @param taskId The unique task identifier.
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
@@ -3411,8 +3326,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * same vpool and hence same max snapshots. However, this could be an
      * issue for distributed volumes if we snap both sides.
      *
-     * @param vplexVolume
-     *            A reference to a VPLEX volume.
+     * @param vplexVolume A reference to a VPLEX volume.
      *
      * @return The number of snapshots on a VPLEX volume.
      */
@@ -3425,10 +3339,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Check if a snapshot with the same name exists for the passed volume.
      *
-     * @param name
-     *            The name to verify.
-     * @param vplexVolume
-     *            The VPLEX volume to check.
+     * @param name The name to verify.
+     * @param vplexVolume The VPLEX volume to check.
      */
     @Override
     protected void checkForDuplicatSnapshotName(String name, Volume vplexVolume) {
@@ -3439,8 +3351,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Get the snapshots for the passed VPLEX volume.
      *
-     * @param vplexVolume
-     *            A reference to a VPLEX volume.
+     * @param vplexVolume A reference to a VPLEX volume.
      *
      * @return The snapshots for the passed volume.
      */
@@ -3466,10 +3377,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Validates a restore snapshot request.
      *
-     * @param snapshot
-     *            The snapshot to restore.
-     * @param parent
-     *            The parent of the snapshot
+     * @param snapshot The snapshot to restore.
+     * @param parent The parent of the snapshot
      */
     @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parentVolume) {
@@ -3514,8 +3423,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Return a list of active VplexMirror URI's that are known to be active.
      *
-     * @param volume
-     *            Volume to check for mirrors against
+     * @param volume Volume to check for mirrors against
      * @return List of active VplexMirror URI's
      */
     @Override
@@ -3535,12 +3443,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * not specify VPLEX HA. Right now we always snap the source side backend
      * volume, which should always specify VPLEX HA.
      *
-     * @param snapshot
-     *            The snapshot to restore
-     * @param parentVolume
-     *            The volume to be restored.
-     * @param taskId
-     *            The unique task identifier.
+     * @param snapshot The snapshot to restore
+     * @param parentVolume The volume to be restored.
+     * @param taskId The unique task identifier.
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId) {
@@ -3561,8 +3466,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (!volume.isVPlexVolume(_dbClient)) {
                 // We can get invoked on a vplex backend volume (because of the vpool) when
                 // trying to clean up failed deletions.
-                BlockServiceApi apiImpl = volume.checkForSRDF() ? BlockService.getBlockServiceImpl("srdf")
-                        : BlockService.getBlockServiceImpl("default");
+                BlockServiceApi apiImpl = volume.checkForSRDF() ? 
+                        BlockService.getBlockServiceImpl("srdf") : BlockService.getBlockServiceImpl("default");
                 List<URI> nonVplexVolumeIds = new ArrayList<URI>();
                 nonVplexVolumeIds.add(volume.getId());
                 List<VolumeDescriptor> nonVplexDescriptors = apiImpl.getDescriptorsForVolumesToBeDeleted(
@@ -3666,9 +3571,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /**
      * Prep work before the call to orchestrator to create the volume descriptors for volume expand operation
-     *
-     * @param volumeURIs
-     *            volumes already prepared
+     * 
+     * @param volumeURIs vplex volumes already prepared
      * @return list of volume descriptors
      */
     private List<VolumeDescriptor> createVolumeDescriptorsForNativeExpansion(List<URI> volumeURIs) {
@@ -3865,7 +3769,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // a VPLEX volume.
                     List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                             _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
-                                    volumesWithSameNativeGuid.get(0).getId().toString()));
+			    volumesWithSameNativeGuid.get(0).getId().toString()));
                     String volumeLabel = !vplexVolumes.isEmpty() ? 
                             vplexVolumes.get(0).getLabel() : volumesWithSameNativeGuid.get(0).getId().toString();
                     throw APIException.badRequests
@@ -4330,9 +4234,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *
      * @param groupName The replication group name
      * @param storageSystemUri The backend storage system URI
+     * @param personality Optional argument to filter on volume personality
      * @return The list of Vplex virtual volumes
      */
-    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
+    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri, String personality) {
         List<Volume> vplexVols = new ArrayList<Volume>();
         // Get all backend volumes with the same replication group name
         List<Volume> volumes = CustomQueryUtility
@@ -4347,7 +4252,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 getVolumesByAssociatedId(volume.getId().toString()));
                 if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
                     Volume vplexVol = vplexVolumes.get(0);
-                    if (!vplexVol.checkForRp() || vplexVol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
+                    if ((personality == null) || vplexVol.checkPersonality(personality)) {
                         vplexVols.add(vplexVol);
                     }
                 }
@@ -4360,10 +4265,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Check if all VPlex volumes whose backend volume RG that the backendVol belongs to are in the allVolumes set
      *
-     * @param backnedVol
-     * @param allVolumes
+     * @param backnedVol Backend volume to get the RG name
+     * @param allVolumes All volumes to compare against
      * @param checkedRGMap a map contained RG that has been checked
-     * @return boolean
+     * @return boolean True is all the volumes are in the same request, false otherwise.
      */
     public boolean checkAllVPlexVolsInRequest(Volume backendVol, Set<URI> allVolumes, Map<String, Boolean> checkedRGMap) {
         String rgName = backendVol.getReplicationGroupInstance();
@@ -4374,7 +4279,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             return checkedRGMap.get(key);
         } else {
             boolean containAll = true;
-            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri);
+            Volume firstVolume = _dbClient.queryObject(Volume.class, allVolumes.iterator().next());
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri, firstVolume.getPersonality());
             for (Volume vol : rgVolumes) {
                 if (vol != null && !vol.getInactive()) {
                     if (!allVolumes.contains(vol.getId())) {

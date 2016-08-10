@@ -349,26 +349,22 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 _log.info("export_delete: export mask exists");
                 List<URI> exportMaskURIs = new ArrayList<URI>();
 
-                // Only consider user added volumes for export mask delete
                 List<URI> volumeURIs = new ArrayList<>();
-                if (exportMask.getUserAddedVolumes() != null) {
-                    for (String volumeId : exportMask.getUserAddedVolumes().values()) {
+                if (exportMask.getVolumes() != null) {
+                    for (String volumeId : exportMask.getVolumes().keySet()) {
                         volumeURIs.add(URI.create(volumeId));
                     }
                 }
 
-                // Only consider user added initiators for export mask delete
                 List<URI> initiatorURIs = new ArrayList<>();
-                if (exportMask.getUserAddedInitiators() != null) {
-                    for (String initiatorId : exportMask.getUserAddedInitiators().values()) {
+                if (exportMask.getInitiators() != null) {
+                    for (String initiatorId : exportMask.getInitiators()) {
                         initiatorURIs.add(URI.create(initiatorId));
                     }
                 }
                 exportMaskURIs.add(exportMask.getId());
-                _networkDeviceController
-                        .zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, UUID.randomUUID().toString());
-                getDevice(storage).doExportDelete(storage, exportMask,
-                        volumeURIs, initiatorURIs, taskCompleter);
+                _networkDeviceController.zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, UUID.randomUUID().toString());
+                getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
             } else {
                 _log.info("export_delete: no export mask, task completed");
                 taskCompleter.ready(_dbClient);

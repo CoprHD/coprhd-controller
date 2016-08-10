@@ -100,7 +100,6 @@ public class ComputeImageService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ComputeImageList getComputeImages(@QueryParam("imageType") String imageType) {
         log.info("getComputeImages, imageType: {}", imageType);
 

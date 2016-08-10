@@ -192,6 +192,11 @@ public class Volume extends BlockObject implements ProjectResource {
      */
     private String replicaState;
 
+    /**
+     * Indicates if volume is deduplicated.
+     */
+    private Boolean isDeduplicated = false;
+
     @Name("isSyncActive")
     public Boolean getSyncActive() {
         return (isSyncActive != null) ? isSyncActive : Boolean.FALSE;
@@ -771,6 +776,17 @@ public class Volume extends BlockObject implements ProjectResource {
         }
         return false;
     }
+    
+    /**
+     * Returns true if the volume is of the personality of the passed in param.
+     * 
+     * @param personality to check
+     * 
+     * @return true if the volume is of that personality, false otherwise
+     */
+    public boolean checkPersonality(Volume.PersonalityTypes personality) {       
+       return checkPersonality(personality.name());
+    }
 
     @AlternateId("AltIdIndex")
     @Name("fullCopySetName")
@@ -781,6 +797,20 @@ public class Volume extends BlockObject implements ProjectResource {
     public void setFullCopySetName(String fullCopySetName) {
         this.fullCopySetName = fullCopySetName;
         setChanged("fullCopySetName");
+    }
+
+    @Name("isDeduplicated")
+    public Boolean getIsDeduplicated() {
+        return isDeduplicated;
+    }
+
+    public void setIsDeduplicated(Boolean isDeduplicated) {
+        if (isDeduplicated == null) {
+            this.isDeduplicated = false;
+        } else {
+            this.isDeduplicated = isDeduplicated;
+        }
+        setChanged("isDeduplicated");
     }
 
     /**

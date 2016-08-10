@@ -20,8 +20,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 
 /**
@@ -73,19 +73,19 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         }
     }
 
+    /**
+     * In XtremIO, delete export mask is usually removing the volumes from the IG.
+     * We do not delete the initiators and the IG.
+     * We delete the initiators only in case of cluster exports, where we have single IG consisting of all the cluster's hosts' initiators.
+     * In this case, we will validate for extra volumes by using the appropriate validator.
+     */
     @Override
     public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
             Collection<URI> volumeURIList, Collection<Initiator> initiatorList) {
         logger = new ValidatorLogger(log);
-        XtremIOExportMaskInitiatorsValidator initiatorsValidator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask,
-                initiatorList);
-        XtremIOExportMaskVolumesValidator volumesValidator = new XtremIOExportMaskVolumesValidator(storage, exportMask, volumeURIList);
-        configureValidators(logger, initiatorsValidator, volumesValidator);
-
-        XtremIOExportMaskValidator exportMaskvalidator = new XtremIOExportMaskValidator(initiatorsValidator,
-                volumesValidator, logger, config);
-
-        return exportMaskvalidator;
+        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+        configureValidators(logger, validator);
+        return validator;
     }
 
     @Override

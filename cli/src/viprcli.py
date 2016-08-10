@@ -220,4 +220,3 @@ except SOSError as e:
 except (EOFError, KeyboardInterrupt):
     sys.stderr.write("\nUser terminated request\n")
     sys.exit(SOSError.CMD_LINE_ERR)
-

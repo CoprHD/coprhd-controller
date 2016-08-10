@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -143,5 +144,30 @@ public interface FileOrchestrationController extends Controller {
      * @throws ControllerException
      */
     void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param fsURI - URI of the Source File System that has to be failed over.
+     * @param nfsPort - NFS Export StoragePort for target File System
+     * @param cifsPort - CIFS Share StoragePort for target File System
+     * @param replicateConfiguration
+     * @param taskId
+     * @throws ControllerException
+     */
+    void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws ControllerException;
+
+    /**
+     * Failback to Source FS from Target FS.
+     * 
+     * @param fsURI - URI of the Source File System that has to be failed back from target.
+     * @param nfsPort - NFS Export StoragePort for source File System
+     * @param cifsPort - CIFS Share StoragePort for source File System
+     * @param replicateConfiguration
+     * @param taskId
+     * @throws ControllerException
+     */
+    void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws ControllerException;
 }

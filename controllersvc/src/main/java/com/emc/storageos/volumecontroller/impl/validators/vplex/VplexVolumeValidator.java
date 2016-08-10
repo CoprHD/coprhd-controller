@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -230,6 +231,9 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
 
         // Check local volume is present
         Volume assocVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, true, getDbClient());
+        if (!storageSystemSupportsValidation(assocVolume)) {
+            return failed;
+        }
         if (!wwnToStorageVolumeInfos.keySet().contains(assocVolume.getWWN())) {
             getValidatorLogger().logDiff(volumeId, "SOURCE storage volume WWN", assocVolume.getWWN(),
                     wwnToStorageVolumeInfos.keySet().toString());
@@ -241,6 +245,9 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
         // Check HA volume is present
         if (distributed) {
             assocVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, false, getDbClient());
+            if (!storageSystemSupportsValidation(assocVolume)) {
+                return failed;
+            }
             if (!wwnToStorageVolumeInfos.keySet().contains(assocVolume.getWWN())) {
                 getValidatorLogger().logDiff(volumeId, "HA storage volume WWN", assocVolume.getWWN(),
                         wwnToStorageVolumeInfos.keySet().toString());
@@ -261,6 +268,9 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 // Now get the underlying Storage Volume
                 for (String mirrorAssociatedId : mirror.getAssociatedVolumes()) {
                     Volume mirrorVolume = getDbClient().queryObject(Volume.class, URI.create(mirrorAssociatedId));
+                    if (!storageSystemSupportsValidation(mirrorVolume)) {
+                        return failed;
+                    }
                     if (mirrorVolume != null && !NullColumnValueGetter.isNullValue(mirrorVolume.getWWN())) {
                         if (!wwnToStorageVolumeInfos.keySet().contains(mirrorVolume.getWWN())) {
                             getValidatorLogger().logDiff(volumeId, "Mirror WWN", mirrorVolume.getWWN(),
@@ -280,5 +290,28 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
             failed = true;
         }
         return failed;
+    }
+    
+    
+    /**
+     * Returns true if a Storage Volume is from a Storage System type that has been validated to work
+     * with the validation logic. This will normally be only EMC arrays.
+     * @param volume -- Volume (Storage Volume for the VPlex)
+     * @return true if Storage Volume validation should be done, false otherwise
+     */
+    private boolean storageSystemSupportsValidation(Volume volume) {
+        if (volume == null) {
+            return false;
+        }
+        StorageSystem system = getDbClient().queryObject(StorageSystem.class, volume.getStorageController());
+        SystemType type = SystemType.valueOf(system.getSystemType());
+        if (type == SystemType.vmax 
+         || type == SystemType.vnxblock 
+         || type == SystemType.vnxe 
+         || type == SystemType.xtremio 
+         || type == SystemType.unity) {
+            return true;
+        }
+        return false;
     }
 }

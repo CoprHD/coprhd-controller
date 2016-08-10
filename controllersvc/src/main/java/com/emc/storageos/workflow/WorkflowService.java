@@ -594,12 +594,9 @@ public class WorkflowService implements WorkflowController {
                 removed = false;
                 if (!workflow._nested) {
                     // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
-                    if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR
-                            && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
-                        unlockWorkflow(workflow, workflowLock);
-                        destroyWorkflow(workflow);
-                        return true;
-                    }
+                    unlockWorkflow(workflow, workflowLock);
+                    destroyWorkflow(workflow);
+                    return true;
                 } else {
                     if (isExistingWorkflow(workflow)) {
                         _log.info(String.format(
@@ -2102,12 +2099,8 @@ public class WorkflowService implements WorkflowController {
             for (int i = 0; i < workflow._rollbackHandlerArgs.length; i++) {
                 args[i] = workflow._rollbackHandlerArgs[i]; // copy original arguments
             }
-            args[NestedWorkflowRollbackHandler.indexOfNestedHandler(args)] = workflow._rollbackHandler; // append our
-                                                                                                        // new
-                                                                                                        // arguments,
-                                                                                                        // original
-                                                                                                        // rollback
-                                                                                                        // handler
+            // append our new arguments, to the original original rollback handler
+            args[NestedWorkflowRollbackHandler.indexOfNestedHandler(args)] = workflow._rollbackHandler; 
             args[NestedWorkflowRollbackHandler.indexOfParentStepId(args)] = stepId; // append stepId for completion
 
         } else {

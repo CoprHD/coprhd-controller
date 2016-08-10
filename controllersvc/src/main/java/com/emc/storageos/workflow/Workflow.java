@@ -821,20 +821,19 @@ public class Workflow implements Serializable {
                     if (state != StepState.ERROR) {
                         state = status.state;
                         errorMessage[0] = status.message;
-                        break;
                     }
+                    break;
                 case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
                     if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
                         state = status.state;
                         errorMessage[0] = status.message;
-                        break;
                     }
+                    break;
                 default: // ERROR and CANCELLED and SUSPENDS have higher precedence than any default state
                     if (state != StepState.ERROR && state != StepState.CANCELLED && state != StepState.SUSPENDED_NO_ERROR
                             && state != StepState.SUSPENDED_ERROR) {
                         state = status.state;
                         errorMessage[0] = status.message;
-                        break;
                     }
                     break;
             }

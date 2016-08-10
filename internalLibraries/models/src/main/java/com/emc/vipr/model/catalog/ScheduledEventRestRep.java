@@ -46,8 +46,6 @@ public class ScheduledEventRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
 
     private OrderCreateParam orderCreateParam;
-    
-    private Integer maxNumOfRetainedCopies;
 
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {

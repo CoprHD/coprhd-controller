@@ -13,7 +13,6 @@ public class ScheduledEventUpdateParam {
     private ScheduleInfo scheduleInfo;
 
     private String additionalScheduleInfo;
-    private Integer maxNumOfRetainedCopies;
     
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {

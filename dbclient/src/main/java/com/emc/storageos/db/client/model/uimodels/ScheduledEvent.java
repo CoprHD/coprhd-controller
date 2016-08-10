@@ -41,9 +41,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private String tenant;                   // the owner tenant
 
-    private Integer maxNumOfRetainedCopies; // max number of retained copies for recurrent orders. 
-                                            // For snapshot related orders only.
-    
     private String orderCreationParam;     // order creation related params
 
     private String storageOSUser;           // user info

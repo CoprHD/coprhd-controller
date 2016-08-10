@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import java.util.List;
@@ -10,7 +14,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 /**
  * 
  * @author yelkaa
- *
+ * 
  */
 
 @XmlRootElement(name = "mount_info_list")

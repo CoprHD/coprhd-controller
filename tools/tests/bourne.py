@@ -8723,8 +8723,12 @@ class Bourne:
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
 
-    def block_snapshot_session_delete(self, session_uri):
-        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+    def block_snapshot_session_delete(self, session_uri, vipronly):
+        posturi = URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri)
+	if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+        
+        tasklist = self.api('POST', posturi)
 
         self.assert_is_dict(tasklist)
         tasks = tasklist['task']

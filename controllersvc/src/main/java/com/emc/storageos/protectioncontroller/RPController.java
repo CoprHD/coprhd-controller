@@ -7,6 +7,7 @@ package com.emc.storageos.protectioncontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -83,4 +84,12 @@ public interface RPController extends ProtectionController {
     public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
             String taskId);
 
+    /**
+     * Finds the RecoverPoint copy access states for all copies associated to the volumes provided.
+     *
+     * @param protectionSystem the protection system to use
+     * @param volumeURIs the volumes corresponding to the copies that need to be queried for access state
+     * @return a mapping of volumes to access states
+     */
+    public Map<URI, String> getCopyAccessStates(URI protectionSystem, List<URI> volumeURIs);
 }

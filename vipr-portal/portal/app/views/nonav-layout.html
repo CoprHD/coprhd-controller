@@ -1,7 +1,6 @@
-#{extends 'layout.html' /}
 
 #{extends 'layout.html' /}
-<body class="wLeftNav">
+<body ng-controller="wizardController" class="wLeftNav">
   <header>
     <nav id="ECUEtopBanner" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="navbar-header">
@@ -9,7 +8,13 @@
       </div>
       <div class="collapse navbar-collapse" id="navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
-          #{get 'navBarRight' /}        
+          #{get 'navBarRight' /}
+          <li id="colWiz">
+            <div href ng-init="toggleGuide(true)">
+              <!--#{icon 'glyphicon-list-alt'/} &{'nav.wizard'}-->
+            </div>
+
+          </li>
           <li id="nav_help">
             #{if customDocLink}
               #{get 'customDocLink'/}
@@ -25,6 +30,9 @@
     </nav>
   </header>
   #{get 'navBarLeft'/}
+  <div id="wizard" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
+    #{GettingStarted.gettingStarted/}
+  </div>
 
   <div class="container">
     #{get 'breadcrumbs'/}

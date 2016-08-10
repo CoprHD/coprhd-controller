@@ -17,6 +17,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ProtectionSourcePolicy;
@@ -98,6 +99,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     // VMAX Host IO Limits attributes
     public Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     public Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+
+    // Indicates policy that will be used for resource placement of the VirtualPool
+    public String placementPolicy;
 
     public void deserialize() {
         Gson g = new Gson();
@@ -227,6 +231,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         raidLevels = defaultSet(virtualPool.getRaidLevels());
         hostIOLimitBandwidth = virtualPool.getHostIOLimitBandwidth();
         hostIOLimitIOPs = virtualPool.getHostIOLimitIOPs();
+        placementPolicy = virtualPool.getPlacementPolicy();
 
         VirtualPoolHighAvailabilityParam highAvailabilityType = virtualPool.getHighAvailability();
         if (highAvailabilityType != null && HighAvailability.isHighAvailability(highAvailabilityType.getType())) {
@@ -383,6 +388,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setRaidLevels(raidLevels);
         builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
         builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
+        builder.setPlacementPolicy(placementPolicy);
 
         if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
             builder.enableRecoverPoint(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));
@@ -442,6 +448,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         applyCommon(builder);
         builder.setSnapshots(defaultInt(maxSnapshots));
         builder.setContinuousCopies(maxContinuousCopies, uri(continuousCopyVirtualPool));
+        builder.setPlacementPolicy(placementPolicy);
 
         // Only allow updating these fields if not locked
         if (!isLocked()) {
@@ -527,7 +534,8 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         BlockVirtualPoolBuilder builder = new BlockVirtualPoolBuilder();
         apply(builder);
         builder.setUseMatchedPools(true);
-        return new MatchingBlockStoragePoolsCall(builder.getVirtualPool());
+        BlockVirtualPoolParam myvpool = builder.getVirtualPool();
+        return new MatchingBlockStoragePoolsCall(myvpool);
     }
 
     public ConnectedBlockVirtualPoolsCall connectedVirtualPools() {

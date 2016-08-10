@@ -61,6 +61,8 @@ public interface ServiceParams {
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
     public String FAILOVER_TARGET_FILE = "failoverTargetFile";
+    public String REPLICATE_CONFIG_FAILOVER = "replicateConfFailover";
+    public String REPLICATE_CONFIG_FAILBACK = "replicateConfFailback";
     public String FAILBACK_TARGET = "failbackTarget";
     public String FAILBACK_TARGET_FILE = "failbackTargetFile";
     public String IMAGE_TO_ACCESS = "imageToAccess";
@@ -82,6 +84,7 @@ public interface ServiceParams {
     public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String DISPLAY_JOURNALS = "displayJournals";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 

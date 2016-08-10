@@ -146,6 +146,7 @@ public class VirtualArrayUtils {
         return getViprClient().varrays().update(uri(id), virtualArray);
     }
 
+
     public static void deactivate(URI id) {
         getViprClient().varrays().deactivate(id);
     }

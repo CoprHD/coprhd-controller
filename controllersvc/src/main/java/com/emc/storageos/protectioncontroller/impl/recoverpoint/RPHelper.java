@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
@@ -1251,11 +1252,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1324,7 +1325,7 @@ public class RPHelper {
                 // If the personality type matches any of the passed in personality
                 // types, we can return true.
                 for (PersonalityTypes type : types) {
-                    if (vplexVirtualVolume.getPersonality().equals(type.name())) {
+                    if (vplexVirtualVolume.checkPersonality(type)) {
                         return true;
                     }
                 }
@@ -2247,5 +2248,20 @@ public class RPHelper {
                         + ", can not perform cleanup of snapshots.");
             }
         }
+    }
+
+    /**
+     * Determines if the provided copy state is valid for creating RP bookmarks.
+     *
+     * @param copyState the copy state
+     * @return true if the copy state if valid for creating bookmarks, false otherwise
+     */
+    public static boolean isValidBookmarkState(String copyState) {
+        // The only invalid copy bookmark states we care about are null and DIRECT_ACCESS.
+        if (copyState == null || copyState.equalsIgnoreCase(Copy.ImageAccessMode.DIRECT_ACCESS.name())) {
+            return false;
+        }
+
+        return true;
     }
 }

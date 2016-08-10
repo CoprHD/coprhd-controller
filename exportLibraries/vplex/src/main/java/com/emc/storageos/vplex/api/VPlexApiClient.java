@@ -1715,14 +1715,14 @@ public class VPlexApiClient {
 
     /**
      * This method collapses the one legged device for the passed virtual volume device.
-     * After this device will change back to local device.
      * 
-     * @param sourceDeviceName source device name
+     * @param sourceDeviceNameOrPath source device name or path
+     * @param collapseType "local" or "distributed" or "collapse-by-path"
      * @throws VPlexApiException
      */
-    public void deviceCollapse(String sourceDeviceName) throws VPlexApiException {
-        s_logger.info("Request to collpase device {}", _baseURI);
-        _virtualVolumeMgr.deviceCollapse(sourceDeviceName);
+    public void deviceCollapse(String sourceDeviceNameOrPath, String collapseType) throws VPlexApiException {
+        s_logger.info("Request to collapse device {} with collapse type {}", sourceDeviceNameOrPath, collapseType);
+        _virtualVolumeMgr.deviceCollapse(sourceDeviceNameOrPath, collapseType);
     }
 
     /**
@@ -1902,6 +1902,37 @@ public class VPlexApiClient {
             }
         }
         _cgMgr.setConsistencyGroupReadOnly(cgName, clusterInfoList, isReadOnly);
+    }
+
+    /**
+     * Gets information for the target FE ports on the cluster with the passed
+     * name.
+     * 
+     * @param clusterName The name of the cluster.
+     * 
+     * @return A list of VPlexTargetInfo instances specifying the target
+     *         information.
+     * 
+     * @throws VPlexApiException When an error occurs getting the target
+     *             information for the cluster.
+     */
+    public List<VPlexTargetInfo> getTargetInfoForCluster(String clusterName)
+            throws VPlexApiException {
+        s_logger.info("Request to get target port info for cluster {}", clusterName);
+        return getDiscoveryManager().getTargetInfoForCluster(clusterName);
+    }
+
+    /**
+     * Gets all the detailed Storage View infos for the give VPLEX cluster.
+     * 
+     * @param clusterName name of the VPLEX cluster to look at, or you can send
+     *            a wildcard (*) to get info from both clusters.
+     * @return list of all Storage View infos for a given VPLEX instance
+     * @throws VPlexApiException
+     */
+    public List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName) throws VPlexApiException {
+        s_logger.info("Request to get storage view info for cluster {}", clusterName);
+        return getDiscoveryManager().getStorageViewsForCluster(clusterName);
     }
 
 }

@@ -182,29 +182,48 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     @Override
     public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
+        IsilonSyncPolicy policy;
+        IsilonApi isi = null;
+        BiosCommandResult cmdResult = null;
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         String policyName = targetFileShare.getLabel();
-        BiosCommandResult cmdResult = dodeleteReplicationPolicy(system, policyName);
+        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        isi = getIsilonDevice(sourceStorageSystem);
+
+        try {
+            policy = isi.getReplicationPolicy(policyName);
+        } catch (IsilonException e) {
+            _log.info("Not able to get policy : {} due to : {} ", policyName, e.getMessage());
+            completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
+            return;
+        }
+        if (policy != null) {
+            cmdResult = dodeleteReplicationPolicy(system, policyName);
+        }
 
         // Check if mirror policy exists on target system if yes, delete it..
-        if (cmdResult.getCommandSuccess()) {
+        if (cmdResult != null && cmdResult.getCommandSuccess()) {
             StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
-            IsilonApi isi = getIsilonDevice(targetStorageSystem);
+            isi = getIsilonDevice(targetStorageSystem);
             String mirrorPolicyName = policyName.concat("_mirror");
             try {
-                IsilonSyncPolicy policy = isi.getReplicationPolicy(mirrorPolicyName);
-                if (policy != null) {
-                    cmdResult = dodeleteReplicationPolicy(targetStorageSystem, mirrorPolicyName);
-                }
+                policy = isi.getReplicationPolicy(mirrorPolicyName);
             } catch (IsilonException e) {
-                _log.info("No Mirror policy found on the target system");
-            }
-            if (cmdResult.getCommandSuccess()) {
+                _log.info("Mirror policy named : {} not found on the target system", mirrorPolicyName);
                 completer.ready(_dbClient);
                 WorkflowStepCompleter.stepSucceded(completer.getOpId());
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
+                return;
             }
+            if (policy != null) {
+                cmdResult = dodeleteReplicationPolicy(targetStorageSystem, mirrorPolicyName);
+            }
+        }
+
+        if (cmdResult != null && cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }

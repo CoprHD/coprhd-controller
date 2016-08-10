@@ -191,6 +191,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // Minimum number of data centers in this virtual pool
     // This is required only for object virtual pools
     private Integer minDataCenters;
+    
+    // has dedup supported storage pools
+    private Boolean dedupCapable;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -1574,5 +1577,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.scheduleSnapshot = scheduleSnapshot;
         setChanged("scheduleSnapshot");
     }
+
+	@Name("dedupCapable")
+	public Boolean getDedupCapable() {
+		return dedupCapable;	
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		if (null == dedupCapable) {
+			this.dedupCapable = false;
+		} else {
+			this.dedupCapable = dedupCapable;
+		}
+		setChanged("dedupCapable");
+	}
 
 }

@@ -518,6 +518,16 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (param.getPlacementPolicy() != null) {
             vpool.setPlacementPolicy(param.getPlacementPolicy());
         }
+        
+        // non-dedep vpool can NOT be made dedup if it has volumes created
+        // dedup vpool can be made non-dedup because dedup storage pools will always remain
+        if (null != param.getDedupCapable()) {
+            if (vpool.getDedupCapable() != null && !vpool.getDedupCapable() &&
+            		param.getDedupCapable()) {
+                ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
+            }
+            vpool.setDedupCapable(param.getDedupCapable());
+        }
 
         // Validate Block VirtualPool update params.
         VirtualPoolUtil.validateBlockVirtualPoolUpdateParams(vpool, param, _dbClient);
@@ -542,7 +552,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (vpool.getMaxNativeContinuousCopies() != null) {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
-
+        
         _dbClient.updateObject(vpool);
 
         // Update VirtualPool and QoS with new parameters
@@ -1758,10 +1768,15 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (param.getHostIOLimitIOPs() != null) {
             vpool.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
         }
-
+        
         // set placement policy
         if (param.getPlacementPolicy() != null) {
             vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+        
+        // set dedup capable or not
+        if (null != param.getDedupCapable()) {
+        	vpool.setDedupCapable(param.getDedupCapable());
         }
 
         return vpool;

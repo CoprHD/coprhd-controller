@@ -5,18 +5,22 @@
 package com.emc.storageos.volumecontroller.impl.externaldevice.job;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.task.CreateVolumeCloneDriverTask;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 
 /**
@@ -67,6 +71,14 @@ public class CreateVolumeCloneExternalDeviceJob extends ExternalDeviceJob {
         List<VolumeClone> updatedClones = createCloneDriverTask.getClones();
         VolumeClone updatedClone = updatedClones.get(0);
         ExternalDeviceUtils.updateNewlyCreatedClone(volume, updatedClone, dbClient);
+
+        try {
+            // Update storage pool capacity in database.
+            ExternalDeviceUtils.updateStoragePoolCapacityAfterOperationComplete(volume.getPool(), _storageSystemURI,
+                    Collections.singletonList(_volumeURI), dbClient);
+        } catch (Exception ex) {
+            s_logger.error("Failed to update storage pool {} after create clone operation completion.", volume.getPool(), ex);
+        }
     }
 
     /**
@@ -81,6 +93,14 @@ public class CreateVolumeCloneExternalDeviceJob extends ExternalDeviceJob {
         } else {
             volume.setInactive(true);
             dbClient.updateObject(volume);
+
+            try {
+                // Update storage pool capacity in database.
+                ExternalDeviceUtils.updateStoragePoolCapacityAfterOperationComplete(volume.getPool(), _storageSystemURI,
+                        Collections.singletonList(_volumeURI), dbClient);
+            } catch (Exception ex) {
+                s_logger.error("Failed to update storage pool {} after create clone operation completion.", volume.getPool(), ex);
+            }
         }
     }
 }

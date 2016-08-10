@@ -234,6 +234,11 @@ public class VirtualPoolMapper {
             to.setHighAvailability(haParam);
         }
 
+        //dedup capability
+        if (from.getDedupCapable() != null) {
+        	to.setDedupCapable(from.getDedupCapable());
+        }
+        
         return mapVirtualPoolFields(from, to, protectionSettings);
     }
 

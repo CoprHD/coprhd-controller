@@ -203,6 +203,11 @@ public class Volume extends BlockObject implements ProjectResource {
      */
     private String replicaState;
 
+    /**
+     * Indicates if volume is deduplicated.
+     */
+    private Boolean isDeduplicated = false;
+
     @Name("isSyncActive")
     public Boolean getSyncActive() {
         return (isSyncActive != null) ? isSyncActive : Boolean.FALSE;
@@ -799,6 +804,20 @@ public class Volume extends BlockObject implements ProjectResource {
     public void setFullCopySetName(String fullCopySetName) {
         this.fullCopySetName = fullCopySetName;
         setChanged("fullCopySetName");
+    }
+
+    @Name("isDeduplicated")
+    public Boolean getIsDeduplicated() {
+        return isDeduplicated;
+    }
+
+    public void setIsDeduplicated(Boolean isDeduplicated) {
+        if (isDeduplicated == null) {
+            this.isDeduplicated = false;
+        } else {
+            this.isDeduplicated = isDeduplicated;
+        }
+        setChanged("isDeduplicated");
     }
 
     /**

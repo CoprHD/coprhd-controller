@@ -4,7 +4,16 @@
  */
 package com.emc.sa.asset.providers;
 
-import com.emc.sa.asset.*;
+import java.net.URI;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.AssetOptionsUtils;
+import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -13,13 +22,6 @@ import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import org.apache.commons.lang.StringUtils;
-
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
 public class BaseHostProvider extends BaseAssetOptionsProvider {
     private static final String DISCOVERY_ERROR = "ERROR";
     private static final String DISCOVERY_NOT_CONNECTED = "NOTCONNECTED";
@@ -27,8 +29,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
     protected String getDiscoveryError(DiscoveredSystemObjectRestRep system) {
         if (DISCOVERY_ERROR.equals(system.getDiscoveryJobStatus())) {
             return getMessage("discovery.failed");
-        }
-        else if (DISCOVERY_NOT_CONNECTED.equals(system.getDiscoveryJobStatus())) {
+        } else if (DISCOVERY_NOT_CONNECTED.equals(system.getDiscoveryJobStatus())) {
             return getMessage("discovery.notConnected");
         }
         // No error
@@ -54,6 +55,15 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    protected List<AssetOption> createFileHostOptions(AssetOptionsContext ctx, Collection<HostRestRep> hosts) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (HostRestRep value : hosts) {
+            options.add(createFileHostOption(ctx, value));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
     protected AssetOption createHostOption(AssetOptionsContext ctx, HostRestRep host) {
         String discoveryMessage = getDiscoveryError(host);
         String clusterName = getClusterName(ctx, host);
@@ -63,6 +73,15 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
         }
         if (discoveryMessage != null) {
             label = getMessage("host.withDiscovery", host.getName(), discoveryMessage);
+        }
+        return new AssetOption(host.getId(), label);
+    }
+
+    protected AssetOption createFileHostOption(AssetOptionsContext ctx, HostRestRep host) {
+        String clusterName = getClusterName(ctx, host);
+        String label = host.getName();
+        if (StringUtils.isNotBlank(clusterName)) {
+            label = getMessage("host.memberOfCluster", host.getName(), clusterName);
         }
         return new AssetOption(host.getId(), label);
     }
@@ -101,8 +120,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
             String storageType) {
         if (BlockProvider.isExclusiveStorage(storageType)) {
             return createHostOptions(context, hosts);
-        }
-        else {
+        } else {
             List<ClusterRestRep> clusters = getClusters(context, hosts);
             return createClusterOptions(context, clusters);
         }

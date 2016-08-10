@@ -40,10 +40,9 @@ public class RemoteReplicationGroup {
 
     /**
      * Replication mode of the group.
-     * replicationMode should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
      * Type: Input/Output.
      */
-    private CapabilityInstance replicationMode;
+    private RemoteReplicationMode replicationMode;
 
     /**
      * Replication state of the group. Type: Output.
@@ -108,11 +107,11 @@ public class RemoteReplicationGroup {
         this.replicationSetNativeId = replicationSetNativeId;
     }
 
-    public CapabilityInstance getReplicationMode() {
+    public RemoteReplicationMode getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(CapabilityInstance replicationMode) {
+    public void setReplicationMode(RemoteReplicationMode replicationMode) {
         this.replicationMode = replicationMode;
     }
 

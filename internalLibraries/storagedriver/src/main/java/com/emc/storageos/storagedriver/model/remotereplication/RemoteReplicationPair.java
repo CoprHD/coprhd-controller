@@ -32,10 +32,9 @@ public class RemoteReplicationPair {
 
     /**
      * Replication mode of the pair.
-     * replicationMode should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
      * Type: Input.
      */
-    private CapabilityInstance replicationMode;
+    private RemoteReplicationMode replicationMode;
 
     /**
      * Replication state of the pair. Type: Output.
@@ -81,11 +80,11 @@ public class RemoteReplicationPair {
         this.replicationGroupNativeId = replicationGroupNativeId;
     }
 
-    public CapabilityInstance getReplicationMode() {
+    public RemoteReplicationMode getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(CapabilityInstance replicationMode) {
+    public void setReplicationMode(RemoteReplicationMode replicationMode) {
         this.replicationMode = replicationMode;
     }
 

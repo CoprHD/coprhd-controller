@@ -80,18 +80,16 @@ public class RemoteReplicationSet {
     private Set<ElementType> replicationLinkGranularity = new HashSet<>();
 
     /**
-     * Defines replication modes supported for elements of this set.
-     * supportedReplicationModes should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
+     * Defines replication modes supported for elements of this set (groups/pairs).
      * Type: Output.
      */
-    private Set<CapabilityInstance> supportedReplicationModes;
+    private Set<RemoteReplicationMode> supportedReplicationModes;
 
     /**
      * When replication link operations are supported on the SET level, defines link mode.
-     * replicationMode should belong to {@link com.emc.storageos.storagedriver.storagecapabilities.ReplicationModeCapabilityDefinition} type.
      * Type: Output.
      */
-    private CapabilityInstance replicationMode;
+    private RemoteReplicationMode replicationMode;
 
 
     /**
@@ -142,19 +140,19 @@ public class RemoteReplicationSet {
         this.replicationLinkGranularity = replicationLinkGranularity;
     }
 
-    public Set<CapabilityInstance> getSupportedReplicationModes() {
+    public Set<RemoteReplicationMode> getSupportedReplicationModes() {
         return supportedReplicationModes;
     }
 
-    public void setSupportedReplicationModes(Set<CapabilityInstance> supportedReplicationModes) {
+    public void setSupportedReplicationModes(Set<RemoteReplicationMode> supportedReplicationModes) {
         this.supportedReplicationModes = supportedReplicationModes;
     }
 
-    public CapabilityInstance getReplicationMode() {
+    public RemoteReplicationMode getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(CapabilityInstance replicationMode) {
+    public void setReplicationMode(RemoteReplicationMode replicationMode) {
         this.replicationMode = replicationMode;
     }
 

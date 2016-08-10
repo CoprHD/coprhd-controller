@@ -9,11 +9,12 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 
 @Cf("RemoteReplicationGroup")
-public class RemoteReplicationGroup extends DataObject {
+public class RemoteReplicationGroup extends DiscoveredDataObject {
 
     // native id of this group
     private String nativeId;

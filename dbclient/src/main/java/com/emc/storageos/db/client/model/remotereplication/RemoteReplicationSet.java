@@ -51,11 +51,12 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     // Element types in this remote replication set for which which device supports replication link operations.
     private StringSet supportedReplicationLinkGranularity;
 
+    // Set of replication modes which are supported for elements of this set
+    private StringSet supportedReplicationModes;
 
-
-    // Maps supported replication modes for elements of this set to a boolean flag indicating if group consistency for
+    // Set of replication modes for elements of this set for which group consistency for
     // link operations is automatically enforced by device.
-    private StringMap replicationModesToGroupConsistencyMap;
+    private StringSet replicationModesGroupConsistencyEnforced;
 
     // Set of replication modes for which group consistency cannot be enforced on device.
     private StringSet replicationModesNoGroupConsistency;
@@ -67,7 +68,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     private ReplicationState replicationState;
 
     // Element types supported by this replication set.
-    private Set<ElementType> supportedElementTypes;
+    private StringSet supportedElementTypes;
 
 
     @Name("nativeId")
@@ -122,6 +123,13 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         setChanged("systemToRolesMap");
     }
 
+    public void addSystemRolesEntry(String systemName, StringSet roles) {
+        if (this.systemToRolesMap == null) {
+            this.systemToRolesMap = new StringSetMap();
+        }
+        this.systemToRolesMap.put(systemName, roles);
+    }
+
     @Name("supportedReplicationLinkGranularity")
     public StringSet getSupportedReplicationLinkGranularity() {
         return supportedReplicationLinkGranularity;
@@ -132,15 +140,26 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         setChanged("supportedReplicationLinkGranularity");
     }
 
-    @Name("replicationModesToGroupConsistencyMap")
-    public StringMap getReplicationModesToGroupConsistencyMap() {
-        return replicationModesToGroupConsistencyMap;
+    @Name("supportedReplicationModes")
+    public StringSet getSupportedReplicationModes() {
+        return supportedReplicationModes;
     }
 
-    public void setReplicationModesToGroupConsistencyMap(StringMap replicationModesToGroupConsistencyMap) {
-        this.replicationModesToGroupConsistencyMap = replicationModesToGroupConsistencyMap;
-        setChanged("replicationModesToGroupConsistencyMap");
+    public void setSupportedReplicationModes(StringSet supportedReplicationModes) {
+        this.supportedReplicationModes = supportedReplicationModes;
+        setChanged("supportedReplicationModes");
     }
+
+    @Name("replicationModesGroupConsistencyEnforced")
+    public StringSet getReplicationModesGroupConsistencyEnforced() {
+        return replicationModesGroupConsistencyEnforced;
+    }
+
+    public void setReplicationModesGroupConsistencyEnforced(StringSet replicationModesGroupConsistencyEnforced) {
+        this.replicationModesGroupConsistencyEnforced = replicationModesGroupConsistencyEnforced;
+        setChanged("replicationModesGroupConsistencyEnforced");
+    }
+
 
     @Name("replicationModesNoGroupConsistency")
     public StringSet getReplicationModesNoGroupConsistency() {
@@ -173,11 +192,11 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     }
 
     @Name("supportedElementTypes")
-    public Set<ElementType> getSupportedElementTypes() {
+    public StringSet getSupportedElementTypes() {
         return supportedElementTypes;
     }
 
-    public void setSupportedElementTypes(Set<ElementType> supportedElementTypes) {
+    public void setSupportedElementTypes(StringSet supportedElementTypes) {
         this.supportedElementTypes = supportedElementTypes;
         setChanged("supportedElementTypes");
     }

@@ -17,6 +17,7 @@
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="ObjectController" value="rmi://${node_id}:10099/ObjectController"/>
+                <entry key="ComputeSystemOrchestrationController" value="rmi://${node_id}:10099/ComputeSystemOrchestrationController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -52,6 +53,7 @@
                 <value>ecs</value>
                 <value>ceph</value>
                 <value>externaldevice</value>
+                <value>compute-system-orchestration</value>
             </set>
         </property>
     </bean>

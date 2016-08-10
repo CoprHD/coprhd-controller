@@ -11,7 +11,8 @@
                 </div>
             </div>
             <h4 ng-show="guideMode=='full'" class="">&{'gettingStarted.header.full'}</h4>
-            <div ng-show="guideMode=='side'" class="title-side">&{'gettingStarted.header.side'}</div>
+            <div ng-show="guideMode=='side' && currentStep > 2" class="title-side-next">&{'gettingStarted.header.side.next'}</div>
+            <div ng-show="guideMode=='side' && currentStep <= 2" class="title-side">&{'gettingStarted.header.side'}</div>
 
         </div>
         <div class="{'panel-body':guideMode=='full'}">
@@ -58,7 +59,7 @@
 
                             <button ng-show="completedSteps >= 3  && completedSteps < maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(completedSteps+1);">&{'gettingStarted.landing.partial'}</button>
 
-                            <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(9);">&{'gettingStarted.landing.completed'}</button> <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="startAddMoreStorage();">&{'gettingStarted.loader.recheck'}</button> <!-- <button ng-show="completedSteps == getStepsLength()-1" name="singlebutton" class="btn btn-primary" ng-click="closeGuide();">Close Guide</button> -->
+                            <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(9);">&{'gettingStarted.landing.completed'}</button> <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="startAddMoreStorage();">&{'gettingStarted.loader.recheck'}</button> 
                         </div>
                         <p class="dismiss-me" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</p>
                     </div>
@@ -74,9 +75,7 @@
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -89,13 +88,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
 
             <guidestep class="required-step" name="initialSetup" ng-show="guideDataAvailable && currentStep == 2">
@@ -107,9 +102,7 @@
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -122,26 +115,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="storagesystemsteup" ng-show="guideDataAvailable && currentStep == 4">
-                <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagesystem.title'}</step-side>
-                </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -158,18 +142,11 @@
                                     <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 3" name="singlebutton" class="btn btn-danger" ng-click="runStep(guideError);">Fix Error</button>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
-                <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
-                </div>
                 <div ng-if="guideVisible && currentStep == 5">
                     #{set navSelected: ['nav.virtualStorage', 'nav.block.virtualPools'] /}
                 </div>
@@ -178,9 +155,7 @@
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -196,26 +171,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="virtualarraysetup" ng-show="guideDataAvailable && currentStep == 6">
-                <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.virtualarray.title'}</step-side>
-                </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -231,26 +197,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="virtualpoolsetup" ng-show="guideDataAvailable && currentStep == 7">
-                <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.virtualpool.title'}</step-side>
-                </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -266,26 +223,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="projectsetup" ng-show="guideDataAvailable && currentStep == 8">
-                <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.project.title'}</step-side>
-                </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -301,26 +249,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
             <guidestep class="required-step" name="provisionstep" ng-show="guideDataAvailable && currentStep == 9">
-                <div ng-if="guideMode=='side'">
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.provision.title'}</step-side>
-                </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
-                        <!-- end guide-steppanel -->
                     </div>
-                    <!-- end col -->
                     <div class="col-2">
                         <div class="container-fluid">
                             <div class="guide-textpanel">
@@ -350,16 +289,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- end guide-textpanel -->
                         </div>
-                        <!-- end container -->
                     </div>
-                    <!-- end col -->
                 </div>
-                <!-- end css-table -->
             </guidestep>
         </div>
-        <!-- end panel-body -->
     </div>
-    <!-- end panel -->
 </section>

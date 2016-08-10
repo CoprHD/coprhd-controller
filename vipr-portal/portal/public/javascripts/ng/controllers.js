@@ -1408,6 +1408,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     landingStep = 3;
     maxSteps = 9;
     initialNav = $(".navMenu .active").text();
+    initialNavParent = $(".rootNav.active").text();
 
     $scope.checkGuide = function() {
         cookieObject = angular.fromJson(readCookie(cookieKey));
@@ -1456,7 +1457,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.guideVisible = false;
         $scope.guideDataAvailable = false;
         saveGuideCookies();
-        setActiveMenu(initialNav);
+        setActiveMenu(initialNav,initialNavParent);
     }
 
     $scope.initializeSteps = function() {
@@ -1963,6 +1964,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $(colWiz).popover('show');
             }
         }
+        if(newValue) {
+            $('.rootNav , .navMenu a').on('click', function(event) {
+                $('.wizard-side-next').popover('show');
+                return false;
+            });
+        } else {
+             $('.rootNav , .navMenu a').off('click');
+        }
     });
     var PINNED_COOKIE = 'isMenuPinned';
         var MAIN_MENU = '#mainMenu';
@@ -2022,7 +2031,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("General Configuration");
                     break;
                 case 3:
-                    setActiveMenu(initialNav);
+                    setActiveMenu("Overview");
                     break;
                 case 4:
                     setActiveMenu("Storage Systems");
@@ -2049,11 +2058,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
 
 
-    function setActiveMenu(name) {
+
+    function setActiveMenu(name,parent) {
         $(".navMenu .active , #mainMenu .active").removeClass("active");
-        parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
-        $(".navMenu li:contains("+name+")").addClass("active");
-        $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        if(name){
+            parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
+            $(".navMenu li:contains("+name+")").addClass("active");
+            $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        } else if (parent){
+            $(".rootNav:contains("+parent+")").addClass("active");
+        }
+
         openMenu();
     }
 
@@ -2070,6 +2085,22 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         trigger : 'manual',
         content : translate("gettingStarted.popover"),
         selector : 'colWiz'
+
+    });
+
+    $('.wizard-side-next').on('shown.bs.popover', function(){
+        $('.wizard-side-next').popover('toggle');
+    });
+    $('.wizard-side-next').popover({
+        delay : {
+            show : 0,
+            hide : 2000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.step.popover"),
+        selector : '.wizard-side-next'
 
     });
 });

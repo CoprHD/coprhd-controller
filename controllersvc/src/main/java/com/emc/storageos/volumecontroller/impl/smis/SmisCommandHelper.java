@@ -4015,7 +4015,7 @@ public class SmisCommandHelper implements SmisConstants {
                         // groups to parent Cascaded Group.
                         _log.info("Existing Reusable Storage Groups Found {}", Joiner.on("\t").join(existingReusableGroups.keySet()));
                         for (String group : existingReusableGroups.keySet()) {
-                            volumeGroup.put(group, null);//Why is the volume set empty?
+                            volumeGroup.put(group, null);
                         }
                         // find out remaining volumes which doesn't have any
                         // groups to fit into

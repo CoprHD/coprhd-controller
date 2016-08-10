@@ -1205,7 +1205,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("createExportMask: initiators: {}", initiatorList);
         final ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         final String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
-        if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType) && _restAPIHelper.isClusteredHost(storage, initiatorList)){
+        if (_restAPIHelper.isClusteredHost(storage, initiatorList, exportType)){
             _log.debug("Executing createExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.createRESTExportMask(storage, exportMaskURI,volumeURIHLUs, targetURIList,initiatorList,  taskCompleter);
         } else {

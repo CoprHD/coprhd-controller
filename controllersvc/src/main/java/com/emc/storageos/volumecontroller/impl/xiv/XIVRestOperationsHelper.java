@@ -100,6 +100,49 @@ public class XIVRestOperationsHelper {
         }
         return restClient;
     }
+    
+    /**
+     * Validates if the Host is part of a Cluster on XIV system. Uses initiators to find out the Hosts
+     * 
+     * @param storage XIV Storage System instance
+     * @param exportMaskURI ExportMask instance
+     * @param initiatorList Host Initiators
+     * @param exportType Host/Cluster export type of the operation
+     * @return True if the host is part of Cluster else false.
+     */
+    public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiators, String exportType) {
+    	boolean isClusteredHost = false;
+    	if(null != initiators && !initiators.isEmpty()) {
+    		Set<String> hostNames = new HashSet<String>();
+    		XIVRestClient restExportOpr = getRestClient(storage);
+    		
+    		//From Initiators find all the Hosts on Array
+    		for (Initiator initiator : initiators) {
+	    		try {
+	        		final String hostName = restExportOpr.getHostNameFromPort(storage.getSmisProviderIP(), Initiator.normalizePort(initiator.getInitiatorPort()));
+	        		if(null != hostName) {
+	        			hostNames.add(hostName);	
+	        		}
+				} catch (Exception e) {
+					_log.error("Unable to get host info from Port {} on array : {} ", initiator.getInitiatorPort(), storage.getLabel(), e);
+				}
+    		}
+    		
+    		//Check if Host is part of Cluster
+    		if(hostNames.isEmpty()) {
+	        	if(ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
+	        		isClusteredHost = true;
+	        	}
+	        } else {
+	        	Set<Boolean> result = new HashSet<Boolean>();
+	        	for(String hostName : hostNames) {
+	            	result.add(isClusteredHostOnArray(storage, hostName));
+	            }
+	        	isClusteredHost = (result.size() == 1 ? result.iterator().next() : false);	
+	        }
+    	}
+	    return isClusteredHost;
+    }
 
     /**
      * Validates if the Host is part of a Cluster on XIV system. Uses initiators to find out the Hosts
@@ -110,17 +153,7 @@ public class XIVRestOperationsHelper {
      * @return True if the host is part of Cluster else false.
      */
     public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiators) {
-        Set<Boolean> result = new HashSet<Boolean>();
-        if (null != initiators) {
-            for (Initiator initiator : initiators) {
-            	URI hostURI = initiator.getHost();
-            	if(null != hostURI) {
-            		Host host = _dbClient.queryObject(Host.class, hostURI);
-                    result.add(isClusteredHostOnArray(storage, host.getLabel()));	
-            	}
-            }
-        }
-        return result.size() == 1 ? result.iterator().next() : false;
+        return isClusteredHost(storage, initiators, null);
     }
 
     /**

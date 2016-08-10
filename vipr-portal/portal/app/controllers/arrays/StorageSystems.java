@@ -210,7 +210,9 @@ public class StorageSystems extends ViprResourceController {
        	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
        	String isGuideAdd = null;
        	if (jobject != null) {
-       		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+       		if(jobject.get(GUIDE_VISIBLE) != null) {
+       			isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+       		}
        	}
        	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
        		addReferenceDataAllFlash();

@@ -348,8 +348,11 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
     DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
     WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
-    WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow");
-    
+    WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow"),
+    MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
+    UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
+
     private final String name;
     private final String description;
 

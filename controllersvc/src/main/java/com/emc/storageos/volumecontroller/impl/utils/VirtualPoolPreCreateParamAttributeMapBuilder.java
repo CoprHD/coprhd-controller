@@ -62,8 +62,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
             Boolean long_term_retention,
             boolean uniquePolicyNames,
             Integer minDataCenters, 
-            boolean compressionEnabled) {
-            Integer minDataCenters,
+            boolean compressionEnabled,            
             Boolean dedupCapable) {
         this(varrays, protocols, provisionType, systemType, type, (long_term_retention == null ? Boolean.FALSE : long_term_retention));
         _autoTieringPolicyName = autoTieringPolicyName;

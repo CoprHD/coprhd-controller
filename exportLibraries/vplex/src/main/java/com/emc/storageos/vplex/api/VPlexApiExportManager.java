@@ -774,7 +774,7 @@ public class VPlexApiExportManager {
             s_logger.info("Unregister initiators URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_I, argBuilder.toString());
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Uregister initiators POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
@@ -1085,8 +1085,9 @@ public class VPlexApiExportManager {
             }
         }
 
+        boolean useForceFlag = true;
         modifyStorageViewVirtualVolumes(storageViewInfo, volumeArgsBuilder.toString(),
-                requestURI);
+                requestURI, useForceFlag);
 
         //
         updateStorageViewInfo(storageViewInfo);
@@ -1134,8 +1135,9 @@ public class VPlexApiExportManager {
             volumeNamesBuilder.append(virtualVolumename);
         }
 
+        boolean useForceFlag = false;
         modifyStorageViewVirtualVolumes(storageViewInfo, volumeNamesBuilder.toString(),
-                requestURI);
+                requestURI, useForceFlag);
     }
 
     /**
@@ -1145,12 +1147,13 @@ public class VPlexApiExportManager {
      * @param storageViewInfo The storage view.
      * @param virtualVolumesArg The value for the volumes argument for the request.
      * @param requestURI The URI for the modification request.
+     * @param useForceFlag flag indicating whether or not the VPLEX API force flag should be used 
      * 
      * @throws VPlexApiException When an error occurs modifying the virtual
      *             volumes for the storage view.
      */
     private void modifyStorageViewVirtualVolumes(VPlexStorageViewInfo storageViewInfo,
-            String virtualVolumesArg, URI requestURI) throws VPlexApiException {
+            String virtualVolumesArg, URI requestURI, boolean useForceFlag) throws VPlexApiException {
 
         ClientResponse response = null;
         try {
@@ -1160,7 +1163,7 @@ public class VPlexApiExportManager {
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_O, virtualVolumesArg);
             argsMap.put(VPlexApiConstants.ARG_DASH_V, storageViewInfo.getPath());
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, useForceFlag);
             s_logger.info("Storage view modify virtual volumes POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,

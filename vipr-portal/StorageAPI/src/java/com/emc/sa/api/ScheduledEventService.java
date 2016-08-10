@@ -397,9 +397,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         validateParam(updateParam.getScheduleInfo());
         
         try {
-            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(scheduledEvent.getOrderCreationParam().getBytes(UTF_8));
+            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getOrderCreationParam().getBytes(UTF_8)));
             orderCreateParam.setAdditionalScheduleInfo(updateParam.getAdditionalScheduleInfo());
-            scheduledEvent.setOrderCreationParam(orderCreateParam.toString());
+            scheduledEvent.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(orderCreateParam.serialize()), UTF_8));
             updateScheduledEvent(scheduledEvent, updateParam.getScheduleInfo());
         } catch (APIException ex){
             log.error(ex.getMessage(), ex);

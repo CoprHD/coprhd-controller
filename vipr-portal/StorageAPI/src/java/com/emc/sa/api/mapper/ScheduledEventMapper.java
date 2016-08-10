@@ -52,9 +52,9 @@ public class ScheduledEventMapper {
         }
         
         try {
-            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(from.getOrderCreationParam().getBytes(UTF_8));
+            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(Base64.decodeBase64(from.getOrderCreationParam().getBytes(UTF_8)));
             to.setOrderCreateParam(orderCreateParam);
-        } catch (Exception ex) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
         return to;

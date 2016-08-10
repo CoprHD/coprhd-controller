@@ -769,7 +769,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     }
 
     /**
-     * V3 All Flash Array's model name would be like 250F/FX, 450F/FX and 850F/FX
+     * V3 All Flash Array's model name would be like VMAX250F, VMAX250FX, VMAX450F, VMAX450FX , VMAX850F and VMAX850FX
      * 
      * @return true if the storage system is V3 and All Flash Array Otherwise return false
      */

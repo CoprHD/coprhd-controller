@@ -4,19 +4,15 @@
  */
 package models;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
 
@@ -42,7 +38,7 @@ public class StorageSystemTypes {
     public static final String ECS = "ecs";
     public static final String CEPH = "ceph";
     private static final String SMIS = "smis";
-    
+
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
     public static final String STORAGE_PROVIDER_HITACHI = "STORAGE_PROVIDER.hds";
     public static final String STORAGE_PROVIDER_VPLEX = "STORAGE_PROVIDER.vplex";
@@ -56,8 +52,9 @@ public class StorageSystemTypes {
 
     public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX, HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV, CEPH, UNITY };
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
-    public static final String[] STORAGE_PROVIDER_TYPES = { VMAX, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
+    public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
+    public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
     public static boolean isNone(String type) {
         return NONE.equals(type);
@@ -178,13 +175,37 @@ public class StorageSystemTypes {
             String provider = arrayProviderMap.get(typeName);
             if (provider != null) {
                 if (StringUtils.equals(VMAX, typeName)) {
-                    // Why use SMIS name instead of using VMAX directly
                     options.add(new StringOption(SMIS, provider));
                 } else {
                     options.add(new StringOption(typeName, provider));
                 }
             } else if (!StringUtils.equals(VNX_BLOCK, typeName)) { // VNX block is covered by VMAX
-                // Why this judgment should under the prerequisite provider == null?
+                options.add(new StringOption(typeName, type.getStorageTypeDispName()));
+            }
+        }
+        return options;
+    }
+    
+    /**
+     * Inside structure of StringOption is "storage type name: provider name (or storage type display name)
+     */
+    public static List<StringOption> getAllFlashStorageTypeOptions() {
+        Map<String, String> arrayProviderMap = StorageSystemTypesInitUtils.getProviderDsiplayNameMap();
+        List<StringOption> options = new ArrayList<StringOption>();
+        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+
+        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+            String typeName = type.getStorageTypeName();
+            // All Flash XTREMIO, VMAX and UNITY
+            String provider = arrayProviderMap.get(typeName);
+            if (provider != null) {
+                if (StringUtils.equals(VMAX, typeName)) {
+                    options.add(new StringOption(SMIS, provider));
+                } 
+                else if (StringUtils.equals(XTREMIO, typeName)) {
+                    options.add(new StringOption(XTREMIO, provider));
+                }
+            } else if (StringUtils.equals(UNITY, typeName)) { 
                 options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
@@ -195,9 +216,10 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+
             // ignore those whose type is not block
-            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getStorageTypeType())
-                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getStorageTypeType())) {
+            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getMetaType())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {
                 continue;
             }
             // no need further check for non-SMIS providers
@@ -219,8 +241,8 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
-            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getStorageTypeType())
-                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getStorageTypeType())) {
+            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getMetaType())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {
                 continue;
             }
             if (type.getIsSmiProvider()) {
@@ -232,21 +254,15 @@ public class StorageSystemTypes {
     }
 
     public static List<StringOption> getObjectStorageOptions() {
-        String alltypes = "all";
-        List<StringOption> storageoptions = new ArrayList<StringOption>();
-        // Add NONE option
-        storageoptions.add(new StringOption("NONE", "none"));
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
-                .getAllStorageSystemTypes(alltypes);
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
-                .getStorageSystemTypes()) {
-            if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("object")) {
-                storageoptions.add(new StringOption(storagetypeRest
-                        .getStorageTypeName(), storagetypeRest
-                        .getStorageTypeDispName()));
+        List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
+        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+            if (!StorageSystemTypeUtils.OBJECT_TYPE.equalsIgnoreCase(type.getMetaType())) {
+                continue;
             }
+            options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));
         }
-        return storageoptions;
+        return options;
     }
 
     public static List<StringOption> getProvidersWithSSL() {

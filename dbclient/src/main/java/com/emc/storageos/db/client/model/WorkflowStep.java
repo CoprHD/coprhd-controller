@@ -50,6 +50,8 @@ public class WorkflowStep extends DataObject {
     private byte[] executeMethodData;
     /** serialized Workflow.Method for rollback */
     private byte[] rollbackMethodData;
+    /** Whether the step should be suspended */
+    private Boolean suspendStep;
 
     @Name("workflow")
     @RelationIndex(cf = "RelationIndex", type = Workflow.class)
@@ -221,4 +223,13 @@ public class WorkflowStep extends DataObject {
                 this.rollbackMethodData = rollbackMethodData;
                 setChanged("rollbackMethodData");
             }
+    @Name("suspendStep")
+    public Boolean getSuspendStep() {
+        return suspendStep;
+    }
+
+    public void setSuspendStep(Boolean suspendStep) {
+        this.suspendStep = suspendStep;
+        setChanged("suspendStep");
+    }
 }

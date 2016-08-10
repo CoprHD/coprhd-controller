@@ -63,11 +63,16 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * ExportGroup object. ExportMask will be created for each host.
      * 
      * 
-     * @param storageURI - URI referencing underlying storage array
-     * @param exportGroupURI - URI referencing Bourne-level masking, ExportGroup
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer URI
-     * @param token - Identifier for operation
+     * @param storageURI
+     *            - URI referencing underlying storage array
+     * @param exportGroupURI
+     *            - URI referencing Bourne-level masking, ExportGroup
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer URI
+     * @param token
+     *            - Identifier for operation
      * @throws Exception
      */
     @Override
@@ -94,9 +99,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 String zoningStep = generateZoningCreateWorkflow(workflow, null, exportGroup,
                         null, volumeMap);
 
-                boolean createdSteps =
-                        determineExportGroupCreateSteps(workflow, zoningStep, device, storage, exportGroup,
-                                initiatorURIs, volumeMap, token);
+                boolean createdSteps = determineExportGroupCreateSteps(workflow, zoningStep, device, storage, exportGroup,
+                        initiatorURIs, volumeMap, token);
 
                 if (createdSteps) {
                     // Execute the plan and allow the WorkflowExecutor to fire the
@@ -155,10 +159,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             for (ExportMask exportMask : exportMasks) {
                 if (deleteStep == null) {
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep,
-                            storage, exportGroup, exportMask, null);
+                            storage, exportGroup, exportMask, null, null, null);
                 } else {
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
-                            storage, exportGroup, exportMask, null);
+                            storage, exportGroup, exportMask, null, null, null);
                 }
             }
 
@@ -208,7 +212,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info("Creating AddInitiators workFlow");
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddInitiators", true, token);
+                        "exportGroupAddInitiators", true, token, taskCompleter);
 
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils.mapHostToExportMask(
@@ -276,10 +280,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 workflow.executePlan(taskCompleter, successMessage);
             } else {
                 _log.info("export_initiator_add: first initiator, creating a new export");
-             // No existing export masks available inexport Group
+                // No existing export masks available inexport Group
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
-                        true, token);
+                        true, token, taskCompleter);
 
                 List<URI> exportMasksToZoneCreate = new ArrayList<URI>();
                 Map<URI, Integer> volumesToZoneCreate = new HashMap<URI, Integer>();
@@ -358,9 +362,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
                 maskToInitiatorsMap.put(mask.getId(), initURIList);
             }
-            String zoningStep =
-                    generateZoningRemoveInitiatorsWorkflow(workflow, null,
-                            exportGroup, maskToInitiatorsMap);
+            String zoningStep = generateZoningRemoveInitiatorsWorkflow(workflow, null,
+                    exportGroup, maskToInitiatorsMap);
             String deleteStep = null;
             for (ExportMask exportMask : exportMasksMap.keySet()) {
                 List<Initiator> inits = exportMasksMap.get(exportMask);
@@ -372,10 +375,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             exportMask.getId().toString()));
                     if (deleteStep == null) {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                                exportGroup, exportMask, null);
+                                exportGroup, exportMask, null, null, null);
                     } else {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                                exportGroup, exportMask, null);
+                                exportGroup, exportMask, null, null, null);
                     }
 
                 }
@@ -431,10 +434,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 for (ExportMask exportMask : exportMasks) {
                     if (exportStep == null) {
                         exportStep = generateExportMaskAddVolumesWorkflow(workflow, zoningStep, storage,
-                                exportGroup, exportMask, volumeMap);
+                                exportGroup, exportMask, volumeMap, null);
                     } else {
                         exportStep = generateExportMaskAddVolumesWorkflow(workflow, exportStep, storage,
-                                exportGroup, exportMask, volumeMap);
+                                exportGroup, exportMask, volumeMap, null);
                     }
                 }
                 String successMessage = String.format(
@@ -522,10 +525,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     for (ExportMask exportMask : deleteMasks) {
                         if (deleteStep == null) {
                             deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                                    exportGroup, exportMask, null);
+                                    exportGroup, exportMask, null, null, null);
                         } else {
                             deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                                    exportGroup, exportMask, null);
+                                    exportGroup, exportMask, null, null, null);
                         }
                     }
                 }
@@ -536,10 +539,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     for (ExportMask exportMask : updateMasks) {
                         if (unexportStep == null) {
                             unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, zoningStep,
-                                    storage, exportGroup, exportMask, volumes, null);
+                                    storage, exportGroup, exportMask, volumes, null, null);
                         } else {
                             unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, unexportStep,
-                                    storage, exportGroup, exportMask, volumes, null);
+                                    storage, exportGroup, exportMask, volumes, null, null);
                         }
                     }
                 }
@@ -571,14 +574,22 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * Routine contains logic to create an export mask on the array
      * 
-     * @param workflow - Workflow object to create steps against
-     * @param previousStep - [optional] Identifier of workflow step to wait for
-     * @param device - BlockStorageDevice implementation
-     * @param storage - StorageSystem object representing the underlying array
-     * @param exportGroup - ExportGroup object representing Bourne-level masking
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer HLUs
-     * @param token - Identifier for the operation
+     * @param workflow
+     *            - Workflow object to create steps against
+     * @param previousStep
+     *            - [optional] Identifier of workflow step to wait for
+     * @param device
+     *            - BlockStorageDevice implementation
+     * @param storage
+     *            - StorageSystem object representing the underlying array
+     * @param exportGroup
+     *            - ExportGroup object representing Bourne-level masking
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer HLUs
+     * @param token
+     *            - Identifier for the operation
      * @throws Exception
      */
     private boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,

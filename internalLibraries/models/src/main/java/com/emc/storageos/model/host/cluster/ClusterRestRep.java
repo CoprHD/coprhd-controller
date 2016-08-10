@@ -69,11 +69,13 @@ public class ClusterRestRep extends TenantResourceRestRep {
      * 
      * @return
      */
+    @Deprecated
     @XmlElement(name = "auto_export_enabled")
     public Boolean getAutoExportEnabled() {
         return autoExportEnabled;
     }
 
+    @Deprecated
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
     }

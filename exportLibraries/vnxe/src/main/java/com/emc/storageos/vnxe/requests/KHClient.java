@@ -35,6 +35,7 @@ public class KHClient {
     private Set<NewCookie> _cookie;
     private boolean isUnity = false;
     private String _emcCsrfToken = null;
+    private boolean isFastVPEnabled = true;
 
     public KHClient(String host, int port, String username, String password) {
 
@@ -59,12 +60,13 @@ public class KHClient {
     public KHClient(String host, String username, String password) {
         this(host, PORT, username, password);
     }
-   
+
     public KHClient(String host, int port, String username, String password, boolean isUnity) {
         this(host, port, username, password);
         this.isUnity = isUnity;
     }
-    public boolean isUnity(){
+
+    public boolean isUnity() {
         return this.isUnity;
     }
 
@@ -83,12 +85,21 @@ public class KHClient {
     public synchronized void setCookie(Set<NewCookie> _cookie) {
         this._cookie = _cookie;
     }
+
     public synchronized String getEmcCsrfToken() {
-	return _emcCsrfToken;
+        return _emcCsrfToken;
     }
 
-    public synchronized void setEmcCsrfToken(String _emcCsrfToken){
-	this._emcCsrfToken = _emcCsrfToken;
+    public synchronized void setEmcCsrfToken(String _emcCsrfToken) {
+        this._emcCsrfToken = _emcCsrfToken;
+    }
+
+    public boolean isFastVPEnabled() {
+        return isFastVPEnabled;
+    }
+
+    public void setFastVPEnabled(boolean isFastVPEnabled) {
+        this.isFastVPEnabled = isFastVPEnabled;
     }
 
 }

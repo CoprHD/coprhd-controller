@@ -7,6 +7,7 @@ package com.emc.storageos.protectioncontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -23,14 +24,14 @@ public interface RPController extends ProtectionController {
      * @param copyID id of protection volume
      * @param pointInTime any point in time in UTC.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
+     * @param imageAccessMode the image access mode for the failover copy (RecoverPoint only)
      * @param op operation to perform
      * @param task task object
      *
      * @throws InternalException
      */
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
-            String task)
-            throws InternalException;
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
+            String task) throws InternalException;
 
     /**
      * Update consistency group policy.
@@ -73,6 +74,7 @@ public interface RPController extends ProtectionController {
 
     /**
      * adds and removes RecoverPoint protected volumes to and from applications
+     *
      * @param systemURI
      * @param addVolumesNotInCG
      * @param removeVolumesURI
@@ -82,4 +84,12 @@ public interface RPController extends ProtectionController {
     public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
             String taskId);
 
+    /**
+     * Finds the RecoverPoint copy access states for all copies associated to the volumes provided.
+     *
+     * @param protectionSystem the protection system to use
+     * @param volumeURIs the volumes corresponding to the copies that need to be queried for access state
+     * @return a mapping of volumes to access states
+     */
+    public Map<URI, String> getCopyAccessStates(URI protectionSystem, List<URI> volumeURIs);
 }

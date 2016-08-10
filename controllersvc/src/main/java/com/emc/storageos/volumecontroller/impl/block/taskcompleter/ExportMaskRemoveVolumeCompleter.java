@@ -12,9 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +20,11 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
 
 public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskRemoveVolumeCompleter.class);
@@ -65,9 +65,9 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                         exportMask.getVolumes().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
                     dbClient.markForDeletion(exportMask);
-                    dbClient.updateAndReindexObject(exportGroup);
+                    dbClient.updateObject(exportGroup);
                 } else {
-                    dbClient.updateAndReindexObject(exportMask);
+                    dbClient.updateObject(exportMask);
                 }
             }
 
@@ -125,7 +125,7 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
             for (URI uri : copyOfVolumes) {
                 exportGroup.removeVolume(uri);
             }
-            dbClient.updateAndReindexObject(exportGroup);
+            dbClient.updateObject(exportGroup);
             _log.info(String.
                     format("The following volumes were removed from ExportGroup %s (%s): %s",
                             exportGroup.getLabel(), exportGroup.getId(),

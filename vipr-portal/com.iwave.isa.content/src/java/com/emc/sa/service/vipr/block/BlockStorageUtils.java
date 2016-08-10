@@ -97,6 +97,7 @@ import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
+import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -227,6 +228,22 @@ public class BlockStorageUtils {
         return execute(new GetBlockContinuousCopies(uris, parentId));
     }
     
+    /**
+     * Verify that list of volume doesn't contain any dependencies (snapshot, full copies, continuous copy)
+     *
+     * @param volumeIds of the volumes to validate dependencies
+     */
+    public static void verifyVolumeDependencies(List<URI> volumeIds, URI projectId) {
+        List<URI> allBlockResources = Lists.newArrayList(volumeIds);
+        for (URI volumeId : volumeIds) {
+            BlockObjectRestRep volume = getVolume(volumeId);
+            allBlockResources.addAll(getSrdfTargetVolumes(volume));
+            allBlockResources.addAll(getRpTargetVolumes(volume));
+        }
+
+        execute(new VerifyVolumeDependencies(allBlockResources, projectId));
+    }
+
     /**
      * Retrieve a list of block resources based on the resource ids provided. This will gather
      * the appropriate resources based on the resource type of the ids provided.
@@ -761,6 +778,26 @@ public class BlockStorageUtils {
             VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getSrdfRep().getSRDFTargetVolumes()) {
+                    targetVolumes.add(targetVolume.getId());
+                }
+            }
+        }
+
+        return targetVolumes;
+    }
+
+    /**
+     * Return a list of target RP volume for a given block object
+     *
+     * @param blockObject to retrieve target from
+     * @return a list of RP target volumes for specified block object
+     */
+    public static List<URI> getRpTargetVolumes(BlockObjectRestRep blockObject) {
+        List<URI> targetVolumes = Lists.newArrayList();
+        if (blockObject instanceof VolumeRestRep) {
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+                for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getRpRep().getRpTargets()) {
                     targetVolumes.add(targetVolume.getId());
                 }
             }

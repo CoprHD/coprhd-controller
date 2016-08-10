@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.StorageProtocol;
@@ -119,7 +120,8 @@ public class FileShareExport implements Serializable {
      * @param mountPath
      */
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
-            String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory, String comments) {
+            String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory,
+            String comments) {
         _clients = clients;
         for (String secType : securityType.split(SEC_SEPARATOR)) {
             if (_securityType == null) {
@@ -217,13 +219,28 @@ public class FileShareExport implements Serializable {
         return _subDirectory;
     }
 
+    public void setPath(String path) {
+        this._path = path;
+    }
+
+    public void setMountPath(String mountPath) {
+        this._mountPath = mountPath;
+    }
+
     public FileExport getFileExport() {
 
         // Convert the set of security types to a string separated by comma(,).
+        Set<String> orderedSecTypes = new TreeSet<String>();
         Iterator<SecurityTypes> secIter = _securityType.iterator();
-        String securityTypes = secIter.next().toString();
+
         while (secIter.hasNext()) {
-            securityTypes += "," + secIter.next().toString();
+            orderedSecTypes.add(secIter.next().toString());
+        }
+
+        Iterator<String> orderedList = orderedSecTypes.iterator();
+        String securityTypes = orderedList.next().toString();
+        while (orderedList.hasNext()) {
+            securityTypes += "," + orderedList.next().toString();
         }
         FileExport fileExport = new FileExport(_clients, _storagePortName, _mountPath, securityTypes, _permissions.toString(),
                 _rootUserMapping,

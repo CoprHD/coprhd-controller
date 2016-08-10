@@ -32,6 +32,9 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     // VMAX Host IO Limits attributes
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+    
+    // De-duplication supported vpool
+    private Boolean dedupCapable;
 
     public BlockVirtualPoolRestRep() {
     }
@@ -271,6 +274,15 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
     }
 
+    @XmlElement(name = "dedup_capable", required = false)
+	public Boolean getDedupCapable() {
+		return dedupCapable;
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
+	}
+
     /**
      * Resource placement policy used by the virtual pool.
      * Valid values:
@@ -285,4 +297,5 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     public void setPlacementPolicy(String placementPolicy) {
         this.placementPolicy = placementPolicy;
     }
+
 }

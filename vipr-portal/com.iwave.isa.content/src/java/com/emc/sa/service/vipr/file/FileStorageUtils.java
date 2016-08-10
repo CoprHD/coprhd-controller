@@ -378,13 +378,15 @@ public class FileStorageUtils {
         addAffectedResource(task);
     }
 
-    public static void failoverFileSystem(URI fileId, URI targetId) {
-        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
+    public static void failoverFileSystem(URI fileId, URI targetId, boolean replicationConf) {
+        Tasks<FileShareRestRep> tasks = execute(
+                new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(), replicationConf));
         addAffectedResources(tasks);
     }
 
-    public static void failbackFileSystem(URI fileId, URI targetId) {
-        Tasks<FileShareRestRep> tasks = execute(new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
+    public static void failbackFileSystem(URI fileId, URI targetId, boolean replicationConf) {
+        Tasks<FileShareRestRep> tasks = execute(
+                new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(), replicationConf));
         addAffectedResources(tasks);
     }
 

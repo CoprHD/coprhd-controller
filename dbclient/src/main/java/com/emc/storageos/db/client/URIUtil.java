@@ -226,6 +226,25 @@ public class URIUtil {
     }
 
     /**
+     * Converts a collection of URIs to a list of strings, null safe.
+     *
+     * @param values
+     *            the URI values.
+     * @return the String(s)
+     */
+    public static List<String> asStrings(Collection<URI> values) {
+        List<String> results = new ArrayList<>();
+        if (values != null) {
+            for (URI value : values) {
+                if (value != null) {
+                    results.add(value.toString());
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
      * Converts a string to a URI, null safe.
      * 
      * @param value

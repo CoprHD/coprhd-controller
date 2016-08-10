@@ -2201,8 +2201,9 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
 
         List<ExportRule> exportRule = getExportRules(id, allDirs, subDir);
+        ExportRules rules = new ExportRules();
         if (!exportRule.isEmpty()) {
-            rules.setExportRules(exportRule);
+            rules .setExportRules(exportRule);
         }
         return rules;
 

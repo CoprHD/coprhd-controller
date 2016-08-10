@@ -17,7 +17,8 @@ public enum LockType {
     RP_EXPORT("rp_export"),
     VPLEX_API_LIB("vplex_api_lib"),
     SRDF_PROVISIONING("srdf_provisioning"),
-    FILE_OPERATIONS("file_operations");
+    FILE_OPERATIONS("file_operations"),
+    FILE_MOUNT_OPERATIONS("file_mount_operations");
 
     private String PREFIX = "controller_";
     private String SUFFIX = "_lock_timeout";

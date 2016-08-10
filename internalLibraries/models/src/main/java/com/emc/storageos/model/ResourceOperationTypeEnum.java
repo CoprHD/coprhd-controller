@@ -346,7 +346,10 @@ public enum ResourceOperationTypeEnum {
     DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("DELETE CONSISTENCY GROUP SNAPSHOT SESSION", "delete consistency group snapshot session"),
     CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
-    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation");
+    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
+    MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
+    UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
 
     private final String name;
     private final String description;

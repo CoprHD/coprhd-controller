@@ -804,6 +804,37 @@ angular.module("portalApp").controller('taskController', function($rootScope, $s
     }
 });
 
+angular.module("portalApp").controller('eventController', function($rootScope, $scope, $timeout, $document, $http, $window) {
+    $scope.numOfPendingEvents = -1;
+
+    var SHORT_POLL_SECS = 5000;
+    var LONG_POLL_SECS = 15000;
+
+    var poll_timeout = LONG_POLL_SECS;
+
+    var countPoller;
+
+    var setCountPoller = function() {
+        countPoller = $timeout(pollForCount, poll_timeout);
+    }
+
+    // Polls just for the count
+    var pollForCount = function() {
+        $http.get(routes.Events_pendingEventCount()).success(function(numberOfEvents) {
+            $scope.numOfPendingEvents = numberOfEvents;
+            setCountPoller();
+        })
+        .error(function(data, status) {
+            console.log("Error fetching pending event count " + status);
+        });
+    };
+
+    // Poll for event counts
+    (function() {
+        pollForCount();
+    })();
+});
+
 angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $timeout, $http, $window) {
     var getTaskDetails = function() {
         $http.get(routes.Tasks_taskDetailsJson({'taskId':$scope.task.id})).success(function (data) {
@@ -827,6 +858,18 @@ angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $time
     	return render.localDate(o,datestring);
     }
 });
+
+angular.module("portalApp").controller('eventDetailsCtrl', function($scope, $timeout, $http, $window) {
+    var getEventDetails = function() {
+        $http.get(routes.Events_eventDetailsJson({'eventId':$scope.task.id})).success(function (data) {
+            $scope.event = data;
+        });
+    }
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    };
+});
+
 angular.module("portalApp").controller("summaryCountCtrl", function($scope, $http, $timeout, $window) {
     $scope.pending = 0;
     $scope.error = 0;
@@ -855,6 +898,40 @@ angular.module("portalApp").controller("summaryCountCtrl", function($scope, $htt
      */
     $scope.filterTasks = function(state) {
         window.table.tasks.dataTable.getDataTable().fnFilter(state);
+    }
+
+    poller();
+
+});
+
+angular.module("portalApp").controller("summaryEventCountCtrl", function($scope, $http, $timeout, $window) {
+    $scope.pending = 0;
+    $scope.approved = 0;
+    $scope.declined = 0;
+    $scope.dataReady = false;
+
+    var poller = function() {
+                $http.get(routes.Events_countSummary({tenantId:$scope.tenantId})).success(function(countSummary) {
+                    console.log("Fetching Summary");
+                    $scope.pending = countSummary.pending;
+                    $scope.approved = countSummary.approved;
+                    $scope.declined = countSummary.declined;
+                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined;
+                    $scope.dataReady = true;
+
+                    $timeout(poller, 5000);
+                }).
+                error(function(data, status) {
+                    console.log("Error fetching countSummary "+status);
+                    $timeout(poller, 5000);
+                });
+    };
+
+    /**
+     * Filters the DataTable by entering the filter value into the Datatable Filter Input box
+     */
+    $scope.filterEvents = function(state) {
+        window.table.events.dataTable.getDataTable().fnFilter(state);
     }
 
     poller();

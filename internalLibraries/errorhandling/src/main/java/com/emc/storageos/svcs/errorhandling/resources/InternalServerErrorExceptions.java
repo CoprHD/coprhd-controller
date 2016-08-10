@@ -27,8 +27,10 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
  * This interface holds all the methods used to create an error condition that
  * will be associated with an HTTP status of Internal Server Error (500)
  * <p/>
- * Remember to add the English message associated to the method in InternalServerErrorExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * Remember to add the English message associated to the method in InternalServerErrorExceptions.properties and use the
+ * annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
+ * service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -361,7 +363,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_UPGRADE_NOT_ALLOWED)
     public InternalServerErrorException upgradeNotAllowedWithoutPausedSite();
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_SITE_CONNECTION_BROKEN)
     public InternalServerErrorException siteConnectionBroken(final String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException unexpectedHostOperationError(String cause);
 }

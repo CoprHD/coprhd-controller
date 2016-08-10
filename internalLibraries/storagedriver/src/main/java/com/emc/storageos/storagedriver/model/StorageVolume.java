@@ -28,7 +28,7 @@ public class StorageVolume extends StorageBlockObject {
     // thin or thick volume type. Type: Input.
     Boolean thinlyProvisioned = false;
 
-    public String getStorageSystemId() {
+	public String getStorageSystemId() {
         return storageSystemId;
     }
 

@@ -667,9 +667,12 @@ public class BulkList<T> implements List<T> {
             if (_permissionsHelper.userHasGivenRole(_user, null, Role.SYSTEM_ADMIN) ||
                     _permissionsHelper.userHasGivenRole(_user, null, Role.SYSTEM_MONITOR)) {
                 return true;
+            } else {
+                    List<URI> tenantUris = _permissionsHelper.getSubtenantsWithRoles(_user); 
+                    return _permissionsHelper.tenantHasUsageACL(
+                            URI.create(_user.getTenantId()), resource)
+                            || _permissionsHelper.tenantHasUsageACL(tenantUris, resource);
             }
-            return _permissionsHelper.tenantHasUsageACL(
-                    URI.create(_user.getTenantId()), resource);
         }
 
     }

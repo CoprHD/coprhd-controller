@@ -1634,6 +1634,10 @@ public class StorageScheduler implements Scheduler {
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
+        if (vpool.getDedupCapable() != null) {
+        	volume.setIsDeduplicated(vpool.getDedupCapable());
+        }
+
         dbClient.createObject(volume);
         return volume;
     }
@@ -1727,6 +1731,10 @@ public class StorageScheduler implements Scheduler {
             if (null != autoTierPolicyUri) {
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
+        }
+        
+        if (vpool.getDedupCapable() != null) {
+        	volume.setIsDeduplicated(vpool.getDedupCapable());
         }
 
         if (newVolume) {

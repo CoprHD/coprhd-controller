@@ -2868,7 +2868,7 @@
         value : "300",
     },
 	{
-        key : "file_mount_operations",
+        key : "controller_file_mount_operations_lock_timeout",
         label : "Timeout in seconds",
         description : "Timeout for Filesystem mount locking",
         type : "uint32",

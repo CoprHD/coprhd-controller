@@ -2111,7 +2111,7 @@ vmax_cos_setup()
                              --max_snapshots 10 \
 	                     --system_type vmax \
                              --provisionType 'Thin' \
-			     --auto_tiering_policy_name "${AUTO_TIER_POLICY_NAME}" \
+			     --auto_tiering_policy_name "${VMAX3_AUTO_TIER_POLICY_NAME}" \
 			     --compressionEnabled true \
 			 --neighborhoods $NH
 

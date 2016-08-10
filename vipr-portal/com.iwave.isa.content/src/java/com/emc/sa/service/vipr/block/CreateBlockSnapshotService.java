@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -37,6 +38,8 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.model.catalog.OrderCreateParam;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
 
 @Service("CreateBlockSnapshot")
 public class CreateBlockSnapshotService extends ViPRService {
@@ -66,7 +69,8 @@ public class CreateBlockSnapshotService extends ViPRService {
     protected String linkedSnapshotCopyMode;
 
     private List<BlockObjectRestRep> volumes;
-
+    
+    private static Charset UTF_8 = Charset.forName("UTF-8");
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
@@ -130,8 +134,15 @@ public class CreateBlockSnapshotService extends ViPRService {
         if (event == null) {
             return false;
         }
-        Integer maxNumOfCopies = event.getMaxNumOfRetainedCopies();
-        if (maxNumOfCopies == null) {
+        try {
+            OrderCreateParam param = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
+            
+            String additionalScheduleInfo = param.getAdditionalScheduleInfo();
+            if (additionalScheduleInfo == null) {
+                return false;
+            }
+        } catch (Exception ex) {
+            error("Unexpected exception when checking scheduler retention", ex);
             return false;
         }
         return true;
@@ -190,7 +201,16 @@ public class CreateBlockSnapshotService extends ViPRService {
     
     private RetainedResource findObsoleteResource(String resourceId) {
         ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
-        Integer maxNumOfCopies = event.getMaxNumOfRetainedCopies(); 
+        Integer maxNumOfCopies = Integer.MAX_VALUE;
+        try {
+            OrderCreateParam param = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
+            
+            String additionalScheduleInfo = param.getAdditionalScheduleInfo();
+            maxNumOfCopies = Integer.parseInt(additionalScheduleInfo);
+        } catch (Exception ex) {
+            error("Unexpected exception when checking scheduler retention", ex);
+            return null;
+        }
         
         ModelClient modelClient = getModelClient();
         List<NamedElement> retentionList = modelClient.findBy(RetainedResource.class, "scheduledEventId", event.getId());

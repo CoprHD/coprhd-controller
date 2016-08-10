@@ -2368,7 +2368,7 @@ public interface BadRequestExceptions {
     public BadRequestException duplicateExportGroupProjectAndVarray(final String egName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException duplicateRpBookMarkExport(final String rpCopy, final String cgName);
+    public BadRequestException duplicateRpBookmarkExport(final String rpCopy, final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException incompatibleGeoVersions(final String version, final String feature);
@@ -2817,7 +2817,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedApplicationHasXtremio(final String replicaType);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedApplication(final String replicaType, final String type);
 
@@ -3020,4 +3020,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateSnapshots();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotTargetAlreadyExported(final URI volumeUri, final URI snapshotUri);
 }

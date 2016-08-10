@@ -2963,9 +2963,5 @@
         notifiers : ( "syslog" ),
         controlNodeOnly : false,
         value : "",
-<<<<<<< HEAD
->>>>>>> FETCH_HEAD
-=======
->>>>>>> 732ae9b0e6aaebda74459a7248c6ccd3033d0aa1
     },
 ]

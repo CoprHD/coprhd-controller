@@ -13,7 +13,7 @@
 # Have a log file to keep track of operations, so
 # in case of a failure during the test, things can
 # be "undone"
-: ${UNDO_ENABLED=2}
+: ${UNDO_ENABLED=1}
 UNDO_LOG=/tmp/undo.log.$$
 touch $UNDO_LOG
 

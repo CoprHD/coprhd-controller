@@ -10,14 +10,21 @@ import static org.junit.Assert.fail;
 
 import java.util.UUID;
 
+import org.apache.cassandra.serializers.UTF8Serializer;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RowMutator;
+import com.emc.storageos.db.client.impl.TimeSeriesType;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.AuditLog;
+import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.client.model.Volume;
 
 
@@ -26,6 +33,8 @@ public class AtomicBatchTest extends DbsvcTestBase{
     private RowMutator rowMutator;
     private String[] objectIds;
     private String[] indexIds;
+    private String[] timeSeriesIds;
+    private TimeSeriesType<AuditLog> timeSeriesType = TypeMap.getTimeSeriesType(AuditLogTimeSeries.class);
     
     @Before
     public void setupTest() {
@@ -39,6 +48,11 @@ public class AtomicBatchTest extends DbsvcTestBase{
         indexIds = new String[3];
         for (int i = 0; i < indexIds.length; i++) {
             indexIds[i] = UUID.randomUUID().toString();
+        }
+        
+        timeSeriesIds = new String[3];
+        for (int i = 0; i < timeSeriesIds.length; i++) {
+            timeSeriesIds[i] = UUID.randomUUID().toString();
         }
     }
     
@@ -134,8 +148,8 @@ public class AtomicBatchTest extends DbsvcTestBase{
     @Test
     public void insertInsertIndexAndRecordErrorOccurs() throws Exception {
         rowMutator.insertRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"), "test");
-        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         
         try {
             rowMutator.execute();
@@ -231,5 +245,61 @@ public class AtomicBatchTest extends DbsvcTestBase{
             ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
             assertEquals(result.one().getString("key"), indexId);
         }
+    }
+    
+    @Test
+    public void insertTimeSeriesColumn() {
+        UUID[] uuids = new UUID[timeSeriesIds.length];
+        for (int i = 0; i < timeSeriesIds.length; i++) {
+            uuids[i] = UUIDs.timeBased();
+            rowMutator.insertTimeSeriesColumn("AuditLogs", timeSeriesIds[i], uuids[i], "test", timeSeriesType.getTtl());
+        }
+        
+        rowMutator.execute();
+        
+        for (int i = 0; i < timeSeriesIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AuditLogs\" where key='%s'", timeSeriesIds[i]));
+            Row row = result.one();
+            assertEquals(row.getString("key"), timeSeriesIds[i]);
+            assertEquals(row.getUUID("column1"), uuids[i]);
+        }
+    }
+    
+    @Test
+    public void insertTimeSeriesColumnWithError() {
+        UUID[] uuids = new UUID[timeSeriesIds.length];
+        for (int i = 0; i < timeSeriesIds.length; i++) {
+            uuids[i] = UUIDs.timeBased();
+            rowMutator.insertTimeSeriesColumn("AuditLogs", timeSeriesIds[i], uuids[i], "test", timeSeriesType.getTtl());
+        }
+        
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+            //exception is expected
+        }
+        
+        for (int i = 0; i < timeSeriesIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AuditLogs\" where key='%s'", timeSeriesIds[i]));
+            assertFalse(result.iterator().hasNext());
+        }
+    }
+    
+    @Test
+    public void insertSchemaRecord() {
+        String key = UUID.randomUUID().toString();
+        String versions = "v1, v2, v3";
+        String schemaColumn = "schema";
+        
+        rowMutator.insertSchemaRecord("SchemaRecord", key, schemaColumn, versions);
+        rowMutator.execute();
+        
+        ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"SchemaRecord\" where key='%s'", key));
+        Row row = result.one();
+        assertEquals(row.getString("key"), key);
+        assertEquals(row.getString("column1"), schemaColumn);
+        assertEquals(UTF8Serializer.instance.deserialize(row.getBytes("value")), versions);
     }
 }

@@ -892,7 +892,7 @@ public class BlockSnapshotService extends TaskResourceService {
         if (!snapshot.getIsSyncActive()) {
             throw APIException.badRequests.cantExposeUnsynchronizedSnapshot(id.toString());
         }
-
+        
         // Verify it has yet to be used to create a VPLEX volume.
         // A snapshot can only be used to create a single VPLEX volume.
         // This is because multiple VPLEX volumes cannot use the same
@@ -902,6 +902,19 @@ public class BlockSnapshotService extends TaskResourceService {
         String snapshotNativeGuid = snapshot.getNativeGuid();
         if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
             throw APIException.badRequests.cantExposeSnapshotAlreadyExposed(id.toString());
+        }
+
+        // If the backend VPLEX snapshot snapshot is not currently exposed as
+        // a VPLEX volume and it is exported, then it must be exported to a 
+        // host/cluster. If this is the case, we don't allow the user to expose
+        // the snapshot as a VPLEX volume. If the user subsequently writes to the
+        // snapshot, the VPLEX volume built on top of it, would not be valid as
+        // the VPLEX would not be aware of these writes. Further, we know this will
+        // fail for VMAX3 backend snapshots with the error "A device cannot belong
+        // to more than one storage group in use by FAST". We thought it best to 
+        // disable for all platforms for the reason discussed.
+        if (snapshot.isSnapshotExported(_dbClient)) {
+            throw APIException.badRequests.cantExposeExportedSnapshot(id.toString());
         }
 
         // Get the virtual pool of the snapshot source volume. We need to set

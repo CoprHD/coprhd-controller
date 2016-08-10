@@ -1482,13 +1482,10 @@ def discover_array_affinity_parser(subcommand_parsers, common_parser):
 
 def host_discover_array_affinity(args):
     try:
-        hostList = []
         hostUris = []
         hostObj = Host(args.ip, args.port)
 
-        hostList = hostObj.list_all(args.tenant)
-
-        if(len(hostList) > 0):
+        if (len(args.hostnames) > 0):
             for item in args.hostnames.split(','):
                 hostUri = hostObj.query_by_name(item, args.tenant)
                 hostUris.append(hostUri)
@@ -1496,7 +1493,7 @@ def host_discover_array_affinity(args):
             hostObj.discover_array_affinity(",".join(hostUris))
         else:
             raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "Could not find the matching host")
+                           "No host name specified")
 
     except SOSError as e:
         common.format_err_msg_and_raise(

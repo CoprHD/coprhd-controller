@@ -19,8 +19,6 @@ public class MountInfo {
     private String subDirectory;
     private String securityType;
 
-    // private String tag;
-
     @XmlElement(name = "host")
     @JsonProperty("host")
     public URI getHostId() {
@@ -71,18 +69,6 @@ public class MountInfo {
         this.securityType = securityType;
     }
 
-    /*
-     * @XmlElement(name = "tag")
-     * 
-     * @JsonProperty("tag")
-     * public String getTag() {
-     * return tag;
-     * }
-     * 
-     * public void setTag(String tag) {
-     * this.tag = tag;
-     * }
-     */
     public String getMountString() {
         StringBuffer strMount = new StringBuffer();
 

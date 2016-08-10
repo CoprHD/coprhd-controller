@@ -64,6 +64,7 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
+import com.rsa.cryptoj.o.ex;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -808,7 +809,10 @@ public class WorkflowService implements WorkflowController {
             
             // Remove the steo to workflow path for all steps in the workflow.
             for (String stepId : workflow.getStepMap().keySet()) {
-                _dataManager.removeNode(getZKStep2WorkflowPath(stepId));
+                Stat stat = _dataManager.checkExists(getZKStep2WorkflowPath(stepId));
+                if (stat != null) {
+                    _dataManager.removeNode(getZKStep2WorkflowPath(stepId));
+                }
             }
             
             // Destroy the workflow under /workflow/workflows
@@ -819,7 +823,7 @@ public class WorkflowService implements WorkflowController {
                 _log.info("Removed ZK workflow: " + workflow.getWorkflowURI());
             }
         } catch (Exception ex) {
-            _log.error("Cannot destroy Workflow: " + id);
+            _log.error("Cannot destroy Workflow: " + id, ex);
         }
     }
 
@@ -836,15 +840,30 @@ public class WorkflowService implements WorkflowController {
         }
         _log.info("Destroying child workflows: " + childWorkflowSet.toString());
         for (URI childWorkflowURI : childWorkflowSet) {
-            Workflow childWorkflow = loadWorkflowFromUri(childWorkflowURI);
-            if (childWorkflow != null) {
-                if (childWorkflow.allStatesTerminal()) {
-                    destroyWorkflow(childWorkflow);
-                } else {
-                    // Not all states terminal, even though parent is being destroyed. Very odd.
-                    _log.warn(String.format(
-                            "Child workflow %s still executing but parent %s being destroyed; may need to be manually removed from ZK",
-                            childWorkflow.getWorkflowURI(), parent.getWorkflowURI()));
+            for (int retryCount = 0; retryCount < 5; retryCount++) {
+                Workflow childWorkflow = null;
+                try {
+                    childWorkflow = loadWorkflowFromUri(childWorkflowURI);
+                } catch (Exception ex) {
+                    _log.info(String.format("Workflow %s unable to load child workflow %s for destruction", 
+                            parent.getWorkflowURI(),  childWorkflowURI));
+                    break;
+                }
+                if (childWorkflow != null) {
+                    if (childWorkflow.allStatesTerminal()) {
+                        destroyWorkflow(childWorkflow);
+                        break;
+                    } else {
+                        // Not all states terminal, even though parent is being destroyed. Very odd.
+                        _log.info(String.format(
+                                "Child workflow %s still executing but parent %s being destroyed; may need to be manually removed from ZK",
+                                childWorkflow.getWorkflowURI(), parent.getWorkflowURI()));
+                        try {
+                            Thread.sleep(1000);
+                        } catch (Exception ex) {
+                            _log.info("Early sleep awaking waiting on child workflow: " + childWorkflowURI.toString());
+                        }
+                    }
                 }
             }
         }
@@ -2518,7 +2537,7 @@ public class WorkflowService implements WorkflowController {
      * 
      * @param workflowURI
      * @return
-     * @throws ControllerException
+     * @throws workflowNotFound
      */
     private Workflow loadWorkflowFromUri(URI workflowURI) throws ControllerException {
         com.emc.storageos.db.client.model.Workflow dbWorkflow = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,

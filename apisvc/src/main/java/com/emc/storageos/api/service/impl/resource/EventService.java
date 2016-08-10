@@ -479,6 +479,9 @@ public class EventService extends TaggedResource {
         host.setCluster(clusterId);
         _dbClient.updateObject(host);
 
+        Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
+                ResourceOperationTypeEnum.UPDATE_HOST);
+
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
         if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -500,9 +503,10 @@ public class EventService extends TaggedResource {
             controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
+            _dbClient.ready(Host.class, host.getId(), taskId);
         }
 
-        return new TaskResourceRep();
+        return toTask(host, taskId, op);
     }
 
     /**

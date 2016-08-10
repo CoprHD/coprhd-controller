@@ -1396,18 +1396,22 @@ public class HDSExportOperations implements ExportMaskOperations {
             if (null != matchedHostHSDsMap && !matchedHostHSDsMap.isEmpty()) {
                 // Iterate through each host
                 for (URI hostURI : hostToInitiatorMap.keySet()) {
+                    for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
                     Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
                     boolean isNewExportMask = false;
                     // Create single ExportMask for each host
                     ExportMask exportMask = fetchExportMaskFromDB(activeMasks,
                             hostInitiators, storage);
-                    if (null == exportMask) {
+                    String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
+                    if (null == exportMask || (exportMask.getStoragePorts() != null && !exportMask.getStoragePorts().contains(storagePortOFHDSURI))) {
                         isNewExportMask = true;
                         exportMask = new ExportMask();
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setCreatedBySystem(false);
                     }
+                    Set<HostStorageDomain> hsdSet = new HashSet<>();
+                    hsdSet.add(hsd);
                     updateHSDInfoInExportMask(exportMask, hostInitiators,
                             matchedHostHSDsMap.get(hostURI), storage,
                             matchingMasks);
@@ -1420,6 +1424,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     updateMatchingMasksForHost(
                             matchedHostInitiators.get(hostURI), exportMask,
                             matchingMasks);
+                }
                 }
             }
 

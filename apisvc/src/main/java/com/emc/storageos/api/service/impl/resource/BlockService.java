@@ -787,6 +787,11 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
 
+        // Does vpool supports dedup
+        if (null != vpool.getDedupCapable() &&  vpool.getDedupCapable()) {
+        	capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
+        }
+        
         // Find the implementation that services this vpool and volume request
         BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 

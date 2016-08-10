@@ -209,7 +209,7 @@ public class StorageSystems extends ViprResourceController {
     	// Check add is called from guide wizard, yes only AFA
        	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
        	String isGuideAdd = null;
-       	if (jobject != null) {
+       	if (jobject != null && jobject.get(GUIDE_VISIBLE) != null) {
        		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
        	}
        	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {

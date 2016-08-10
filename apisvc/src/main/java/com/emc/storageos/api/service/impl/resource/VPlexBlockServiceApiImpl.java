@@ -1346,8 +1346,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Check if any of the volumes passed is a VPLEX volume
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
-        BlockConsistencyGroup cg = null;
-        if ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null) {
+        BlockConsistencyGroup cg = isVPlexVolumeInCgWithLocalType(volumes);
+        if (cg != null) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all

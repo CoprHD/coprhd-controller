@@ -6,8 +6,12 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -114,5 +118,13 @@ public class ExternalDeviceUtils {
         // the native id of the associated source volume for the controller clone is
         // the parent id of the passed device clone.
         return deviceClone.getParentId().equals(assocSourceVolumeNativeId);
+    }
+
+    public static void updateStoragePoolCapacityAfterOperationComplete(URI storagePoolURI, URI storageSystemURI,
+                                                                 List<URI> volumeURIs,  DbClient dbClient) {
+        StoragePool dbPool = dbClient.queryObject(StoragePool.class, storagePoolURI);
+        StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
+        ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
+                volumeURIs, dbClient);
     }
 }

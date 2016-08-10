@@ -42,6 +42,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
+    public static final String DEDUP = "dedup";
 
     public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
     public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
@@ -189,6 +190,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
+        }
+        
+        if (capabilities.contains(DEDUP)) {
+            _vpoolCapabilities.put(DEDUP, capabilities.getDedupCapable());
         }
 
         if (capabilities.contains(FILE_RP_RPO_TYPE)) {
@@ -352,6 +357,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public String getQuota() {
         Object value = _vpoolCapabilities.get(QUOTA);
         return value != null ? (String) value : null;
+    }
+
+    public boolean getDedupCapable() {
+        Object value = _vpoolCapabilities.get(DEDUP);
+        return value != null ? (Boolean) value : false;
     }
 
     public Long getFileRpRpoValue() {

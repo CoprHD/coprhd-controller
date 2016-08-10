@@ -1,6 +1,6 @@
 
 #{extends 'layout.html' /}
-<body ng-controller="wizardController" class="wLeftNav">
+<body class="wLeftNav">
   <header>
     <nav id="ECUEtopBanner" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="navbar-header">
@@ -10,7 +10,7 @@
         <ul class="nav navbar-nav navbar-right">
           #{get 'navBarRight' /}
           <li id="colWiz">
-            <div href ng-init="toggleGuide(true)">
+            <div href>
               <!--#{icon 'glyphicon-list-alt'/} &{'nav.wizard'}-->
             </div>
 
@@ -30,7 +30,7 @@
     </nav>
   </header>
   #{get 'navBarLeft'/}
-  <div id="wizard" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
+  <div id="wizard" ng-controller="wizardController"  ng-init="toggleGuide(true)" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
     #{GettingStarted.gettingStarted/}
   </div>
 

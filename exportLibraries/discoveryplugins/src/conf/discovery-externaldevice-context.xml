@@ -31,6 +31,7 @@
         <property name="capabilityDefinitions">
             <map>
                 <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
+                <entry key="deduplication" value-ref="deduplicationCapabilityDefinition"/>
             </map>
         </property>
     </bean>
@@ -38,5 +39,7 @@
     <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
     </bean>
     <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
+    </bean>
+    <bean id="deduplicationCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition">
     </bean>
 </beans>

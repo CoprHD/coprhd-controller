@@ -12,7 +12,7 @@
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
 #{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
 
-<body ng-controller="wizardController">
+<body>
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
@@ -54,8 +54,8 @@
           #{/else}
         </li>
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
-        <li id="colWiz">
-          <a href ng-init="checkGuide()" ng-click="toggleGuide()">
+        <li id="colWiz" ng-controller="navBarController">
+          <a href ng-click="toggleGuide(false)">
             #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
           </a>
 
@@ -336,9 +336,11 @@
 
 #{/nav.mainMenu}
 #{get 'menu'/}
-<div id="wizard" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
+#{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+<div id="wizard" ng-controller="wizardController" ng-init="checkGuide()" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
   #{GettingStarted.gettingStarted/}
 </div>
+#{/deadbolt.restrict}
 #{nav.contentArea}
   #{get 'breadcrumbs'/}
   #{doLayout /}

@@ -50,7 +50,7 @@ public class HP3PARCloneHelper {
 				// Actual size of the volume in array
 				clone.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				clone.setWwn(volResult.getWwn());
-				clone.setNativeId(clone.getNativeId()); // required for volume
+				clone.setNativeId(volResult.getName()); // required for volume
 														// delete
 				clone.setDeviceLabel(clone.getDisplayName());
 				clone.setAccessStatus(clone.getAccessStatus());
@@ -99,7 +99,7 @@ public class HP3PARCloneHelper {
 				// restore virtual copy
 				hp3parApi.restorePhysicalCopy(clone.getNativeId());
 
-				clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
+			//	clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
 
 				task.setStatus(DriverTask.TaskStatus.READY);
 				_log.info(

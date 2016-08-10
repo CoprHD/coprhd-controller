@@ -413,7 +413,7 @@ public class VnxExportOperations implements ExportMaskOperations {
              * If we pass null into HidePaths call, SMI will remove the entire storage group and that will give DU.
              */
             if (volumeNames == null || volumeNames.length == 0) {
-                _log.error("Volume's {} alernate name can not be null", volumeURIList);
+                _log.error("Volume's {} alternate name can not be null", volumeURIList);
                 ServiceError error = DeviceControllerException.errors.removeVolumeFromMaskFailed(volumeURIList.toString());
                 taskCompleter.error(_dbClient, error);
             } else {

@@ -69,7 +69,8 @@ class StorageSystem(object):
         'unity',
         'ecs' ,
         'datadomain',
-        'ceph']
+        'ceph',
+        'hp3par']
 
     BLOCK_SYSTEM_LIST = [
         'vnxblock',
@@ -81,13 +82,15 @@ class StorageSystem(object):
         'ibmxiv',
         'vnxe',
         'ceph',
-        'unity']
+        'unity',
+        'hp3par']
 
     ARRAY_AFFINITY_SYSTEM_LIST = [
         'vmax',
         'vnxblock',
         'xtremio',
         'unity']
+
 
     FILE_SYSTEM_LIST = [
         'isilon',
@@ -112,7 +115,8 @@ class StorageSystem(object):
         'netappc',
         'ecs' ,
         'unity',
-        'vnxe']
+        'vnxe',
+        'hp3par']
 
     def __init__(self, ipAddr, port):
         '''

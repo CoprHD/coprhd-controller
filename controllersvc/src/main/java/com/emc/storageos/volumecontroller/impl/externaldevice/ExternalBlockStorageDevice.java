@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,9 +158,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             for (Volume volume : volumes) {
                 if (storageCapabilities == null) {
                     // All volumes created in a request will have the same capabilities.
-                    // Currently, auto tiering policy is the only capability supported.
                     storageCapabilities = new StorageCapabilities();
                     addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
+                    addDeduplicationCapability(storageCapabilities, volume.getIsDeduplicated());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -253,11 +254,51 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 commonCapabilities.setDataStorage(dataStorageSvcOptions);
             }
             
-            // Create a new data storage service option for the auto tiering policy capability
+            // Create a new data storage service option for the AutoTiering policy capability
             // and add it to the list.
             DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Arrays.asList(autoTieringCapability));
             dataStorageSvcOptions.add(dataStorageSvcOption);
         }        
+    }
+
+    /**
+     * Create deduplication capability and add it to the passed
+     * storage capabilities
+     *
+     * @param storageCapabilities reference to storage capbilities
+     * @param deduplication indicates if deduplication is required
+     */
+    private void addDeduplicationCapability(StorageCapabilities storageCapabilities, Boolean deduplication) {
+        if (deduplication) {
+            // Create the deduplicated capability.
+            DeduplicationCapabilityDefinition capabilityDefinition = new DeduplicationCapabilityDefinition();
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            capabilityProperties.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                    Collections.singletonList(Boolean.TRUE.toString()));
+            CapabilityInstance dedupCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                    capabilityDefinition.getId(), capabilityProperties);
+
+            // Get the common capabilities for the passed storage capabilities.
+            // If null, create and set it.
+            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+            if (commonCapabilities == null) {
+                commonCapabilities = new CommonStorageCapabilities();
+                storageCapabilities.setCommonCapabilitis(commonCapabilities);
+            }
+
+            // Get the data storage service options for the common capabilities.
+            // If null, create it and set it.
+            List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
+            if (dataStorageSvcOptions == null) {
+                dataStorageSvcOptions = new ArrayList<>();
+                commonCapabilities.setDataStorage(dataStorageSvcOptions);
+            }
+
+            // Create a new data storage service option for the auto tiering policy capability
+            // and add it to the list.
+            DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Collections.singletonList(dedupCapability));
+            dataStorageSvcOptions.add(dataStorageSvcOption);
+        }
     }
 
     @Override
@@ -360,6 +401,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setDeviceLabel(volume.getDeviceLabel());
+                    driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
                     task = driver.deleteVolume(driverVolume);
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {

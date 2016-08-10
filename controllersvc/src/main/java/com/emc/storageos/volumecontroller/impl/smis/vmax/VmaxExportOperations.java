@@ -4,6 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Sets.intersection;
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -28,7 +33,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
 import com.emc.storageos.volumecontroller.impl.StorageGroupPolicyLimitsParam;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskVolumeToStorageGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExportGroupCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -98,11 +103,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Sets.intersection;
-import static com.google.common.collect.Sets.newHashSet;
 
 public class VmaxExportOperations implements ExportMaskOperations {
 
@@ -1929,6 +1929,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
                                     exportMask.getMaskName());
                             staleExportMasks.add(exportMask);
+                        } else {
+                            _log.info("Export mask is having association with ExportGroup {}", egList);
                         }
                     }
                 }

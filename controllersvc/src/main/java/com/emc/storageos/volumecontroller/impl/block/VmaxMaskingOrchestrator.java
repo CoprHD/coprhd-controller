@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -64,7 +63,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateC
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -471,59 +469,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
-    /**
-     * Validates the ExportGroup initaitor's identity to avoid DU case.
-     * Export Group should not have initiators from multiple Host or clusters.
-     * 
-     * @param exportGroup
-     */
-    private void validateInitiatorsInExportGroup(ExportGroup exportGroup) {
-        /*
-         * Export Group should not have initiators(non vplex and non RP) from multiple cluster/host.
-         * This validation is a extra check to prevent DU.
-         */
-
-        if (exportGroup != null && exportGroup.getInitiators() != null) {
-            Initiator initiator = null;
-            boolean isCluster = exportGroup.forCluster();
-            /**
-             * Key - cluster name / host name
-             * Value - list of cluster initiators or host initiators
-             */
-            Map<String, Set<URI>> initiatorMap = new HashMap<>();
-            for (String initiatorURI : exportGroup.getInitiators()) {
-                initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorURI));
-                String name = null;
-                if (initiator != null && !initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
-                        && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                    if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
-                        name = initiator.getClusterName();
-                    } else if (StringUtils.hasText(initiator.getHostName())) {
-                        name = initiator.getHostName();
-                    } else {
-                        _log.error("Initiator {} does not have cluster/host name", initiator.getId());
-                        throw DeviceControllerException.exceptions.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                    }
-
-                    Set<URI> set = null;
-                    if (initiatorMap.get(name) == null) {
-                        set = new HashSet<URI>();
-                        initiatorMap.put(name, set);
-                    } else {
-                        set = initiatorMap.get(name);
-                    }
-                    set.add(initiator.getId());
-                }
-            }
-            _log.info("{}", initiatorMap);
-            if (initiatorMap.size() > 1) {
-                _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
-                        exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
-                throw DeviceControllerException.exceptions.invalidGroupOfInitiators(exportGroup.getId(),
-                        Joiner.on(",").join(initiatorMap.keySet()));
-            }
-        }
-    }
 
     @Override
     public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
@@ -534,10 +479,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         logExportGroup(exportGroup, storageURI);
         try {
-            /**
-             * We should either move this validation to upper layer or we have to validate for all MaskingOrechestrator.
-             */
-            validateInitiatorsInExportGroup(exportGroup);
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,

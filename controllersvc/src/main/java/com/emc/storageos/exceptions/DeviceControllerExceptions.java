@@ -20,7 +20,6 @@ import com.emc.storageos.scaleio.ScaleIOExceptions;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.vnx.xmlapi.VNXExceptions;
 import com.emc.storageos.vnxe.VNXeExceptions;
@@ -494,11 +493,5 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformAliasOperation(final String reason);
-
-    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public BadRequestException invalidInitiatorName(URI initiatorURI, URI exportGroupURI);
-
-    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public BadRequestException invalidGroupOfInitiators(URI exportGroupURI, String nameList);
 
 }

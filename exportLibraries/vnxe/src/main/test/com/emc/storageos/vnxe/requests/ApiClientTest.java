@@ -14,6 +14,7 @@ import org.junit.Test;
 
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeApiClient;
+import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.Snap;
@@ -31,23 +32,30 @@ import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 import com.emc.storageos.vnxe.models.VNXeLicense;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXePool;
+import com.emc.storageos.vnxe.models.VNXeStorageSystem;
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
 
 public class ApiClientTest {
     private static KHClient _client;
     private static VNXeApiClient apiClient;
-    private static String host = EnvConfig.get("sanity", "unity.host");
-    private static String userName = EnvConfig.get("sanity", "unity.username");
-    private static String password = EnvConfig.get("sanity", "unity.password");
+    private static String host = "losav164.lss.emc.com";
+    private static String userName = "srmqe";
+    private static String password = "SRMqe123!";
     private static int port = 443;
 
     @BeforeClass
     public static void setup() throws Exception {
-
-        _client = new KHClient(host, port, userName, password, true);
-
-        apiClient = new VNXeApiClient(_client);
-
+        VNXeApiClientFactory factory = new VNXeApiClientFactory();
+        factory.setConnectionTimeoutMs(30000);
+        factory.setConnManagerTimeout(60000);
+        factory.setMaxConnections(300);
+        factory.setMaxConnectionsPerHost(100);
+        factory.setNeedCertificateManager(true);
+        factory.setSocketConnectionTimeoutMs(3600000);
+        factory.init();
+        apiClient = factory.getUnityClient(host, port, userName, password);
+        //_client = new KHClient(host, port, userName, password);
+        //apiClient = new VNXeApiClient(_client);
     }
 
     // @Test
@@ -124,7 +132,7 @@ public class ApiClientTest {
 
     @Test
     public void createLun() {
-        String name = "vipr-lun1";
+        String name = "tyu-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
         System.out.println(job.getId());
     }
@@ -252,11 +260,10 @@ public class ApiClientTest {
 
     }
 
-    // @Test
+    @Test
     public void getSystem() {
-        apiClient.getStorageSystem();
-        apiClient.logout();
-        apiClient.getStorageSystem();
+        VNXeStorageSystem system = apiClient.getStorageSystem();
+        System.out.println(system.getModel());
         // apiClient.getNasServers();
     }
 

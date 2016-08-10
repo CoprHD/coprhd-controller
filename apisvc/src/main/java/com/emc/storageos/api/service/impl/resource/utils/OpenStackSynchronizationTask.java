@@ -177,10 +177,9 @@ public class OpenStackSynchronizationTask extends ResourceService {
         List<TenantOrg> tenantsToUpdate = null;
 
         ListIterator<KeystoneTenant> osIter = osTenantList.listIterator();
-        ListIterator<TenantOrg> coprhdIter = coprhdTenantList.listIterator();
 
         while (osIter.hasNext()) {
-
+            ListIterator<TenantOrg> coprhdIter = coprhdTenantList.listIterator();
             KeystoneTenant osTenant = osIter.next();
             // Update information about this Tenant in CoprHD database.
             createOrUpdateOpenstackTenantInCoprhd(osTenant);
@@ -206,7 +205,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
                     osIter.remove();
                 }
             }
-            coprhdIter = coprhdTenantList.listIterator();
         }
 
         return tenantsToUpdate;

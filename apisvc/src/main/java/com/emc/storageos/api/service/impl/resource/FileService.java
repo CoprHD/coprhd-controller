@@ -2203,7 +2203,7 @@ public class FileService extends TaskResourceService {
         List<ExportRule> exportRule = getExportRules(id, allDirs, subDir);
         ExportRules rules = new ExportRules();
         if (!exportRule.isEmpty()) {
-            rules .setExportRules(exportRule);
+            rules.setExportRules(exportRule);
         }
         return rules;
 

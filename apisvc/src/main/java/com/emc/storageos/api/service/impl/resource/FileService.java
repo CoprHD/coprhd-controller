@@ -264,8 +264,7 @@ public class FileService extends TaskResourceService {
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
         UNKNOWN("unknown",
                 ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION),
-        UPDATE_RPO(
-                "update-rpo",
+        UPDATE_RPO("update-rpo",
                 ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;

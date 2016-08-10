@@ -69,11 +69,12 @@ class Fileshare(object):
     URI_CONTINUOS_COPIES_REFRESH = '/file/filesystems/{0}/protection/continuous-copies/refresh'
     URI_VPOOL_CHANGE = '/file/filesystems/{0}/vpool-change'
     
-    URI_SCHEDULE_SNAPSHOTS_LIST = '/file/filesystems/{0}/file-policies/{1}/snapshots'   
+    URI_SCHEDULE_SNAPSHOTS_LIST = '/file/filesystems/{0}/file-policies/{1}/snapshots'
+    
     URI_MOUNT = "/file/filesystems/{0}/mount"
     URI_MOUNT_UNMOUNT = "/file/filesystems/{0}/unmount"
     URI_MOUNT_TASKS_BY_OPID = '/vdc/tasks/{0}'
-
+	
     BOOL_TYPE_LIST = ['true', 'false']
 
     isTimeout = False

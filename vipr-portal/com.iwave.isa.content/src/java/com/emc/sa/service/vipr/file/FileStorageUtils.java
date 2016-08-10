@@ -379,14 +379,14 @@ public class FileStorageUtils {
     }
 
     public static void failoverFileSystem(URI fileId, URI targetId, boolean replicationConf) {
-        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(),
-                replicationConf));
+        Tasks<FileShareRestRep> tasks = execute(
+                new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(), replicationConf));
         addAffectedResources(tasks);
     }
 
     public static void failbackFileSystem(URI fileId, URI targetId, boolean replicationConf) {
-        Tasks<FileShareRestRep> tasks = execute(new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(),
-                replicationConf));
+        Tasks<FileShareRestRep> tasks = execute(
+                new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name(), replicationConf));
         addAffectedResources(tasks);
     }
 
@@ -587,13 +587,16 @@ public class FileStorageUtils {
     public static Task<FileShareRestRep> mountNfsExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
             String security, String fsType) {
         FileSystemMountParam param = new FileSystemMountParam(hostId, subDirectory, security, mountPath, fsType);
-        return execute(new MountFSExport(fileSystemId, param));
+        Task<FileShareRestRep> task = execute(new MountFSExport(fileSystemId, param));
+        addAffectedResource(task);
+        return task;
     }
 
     public static Task<FileShareRestRep> unmountNFSExport(URI fileSystemId, URI hostId, String mountPath) {
-
         FileSystemUnmountParam param = new FileSystemUnmountParam(hostId, mountPath);
-        return execute(new UnmountFSExport(fileSystemId, param));
+        Task<FileShareRestRep> task = execute(new UnmountFSExport(fileSystemId, param));
+        addAffectedResource(task);
+        return task;
     }
 
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {

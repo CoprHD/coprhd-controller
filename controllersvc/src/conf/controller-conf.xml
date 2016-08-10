@@ -940,6 +940,11 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="computeDeviceController" ref="computeDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="mountAdapters">
+            <map>
+                <entry key="Linux" value-ref="linuxHostMountAdapter"/>
+            </map>
+        </property>
     </bean>
 
     <bean id="vnxFileDevice" class="com.emc.storageos.volumecontroller.impl.vnx.VNXFileStorageDeviceXML">
@@ -1073,6 +1078,7 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+                <ref bean="computeSystemOrchestrationDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -1371,6 +1377,18 @@
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
+    <bean id="arrayAffinityDiscoverJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
     <bean id="computeDiscoverJobConsumer"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
         <property name="dbClient" ref="dbclient" />
@@ -1423,6 +1441,7 @@
 		<property name="jobTracker" ref="jobTracker" />
 		<property name="scanJobConsumer" ref="scanJobConsumer" />
         <property name="discoverJobConsumer" ref="discoverJobConsumer" />
+        <property name="arrayAffinityDiscoverJobConsumer" ref="arrayAffinityDiscoverJobConsumer" />
         <property name="computeDiscoverJobConsumer" ref="computeDiscoverJobConsumer" />
         <property name="meteringJobConsumer" ref="meteringJobConsumer" />
         <property name="jobScheduler" ref="dataCollectionJobScheduler" />
@@ -1671,5 +1690,29 @@
         <property name="needCertificateManager" value="true"/>
     </bean>
     
+    <bean id="linuxHostMountAdapter" class="com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxHostMountAdapter">    
+		<property name="dbClient" ref="dbclient"/>
+		<property name="coordinator" ref="coordinator"/>
+    </bean>
+    
+    <bean id="computeSystemOrchestrationDeviceController" class="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="computeSystemControllerImpl" ref="computeSystemController"/>
+    </bean>
+    
+    <bean id="computeSystemOrchestrationController" class="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="computeSystemOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ComputeSystemOrchestrationController"/>
+        <property name="service" ref="computeSystemOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
 </beans>
 

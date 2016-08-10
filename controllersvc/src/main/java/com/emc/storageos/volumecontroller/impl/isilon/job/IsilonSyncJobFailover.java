@@ -32,7 +32,7 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 public class IsilonSyncJobFailover extends Job implements Serializable {
 
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncIQJob.class);
-    private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
+    private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
     protected String _jobName;
     protected URI _storageSystemUri;
@@ -68,13 +68,8 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
                 _pollResult.setJobId(_taskCompleter.getOpId());
                 IsilonSyncPolicy policy = null;
                 IsilonSyncPolicy.JobState policyState = null;
-                try {
-                    policy = isiApiClient.getTargetReplicationPolicy(currentJob);
-                    policyState = policy.getLastJobState();
-                } catch (IsilonException ex) {
-                    policy = isiApiClient.getReplicationPolicy(currentJob);
-                    policyState = policy.getLastJobState();
-                }
+                policy = isiApiClient.getTargetReplicationPolicy(currentJob);
+                policyState = policy.getLastJobState();
                 if (policyState != null && policyState.equals(JobState.running)) {
                     _status = JobStatus.IN_PROGRESS;
                 } else if (policyState != null && policyState.equals(JobState.finished)) {

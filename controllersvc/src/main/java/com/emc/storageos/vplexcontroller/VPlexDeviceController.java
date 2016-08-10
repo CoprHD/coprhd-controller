@@ -1921,7 +1921,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // These variables will be used to cache information from the VPlex
         Map<String, String> initiatorWwnToNameMap = null;
-        Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
 
         // This Set will be used to track shared export mask in database.
         Set<ExportMask> sharedExportMasks = new HashSet<ExportMask>();
@@ -1933,6 +1932,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
             lockName = _vplexApiLockManager.getLockName(vplexURI, vplexClusterId);
             String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
+            Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
             
             for (URI hostUri : hostInitiatorMap.keySet()) {
                 _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
@@ -2847,13 +2847,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String storageViewStepId = ZONING_STEP;
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
 
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getStorageDevice().equals(vplex)) {
 
                     String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex, client, _dbClient);
                     VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                    Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
@@ -3039,7 +3039,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // we can ignore this in the case of a missing storage view on the VPLEX, it has already been deleted
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, 
-                            VPlexControllerUtils.getTargetPortToPwwnMap(client), 
+                            VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName), 
                             _networkDeviceController);
                 }
 
@@ -3336,11 +3336,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
 
             for (ExportMask exportMask : exportMasks) {
 
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+                Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
                 VPlexControllerUtils.refreshExportMask(
                         _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
@@ -3759,7 +3759,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
             VPlexControllerUtils.refreshExportMask(
                     _dbClient, storageView, exportMask, 
-                    VPlexControllerUtils.getTargetPortToPwwnMap(client), 
+                    VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName), 
                     _networkDeviceController);
 
             if (exportMask.getVolumes() == null) {
@@ -4179,10 +4179,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+            Map<String, String> targetPortMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
             VPlexControllerUtils.refreshExportMask(
                     _dbClient, storageView, exportMask, 
-                    VPlexControllerUtils.getTargetPortToPwwnMap(client),
+                    targetPortMap,
                     _networkDeviceController);
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
@@ -4262,7 +4263,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<Initiator>> hostInitiatorsMap = VPlexUtil.makeHostInitiatorsMap(initiatorURIs, _dbClient);
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
 
             // Loop, processing each host separately.
             for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -4288,6 +4288,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + "export mask / storage view: " + exportMask.getMaskName());
 
                     String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+                    Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                     VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
@@ -4778,10 +4779,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+            Map<String, String> targetPortMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
             VPlexControllerUtils.refreshExportMask(
                     _dbClient, storageView, exportMask, 
-                    VPlexControllerUtils.getTargetPortToPwwnMap(client), 
+                    targetPortMap, 
                     _networkDeviceController);
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
@@ -6540,7 +6542,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
 
                     // Once mirror is detached we need to do device collapse so that its not seen as distributed device.
-                    client.deviceCollapse(sourceDeviceName);
+                    client.deviceCollapse(sourceDeviceName, VPlexApiConstants.DISTRIBUTED_DEVICE);
 
                     // Once device collapse is successful we need to set visibility of device to local because volume will be seen from
                     // other cluster still as visibility of device changes to global once mirror is attached.
@@ -10774,8 +10776,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         Volume migTgt = getDataObject(Volume.class, migTgtURI, _dbClient);
                         if ((migSrc != null) && (!migTgt.getStorageController().equals(migSrc.getStorageController())) &&
                                 (!localSystemsToRemoveCG.contains(migSrc.getStorageController()))) {
-                            _log.info("Will remove CG on local system {}", migSrc.getStorageController());
-                            localSystemsToRemoveCG.add(migSrc.getStorageController());
+                            // If we have a volume to migrate and the RG field is NOT set on the volume, 
+                            // do not remove the RG on the local system.
+                            //
+                            // Volumes that are in RGs that are being migrated are grouped together so otherwise
+                            // we're good as the replication instance will be set on those volumes.
+                            if (NullColumnValueGetter.isNotNullValue(migSrc.getReplicationGroupInstance())) {                                    
+                                _log.info("Will remove CG on local system {}", migSrc.getStorageController());
+                                localSystemsToRemoveCG.add(migSrc.getStorageController());
+                            } else {
+                                _log.info("Will not remove CG on local system {}", migSrc.getStorageController());
+                            }
                         }
                     }
 
@@ -12183,9 +12194,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         int versionValue = VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion());
         boolean isCompatible = versionValue >= 0;
-        _log.info("minimum VPLEX thin provisioning firmware version is {}, discovered firmeware version for VPLEX {} is {}", 
-                VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.forDisplay(), vplex.getFirmwareVersion());
         _log.info("VPLEX support for thin volumes is " + isCompatible);
+        if (!isCompatible) {
+            _log.info("minimum VPLEX thin provisioning firmware version is {}, discovered firmeware version for VPLEX {} is {}", 
+                    VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.forDisplay(), vplex.getFirmwareVersion());
+        }
         return isCompatible;
     }
 

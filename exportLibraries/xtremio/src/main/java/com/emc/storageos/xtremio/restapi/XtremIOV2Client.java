@@ -729,6 +729,37 @@ public class XtremIOV2Client extends XtremIOClient {
     }
 
     @Override
+    public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception {
+        String filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_STR, igName, clusterName);
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(filterString);
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index)
+                .concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
+        return volumesResponse.getContent();
+    }
+
+    @Override
     public boolean isVersion2() {
         return true;
     }

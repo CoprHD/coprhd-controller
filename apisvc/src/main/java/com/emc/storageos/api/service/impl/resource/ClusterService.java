@@ -115,7 +115,6 @@ public class ClusterService extends TaskResourceService {
             ClusterUpdateParam updateParam) {
         // update the cluster
         Cluster cluster = queryObject(Cluster.class, id, true);
-        boolean oldExportEnabled = cluster.getAutoExportEnabled();
 
         validateClusterData(updateParam, cluster.getTenant(), cluster, _dbClient);
         populateCluster(updateParam, cluster);
@@ -123,17 +122,13 @@ public class ClusterService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());
 
-        boolean enablingAutoExports = !oldExportEnabled && cluster.getAutoExportEnabled();
-
-        if (enablingAutoExports) {
-            String taskId = UUID.randomUUID().toString();
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.synchronizeSharedExports(cluster.getId(), taskId);
-            Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
-                    ResourceOperationTypeEnum.UPDATE_CLUSTER);
-            auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, op.getStatus(),
-                    cluster.auditParameters());
-        }
+        String taskId = UUID.randomUUID().toString();
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.synchronizeSharedExports(cluster.getId(), taskId);
+        Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
+                ResourceOperationTypeEnum.UPDATE_CLUSTER);
+        auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, op.getStatus(),
+                cluster.auditParameters());
 
         return map(queryObject(Cluster.class, id, false));
     }

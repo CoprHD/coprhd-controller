@@ -136,9 +136,9 @@ public class DataCollectionJobConsumer extends
                 jobType, job.getNamespace());
         profile.setProps(new HashMap<String, String>(_configInfo));
         if (job instanceof DataCollectionArrayAffinityJob) {
-            URI hostId = ((DataCollectionArrayAffinityJob) job).getHostId();
-            if (!NullColumnValueGetter.isNullURI(hostId)) {
-                profile.getProps().put(Constants.HOST, hostId.toString());
+            List<URI> hostIds = ((DataCollectionArrayAffinityJob) job).getHostIds();
+            if (hostIds != null && !hostIds.isEmpty()) {
+                profile.getProps().put(Constants.HOST_IDS, StringUtils.join(hostIds, Constants.ID_DELIMITER));
             }
 
             List<URI> systemIds = ((DataCollectionArrayAffinityJob) job).getSystemIds();

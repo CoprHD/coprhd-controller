@@ -2,7 +2,7 @@
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.volumecontroller.impl.smis.vmax;
+package com.emc.storageos.volumecontroller.impl.utils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext;
 import com.emc.storageos.workflow.WorkflowService;
 
 /**
@@ -29,7 +30,7 @@ public class ExportOperationContext implements Serializable {
         super();
     }
 
-    class ExportOperationContextOperation implements Serializable {
+    public class ExportOperationContextOperation implements Serializable {
         private static final long serialVersionUID = -4135846269841199964L;
         private String operation;
 
@@ -92,7 +93,7 @@ public class ExportOperationContext implements Serializable {
 
     /**
      * Inserts an operation into the step context so rollback will be done properly.
-     * 
+     *
      * @param taskCompleter task completer
      * @param args arguments needed to perform rollback for this individual operation.
      */

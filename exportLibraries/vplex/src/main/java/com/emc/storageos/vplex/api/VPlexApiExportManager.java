@@ -161,7 +161,7 @@ public class VPlexApiExportManager {
             s_logger.info("Delete storage view URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_V, viewName);
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Delete storage view POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
@@ -774,7 +774,7 @@ public class VPlexApiExportManager {
             s_logger.info("Unregister initiators URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_I, argBuilder.toString());
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Uregister initiators POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
@@ -1160,7 +1160,7 @@ public class VPlexApiExportManager {
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_O, virtualVolumesArg);
             argsMap.put(VPlexApiConstants.ARG_DASH_V, storageViewInfo.getPath());
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Storage view modify virtual volumes POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,

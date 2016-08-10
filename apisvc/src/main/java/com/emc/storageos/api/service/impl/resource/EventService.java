@@ -355,7 +355,7 @@ public class EventService extends TaggedResource {
     public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         String result = "";
         Host host = queryObject(Host.class, hostId, true);
-        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, clusterId, true);
+        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
             result += "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
             result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
@@ -385,7 +385,7 @@ public class EventService extends TaggedResource {
     public String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         String result = "";
         Host host = queryObject(Host.class, hostId, true);
-        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, clusterId, true);
+        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
             result += "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
             result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
@@ -415,6 +415,9 @@ public class EventService extends TaggedResource {
     public String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
         String result = "";
         Host host = queryObject(Host.class, hostId, true);
+        if (host == null) {
+            return "Host has been deleted";
+        }
         URI oldClusterURI = host.getCluster();
 
         result += "Assign host to cluster " + clusterId;

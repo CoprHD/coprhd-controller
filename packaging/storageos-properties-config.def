@@ -2867,10 +2867,6 @@
         controlNodeOnly : false,
         value : "300",
     },
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 732ae9b0e6aaebda74459a7248c6ccd3033d0aa1
 	{
         key : "file_mount_operations",
         label : "Timeout in seconds",

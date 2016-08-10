@@ -221,7 +221,6 @@ public class HP3PARApiFactory {
                
                 ClientHandler handler = new URLConnectionClientHandler();
                 Client connClient = new Client(handler,configureClient());
-                connClient.addFilter(new HTTPBasicAuthFilter(username, password));
                 RESTClient restClient = new RESTClient(connClient);
                 hp3parApi = new HP3PARApi(endpoint, restClient, username, password);
                 _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);

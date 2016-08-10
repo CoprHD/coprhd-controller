@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.db.client.impl;
 
+/**
+ * This class represents cassandra column family
+ */
 public class ColumnFamilyDefinition {
     
     public static final String DATA_CF_COMPARATOR_NAME =

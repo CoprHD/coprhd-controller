@@ -54,6 +54,13 @@ public class ColumnValue {
         }
     }
 
+    /**
+     * Deserialize values from DB and set it to object instance.
+     * 
+     * @param compositeColumnName column
+     * @param pd propertyDescriptor of class
+     * @param obj target object instance
+     */
     public static void setField(CompositeColumnName compositeColumnName, PropertyDescriptor pd,
             Object obj) {
         try {
@@ -109,6 +116,13 @@ public class ColumnValue {
         }
     }
     
+    /**
+     * Deserialize binary value to primitive value
+     * 
+     * @param binaryValue binary value of field
+     * @param pd propertyDescriptor of class
+     * @return deserialized primitive value
+     */
     public static <T> Object getPrimitiveColumnValue(ByteBuffer binaryValue, PropertyDescriptor pd) {
         Object objValue = null;
         try {

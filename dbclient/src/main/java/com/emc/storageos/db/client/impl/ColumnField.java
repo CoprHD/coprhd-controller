@@ -260,7 +260,7 @@ public class ColumnField {
     /**
      * Deserializes column into object field
      * 
-     * @param column column to deserialize
+     * @param compositeColumnName column to deserialize
      * @param obj object containing this field
      * @throws DatabaseException
      */
@@ -275,7 +275,7 @@ public class ColumnField {
     /**
      * Deserializes an encrypted column into object field
      * 
-     * @param column column to deserialize
+     * @param compositeColumnName column to deserialize
      * @param obj object containing this field
      * @param encryptionProvider the encryption provider used to decrypt the column
      * @throws DatabaseException
@@ -296,7 +296,7 @@ public class ColumnField {
      * Generate queries for removing given column. Caller is expected to execute generated queries
      * 
      * @param recordKey record row key
-     * @param column column to
+     * @param compositeColumnName column to be removed
      * @param mutator row mutator that holds remove queries
      * @param fieldColumnMap column map for the record. it might need to remove indexes for dependent fields
      */
@@ -339,7 +339,19 @@ public class ColumnField {
         // remove index
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
-
+    
+    /**
+     * Generate queries for inserting a given column. Caller is expected to
+     * execute generated queries
+     * 
+     * @param tableName column family/table name
+     * @param recordKey record key
+     * @param column column name
+     * @param val column value
+     * @param mutator mutator that holds insertion queries
+     * @param obj for which the column is added
+     * @throws DatabaseException
+     */
     private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
             RowMutator mutator, DataObject obj) {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {

@@ -47,9 +47,10 @@ public class StorageSystemTypesInitUtils {
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
     private static final String VNXFILE_SMIS = "vnxfile_smis";
+    private static final String HP3PAR = "hp3par";
 
     private static final List<String> FILE_TYPE_SYSTEMS = asList(VNX_FILE, ISILON, NETAPP, NETAPPC);
-    private static final List<String> BLOCK_TYPE_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
+    private static final List<String> BLOCK_TYPE_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN, HP3PAR);
     private static final List<String> OBJECT_TYPE_SYSTEMS = asList(ECS);
     private static final List<String> FILE_TYPE_SYSTEM_PROVIDERS = asList(SCALEIOAPI);
     private static final List<String> BLOCK_TYPE_SYSTEM_PROVIDERS = asList(SMIS, HITACHI_PROVIDER, CINDER,
@@ -76,6 +77,7 @@ public class StorageSystemTypesInitUtils {
         DEFAULT_SSL_ENABLE_MAP.put(VNX_FILE, true);
         DEFAULT_SSL_ENABLE_MAP.put(VNXe, true);
         DEFAULT_SSL_ENABLE_MAP.put(IBMXIV, true);
+        DEFAULT_SSL_ENABLE_MAP.put(HP3PAR, true);
 
         // Initialize secret key map
         SECREAT_KEY_ENABLE_MAP = new HashMap<String, Boolean>();
@@ -94,6 +96,7 @@ public class StorageSystemTypesInitUtils {
 
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
+        DISPLAY_NAME_MAP.put(HP3PAR, "HP 3PAR");
         DISPLAY_NAME_MAP.put(VNX_BLOCK, "EMC VNX Block");
         DISPLAY_NAME_MAP.put(VNX_FILE, "EMC VNX File");
         DISPLAY_NAME_MAP.put(ISILON, "EMC Isilon");
@@ -122,6 +125,7 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(SCALEIOAPI, "443");
         SSL_PORT_MAP.put(VNX_BLOCK, "5989");
         SSL_PORT_MAP.put(VMAX, "5989");
+        SSL_PORT_MAP.put(HP3PAR, "8080");
         SSL_PORT_MAP.put(SMIS, "5989");
         SSL_PORT_MAP.put(HITACHI, "2001");
         SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -152,6 +156,7 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(XTREMIO, "443");
         NON_SSL_PORT_MAP.put(VNX_BLOCK, "5988");
         NON_SSL_PORT_MAP.put(VMAX, "5988");
+        NON_SSL_PORT_MAP.put(HP3PAR, "8008");
         NON_SSL_PORT_MAP.put(ISILON, "8080");
         NON_SSL_PORT_MAP.put(NETAPP, "443");
         NON_SSL_PORT_MAP.put(NETAPPC, "443");

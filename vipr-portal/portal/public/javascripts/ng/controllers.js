@@ -235,7 +235,7 @@ angular.module("portalApp").controller({
         };
         
         $scope.isRentionAllowed = function() {
-           var isSnapshotService = ['CreateApplication','CreateBlockSnapshot', 'CreateFileSnapshot', 'CreateFullCopy', 'CreateSnapshotOfApplication'].indexOf($scope.service.baseService) > -1;
+           var isSnapshotService = ['CreateBlockSnapshot', 'CreateFileSnapshot', 'CreateFullCopy', 'CreateSnapshotOfApplication'].indexOf($scope.service.baseService) > -1;
            return $scope.scheduler.recurrence != 1 && isSnapshotService;	
         }
         

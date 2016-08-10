@@ -878,19 +878,19 @@ public class BlockSnapshotService extends TaskResourceService {
         URI sourceVolumeURI = snapshot.getParent().getURI();
         Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
         if (!Volume.checkForVplexBackEndVolume(_dbClient, sourceVolume)) {
-            throw APIException.badRequests.cantExposeNonVPLEXSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeNonVPLEXSnapshot(snapshot.getLabel());
         }
 
         // Verify it is not marked for deletion.
         if (snapshot.getInactive()) {
-            throw APIException.badRequests.cantExposeInactiveSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeInactiveSnapshot(snapshot.getLabel());
         }
 
         // Verify that it has been activated such that the target volume
         // reflects the source volume data. Otherwise, when the snapshot
         // is activated, the read cache for the VPLEX volume would be invalid.
         if (!snapshot.getIsSyncActive()) {
-            throw APIException.badRequests.cantExposeUnsynchronizedSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeUnsynchronizedSnapshot(snapshot.getLabel());
         }
         
         // Verify it has yet to be used to create a VPLEX volume.
@@ -901,7 +901,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // same native GUID as the snapshot.
         String snapshotNativeGuid = snapshot.getNativeGuid();
         if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
-            throw APIException.badRequests.cantExposeSnapshotAlreadyExposed(id.toString());
+            throw APIException.badRequests.cantExposeSnapshotAlreadyExposed(snapshot.getLabel());
         }
 
         // If the backend VPLEX snapshot snapshot is not currently exposed as
@@ -914,7 +914,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // to more than one storage group in use by FAST". We thought it best to 
         // disable for all platforms for the reason discussed.
         if (snapshot.isSnapshotExported(_dbClient)) {
-            throw APIException.badRequests.cantExposeExportedSnapshot(id.toString());
+            throw APIException.badRequests.cantExposeExportedSnapshot(snapshot.getLabel());
         }
 
         // Get the virtual pool of the snapshot source volume. We need to set

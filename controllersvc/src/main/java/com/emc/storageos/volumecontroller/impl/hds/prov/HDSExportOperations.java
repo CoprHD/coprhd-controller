@@ -1412,9 +1412,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     }
                     Set<HostStorageDomain> hsdSet = new HashSet<>();
                     hsdSet.add(hsd);
-                    updateHSDInfoInExportMask(exportMask, hostInitiators,
-                            matchedHostHSDsMap.get(hostURI), storage,
-                            matchingMasks);
+                    updateHSDInfoInExportMask(exportMask, hostInitiators, hsdSet, storage, matchingMasks);
                     if (isNewExportMask) {
                         dbClient.createObject(exportMask);
                     } else {

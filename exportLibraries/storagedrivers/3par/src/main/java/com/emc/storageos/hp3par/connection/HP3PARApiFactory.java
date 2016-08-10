@@ -74,7 +74,6 @@ public class HP3PARApiFactory {
     private int _socketConnTimeout = DEFAULT_SOCKET_CONN_TIMEOUT;
     private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
-//    private ApacheHttpClientHandler _clientHandler; ///--------------------
     private ConcurrentMap<String, HP3PARApi> _clientMap;
     private MultiThreadedHttpConnectionManager _connectionManager;
 
@@ -147,7 +146,6 @@ public class HP3PARApiFactory {
                 return false;
             }
         });
-//        _clientHandler = new ApacheHttpClientHandler(client); ///----------------
 
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 8080));
     }
@@ -225,10 +223,6 @@ public class HP3PARApiFactory {
                 Client connClient = new Client(handler,configureClient());
                 connClient.addFilter(new HTTPBasicAuthFilter(username, password));
                 RESTClient restClient = new RESTClient(connClient);
-                
-//                Client jerseyClient = new ApacheHttpClient(_clientHandler);
-//                jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
-//                RESTClient restClient = new RESTClient(jerseyClient);
                 hp3parApi = new HP3PARApi(endpoint, restClient, username, password);
                 _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);
             }
@@ -244,66 +238,46 @@ public class HP3PARApiFactory {
     public static void main(String[] args) {
         System.out.println("starting HP3PAR main");
         try {
-        URI uri = URI.create(String.format("https://10.247.143.100:8080/api/v1/credentials"));
+        URI uri = URI.create(String.format("https://xxxxx:8080/api/v1/credentials"));
         HP3PARApiFactory factory = new HP3PARApiFactory();
         factory.setConnectionTimeoutMs(30000*4);
         factory.setConnManagerTimeout(60000*4);
         factory.setSocketConnectionTimeoutMs(7200000*4);
         BasicConfigurator.configure();
         factory.init();
-        HP3PARApi hp3parApi = factory.getRESTClient(uri, "superme", "superme");
+        HP3PARApi hp3parApi = factory.getRESTClient(uri, "xxx", "xxxx");
         
-        String authToken = hp3parApi.getAuthToken("superme", "superme");
+        String authToken = hp3parApi.getAuthToken("xxxx", "xxxx");
         System.out.println(authToken);
         
-//        hp3parApi.verifyUserRole("test2");
+        hp3parApi.verifyUserRole("test2");
         SystemCommandResult sysRes = hp3parApi.getSystemDetails();
-//        System.out.println(sysRes.toString());
-//        CPGCommandResult cpgRes = hp3parApi.getAllCPGDetails();
-//        System.out.println(cpgRes.toString());
-//        hp3parApi.getPortDetails();
-//        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
+        System.out.println(sysRes.toString());
+        CPGCommandResult cpgRes = hp3parApi.getAllCPGDetails();
+        System.out.println(cpgRes.toString());
+        hp3parApi.getPortDetails();
+        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
         
-        String vol = "One_Thin21"; 
-        hp3parApi.createVolume(vol, "One", true, false, (long)1024);
-//        hp3parApi.createVlun(vol, -1, "myhost", "1:1:1");
-//        hp3parApi.expandVolume(vol, (long)2048);
-//        hp3parApi.getCPGDetails("One");
-//        hp3parApi.deleteVolume(vol);
+        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("Cluster2021");
+        boolean present = false;
+        for (int index = 0; index < hostsetRes.getSetmembers().size(); index++) {
+            if ("myhost1".compareTo(hostsetRes.getSetmembers().get(index)) == 0) {
+                present = true;
+                break;
+            }
+        }
         
-//        HostCommandResult hostRes = hp3parApi.getAllHostDetails();
-//        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("MyCluster333");
-//        boolean present = false;
-//        for (int index = 0; index < hostsetRes.getSetmembers().size(); index++) {
-//            if ("myhost1".compareTo(hostsetRes.getSetmembers().get(index)) == 0) {
-//                present = true;
-//                break;
-//            }
-//        }
-//        
-//        if (present == false) {
-//            // update cluster with this host
-//            hp3parApi.updateHostSet("MyCluster333", "myhost1");
-//        }
-        
-//        HostMember hostRes = hp3parApi.getHostDetails("LGLBW015");
-//        VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
-//        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
-//        ArrayList<String> portIds = new ArrayList<>();
-//        portIds.add("1111111111111114");
-//        portIds.add("1111111111111115");
-//        hp3parApi.createHost("myhostot7", portIds, 4);
-//        hp3parApi.createtHostSet("mycluster2", "myhost1");
-        
-//        hp3parApi.updateHost("mydummy1", portIds);
-        
-        
-        int a=0; a++; System.out.println(a);
+        if (present == false) {
+            // update cluster with this host
+            hp3parApi.updateHostSet("Cluster2021", "host1");
+        }
+      
         } catch (Exception e) {
-            System.out.println("ERRRRRRROR");
+            System.out.println("EROR");
             System.out.println(e);
             System.out.println(CompleteError.getStackTrace(e));
             e.printStackTrace();
         }
    } //end main
+    
 }

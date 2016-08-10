@@ -292,7 +292,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setSupportedRaidLevels(supportedRaidLevels);
 
 				if (currMember.getSDGrowth().getLDLayout().getDiskPatterns() == null) {
-					_log.warn("Neglecting storage pool {} as there is no disk associated with it", currMember.getName());
+					_log.warn("3PARDriver: Neglecting storage pool {} as there is no disk associated with it", currMember.getName());
 					continue;
 				}
 				Set<SupportedDriveTypes> supportedDriveTypes = new HashSet<>();

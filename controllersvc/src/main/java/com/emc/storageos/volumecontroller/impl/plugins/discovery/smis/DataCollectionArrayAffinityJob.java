@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.io.Serializable;
 import java.net.URI;
-import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -14,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -26,18 +24,20 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     private static final long serialVersionUID = -6256870762267299638L;
     private static final Logger logger = LoggerFactory
             .getLogger(DataCollectionArrayAffinityJob.class);
-    private URI _hostId;
+    private List<URI> _hostIds;
     private List<URI> _systemIds;
     private ArrayAffinityDataCollectionTaskCompleter _completer;
     private String _namespace;
 
-    public DataCollectionArrayAffinityJob(URI hostId, List<URI> systemIds, ArrayAffinityDataCollectionTaskCompleter completer, String namespace) {
-        this(hostId, systemIds, completer, JobOrigin.USER_API, namespace);
+    public DataCollectionArrayAffinityJob(List<URI> hostIds, List<URI> systemIds, ArrayAffinityDataCollectionTaskCompleter completer,
+            String namespace) {
+        this(hostIds, systemIds, completer, JobOrigin.USER_API, namespace);
     }
 
-    DataCollectionArrayAffinityJob(URI hostId, List<URI> systemIds, ArrayAffinityDataCollectionTaskCompleter completer, JobOrigin origin, String namespace) {
+    DataCollectionArrayAffinityJob(List<URI> hostIds, List<URI> systemIds, ArrayAffinityDataCollectionTaskCompleter completer,
+            JobOrigin origin, String namespace) {
         super(origin);
-        _hostId = hostId;
+        _hostIds = hostIds;
         _systemIds = systemIds;
         _completer = completer;
         _namespace = namespace;
@@ -101,8 +101,8 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
         return _namespace;
     }
 
-    public URI getHostId() {
-        return _hostId;
+    public List<URI> getHostIds() {
+        return _hostIds;
     }
 
     public List<URI> getSystemIds() {

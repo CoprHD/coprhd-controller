@@ -804,6 +804,37 @@ angular.module("portalApp").controller('taskController', function($rootScope, $s
     }
 });
 
+angular.module("portalApp").controller('eventController', function($rootScope, $scope, $timeout, $document, $http, $window) {
+    $scope.numOfPendingEvents = -1;
+
+    var SHORT_POLL_SECS = 5000;
+    var LONG_POLL_SECS = 15000;
+
+    var poll_timeout = LONG_POLL_SECS;
+
+    var countPoller;
+
+    var setCountPoller = function() {
+        countPoller = $timeout(pollForCount, poll_timeout);
+    }
+
+    // Polls just for the count
+    var pollForCount = function() {
+        $http.get(routes.Events_pendingEventCount()).success(function(numberOfEvents) {
+            $scope.numOfPendingEvents = numberOfEvents;
+            setCountPoller();
+        })
+        .error(function(data, status) {
+            console.log("Error fetching pending event count " + status);
+        });
+    };
+
+    // Poll for event counts
+    (function() {
+        pollForCount();
+    })();
+});
+
 angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $timeout, $http, $window) {
     var getTaskDetails = function() {
         $http.get(routes.Tasks_taskDetailsJson({'taskId':$scope.task.id})).success(function (data) {
@@ -827,6 +858,18 @@ angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $time
     	return render.localDate(o,datestring);
     }
 });
+
+angular.module("portalApp").controller('eventDetailsCtrl', function($scope, $timeout, $http, $window) {
+    var getEventDetails = function() {
+        $http.get(routes.Events_eventDetailsJson({'eventId':$scope.task.id})).success(function (data) {
+            $scope.event = data;
+        });
+    }
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    };
+});
+
 angular.module("portalApp").controller("summaryCountCtrl", function($scope, $http, $timeout, $window) {
     $scope.pending = 0;
     $scope.error = 0;
@@ -855,6 +898,40 @@ angular.module("portalApp").controller("summaryCountCtrl", function($scope, $htt
      */
     $scope.filterTasks = function(state) {
         window.table.tasks.dataTable.getDataTable().fnFilter(state);
+    }
+
+    poller();
+
+});
+
+angular.module("portalApp").controller("summaryEventCountCtrl", function($scope, $http, $timeout, $window) {
+    $scope.pending = 0;
+    $scope.approved = 0;
+    $scope.declined = 0;
+    $scope.dataReady = false;
+
+    var poller = function() {
+                $http.get(routes.Events_countSummary({tenantId:$scope.tenantId})).success(function(countSummary) {
+                    console.log("Fetching Summary");
+                    $scope.pending = countSummary.pending;
+                    $scope.approved = countSummary.approved;
+                    $scope.declined = countSummary.declined;
+                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined;
+                    $scope.dataReady = true;
+
+                    $timeout(poller, 5000);
+                }).
+                error(function(data, status) {
+                    console.log("Error fetching countSummary "+status);
+                    $timeout(poller, 5000);
+                });
+    };
+
+    /**
+     * Filters the DataTable by entering the filter value into the Datatable Filter Input box
+     */
+    $scope.filterEvents = function(state) {
+        window.table.events.dataTable.getDataTable().fnFilter(state);
     }
 
     poller();
@@ -1408,6 +1485,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     landingStep = 3;
     maxSteps = 9;
     initialNav = $(".navMenu .active").text();
+    initialNavParent = $(".rootNav.active").text();
 
     $scope.checkGuide = function() {
         cookieObject = angular.fromJson(readCookie(cookieKey));
@@ -1456,7 +1534,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.guideVisible = false;
         $scope.guideDataAvailable = false;
         saveGuideCookies();
-        setActiveMenu(initialNav);
+        setActiveMenu(initialNav,initialNavParent);
     }
 
     $scope.initializeSteps = function() {
@@ -1963,6 +2041,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $(colWiz).popover('show');
             }
         }
+        if(newValue) {
+            $('.rootNav , .navMenu a').on('click', function(event) {
+                $('.wizard-side-next').popover('show');
+                return false;
+            });
+        } else {
+             $('.rootNav , .navMenu a').off('click');
+        }
     });
     var PINNED_COOKIE = 'isMenuPinned';
         var MAIN_MENU = '#mainMenu';
@@ -2022,7 +2108,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("General Configuration");
                     break;
                 case 3:
-                    setActiveMenu(initialNav);
+                    setActiveMenu("Overview");
                     break;
                 case 4:
                     setActiveMenu("Storage Systems");
@@ -2049,11 +2135,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
 
 
-    function setActiveMenu(name) {
+
+    function setActiveMenu(name,parent) {
         $(".navMenu .active , #mainMenu .active").removeClass("active");
-        parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
-        $(".navMenu li:contains("+name+")").addClass("active");
-        $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        if(name){
+            parentSelector = $(".navMenu li:contains("+name+")").closest(".navMenu").attr('id');
+            $(".navMenu li:contains("+name+")").addClass("active");
+            $("a[data-subnav='"+parentSelector+"']").addClass("active");
+        } else if (parent){
+            $(".rootNav:contains("+parent+")").addClass("active");
+        }
+
         openMenu();
     }
 
@@ -2070,6 +2162,22 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         trigger : 'manual',
         content : translate("gettingStarted.popover"),
         selector : 'colWiz'
+
+    });
+
+    $('.wizard-side-next').on('shown.bs.popover', function(){
+        $('.wizard-side-next').popover('toggle');
+    });
+    $('.wizard-side-next').popover({
+        delay : {
+            show : 0,
+            hide : 2000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.step.popover"),
+        selector : '.wizard-side-next'
 
     });
 });

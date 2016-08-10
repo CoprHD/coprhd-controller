@@ -84,6 +84,7 @@ public interface ServiceParams {
     public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String MIGRATION_SUSPEND = "migrationSuspend";
     public String DISPLAY_JOURNALS = "displayJournals";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
@@ -161,4 +162,10 @@ public interface ServiceParams {
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 
+    public String MOUNT_PATH = "mountPath";
+    public String SECURITY_TYPE = "securityType";
+    public String MOUNTED_NFS_EXPORTS = "mountedNFSExports";
+    public String FILESYSTEM_NAME = "fileSystemName";
+    public String MOUNT_LIST = "mountList";
+    public String FS_TYPE = "fsType";
 }

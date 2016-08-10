@@ -57,6 +57,7 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -546,7 +547,10 @@ public class ExternalDeviceCommunicationInterface extends
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,
-                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);            
+                            autoTieringPolicyPoolMap, autoTieringPolicyPropertiesMap);     
+                    
+                    // Discover deduplication capability for storage pool.
+                    discoverDeduplicationCapabilityForStoragePool(driverStorageSystem, storagePool, pool);
                 }
 
                 // Now that all storage pools have been process we can create or update
@@ -585,7 +589,8 @@ public class ExternalDeviceCommunicationInterface extends
 
     }
     
-    /**
+
+	/**
      * Discovers the auto tiering policies supported by the passed driver storage pool
      * and updates the passed auto tiering policy maps.
      * 
@@ -614,7 +619,7 @@ public class ExternalDeviceCommunicationInterface extends
                         capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
                 continue;
             }
-            
+
             // Get the capability definition from the map of supported capability definitions.
             CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
             if (capabilityDefinition == null) {
@@ -650,6 +655,58 @@ public class ExternalDeviceCommunicationInterface extends
             } 
         } 
     }
+
+    /**
+     * Discover deduplication capability for storage pool.
+     * If driver does not report "deduplication" for storage pool, we assume that deduplication is disabled.
+     * If driver reports "deduplication" for storage pool, we assume that it is enabled, unless its ENABLED property is set to false.
+     *
+     * @param driverStorageSystem A reference to the driver storage system.
+     * @param driverPool A reference to the driver storage pool.
+     * @param dbPool A reference to the system storage pool representing the driver storage pool.
+     */
+    private void discoverDeduplicationCapabilityForStoragePool(StorageSystem driverStorageSystem,
+			StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
+
+		// Get the capabilities specified for the storage pool and
+		// process and process deduplication capability if reported by driver
+		List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+		for (CapabilityInstance capability : capabilities) {
+			// Get the capability definition for the capability.
+			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+			if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
+				_log.error(String.format(
+						"Skipping capability %s with no capability definition UID for storage pool %s on system %s",
+						capability.getName(), driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+				continue;
+			}
+
+			// Get the capability definition from the map of supported
+			// capability definitions.
+			CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
+			if (capabilityDefinition == null) {
+				_log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
+						capabilityDefinitionUid, driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+				continue;
+			}
+
+			if (DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+                // Handle dedup capability.
+                // Check if dedup is enabled; we assume that if driver reports deduplication in pool capabilities,
+                // it is enabled by default, unless it is explicitly disabled.
+                String isEnabled = capability.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+                if (isEnabled != null && isEnabled.equalsIgnoreCase("false") ) {
+                    _log.info(String.format("StoragePool %s of storage system %s has deduplication disabled",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setDedupCapable(false);
+                } else {
+                    _log.info(String.format("Enable deduplication for StoragePool %s of storage system %s ",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setDedupCapable(true);
+                }
+			}
+		}
+	}
     
     /**
      * Creates and/or updates the auto tiering policies in the controller database after
@@ -839,6 +896,10 @@ public class ExternalDeviceCommunicationInterface extends
                         existingStoragePorts.add(storagePort);
                     }
                     storagePort.setPortNetworkId(driverPort.getPortNetworkId());
+                    if (driverPort.getTransportType()!= null &&
+                            driverPort.getTransportType().equalsIgnoreCase(StoragePort.TransportType.IP.toString())) {
+                        storagePort.setIpAddress(driverPort.getIpAddress());
+                    }
                     storagePort.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
                     storagePort.setOperationalStatus(driverPort.getOperationalStatus());

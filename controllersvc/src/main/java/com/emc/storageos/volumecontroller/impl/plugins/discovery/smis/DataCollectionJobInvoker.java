@@ -78,8 +78,8 @@ class DataCollectionJobInvoker {
             String contextkey = _accessProfile.getProfileName() + "-" + contextDeviceType;
             if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equals(_accessProfile.getProfileName())) {
                 if (_accessProfile.getProps() != null) {
-                    String host = _accessProfile.getProps().get(Constants.HOST);
-                    if (StringUtils.isNotEmpty(host)) {
+                    String hosts = _accessProfile.getProps().get(Constants.HOST_IDS);
+                    if (StringUtils.isNotEmpty(hosts)) {
                         // ArrayAffinity-block-host
                         contextkey = contextkey + "-" + Constants.HOST;
                     }

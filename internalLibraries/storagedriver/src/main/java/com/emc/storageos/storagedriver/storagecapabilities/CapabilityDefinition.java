@@ -14,6 +14,7 @@ public class CapabilityDefinition {
      */
     public enum CapabilityUid {
         autoTieringPolicy,    // auto tiering capability
+        deduplication,        // de-duplication
         replicationMode,      // replication mode capability
         remoteReplicationAttributes   // remote replication attributes
     }

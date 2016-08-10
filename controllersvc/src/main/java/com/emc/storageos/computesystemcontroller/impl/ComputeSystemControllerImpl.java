@@ -250,23 +250,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Gets all export groups that contain references to the provided host or initiators
      * Export groups that don't contain initiators for a host may stil reference the host
      * 
+     * @param _dbClient2
+     * 
      * @param hostId
      *            the host id
      * @param initiators
      *            list of initiators for the given host
      * @return list of export groups containing references to the host or initiators
      */
-    protected List<ExportGroup> getExportGroups(URI hostId, List<Initiator> initiators) {
+    public static List<ExportGroup> getExportGroups(DbClient dbClient, URI hostId, List<Initiator> initiators) {
         HashMap<URI, ExportGroup> exports = new HashMap<URI, ExportGroup>();
         // Get all exports that use the host's initiators
         for (Initiator item : initiators) {
-            List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(_dbClient, item.getId().toString());
+            List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(dbClient, item.getId().toString());
             for (ExportGroup export : list) {
                 exports.put(export.getId(), export);
             }
         }
         // Get all exports that reference the host (may not contain host initiators)
-        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(dbClient, hostId.toString());
         for (ExportGroup export : hostExports) {
             exports.put(export.getId(), export);
         }
@@ -411,7 +413,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // cluster
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
+                for (ExportGroup exportGroup : getExportGroups(_dbClient, hostId, hostInitiators)) {
                     if (exportGroup.forCluster() && !exportGroup.hasCluster(clusterId)) {
                         _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
                                 + ". Will remove this host from the export");
@@ -538,7 +540,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForRemoveInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> initiatorsURI) {
 
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorsURI);
-        List<ExportGroup> exportGroups = getExportGroups(hostId, initiators);
+        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
         for (ExportGroup export : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
@@ -565,7 +567,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
-        List<ExportGroup> exportGroups = getSharedExports(clusterId);
+        List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
         String newWaitFor = waitFor;
         if (isVcenter) {
             Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
@@ -628,7 +630,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds,
             URI clusterId) {
 
-        for (ExportGroup export : getSharedExports(clusterId)) {
+        for (ExportGroup export : getSharedExports(_dbClient, clusterId)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
@@ -674,7 +676,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
-        List<ExportGroup> exportGroups = getSharedExports(clusterId);
+        List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
 
         for (ExportGroup eg : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
@@ -785,7 +787,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 
-    protected List<ExportGroup> getSharedExports(URI clusterId) {
+    public static List<ExportGroup> getSharedExports(DbClient _dbClient, URI clusterId) {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         return CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, ExportGroup.class,
@@ -813,7 +815,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
-        for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
+        for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
@@ -1333,7 +1335,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 // only update initiators if any of them have changed for this host
                 if (!change.getNewInitiators().isEmpty() || !change.getOldInitiators().isEmpty()) {
-                    for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
+                    for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         _log.info("Detected new/removed initiators for export " + export.getId() + " Change: " + change);
                         List<Initiator> validInitiators = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
@@ -1357,7 +1359,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 // being removed from a cluster and no longer in a cluster
                 if (isRemovedFromCluster) {
-                    for (ExportGroup export : getSharedExports(oldCluster)) {
+                    for (ExportGroup export : getSharedExports(_dbClient, oldCluster)) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         _log.info("Host removed from cluster and no longer in a cluster. Export: " + export.getId() + " Remove Host: "
                                 + hostId + " Remove initiators: " + hostInitiatorIds);
@@ -1378,7 +1380,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
                     if (isAddedToCluster || isMovedToDifferentCluster) {
-                        for (ExportGroup export : getSharedExports(currentCluster)) {
+                        for (ExportGroup export : getSharedExports(_dbClient, currentCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Non-clustered being added to a cluster. Export: " + export.getId() + " Add Host: " + hostId
                                     + " Add initiators: " + hostInitiatorIds);
@@ -1393,7 +1395,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
 
                     if (isMovedToDifferentCluster) {
-                        for (ExportGroup export : getSharedExports(oldCluster)) {
+                        for (ExportGroup export : getSharedExports(_dbClient, oldCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId
                                     + " Remove initiators: " + hostInitiatorIds);
@@ -1416,7 +1418,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 // Iterate over all export groups that contain reference to the host or its initiators. Update the affected export groups
                 // state.
-                for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
+                for (ExportGroup export : getExportGroups(_dbClient, host.getId(), hostInitiators)) {
                     // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
                     boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
                             && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
@@ -1435,7 +1437,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // For all deleted clusters, remove their references from the cluster export groups
             for (URI clusterId : deletedClusters) {
                 // the cluster's hosts will already be processed as deletedHosts
-                List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
+                List<ExportGroup> clusterExportGroups = getSharedExports(_dbClient, clusterId);
                 for (ExportGroup export : clusterExportGroups) {
                     ExportGroupState egh = getExportGroupState(exportGroups, export);
                     egh.removeCluster(clusterId);

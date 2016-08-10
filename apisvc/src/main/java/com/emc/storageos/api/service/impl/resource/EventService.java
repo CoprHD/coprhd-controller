@@ -34,6 +34,7 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
@@ -41,11 +42,14 @@ import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -63,6 +67,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.collect.Lists;
 
 /**
  * A service that provides APIs for viewing, approving, declining and removing actionable events.
@@ -234,8 +239,31 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String addInitiatorDetails(URI initiatorId) {
-        // TODO current placeholder
-        return "addInitiatorDetails";
+        String result = "";
+        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
+        List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
+
+        for (ExportGroup export : exportGroups) {
+            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+
+            List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(initiator));
+            if (!validInitiator.isEmpty()) {
+                boolean update = false;
+                for (Initiator initiatorObj : validInitiator) {
+                    // if the initiators is not already in the list add it.
+                    if (!updatedInitiators.contains(initiator.getId())) {
+                        updatedInitiators.add(initiator.getId());
+                        update = true;
+                    }
+                }
+
+                if (update) {
+                    result += "Add initiator to export group " + export.getLabel() + " (" + export.getId() + ")";
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -269,8 +297,23 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String removeInitiatorDetails(URI initiatorId) {
-        // TODO current placeholder
-        return "removeInitiatorDetails";
+        String result = "";
+
+        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
+        List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
+                Lists.newArrayList(initiator));
+
+        for (ExportGroup export : exportGroups) {
+            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            // Only update if the list as changed
+            if (updatedInitiators.remove(initiatorId)) {
+                result += "Remove initiator from export group " + export.getLabel() + " (" + export.getId() + ")\n";
+            }
+        }
+
+        result += "Delete initiator\n";
+
+        return result;
     }
 
     /**
@@ -303,8 +346,11 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        // TODO current placeholder
-        return "hostDatacenterChangeDetails";
+        Host host = queryObject(Host.class, hostId, true);
+        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, clusterId, true);
+        String result = "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
+        result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+        return result;
     }
 
     /**
@@ -327,8 +373,11 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        // TODO current placeholder
-        return "hostVcenterChangeDetails";
+        Host host = queryObject(Host.class, hostId, true);
+        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, clusterId, true);
+        String result = "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
+        result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+        return result;
     }
 
     /**
@@ -351,8 +400,51 @@ public class EventService extends TaggedResource {
 
     @SuppressWarnings("unused")
     public String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
-        // TODO current placeholder
-        return "hostClusterChangeDetails";
+        String result = "";
+        Host host = queryObject(Host.class, hostId, true);
+        URI oldClusterURI = host.getCluster();
+
+        result += "Assign host to cluster " + clusterId;
+
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+
+        if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                && NullColumnValueGetter.isNullURI(clusterId)
+                && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
+            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
+            for (ExportGroup export : exportGroups) {
+                if (export != null) {
+                    result += "Remove host from export " + export.getLabel() + " (" + export.getId() + ")\n";
+                }
+            }
+        } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
+                && !NullColumnValueGetter.isNullURI(clusterId)
+                && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
+            // Non-clustered host being added to a cluster
+            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
+            for (ExportGroup eg : exportGroups) {
+                result += "Add host to export " + eg.getLabel();
+            }
+
+        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                && !NullColumnValueGetter.isNullURI(clusterId)
+                && !oldClusterURI.equals(clusterId)
+                && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
+                        || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
+            // Clustered host being moved to another cluster
+            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
+            for (ExportGroup export : exportGroups) {
+                if (export != null) {
+                    result += "Remove host from export " + export.getLabel() + " (" + export.getId() + ")\n";
+                }
+            }
+            exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
+            for (ExportGroup eg : exportGroups) {
+                result += "Add host to export " + eg.getLabel() + " (" + eg.getId() + ")\n";
+            }
+        }
+
+        return result;
     }
 
     /**

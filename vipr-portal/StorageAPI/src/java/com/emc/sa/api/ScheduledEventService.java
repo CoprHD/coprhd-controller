@@ -342,10 +342,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             newObject.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
         }
         newObject.setLatestOrderId(restRep.getId());
-        Integer maxNumOfCopies = param.getOrderCreateParam().getMaxNumOfRetainedCopies();
-        if (maxNumOfCopies != null) {
-        	newObject.setMaxNumOfRetainedCopies(maxNumOfCopies);
-        }
         newObject.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
         newObject.setStorageOSUser(new String(org.apache.commons.codec.binary.Base64.encodeBase64(user.serialize()), UTF_8));
 
@@ -399,10 +395,11 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         ArgValidator.checkEntity(scheduledEvent, uri(id), true);
 
         validateParam(updateParam.getScheduleInfo());
-        Integer maxNumOfCopies = updateParam.getMaxNumOfRetainedCopies();
-        scheduledEvent.setMaxNumOfRetainedCopies(maxNumOfCopies);
         
         try {
+            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getOrderCreationParam().getBytes(UTF_8)));
+            orderCreateParam.setAdditionalScheduleInfo(updateParam.getAdditionalScheduleInfo());
+            scheduledEvent.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(orderCreateParam.serialize()), UTF_8));
             updateScheduledEvent(scheduledEvent, updateParam.getScheduleInfo());
         } catch (APIException ex){
             log.error(ex.getMessage(), ex);

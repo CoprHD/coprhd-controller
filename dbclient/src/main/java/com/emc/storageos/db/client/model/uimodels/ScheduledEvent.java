@@ -26,7 +26,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public static final String ORDER_CREATION_PARAM = "orderCreationParam";
 
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
-    public static final String MAX_NUM_OF_RETAINED_COPIES = "maxNumOfRetainedCopies";
     
     private ScheduledEventType eventType;
 
@@ -42,9 +41,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private String tenant;                   // the owner tenant
 
-    private Integer maxNumOfRetainedCopies; // max number of retained copies for recurrent orders. 
-                                            // For snapshot related orders only.
-    
     private String orderCreationParam;     // order creation related params
 
     private String storageOSUser;           // user info
@@ -120,16 +116,6 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
         setChanged(TENANT);
     }
 	
-    @Name(MAX_NUM_OF_RETAINED_COPIES)
-    public Integer getMaxNumOfRetainedCopies() {
-		return maxNumOfRetainedCopies;
-	}
-
-	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
-		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
-		setChanged(MAX_NUM_OF_RETAINED_COPIES);
-	}
-
     @Name(ORDER_CREATION_PARAM)
     public String getOrderCreationParam() {
         return orderCreationParam;

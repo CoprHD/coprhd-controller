@@ -19,7 +19,8 @@ public class OrderCreateParam extends OrderCommonParam {
 
     private String scheduledTime;
     
-    private Integer maxNumOfRetainedCopies;
+    // order specific schedule info - for snapshot/fullcopy orders, it indicates "max number of retained copies"
+    private String additionalScheduleInfo;
     
     @XmlElement(name = "tenantId")
     public URI getTenantId() {
@@ -49,15 +50,15 @@ public class OrderCreateParam extends OrderCommonParam {
         this.scheduledTime = scheduledTime;
     }
 
-    @XmlElement(name = "maxNumOfRetainedCopies")
-	public Integer getMaxNumOfRetainedCopies() {
-		return maxNumOfRetainedCopies;
-	}
+	@XmlElement(name = "additionalScheduleInfo")
+    public String getAdditionalScheduleInfo() {
+        return additionalScheduleInfo;
+    }
 
-	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
-		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
-	}
-    
+    public void setAdditionalScheduleInfo(String additionalScheduleInfo) {
+        this.additionalScheduleInfo = additionalScheduleInfo;
+    }
+
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos);

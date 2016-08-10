@@ -182,7 +182,10 @@ public class ScheduledOrders extends Controller {
                     dayOfMonth = 1;
                     dayOfWeek = 1;
                 }
-                maxNumOfCopies = details.scheduledEvent.getMaxNumOfRetainedCopies();
+                String additionalScheduleInfo = details.scheduledEvent.getOrderCreateParam().getAdditionalScheduleInfo();
+                if (additionalScheduleInfo != null) {
+                    maxNumOfCopies = Integer.parseInt(additionalScheduleInfo);
+                }
             }
         }
         public ScheduleEventForm() {
@@ -231,7 +234,7 @@ public class ScheduledOrders extends Controller {
 
             scheduleInfo.setDurationLength(3600);
             update.setScheduleInfo(scheduleInfo);
-            update.setMaxNumOfRetainedCopies(maxNumOfCopies);
+            update.setAdditionalScheduleInfo(String.valueOf(maxNumOfCopies));
             
             getCatalogClient().orders().updateScheduledEvent(uri(id), update);
         }

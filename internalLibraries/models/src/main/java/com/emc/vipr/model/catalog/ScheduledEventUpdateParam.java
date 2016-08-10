@@ -12,7 +12,7 @@ public class ScheduledEventUpdateParam {
 
     private ScheduleInfo scheduleInfo;
 
-    private Integer maxNumOfRetainedCopies;
+    private String additionalScheduleInfo;
     
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {
@@ -23,13 +23,12 @@ public class ScheduledEventUpdateParam {
         this.scheduleInfo = scheduleInfo;
     }
 
-    @XmlElement(name = "maxNumOfRetainedCopies")
-	public Integer getMaxNumOfRetainedCopies() {
-		return maxNumOfRetainedCopies;
-	}
+	@XmlElement(name = "additionalScheduleInfo")
+    public String getAdditionalScheduleInfo() {
+        return additionalScheduleInfo;
+    }
 
-	public void setMaxNumOfRetainedCopies(Integer maxNumOfRetainedCopies) {
-		this.maxNumOfRetainedCopies = maxNumOfRetainedCopies;
-	}
-    
+    public void setAdditionalScheduleInfo(String additionalScheduleInfo) {
+        this.additionalScheduleInfo = additionalScheduleInfo;
+    }
 }

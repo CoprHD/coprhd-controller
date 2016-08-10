@@ -275,8 +275,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call:
-     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -856,21 +855,6 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> unmountNFS(URI id, FileSystemUnmountParam input) {
         return postTask(input, getIdUrl() + "/unmount", id);
-    }
-
-    /**
-     * Gets the NFS mounts for the given file system by ID.
-     * <p>
-     * API Call: <tt>GET /file/filesystems/{id}/mount</tt>
-     * 
-     * @param id
-     *            the ID of the file system.
-     * @return the list of NFS mounts for the given file system.
-     */
-    public List<MountInfo> getNfsMounts(URI id) {
-        MountInfoList response;
-        response = client.get(MountInfoList.class, getNfsMountsUrl(), id);
-        return defaultList(response.getMountList());
     }
 
     /**

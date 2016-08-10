@@ -69,11 +69,12 @@ class Fileshare(object):
     URI_CONTINUOS_COPIES_REFRESH = '/file/filesystems/{0}/protection/continuous-copies/refresh'
     URI_VPOOL_CHANGE = '/file/filesystems/{0}/vpool-change'
     
-    URI_SCHEDULE_SNAPSHOTS_LIST = '/file/filesystems/{0}/file-policies/{1}/snapshots'
-    
+    URI_SCHEDULE_SNAPSHOTS_LIST = '/file/filesystems/{0}/file-policies/{1}/snapshots'   
     URI_MOUNT = "/file/filesystems/{0}/mount"
     URI_MOUNT_UNMOUNT = "/file/filesystems/{0}/unmount"
     URI_MOUNT_TASKS_BY_OPID = '/vdc/tasks/{0}'
+
+    BOOL_TYPE_LIST = ['true', 'false']
 
     isTimeout = False
     timeout = 300
@@ -1040,7 +1041,7 @@ class Fileshare(object):
         else:
             return
     
-    def continous_copies_failover(self, filesharename, sync, synctimeout=0):
+    def continous_copies_failover(self, filesharename, replicateconfig,sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1048,7 +1049,8 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'file_copy' : copy_list}
+                 'file_copy' : copy_list,
+				 'replicate_configuration' : replicateconfig}
         
         body = None
 
@@ -1067,7 +1069,7 @@ class Fileshare(object):
         else:
             return
     
-    def continous_copies_failback(self, filesharename, sync, synctimeout=0):
+    def continous_copies_failback(self, filesharename, replicateconfig, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1075,7 +1077,8 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'file_copy' : copy_list}
+                 'file_copy' : copy_list,
+				 'replicate_configuration' : replicateconfig}
         
         body = None
 
@@ -3022,6 +3025,10 @@ def continous_copies_failover_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_failover_parser.add_argument('-replicateconfig', '-rc',
+                               help=' whether to replicate NFS exports and CIFS Shares from source to target',
+                               choices=Fileshare.BOOL_TYPE_LIST,
+                               dest='replicateconfig')
     continous_copies_failover_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
                                dest='synctimeout',
@@ -3037,7 +3044,7 @@ def continous_copies_failover(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_failover(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
+        res = obj.continous_copies_failover(args.tenant + "/" + args.project + "/" + args.name,args.replicateconfig, args.sync, args.synctimeout  )
         return
     except SOSError as e:
         raise e
@@ -3074,6 +3081,10 @@ def continous_copies_failback_parser(subcommand_parsers, common_parser):
                                dest='synctimeout',
                                default=0,
                                type=int)
+    continous_copies_failback_parser.add_argument('-replicateconfig', '-rc',
+                               help=' whether to replicate NFS exports and CIFS Shares from target to source',
+                               choices=Fileshare.BOOL_TYPE_LIST,
+                               dest='replicateconfig')						   
     continous_copies_failback_parser.set_defaults(func=continous_copies_failback)
 
 
@@ -3084,7 +3095,7 @@ def continous_copies_failback(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_failback(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
+        res = obj.continous_copies_failback(args.tenant + "/" + args.project + "/" + args.name,args.replicateconfig, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e

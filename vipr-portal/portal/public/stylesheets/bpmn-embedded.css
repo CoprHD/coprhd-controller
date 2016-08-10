@@ -1,8 +1,8 @@
 @font-face {
   font-family: 'bpmn';
-  src: url('../font/bpmn.eot?43681877');
-  src: url('../font/bpmn.eot?43681877#iefix') format('embedded-opentype'),
-       url('../font/bpmn.svg?43681877#bpmn') format('svg');
+  src: url('../fonts/bpmn.eot?43681877');
+  src: url('../fonts/bpmn.eot?43681877#iefix') format('embedded-opentype'),
+       url('../fonts/bpmn.svg?43681877#bpmn') format('svg');
   font-weight: normal;
   font-style: normal;
 }

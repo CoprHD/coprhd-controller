@@ -5,12 +5,10 @@
 #{set navSelected: ['nav.tenantsettings', 'nav.customWorkflow'] /}
 #{set 'title'}&{titleKey}#{/set}
 
-  <link rel="stylesheet" href="../../stylesheets/diagram-js.css" />
-  <link rel="stylesheet" href="../../stylesheets/bpmn-embedded.css" />
-  <link rel="stylesheet" href="../../stylesheets/app.css" />
-  <link rel="stylesheet" href="../../stylesheets/bpmn.css" />
-
-#{script 'workflow.js'/}
+#{bpmn-workflow.css "stylesheets/diagram-js.css"/}
+#{bpmn-workflow.css "stylesheets/bpmn-embedded.css"/}
+#{bpmn-workflow.css "stylesheets/app.css"/}
+#{bpmn-workflow.css "stylesheets/bpmn.css"/}
 
 <div class="container">
   <div class="content" id="js-drop-zone">
@@ -53,3 +51,5 @@
   </ul>
 
 </div>
+
+#{script 'workflow.js'/}

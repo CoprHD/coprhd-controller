@@ -2104,8 +2104,6 @@ vmax_cos_setup()
     if [ $VMAX3_COMPRESSION -eq 1 ]; then
 
 	#Create virtual pools on VMAX all flash array with compression enabled and disabled.
-	AUTO_TIER_POLICY_NAME="SYMMETRIX+000197000143+SLO_POLICY+Diamond SLO (0.8ms)"
-
     	run cos create block $COS_VMAXBLOCK_V3_COMP_ENABLED 				\
 		--description 'VMAX-AFA-Compression-enabled' true      \
                              --protocols FC     \
@@ -2123,7 +2121,7 @@ vmax_cos_setup()
                              --numpaths 1  \
                              --max_snapshots 10 \
 	                     --system_type vmax \
-			     --auto_tiering_policy_name "${AUTO_TIER_POLICY_NAME}" \
+			     --auto_tiering_policy_name "${VMAX3_AUTO_TIER_POLICY_NAME}" \
                              --provisionType 'Thin' \
 			     --compressionEnabled false \
 			 --neighborhoods $NH
@@ -7375,13 +7373,6 @@ datadomainfile_tests()
 vmaxblock_tests()
 {
    #--------------------------------------------------------------
-   # VMAX3 compression tests
-   #
-   if [ $VMAX3_COMPRESSION -eq 1 ]; then
-   echo "Executing VMAX3 Compression tests"
-      vmaxblock_compression_tests
-   fi
-
 
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
@@ -7421,6 +7412,12 @@ vmaxblock_tests()
 #    run volume delete $PROJECT/${TnOnTn} --wait &
 #    wait
 
+   # VMAX3 compression tests
+   #
+   if [ $VMAX3_COMPRESSION -eq 1 ]; then
+   echo "Executing VMAX3 Compression tests"
+      vmaxblock_compression_tests
+   fi
 }
 
 vmaxblock_compression_tests()

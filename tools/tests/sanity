@@ -2568,7 +2568,6 @@ vplex_tests()
 
         # 
         # NOTE: some stuff is commented out here until the vplex-simulator can support it, works on hardware
-        # 1) second backend volume of distributed vols gets a "connection refused" from the sim provider, so no distributed yet
         # 
 
         echo "**** Running Exported Ingestion Tests......."

@@ -1255,26 +1255,32 @@ public class ExportGroupService extends TaskResourceService {
             for (String initiatorURI : exportGroup.getInitiators()) {
                 initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorURI));
                 String name = null;
-                if (initiator != null && !initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
-                        && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                    if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
-                        name = initiator.getClusterName();
-                    } else if (StringUtils.hasText(initiator.getHostName())) {
-                        name = initiator.getHostName();
-                    } else {
-                        _log.error("Initiator {} does not have cluster/host name", initiator.getId());
-                        throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                    }
+                if (initiator != null) {
+                    if (!initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
+                            && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
+                        if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
+                            name = initiator.getClusterName();
+                        } else if (StringUtils.hasText(initiator.getHostName())) {
+                            name = initiator.getHostName();
+                        } else {
+                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
+                        }
 
-                    Set<URI> set = null;
-                    if (initiatorMap.get(name) == null) {
-                        set = new HashSet<URI>();
-                        initiatorMap.put(name, set);
-                    } else {
-                        set = initiatorMap.get(name);
+                        Set<URI> set = null;
+                        if (initiatorMap.get(name) == null) {
+                            set = new HashSet<URI>();
+                            initiatorMap.put(name, set);
+                        } else {
+                            set = initiatorMap.get(name);
+                        }
+                        set.add(initiator.getId());
                     }
-                    set.add(initiator.getId());
+                } else {
+                    _log.error("Stale initiator URI {} is in ExportGroup {}", initiatorURI, exportGroup.getId());
+                    throw APIException.badRequests.invalidInitiatorName(URI.create(initiatorURI), exportGroup.getId());
                 }
+
             }
             _log.info("{}", initiatorMap);
             if (initiatorMap.size() > 1) {
@@ -1644,6 +1650,10 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
+        /**
+         * Added extra validation for the initiators in ExportGroup
+         */
+        validateInitiatorsInExportGroup(exportGroup);
 
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();

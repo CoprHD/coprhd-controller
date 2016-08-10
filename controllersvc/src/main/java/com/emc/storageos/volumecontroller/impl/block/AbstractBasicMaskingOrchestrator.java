@@ -1151,7 +1151,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                             exportMask.getMaskName(), exportMask.getId(), canRemoveInitiators,
                                             canRemoveVolumes, initiatorsToRemove.size(), allExportMaskInitiators.size(),
                                             removingLastVolumeFromMask, removingAllUserAddedVolumes));
-
+                            /**
+                             * We can remove initiators from MaskingView only if there is no other volumes are part of MaskingView.
+                             */
                             if (canRemoveInitiators) {
                                 _log.info(String.format(
                                         "Determined that we can remove initiators from mask %s (%s): %s",

@@ -1447,7 +1447,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
         Iterator<ComputeVirtualPool> _dbIterator =
                 _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        BulkList.ResourceFilter filter = new BulkList.ComputeVirtualPoolFilter(getUserFromContext(), _permissionsHelper);
+        BulkList.ResourceFilter filter = new BulkList.ComputeVirtualPoolFilter();
         return new ComputeVirtualPoolBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_VPOOL_MAPPER, filter));
     }
 
@@ -1463,7 +1463,14 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
     @Override
     protected ComputeVirtualPoolBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        return queryBulkResourceReps(ids);
+        if (isSystemOrRestrictedSystemAdmin()){
+            return queryBulkResourceReps(ids);
+        } else {
+            Iterator<ComputeVirtualPool> _dbIterator = 
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+             BulkList.ResourceFilter filter = new BulkList.ComputeVirtualPoolFilter(getUserFromContext(), _permissionsHelper);
+             return new ComputeVirtualPoolBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_VPOOL_MAPPER, filter));
+        }
     }
 
     private void validateMinMaxIntValues(Integer minVal, Integer maxVal, String minField, String maxField) {

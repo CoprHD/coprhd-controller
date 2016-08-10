@@ -104,7 +104,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#createFileSystems(java.util.List, java.lang.String)
+     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#createFileSystems(java.util.List,
+     * java.lang.String)
      */
 
     /**
@@ -129,7 +130,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
                     CREATE_FILESYSTEMS_WF_NAME, false, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create FileSystem");
             // First, call the FileDeviceController to add its methods.
@@ -159,7 +160,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#changeFileSystemVirtualPool(java.util.List,
+     * @see
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#changeFileSystemVirtualPool(java.util.
+     * List,
      * java.lang.String)
      */
 
@@ -185,7 +188,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
                     CREATE_MIRROR_FILESYSTEMS_WF_NAME, false, taskId);
-            String waitFor = null;    // the wait for key returned by previous call
+            String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for creating mirror filesystems...");
             // First, call the FileDeviceController to add its methods.
@@ -216,7 +219,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#deleteFileSystems(java.util.List, java.lang.String)
+     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#deleteFileSystems(java.util.List,
+     * java.lang.String)
      */
     /**
      * Deletes one or more filesystem.
@@ -228,7 +232,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
-        String waitFor = null;    // the wait for key returned by previous call
+        String waitFor = null; // the wait for key returned by previous call
         List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileDeleteWorkflowCompleter completer = new FileDeleteWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
@@ -264,7 +268,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#expandFileSystem(java.net.URI, long, java.lang.String)
+     * @see com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController#expandFileSystem(java.net.URI,
+     * long, java.lang.String)
      */
     /**
      * expand one or more filesystem
@@ -276,7 +281,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void expandFileSystem(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
-        String waitFor = null;    // the wait for key returned by previous call
+        String waitFor = null; // the wait for key returned by previous call
         List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
@@ -374,7 +379,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
         }
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, taskId, completer);
             String shareStep = workflow.createStepId();
             Object[] args = new Object[] { storageSystem, uri, smbShare };
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_SHARE_METHOD, shareStep, stepDescription, storageSystem,
@@ -411,7 +416,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
         }
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME, false, opId, completer);
             String exportStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, exports };
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep, stepDescription, storage, args);
@@ -447,7 +452,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT.getName();
         }
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
             String exportRuleUpdateStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, param };
             _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep, stepDescription,
@@ -487,7 +492,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL.getName();
         }
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_CIFS_SHARE_ACLS_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_CIFS_SHARE_ACLS_WF_NAME, false, opId, completer);
             String shareACLUpdateStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, shareName, param };
             _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep, stepDescription,
@@ -509,7 +514,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         VNXeFSSnapshotTaskCompleter completer = new VNXeFSSnapshotTaskCompleter(Snapshot.class, snapshot, opId);
         Workflow workflow = null;
         try {
-            workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId);
+            workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
             String snapshotFSStep = workflow.createStepId();
             String stepDescription = "Creating File System Snapshot :" + fileShare.getLabel();
             Object[] args = new Object[] { storage, snapshot, fsURI };
@@ -551,7 +556,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE.getName();
         }
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, opId, completer);
             String sharedeleteStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, fileSMBShare };
             _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SHARE_METHOD, sharedeleteStep, stepDescription, storage,
@@ -587,7 +592,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT.getName();
         }
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
             String exportdeleteStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, allDirs, subDirs };
             _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_RULES, exportdeleteStep, stepDescription, storage,

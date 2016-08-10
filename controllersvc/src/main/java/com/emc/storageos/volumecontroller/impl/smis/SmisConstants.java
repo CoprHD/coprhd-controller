@@ -427,6 +427,7 @@ public interface SmisConstants {
     // Compression
     static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";
     static final String CP_EMC_COMPRESSION = "EMCCompression";
+    static final String CP_EMC_COMPRESSION_RATIO = "EMCCompressionRatio";
     static final String[] PS_EMC_COMPRESSION = new String[] { CP_EMC_COMPRESSION };
 
     // Array of Property String (PS) constants

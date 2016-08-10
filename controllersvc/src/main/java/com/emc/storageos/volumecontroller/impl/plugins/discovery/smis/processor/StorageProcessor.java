@@ -102,8 +102,6 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected static final String EIGHT = "8";
 
     protected static final String DEPENDENT = "Dependent";
-    protected static final String EMC_COMPRESSION_RATIO = "EMCCompressionRatio";
-    protected static final String DEFAULT_COMPRESSION_RATIO = "1:1";
     
     /**
      * get UnManaged Volume Object path
@@ -699,7 +697,7 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected String getCompressionRatio(CIMInstance volumeInstance, boolean isVMAX3) {
         if (isVMAX3) {
             String compressionRatio = getCIMPropertyValue(volumeInstance,
-                    EMC_COMPRESSION_RATIO);
+                    SmisConstants.CP_EMC_COMPRESSION_RATIO);
             if ((compressionRatio != null) && !compressionRatio.equals("0")) {
                 //VMAX compression ratio is provider as units of 1/10
                 //i.e if it 2.5:1 or 5:2, it will be reported as 25
@@ -709,7 +707,7 @@ public abstract class StorageProcessor extends PoolProcessor {
             }
         }
 
-        return DEFAULT_COMPRESSION_RATIO;
+        return Constants.DEFAULT_COMPRESSION_RATIO;
     }
 
     @Override

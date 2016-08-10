@@ -16,8 +16,8 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class ExportAddInitiatorCompleter extends ExportTaskCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory
@@ -45,11 +45,16 @@ public class ExportAddInitiatorCompleter extends ExportTaskCompleter {
                 case ready:
                     operation.ready();
                     break;
+                case suspended_no_error:
+                    operation.suspendedNoError();
+                    break;
+                case suspended_error:
+                    operation.suspendedError(coded);
+                    break;
                 default:
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            dbClient.persistObject(exportGroup);
 
             _log.info("export_initiator_add: completed");
             _log.info(String.format("Done ExportMaskAddInitiator - Id: %s, OpId: %s, status: %s",
@@ -65,7 +70,7 @@ public class ExportAddInitiatorCompleter extends ExportTaskCompleter {
                     exportGroup.removeInitiator(initiator);
                 }
             }
-            dbClient.persistObject(exportGroup);
+            dbClient.updateObject(exportGroup);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskAddInitiator - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);

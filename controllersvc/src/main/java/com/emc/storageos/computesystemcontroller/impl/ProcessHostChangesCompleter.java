@@ -76,9 +76,7 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
                 // don't delete cluster if auto-exports are disabled or all hosts weren't deleted (ex: hosts provisioned by ViPR)
-                if (!cluster.getAutoExportEnabled()) {
-                    _logger.info("do not delete cluster {} - auto exports are disabled", cluster.getLabel());
-                } else if (!clusterHosts.isEmpty()) {
+                if (!clusterHosts.isEmpty()) {
                     _logger.info("do not delete cluster {} - it still has hosts - disassociate it from vcenter", cluster.getLabel());
                     cluster.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     cluster.setExternalId(NullColumnValueGetter.getNullStr());

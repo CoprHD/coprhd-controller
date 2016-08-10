@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.constraint.impl.TimedContainmentConstraintImp
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -641,6 +642,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Task.class);
             ColumnField field = doType.getColumnField("resource");
             return new ContainmentConstraintImpl(resourceId, Task.class, field);
+        }
+
+        public static ContainmentConstraint getResourceEventConstraint(URI resourceId) {
+            DataObjectType doType = TypeMap.getDoType(ActionableEvent.class);
+            ColumnField field = doType.getColumnField("resource");
+            return new ContainmentConstraintImpl(resourceId, ActionableEvent.class, field);
         }
 
         public static ContainmentConstraint getTenantOrgTaskConstraint(URI tenantId) {

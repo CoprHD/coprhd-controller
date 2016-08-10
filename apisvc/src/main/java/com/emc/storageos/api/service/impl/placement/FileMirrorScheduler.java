@@ -36,9 +36,9 @@ import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class FileMirrorSchedular implements Scheduler {
+public class FileMirrorScheduler implements Scheduler {
     public final Logger _log = LoggerFactory
-            .getLogger(FileMirrorSchedular.class);
+            .getLogger(FileMirrorScheduler.class);
     private static final String SCHEDULER_NAME = "filemirror";
 
     private DbClient _dbClient;
@@ -334,7 +334,7 @@ public class FileMirrorSchedular implements Scheduler {
     @Override
     public String getSchedulerName() {
         return SCHEDULER_NAME;
-    }
+}
 
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {

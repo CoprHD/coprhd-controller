@@ -30,7 +30,8 @@ public class WorkflowStepCompleter implements Serializable {
     }
 
     /**
-     * Sets the step state to success and leaves the overall task status as pending or records it as ready depending on whether
+     * Sets the step state to success and leaves the overall task status as pending or records it as ready depending on
+     * whether
      * all steps have finished or not
      * 
      * @param stepId
@@ -73,11 +74,34 @@ public class WorkflowStepCompleter implements Serializable {
     }
 
     /**
+     * Sets the step state to suspended
+     *
+     * @param stepId
+     * @throws WorkflowException
+     */
+    static public void stepSuspendedNoError(String stepId) throws WorkflowException {
+        WorkflowService.completerStepSuspendedNoError(stepId);
+    }
+
+    /**
+     * Sets the step state to suspended
+     *
+     * @param stepId
+     * @throws WorkflowException
+     */
+    static public void stepSuspendedError(String stepId, ServiceCoded coded) throws WorkflowException {
+        WorkflowService.completerStepSuspendedError(stepId, coded);
+    }
+
+    /**
      * Compatible call using status compatible with existing Tasks
      * 
-     * @param taskId -- The UUID for the task
-     * @param status -- Operation.status (ready, error)
-     * @param message -- Controller generated message
+     * @param taskId
+     *            -- The UUID for the task
+     * @param status
+     *            -- Operation.status (ready, error)
+     * @param message
+     *            -- Controller generated message
      * @throws WorkflowException
      */
     @Deprecated
@@ -97,9 +121,12 @@ public class WorkflowStepCompleter implements Serializable {
      * Native call that uses Workflow StepState to express additional states such as
      * EXECUTING, CANCELLED, etc.
      * 
-     * @param taskId -- Step id
-     * @param state -- StepState
-     * @param message -- Controller generated message
+     * @param taskId
+     *            -- Step id
+     * @param state
+     *            -- StepState
+     * @param message
+     *            -- Controller generated message
      * @throws WorkflowException
      */
     @Deprecated

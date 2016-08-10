@@ -16,16 +16,6 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
 
-    private boolean compareSystemTypes(
-            StringSet systemTypes, StringSet availableSystemTypes) {
-        for (String systemType : systemTypes) {
-            if (!availableSystemTypes.contains(systemType)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;

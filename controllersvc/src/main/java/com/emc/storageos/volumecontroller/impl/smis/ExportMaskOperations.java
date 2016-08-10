@@ -33,26 +33,30 @@ public interface ExportMaskOperations {
             List<Initiator> initiatorList,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    public void addVolume(StorageSystem storage,
+    public void addVolumes(StorageSystem storage,
             URI exportMask,
             VolumeURIHLU[] volumeURIHLUs,
+            List<Initiator> initiatorList, 
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    public void removeVolume(StorageSystem storage,
+    public void removeVolumes(StorageSystem storage,
             URI exportMask,
             List<URI> volume,
+            List<Initiator> initiatorList, 
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    public void addInitiator(StorageSystem storage,
+    public void addInitiators(StorageSystem storage,
             URI exportMask,
+            List<URI> volumeURIs,
             List<Initiator> initiators,
-            List<URI> targets,
+            List<URI> targetURIs, 
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    public void removeInitiator(StorageSystem storage,
+    public void removeInitiators(StorageSystem storage,
             URI exportMask,
+            List<URI> volumeURIList,
             List<Initiator> initiators,
-            List<URI> targets,
+            List<URI> targetURIs, 
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**

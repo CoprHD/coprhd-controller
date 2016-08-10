@@ -42,11 +42,14 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
+    public static final String DEDUP = "dedup";
 
     public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
     public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
     public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
 
+    // Not vpool params, but hints for volume descriptor creation
+    // TODO: Move to ControllerOperationValuesWrapper
     public static final String FILE_REPLICATION_SOURCE = "file_replication_source";
     public static final String FILE_REPLICATION_TARGET = "file_replication_target";
     public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
@@ -60,6 +63,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String META_VOLUME_MEMBER_SIZE = "metaVolumeMemberSize";
     public static final String META_VOLUME_MEMBER_COUNT = "metaVolumeMemberCount";
     public static final String META_VOLUME_TYPE = "metaVolumeType";
+
+    // compute resource capabilities
+    public static final String COMPUTE = "compute";
+    public static final String ARRAY_AFFINITY = "array_affinity";
 
     // replica options
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
@@ -76,7 +83,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     /**
      * Copy the passed capabilities to a new instance.
      * 
-     * @param capabilities A reference to a VirtualPoolCapabilityValuesWrapper
+     * @param capabilities
+     *            A reference to a VirtualPoolCapabilityValuesWrapper
      */
     public VirtualPoolCapabilityValuesWrapper(VirtualPoolCapabilityValuesWrapper capabilities) {
         // Copy the value set in the passed reference capabilities.
@@ -183,6 +191,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
+        
+        if (capabilities.contains(DEDUP)) {
+            _vpoolCapabilities.put(DEDUP, capabilities.getDedupCapable());
+        }
 
         if (capabilities.contains(FILE_RP_RPO_TYPE)) {
             _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpRpoType());
@@ -194,6 +206,14 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(FILE_RP_COPY_MODE)) {
             _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
+        }
+
+        if (capabilities.contains(COMPUTE)) {
+            _vpoolCapabilities.put(COMPUTE, capabilities.getCompute());
+        }
+
+        if (capabilities.contains(ARRAY_AFFINITY)) {
+            _vpoolCapabilities.put(ARRAY_AFFINITY, capabilities.getArrayAffinity());
         }
         
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
@@ -339,6 +359,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
+    public boolean getDedupCapable() {
+        Object value = _vpoolCapabilities.get(DEDUP);
+        return value != null ? (Boolean) value : false;
+    }
+
     public Long getFileRpRpoValue() {
         Object value = _vpoolCapabilities.get(FILE_RP_RPO_VALUE);
         return value != null ? (Long) value : 0L;
@@ -373,7 +398,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(FILE_TARGET_COPY_NAME);
         return value != null ? (String) value : null;
     }
-    
+
     public String getChangeVpoolVolume() {
         Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
         return value != null ? (String) value : null;
@@ -385,6 +410,15 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public String getSnapshotSessionCopyMode() {
         Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
+}
+
+    public String getCompute() {
+        Object value = _vpoolCapabilities.get(COMPUTE);
+        return value != null ? (String) value : null;
     }
 
+    public boolean getArrayAffinity() {
+        Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
+        return value != null ? (Boolean) value : false;
+    }
 }

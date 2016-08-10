@@ -2040,6 +2040,10 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
+
+            // if detach was a success, we need to flatten the device 
+            // to align with standard ViPR 1-1-1 structure 
+            _vplexApiClient.deviceCollapse(sourceDeviceName, VPlexApiConstants.LOCAL_DEVICE);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -2136,6 +2140,10 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
+
+            // if detach was a success, we need to flatten the device 
+            // to align with standard ViPR 1-1-1 structure 
+            _vplexApiClient.deviceCollapse(sourceDevicePath, VPlexApiConstants.COLLAPSE_BY_PATH);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -2222,6 +2230,7 @@ public class VPlexApiVirtualVolumeManager {
                             String.valueOf(response.getStatus()), cause);
                 }
             }
+
             s_logger.info("Detached device is {}", detachedDeviceName);
             return detachedDeviceName;
         } catch (VPlexApiException vae) {
@@ -2403,20 +2412,36 @@ public class VPlexApiVirtualVolumeManager {
      * This method collapses the one legged device for the passed virtual volume device.
      * After this device will change back to local device.
      *
-     * @param sourceDeviceName source device name
+     * @param sourceDeviceNameOrPath source device name or path
+     * @param collapseType "local" or "distributed" or "collapse-by-path"
      */
-    public void deviceCollapse(String sourceDeviceName) {
+    public void deviceCollapse(String sourceDeviceNameOrPath, String collapseType) {
         ClientResponse response = null;
         try {
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
 
             // Find the source device.
-            VPlexDistributedDeviceInfo sourceDevice = discoveryMgr.findDistributedDevice(sourceDeviceName);
-            if (sourceDevice == null) {
-                throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
+            VPlexResourceInfo sourceDevice = null;
+            String devicePath = null;
+            if (VPlexApiConstants.DISTRIBUTED_DEVICE.equalsIgnoreCase(collapseType)) {
+                sourceDevice = discoveryMgr.findDistributedDevice(sourceDeviceNameOrPath);
+                if (sourceDevice != null) {
+                    devicePath = sourceDevice.getPath();
+                }
+            } else if (VPlexApiConstants.LOCAL_DEVICE.equalsIgnoreCase(collapseType)) {
+                sourceDevice = discoveryMgr.findLocalDevice(sourceDeviceNameOrPath);
+                if (sourceDevice != null) {
+                    devicePath = sourceDevice.getPath();
+                }
+            } else if (VPlexApiConstants.COLLAPSE_BY_PATH.equalsIgnoreCase(collapseType)){
+                devicePath = sourceDeviceNameOrPath;
+            } else {
+                throw new Exception("invalid collapse type: " + collapseType);
             }
-            String devicePath = sourceDevice.getPath();
-            s_logger.info("Found the local device {}", devicePath);
+            if (devicePath == null) {
+                throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceNameOrPath);
+            }
+            s_logger.info("Found the device path to collapse {}", devicePath);
 
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
                     VPlexApiConstants.URI_DEVICE_COLLAPSE);
@@ -2437,14 +2462,14 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.failedDeviceCollapseStatus(
-                            sourceDeviceName, String.valueOf(response.getStatus()), cause);
+                            sourceDeviceNameOrPath, String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully did device collapse for device {}", devicePath);
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
-            throw VPlexApiException.exceptions.failedDeviceCollapse(sourceDeviceName, e);
+            throw VPlexApiException.exceptions.failedDeviceCollapse(sourceDeviceNameOrPath, e);
         } finally {
             if (response != null) {
                 response.close();

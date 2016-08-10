@@ -336,4 +336,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToSwapCopy(final String copyName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToGetCopyAccessStateProtectionSystemMismatch(final URI volume, final URI protectionSystem);
 }

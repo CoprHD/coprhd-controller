@@ -137,6 +137,10 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
+URI_TASK                    = URI_VDC    + "/tasks"
+URI_TASK_GET                = URI_TASK   + '/{0}'
+URI_TASK_LIST               = URI_TASK
+
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
 URI_IPSEC_KEY               = '/ipsec/key'
@@ -416,6 +420,9 @@ URI_WORKFLOW_LIST               = URI_SERVICES_BASE + '/vdc/workflows'
 URI_WORKFLOW_RECENT             = URI_WORKFLOW_LIST + '/recent'
 URI_WORKFLOW_INSTANCE           = URI_WORKFLOW_LIST + '/{0}'
 URI_WORKFLOW_STEPS              = URI_WORKFLOW_INSTANCE + '/steps'
+URI_WORKFLOW_RESUME             = URI_WORKFLOW_LIST + '/{0}/resume'
+URI_WORKFLOW_ROLLBACK           = URI_WORKFLOW_LIST + '/{0}/rollback'
+URI_WORKFLOW_SUSPEND		= URI_WORKFLOW_LIST + '/{0}/suspend/{1}'
 
 URI_AUDIT_QUERY = URI_SERVICES_BASE + '/audit/logs/?time_bucket={0}&language={1}'
 URI_MONITOR_QUERY = URI_SERVICES_BASE + '/monitoring/events/?time_bucket={0}'
@@ -1147,6 +1154,10 @@ class Bourne:
                 self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
+	    if (obj_op['state'] == 'suspended_no_error'):
+		# Important to not change this format as sanity and other scripts rely on it in this order with commas
+		print 'Operation suspended, ' + obj_op['id'] + ", " + obj_op['workflow']['id']
+
         return obj_op
 
     #
@@ -1162,6 +1173,33 @@ class Bourne:
             time.sleep(3)
             obj_op = show_opfn(pid, sid, op)
             tmo += 3
+            if (tmo > API_SYNC_TIMEOUT):
+                break
+
+        if (type(obj_op) is dict):
+            print str(obj_op)
+            if (obj_op['state'] == 'pending'):
+                raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'error' and not ignore_error):
+                raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
+
+        return obj_op
+
+    def api_sync_4(self, id, showfn, ignore_error=False):
+        obj_op = showfn(id)
+        tmo = 0
+	seen_pending = 0
+
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+            time.sleep(1)
+	    if (obj_op['state'] == 'pending'):
+		seen_pending = 1;
+	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
+		break
+		
+            obj_op = showfn(id)
+            tmo += 1
             if (tmo > API_SYNC_TIMEOUT):
                 break
 
@@ -3569,6 +3607,15 @@ class Bourne:
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
 
+    def task_list(self):
+        return self.api('GET', URI_TASK_LIST)
+
+    def task_show(self, uri):
+        return self.api('GET', URI_TASK_GET.format(uri))
+
+    def task_follow(self, uri):
+        return self.api_sync_4(uri, self.task_show)
+
     def volume_list(self, project):
         puri = self.project_query(project)
         puri = puri.strip()
@@ -4875,6 +4922,7 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
+
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -4926,7 +4974,7 @@ class Bourne:
         try:
 	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o
+	    print o
         return (o, s)
 
     def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
@@ -5007,10 +5055,12 @@ class Bourne:
            clusterChanges['remove'] = clusterEntry
         parms['cluster_changes'] = clusterChanges
 
-        print str(parms)
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
         o = self.api('PUT', URI_EXPORTGROUP_INSTANCE.format(groupId), parms)
         self.assert_is_dict(o)
-        print 'OOO: ' + str(o) + ' :OOO'
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         return (o, s)
 
@@ -8068,6 +8118,23 @@ class Bourne:
     def workflow_get(self, uri):
         return self.api('GET', URI_WORKFLOW_INSTANCE.format(uri))
 
+    def workflow_show_task(self, uri, task):
+        workflow_task_uri = URI_WORKFLOW_INSTANCE + '/tasks/{1}'
+        return self.api('GET', workflow_task_uri.format(uri, task))
+
+    def workflow_resume(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_rollback(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_suspend(self, uri, step):
+        return self.api('PUT', URI_WORKFLOW_SUSPEND.format(uri, step), null)
+
     def workflow_recent(self):
         return self.api('GET', URI_WORKFLOW_RECENT)
 
@@ -8250,7 +8317,8 @@ class Bourne:
         # since we are using sysadmin as user, check on all subtenants for now
         # go in reverse order, most likely, we are in the latest subtenant
         for tenant in reversed(tenants):
-            print tenant
+	    if(BOURNE_DEBUG == '1'):
+		print tenant
             hosts = self.host_list(tenant['id'])
             for host in hosts:
 	        host_detail = self.host_show(host['id'])
@@ -8718,8 +8786,12 @@ class Bourne:
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
 
-    def block_snapshot_session_delete(self, session_uri):
-        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+    def block_snapshot_session_delete(self, session_uri, vipronly):
+        posturi = URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri)
+	if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+        
+        tasklist = self.api('POST', posturi)
 
         self.assert_is_dict(tasklist)
         tasks = tasklist['task']

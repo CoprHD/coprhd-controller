@@ -50,6 +50,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private String _autoTierPolicyName;
     // Indicates the high availability type for the VirtualPool.
     private String _highAvailability;
+    // Indicates policy will be used for resource placement of the VirtualPool.
+    private String _placementPolicy;
     // Thin or Thick or ThinandThick
     // combination of provisioningType & fast indicates FAST_VP or FAST_DP
     // Thin & Fast_ON --> FAST_VP
@@ -186,6 +188,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // Minimum number of data centers in this virtual pool
     // This is required only for object virtual pools
     private Integer minDataCenters;
+    
+    // has dedup supported storage pools
+    private Boolean dedupCapable;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -430,6 +435,20 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         rp, local
     }
 
+    // Supported policies for resource placement
+    public static enum ResourcePlacementPolicyType {
+        default_policy, array_affinity;
+
+        public static ResourcePlacementPolicyType lookup(final String name) {
+            for (ResourcePlacementPolicyType value : values()) {
+                if (value.name().equals(name)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    };
+
     @AlternateId("AltIdIndex")
     @Name("type")
     public String getType() {
@@ -598,6 +617,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setHighAvailability(final String highAvailability) {
         _highAvailability = highAvailability;
         setChanged("highAvailability");
+    }
+
+    @Name("placementPolicy")
+    public String getPlacementPolicy() {
+        return _placementPolicy;
+    }
+
+    public void setPlacementPolicy(final String placementPolicy) {
+        _placementPolicy = placementPolicy;
+        setChanged("placementPolicy");
     }
 
     public void setSupportedProvisioningType(final String provisioningType) {
@@ -935,7 +964,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
-     * Returns whether or not the passed VirtualPool specifies VPlex high availability.
+     * Returns whether or not the passed VirtualPool specifies VPlex Distributed high availability.
      * 
      * @param virtualPool
      *            A reference to the VirtualPool.
@@ -945,6 +974,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         String highAvailability = virtualPool.getHighAvailability();
         return NullColumnValueGetter.isNotNullValue(highAvailability)
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
+    }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies VPlex Local high availability.
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies VPlex high availability, false otherwise.
+     */
+    public static boolean vPoolSpecifiesHighAvailabilityLocal(final VirtualPool virtualPool) {
+        String highAvailability = virtualPool.getHighAvailability();
+        return NullColumnValueGetter.isNotNullValue(highAvailability)
+                && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability));
     }
 
     /**
@@ -1516,5 +1558,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.scheduleSnapshot = scheduleSnapshot;
         setChanged("scheduleSnapshot");
     }
+
+	@Name("dedupCapable")
+	public Boolean getDedupCapable() {
+		return dedupCapable;	
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		if (null == dedupCapable) {
+			this.dedupCapable = false;
+		} else {
+			this.dedupCapable = dedupCapable;
+		}
+		setChanged("dedupCapable");
+	}
 
 }

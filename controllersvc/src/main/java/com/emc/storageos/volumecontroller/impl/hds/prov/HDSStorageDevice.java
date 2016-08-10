@@ -430,33 +430,33 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupCreate(com.emc.storageos.db.client.model.StorageSystem,
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportCreate(com.emc.storageos.db.client.model.StorageSystem,
      * com.emc.storageos.db.client.model.ExportMask, java.util.Map, java.util.List, java.util.List,
      * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
-    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask,
+    public void doExportCreate(StorageSystem storage, ExportMask exportMask,
             Map<URI, Integer> volumeMap, List<Initiator> initiators, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
+        log.info("{} doExportCreate START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumeMap, dbClient);
         exportMaskOperationsHelper.createExportMask(storage, exportMask.getId(), volumeLunArray, targets, initiators, taskCompleter);
-        log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
+        log.info("{} doExportCreate END ...", storage.getSerialNumber());
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupDelete(com.emc.storageos.db.client.model.StorageSystem,
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportDelete(com.emc.storageos.db.client.model.StorageSystem,
      * com.emc.storageos.db.client.model.ExportMask, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
-    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
+    public void doExportDelete(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} doExportDelete START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(), new ArrayList<URI>(),
                 new ArrayList<URI>(), new ArrayList<Initiator>(), taskCompleter);
-        log.info("{} doExportGroupDelete END ...", storage.getSerialNumber());
+        log.info("{} doExportDelete END ...", storage.getSerialNumber());
 
     }
 
@@ -464,24 +464,24 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
     public void doExportAddVolume(StorageSystem storage,
             ExportMask exportMask,
             URI volume, Integer lun,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), map, dbClient);
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray, taskCompleter);
+        exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray, initiators, taskCompleter);
         log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask,
-            Map<URI, Integer> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Initiator> initiators,
+            Map<URI, Integer> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumes, dbClient);
 
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(),
-                volumeLunArray, taskCompleter);
+        exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(),
+                volumeLunArray, initiators, taskCompleter);
         log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
@@ -493,9 +493,9 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask,
-            URI volume, TaskCompleter taskCompleter) throws DeviceControllerException {
+            URI volume, List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), Arrays.asList(volume), taskCompleter);
+        exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), Arrays.asList(volume), initiators, taskCompleter);
         log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
     }
 
@@ -507,11 +507,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumes, TaskCompleter taskCompleter)
+            List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), volumes,
-                taskCompleter);
+        exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), volumes,
+                initiators, taskCompleter);
         log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
 
     }
@@ -525,10 +525,10 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask,
-            Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumeURIs, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), Arrays.asList(initiator), targets, taskCompleter);
+        exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, Arrays.asList(initiator), targets, taskCompleter);
         log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
@@ -540,11 +540,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumeURIs, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), initiators,
-                targets, taskCompleter);
+        exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs,
+                initiators, targets, taskCompleter);
         log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
@@ -557,11 +557,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask,
-            Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumes, Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                Arrays.asList(initiator), targets, taskCompleter);
+        exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, Arrays.asList(initiator), targets, taskCompleter);
         log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 
@@ -573,11 +573,11 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+            List<URI> volumes, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                initiators, targets, taskCompleter);
+        exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, initiators, targets, taskCompleter);
         log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 

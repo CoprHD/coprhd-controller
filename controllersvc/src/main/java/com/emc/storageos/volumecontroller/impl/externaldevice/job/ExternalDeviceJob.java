@@ -32,7 +32,7 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // The URI of the external storage system on which the task is running.
-    private URI _storageSystemURI;
+    protected URI _storageSystemURI;
     
     // The id of the task monitored by the job.
     private String _driverTaskId;
@@ -125,7 +125,7 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
         } catch (Exception e) {
             _errorDescription = e.getMessage();
             s_logger.error(String.format(
-                    "Unexpected error getting external driver task status for task %s on storage system %s: s",
+                    "Unexpected error getting external driver task status for task %s on storage system %s: %s",
                     _driverTaskId, _storageSystemURI.toString(), _errorDescription), e);
             try {
                 doTaskFailed(driverTask, dbClient);

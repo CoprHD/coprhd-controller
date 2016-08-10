@@ -220,6 +220,7 @@ angular.module("portalApp").controller({
         current = new Date().getTime();                
         $scope.scheduler.startDate = formatDate(current, "YYYY-MM-DD");
         $scope.scheduler.startTime = '00:00';
+        $scope.scheduler.maxNumOfCopies = 5;
         
         $scope.isSchedulerEnabled = function() {
            return $scope.schedulerEnabled;
@@ -232,6 +233,11 @@ angular.module("portalApp").controller({
         $scope.isRecurringAllowed = function() {
            return $scope.service.recurringAllowed;
         };
+        
+        $scope.isRentionAllowed = function() {
+           var isSnapshotService = ['CreateBlockSnapshot', 'CreateFileSnapshot', 'CreateFullCopy', 'CreateSnapshotOfApplication'].indexOf($scope.service.baseService) > -1;
+           return $scope.scheduler.recurrence != 1 && isSnapshotService;	
+        }
         
         $scope.enableScheduler = function() {
            // intialize data time picker if necessary
@@ -1433,5 +1439,9 @@ angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
     $scope.isRecurringAllowed = function() {
        return $scope.scheduler.recurringAllowed;
     };
+    
+    $scope.isRentionAllowed = function() {
+        return $scope.isRecurring() && $scope.scheduler.maxNumOfCopies > 0;	
+    }
 });
 

@@ -12,6 +12,8 @@ public class ScheduledEventUpdateParam {
 
     private ScheduleInfo scheduleInfo;
 
+    private String additionalScheduleInfo;
+    
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {
         return scheduleInfo;
@@ -19,5 +21,14 @@ public class ScheduledEventUpdateParam {
 
     public void setScheduleInfo(ScheduleInfo scheduleInfo) {
         this.scheduleInfo = scheduleInfo;
+    }
+
+	@XmlElement(name = "additionalScheduleInfo")
+    public String getAdditionalScheduleInfo() {
+        return additionalScheduleInfo;
+    }
+
+    public void setAdditionalScheduleInfo(String additionalScheduleInfo) {
+        this.additionalScheduleInfo = additionalScheduleInfo;
     }
 }

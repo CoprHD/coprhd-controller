@@ -50,6 +50,13 @@ public class ScheduledEventMapper {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
+        
+        try {
+            OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(Base64.decodeBase64(from.getOrderCreationParam().getBytes(UTF_8)));
+            to.setOrderCreateParam(orderCreateParam);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
         return to;
     }
 

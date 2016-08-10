@@ -303,10 +303,18 @@ public class OrderExecution extends Controller {
         } else {
            scheduleInfo.setReoccurrence(1);
         }
+        
+        String maxNumOfCopies = params.get("scheduler.maxNumOfCopies");
+        if (maxNumOfCopies != null) {
+        	orderParam.setAdditionalScheduleInfo(maxNumOfCopies);
+        }
+        
         scheduleInfo.setDurationLength(3600);
         ScheduledEventCreateParam eventParam = new ScheduledEventCreateParam();
         eventParam.setOrderCreateParam(orderParam);
         eventParam.setScheduleInfo(scheduleInfo);
+        
+        
         return eventParam;
     }
     

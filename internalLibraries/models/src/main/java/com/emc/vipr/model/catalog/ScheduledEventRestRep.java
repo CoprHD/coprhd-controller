@@ -45,6 +45,7 @@ public class ScheduledEventRestRep extends DataObjectRestRep {
 
     private RelatedResourceRep tenant;
 
+    private OrderCreateParam orderCreateParam;
 
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {
@@ -98,6 +99,15 @@ public class ScheduledEventRestRep extends DataObjectRestRep {
 
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
+    }
+
+	@XmlElement(name = "orderCreateParam")
+    public OrderCreateParam getOrderCreateParam() {
+        return orderCreateParam;
+    }
+
+    public void setOrderCreateParam(OrderCreateParam orderCreateParam) {
+        this.orderCreateParam = orderCreateParam;
     }
 
     @Override

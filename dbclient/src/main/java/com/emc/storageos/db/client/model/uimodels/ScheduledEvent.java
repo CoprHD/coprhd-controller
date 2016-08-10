@@ -26,7 +26,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public static final String ORDER_CREATION_PARAM = "orderCreationParam";
 
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
-
+    
     private ScheduledEventType eventType;
 
     private String scheduleInfo; // concrete schedule info
@@ -115,7 +115,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
         this.tenant = tenant;
         setChanged(TENANT);
     }
-
+	
     @Name(ORDER_CREATION_PARAM)
     public String getOrderCreationParam() {
         return orderCreationParam;

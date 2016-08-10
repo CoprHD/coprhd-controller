@@ -153,6 +153,7 @@ public class ScheduledOrders extends Controller {
         public Integer dayOfMonth;
         public Integer dayOfWeek;
         public Boolean recurringAllowed;
+        public Integer maxNumOfCopies;
         
         public ScheduleEventForm(OrderDetails details) {
             recurringAllowed = details.catalogService.isRecurringAllowed();
@@ -180,6 +181,10 @@ public class ScheduledOrders extends Controller {
                 } else {
                     dayOfMonth = 1;
                     dayOfWeek = 1;
+                }
+                String additionalScheduleInfo = details.scheduledEvent.getOrderCreateParam().getAdditionalScheduleInfo();
+                if (additionalScheduleInfo != null) {
+                    maxNumOfCopies = Integer.parseInt(additionalScheduleInfo);
                 }
             }
         }
@@ -229,6 +234,7 @@ public class ScheduledOrders extends Controller {
 
             scheduleInfo.setDurationLength(3600);
             update.setScheduleInfo(scheduleInfo);
+            update.setAdditionalScheduleInfo(String.valueOf(maxNumOfCopies));
             
             getCatalogClient().orders().updateScheduledEvent(uri(id), update);
         }

@@ -6,6 +6,7 @@ package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FAILBACK_TARGET_FILE;
 import static com.emc.sa.service.ServiceParams.FILESYSTEM;
+import static com.emc.sa.service.ServiceParams.REPLICATE_CONFIG_FAILBACK;
 
 import java.net.URI;
 
@@ -21,9 +22,12 @@ public class FailbackFileSystemService extends ViPRService {
 
     @Param(FAILBACK_TARGET_FILE)
     protected URI failbackTarget;
+    
+    @Param(REPLICATE_CONFIG_FAILBACK)
+    protected boolean replicationConf;
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.failbackFileSystem(failbackSource, failbackTarget);
+        FileStorageUtils.failbackFileSystem(failbackSource, failbackTarget, replicationConf);
     }
 }

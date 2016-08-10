@@ -177,6 +177,7 @@ public class MiscService extends TaskResourceService {
         // Here we ignore the openstack tenant id
         _log.info("START get extensions");
         CinderExtensionsRestResp extResp = new CinderExtensionsRestResp();
+        CinderExtension hostExt = new CinderExtension();
         CinderExtension objExt = new CinderExtension();
         objExt.alias = "os-availability-zone";
         objExt.description = "Describe Availability Zones.";
@@ -185,10 +186,18 @@ public class MiscService extends TaskResourceService {
         objExt.updated = "2013-06-27T00:00:00+00:00";
         objExt.name = "AvailabilityZones";
         extResp.getExtensions().add(objExt);
+        
+        hostExt.alias = "os-hosts";
+        hostExt.description = "Admin-only host administration.";
+        hostExt.namespace = "http://docs.openstack.org/volume/ext/hosts/api/v1.1";
+        hostExt.updated = "2011-06-29T00:00:00+00:00";
+        hostExt.name = "Hosts";
+        extResp.getExtensions().add(hostExt);
+        
         _log.info("END get extensions");
         return CinderApiUtils.getCinderResponse(extResp, header, false, CinderConstants.STATUS_OK);
-    }
-
+    }    
+    
     /**
      * Get os-volume-transfer details
      * NOTE: This dummy function has been implemented so that it does not break the horizon.

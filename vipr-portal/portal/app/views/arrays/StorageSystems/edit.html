@@ -260,7 +260,12 @@
       // toggle required for serialNumber and name depend on storage array type
       //
       if (isSmisStorageSystem(selectedType) ) {
-    	  	$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.smisProviderIpAddress')}"+":");
+      		if(selectedType == "xtremio") {
+      			$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.xtremProviderIpAddress')}"+":");
+      		}
+      		else {
+    	  		$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.smisProviderIpAddress')}"+":");
+    	  	}
     	  	$('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.smisProviderIpAddress.help')}");
 //    		$('#storageArray_serialNumberControlGroup').hide().removeClass('required');    		
 //	  		$('#storageArray_nameControlGroup').show().addClass('required');   

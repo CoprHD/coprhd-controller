@@ -95,6 +95,12 @@ ext {
         "io.airlift:airline:0.6",
 		"io.netty:netty-handler:4.0.33.Final",
 		"com.datastax.cassandra:cassandra-driver-core:3.0.2",
+        "org.apache.lucene:lucene-core:6.1.0",
+        "org.apache.lucene:lucene-analyzers-common:6.1.0",
+        "org.apache.solr:solr-solrj:6.1.0",
+        "org.apache.solr:solr-core:6.1.0",
+        "org.noggit:noggit:0.7",
+        "org.apache.httpcomponents:httpmime:4.5.2",
     ]
 
     zookeeper = [
@@ -337,7 +343,6 @@ ext {
         "com.vmware.vasa:vasa-api-common:1.0",
         "com.vmware.vasa:vasa-api-jwinauth:1.0",
         "com.vmware.vasa:vasa-api:1.0",
-
     ]
     axis2_war = [
         "org.apache.axis2:axis2-webapp:1.5.2@war",

@@ -634,15 +634,17 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         for (URI deletedHost : deletedHosts) {
             Host host = dbClient.queryObject(Host.class, deletedHost);
             URI clusterId = host.getCluster();
+            List<URI> clusterHosts = Lists.newArrayList();
             if (!NullColumnValueGetter.isNullURI(clusterId)) {
-                List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
-                if (clusterHosts.contains(deletedHost)
-                        && deletedHosts.containsAll(clusterHosts)) {
-                    incorrectDeletedHosts.add(deletedHost);
-                    DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "Error discovering host cluster", null);
-                    log.info("Host " + host.getId()
-                            + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
-                }
+                clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+            }
+            if (clusterHosts.contains(deletedHost)
+                    && deletedHosts.containsAll(clusterHosts)) {
+                incorrectDeletedHosts.add(deletedHost);
+                DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "Error discovering host cluster", null);
+                log.info("Host " + host.getId()
+                        + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
+
             } else {
                 EventUtil.createActionableEvent(dbClient, EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
                         "Unassign host " + host.getLabel() + " from vCenter",

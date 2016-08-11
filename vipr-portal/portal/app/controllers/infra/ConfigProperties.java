@@ -31,6 +31,7 @@ import models.properties.PropertyPage;
 import models.properties.SecurityPropertyPage;
 import models.properties.SmtpPropertyPage;
 import models.properties.SupportPropertyPage;
+import models.properties.SyslogPropertiesPage;
 import models.properties.UpgradePropertyPage;
 
 import org.apache.commons.lang.StringUtils;
@@ -180,6 +181,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new SmtpPropertyPage(properties));
             addPage(pages, new UpgradePropertyPage(properties));
             addPage(pages, new PasswordPropertyPage(properties));
+            addPage(pages, new SyslogPropertiesPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
         }
         else {
@@ -194,6 +196,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new UpgradePropertyPage(properties));
             addPage(excludePages, new DefaultPropertyPage(OTHER));
             addPage(excludePages, new PasswordPropertyPage(properties));
+            addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
         }
 
@@ -252,8 +255,10 @@ public class ConfigProperties extends Controller {
                 String name = entry.getKey();
                 String value = values.get(name);
                 PropertyMetadata meta = entry.getValue();
-                if (meta.getType().equals(TEXT) || meta.getType().equals(ENCRYPTEDTEXT)) {
-                    value = value.replace("\\\\n", "\r\n");
+                if (value != null) {
+                    if (meta.getType().equals(TEXT) || meta.getType().equals(ENCRYPTEDTEXT)) {
+                        value = value.replace("\\\\n", "\r\n");
+                    }
                 }
                 Set<String> allSupportPageProperties = SupportPropertyPage.getAllProperties();
                 if (!(allSupportPageProperties.contains(name) && SetupUtils.isOssBuild())) {

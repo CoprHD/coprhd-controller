@@ -13,6 +13,7 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 
 
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,11 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
     protected SmisCommandHelper _helper;
     protected CIMObjectPathFactory _cimPath;
     protected NameGenerator _nameGenerator;
+    protected ValidatorFactory validator;
+
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
+    }
 
     public void setCimObjectPathFactory(CIMObjectPathFactory cimObjectPathFactory) {
         _cimPath = cimObjectPathFactory;

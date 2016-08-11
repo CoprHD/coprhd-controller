@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
 import java.io.Serializable;
 
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+
 /**
  * Class the keeps track of the operations that are in flight for VMAX exports
  */
@@ -24,5 +26,6 @@ public class VmaxExportOperationContext extends ExportOperationContext implement
     public static final String OPERATION_CREATE_MASKING_VIEW = "Create masking view";
     public static final String OPERATION_ADD_PORTS_TO_PORT_GROUP = "Add target ports to port group";
     public static final String OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP = "Add volumes to storage group";
+    public static final String OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP = "Add existing initiator to export group";
 
 }

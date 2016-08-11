@@ -1553,7 +1553,6 @@ public class HDSExportOperations implements ExportMaskOperations {
                 Set<URI> matchingInitiators = Sets.intersection(emInitiators, hostInitiators);
                 if (!matchingInitiators.isEmpty()) {
                     exportMasks.add(activeExportMask);
-                    break;
                 }
             }
         }

@@ -55,6 +55,8 @@ public class SanSwitches extends ViprResourceController {
     protected static final String REGISTER_ERROR = "PhysicalAssets.registration.error";
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
+    private static final String GUIDE_VISIBLE = "guideVisible";
+    private static final String GUIDE_COMPLETED_STEP = "completedSteps";
 
     //
     // Add reference data so that they can be reference in html template
@@ -126,18 +128,20 @@ public class SanSwitches extends ViprResourceController {
 
         JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
 
-        if (jobject.get("completedSteps").getAsInt() == 4 && jobject.get("guideVisible").getAsBoolean()) {
-            JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
-            JsonArray fabrics = dataObject.getAsJsonArray("fabrics");
-            if (fabrics == null) {
-                fabrics = new JsonArray();
+        if (jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
+            if (jobject.get(GUIDE_COMPLETED_STEP).getAsInt() == 4 && jobject.get(GUIDE_VISIBLE).getAsBoolean()) {
+                JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+                JsonArray fabrics = dataObject.getAsJsonArray("fabrics");
+                if (fabrics == null) {
+                    fabrics = new JsonArray();
+                }
+                JsonObject fabric = new JsonObject();
+                fabric.addProperty("id", sanTask.getResourceId().toString());
+                fabric.addProperty("name", sanSwitch.name);
+                fabrics.add(fabric);
+                dataObject.add("fabrics", fabrics);
+                saveJsonAsCookie("GUIDE_DATA", dataObject);
             }
-            JsonObject fabric = new JsonObject();
-            fabric.addProperty("id", sanTask.getResourceId().toString());
-            fabric.addProperty("name", sanSwitch.name);
-            fabrics.add(fabric);
-            dataObject.add("fabrics", fabrics);
-            saveJsonAsCookie("GUIDE_DATA", dataObject);
         }
 
 

@@ -30,6 +30,7 @@ public class DriverManager extends AbstractManager {
     private List<String> localDrivers;
     private List<String> targetDrivers;
     private boolean needRestartControllerService = false;
+    private String finishNode;
 
     @Override
     protected URI getWakeUpUrl() {
@@ -139,7 +140,7 @@ public class DriverManager extends AbstractManager {
             try {
                 driverFile.createNewFile();
                 needRestartControllerService = true;
-                log.info("Driver {} has been downloaded", driver);
+                log.info("Driver {} has been downloaded from {}", driver, finishNode);
             } catch (Exception e) {
                 log.error("Failed to download driver {} with exception", driver, e);
                 return false;
@@ -178,10 +179,11 @@ public class DriverManager extends AbstractManager {
         DriverInfo targetDriversInfo = coordinator.getCoordinatorClient().getTargetInfo(DriverInfo.class);
         if (targetDriversInfo != null) {
             targetDrivers = targetDriversInfo.getDrivers();
+            finishNode = targetDriversInfo.getFinishNode();
         } else {
             targetDrivers = new ArrayList<String>();
         }
-        log.info("Target drivers initialized: {}", Arrays.toString(targetDrivers.toArray()));
+        log.info("Target drivers info initialized: {}, finish node: {}", Arrays.toString(targetDrivers.toArray()), finishNode);
     }
 
     private List<String> getLocalDrivers() {

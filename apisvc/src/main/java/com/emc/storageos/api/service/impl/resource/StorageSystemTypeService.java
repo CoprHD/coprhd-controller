@@ -9,6 +9,7 @@ import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,6 +28,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -87,6 +89,15 @@ public class StorageSystemTypeService extends TaskResourceService {
         os.close();
         return Response.ok().build();
     }
+
+    @GET
+    @Path("internal/driver/")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
+    public Response getDriver(@QueryParam("name") String name) throws FileNotFoundException {
+        InputStream in = new FileInputStream(UPLOAD_DEVICE_DRIVER + "/" + name);
+        return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
+    }
+
     /**
      * Show Storage System Type detail for given URI
      *

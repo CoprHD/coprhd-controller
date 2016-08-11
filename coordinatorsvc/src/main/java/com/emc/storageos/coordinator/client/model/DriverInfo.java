@@ -15,15 +15,22 @@ public class DriverInfo implements CoordinatorSerializable {
     public static final String ENCODING_SEPARATOR = "\0";
 
     private List<String> drivers;
+    private String finishNode;
 
     public DriverInfo() {
         this.drivers = Collections.unmodifiableList(new ArrayList<String>());
+        this.finishNode = null;
     }
 
-    public DriverInfo(List<String> drivers) {
+    public DriverInfo(String finishNode, List<String> drivers) {
+        this.finishNode = finishNode;
         List<String> tmp = new ArrayList<String>(drivers);
         Collections.sort(tmp);
         this.drivers = Collections.unmodifiableList(tmp);
+    }
+
+    public String getFinishNode() {
+        return this.finishNode;
     }
 
     public List<String> getDrivers() {
@@ -32,14 +39,20 @@ public class DriverInfo implements CoordinatorSerializable {
 
     @Override
     public String encodeAsString() {
-        if (drivers == null || drivers.isEmpty()) {
-            return "";
-        }
-
         StringBuilder builder = new StringBuilder();
-        for (String driver : drivers) {
-            builder.append(driver).append(ENCODING_SEPARATOR);
+        if (finishNode != null && !finishNode.isEmpty()) {
+            builder.append(finishNode);
         }
+        builder.append(ENCODING_SEPARATOR);
+
+        if (drivers == null || drivers.isEmpty()) {
+            builder.append(",");
+        } else {
+            for (String driver : drivers) {
+                builder.append(driver).append(",");
+            }
+        }
+        builder.append(ENCODING_SEPARATOR);
         return builder.toString();
     }
 
@@ -48,8 +61,8 @@ public class DriverInfo implements CoordinatorSerializable {
         if (infoStr == null || infoStr.isEmpty()) {
             return null;
         }
-        String[] drivers = infoStr.split(ENCODING_SEPARATOR);
-        return new DriverInfo(Arrays.asList(drivers));
+        String[] fields = infoStr.split(ENCODING_SEPARATOR);
+        return new DriverInfo(fields[0], Arrays.asList(fields[1].split(",")));
     }
 
     @Override

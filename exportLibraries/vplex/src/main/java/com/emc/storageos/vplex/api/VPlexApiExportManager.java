@@ -161,7 +161,7 @@ public class VPlexApiExportManager {
             s_logger.info("Delete storage view URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_V, viewName);
-            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Delete storage view POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,

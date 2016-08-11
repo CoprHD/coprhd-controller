@@ -146,6 +146,7 @@ nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
 nav.storageSystemTypes=Storage System Types
+nav.customworkflow=Workflow Modeler
 
 # Override messages in the Secure plugin
 secure.title=
@@ -1623,7 +1624,7 @@ approvalConfig.approverEmail=Approver Email
 approvalConfig.approverEmail.help=The email addresses for approvers (comma separated)
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
-customWorkflow.title=Custom Workflow
+customWorkflow.title=Workflow Modeler
 
 Introspection.Started=%s assets added to the discovery queue.
 

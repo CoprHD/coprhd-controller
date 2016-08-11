@@ -4,9 +4,13 @@
  */
 package com.emc.storageos.model.event;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
@@ -25,6 +29,7 @@ public class EventRestRep extends DataObjectRestRep {
     private NamedRelatedResourceRep resource;
     private String eventStatus;
     private String eventCode;
+    private List<RelatedResourceRep> taskIds;
 
     private RelatedResourceRep tenant;
 
@@ -83,5 +88,18 @@ public class EventRestRep extends DataObjectRestRep {
 
     public void setEventCode(String eventCode) {
         this.eventCode = eventCode;
+    }
+
+    @XmlElementWrapper(name = "task_ids")
+    @XmlElement(name = "task_id")
+    public List<RelatedResourceRep> getTaskIds() {
+        if (taskIds == null) {
+            taskIds = new ArrayList<RelatedResourceRep>();
+        }
+        return taskIds;
+    }
+
+    public void setTaskIds(List<RelatedResourceRep> taskIds) {
+        this.taskIds = taskIds;
     }
 }

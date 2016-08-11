@@ -18,6 +18,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private byte[] declineMethod;
     private String eventCode;
     private String warning;
+    private StringSet taskIds;
 
     public enum Status {
         pending, approved, declined
@@ -31,6 +32,16 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setDescription(String description) {
         this.description = description;
         setChanged("description");
+    }
+
+    @Name("taskIds")
+    public StringSet getTaskIds() {
+        return this.taskIds;
+    }
+
+    public void setTaskIds(StringSet taskIds) {
+        this.taskIds = taskIds;
+        setChanged("taskIds");
     }
 
     @Name("warning")

@@ -4,14 +4,13 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.EventMapper;
 import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
@@ -102,7 +103,7 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
-        return map(event);
+        return EventMapper.map(event);
     }
 
     @POST
@@ -231,6 +232,10 @@ public class EventService extends TaggedResource {
             Method classMethod = getMethod(EventService.class, eventMethod.getMethodName());
             TaskResourceRep result = (TaskResourceRep) classMethod.invoke(this, eventMethod.getArgs());
             event.setEventStatus(eventStatus);
+            if (result != null && result.getId() != null) {
+                Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
+                event.setTaskIds(new StringSet(taskCollection));
+            }
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
@@ -696,28 +701,6 @@ public class EventService extends TaggedResource {
     private SearchResultResourceRep toSearchResult(URI uri) {
         RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), uri));
         return new SearchResultResourceRep(uri, selfLink, null);
-    }
-
-    /**
-     * Maps an actionable event to a restful response
-     * 
-     * @param from the database event
-     * @return restful response object
-     */
-    public static EventRestRep map(ActionableEvent from) {
-        if (from == null) {
-            return null;
-        }
-        EventRestRep to = new EventRestRep();
-        to.setName(from.getLabel());
-        to.setDescription(from.getDescription());
-        to.setEventStatus(from.getEventStatus());
-        to.setResource(toNamedRelatedResource(from.getResource()));
-        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
-        to.setEventCode(from.getEventCode());
-        to.setWarning(from.getWarning());
-        DbObjectMapper.mapDataObjectFields(from, to);
-        return to;
     }
 
     protected ActionableEvent queryEvent(DbClient dbClient, URI id) throws DatabaseException {

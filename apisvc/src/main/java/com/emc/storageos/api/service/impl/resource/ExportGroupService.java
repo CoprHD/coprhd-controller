@@ -36,6 +36,7 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -124,6 +125,7 @@ import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -1231,6 +1233,66 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
+     * Validates the ExportGroup initaitor's identity to avoid DU case.
+     * Export Group should not have initiators from multiple Host or clusters.
+     * 
+     * @param exportGroup
+     */
+    private void validateInitiatorsInExportGroup(ExportGroup exportGroup) {
+        /*
+         * Export Group should not have initiators(non vplex and non RP) from multiple cluster/host.
+         * This validation is a extra check to prevent DU.
+         */
+
+        if (exportGroup != null && exportGroup.getInitiators() != null) {
+            Initiator initiator = null;
+            boolean isCluster = exportGroup.forCluster();
+            /**
+             * Key - cluster name / host name
+             * Value - list of cluster initiators or host initiators
+             */
+            Map<String, Set<URI>> initiatorMap = new HashMap<>();
+            for (String initiatorURI : exportGroup.getInitiators()) {
+                initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorURI));
+                String name = null;
+                if (initiator != null) {
+                    if (!initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
+                            && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
+                        if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
+                            name = initiator.getClusterName();
+                        } else if (StringUtils.hasText(initiator.getHostName())) {
+                            name = initiator.getHostName();
+                        } else {
+                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
+                        }
+
+                        Set<URI> set = null;
+                        if (initiatorMap.get(name) == null) {
+                            set = new HashSet<URI>();
+                            initiatorMap.put(name, set);
+                        } else {
+                            set = initiatorMap.get(name);
+                        }
+                        set.add(initiator.getId());
+                    }
+                } else {
+                    _log.error("Stale initiator URI {} is in ExportGroup {}", initiatorURI, exportGroup.getId());
+                    throw APIException.badRequests.invalidInitiatorName(URI.create(initiatorURI), exportGroup.getId());
+                }
+
+            }
+            _log.info("{}", initiatorMap);
+            if (initiatorMap.size() > 1) {
+                _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
+                        exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
+                throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),
+                        Joiner.on(",").join(initiatorMap.keySet()));
+            }
+        }
+    }
+
+    /**
      * Update an export group which includes:
      * <ol>
      * <li>Add/Remove block objects (volumes, mirrors and snapshots)</li>
@@ -1274,6 +1336,7 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateRemoveInitiators(param, exportGroup);
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
+        validateInitiatorsInExportGroup(exportGroup);
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
@@ -1587,6 +1650,10 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
+        /**
+         * Added extra validation for the initiators in ExportGroup
+         */
+        validateInitiatorsInExportGroup(exportGroup);
 
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();

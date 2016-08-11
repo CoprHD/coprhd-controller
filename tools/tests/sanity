@@ -2508,7 +2508,7 @@ vplex_tests()
         echo "****"
         echo "**** Inventory Deleting Everything"
         
-        # save off some debugging info first
+        echo "**** saving off unexported Volume data for debug purposes to /tmp/vipr_unexported_vols.txt"
         /opt/storageos/bin/dbcli list Volume > /tmp/vipr_unexported_vols.txt
         
         #run_noundo volume delete $PROJECT/$localVolume1 --vipronly --force    
@@ -2523,7 +2523,7 @@ vplex_tests()
         run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
-        # save off some debugging info after discovery
+        echo "**** saving off unexported UnManagedVolume data for debug purposes to /tmp/vipr_unexported_umvs.txt"
         /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_unexported_umvs.txt
 
         #echo "**** Ingesting $localVolume1 (has backend snapshot)"
@@ -2545,9 +2545,6 @@ vplex_tests()
         #echo "**** Ingesting snapshot $VPLEX_DIST_SNAP_ARRAY_LABEL of $distVolume1"
         #run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "${VPLEX_DIST_SNAP_ARRAY_LABEL}"
     fi
-
-	echo "**** Volumes created so far, before export testing starts:"
-	run volume list $PROJECT
 		
 	echo "**** Creating host"
 	run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
@@ -2588,7 +2585,7 @@ vplex_tests()
         echo "****"
         echo "**** Inventory Deleting Everything"
 
-        # save off some debugging info first
+        echo "**** saving off exported Volume data for debug purposes to /tmp/vipr_exported_vols.txt"
         /opt/storageos/bin/dbcli list Volume > /tmp/vipr_exported_vols.txt
         
         #run_noundo volume delete $PROJECT/$localVolume1 --vipronly --force
@@ -2603,8 +2600,9 @@ vplex_tests()
         run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
         
-        # save off some debugging info after discovery
+        echo "**** saving off exported UnManagedVolume data for debug purposes to /tmp/vipr_exported_umvs.txt"
         /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_exported_umvs.txt
+        echo "**** saving off UnManagedExportMask data for debug purposes to /tmp/vipr_exported_uems.txt"
         /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_uems.txt
         
         #echo "**** Ingesting Exported $localVolume2 (has backend snapshot)"

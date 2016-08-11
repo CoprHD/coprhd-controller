@@ -78,7 +78,7 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="eventscrubber" class="com.emc.storageos.db.task.ActionableEventScrubberExecutor">
+    <bean id="eventscrubber" class="com.emc.storageos.db.event.ActionableEventScrubberExecutor">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>

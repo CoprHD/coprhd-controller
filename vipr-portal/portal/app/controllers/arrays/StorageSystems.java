@@ -115,6 +115,7 @@ public class StorageSystems extends ViprResourceController {
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String GUIDE_VISIBLE = "guideVisible";
+    private static final String GUIDE_COMPLETED_STEP = "completedSteps";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
@@ -286,25 +287,26 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.name);
         flash.success(message);
 
-
-
         //check if checklist is running on this step
         JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
+        if(jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
+			if (jobject.get(GUIDE_COMPLETED_STEP).getAsInt() == 3
+					&& jobject.get(GUIDE_VISIBLE).getAsBoolean()) {
+				JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 
-        if (jobject.get("completedSteps").getAsInt() == 3 && jobject.get("guideVisible").getAsBoolean()) {
-            JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
-
-            JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
-            if (storage_systems == null) {
-                storage_systems = new JsonArray();
-            }
-            JsonObject storage = new JsonObject();
-            storage.addProperty("id",sp.getResourceId().toString());
-            storage.addProperty("name",storageArray.name);
-            storage_systems.add(storage);
-            dataObject.add(STORAGE_SYSTEMS, storage_systems);
-            saveJsonAsCookie(GUIDE_DATA, dataObject);
-            list();
+				JsonArray storage_systems = dataObject
+						.getAsJsonArray(STORAGE_SYSTEMS);
+				if (storage_systems == null) {
+					storage_systems = new JsonArray();
+				}
+				JsonObject storage = new JsonObject();
+				storage.addProperty("id", sp.getResourceId().toString());
+				storage.addProperty("name", storageArray.name);
+				storage_systems.add(storage);
+				dataObject.add(STORAGE_SYSTEMS, storage_systems);
+				saveJsonAsCookie(GUIDE_DATA, dataObject);
+				list();
+			}
         }
 
         //TODO: cleanup referrer

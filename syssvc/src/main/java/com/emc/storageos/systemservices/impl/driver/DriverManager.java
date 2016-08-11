@@ -1,12 +1,18 @@
 package com.emc.storageos.systemservices.impl.driver;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +144,22 @@ public class DriverManager extends AbstractManager {
             // This is to emulating downloading by just creating a local file
             File driverFile = new File (DRIVER_DIR + "/" + driver);
             try {
-                driverFile.createNewFile();
+                String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
+                InputStream in = SysClientFactory.getSysClient(URI.create(finishNode)).get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
+
+                OutputStream os = new BufferedOutputStream(new FileOutputStream(driverFile));
+                int bytesRead = 0;
+                while (true) {
+                    byte[] buffer = new byte[0x10000];
+                    bytesRead = in.read(buffer);
+                    if (bytesRead == -1) {
+                        break;
+                    }
+                    os.write(buffer, 0, bytesRead);
+                }
+                in.close();
+                os.close();
+
                 needRestartControllerService = true;
                 log.info("Driver {} has been downloaded from {}", driver, finishNode);
             } catch (Exception e) {

@@ -95,6 +95,9 @@ ext {
         "io.airlift:airline:0.6",
 		"io.netty:netty-handler:4.0.33.Final",
 		"com.datastax.cassandra:cassandra-driver-core:3.0.2",
+    ]
+
+    solr = [ 
         "org.apache.lucene:lucene-core:6.1.0",
         "org.apache.lucene:lucene-analyzers-common:6.1.0",
         "org.apache.solr:solr-solrj:6.1.0",

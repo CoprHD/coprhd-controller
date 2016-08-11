@@ -26,6 +26,7 @@ configurations {
 
 dependencies {
     compile library(cglib),
+            library(solr),
             project(":dbsvc"),
             project(":dbclient")
 

@@ -59,6 +59,7 @@ scripts {
 
 dependencies {
     compile library(cglib),
+            library(solr),
             project(":dbclient"),
             project(":security")
     provided rootProject.toolsJar

@@ -26,6 +26,9 @@ public class HostStateChange implements Serializable {
     protected Collection<URI> oldInitiators;
     protected Collection<URI> newInitiators;
     protected URI oldCluster;
+    protected URI newCluster;
+    protected URI oldDatacenterURI;
+    protected URI newDatacenterURI;
 
     /**
      * Create a new host state
@@ -35,18 +38,21 @@ public class HostStateChange implements Serializable {
      * @param oldInitiators list of removed initiators
      * @param addedInitiators list of new initiators
      */
-    public HostStateChange(Host target, URI oldClusterURI, Collection<Initiator> oldInitiators,
-            Collection<Initiator> addedInitiators) {
+    public HostStateChange(Host target, URI oldClusterURI, URI newClusterURI, Collection<Initiator> oldInitiators,
+            Collection<Initiator> addedInitiators, URI oldDatacenterURI, URI newDatacenterURI) {
         this.host = target;
         this.oldInitiators = Sets.newHashSet();
         this.newInitiators = Sets.newHashSet();
         this.oldCluster = oldClusterURI;
+        this.newCluster = newClusterURI;
         Collection<URI> oldInitiatorIds = Lists.newArrayList(Collections2.transform(oldInitiators,
                 CommonTransformerFunctions.fctnDataObjectToID()));
         Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
                 CommonTransformerFunctions.fctnDataObjectToID()));
         this.oldInitiators.addAll(oldInitiatorIds);
         this.newInitiators.addAll(addedInitiatorIds);
+        this.oldDatacenterURI = oldDatacenterURI;
+        this.newDatacenterURI = newDatacenterURI;
     }
 
     /**
@@ -108,6 +114,24 @@ public class HostStateChange implements Serializable {
     }
 
     /**
+     * Set new cluster
+     * 
+     * @param new cluster
+     */
+    public void setNewCluster(URI newCluster) {
+        this.newCluster = newCluster;
+    }
+
+    /**
+     * Set old cluster
+     * 
+     * @param old cluster
+     */
+    public void setOldCluster(URI oldCluster) {
+        this.oldCluster = oldCluster;
+    }
+
+    /**
      * Return old cluster id
      * 
      * @return old cluster id
@@ -116,9 +140,38 @@ public class HostStateChange implements Serializable {
         return this.oldCluster;
     }
 
+    /**
+     * Return new cluster id
+     * 
+     * @return new cluster id
+     */
+    public URI getNewCluster() {
+        return this.newCluster;
+    }
+
+    /**
+     * Return new datacenter id
+     * 
+     * @return new datacenter id
+     */
+    public URI getNewDatacenter() {
+        return this.newDatacenterURI;
+    }
+
+    /**
+     * Return old datacenter id
+     * 
+     * @return old datacenter id
+     */
+    public URI getOldDatacenter() {
+        return this.oldDatacenterURI;
+    }
+
+    @Override
     public String toString() {
         return "HostStateChange: [Host: " + this.host.getLabel() + " with cluster: "
-                + (this.host.getCluster() == null ? "null" : this.host.getCluster()) + ", OldInitiators: " + this.oldInitiators
-                + ", NewInitators: " + this.newInitiators + ", OldCluster: " + this.oldCluster + "]";
+                + (this.newCluster == null ? "null" : this.newCluster) + ", OldInitiators: " + this.oldInitiators
+                + ", NewInitators: " + this.newInitiators + ", OldCluster: " + this.oldCluster + ", Datacenter: "
+                + this.newDatacenterURI + ", Old Datacenter: " + this.oldDatacenterURI + "]";
     }
 }

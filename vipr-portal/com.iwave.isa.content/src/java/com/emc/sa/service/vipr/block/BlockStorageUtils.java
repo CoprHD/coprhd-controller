@@ -345,6 +345,7 @@ public class BlockStorageUtils {
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
+        addRollback(new DeactivateVolumes(volumeIds, VolumeDeleteTypeEnum.FULL));
         return volumeIds;
     }
 

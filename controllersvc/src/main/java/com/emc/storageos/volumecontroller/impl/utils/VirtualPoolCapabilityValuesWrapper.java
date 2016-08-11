@@ -48,6 +48,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
     public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
 
+    // Not vpool params, but hints for volume descriptor creation
+    // TODO: Move to ControllerOperationValuesWrapper
     public static final String FILE_REPLICATION_SOURCE = "file_replication_source";
     public static final String FILE_REPLICATION_TARGET = "file_replication_target";
     public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
@@ -81,7 +83,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     /**
      * Copy the passed capabilities to a new instance.
      * 
-     * @param capabilities A reference to a VirtualPoolCapabilityValuesWrapper
+     * @param capabilities
+     *            A reference to a VirtualPoolCapabilityValuesWrapper
      */
     public VirtualPoolCapabilityValuesWrapper(VirtualPoolCapabilityValuesWrapper capabilities) {
         // Copy the value set in the passed reference capabilities.
@@ -395,7 +398,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(FILE_TARGET_COPY_NAME);
         return value != null ? (String) value : null;
     }
-    
+
     public String getChangeVpoolVolume() {
         Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
         return value != null ? (String) value : null;
@@ -407,7 +410,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public String getSnapshotSessionCopyMode() {
         Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
-    }
+}
 
     public String getCompute() {
         Object value = _vpoolCapabilities.get(COMPUTE);

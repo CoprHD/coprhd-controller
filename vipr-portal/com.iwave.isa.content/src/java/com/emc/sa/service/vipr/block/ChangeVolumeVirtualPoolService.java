@@ -31,7 +31,7 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(volumeId, targetVirtualPool, consistencyGroup));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(volumeId, targetVirtualPool, consistencyGroup, false));
         addAffectedResources(tasks);
     }
 

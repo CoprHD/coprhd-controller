@@ -130,6 +130,11 @@
                     <property name="coordinatorExt" ref="coordinatorclientext" />
                 </bean>
                 <ref bean="backupService" />
+                <bean class="com.emc.storageos.systemservices.impl.resource.DriverService">
+                    <property name="coordinator" ref="coordinator" />
+                    <property name="service" ref="serviceinfo" />
+                    <property name="coordinatorExt" ref="coordinatorclientext" />
+                </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.DbConsistencyService">
                     <property name="coordinator" ref="coordinator" />

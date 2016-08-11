@@ -26,7 +26,7 @@ public class DriverInfo implements CoordinatorSerializable {
         this.finishNode = finishNode;
         List<String> tmp = new ArrayList<String>(drivers);
         Collections.sort(tmp);
-        this.drivers = Collections.unmodifiableList(tmp);
+        this.drivers = tmp;
     }
 
     public String getFinishNode() {

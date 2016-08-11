@@ -14,6 +14,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -33,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -48,12 +50,14 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventBulkRep;
@@ -61,6 +65,8 @@ import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
+import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -81,6 +87,8 @@ public class EventService extends TaggedResource {
 
     private static final String EVENT_SERVICE_TYPE = "event";
     private static final String TENANT_QUERY_PARAM = "tenant";
+
+    private static final String RESOURCE_QUERY_PARAM = "resource";
 
     @Override
     public String getServiceType() {
@@ -641,6 +649,36 @@ public class EventService extends TaggedResource {
         }
 
         return new EventStatsRestRep(pending, approved, declined);
+    }
+
+    @Override
+    protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
+        SearchResults searchResults = new SearchResults();
+
+        if (parameters.containsKey(RESOURCE_QUERY_PARAM)) {
+            URI resourceId = URI.create(parameters.get(RESOURCE_QUERY_PARAM).get(0));
+
+            List<ActionableEvent> events = EventUtils.findResourceEvents(_dbClient, resourceId);
+
+            searchResults.getResource().addAll(toSearchResults(events));
+        }
+
+        return searchResults;
+    }
+
+    private List<SearchResultResourceRep> toSearchResults(List<ActionableEvent> items) {
+        List<SearchResultResourceRep> results = Lists.newArrayList();
+
+        for (ActionableEvent item : items) {
+            results.add(toSearchResult(item.getId()));
+        }
+
+        return results;
+    }
+
+    private SearchResultResourceRep toSearchResult(URI uri) {
+        RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), uri));
+        return new SearchResultResourceRep(uri, selfLink, null);
     }
 
     /**

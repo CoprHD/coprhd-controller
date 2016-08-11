@@ -13,8 +13,10 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import controllers.security.Security;
 import models.datatable.ApprovalsDataTable;
 import models.datatable.ApprovalsDataTable.ApprovalRequestInfo;
+import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
@@ -90,6 +92,15 @@ public class Approvals extends Controller {
     public static void edit(String id) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
+
+        Logger.info("the order's tenant is {}", approval.getTenant().getId().toString());
+        Logger.info("the user's tenant is {}", Security.getUserInfo().getTenant());
+
+        if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
+            flash.error("User doesn't have tenant's access");
+            return;
+        }
+
         OrderRestRep order = null;
         CatalogServiceRestRep service = null;
         if (approval != null) {

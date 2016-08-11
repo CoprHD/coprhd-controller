@@ -4,7 +4,10 @@
  */
 package controllers.catalog;
 
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import com.emc.vipr.model.catalog.ScheduledEventRestRep;
+import play.Logger;
 import static util.BourneUtil.getCatalogClient;
 import static util.CatalogServiceUtils.getCatalogService;
 import static util.OrderUtils.getOrder;
@@ -57,6 +60,8 @@ public class Approvals extends Controller {
         List<ApprovalRestRep> approvals = catalog.approvals().getByUserTenant();
         for (ApprovalRestRep approval : approvals) {
             OrderRestRep order = null;
+            CatalogServiceRestRep catalogService = null;
+            ScheduledEventRestRep scheduledEvent =null;
             if (approval.getOrder() != null) {
                 if (orders.keySet().contains(approval.getOrder().getId()) == false) {
                     order = getOrder(approval.getOrder());
@@ -67,21 +72,23 @@ public class Approvals extends Controller {
                 else {
                     order = orders.get(approval.getOrder().getId());
                 }
-            }
-            CatalogServiceRestRep catalogService = null;
-            if (order != null && order.getCatalogService() != null) {
-                if (catalogServices.keySet().contains(order.getCatalogService().getId()) == false) {
-                    catalogService = getCatalogService(order.getCatalogService());
-                    if (catalogService != null) {
-                        catalogServices.put(catalogService.getId(), catalogService);
+
+                if (order.getCatalogService() != null) {
+                    if (catalogServices.keySet().contains(order.getCatalogService().getId()) == false) {
+                        catalogService = getCatalogService(order.getCatalogService());
+                        if (catalogService != null) {
+                            catalogServices.put(catalogService.getId(), catalogService);
+                        }
+                    } else {
+                        catalogService = catalogServices.get(order.getCatalogService().getId());
                     }
                 }
-                else {
-                    catalogService = catalogServices.get(order.getCatalogService().getId());
+                if (order.getScheduledEventId() != null) {
+                    scheduledEvent = getCatalogClient().orders().getScheduledEvent(order.getScheduledEventId());
                 }
             }
 
-            approvalRequestInfos.add(new ApprovalRequestInfo(approval, order, catalogService));
+            approvalRequestInfos.add(new ApprovalRequestInfo(approval, order, catalogService,scheduledEvent));
         }
 
         renderJSON(DataTablesSupport.createJSON(approvalRequestInfos, params));
@@ -91,14 +98,19 @@ public class Approvals extends Controller {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
         OrderRestRep order = null;
+        ScheduledEventRestRep scheduledEvent =null;
         CatalogServiceRestRep service = null;
         if (approval != null) {
             order = getOrder(approval.getOrder());
             if (order != null) {
                 service = getCatalogService(order.getCatalogService());
+                URI scheduledEventId = order.getScheduledEventId();
+                if (scheduledEventId != null) {
+                    scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                }
             }
         }
-        render(approval, order, service);
+        render(approval, order, service, scheduledEvent);
     }
 
     public static void submit(String id, ApprovalsForm approval) {

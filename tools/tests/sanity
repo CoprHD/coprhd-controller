@@ -2346,8 +2346,9 @@ vplex_setup_once()
         echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
         # Discover the Brocade SAN switch.
-        echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-        run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+        # this create is covered by cisco_mds_quick_setup_once, why here, too? we get a duplicate networksystem error otherwise
+        #echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+        #run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
         echo "Transport zones currently configured:"
         transportzone listall
 

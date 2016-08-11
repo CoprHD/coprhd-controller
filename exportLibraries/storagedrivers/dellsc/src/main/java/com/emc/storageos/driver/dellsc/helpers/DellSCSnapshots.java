@@ -39,16 +39,14 @@ public class DellSCSnapshots {
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCSnapshots.class);
 
-    private DellSCPersistence persistence;
+    private DellSCConnectionManager connectionManager;
     private DellSCUtil util;
 
     /**
      * Initialize the instance.
-     * 
-     * @param persistence The persistence interface.
      */
-    public DellSCSnapshots(DellSCPersistence persistence) {
-        this.persistence = persistence;
+    public DellSCSnapshots() {
+        this.connectionManager = DellSCConnectionManager.getInstance();
         this.util = DellSCUtil.getInstance();
     }
 
@@ -65,7 +63,8 @@ public class DellSCSnapshots {
         int createCount = 0;
 
         for (VolumeSnapshot snapshot : snapshots) {
-            try (StorageCenterAPI api = persistence.getSavedConnection(snapshot.getStorageSystemId())) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(snapshot.getStorageSystemId());
                 ScReplay replay = api.createReplay(snapshot.getParentId());
                 util.getVolumeSnapshotFromReplay(replay, snapshot);
                 createCount++;
@@ -117,7 +116,8 @@ public class DellSCSnapshots {
     public DriverTask deleteVolumeSnapshot(VolumeSnapshot snapshot) {
         DellSCDriverTask task = new DellSCDriverTask("deleteVolumeSnapshot");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(snapshot.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(snapshot.getStorageSystemId());
             api.expireReplay(snapshot.getNativeId());
             task.setStatus(TaskStatus.READY);
         } catch (StorageCenterAPIException | DellSCDriverException dex) {

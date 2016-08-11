@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.driver.dellsc.scapi.objects.ApiConnection;
 import com.emc.storageos.driver.dellsc.scapi.objects.EmDataCollector;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
@@ -66,6 +67,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
     private RestClient restClient;
     private Gson gson;
+    private String host;
 
     private StorageCenterAPI(String host, int port, String user, String password)
             throws StorageCenterAPIException {
@@ -81,7 +83,19 @@ public class StorageCenterAPI implements AutoCloseable {
         if (result.getResponseCode() != 200) {
             throw new StorageCenterAPIException(result.getErrorMsg(), result.getResponseCode());
         }
-        LOG.debug("Successful login to {} for user {}", host, user);
+
+        ApiConnection connection = gson.fromJson(result.getResult(), ApiConnection.class);
+        LOG.debug("Connected to {} {} {}", connection.hostName, connection.provider, connection.providerVersion);
+        this.host = host;
+    }
+
+    /**
+     * Gets the connection host name.
+     * 
+     * @return The host name.
+     */
+    public String getHost() {
+        return host;
     }
 
     /**
@@ -1331,5 +1345,20 @@ public class StorageCenterAPI implements AutoCloseable {
         }
 
         return null;
+    }
+
+    /**
+     * Gets API connection information.
+     *
+     * @return The API connection info.
+     * @throws StorageCenterAPIException
+     */
+    public ApiConnection getApiConnection() throws StorageCenterAPIException {
+        RestResult rr = restClient.get("ApiConnection/ApiConnection");
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ApiConnection.class);
+        }
+
+        throw new StorageCenterAPIException("Failed to get API connection");
     }
 }

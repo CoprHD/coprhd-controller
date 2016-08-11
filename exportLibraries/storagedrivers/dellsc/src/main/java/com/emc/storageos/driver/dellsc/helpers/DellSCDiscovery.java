@@ -57,7 +57,7 @@ public class DellSCDiscovery {
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCDiscovery.class);
 
-    private DellSCPersistence persistence;
+    private DellSCConnectionManager connectionManager;
     private String driverName;
     private String driverVersion;
     private DellSCUtil util;
@@ -67,12 +67,11 @@ public class DellSCDiscovery {
      * 
      * @param driverName The driver name.
      * @param driverVersion The driver version.
-     * @param persistence The persistence interface.
      */
-    public DellSCDiscovery(String driverName, String driverVersion, DellSCPersistence persistence) {
+    public DellSCDiscovery(String driverName, String driverVersion) {
         this.driverName = driverName;
         this.driverVersion = driverVersion;
-        this.persistence = persistence;
+        this.connectionManager = DellSCConnectionManager.getInstance();
         this.util = DellSCUtil.getInstance();
     }
 
@@ -92,35 +91,34 @@ public class DellSCDiscovery {
                     storageProvider.getPortNumber(),
                     storageProvider.getUsername());
 
-            try (StorageCenterAPI api = StorageCenterAPI.openConnection(
+            StorageCenterAPI api = connectionManager.getConnection(
                     storageProvider.getProviderHost(),
                     storageProvider.getPortNumber(),
                     storageProvider.getUsername(),
-                    storageProvider.getPassword())) {
+                    storageProvider.getPassword());
 
-                LOG.info("Connected to DSM {} as user {}",
-                        storageProvider.getProviderHost(), storageProvider.getUsername());
+            LOG.info("Connected to DSM {} as user {}",
+                    storageProvider.getProviderHost(), storageProvider.getUsername());
 
-                // Get some info about the DSM for debugging purposes
-                EmDataCollector em = api.getDSMInfo();
-                if (em != null) {
-                    LOG.info("Connected to {} DSM version {}, Java version {}",
-                            em.type, em.version, em.javaVersion);
-                }
+            // Get some info about the DSM for debugging purposes
+            EmDataCollector em = api.getDSMInfo();
+            if (em != null) {
+                LOG.info("Connected to {} DSM version {}, Java version {}",
+                        em.type, em.version, em.javaVersion);
+            }
 
-                // Populate the provider information
-                storageProvider.setAccessStatus(AccessStatus.READ_WRITE);
-                storageProvider.setManufacturer("Dell");
-                storageProvider.setProviderVersion(driverVersion);
-                storageProvider.setIsSupportedVersion(true);
+            // Populate the provider information
+            storageProvider.setAccessStatus(AccessStatus.READ_WRITE);
+            storageProvider.setManufacturer("Dell");
+            storageProvider.setProviderVersion(driverVersion);
+            storageProvider.setIsSupportedVersion(true);
 
-                // Populate the basic SC information
-                StorageCenter[] scs = api.getStorageCenterInfo();
-                for (StorageCenter sc : scs) {
-                    StorageSystem storageSystem = util.getStorageSystemFromStorageCenter(api, sc, null);
-                    storageSystem.setSystemType(driverName);
-                    storageSystems.add(storageSystem);
-                }
+            // Populate the basic SC information
+            StorageCenter[] scs = api.getStorageCenterInfo();
+            for (StorageCenter sc : scs) {
+                StorageSystem storageSystem = util.getStorageSystemFromStorageCenter(api, sc, null);
+                storageSystem.setSystemType(driverName);
+                storageSystems.add(storageSystem);
             }
 
             task.setStatus(DriverTask.TaskStatus.READY);
@@ -165,23 +163,16 @@ public class DellSCDiscovery {
                 port = 3033;
             }
 
-            try (StorageCenterAPI api = StorageCenterAPI.openConnection(
+            StorageCenterAPI api = connectionManager.getConnection(
                     storageSystem.getIpAddress(),
                     port,
                     storageSystem.getUsername(),
-                    storageSystem.getPassword())) {
-                // Populate the SC information
-                StorageCenter sc = api.findStorageCenter(sn);
-                util.getStorageSystemFromStorageCenter(api, sc, storageSystem);
-                storageSystem.setSystemType(driverName);
+                    storageSystem.getPassword());
 
-                persistence.saveConnectionInfo(
-                        storageSystem.getNativeId(),
-                        storageSystem.getIpAddress(),
-                        port,
-                        storageSystem.getUsername(),
-                        storageSystem.getPassword());
-            }
+            // Populate the SC information
+            StorageCenter sc = api.findStorageCenter(sn);
+            util.getStorageSystemFromStorageCenter(api, sc, storageSystem);
+            storageSystem.setSystemType(driverName);
 
             task.setStatus(DriverTask.TaskStatus.READY);
         } catch (Exception e) {
@@ -207,7 +198,8 @@ public class DellSCDiscovery {
                 storageSystem.getNativeId());
         DellSCDriverTask task = new DellSCDriverTask("discoverStoragePools");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageSystem.getNativeId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(storageSystem.getNativeId());
 
             ScStorageType[] storageTypes = api.getStorageTypes(storageSystem.getNativeId());
             for (ScStorageType storageType : storageTypes) {
@@ -236,7 +228,8 @@ public class DellSCDiscovery {
                 storageSystem.getNativeId());
         DellSCDriverTask task = new DellSCDriverTask("discoverStoragePorts");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageSystem.getNativeId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(storageSystem.getNativeId());
 
             ScControllerPort[] scPorts = api.getTargetPorts(storageSystem.getNativeId(), null);
             for (ScControllerPort scPort : scPorts) {
@@ -275,7 +268,9 @@ public class DellSCDiscovery {
         LOG.info("Getting volumes from {}", storageSystem.getNativeId());
         DellSCDriverTask task = new DellSCDriverTask("getVolumes");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageSystem.getNativeId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(storageSystem.getNativeId());
+
             Map<ScReplayProfile, List<String>> cgInfo = util.getGCInfo(api, storageSystem.getNativeId());
             ScVolume[] volumes = api.getAllVolumes(storageSystem.getNativeId());
             for (ScVolume volume : volumes) {
@@ -306,7 +301,9 @@ public class DellSCDiscovery {
         LOG.info("Getting snapshots for {}", storageVolume.getNativeId());
         List<VolumeSnapshot> result = new ArrayList<>();
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageVolume.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(storageVolume.getStorageSystemId());
+
             ScReplay[] replays = api.getVolumeSnapshots(storageVolume.getNativeId());
             for (ScReplay replay : replays) {
                 VolumeSnapshot snap = util.getVolumeSnapshotFromReplay(replay, null);
@@ -343,7 +340,9 @@ public class DellSCDiscovery {
         LOG.info("Getting mirrors for volume {}", storageVolume.getNativeId());
         List<VolumeMirror> result = new ArrayList<>();
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageVolume.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(storageVolume.getStorageSystemId());
+
             ScVolume scVolume = api.getVolume(storageVolume.getNativeId());
             if (scVolume != null && scVolume.cmmSource) {
                 ScCopyMirrorMigrate[] cmms = api.getVolumeCopyMirrorMigrate(scVolume.instanceId);

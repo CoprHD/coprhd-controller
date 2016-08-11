@@ -40,15 +40,13 @@ public class DellSCMirroring {
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCMirroring.class);
 
-    private DellSCPersistence persistence;
+    private DellSCConnectionManager connectionManager;
 
     /**
      * Initialize the instance.
-     * 
-     * @param persistence The persistence interface.
      */
-    public DellSCMirroring(DellSCPersistence persistence) {
-        this.persistence = persistence;
+    public DellSCMirroring() {
+        this.connectionManager = DellSCConnectionManager.getInstance();
     }
 
     /**
@@ -66,7 +64,8 @@ public class DellSCMirroring {
         for (VolumeMirror mirror : mirrors) {
             LOG.debug("Creating mirror of volume {}", mirror.getParentId());
             String ssn = mirror.getStorageSystemId();
-            try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(ssn);
 
                 ScVolume srcVol = api.getVolume(mirror.getParentId());
                 ScVolume destVol = api.createVolume(
@@ -114,7 +113,8 @@ public class DellSCMirroring {
         LOG.info("Deleting volume mirror {}", mirror);
         DellSCDriverTask task = new DellSCDriverTask("deleteVolumeMirror");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(mirror.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(mirror.getStorageSystemId());
             ScCopyMirrorMigrate cmm = api.getMirror(mirror.getNativeId());
             api.deleteMirror(cmm.instanceId);
             api.deleteVolume(cmm.destinationVolume.instanceId);
@@ -141,7 +141,8 @@ public class DellSCMirroring {
         StringBuilder errBuffer = new StringBuilder();
         int mirrorSplit = 0;
         for (VolumeMirror mirror : mirrors) {
-            try (StorageCenterAPI api = persistence.getSavedConnection(mirror.getStorageSystemId())) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(mirror.getStorageSystemId());
                 api.deleteMirror(mirror.getNativeId());
                 task.setStatus(TaskStatus.READY);
                 mirrorSplit++;

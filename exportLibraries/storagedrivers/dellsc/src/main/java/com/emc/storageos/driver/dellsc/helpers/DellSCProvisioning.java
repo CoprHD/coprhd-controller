@@ -64,16 +64,14 @@ public class DellSCProvisioning {
 
     private static final String SERVER_CREATE_FAIL_MSG = "Unable to find or create server on the array.";
 
-    private DellSCPersistence persistence;
+    private DellSCConnectionManager connectionManager;
     private DellSCUtil util;
 
     /**
      * Initialize the instance.
-     * 
-     * @param persistence The persistence interface.
      */
-    public DellSCProvisioning(DellSCPersistence persistence) {
-        this.persistence = persistence;
+    public DellSCProvisioning() {
+        this.connectionManager = DellSCConnectionManager.getInstance();
         this.util = DellSCUtil.getInstance();
     }
 
@@ -96,7 +94,9 @@ public class DellSCProvisioning {
         for (StorageVolume volume : volumes) {
             LOG.debug("Creating volume {} on system {}", volume.getDisplayName(), volume.getStorageSystemId());
             String ssn = volume.getStorageSystemId();
-            try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(ssn);
+
                 // See if we need to add to a consistency group
                 String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
 
@@ -147,7 +147,8 @@ public class DellSCProvisioning {
      */
     public DriverTask expandVolume(StorageVolume storageVolume, long newCapacity) {
         DriverTask task = new DellSCDriverTask("expandVolume");
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageVolume.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(storageVolume.getStorageSystemId());
             ScVolume scVol = api.expandVolume(storageVolume.getNativeId(), SizeUtil.byteToGig(newCapacity));
             storageVolume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
 
@@ -173,7 +174,8 @@ public class DellSCProvisioning {
     public DriverTask deleteVolume(StorageVolume volume) {
         DellSCDriverTask task = new DellSCDriverTask("deleteVolume");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(volume.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(volume.getStorageSystemId());
             api.deleteVolume(volume.getNativeId());
 
             task.setStatus(TaskStatus.READY);
@@ -233,7 +235,9 @@ public class DellSCProvisioning {
 
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
-            try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(ssn);
+
                 // Find our actual volume
                 ScVolume scVol = api.getVolume(volume.getNativeId());
                 if (scVol == null) {
@@ -543,7 +547,9 @@ public class DellSCProvisioning {
 
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
-            try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(ssn);
+
                 // Find our actual volume
                 ScVolume scVol = api.getVolume(volume.getNativeId());
                 if (scVol == null) {
@@ -607,7 +613,8 @@ public class DellSCProvisioning {
         Map<String, Initiator> serverPortCache = new HashMap<>();
         Map<String, StoragePort> portCache = new HashMap<>();
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(systemId)) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(systemId);
             ScVolume scVol = api.getVolume(volumeId);
             if (scVol == null) {
                 throw new DellSCDriverException(String.format("Volume %s could not be found.", volumeId));

@@ -834,21 +834,19 @@ cisco_mds_quick_setup_once()
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
     
-    if [ ${SS} != "vplex" ]; then
-        FC_ZONE_A=VSAN_11
-        FC_ZONE_B=VSAN_12
-        FCTZ_A=$NH/$FC_ZONE_A
-        FCTZ_B=$NH2/$FC_ZONE_B
+    FC_ZONE_A=VSAN_11
+    FC_ZONE_B=VSAN_12
+    FCTZ_A=$NH/$FC_ZONE_A
+    FCTZ_B=$NH2/$FC_ZONE_B
 
-        run transportzone assign VSAN_11 $NH
-        run transportzone assign VSAN_12 $NH2
+    run transportzone assign VSAN_11 $NH
+    run transportzone assign VSAN_12 $NH2
 
-        # add ports to VSAN_11
-        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1
-        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A2
-        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A3
-        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A4
-    fi
+    # add ports to VSAN_11
+    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1
+    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A2
+    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A3
+    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A4
 }
 
 
@@ -2348,8 +2346,8 @@ vplex_setup_once()
         echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
         # Discover the Brocade SAN switch.
-        #echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-        #run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+        echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+        run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
         echo "Transport zones currently configured:"
         transportzone listall
 

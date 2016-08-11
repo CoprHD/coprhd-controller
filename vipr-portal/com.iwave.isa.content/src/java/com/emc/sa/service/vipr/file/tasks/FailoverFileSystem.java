@@ -17,11 +17,13 @@ public class FailoverFileSystem extends WaitForTasks<FileShareRestRep> {
     private URI failoverSource;
     private URI failoverTarget;
     private String type;
+    private boolean replicationConf;
 
-    public FailoverFileSystem(URI failoverSource, URI failoverTarget, String type) {
+    public FailoverFileSystem(URI failoverSource, URI failoverTarget, String type, boolean replicationConf) {
         this.failoverSource = failoverSource;
         this.failoverTarget = failoverTarget;
         this.type = type;
+        this.replicationConf = replicationConf;
         provideDetailArgs(failoverSource, failoverTarget, type);
     }
 
@@ -33,6 +35,7 @@ public class FailoverFileSystem extends WaitForTasks<FileShareRestRep> {
 
         FileReplicationParam param = new FileReplicationParam();
         param.getCopies().add(copy);
+        param.setReplicateConfiguration(replicationConf);
         return getClient().fileSystems().failover(failoverSource, param);
     }
 }

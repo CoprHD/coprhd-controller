@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -37,6 +38,9 @@ public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
     private static final int INDEX_OBJECTS_BATCH_SIZE = 10000;
 
+    private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
+    private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
+
     private DbClientImpl dbClient;
 
     public DbConsistencyCheckerHelper() {
@@ -52,7 +56,7 @@ public class DbConsistencyCheckerHelper {
      *
      * @return number of corrupted rows
      */
-    protected int checkDataObject(DataObjectType doType, boolean toConsole) {
+    public int checkDataObject(DataObjectType doType, boolean toConsole) {
         int dirtyCount = 0;
         _log.info("Check CF {}", doType.getDataObjectClass().getName());
 
@@ -99,7 +103,7 @@ public class DbConsistencyCheckerHelper {
      * @return the number of corrupted data
      * @throws ConnectionException
      */
-    protected int checkCFIndices(DataObjectType doType, boolean toConsole) throws ConnectionException {
+    public int checkCFIndices(DataObjectType doType, boolean toConsole) throws ConnectionException {
         int dirtyCount = 0;
         Class objClass = doType.getDataObjectClass();
         _log.info("Check Data Object CF {}", objClass);
@@ -174,7 +178,7 @@ public class DbConsistencyCheckerHelper {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    protected int checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole) throws ConnectionException {
+    public int checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole) throws ConnectionException {
         int corruptRowCount = 0;
 
         String indexCFName = indexAndCf.cf.getName();
@@ -268,17 +272,15 @@ public class DbConsistencyCheckerHelper {
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                 objCf.getName(), row.getKey()), true, toConsole);
+                        UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
-                                String.format(
-                                        "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;",
+                                String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
                                         indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
                                         idxEntry.getColumnName().getTwo(),
                                         handleNullValue(idxEntry.getColumnName().getThree()),
                                         handleNullValue(idxEntry.getColumnName().getFour()),
-                                        idxEntry.getColumnName().getTimeUUID()));
-
+                                        timeUUID));
                     }
-
                 }
             }
         }
@@ -288,25 +290,32 @@ public class DbConsistencyCheckerHelper {
 
     public Map<String, IndexAndCf> getAllIndices() {
         // Map<Index_CF_Name, <DbIndex, ColumnFamily, Map<Class_Name, object-CF_Name>>>
-        Map<String, IndexAndCf> idxCfs = new TreeMap<>();
+        Map<String, IndexAndCf> allIdxCfs = new TreeMap<>();
         for (DataObjectType objType : TypeMap.getAllDoTypes()) {
-            Keyspace keyspace = dbClient.getKeyspace(objType.getDataObjectClass());
-            for (ColumnField field : objType.getColumnFields()) {
-                DbIndex index = field.getIndex();
-                if (index == null) {
-                    continue;
-                }
-
-                IndexAndCf indexAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
-                String key = indexAndCf.generateKey();
-                IndexAndCf idxAndCf = idxCfs.get(key);
-                if (idxAndCf == null) {
-                    idxAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
-                    idxCfs.put(key, idxAndCf);
-                }
-            }
+            Map<String, IndexAndCf> idxCfs = getIndicesOfCF(objType);
+            allIdxCfs.putAll(idxCfs);
         }
 
+        return allIdxCfs;
+    }
+
+    public Map<String, IndexAndCf> getIndicesOfCF(DataObjectType objType) {
+        Map<String, IndexAndCf> idxCfs = new TreeMap<>();
+        Keyspace keyspace = dbClient.getKeyspace(objType.getDataObjectClass());
+        for (ColumnField field : objType.getColumnFields()) {
+            DbIndex index = field.getIndex();
+            if (index == null) {
+                continue;
+            }
+
+            IndexAndCf indexAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
+            String key = indexAndCf.generateKey();
+            IndexAndCf idxAndCf = idxCfs.get(key);
+            if (idxAndCf == null) {
+                idxAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
+                idxCfs.put(key, idxAndCf);
+            }
+        }
         return idxCfs;
     }
 
@@ -342,7 +351,7 @@ public class DbConsistencyCheckerHelper {
      * This class records the Index Data's ColumnFamily and
      * the related DbIndex type and it belongs to which Keyspace.
      */
-    protected static class IndexAndCf implements Comparable {
+    public static class IndexAndCf implements Comparable {
         private ColumnFamily<String, IndexColumnName> cf;
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;

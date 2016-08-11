@@ -4,19 +4,15 @@
  */
 package models;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
 
@@ -42,7 +38,7 @@ public class StorageSystemTypes {
     public static final String ECS = "ecs";
     public static final String CEPH = "ceph";
     private static final String SMIS = "smis";
-    
+
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
     public static final String STORAGE_PROVIDER_HITACHI = "STORAGE_PROVIDER.hds";
     public static final String STORAGE_PROVIDER_VPLEX = "STORAGE_PROVIDER.vplex";
@@ -58,6 +54,7 @@ public class StorageSystemTypes {
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
     public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
+    public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
     public static boolean isNone(String type) {
         return NONE.equals(type);
@@ -188,11 +185,38 @@ public class StorageSystemTypes {
         }
         return options;
     }
+    
+    /**
+     * Inside structure of StringOption is "storage type name: provider name (or storage type display name)
+     */
+    public static List<StringOption> getAllFlashStorageTypeOptions() {
+        Map<String, String> arrayProviderMap = StorageSystemTypesInitUtils.getProviderDsiplayNameMap();
+        List<StringOption> options = new ArrayList<StringOption>();
+        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+
+        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+            String typeName = type.getStorageTypeName();
+            // All Flash XTREMIO, VMAX and UNITY
+            String provider = arrayProviderMap.get(typeName);
+            if (provider != null) {
+                if (StringUtils.equals(VMAX, typeName)) {
+                    options.add(new StringOption(SMIS, provider));
+                } 
+                else if (StringUtils.equals(XTREMIO, typeName)) {
+                    options.add(new StringOption(XTREMIO, provider));
+                }
+            } else if (StringUtils.equals(UNITY, typeName)) { 
+                options.add(new StringOption(typeName, type.getStorageTypeDispName()));
+            }
+        }
+        return options;
+    }
 
     public static List<StringOption> getBlockStorageOptions() {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+
             // ignore those whose type is not block
             if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getMetaType())
                     && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {

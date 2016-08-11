@@ -135,8 +135,8 @@ public class BlockDeviceExportController implements BlockExportController {
 
     /**
      * Delete the export.
-     * 
-     * @param export URI of ExportMask
+     *
+     * @param export URI of ExportGroup
      * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
      * 

@@ -185,6 +185,7 @@ public enum ResourceOperationTypeEnum {
     DISCOVER_ALL_STORAGE_SYSTEM("DISCOVER ALL STORAGESYSTEMS", "discover all storage systems"),
     DISCOVER_STORAGE_SYSTEM("DISCOVER STORAGESYSTEM", "discover a storage systems"),
     METERING_STORAGE_SYSTEM("METERING STORAGE SYSTEM", "obtain metering information on a storage system"),
+    ARRAYAFFINITY_STORAGE_SYSTEM("DISCOVER ARRAY AFFINITY", "obtain array affinity information on a storage system"),
     DEREGISTER_STORAGE_SYSTEM("UNREGISTER STORAGESYSTEM", "unregister a storage systems"),
     CREATE_STORAGE_POOL("CREATE STORAGEPOOL", "create storagepool operation"),
     CREATE_STORAGE_PORT("CREATE STORAGEPORT", "create storageport operation"),
@@ -258,11 +259,12 @@ public enum ResourceOperationTypeEnum {
     ESTABLISH_VOLUME_MIRROR("ESTABLISH VOLUME MIRROR GROUP", "establish group relation between volume group and mirror group"),
     DEACTIVATE_VOLUME_MIRROR("DEACTIVATE VOLUME MIRROR", "deactivate a volume mirror"),
     DISCOVER_HOST("DISCOVER HOST", "discover a compute host"),
+    DISCOVER_HOST_ARRAY_AFFINITY("DISCOVER HOST_ARRAY_AFFINITY", "discover host array affinity"),
     CREATE_HOST("CREATE HOST", "create a compute host"),
     DISCOVER_VIRTUAL_MACHINE("DISCOVER VIRTUAL MACHINE", "discover a compute virtual machine"),
     CREATE_VIRTUAL_MACHINE("CREATE VIRTUAL MACHINE", "create a compute virtual machine"),
     DELETE_CLUSTER("DELETE CLUSTER", "delete a compute cluster"),
-    UPDATE_CLUSTER("UPDATE CLUSTER", "delete a compute cluster"),
+    UPDATE_CLUSTER("UPDATE CLUSTER", "update a compute cluster"),
     DELETE_HOST("DELETE HOST", "delete a compute host"),
     DELETE_HOST_IPINTERFACE("DELETE HOST IP INTERFACE", "delete a compute host's IP interface"),
     DELETE_VIRTUAL_MACHINE("DELETE VIRTUAL MACHINE", "delete a compute virtual machine"),
@@ -351,7 +353,12 @@ public enum ResourceOperationTypeEnum {
     DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("DELETE CONSISTENCY GROUP SNAPSHOT SESSION", "delete consistency group snapshot session"),
     CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
-    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation");
+    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
+    WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
+    WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow"),
+    MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
+    UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
 
     private final String name;
     private final String description;
@@ -363,7 +370,7 @@ public enum ResourceOperationTypeEnum {
 
     /**
      * The name of the resource operation
-     *
+     * 
      */
     @XmlElement
     public String getName() {

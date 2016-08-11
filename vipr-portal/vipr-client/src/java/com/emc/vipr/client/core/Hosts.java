@@ -16,6 +16,7 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.OsInstallParam;
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
@@ -304,6 +305,19 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      */
     public Task<HostRestRep> discover(URI id) {
         return postTask(getIdUrl() + "/discover", id);
+    }
+
+    /**
+     * Begins discovery of array affinity information on all supported arrays for the given host IDs.
+     * <p>
+     * API Call: <tt>POST /compute/hosts/discover-array-affinity</tt>
+     * 
+     * @param param
+     *            ArrayAffinityHostParam containing host IDs.
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<HostRestRep> discoverHostArrayAffinity(ArrayAffinityHostParam param) {
+        return postTasks(param, baseUrl + "/discover-array-affinity");
     }
 
     /**

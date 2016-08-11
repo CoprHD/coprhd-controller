@@ -1035,7 +1035,7 @@ class Volume(object):
 
     # Update a volume information
     # Changed the volume vpool
-    def update(self, prefix_path, name, vpool):
+    def update(self, prefix_path, name, vpool, suspend):
         '''
         Makes REST API call to update a volume information
         Parameters:
@@ -1064,7 +1064,9 @@ class Volume(object):
 
         params = {
             'vpool': vpool_uri,
-            'volumes': volumeurilist
+            'volumes': volumeurilist,
+	    'migration_suspend_before_commit' : suspend,
+	    'migration_suspend_before_delete_source' : suspend
         }
 
         body = json.dumps(params)
@@ -2498,6 +2500,11 @@ def update_parser(subcommand_parsers, common_parser):
                                 metavar='<vpoolname>',
                                 dest='vpool',
                                 required=True)
+    update_parser.add_argument('-suspend', '-ss',
+                                help='Suspend before commit and delete of original source volume',
+                                dest='suspend',
+                                required=False,
+			        action='store_true')
 
     update_parser.set_defaults(func=volume_update)
 
@@ -2507,8 +2514,10 @@ def volume_update(args):
     try:
         if(not args.tenant):
             args.tenant = ""
+	if(not args.suspend):
+	    args.suspend = "false"
         res = obj.update(args.tenant + "/" + args.project, args.name,
-                         args.vpool)
+                         args.vpool, args.suspend)
         # return common.format_json_object(res)
     except SOSError as e:
         if (e.err_code == SOSError.NOT_FOUND_ERR):
@@ -4058,14 +4067,14 @@ def volume_list_tasks(args):
                 else:
                     from common import TableGenerator
                     TableGenerator(
-                        res, ["module/id", "name", "state"]).printTable()
+                        res, ["module/id", "module/name", "resource/name", "state", "message"]).printTable()
         else:
             res = obj.list_tasks(args.tenant + "/" + args.project)
             if(res and len(res) > 0):
                 if(not args.verbose):
                     from common import TableGenerator
                     TableGenerator(
-                        res, ["module/id", "name", "state"]).printTable()
+                        res, ["module/id", "name", "state", "message"]).printTable()
                 else:
                     return common.format_json_object(res)
 

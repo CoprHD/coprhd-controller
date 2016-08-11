@@ -5,7 +5,6 @@
 package com.emc.storageos.storagedriver.model;
 
 
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -117,11 +116,17 @@ public class StoragePool extends StorageObject {
     private Long minimumThickVolumeSize;
 
     private SupportedResourceType supportedResourceType;
-
-    public static enum SupportedResourceType {
+    
+	public static enum SupportedResourceType {
         THICK_ONLY,
         THIN_ONLY,
         THIN_AND_THICK
+    }
+    
+    public static enum AutoTieringPolicyProvisioningType {
+        ThinlyProvisioned,
+        ThicklyProvisioned,
+        All
     }
 
     public static enum PoolServiceType {
@@ -273,7 +278,7 @@ public class StoragePool extends StorageObject {
     public void setPoolServiceType(PoolServiceType poolServiceType) {
         this.poolServiceType = poolServiceType.name();
     }
-
+	
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }

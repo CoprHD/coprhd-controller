@@ -679,7 +679,7 @@ public class VirtualMachineService extends TaskResourceService {
     }
 
     /**
-     * Creates a new instance of host.
+     * Creates a new instance of virtual Machine.
      *
      * @param tenant the host parent tenant organization
      * @param param the input parameter containing the host attributes
@@ -695,7 +695,7 @@ public class VirtualMachineService extends TaskResourceService {
             if (ComputeSystemHelper.isClusterInExport(_dbClient, vm.getCluster()) && cluster.getAutoExportEnabled()) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                controller.addHostsToExport(Arrays.asList(vm.getId()), vm.getCluster(), taskId, null);
+                controller.addHostsToExport(Arrays.asList(vm.getId()), vm.getCluster(), taskId, null, false);
             } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, vm.getCluster(), vm.getId());
             }

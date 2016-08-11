@@ -1316,7 +1316,7 @@ public class VPlexApiVirtualVolumeManager {
                         VPlexApiConstants.URI_DESTROY_EXTENT);
                 Map<String, String> argsMap = new HashMap<String, String>();
                 argsMap.put(VPlexApiConstants.ARG_DASH_S, extentInfo.getPath());
-                JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+                JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
                 s_logger.info("Destroy extent POST data is {}", postDataObject.toString());
                 response = _vplexApiClient.post(requestURI,
                         postDataObject.toString());

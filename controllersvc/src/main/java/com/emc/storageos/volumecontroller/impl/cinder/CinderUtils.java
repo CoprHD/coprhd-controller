@@ -256,7 +256,7 @@ public class CinderUtils {
         // change it to double to account fraction after conversion
         Double doubleVolSize = (double) volumeSize;
 
-        // convert ti GB
+        // convert it to GB
         Double sizeInGB = (double) (doubleVolSize / (CinderConstants.BYTES_TO_GB));
 
         // ceil to higher value

@@ -506,20 +506,26 @@ public class OrderManagerImpl implements OrderManager {
     private void processPendingOrder(Order order, CatalogService service) {
         if (Boolean.TRUE.equals(service.getApprovalRequired())) {
             if (order.getScheduledEventId() != null) {
+                // For scheduled event, the 1st order's APPROVAL request will be used to approve
+                // the whole set of following orders (i.e. taking effect on the scheduled event.
                 ScheduledEvent scheduledEvent = client.scheduledEvents().findById(order.getScheduledEventId());
                 if (scheduledEvent != null) {
+                    // Scheduler would always set the outofdate orders to ERROR and schedule a new order.
+                    // Here all the previous scheduled orders have not been approved yet.
+                    // We would always send a new approval request for the latest scheduled order.
                     if (scheduledEvent.getEventStatus() == ScheduledEventStatus.APPROVAL) {
                         requireApproval(order, service);
                         return;
                     }
 
-                    // For scheduled event, the APPROVAL procedure will go along with the latest order APPROVAL procedure
-                    // For the following orders, we would skip order approval request after the event is already APPROVED.
+                    // For the following orders, skipping order approval request (the event is already APPROVED)
                 } else {
+                    // Send Approval Request for the 1st order (Now the scheduled event is not persisted into DB yet.)
                     requireApproval(order, service);
                     return;
                 }
             } else {
+                // send approval request for the original order request.
                 requireApproval(order, service);
                 return;
             }

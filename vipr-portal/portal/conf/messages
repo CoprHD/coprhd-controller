@@ -3294,6 +3294,7 @@ events.event=Event
 events.id=ID
 events.resource=Resource
 events.created=Created
+events.warning=Warning
 
 
 resources.tasks=Tasks

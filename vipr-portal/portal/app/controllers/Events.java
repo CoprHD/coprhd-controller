@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -128,7 +129,11 @@ public class Events extends Controller {
 
         Common.angularRenderArgs().put("event", getEventSummary(event));
 
-        render(event);
+        EventDetailsRestRep details = EventUtils.getEventDetails(uri(eventId));
+
+        Common.angularRenderArgs().put("details", details);
+
+        render(event, details);
     }
 
     public static void detailsJson(String eventId) {
@@ -213,6 +218,11 @@ public class Events extends Controller {
         details(eventId);
     }
 
+    public static void itemDetails(String id) {
+        EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
+        render(details);
+    }
+
     // "Suppressing Sonar violation of Field names should comply with naming convention"
     @SuppressWarnings("squid:S00116")
     private static class EventSummary {
@@ -225,6 +235,7 @@ public class Events extends Controller {
         public URI resourceId;
         public String eventStatus;
         public String eventCode;
+        public String warning;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
@@ -235,6 +246,7 @@ public class Events extends Controller {
             resourceId = event.getResource().getId();
             eventStatus = event.getEventStatus();
             eventCode = event.getEventCode();
+            warning = event.getWarning();
         }
     }
 }

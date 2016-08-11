@@ -27,6 +27,7 @@ public class EventMapper {
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setEventStatus(from.getEventStatus());
         to.setDescription(from.getDescription());
+        to.setWarning(from.getWarning());
         to.setEventCode(from.getEventCode());
         return to;
     }

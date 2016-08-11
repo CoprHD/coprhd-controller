@@ -21,6 +21,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class EventRestRep extends DataObjectRestRep {
 
     private String description;
+    private String warning;
     private NamedRelatedResourceRep resource;
     private String eventStatus;
     private String eventCode;
@@ -46,6 +47,15 @@ public class EventRestRep extends DataObjectRestRep {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    @XmlElement(name = "warning")
+    public String getWarning() {
+        return warning;
+    }
+
+    public void setWarning(String warning) {
+        this.warning = warning;
     }
 
     @XmlElement(name = "resource")

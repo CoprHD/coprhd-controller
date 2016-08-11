@@ -56,6 +56,12 @@ margin-bottom: 5px;
 
       <dt>&{'events.created'}:</dt>
       <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
+      
+      <dt>Approve Details:</dt>
+      <dd>{{details.approveDetails}}</dd>
+      
+      <dt>Decline Details:</dt>
+      <dd>{{details.declineDetails}}</dd>
     </dl>
     
    <div class="alert alert-danger" ng-show="event.isError">

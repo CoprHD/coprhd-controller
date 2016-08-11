@@ -67,8 +67,10 @@
         options:options,
         actionsTitleKey:'resources.actions',
         messageOverrides : messageOverrides,
-        selectable: true
+        selectable: true,
+        expandable:true
      }
+   #{DataTable.expandHtml @itemDetails(':id'), table:'events'/}
    #{DataTable.buttonBar}
     #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'approveForm'/}
     #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'declineForm'/}

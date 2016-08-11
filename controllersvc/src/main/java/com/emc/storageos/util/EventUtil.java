@@ -52,6 +52,7 @@ public class EventUtil {
      * @param tenant the tenant that owns the event
      * @param name the name of the event
      * @param description the description of what the event will do
+     * @param warning the warning message to display to the user if the event will cause data loss or other impacting change
      * @param resource the resource that owns the event (host, cluster, etc)
      * @param approveMethod the method to invoke when approving the event
      * @param approveParameters the parameters to pass to the approve method
@@ -59,6 +60,7 @@ public class EventUtil {
      * @param declineParameters the parameters to pass to the decline method
      */
     public static void createActionableEvent(DbClient dbClient, EventCode eventCode, URI tenant, String name, String description,
+            String warning,
             DataObject resource, String approveMethod, Object[] approveParameters,
             String declineMethod, Object[] declineParameters) {
         ActionableEvent duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId());
@@ -67,6 +69,7 @@ public class EventUtil {
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());
             duplicateEvent.setDescription(description);
+            duplicateEvent.setWarning(warning);
             setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
             dbClient.updateObject(duplicateEvent);
         } else {
@@ -75,13 +78,14 @@ public class EventUtil {
             event.setId(URIUtil.createId(ActionableEvent.class));
             event.setTenant(tenant);
             event.setDescription(description);
+            event.setWarning(warning);
             event.setEventStatus(ActionableEvent.Status.pending.name());
             event.setResource(new NamedURI(resource.getId(), resource.getLabel()));
             setEventMethods(event, approveMethod, approveParameters, declineMethod, declineParameters);
             event.setLabel(name);
             dbClient.createObject(event);
             log.info("Created Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: "
-                    + event.getDescription()
+                    + event.getDescription() + " Warning: " + event.getWarning()
                     + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                     + event.getEventCode()
                     + " Approve Method: " + approveMethod
@@ -97,13 +101,15 @@ public class EventUtil {
      * @param tenant the tenant that owns the event
      * @param name the name of the event
      * @param description the description of what the event will do
+     * @param warning the warning message to display to the user if the event will cause data loss or other impacting change
      * @param resource the resource that owns the event (host, cluster, etc)
      * @param approveMethod the method to invoke when approving the event
      * @param approveParameters the parameters to pass to the approve method
      */
     public static void createActionableEvent(DbClient dbClient, EventCode eventCode, URI tenant, String name, String description,
+            String warning,
             DataObject resource, String approveMethod, Object[] approveParameters) {
-        createActionableEvent(dbClient, eventCode, tenant, name, description,
+        createActionableEvent(dbClient, eventCode, tenant, name, description, warning,
                 resource, approveMethod, approveParameters, null, null);
     }
 
@@ -137,7 +143,7 @@ public class EventUtil {
         log.info("Deleting actionable events for resource " + resourceId);
         for (ActionableEvent event : events) {
             log.info("Deleting Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: "
-                    + event.getDescription()
+                    + event.getDescription() + " Warning: " + event.getWarning()
                     + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                     + event.getEventCode());
             dbClient.markForDeletion(event);

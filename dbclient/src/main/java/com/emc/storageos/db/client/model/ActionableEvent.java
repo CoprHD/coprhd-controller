@@ -17,6 +17,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private byte[] approveMethod;
     private byte[] declineMethod;
     private String eventCode;
+    private String warning;
 
     public enum Status {
         pending, approved, declined
@@ -30,6 +31,16 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setDescription(String description) {
         this.description = description;
         setChanged("description");
+    }
+
+    @Name("warning")
+    public String getWarning() {
+        return warning;
+    }
+
+    public void setWarning(String warning) {
+        this.warning = warning;
+        setChanged("warning");
     }
 
     @Name("approveMethod")

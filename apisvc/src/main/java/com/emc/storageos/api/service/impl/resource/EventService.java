@@ -115,6 +115,7 @@ public class EventService extends TaggedResource {
         _dbClient.markForDeletion(event);
         _log.info(
                 "Deleting Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Warning: " + event.getWarning()
                         + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                         + event.getEventCode());
         return Response.ok().build();
@@ -133,6 +134,7 @@ public class EventService extends TaggedResource {
 
         _log.info(
                 "Approving Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Warning: " + event.getWarning()
                         + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                         + event.getEventCode());
 
@@ -560,6 +562,7 @@ public class EventService extends TaggedResource {
 
         _log.info(
                 "Declining Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Warning: " + event.getWarning()
                         + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                         + event.getEventCode());
 
@@ -712,6 +715,7 @@ public class EventService extends TaggedResource {
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setEventCode(from.getEventCode());
+        to.setWarning(from.getWarning());
         DbObjectMapper.mapDataObjectFields(from, to);
         return to;
     }

@@ -7,18 +7,38 @@ package com.emc.storageos.db.server;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
+import java.net.InetSocketAddress;
 import java.util.UUID;
 
 import org.apache.cassandra.serializers.UTF8Serializer;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
@@ -26,7 +46,6 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.client.model.Volume;
-
 
 public class AtomicBatchTest extends DbsvcTestBase{
     
@@ -301,5 +320,42 @@ public class AtomicBatchTest extends DbsvcTestBase{
         assertEquals(row.getString("key"), key);
         assertEquals(row.getString("column1"), schemaColumn);
         assertEquals(UTF8Serializer.instance.deserialize(row.getBytes("value")), versions);
+    }
+    
+    @Test
+    public void testRetryFailedWriteWithLocalQuorum() {
+        DbClientContext mockContext = mock(DbClientContext.class);
+        Session session = mock(Session.class);
+        PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        BoundStatement bindStatement = mock(BoundStatement.class);
+        
+        doReturn(session).when(mockContext).getSession();
+        doReturn(ConsistencyLevel.EACH_QUORUM).when(mockContext).getWriteConsistencyLevel();
+        doCallRealMethod().when(mockContext).setWriteConsistencyLevel(any(ConsistencyLevel.class));
+        doReturn(preparedStatement).when(mockContext).getPreparedStatement(anyString());
+        doReturn(bindStatement).when(preparedStatement).bind();
+        
+        Mockito.when(session.execute(any(BatchStatement.class))).thenAnswer(new Answer() {
+            
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                BatchStatement batch = (BatchStatement)args[0];
+                if (batch.getConsistencyLevel() == ConsistencyLevel.EACH_QUORUM) {
+                    throw new ConnectionException(new InetSocketAddress("localhost", 80), "message");
+                }
+                
+                assertEquals(batch.getConsistencyLevel(), ConsistencyLevel.LOCAL_QUORUM);
+                return null;
+            }
+            });
+        
+        RowMutator rowMutator = new RowMutator(mockContext, true);
+        rowMutator.execute();
+        
+        verify(session, times(2)).execute(any(BatchStatement.class));
+        
+        doCallRealMethod().when(mockContext).getWriteConsistencyLevel();
+        assertEquals(mockContext.getWriteConsistencyLevel(), ConsistencyLevel.LOCAL_QUORUM);
     }
 }

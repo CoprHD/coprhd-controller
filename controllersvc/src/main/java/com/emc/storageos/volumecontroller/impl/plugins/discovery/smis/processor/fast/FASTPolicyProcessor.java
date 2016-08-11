@@ -201,13 +201,14 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
             /**
              * Since START_HIGH_THEN_AUTO_TIER_POLICY is ViPR created policy, no need to clean up
              */
-            if (!policyNames.contains(policyName) && !policyHasVolume(policyObject.getId())) {
+            if (!policyNames.contains(policyName) && !policyHasVolume(policyObject)) {
                 policyObject.setPolicyEnabled(false);
                 if (policyObject.getPools() != null) {
                     policyObject.getPools().clear();
                 } else {
                     _logger.info("Policy {} does not have pools", policyObject.getId());
                 }
+                _logger.info("Marking Policy {}({}) inactive as it is not discovered", policyName, policyObject.getId());
                 policyObject.setInactive(true);
                 _dbClient.updateObject(policyObject);
             }
@@ -218,14 +219,19 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
     /**
      * Checks if any volume has been created with this Policy.
      */
-    private boolean policyHasVolume(URI policyURI) {
-        URIQueryResultList volumeList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getAutoTieringPolicyVolumeConstraint(policyURI), volumeList);
-        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
-                volumeList, true);
-        if (volumeIterator.hasNext()) {
-            return true;
+    private boolean policyHasVolume(AutoTieringPolicy policyObject) {
+        // Look for volumes through pools as there is no relation index between Policy and Volume
+        if (policyObject.getPools() != null) {
+            for (String pool : policyObject.getPools()) {
+                URIQueryResultList volumeList = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getStoragePoolVolumeConstraint(URI.create(pool)), volumeList);
+                Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
+                        volumeList, true);
+                if (volumeIterator.hasNext()) {
+                    return true;
+                }
+            }
         }
         return false;
     }

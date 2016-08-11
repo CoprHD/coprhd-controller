@@ -421,12 +421,6 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(volume, BlockMirror.class, field);
         }
 
-        public static ContainmentConstraint getAutoTieringPolicyVolumeConstraint(URI policy) {
-            DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("autoTieringPolicyUri");
-            return new ContainmentConstraintImpl(policy, Volume.class, field);
-        }
-
         public static ContainmentConstraint getMatchedPoolVirtualPoolConstraint(URI pool) {
             DataObjectType doType = TypeMap.getDoType(VirtualPool.class);
             ColumnField field = doType.getColumnField("matchedPools");

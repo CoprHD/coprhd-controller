@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
@@ -220,7 +221,13 @@ public class Events extends Controller {
 
     public static void itemDetails(String id) {
         EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
-        render(details);
+        EventRestRep event = getViprClient().events().get(uri(id));
+        List<TaskResourceRep> tasks = Lists.newArrayList();
+        if (event != null && event.getTaskIds() != null) {
+            tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
+        }
+
+        render(details, event, tasks);
     }
 
     // "Suppressing Sonar violation of Field names should comply with naming convention"

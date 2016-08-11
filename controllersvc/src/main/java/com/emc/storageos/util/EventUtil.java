@@ -27,7 +27,8 @@ public class EventUtil {
         HOST_INITIATOR_ADD("102"),
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
-        HOST_VCENTER_CHANGE("105");
+        HOST_VCENTER_CHANGE("105"),
+        UNASSIGN_HOST_FROM_VCENTER("106");
 
         private String code;
 

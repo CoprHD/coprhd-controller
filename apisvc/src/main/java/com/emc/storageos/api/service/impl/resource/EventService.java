@@ -359,6 +359,20 @@ public class EventService extends TaggedResource {
         return toTask(initiator, taskId, op);
     }
 
+    /**
+     * Unassign host from a vCenter
+     * 
+     * @param hostId the host to unassign
+     * @return task for updating host
+     */
+    public TaskResourceRep hostVcenterUnassign(URI hostId) {
+        Host host = queryObject(Host.class, hostId, true);
+        host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+        host.setCluster(NullColumnValueGetter.getNullURI());
+        _dbClient.updateObject(host);
+        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), true);
+    }
+
     @SuppressWarnings("unused")
     public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         String result = "";

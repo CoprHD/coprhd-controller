@@ -3052,4 +3052,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateSnapshots();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidInitiatorName(URI initiatorURI, URI exportGroupURI);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidGroupOfInitiators(URI exportGroupURI, String nameList);
 }

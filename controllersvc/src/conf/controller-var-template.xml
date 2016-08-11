@@ -63,13 +63,9 @@
                 <value>ecs</value>
                 <value>ceph</value>
                 <value>externaldevice</value>
-<<<<<<< HEAD
                 <value>workflow</value>
-             </set>
-=======
                 <value>compute-system-orchestration</value>
             </set>
->>>>>>> master
         </property>
     </bean>
 

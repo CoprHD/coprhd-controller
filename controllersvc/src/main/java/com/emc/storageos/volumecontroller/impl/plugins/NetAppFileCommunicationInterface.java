@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.VFNetInfo;
+import com.iwave.ext.netapp.VFiler;
 import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
@@ -880,9 +882,28 @@ public class NetAppFileCommunicationInterface extends
                         .https(true).build();
 
         try {
-            // Retrieve all the qtree info.
-            List<Qtree> qtrees = netAppApi.listQtrees();
-            List<Quota> quotas;
+            
+            //Retrive vFilers 
+            List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
+            
+            List<Qtree> qtrees = new ArrayList<Qtree>();
+            List<Quota> quotas= new ArrayList<Quota>();
+            NetAppApi vFilerNetAppApi ;
+            
+            // Retrieve all the qtree info for all vFilers
+            for(VFilerInfo tempVFiler : vFilers){
+                vFilerNetAppApi = new NetAppApi.Builder(
+                        storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                        storageSystem.getUsername(), storageSystem.getPassword())
+                                .https(true).vFiler(tempVFiler.getName()).build();
+                
+                qtrees.addAll(vFilerNetAppApi.listQtrees());
+                quotas.addAll(vFilerNetAppApi.listQuotas());
+                
+            }
+            
+
+            
             try {// Currently there are no API's available to check the quota status in general
                 quotas = netAppApi.listQuotas();
             } catch (Exception e) {
@@ -892,7 +913,7 @@ public class NetAppFileCommunicationInterface extends
             if (quotas != null) {
                 Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
                 qtrees.forEach(qtree -> {
-                    if(!"".equals(qtree.getQtree())){
+                    if(!StringUtils.isEmpty(qtree.getQtree())){
                         qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
                     }
                 });

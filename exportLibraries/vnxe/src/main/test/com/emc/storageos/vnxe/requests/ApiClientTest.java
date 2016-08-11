@@ -38,9 +38,9 @@ import com.emc.storageos.vnxe.models.VNXeStorageTier;
 public class ApiClientTest {
     private static KHClient _client;
     private static VNXeApiClient apiClient;
-    private static String host = "losav164.lss.emc.com";
-    private static String userName = "srmqe";
-    private static String password = "SRMqe123!";
+    private static String host = EnvConfig.get("sanity", "unity.host");
+    private static String userName = EnvConfig.get("sanity", "unity.username");
+    private static String password = EnvConfig.get("sanity", "unity.password");
     private static int port = 443;
 
     @BeforeClass

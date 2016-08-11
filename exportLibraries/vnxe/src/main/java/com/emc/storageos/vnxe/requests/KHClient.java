@@ -61,7 +61,7 @@ public class KHClient {
 
     public KHClient(String host, int port, String username, String password, ApacheHttpClientHandler clientHandle, boolean isUnity) {
         _client = new ApacheHttpClient(clientHandle);
-        _client.addFilter(new LoggingFilter(System.out));
+        //_client.addFilter(new LoggingFilter(System.out));
         _client.addFilter(new HTTPBasicAuthFilter(username, password));
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), port));
 

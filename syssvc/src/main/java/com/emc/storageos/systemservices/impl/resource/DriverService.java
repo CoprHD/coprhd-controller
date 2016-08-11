@@ -80,7 +80,7 @@ public class DriverService {
         driver.close();
         os.close();
         // set target info
-        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getNodeId()).toString();
+        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
         List<String> drivers = coordinator.getTargetInfo(DriverInfo.class).getDrivers();
         drivers.add(name);
         DriverInfo info = new DriverInfo(localNode, drivers);

@@ -357,7 +357,8 @@ public class ExportGroupService extends TaskResourceService {
         if (!CollectionUtils.isEmpty(blockObjectURIs)) {
             for (URI boURI : blockObjectURIs) {
                 BlockObject bo = BlockObject.fetch(_dbClient, boURI);
-                if (bo == null || bo.getInactive() || NullColumnValueGetter.isNullValue(bo.getNativeId())
+                ArgValidator.checkEntity(bo, boURI, false);
+                if (NullColumnValueGetter.isNullValue(bo.getNativeId())
                         || NullColumnValueGetter.isNullValue(bo.getNativeGuid())) {
                     throw APIException.badRequests.nativeIdCannotBeNull(boURI);
                 }

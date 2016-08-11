@@ -17,7 +17,7 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
     public static final String NON_FAST_POLICY = "NonFast";
     public static final String BANDWIDTH = "bw";
     public static final String IOPS = "iops";
-    public static final String COMP = "Compression";
+    public static final String COMP = "Comp";
 
     private String autoTierPolicyName;
     private StorageSystem storage;
@@ -110,7 +110,7 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
         }
 
         if (getCompression()) {
-            policyName += "_" + COMP + getCompression();
+            policyName += "_" + COMP;
         }
 
         return policyName;
@@ -130,7 +130,7 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
         }
 
         if (getCompression()) {
-            policyName += "_" + COMP + getCompression();
+            policyName += "_" + COMP;
         }
 
         return policyName;

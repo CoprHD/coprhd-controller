@@ -55,7 +55,6 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
@@ -292,6 +291,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				}
 				pool.setSupportedRaidLevels(supportedRaidLevels);
 
+				if (currMember.getSDGrowth().getLDLayout().getDiskPatterns() == null) {
+					_log.warn("3PARDriver: Neglecting storage pool {} as there is no disk associated with it", currMember.getName());
+					continue;
+				}
 				Set<SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
 				for (int j = 0; j < currMember.getSDGrowth().getLDLayout().getDiskPatterns().size(); j++) {
 					switch (currMember.getSDGrowth().getLDLayout().getDiskPatterns().get(j).getDiskType()) {

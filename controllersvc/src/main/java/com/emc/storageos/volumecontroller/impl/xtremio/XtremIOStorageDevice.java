@@ -895,12 +895,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return new HashMap<String, Set<URI>>();
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         xtremioExportOperationHelper.refreshExportMask(storage, mask);
         return mask;
     }

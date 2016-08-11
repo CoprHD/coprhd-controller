@@ -787,7 +787,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
     }
 
@@ -798,7 +798,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      * (com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask)
      */
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 

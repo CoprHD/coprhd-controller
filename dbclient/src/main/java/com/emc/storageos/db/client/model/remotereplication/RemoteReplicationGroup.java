@@ -7,11 +7,13 @@ package com.emc.storageos.db.client.model.remotereplication;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.db.client.model.StringSet;
 
 @Cf("RemoteReplicationGroup")
 public class RemoteReplicationGroup extends DiscoveredDataObject {
@@ -25,6 +27,9 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     // Device label of this replication group.
     private String deviceLabel;
 
+    // Type of storage systems in this replication group.
+    private String storageSystemType;
+
     // Display name of this replication group (whem provisioned by the systemt).
     private String displayName;
 
@@ -36,6 +41,10 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
 
     // replication mode of this group
     String replicationMode;
+
+    // Element types for this replication group for which device supports replication link operations.
+    // Can be group only, pair only or both types.
+    private StringSet supportedReplicationLinkGranularity;
 
     // replication state of this group
     RemoteReplicationSet.ReplicationState replicationState;
@@ -64,6 +73,18 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     public void setReachable(final Boolean reachable) {
         this.reachable = reachable;
         setChanged("reachable");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("storageSystemType")
+    public String getStorageSystemType() {
+        return storageSystemType;
+    }
+
+
+    public void setStorageSystemType(String storageSystemType) {
+        this.storageSystemType = storageSystemType;
+        setChanged("storageSystemType");
     }
 
     @Name("deviceLabel")
@@ -148,4 +169,13 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("replicationSet");
     }
 
+    @Name("supportedReplicationLinkGranularity")
+    public StringSet getSupportedReplicationLinkGranularity() {
+        return supportedReplicationLinkGranularity;
+    }
+
+    public void setSupportedReplicationLinkGranularity(StringSet supportedReplicationLinkGranularity) {
+        this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
+        setChanged("supportedReplicationLinkGranularity");
+    }
 }

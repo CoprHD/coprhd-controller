@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 public class RemoteReplicationSet extends DiscoveredDataObject {
 
     public enum ElementType {
+        REPLICATION_SET,
         REPLICATION_GROUP,
         REPLICATION_PAIR
     }

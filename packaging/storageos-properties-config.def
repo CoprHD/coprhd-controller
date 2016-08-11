@@ -2026,7 +2026,7 @@
     {
         key : "event_ttl",
         label : "Event Time To Live",
-        description : "Length of time in minutes that events should be kept. (Minimum 30 days)",
+        description : "Length of time in minutes that events should be kept. (Minimum 60 minutes)",
         type : "uint32",
         userConfigurable : true,
         userMutable : true,

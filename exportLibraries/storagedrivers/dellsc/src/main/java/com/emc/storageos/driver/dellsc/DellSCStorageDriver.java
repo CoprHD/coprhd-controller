@@ -27,10 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.dellsc.helpers.DellSCCloning;
+import com.emc.storageos.driver.dellsc.helpers.DellSCConnectionManager;
 import com.emc.storageos.driver.dellsc.helpers.DellSCConsistencyGroups;
 import com.emc.storageos.driver.dellsc.helpers.DellSCDiscovery;
 import com.emc.storageos.driver.dellsc.helpers.DellSCMirroring;
-import com.emc.storageos.driver.dellsc.helpers.DellSCPersistence;
 import com.emc.storageos.driver.dellsc.helpers.DellSCProvisioning;
 import com.emc.storageos.driver.dellsc.helpers.DellSCSnapshots;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
@@ -67,20 +67,19 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     static final String DRIVER_NAME = "dellscsystem";
     static final String DRIVER_VERSION = "1.0.0";
 
-    private DellSCPersistence persistence = new DellSCPersistence(DRIVER_NAME);
-    private DellSCProvisioning provisioningHelper = new DellSCProvisioning(persistence);
-    private DellSCSnapshots snapshotHelper = new DellSCSnapshots(persistence);
-    private DellSCConsistencyGroups cgHelper = new DellSCConsistencyGroups(persistence);
-    private DellSCDiscovery discoveryHelper = new DellSCDiscovery(DRIVER_NAME, DRIVER_VERSION, persistence);
-    private DellSCCloning cloneHelper = new DellSCCloning(persistence);
-    private DellSCMirroring mirrorHelper = new DellSCMirroring(persistence);
+    private DellSCProvisioning provisioningHelper = new DellSCProvisioning();
+    private DellSCSnapshots snapshotHelper = new DellSCSnapshots();
+    private DellSCConsistencyGroups cgHelper = new DellSCConsistencyGroups();
+    private DellSCDiscovery discoveryHelper = new DellSCDiscovery(DRIVER_NAME, DRIVER_VERSION);
+    private DellSCCloning cloneHelper = new DellSCCloning();
+    private DellSCMirroring mirrorHelper = new DellSCMirroring();
 
     @Override
     public synchronized void setDriverRegistry(com.emc.storageos.storagedriver.Registry driverRegistry) {
         super.setDriverRegistry(driverRegistry);
 
         // Make sure our helper class gets updated with the right info
-        persistence.setDriverRegistry(driverRegistry);
+        DellSCConnectionManager.getInstance().setDriverRegistry(driverRegistry);
     }
 
     //
@@ -108,14 +107,15 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
     public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
         LOG.info("Validating storage provider connection.");
 
-        try (StorageCenterAPI api = StorageCenterAPI.openConnection(
-                storageProvider.getProviderHost(),
-                storageProvider.getPortNumber(),
-                storageProvider.getUsername(),
-                storageProvider.getPassword())) {
+        try {
+            DellSCConnectionManager.getInstance().getConnection(
+                    storageProvider.getProviderHost(),
+                    storageProvider.getPortNumber(),
+                    storageProvider.getUsername(),
+                    storageProvider.getPassword());
             LOG.info("Connection to {} validated", storageProvider.getProviderHost());
             return true;
-        } catch (Exception e) {
+        } catch (StorageCenterAPIException e) {
             LOG.error(String.format("Failed to connect to storage provider %s: %s",
                     storageProvider.getProviderHost(), e));
         }
@@ -150,7 +150,9 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
         String requestedType = type.getSimpleName();
         LOG.info("Request for {} object {} from {}", requestedType, objectId, storageSystemId);
         DellSCUtil util = DellSCUtil.getInstance();
-        try (StorageCenterAPI api = persistence.getSavedConnection(storageSystemId)) {
+        try {
+            StorageCenterAPI api = DellSCConnectionManager.getInstance().getConnection(storageSystemId);
+
             if (requestedType.equals(StorageVolume.class.getSimpleName())) {
                 ScVolume volume = api.getVolume(objectId);
                 Map<ScReplayProfile, List<String>> cgInfo = util.getGCInfo(api, storageSystemId);

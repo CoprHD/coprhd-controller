@@ -45,16 +45,14 @@ public class DellSCConsistencyGroups {
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCConsistencyGroups.class);
 
-    private DellSCPersistence persistence;
+    private DellSCConnectionManager connectionManager;
     private DellSCUtil util;
 
     /**
      * Initialize the instance.
-     * 
-     * @param persistence The persistence interface.
      */
-    public DellSCConsistencyGroups(DellSCPersistence persistence) {
-        this.persistence = persistence;
+    public DellSCConsistencyGroups() {
+        this.connectionManager = DellSCConnectionManager.getInstance();
         this.util = DellSCUtil.getInstance();
     }
 
@@ -67,7 +65,8 @@ public class DellSCConsistencyGroups {
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup volumeConsistencyGroup) {
         DellSCDriverTask task = new DellSCDriverTask("createConsistencyGroup");
         String ssn = volumeConsistencyGroup.getStorageSystemId();
-        try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(ssn);
             ScReplayProfile cg = api.createConsistencyGroup(
                     ssn,
                     volumeConsistencyGroup.getDisplayName());
@@ -98,7 +97,8 @@ public class DellSCConsistencyGroups {
         Map<String, List<ScReplayProfile>> consistencyGroups = new HashMap<>();
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
-            try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(ssn);
                 String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
                 if (cgID == null) {
                     throw new DellSCDriverException(
@@ -143,7 +143,8 @@ public class DellSCConsistencyGroups {
         Map<String, List<ScReplayProfile>> consistencyGroups = new HashMap<>();
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
-            try (StorageCenterAPI api = persistence.getSavedConnection(ssn)) {
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(ssn);
                 String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
                 if (cgID == null) {
                     // Easy to remove from nothing
@@ -181,7 +182,8 @@ public class DellSCConsistencyGroups {
      */
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup volumeConsistencyGroup) {
         DellSCDriverTask task = new DellSCDriverTask("deleteVolume");
-        try (StorageCenterAPI api = persistence.getSavedConnection(volumeConsistencyGroup.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(volumeConsistencyGroup.getStorageSystemId());
             api.deleteConsistencyGroup(volumeConsistencyGroup.getNativeId());
             task.setStatus(TaskStatus.READY);
         } catch (StorageCenterAPIException | DellSCDriverException dex) {
@@ -204,7 +206,8 @@ public class DellSCConsistencyGroups {
             List<VolumeSnapshot> snapshots,
             List<CapabilityInstance> capabilities) {
         DellSCDriverTask task = new DellSCDriverTask("createCGSnapshot");
-        try (StorageCenterAPI api = persistence.getSavedConnection(volumeConsistencyGroup.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(volumeConsistencyGroup.getStorageSystemId());
             ScReplay[] replays = api.createConsistencyGroupSnapshots(volumeConsistencyGroup.getNativeId());
             if (populateCgSnapshotInfo(snapshots, replays)) {
                 task.setStatus(TaskStatus.READY);

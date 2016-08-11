@@ -42,15 +42,13 @@ public class DellSCCloning {
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCCloning.class);
 
-    private DellSCPersistence persistence;
+    private DellSCConnectionManager connectionManager;
 
     /**
      * Initialize the instance.
-     * 
-     * @param persistence The persistence interface.
      */
-    public DellSCCloning(DellSCPersistence persistence) {
-        this.persistence = persistence;
+    public DellSCCloning() {
+        this.connectionManager = DellSCConnectionManager.getInstance();
     }
 
     /**
@@ -66,8 +64,8 @@ public class DellSCCloning {
         int createCount = 0;
 
         for (VolumeClone clone : clones) {
-            try (StorageCenterAPI api = persistence.getSavedConnection(clone.getStorageSystemId())) {
-
+            try {
+                StorageCenterAPI api = connectionManager.getConnection(clone.getStorageSystemId());
                 ScReplay replay = null;
 
                 if (clone.getSourceType() == SourceType.SNAPSHOT) {
@@ -119,7 +117,8 @@ public class DellSCCloning {
         LOG.info("Deleting volume clone {}", clone);
         DellSCDriverTask task = new DellSCDriverTask("deleteVolumeClone");
 
-        try (StorageCenterAPI api = persistence.getSavedConnection(clone.getStorageSystemId())) {
+        try {
+            StorageCenterAPI api = connectionManager.getConnection(clone.getStorageSystemId());
             api.deleteVolume(clone.getNativeId());
             task.setStatus(TaskStatus.READY);
         } catch (StorageCenterAPIException | DellSCDriverException dex) {
@@ -141,6 +140,9 @@ public class DellSCCloning {
         LOG.info("Detaching volume clone");
 
         // Clones are not connected to the original volume, so already "detached".
+        // Potential future optimization: One volume can only have so many snapshots.
+        // We could use this to perform a migrate operation to a new volume to make
+        // the clone completely independent of the source and reduce the snapshot count.
         DriverTask task = new DellSCDriverTask("detachVolumeClone");
         task.setStatus(TaskStatus.READY);
         return task;

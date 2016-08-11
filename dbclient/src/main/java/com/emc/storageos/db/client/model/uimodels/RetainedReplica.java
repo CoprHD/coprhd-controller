@@ -11,15 +11,15 @@ import com.emc.storageos.db.client.model.StringSet;
 /**
  * For recurring orders, we keep records of newly created resources to assist resource retention. 
  */
-@Cf("RetainedResources")
-public class RetainedResource extends DataObject {
+@Cf("RetainedReplica")
+public class RetainedReplica extends DataObject {
     public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
     public static final String RESOURCE_ID = "resourceId";
-    public static final String RETAINED_RESOURCE_IDS = "retainedResourceIds";
+    public static final String ASSOCIATED_REPLICA_IDS = "associatedReplicaIds";
     
     private URI scheduledEventId; // which scheduled events create the resource
     private URI resourceId;       // source volume or cg
-    private StringSet retainedResourceIds; // newly created snapshots or fullcopies for retention
+    private StringSet associatedReplicaIds; // newly created snapshots or fullcopies for retention
     
     @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)
     @Name(SCHEDULED_EVENT_ID)
@@ -42,14 +42,14 @@ public class RetainedResource extends DataObject {
         setChanged(RESOURCE_ID);
     }
     
-    @Name(RETAINED_RESOURCE_IDS)
-    public StringSet getRetainedResourceIds() {
-        return retainedResourceIds;
+    @Name(ASSOCIATED_REPLICA_IDS)
+    public StringSet getAssociatedReplicaIds() {
+        return associatedReplicaIds;
     }
     
-    public void setRetainedResourceIds(StringSet retainedResourceIds) {
-        this.retainedResourceIds = retainedResourceIds;
-        setChanged(RETAINED_RESOURCE_IDS);
+    public void setAssociatedReplicaIds(StringSet associatedReplicaIds) {
+        this.associatedReplicaIds = associatedReplicaIds;
+        setChanged(ASSOCIATED_REPLICA_IDS);
     }
     
 }

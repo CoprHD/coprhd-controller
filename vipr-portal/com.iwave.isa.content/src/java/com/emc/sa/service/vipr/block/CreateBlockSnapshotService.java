@@ -28,10 +28,11 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshotSession;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
-import com.emc.storageos.db.client.model.uimodels.RetainedResource;
+import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -39,7 +40,6 @@ import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.OrderCreateParam;
-import com.sun.org.apache.xml.internal.security.utils.Base64;
 
 @Service("CreateBlockSnapshot")
 public class CreateBlockSnapshotService extends ViPRService {
@@ -70,7 +70,7 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     private List<BlockObjectRestRep> volumes;
     
-    private static Charset UTF_8 = Charset.forName("UTF-8");
+    
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
@@ -101,7 +101,7 @@ public class CreateBlockSnapshotService extends ViPRService {
     	Tasks<? extends DataObjectRestRep> tasks = null;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                checkRetainedSnapshots(volume.getId().toString());
+                checkAndPurgeObsoleteSnapshots(volume.getId().toString());
                 
                 if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
@@ -111,11 +111,11 @@ public class CreateBlockSnapshotService extends ViPRService {
                     
                 }
                 addAffectedResources(tasks);
-                addRetainedResources(volume.getId().toString(), tasks);
+                addRetainedReplicas(volume.getId(), tasks);
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
-                checkRetainedSnapshots(consistencyGroupId);
+                checkAndPurgeObsoleteSnapshots(consistencyGroupId);
                 
                 if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = ConsistencyUtils.createSnapshotSession(uri(consistencyGroupId), nameParam, 
@@ -124,117 +124,42 @@ public class CreateBlockSnapshotService extends ViPRService {
                     tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
                 }
                 addAffectedResources(tasks);
-                addRetainedResources(consistencyGroupId, tasks);
+                addRetainedReplicas(uri(consistencyGroupId), tasks);
             }
         }
     }
 
-    protected boolean isRetentionRequired() {
-        ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
-        if (event == null) {
-            return false;
-        }
-        try {
-            OrderCreateParam param = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
-            
-            String additionalScheduleInfo = param.getAdditionalScheduleInfo();
-            if (additionalScheduleInfo == null) {
-                return false;
-            }
-        } catch (Exception ex) {
-            error("Unexpected exception when checking scheduler retention", ex);
-            return false;
-        }
-        return true;
-    }
-        
-    private void addRetainedResources(String sourceResourceId, Tasks<? extends DataObjectRestRep> tasks) {
+    /**
+     * Check retention policy and delete obsolete snapshots if necessary
+     * 
+     * @param volumeOrCgId - volume id or consistency group id 
+     */
+    private void checkAndPurgeObsoleteSnapshots(String volumeOrCgId) {
         if (!isRetentionRequired()) {
             return;
         }
-        if (tasks == null) {
+        RetainedReplica replica = findObsoleteReplica(volumeOrCgId);
+        if (replica == null) {
             return;
         }
-        
-        ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
-        RetainedResource retention = new RetainedResource();
-        retention.setScheduledEventId(event.getId());
-        retention.setResourceId(uri(sourceResourceId));
-        StringSet retainedResource = new StringSet();
-        retention.setRetainedResourceIds(retainedResource);
-        
-    	for (Task<? extends DataObjectRestRep> task : tasks.getTasks()) {
-    	    if (task.getAssociatedResources() != null
-                    && !task.getAssociatedResources().isEmpty()) {
-                for (URI id : ResourceUtils.refIds(task.getAssociatedResources())) {
-                    retainedResource.add(id.toString());
-                    info("Add task associated resource %s to scheduled event %s", id, event.getId());
-                }
-            } else {
-    	        URI resourceId = task.getResourceId();
-                if (resourceId != null) {
-                	retainedResource.add(resourceId.toString());
-                	info("Add task resource %s to scheduled event %s", resourceId, event.getId());
-                }
-            }
-        }
-    	
-    	getModelClient().save(retention);
-    }
-    
-    private void checkRetainedSnapshots(String resourceId) {
-        if (!isRetentionRequired()) {
-            return;
-        }
-        RetainedResource retainedResource = findObsoleteResource(resourceId);
-    	info("Deactivating block snapshot %s since it exceeds max snapshots allowed", retainedResource.getId());
-    	for (String obsoleteResourceId : retainedResource.getRetainedResourceIds()) {
+    	for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
+    	    info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
+
         	if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-        	    execute(new DeactivateBlockSnapshot(uri(obsoleteResourceId), VolumeDeleteTypeEnum.FULL));
+        	    if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+        	        execute(new DeactivateBlockSnapshotSession(uri(obsoleteSnapshotId)));
+        	    } else {
+        	        execute(new DeactivateBlockSnapshot(uri(obsoleteSnapshotId), VolumeDeleteTypeEnum.FULL));
+        	    }
         	} else {
-        	    ConsistencyUtils.removeSnapshot(uri(resourceId), uri(obsoleteResourceId));
+        	    if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+        	        ConsistencyUtils.removeSnapshotSession(uri(volumeOrCgId), uri(obsoleteSnapshotId));
+        	    } else {
+        	        ConsistencyUtils.removeSnapshot(uri(volumeOrCgId), uri(obsoleteSnapshotId));
+        	    }
         	}
     	}
-    	getModelClient().delete(retainedResource);
-        info("Remove block snapshot %s from retention list of scheduled event", retainedResource.getId());
+    	getModelClient().delete(replica);
     }
     
-    private RetainedResource findObsoleteResource(String resourceId) {
-        ScheduledEvent event = ExecutionUtils.currentContext().getScheduledEvent();
-        Integer maxNumOfCopies = Integer.MAX_VALUE;
-        try {
-            OrderCreateParam param = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(event.getOrderCreationParam().getBytes(UTF_8)));
-            
-            String additionalScheduleInfo = param.getAdditionalScheduleInfo();
-            maxNumOfCopies = Integer.parseInt(additionalScheduleInfo);
-        } catch (Exception ex) {
-            error("Unexpected exception when checking scheduler retention", ex);
-            return null;
-        }
-        
-        ModelClient modelClient = getModelClient();
-        List<NamedElement> retentionList = modelClient.findBy(RetainedResource.class, "scheduledEventId", event.getId());
-        
-        List<RetainedResource> retentions = new ArrayList<RetainedResource>();
-        for (NamedElement uri : retentionList) {
-            RetainedResource retention = modelClient.findById(RetainedResource.class, uri.getId());
-            if (retention.getResourceId().toString().equals(resourceId)) {
-                retentions.add(retention);
-            }
-        }
-        if (retentions.size() >= maxNumOfCopies) {
-            // find the oldest one to remove
-            Calendar oldest = Calendar.getInstance();
-            RetainedResource oldestResource = null;
-            for(RetainedResource resource : retentions) {
-                Calendar creationTime = resource.getCreationTime();
-                if (creationTime.before(oldest)) {
-                    oldestResource = resource;
-                    oldest = creationTime;
-                }
-            }
-            return oldestResource;
-        }
-        return null;
-    }
 }

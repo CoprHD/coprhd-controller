@@ -47,6 +47,7 @@ import com.emc.storageos.storagedriver.model.StoragePool.Protocols;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
+import com.emc.storageos.storagedriver.model.StorageSystem.SupportedReplication;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
@@ -412,6 +413,12 @@ public class DellSCUtil {
 
         storageSystem.setDeviceLabel(sc.scName);
         storageSystem.setDisplayName(sc.name);
+
+        // Make sure it's reported that we support CGs
+        Set<SupportedReplication> supportedReplications = new HashSet<>();
+        supportedReplications.add(SupportedReplication.elementReplica);
+        supportedReplications.add(SupportedReplication.groupReplica);
+        storageSystem.setSupportedReplications(supportedReplications);
 
         // Check the supported protocols for this array
         List<String> protocols = getSupportedProtocols(api, sc.scSerialNumber);

@@ -51,7 +51,7 @@ public class StorageSystemTypesInitUtils {
 
     private static final Map<META_TYPE, List<String>> SYSTEMS_AND_PROVIDERS;
 
-    private static final List<String> SSL_ENABLE_TYPE_LIST = asList(VNX_BLOCK, VMAX, SMIS, SCALEIOAPI, VPLEX, VNX_FILE, VNXe, IBMXIV);
+    private static final List<String> SSL_ENABLE_TYPE_LIST = asList(VNX_BLOCK, VMAX, SMIS, SCALEIOAPI, VPLEX, VNX_FILE, UNITY, VNXe, IBMXIV);
     private static final List<String> MDM_ENABLE_LIST = asList(SCALEIO, SCALEIOAPI);
     private static final List<String> ONLY_MDM_LIST = asList(SCALEIOAPI);
     private static final List<String> ELEMENT_MANAGER_LIST = asList(SCALEIO);
@@ -68,8 +68,7 @@ public class StorageSystemTypesInitUtils {
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_PROVIDER, asList(SMIS, HITACHI_PROVIDER, CINDER,
-                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH));
-        SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE_PROVIDER, asList(SCALEIOAPI));
+                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, SCALEIOAPI));
 
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");

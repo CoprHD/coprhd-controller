@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -48,6 +49,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -277,7 +279,7 @@ public class EventService extends TaggedResource {
                     }
 
                     if (update) {
-                        result += "Add initiator to export group " + export.getLabel() + " (" + export.getId() + ")";
+                        result += getVolumes(export.getVolumes(), true);
                     }
                 }
             }
@@ -328,12 +330,10 @@ public class EventService extends TaggedResource {
                 List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
                 // Only update if the list as changed
                 if (updatedInitiators.remove(initiatorId)) {
-                    result += "Remove initiator from export group " + export.getLabel() + " (" + export.getId() + ")\n";
+                    result += getVolumes(export.getVolumes(), false);
                 }
             }
         }
-
-        result += "Delete initiator\n";
 
         return result;
     }
@@ -381,12 +381,21 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
+    public String hostVcenterUnassignDetails(URI hostId) {
+        String result = "";
+        Host host = queryObject(Host.class, hostId, true);
+        if (host != null) {
+            result += hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), true);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unused")
     public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         String result = "";
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
-            result += "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
             result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
         }
         return result;
@@ -416,7 +425,6 @@ public class EventService extends TaggedResource {
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
-            result += "Assign host " + host.getLabel() + " to datacenter " + datacenter.getLabel() + "\n";
             result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
         }
         return result;
@@ -440,6 +448,14 @@ public class EventService extends TaggedResource {
         return hostClusterChange(hostId, clusterId, isVcenter);
     }
 
+    private String getVolumes(StringMap volumes, boolean gainAccess) {
+        String result = "Host will " + (gainAccess ? " gain " : " lose ") + "access to volumes: ";
+        for (Entry<String, String> volume : volumes.entrySet()) {
+            result += volume.getKey() + " ";
+        }
+        return result;
+    }
+
     @SuppressWarnings("unused")
     public String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
         String result = "";
@@ -449,8 +465,6 @@ public class EventService extends TaggedResource {
         }
         URI oldClusterURI = host.getCluster();
 
-        result += "Assign host to cluster " + clusterId;
-
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
         if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -459,7 +473,7 @@ public class EventService extends TaggedResource {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result += "Remove host from export " + export.getLabel() + " (" + export.getId() + ")\n";
+                    result += getVolumes(export.getVolumes(), false);
                 }
             }
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -468,7 +482,7 @@ public class EventService extends TaggedResource {
             // Non-clustered host being added to a cluster
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result += "Add host to export " + eg.getLabel();
+                result += getVolumes(eg.getVolumes(), true);
             }
 
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -480,12 +494,12 @@ public class EventService extends TaggedResource {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result += "Remove host from export " + export.getLabel() + " (" + export.getId() + ")\n";
+                    result += getVolumes(export.getVolumes(), false);
                 }
             }
             exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result += "Add host to export " + eg.getLabel() + " (" + eg.getId() + ")\n";
+                result += getVolumes(eg.getVolumes(), true);
             }
         }
 

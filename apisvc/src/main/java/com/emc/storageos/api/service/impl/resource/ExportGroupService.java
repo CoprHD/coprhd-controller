@@ -36,6 +36,7 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -269,7 +270,13 @@ public class ExportGroupService extends TaskResourceService {
                 addVolumeURIs.add(volParam.getId());
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
+            /**
+             * Validate ExportGroup add volume's nativeId/nativeGuid
+             */
+            validateBlockObjectNativeId(addVolumeURIs);
         }
+
+
 
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
@@ -339,6 +346,24 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
 
         return taskRes;
+    }
+
+    /**
+     * Validates the given list of BlockObject's are having valid nativeId/nativeGuid
+     * 
+     * @param blockObjectURIs Block Object's URI list
+     */
+    private void validateBlockObjectNativeId(List<URI> blockObjectURIs) {
+        if (!CollectionUtils.isEmpty(blockObjectURIs)) {
+            for (URI boURI : blockObjectURIs) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boURI);
+                ArgValidator.checkEntity(bo, boURI, false);
+                if (NullColumnValueGetter.isNullValue(bo.getNativeId())
+                        || NullColumnValueGetter.isNullValue(bo.getNativeGuid())) {
+                    throw APIException.badRequests.nativeIdCannotBeNull(boURI);
+                }
+            }
+        }
     }
 
     /**
@@ -1373,6 +1398,23 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
         validateInitiatorsInExportGroup(exportGroup);
+        /**
+         * ExportGroup Add/Remove volume should have valid nativeId
+         */
+        List<URI> boURIList = new ArrayList<>();
+        if (param.getVolumes() != null) {
+            if (param.getVolumes().getAdd() != null) {
+                for (VolumeParam volParam : param.getVolumes().getAdd()) {
+                    boURIList.add(volParam.getId());
+                }
+            }
+            if (param.getVolumes().getRemove() != null) {
+                for (URI volURI : param.getVolumes().getRemove()) {
+                    boURIList.add(volURI);
+                }
+            }
+        }
+        validateBlockObjectNativeId(boURIList);
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters

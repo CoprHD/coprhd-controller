@@ -81,7 +81,9 @@ public class OrderMapper {
                 to.getParameters().add(parameter);
             }
         }
-        to.setScheduledEventId(from.getScheduledEventId());
+        if (from.getScheduledEventId() != null) {
+            to.setScheduledEventId(from.getScheduledEventId());
+        }
         return to;
     }
 

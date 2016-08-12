@@ -236,10 +236,11 @@ public class DellSCConsistencyGroups {
             boolean found = false;
 
             for (ScReplay replay : replays) {
-                if (snapshot.getParentId().equals(replay.parent.instanceId)) {
+                if (replay.parent.instanceId.startsWith(snapshot.getParentId())) {
                     // Found match, populate the info
                     util.getVolumeSnapshotFromReplay(replay, snapshot);
                     found = true;
+                    break;
                 }
             }
 

@@ -97,15 +97,12 @@ public class DellSCProvisioning {
             try {
                 StorageCenterAPI api = connectionManager.getConnection(ssn);
 
-                // See if we need to add to a consistency group
-                String cgID = util.findCG(api, ssn, volume.getConsistencyGroup(), consistencyGroups);
-
                 ScVolume scVol = api.createVolume(
                         ssn,
                         volume.getDisplayName(),
                         volume.getStoragePoolId(),
                         SizeUtil.byteToGig(volume.getRequestedCapacity()),
-                        cgID);
+                        volume.getConsistencyGroup());
 
                 volume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
                 volume.setAllocatedCapacity(0L); // New volumes don't allocate any space

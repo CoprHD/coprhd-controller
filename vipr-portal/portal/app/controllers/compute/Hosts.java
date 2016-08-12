@@ -36,6 +36,7 @@ import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostParam;
 import com.emc.storageos.model.host.HostRestRep;
@@ -68,6 +69,7 @@ public class Hosts extends ViprResourceController {
     protected static final String UNKNOWN = "Hosts.unknown";
     protected static final String MODEL_NAME = "Host";
     protected static final String DETACH_STORAGE = "Hosts.detachStorage";
+    protected static final String DISCOVER_ARRAY_AFFINITY = "Hosts.arrayAffinityDiscoveryInitiated";
 
     public static final String CONNECTION_FAILED_MSG = "host.validation.connection.failed";
 
@@ -183,6 +185,14 @@ public class Hosts extends ViprResourceController {
             HostUtils.deactivate(id, detachStorage);
         }
         flash.success(MessagesUtils.get(DELETED));
+        list();
+    }
+
+    @FlashException("list")
+    public static void discoverArrayAffinity(@As(",") String[] ids) {
+        ArrayAffinityHostParam param = new ArrayAffinityHostParam(uris(ids));
+        HostUtils.discoverHostArrayAffinity(param);
+        flash.success(MessagesUtils.get(DISCOVER_ARRAY_AFFINITY));
         list();
     }
 

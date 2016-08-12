@@ -1092,13 +1092,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public Map<String, Set<URI>> findExportMasks(final StorageSystem storage,
-            final List<String> initiatorNames, final boolean mustHaveAllPorts) {
+            final List<String> initiatorNames, final boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
     }
 
     @Override
-    public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) {
+    public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 

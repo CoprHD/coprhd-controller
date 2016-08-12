@@ -616,7 +616,7 @@ $(document).ready(function() {
       </div>
     </div>
     
-    <div class="form-actions" >
+    <div class="form-actions" ng-controller="wizardController">
       <a id="back"  href="#" class="btn btn-default" onclick="return buttonClicked(this, backClicked, event);">#{icon 'arrow-left'/} &{'button.back'}</a>
       <a id="next" href="#" class="btn btn-default" onclick="return buttonClicked(this, nextClicked, event);">#{icon 'arrow-right'/} &{'button.next'}</a>
       <button id="finish" ng-click="completeStep(2);" type="submit" class="btn btn-primary">#{icon 'check'/} &{'button.finish'}</button>

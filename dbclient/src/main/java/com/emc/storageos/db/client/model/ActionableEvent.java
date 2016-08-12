@@ -7,7 +7,7 @@ package com.emc.storageos.db.client.model;
 import java.io.Serializable;
 import java.net.URI;
 
-@Cf("Event")
+@Cf("ActionableEvent")
 public class ActionableEvent extends DataObject implements TenantResource {
 
     private String description;

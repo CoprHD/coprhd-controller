@@ -1513,7 +1513,7 @@ public class RPHelper {
         String standbyInternalSite = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume)) {
+            if (isMetroPointVolume(dbClient, sourceVolume) && (null != sourceVolume.getAssociatedVolumes())) {
                 // Check the associated volumes to find the non-matching internal site and return that one.
                 for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
@@ -1686,18 +1686,23 @@ public class RPHelper {
             // If this is a VPLEX volume, update the virtual pool references to the old vpool on
             // the backing volumes if they were set to the new vpool.
             if (RPHelper.isVPlexVolume(volume)) {
-                for (String associatedVolId : volume.getAssociatedVolumes()) {
-                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
-                            associatedVolume.setVirtualPool(oldVpool.getId());
-                            _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
-                                    associatedVolume.getLabel(),
-                                    oldVpool.getLabel()));
+                if (null == volume.getAssociatedVolumes()) {
+                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                            volume.forDisplay());
+                } else {
+                    for (String associatedVolId : volume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {
+                            if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                    && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                                associatedVolume.setVirtualPool(oldVpool.getId());
+                                _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
+                                        associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                            }
+                            associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.updateObject(associatedVolume);
                         }
-                        associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                        dbClient.updateObject(associatedVolume);
                     }
                 }
             }
@@ -1742,7 +1747,7 @@ public class RPHelper {
             }
 
             // Rollback any VPLEX backing volumes too
-            if (RPHelper.isVPlexVolume(volume)) {
+            if (RPHelper.isVPlexVolume(volume) && (null != volume.getAssociatedVolumes())) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {

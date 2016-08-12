@@ -6,10 +6,23 @@ package com.emc.storageos.hp3par.connection;
 
 import java.io.IOException;
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
@@ -34,9 +47,15 @@ import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
 import com.emc.storageos.hp3par.utils.CompleteError;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandler;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
+import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 
 /*
  * HP 3PAR API client factory
@@ -55,7 +74,6 @@ public class HP3PARApiFactory {
     private int _socketConnTimeout = DEFAULT_SOCKET_CONN_TIMEOUT;
     private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
-    private ApacheHttpClientHandler _clientHandler;
     private ConcurrentMap<String, HP3PARApi> _clientMap;
     private MultiThreadedHttpConnectionManager _connectionManager;
 
@@ -128,7 +146,6 @@ public class HP3PARApiFactory {
                 return false;
             }
         });
-        _clientHandler = new ApacheHttpClientHandler(client);
 
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 8080));
     }
@@ -138,6 +155,51 @@ public class HP3PARApiFactory {
      */
     protected void shutdown() {
         _connectionManager.shutdown();
+    }
+    
+    
+    public ClientConfig configureClient() throws NoSuchAlgorithmException,
+    KeyManagementException {
+
+    	TrustManager[] certs = new TrustManager[] { new X509TrustManager() {
+    		@Override
+    		public X509Certificate[] getAcceptedIssuers() {
+    			return null;
+    		}
+
+    		@Override
+    		public void checkServerTrusted(X509Certificate[] chain,
+    				String authType) throws CertificateException {
+    		}
+
+    		@Override
+    		public void checkClientTrusted(X509Certificate[] chain,
+    				String authType) throws CertificateException {
+    		}
+    	} };
+    	SSLContext ctx = null;
+    	try {
+    		ctx = SSLContext.getInstance("TLS");
+    		ctx.init(null, certs, new SecureRandom());
+    	} catch (java.security.GeneralSecurityException ex) {
+    	}
+    	HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+
+    	ClientConfig config = new DefaultClientConfig();
+    	try {
+    		config.getProperties().put(
+    				HTTPSProperties.PROPERTY_HTTPS_PROPERTIES,
+    				new HTTPSProperties(new HostnameVerifier() {
+    					@Override
+    					public boolean verify(String hostname,
+    							SSLSession session) {
+    						return true;
+    					}
+    				}, ctx));
+    	} catch (Exception e) {
+    	}
+    	config.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+    	return config;
     }
     
     /**
@@ -156,9 +218,10 @@ public class HP3PARApiFactory {
             HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
             if (hp3parApi == null) {
                 _log.info("3PARDriver:getRESTClient1 hp3parApi null");
-                Client jerseyClient = new ApacheHttpClient(_clientHandler);
-                jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
-                RESTClient restClient = new RESTClient(jerseyClient);
+               
+                ClientHandler handler = new URLConnectionClientHandler();
+                Client connClient = new Client(handler,configureClient());
+                RESTClient restClient = new RESTClient(connClient);
                 hp3parApi = new HP3PARApi(endpoint, restClient, username, password);
                 _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);
             }
@@ -170,7 +233,7 @@ public class HP3PARApiFactory {
         }
     }
     
-    // Sample direct program
+ // Sample direct program
     public static void main(String[] args) {
         System.out.println("starting HP3PAR main");
         try {
@@ -215,5 +278,5 @@ public class HP3PARApiFactory {
             e.printStackTrace();
         }
    } //end main
-   
+    
 }

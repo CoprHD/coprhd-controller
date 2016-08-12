@@ -28,6 +28,13 @@
       select: "many"
     },
     
+    migrationSuspend:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },    
+
     displayJournals: {
       type: "assetType.vipr.displayJournals",
       initialValue: "no",

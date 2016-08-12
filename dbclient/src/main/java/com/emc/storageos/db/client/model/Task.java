@@ -4,19 +4,20 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.beans.Transient;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringTokenizer;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Represents a Resource Task
@@ -45,7 +46,7 @@ public class Task extends DataObject {
 
     // enumeration of status value
     public enum Status {
-        queued, pending, ready, error;
+        queued, pending, ready, error, suspended_no_error, suspended_error;
 
         public static Status toStatus(String status) {
             try {
@@ -56,11 +57,24 @@ public class Task extends DataObject {
         }
     }
 
+    // enumeration of allowed operations
+    public enum AllowedOperations {
+        none_specified, retry_rollback, rollback_only, retry_only;
+
+        public static AllowedOperations toAllowedOperations(String allowedOperations) {
+            try {
+                return valueOf(allowedOperations.toLowerCase());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Operations: " + allowedOperations + " is not a valid allowed operation option");
+            }
+        }
+    }
+
     public Task() {
     }
 
-    @NamedRelationIndex(cf = "TaskResource", types={Volume.class, BlockSnapshot.class, VolumeGroup.class, 
-    		BlockConsistencyGroup.class, Host.class, ExportGroup.class, FileShare.class, Snapshot.class})
+    @NamedRelationIndex(cf = "TaskResource", types = { Volume.class, BlockSnapshot.class, VolumeGroup.class,
+            BlockConsistencyGroup.class, Host.class, ExportGroup.class, FileShare.class, Snapshot.class })
     @Name("resource")
     public NamedURI getResource() {
         return resource;
@@ -304,6 +318,16 @@ public class Task extends DataObject {
         return status != null && status.equals(Status.ready.name());
     }
 
+    public boolean isSuspendedError() {
+        String status = getStatus();
+        return status != null && status.equals(Status.suspended_error.name());
+    }
+
+    public boolean isSuspendedNoError() {
+        String status = getStatus();
+        return status != null && status.equals(Status.suspended_no_error.name());
+    }
+
     /**
      * This method sets the status of the operation to "error"
      * 
@@ -326,7 +350,8 @@ public class Task extends DataObject {
      * Checks to see whether the provided status is one of the defined valid
      * status(es).
      * 
-     * @param statusStr - Status String
+     * @param statusStr
+     *            - Status String
      * @return true, if the provided status is valid. otherwise false.
      */
     private boolean isValidStatus(String statusStr) {
@@ -342,4 +367,24 @@ public class Task extends DataObject {
         return valid;
     }
 
+    /**
+     * Checks to see whether the provided operations is one of the defined valid
+     * allowed operations
+     * 
+     * @param allowedOperationsStr
+     *            - Allowed operations String
+     * @return true, if the provided operations is valid. otherwise false.
+     */
+    private boolean isValidAllowedOperations(String opStr) {
+        boolean valid = false;
+        AllowedOperations[] validAllowedOperations = AllowedOperations.values();
+
+        for (AllowedOperations op : validAllowedOperations) {
+            if (op.name().toUpperCase().equals(opStr.toUpperCase())) {
+                valid = true;
+                break;
+            }
+        }
+        return valid;
+    }
 }

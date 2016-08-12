@@ -70,6 +70,8 @@ distutils.core.setup(
                       'ipsecmanager.py',
                       'snapshotsession.py',
                       'objectuser.py',
+		      'task.py',
+		      'event.py',
                       'schedulepolicy.py']
                  )]
 )

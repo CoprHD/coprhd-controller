@@ -9,21 +9,19 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.plugins.common.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowException;
+import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class ExportWorkflowEntryPoints implements Controller {
-    private static final Logger _log = LoggerFactory.getLogger(ExportWorkflowEntryPoints.class);
     private static volatile String _beanName;
     private Map<String, MaskingOrchestrator> _orchestratorMap;
     private DbClient _dbClient;
@@ -126,11 +124,20 @@ public class ExportWorkflowEntryPoints implements Controller {
             List<URI> initiatorURIs, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupCreate(storageURI, exportGroupURI, initiatorURIs, volumeMap,
-                    token);
+
+            // Check to see if we are re-entering this step after a previous execution already created the export
+            // workflow.
+            // If this is the case, do not create it again.
+            final String workflowKey = "exportGroupCreate";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupCreate(storageURI, exportGroupURI, initiatorURIs, volumeMap,
+                        token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions.exportGroupCreateFailed(e);
             WorkflowStepCompleter.stepFailed(token, exception);
@@ -143,22 +150,32 @@ public class ExportWorkflowEntryPoints implements Controller {
      * group on may storage arrays. This step performs the updates for one array. It
      * simply invokes the workflow that was pre-created that will do the needed adds/removes,
      * 
-     * @param storageURI the storage array of the masks to be updated
-     * @param exportGroupURI the export group URI
-     * @param storageWorkflow the pre-created workflow for this storage array.
-     * @param token the task Id
-     * @throws ControllerException when an exception is encountered in the workflow execution.
+     * @param storageURI
+     *            the storage array of the masks to be updated
+     * @param exportGroupURI
+     *            the export group URI
+     * @param storageWorkflow
+     *            the pre-created workflow for this storage array.
+     * @param token
+     *            the task Id
+     * @throws ControllerException
+     *             when an exception is encountered in the workflow execution.
      */
     public void exportGroupUpdate(URI storageURI, URI exportGroupURI,
             Workflow storageWorkflow,
             String token)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupUpdate(storageURI, exportGroupURI, storageWorkflow, token);
+            final String workflowKey = "exportGroupUpdate";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupUpdate(storageURI, exportGroupURI, storageWorkflow, token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportGroupUpdateFailed(e);
@@ -171,10 +188,15 @@ public class ExportWorkflowEntryPoints implements Controller {
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupDelete(storageURI, exportGroupURI, token);
+            final String workflowKey = "exportGroupDelete";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupDelete(storageURI, exportGroupURI, token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportGroupDeleteFailed(e);
@@ -187,10 +209,15 @@ public class ExportWorkflowEntryPoints implements Controller {
             String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupAddVolumes(storageURI, exportGroupURI, volumeMap, token);
+            final String workflowKey = "exportAddVolumes";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupAddVolumes(storageURI, exportGroupURI, volumeMap, token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportAddVolumes(e);
@@ -203,10 +230,15 @@ public class ExportWorkflowEntryPoints implements Controller {
             String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupRemoveVolumes(storageURI, exportGroupURI, volumes, token);
+            final String workflowKey = "exportRemoveVolumes";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupRemoveVolumes(storageURI, exportGroupURI, volumes, token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportRemoveVolumes(e);
@@ -219,10 +251,15 @@ public class ExportWorkflowEntryPoints implements Controller {
             String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupAddInitiators(storageURI, exportGroupURI, initiatorURIs, token);
+            final String workflowKey = "exportAddInitiators";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupAddInitiators(storageURI, exportGroupURI, initiatorURIs, token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportAddInitiators(e);
@@ -235,11 +272,16 @@ public class ExportWorkflowEntryPoints implements Controller {
             String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupRemoveInitiators(storageURI, exportGroupURI, initiatorURIs,
-                    token);
+            final String workflowKey = "exportRemoveInitiators";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupRemoveInitiators(storageURI, exportGroupURI, initiatorURIs,
+                        token);
+
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportRemoveInitiators(e);
@@ -252,21 +294,29 @@ public class ExportWorkflowEntryPoints implements Controller {
      * Changes the PathParams (e.g. maxPaths, pathsPerInitiator) for a volume in all the
      * ExportMasks containing that volume in an Export Group.
      * 
-     * @param storageURI -- URI of storage system containing the volume.
-     * @param exportGroupURI -- URI of Export Group to be processed.
-     * @param volumeURI -- URI of volume that is chaning VPool parameters for PathParams
-     * @param token -- String for completers.
+     * @param storageURI
+     *            -- URI of storage system containing the volume.
+     * @param exportGroupURI
+     *            -- URI of Export Group to be processed.
+     * @param volumeURI
+     *            -- URI of volume that is chaning VPool parameters for PathParams
+     * @param token
+     *            -- String for completers.
      * @throws ControllerException
      */
     public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI,
             URI volumeURI, String token)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            orchestrator.exportGroupChangePathParams(storageURI, exportGroupURI, volumeURI, token);
+            final String workflowKey = "exportChangeParams";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupChangePathParams(storageURI, exportGroupURI, volumeURI, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportGroupChangePathParams(e);
@@ -279,8 +329,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             boolean rollback, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+            DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
             MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
             ((AbstractBasicMaskingOrchestrator) orchestrator)
                     .exportGroupChangePolicyAndLimits(storageURI, exportMaskURI,
@@ -297,8 +346,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             boolean rollback, String token) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage =
-                    ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+            DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
             MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
             ((AbstractBasicMaskingOrchestrator) orchestrator)
                     .changeAutoTieringPolicy(storageURI, volumeURIs, newVpoolURI, rollback, token);
@@ -308,5 +356,15 @@ public class ExportWorkflowEntryPoints implements Controller {
             WorkflowStepCompleter.stepFailed(token, exception);
             throw exception;
         }
+    }
+
+    /**
+     * No-op workflow step to allow rollback to continue.
+     *
+     * @param stepId    The workflow step ID.
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 }

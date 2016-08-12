@@ -91,6 +91,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 case ready:
                     operation.ready();
                     break;
+                case suspended_no_error:
+                    operation.suspendedNoError();
+                    break;
+                case suspended_error:
+                    operation.suspendedError(coded);
+                    break;
                 default:
                     break;
             }
@@ -99,7 +105,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup);
             }
-            dbClient.persistObject(exportGroup);
+            dbClient.updateObject(exportGroup);
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

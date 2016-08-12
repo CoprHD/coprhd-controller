@@ -566,6 +566,21 @@ render.taskResource = function(o, val) {
   return s;
 }
 
+render.actionableEvent = function(o, val) {
+  var s = ""
+  if (o.aData.name != null) {
+    var resourceLink = getResourceLink("ACTIONABLE_EVENT", o.aData.id)
+    if (resourceLink) {
+      s += " <a href='" + resourceLink + "'>";
+    }
+    s += o.aData.name;
+    if (resourceLink) {
+      s += "</a>";
+    }
+  }
+  return s;
+}
+
 render.taskDetails = function(data) {
   var details = "<dl class='dl-horizontal'><dt>" + Messages.get('tasks.id') + "</dt><dd>" + data.id + "</dd>";
   
@@ -641,6 +656,9 @@ function getResourceLink(resourceType, resourceId) {
     }
     else if (resourceType.toUpperCase() == "COMPUTE_SYSTEM") {
       resourceLink = routes.ComputeSystem_edit({"id": resourceId});
+    }
+    else if (resourceType.toUpperCase() == "ACTIONABLE_EVENT") {
+      resourceLink = routes.Events_details({"id": resourceId});
     }
   }
   return resourceLink;

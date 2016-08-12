@@ -16,6 +16,8 @@
  */
 package com.emc.storageos.model.keystone;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -32,6 +34,7 @@ public class OpenStackTenantListParam {
      * List of OpenStack Tenants.
      */
     @XmlElement(name = "openstack_tenants")
+    @JsonProperty("openstack_tenants")
     public List<OpenStackTenantParam> getOpenstackTenants() {
         return openstackTenants;
     }

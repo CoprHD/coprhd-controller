@@ -53,6 +53,8 @@ class Authentication(object):
 
     URI_USER_GROUP = URI_SERVICES_BASE + '/vdc/admin/user-groups'
     URI_USER_GROUP_ID = URI_USER_GROUP + '/{0}'
+    KEYSTONE_TENANTS_URL = URI_SERVICES_BASE + '/v2/keystone/tenants'
+    KEYSTONE_OS_TENANTS_URL = URI_SERVICES_BASE + '/v2/keystone/ostenants';
 
     HEADERS = {'Content-Type': 'application/json',
                'ACCEPT': 'application/json', 'X-EMC-REST-CLIENT': 'TRUE'}
@@ -383,6 +385,49 @@ class Authentication(object):
         common.service_json_request(self.__ipAddr, self.__port, "POST",
             Authentication.URI_VDC_AUTHN_PROFILE,
             body)
+        if autoRegCoprHDNImportOSProjects == 'true':
+            self.add_os_tenants()
+
+
+    def add_os_tenants(self):
+        profiles = self.list_os_tenants()
+        openstack_tenants = []
+        for pr in profiles:
+            pr['excluded']='false'
+            pr['os_id'] = pr.pop('id')
+            openstack_tenants.append(pr)
+
+        profiles = {
+            'openstack_tenants': openstack_tenants
+        }
+
+        '''
+        Makes REST API call to add all OS Tenants to CoprHD
+        Returns:
+            SUCCESS OR FAILURE
+        '''
+
+        body = json.dumps(profiles)
+        common.service_json_request(self.__ipAddr, self.__port, "POST",
+                                    Authentication.KEYSTONE_TENANTS_URL,
+                                    body)
+
+    def list_os_tenants(self):
+        '''
+            Makes REST API call to list OS Tenants
+            Returns:
+                SUCCESS OR FAILURE
+            '''
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            Authentication.KEYSTONE_TENANTS_URL,
+            None)
+        o = common.json_decode(s)
+
+        profiles = []
+        for pr in o['openstack_tenant']:
+            profiles.append(pr)
+        return profiles
 
     def list_authentication_provider(self):
         '''

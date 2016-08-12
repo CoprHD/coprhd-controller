@@ -20,6 +20,7 @@ package com.emc.storageos.model.keystone;
 import javax.xml.bind.annotation.*;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement(name = "openstack_tenant_param")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -36,6 +37,7 @@ public class OpenStackTenantParam extends DataObjectRestRep {
      * Indicates if OpenStack tenant is enabled.
      */
     @XmlElement(name = "enabled")
+    @JsonProperty("enabled")
     public Boolean getEnabled() {
         return enabled;
     }
@@ -48,6 +50,7 @@ public class OpenStackTenantParam extends DataObjectRestRep {
      * Indicates if OpenStack tenant is excluded.
      */
     @XmlElement(name = "excluded")
+    @JsonProperty("excluded")
     public Boolean getExcluded() {
         return excluded;
     }
@@ -60,6 +63,7 @@ public class OpenStackTenantParam extends DataObjectRestRep {
      * Description of OpenStack tenant.
      */
     @XmlElement(name = "description")
+    @JsonProperty("description")
     public String getDescription() {
         return description;
     }
@@ -72,6 +76,7 @@ public class OpenStackTenantParam extends DataObjectRestRep {
      * ID of OpenStack tenant.
      */
     @XmlElement(name = "os_id")
+    @JsonProperty("os_id")
     public String getOsId() {
         return osId;
     }

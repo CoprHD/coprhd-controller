@@ -29,7 +29,7 @@ public class TenantListRestResp {
 
     List<KeystoneTenant> openstackTenants;
 
-    @XmlElementRef
+    @XmlElementRef(name="openstack_tenant")
     public List<KeystoneTenant> getOpenstackTenants() {
         if (openstackTenants == null) {
             openstackTenants = new ArrayList<>();

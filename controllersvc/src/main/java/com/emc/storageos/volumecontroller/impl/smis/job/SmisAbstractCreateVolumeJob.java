@@ -184,13 +184,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             CIMObjectPath volumePath) {
         String elementName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ELEMENT_NAME);
         volume.setDeviceLabel(elementName);
-        String compressionRatio = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_EMC_COMPRESSION_RATIO);
-        if ((compressionRatio != null) && !compressionRatio.equals("0")) {
-            compressionRatio = (Double.valueOf(compressionRatio) / 10) + ":1";
-        } else {
-            compressionRatio = Constants.DEFAULT_COMPRESSION_RATIO;
-        }
-        volume.setCompressionRatio(compressionRatio);
+        volume.setCompressionRatio(SmisUtils.getCompressionRatioForVolume(volumeInstance));
     }
 
     /**

@@ -44,6 +44,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.google.common.base.Splitter;
 
 public abstract class StorageProcessor extends PoolProcessor {
@@ -692,22 +693,6 @@ public abstract class StorageProcessor extends PoolProcessor {
         }
 
         return spaceConsumed;
-    }
-    
-    protected String getCompressionRatio(CIMInstance volumeInstance, boolean isVMAX3) {
-        if (isVMAX3) {
-            String compressionRatio = getCIMPropertyValue(volumeInstance,
-                    SmisConstants.CP_EMC_COMPRESSION_RATIO);
-            if ((compressionRatio != null) && !compressionRatio.equals("0")) {
-                //VMAX compression ratio is provider as units of 1/10
-                //i.e if it 2.5:1 or 5:2, it will be reported as 25
-                //We need to divide it by 10.
-                compressionRatio = (Double.valueOf(compressionRatio) / 10) + ":1";
-                return compressionRatio;
-            }
-        }
-
-        return Constants.DEFAULT_COMPRESSION_RATIO;
     }
 
     @Override

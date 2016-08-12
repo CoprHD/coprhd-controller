@@ -283,4 +283,15 @@ public class SmisUtils {
         }
         return sessionLabel;
     }
+    
+    public static String getCompressionRatioForVolume(CIMInstance volumeInstance) {
+        String compressionRatio = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_EMC_COMPRESSION_RATIO);
+        if (compressionRatio != null && !compressionRatio.isEmpty() && !compressionRatio.equals("0")) {
+            compressionRatio = (Double.valueOf(compressionRatio) / 10) + ":1";
+        } else {
+            compressionRatio = Constants.DEFAULT_COMPRESSION_RATIO;
+        }
+        return compressionRatio;
+
+    }
 }

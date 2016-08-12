@@ -728,7 +728,8 @@ public class StorageCenterAPI implements AutoCloseable {
     public ScReplay[] createConsistencyGroupSnapshots(String instanceId) throws StorageCenterAPIException {
         LOG.debug("Creating consistency group snapshots for '{}'", instanceId);
 
-        String id = UUID.randomUUID().toString();
+        // Get a random identifier that will fit in our description field
+        String id = UUID.randomUUID().toString().substring(0, 31);
         Parameters params = new Parameters();
         params.add("description", id);
         params.add("expireTime", 0);

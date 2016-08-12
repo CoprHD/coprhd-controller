@@ -461,7 +461,7 @@ class Authentication(object):
 
             profile = self.show_authentication_provider_by_uri(pr['id'])
             if (profile['name'] == name):
-                return profile['id']
+                return profile
 
     def show_authentication_provider(self, name, xml=False):
         '''
@@ -496,7 +496,7 @@ class Authentication(object):
         Returns:
             SUCCESS OR FAILURE
         '''
-        uri = self.query_authentication_provider(name)
+        uri = self.query_authentication_provider(name)['id']
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "DELETE",
@@ -554,7 +554,9 @@ class Authentication(object):
             SUCCESS OR FAILURE
         '''
 
-        authnprov_id = self.query_authentication_provider(name)
+        provider = self.query_authentication_provider(name)
+        authnprov_id = provider['id']
+        autoreg = provider['autoreg_coprhd_import_osprojects']
 
         urls = dict()
         domains = dict()
@@ -700,6 +702,9 @@ class Authentication(object):
                 self.__ipAddr, self.__port, "PUT",
                 Authentication.URI_VDC_AUTHN_PROFILES.format(authnprov_id),
                 body)
+
+        if not autoreg and autoRegCoprHDNImportOSProjects:
+            self.add_os_tenants()
 
     def add_vdc_role(self, role, subject_id, group):
         '''

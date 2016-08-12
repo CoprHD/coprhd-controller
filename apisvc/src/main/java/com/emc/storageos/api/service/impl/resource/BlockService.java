@@ -100,6 +100,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -1081,17 +1082,35 @@ public class BlockService extends TaskResourceService {
             Integer volumeCount) {
         TaskList taskList = new TaskList();
 
-        // For each volume requested, pre-create a volume object/task object
-        long lsize = SizeUtil.translateSize(size);
-        for (int i = 0; i < volumeCount; i++) {
-            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i, volumeCount);
-            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                    task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-            volume.getOpStatus().put(task, op);
-            TaskResourceRep volumeTask = toTask(volume, task, op);
-            taskList.getTaskList().add(volumeTask);
-            _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
-                    volume.getId(), volumeTask.getId(), task));
+        try {
+            // For each volume requested, pre-create a volume object/task object
+            long lsize = SizeUtil.translateSize(size);
+            for (int i = 0; i < volumeCount; i++) {
+                Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i, volumeCount);
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                        task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                volume.getOpStatus().put(task, op);
+                TaskResourceRep volumeTask = toTask(volume, task, op);
+                taskList.getTaskList().add(volumeTask);
+                _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
+                        volume.getId(), volumeTask.getId(), task));
+            }
+        } catch (APIException ex) {
+            // Mark the dummy objects inactive
+            String errMsg = "Caught Exception while creating Volume and Task objects. Marking pre-created Objects inactive";
+            _log.error(errMsg, ex);
+            for (TaskResourceRep taskObj : taskList.getTaskList()) {
+                taskObj.setMessage(String.format("%s. %s", errMsg, ex.getMessage()));
+                taskObj.setState(Operation.Status.error.name());
+                URI volumeURI = taskObj.getResource().getId();
+                _dbClient.error(Volume.class, volumeURI, task, ex);
+                // Set the volumes to inactive
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                volume.setInactive(true);
+                _dbClient.updateObject(volume);
+            }
+            // throw the Exception to the caller
+            throw ex;
         }
 
         return taskList;

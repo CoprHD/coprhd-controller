@@ -11,8 +11,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -33,7 +33,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
@@ -357,5 +356,39 @@ public class AtomicBatchTest extends DbsvcTestBase{
         
         doCallRealMethod().when(mockContext).getWriteConsistencyLevel();
         assertEquals(mockContext.getWriteConsistencyLevel(), ConsistencyLevel.LOCAL_QUORUM);
+    }
+    
+    @Test
+    public void testNoRetry() {
+        DbClientContext mockContext = mock(DbClientContext.class);
+        Session session = mock(Session.class);
+        PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        BoundStatement bindStatement = mock(BoundStatement.class);
+        
+        doReturn(session).when(mockContext).getSession();
+        doReturn(ConsistencyLevel.EACH_QUORUM).when(mockContext).getWriteConsistencyLevel();
+        doReturn(preparedStatement).when(mockContext).getPreparedStatement(anyString());
+        doReturn(bindStatement).when(preparedStatement).bind();
+        
+        doThrow(new RuntimeException()).when(mockContext).setWriteConsistencyLevel(
+                any(ConsistencyLevel.class));
+        
+        Mockito.when(session.execute(any(BatchStatement.class))).thenAnswer(new Answer() {
+            
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                throw new ConnectionException(new InetSocketAddress("localhost", 80), "message");
+            }
+            });
+        
+        RowMutator rowMutator = new RowMutator(mockContext, false);
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+          //exception is expected
+        }
+        
+        verify(session, times(1)).execute(any(BatchStatement.class));
     }
 }

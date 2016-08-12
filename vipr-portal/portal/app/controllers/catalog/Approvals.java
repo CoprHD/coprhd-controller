@@ -97,9 +97,7 @@ public class Approvals extends Controller {
         Logger.info("the user's tenant is %s", Security.getUserInfo().getTenant());
 
         if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
-            flash.error("User doesn't have tenant's access");
-            render();
-            return;
+            error(401, "No permission on the target tenant: " + approval.getTenant().getLink().getLinkName());
         }
 
         OrderRestRep order = null;

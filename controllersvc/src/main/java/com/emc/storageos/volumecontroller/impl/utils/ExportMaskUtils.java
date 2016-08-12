@@ -14,6 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -475,7 +477,7 @@ public class ExportMaskUtils {
             return null;
         }
         // Create a set of unique host and cluster names
-        Set<String> hosts = new HashSet<String>();
+        SortedSet<String> hosts = new TreeSet<String>();
         Set<String> clusters = new HashSet<String>();
         boolean rp = false;
         for (Initiator initiator : initiators) {
@@ -502,10 +504,10 @@ public class ExportMaskUtils {
         }
 
         String host = null;
-        // If there is a unique host name, append to the name
-        if (hosts.size() == 1) {
+        // Get the first host name
+        if (hosts.size() >= 1) {
             host = hosts.iterator().next();
-        }
+        } 
 
         // In the case of RP, we want the naming defaults to use the cluster name as the hostname.
         // This assumes:

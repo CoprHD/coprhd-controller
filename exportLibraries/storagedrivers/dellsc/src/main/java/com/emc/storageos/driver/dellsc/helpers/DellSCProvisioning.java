@@ -37,7 +37,6 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScMapping;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScMappingProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScPhysicalServer;
-import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerOperatingSystem;
@@ -88,7 +87,6 @@ public class DellSCProvisioning {
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities storageCapabilities) {
         DriverTask task = new DellSCDriverTask("createVolume");
 
-        Map<String, List<ScReplayProfile>> consistencyGroups = new HashMap<>();
         StringBuilder errBuffer = new StringBuilder();
         int volumesCreated = 0;
         for (StorageVolume volume : volumes) {
@@ -230,6 +228,12 @@ public class DellSCProvisioning {
             maxPaths = pathOption.getMaxPath();
         }
 
+        // Get the recommended server ports to use
+        List<String> recommendedServerPorts = new ArrayList<>();
+        for (StoragePort port : recommendedPorts) {
+            recommendedServerPorts.add(port.getNativeId());
+        }
+
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
             try {
@@ -262,7 +266,7 @@ public class DellSCProvisioning {
                     }
                 }
 
-                ScMappingProfile profile = null;
+                ScMappingProfile profile;
 
                 // See if the volume is already mapped
                 ScMappingProfile[] mappingProfiles = api.getServerVolumeMapping(
@@ -272,7 +276,8 @@ public class DellSCProvisioning {
                     profile = mappingProfiles[0];
                 } else {
                     profile = api.createVolumeMappingProfile(
-                            scVol.instanceId, server.instanceId, preferredLun, new String[0], maxPaths);
+                            scVol.instanceId, server.instanceId, preferredLun,
+                            new String[0], maxPaths);
                 }
 
                 ScMapping[] maps = api.getMappingProfileMaps(profile.instanceId);
@@ -370,31 +375,38 @@ public class DellSCProvisioning {
                 os = findOsType(api, ssn, init.getHostOsType());
             }
 
+            if (os == null) {
+                LOG.warn("Unable to find OS type for initiator {}, skipping...", init.getPort());
+                continue;
+            }
+
             String iqnOrWwn = init.getPort();
             if (init.getProtocol().equals(Protocol.FC)) {
                 // Make sure it's in the format we expect
                 iqnOrWwn = iqnOrWwn.replace(":", "").toUpperCase();
             }
 
-            ScServer individualServer = api.findServer(ssn, iqnOrWwn);
+            // Try our cache first
+            ScServer individualServer = serverLookup.get(init.getHostName());
+            if (individualServer == null) {
+                individualServer = api.findServer(ssn, iqnOrWwn);
+                if (individualServer != null) {
+                    serverLookup.put(init.getHostName(), individualServer);
+                }
+            }
+
+            // See if we need to create it
             if (individualServer == null && createIfNotFound) {
-                if (!serverLookup.containsKey(init.getHostName())) {
-                    // Get the reference to our existing server
-                    individualServer = serverLookup.get(init.getHostName());
-                } else {
-                    // Need to create a new server definition
-                    try {
-                        individualServer = api.createServer(
-                                ssn,
-                                init.getHostName(),
-                                iqnOrWwn,
-                                init.getProtocol().equals(Protocol.iSCSI),
-                                os.instanceId);
-                    } catch (StorageCenterAPIException e) {
-                        // Well that's rather unfortunate
-                        LOG.warn(String.format("Error creating server: %s", e));
-                        continue;
-                    }
+                try {
+                    individualServer = api.createServer(
+                            ssn,
+                            init.getHostName(),
+                            init.getProtocol().equals(Protocol.iSCSI),
+                            os.instanceId);
+                } catch (StorageCenterAPIException e) {
+                    // Well that's rather unfortunate
+                    LOG.warn(String.format("Error creating server: %s", e));
+                    continue;
                 }
 
                 // Need to add this initiator to existing server definition
@@ -493,7 +505,7 @@ public class DellSCProvisioning {
                 version = "6.x";
                 break;
             case Esx:
-                product = "VMWare ESX";
+                product = "VMWare";
                 version = "5.1";
                 break;
             case AIX:
@@ -514,7 +526,7 @@ public class DellSCProvisioning {
 
         // First try for an exact match
         for (ScServerOperatingSystem os : osTypes) {
-            if (version.equals(os.version)) {
+            if (os.version.contains(version)) {
                 return os;
             }
         }
@@ -522,6 +534,12 @@ public class DellSCProvisioning {
         // Just get the first one
         for (ScServerOperatingSystem os : osTypes) {
             return os;
+        }
+
+        // Fall back to other if we can
+        if (hostOsType != HostOsType.Other) {
+            LOG.warn("Unable to find OS type, falling back to Other type.");
+            return findOsType(api, ssn, HostOsType.Other);
         }
 
         return null;

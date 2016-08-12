@@ -100,18 +100,19 @@ public class DellSCDiscovery {
             LOG.info("Connected to DSM {} as user {}",
                     storageProvider.getProviderHost(), storageProvider.getUsername());
 
-            // Get some info about the DSM for debugging purposes
-            EmDataCollector em = api.getDSMInfo();
-            if (em != null) {
-                LOG.info("Connected to {} DSM version {}, Java version {}",
-                        em.type, em.version, em.javaVersion);
-            }
-
             // Populate the provider information
             storageProvider.setAccessStatus(AccessStatus.READ_WRITE);
             storageProvider.setManufacturer("Dell");
             storageProvider.setProviderVersion(driverVersion);
             storageProvider.setIsSupportedVersion(true);
+
+            // Get some info about the DSM for debugging purposes
+            EmDataCollector em = api.getDSMInfo();
+            if (em != null) {
+                LOG.info("Connected to {} DSM version {}, Java version {}",
+                        em.type, em.version, em.javaVersion);
+                storageProvider.setProviderVersion(em.version);
+            }
 
             // Populate the basic SC information
             StorageCenter[] scs = api.getStorageCenterInfo();

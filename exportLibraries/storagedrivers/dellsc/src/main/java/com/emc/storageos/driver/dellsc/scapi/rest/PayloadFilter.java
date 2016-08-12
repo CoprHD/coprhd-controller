@@ -124,7 +124,13 @@ public class PayloadFilter {
         /**
          * Equals value filter type.
          */
-        EQUALS("Equals");
+        EQUALS("Equals"),
+        GREATERTHAN("GreaterThan"),
+        GREATERTHANOREQUAL("GreaterThanOrEqual"),
+        LESSTHAN("LessThan"),
+        LESSTHANORQUAL("LessThanOrEqual"),
+        INCLUDEDINSTRING("IncludedInString"),
+        INCLUDESSTRING("IncludesStr");
 
         private String val;
 

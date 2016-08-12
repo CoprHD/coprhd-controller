@@ -27,6 +27,7 @@ import com.emc.vipr.client.core.ComputeImages;
 import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
+import com.emc.vipr.client.core.Events;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -49,6 +50,7 @@ import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
+import com.emc.vipr.client.core.StorageSystemType;
 import com.emc.vipr.client.core.StorageSystems;
 import com.emc.vipr.client.core.StorageTiers;
 import com.emc.vipr.client.core.TasksResources;
@@ -181,6 +183,10 @@ public class ViPRCoreClient {
 
     public VirtualDataCenters vdcs() {
         return new VirtualDataCenters(this, client);
+    }
+
+    public Events events() {
+        return new Events(this, client);
     }
 
     public Hosts hosts() {
@@ -410,10 +416,13 @@ public class ViPRCoreClient {
 
     public ApplicationSupport application() {
         return new ApplicationSupport(client);
-
     }
     
     public ObjectNamespaces objectNamespace() {
         return new ObjectNamespaces(this, client);
+    }
+    
+    public StorageSystemType storageSystemType() {
+    	return new StorageSystemType(client);
     }
 }

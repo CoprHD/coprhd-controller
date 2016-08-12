@@ -13,8 +13,6 @@ import java.util.Map;
 import java.util.MissingResourceException;
 
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.inject.Injector;
 import com.emc.sa.model.dao.ModelClient;
@@ -85,15 +83,8 @@ public class ExecutionUtils {
 
     protected static <T> T execute(ExecutionTask<T> task, ExecutionContext context) throws ExecutionException {
         ExecutionTaskLog log = context.logCurrentTask(task);
-        // Executing if order not in a paused state. If paused, poll while waiting for order to go into executing state
-        String orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
         long startTime = System.currentTimeMillis();
         try {
-            while (OrderStatus.PAUSED.name().equalsIgnoreCase(orderStatus)) {
-                Thread.sleep(1000);
-                // requery order to get its updated status
-                orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
-            }
 
             injectValues(task, context);
             T result = task.executeTask();

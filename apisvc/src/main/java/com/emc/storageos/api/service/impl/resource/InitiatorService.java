@@ -38,20 +38,25 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.host.InitiatorAliasRestRep;
+import com.emc.storageos.model.host.InitiatorAliasSetParam;
 import com.emc.storageos.model.host.InitiatorBulkRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.InitiatorUpdateParam;
@@ -65,6 +70,9 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.BlockController;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
+import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Service providing APIs for host initiators.
@@ -79,6 +87,10 @@ public class InitiatorService extends TaskResourceService {
     protected final static Logger _log = LoggerFactory.getLogger(InitiatorService.class);
 
     private static final String EVENT_SERVICE_TYPE = "initiator";
+    private static final String ALIAS = "Alias-Operations";
+    private static final String EMPTY_INITIATOR_ALIAS = "/";
+    private static final int ALIAS_MAX_LIMIT = 32;
+    private static final String ALIAS_ILLEGAL_CHARACTERS = ".*[@#^:?%&+=(){}*].*";
 
     @Override
     public String getServiceType() {
@@ -181,15 +193,9 @@ public class InitiatorService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_INITIATOR);
 
-        Cluster cluster = getInitiatorCluster(initiator);
-
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
-            if (cluster == null || cluster.getAutoExportEnabled()) {
-                ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
-            } else {
-                throw APIException.badRequests.initiatorInClusterWithAutoExportDisabled();
-            }
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);
@@ -296,6 +302,118 @@ public class InitiatorService extends TaskResourceService {
         return new InitiatorBulkRep(BulkList.wrapping(_dbIterator, MapInitiator.getInstance(), filter));
     }
 
+    /**
+     * Shows the alias/initiator name for an initiator
+     * if set on the Storage System
+     * 
+     * @param id the URN of a ViPR initiator
+     * @param sid the pstorage system uri
+     * @prereq none
+     * @return A reference to an InitiatorRestRep representing the Initiator Alias if Set..
+     * @throws Exception When an error occurs querying the VMAX Storage System.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/alias/{sid}")
+    public InitiatorAliasRestRep getInitiatorAlias(@PathParam("id") URI id, @PathParam("sid") URI systemURI) {
+        // Basic Checks
+        Initiator initiator = queryResource(id);
+        verifyUserPermisions(initiator);
+        ArgValidator.checkFieldUriType(systemURI, StorageSystem.class, "id");
+        StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
+        ArgValidator.checkEntity(system, systemURI, isIdEmbeddedInURL(systemURI));
+
+        _log.info("Retrieving alias for initiator {} on system {}", id, systemURI);
+
+        String initiatorAlias = null;
+        if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            //Actual Control
+            try {
+                initiatorAlias = controller.getInitiatorAlias(systemURI, id);
+            } catch (Exception e) {
+                _log.error("Unexpected error: Getting alias failed.", e);
+                throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+            }
+        } else {
+            throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
+        }
+        // If the Alias is empty, set it to "/".
+        if (NullColumnValueGetter.isNullValue(initiatorAlias)) {
+            initiatorAlias = EMPTY_INITIATOR_ALIAS;
+        }
+        // Update the initiator
+        initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
+        _dbClient.updateObject(initiator);
+
+        return new InitiatorAliasRestRep(system.getSerialNumber(), initiatorAlias);
+    }
+
+    /**
+     * Sets the alias/initiator name for an initiator
+     * on the Storage System
+     * 
+     * @param id the URN of a ViPR initiator
+     * @param aliasSetParam the parameter containing the storage system and alias attributes
+     * @prereq none
+     * @return A reference to an InitiatorRestRep representing the Initiator Alias after Set..
+     * @throws Exception When an error occurs setting the alias on a VMAX Storage System.
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/alias")
+    public InitiatorAliasRestRep setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
+        //Basic Checks
+        Initiator initiator = queryResource(id);
+        verifyUserPermisions(initiator);
+
+        URI systemURI = aliasSetParam.getSystemURI();
+        ArgValidator.checkFieldUriType(systemURI, StorageSystem.class, "id");
+        StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
+        ArgValidator.checkEntity(system, systemURI, isIdEmbeddedInURL(systemURI));
+
+        String initiatorAlias = aliasSetParam.getInitiatorAlias();
+        ArgValidator.checkFieldNotNull(initiatorAlias, "alias");
+        if (!initiatorAlias.contains(EMPTY_INITIATOR_ALIAS)) {
+            ArgValidator.checkFieldLengthMaximum(initiatorAlias, ALIAS_MAX_LIMIT, "alias");
+        } else {
+            ArgValidator.checkFieldLengthMaximum(initiatorAlias.split(EMPTY_INITIATOR_ALIAS)[0], ALIAS_MAX_LIMIT, "alias node name");
+            ArgValidator.checkFieldLengthMaximum(initiatorAlias.split(EMPTY_INITIATOR_ALIAS)[1], ALIAS_MAX_LIMIT, "alias port name");
+        }
+        if (initiatorAlias.matches(ALIAS_ILLEGAL_CHARACTERS)) {
+            String errMsg = String.format(
+                    "Supplied Alias: %s has invalid characters", initiatorAlias);
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
+        }
+        _log.info("Setting alias- {} for initiator {} on system {}", initiatorAlias, id, systemURI);
+
+        if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            try {
+                //Actual Control
+                controller.setInitiatorAlias(systemURI, id, initiatorAlias);
+            } catch (Exception e) {
+                _log.error("Unexpected error: Setting alias failed.", e);
+                throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+            }
+        } else {
+            throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
+        }
+        //Update the Initiator here..
+        if (initiatorAlias.contains(EMPTY_INITIATOR_ALIAS)) {// If the Initiator Alias contains the "/" character, the user has supplied
+                                                             // different node and port names.
+            initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
+        } else {// The user has set the same node and port names.
+            initiatorAlias = String.format("%s%s%s", initiatorAlias, EMPTY_INITIATOR_ALIAS, initiatorAlias);
+            initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
+        }
+        _dbClient.updateObject(initiator);
+        return new InitiatorAliasRestRep(system.getSerialNumber(), initiatorAlias);
+    }
+    
     @Override
     protected Initiator queryResource(URI id) {
         return queryObject(Initiator.class, id, false);

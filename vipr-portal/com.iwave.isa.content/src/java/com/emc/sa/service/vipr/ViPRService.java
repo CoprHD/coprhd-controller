@@ -17,6 +17,7 @@ import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
@@ -25,8 +26,8 @@ import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.ClientConfig;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.OrderCreateParam;
@@ -48,6 +49,22 @@ public abstract class ViPRService extends AbstractExecutionService {
     private ViPRCoreClient client;
 
     private List<String> locks = Lists.newArrayList();
+
+    public EncryptionProvider getEncryptionProvider() {
+        return encryptionProvider;
+    }
+
+    public void setEncryptionProvider(EncryptionProvider encryptionProvider) {
+        this.encryptionProvider = encryptionProvider;
+    }
+
+    public ViPRProxyUser getProxyUser() {
+        return proxyUser;
+    }
+
+    public void setProxyUser(ViPRProxyUser proxyUser) {
+        this.proxyUser = proxyUser;
+    }
 
     public ModelClient getModelClient() {
         return modelClient;
@@ -97,8 +114,7 @@ public abstract class ViPRService extends AbstractExecutionService {
                     addAffectedResource(id);
                 }
             }
-        }
-        else {
+        } else {
             warn("null resource for task, not adding to affected resources: %s", task);
         }
     }
@@ -147,9 +163,18 @@ public abstract class ViPRService extends AbstractExecutionService {
     protected void acquireHostLock(Host host, Cluster cluster) {
         execute(new AcquireHostLock(host, cluster));
         locks.add(host.getId().toString());
-
+        logDebug("Locks that already exist:", locks);
         if (cluster != null) {
             locks.add(cluster.getId().toString());
+        }
+    }
+
+    protected void releaseHostLock(Host host, Cluster cluster) {
+        execute(new ReleaseHostLock(host, cluster));
+        locks.remove(host.getId().toString());
+        logDebug("Locks that already exist:", locks);
+        if (cluster != null) {
+            locks.remove(cluster.getId().toString());
         }
     }
 

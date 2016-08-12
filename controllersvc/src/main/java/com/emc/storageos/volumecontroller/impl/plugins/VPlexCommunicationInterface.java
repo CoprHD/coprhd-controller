@@ -108,7 +108,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
-    private static int BATCH_SIZE = 40;
+    private static int BATCH_SIZE = 10;
 
     // WWN for offline ports
     public static final String OFFLINE_PORT_WWN = "00:00:00:00:00:00:00:00";
@@ -1389,12 +1389,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
 
         try {
-            Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
-            List<VPlexPortInfo> cachedPortInfos = client.getPortInfo(true);
-            for (VPlexPortInfo cachedPortInfo : cachedPortInfos) {
-                if (null != cachedPortInfo.getPortWwn()) {
-                    targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
-                }
+            // this is a map of cluster id (1 or 2) to the actual cluster name
+            Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
+            // this is a map of the cluster names to a map of its target port names to wwpns
+            Map<String, Map<String, String>> clusterPortMap = new HashMap<String, Map<String, String>>();
+
+            for (String clusterName : clusterIdToNameMap.values()) {
+                Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, clusterName);
+                clusterPortMap.put(clusterName, targetPortToPwwnMap);
             }
 
             Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
@@ -1403,153 +1405,156 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             Set<URI> rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
 
-            List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
-            for (VPlexStorageViewInfo storageView : storageViews) {
-                s_logger.info("discovering storage view: " + storageView.toString());
-                List<Initiator> knownInitiators = new ArrayList<Initiator>();
-                List<StoragePort> knownPorts = new ArrayList<StoragePort>();
-                UnManagedExportMask uem = getUnManagedExportMaskFromDb(storageView);
-                if (uem != null) {
-                    s_logger.info("found an existing unmanaged export mask for storage view " + storageView.getName());
-                    unManagedExportMasksToUpdate.add(uem);
+            for (String clusterName : clusterIdToNameMap.values()) {
+                List<VPlexStorageViewInfo> storageViews = client.getStorageViewsForCluster(clusterName);
+                for (VPlexStorageViewInfo storageView : storageViews) {
+                    s_logger.info("discovering storage view: " + storageView.toString());
+                    List<Initiator> knownInitiators = new ArrayList<Initiator>();
+                    List<StoragePort> knownPorts = new ArrayList<StoragePort>();
+                    UnManagedExportMask uem = getUnManagedExportMaskFromDb(storageView);
+                    if (uem != null) {
+                        s_logger.info("found an existing unmanaged export mask for storage view " + storageView.getName());
+                        unManagedExportMasksToUpdate.add(uem);
 
-                    // clean up collections (we'll be refreshing them)
-                    uem.getKnownInitiatorUris().clear();
-                    uem.getKnownInitiatorNetworkIds().clear();
-                    uem.getKnownStoragePortUris().clear();
-                    uem.getKnownVolumeUris().clear();
-                    uem.getUnmanagedInitiatorNetworkIds().clear();
-                    uem.getUnmanagedStoragePortNetworkIds().clear();
-                    uem.getUnmanagedVolumeUris().clear();
-                } else {
-                    s_logger.info("creating a new unmanaged export mask for storage view " + storageView.getName());
-                    uem = new UnManagedExportMask();
-                    unManagedExportMasksToCreate.add(uem);
-                }
-
-                // set basic info
-                uem.setNativeId(storageView.getPath());
-                uem.setMaskingViewPath(storageView.getPath());
-                uem.setMaskName(storageView.getName());
-                uem.setStorageSystemUri(accessProfile.getSystemId());
-
-                s_logger.info("now discovering host initiators in storage view " + storageView.getName());
-                for (String initiatorNetworkId : storageView.getInitiatorPwwns()) {
-
-                    s_logger.info("looking at initiator network id " + initiatorNetworkId);
-                    if (initiatorNetworkId.matches(ISCSI_PATTERN)
-                            && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
-                                    || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
-                        s_logger.info("\tiSCSI network id normalized to " + initiatorNetworkId);
-                    } else if (initiatorNetworkId.matches(REGISTERED_PATTERN)) {
-                        initiatorNetworkId = initiatorNetworkId.substring(REGISTERED_PORT_PREFIX.length());
-                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
-                        s_logger.info("\tRegistered network id normalized to " + initiatorNetworkId);
-                    } else if (WWNUtility.isValidWWNAlias(initiatorNetworkId)) {
-                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
-                        s_logger.info("\twwn normalized to " + initiatorNetworkId);
+                        // clean up collections (we'll be refreshing them)
+                        uem.getKnownInitiatorUris().clear();
+                        uem.getKnownInitiatorNetworkIds().clear();
+                        uem.getKnownStoragePortUris().clear();
+                        uem.getKnownVolumeUris().clear();
+                        uem.getUnmanagedInitiatorNetworkIds().clear();
+                        uem.getUnmanagedStoragePortNetworkIds().clear();
+                        uem.getUnmanagedVolumeUris().clear();
                     } else {
-                        s_logger.warn("\tthis is not a valid network id format, skipping");
-                        continue;
+                        s_logger.info("creating a new unmanaged export mask for storage view " + storageView.getName());
+                        uem = new UnManagedExportMask();
+                        unManagedExportMasksToCreate.add(uem);
                     }
 
-                    // check if a host initiator exists for this id
-                    // if so, add to _knownInitiators
-                    // otherwise, add to _unmanagedInitiators
-                    Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, _dbClient);
-                    if (knownInitiator != null) {
-                        s_logger.info("   found an initiator in ViPR on host " + knownInitiator.getHostName());
-                        uem.getKnownInitiatorUris().add(knownInitiator.getId().toString());
-                        uem.getKnownInitiatorNetworkIds().add(knownInitiator.getInitiatorPort());
-                        knownInitiators.add(knownInitiator);
-                    } else {
-                        s_logger.info("   no hosts in ViPR found configured for initiator " + initiatorNetworkId);
-                        uem.getUnmanagedInitiatorNetworkIds().add(initiatorNetworkId);
-                    }
-                }
+                    // set basic info
+                    uem.setNativeId(storageView.getPath());
+                    uem.setMaskingViewPath(storageView.getPath());
+                    uem.setMaskName(storageView.getName());
+                    uem.setStorageSystemUri(accessProfile.getSystemId());
 
-                s_logger.info("now discovering storage ports in storage view " + storageView.getName());
-                List<String> storagePorts = storageView.getPorts();
+                    s_logger.info("now discovering host initiators in storage view " + storageView.getName());
+                    for (String initiatorNetworkId : storageView.getInitiatorPwwns()) {
 
-                if (storagePorts.isEmpty()) {
-                    s_logger.info("no storage ports found in storage view " + storageView.getName());
-                    // continue; ?
-                }
-
-                // target port has value like - P0000000046E01E80-A0-FC02
-                // PortWwn has value like - 0x50001442601e8002
-                List<String> portWwns = new ArrayList<String>();
-                for (String storagePort : storagePorts) {
-                    if (targetPortToPwwnMap.keySet().contains(storagePort)) {
-                        portWwns.add(WwnUtils.convertWWN(targetPortToPwwnMap.get(storagePort), WwnUtils.FORMAT.COLON));
-                    }
-                }
-
-                for (String portNetworkId : portWwns) {
-                    s_logger.info("looking at storage port network id " + portNetworkId);
-
-                    // check if a storage port exists for this id in ViPR
-                    // if so, add to _storagePorts
-                    StoragePort knownStoragePort = NetworkUtil.getStoragePort(portNetworkId, _dbClient);
-
-                    if (knownStoragePort != null) {
-                        s_logger.info("   found a matching storage port in ViPR " + knownStoragePort.getLabel());
-                        uem.getKnownStoragePortUris().add(knownStoragePort.getId().toString());
-                        knownPorts.add(knownStoragePort);
-                    } else {
-                        s_logger.info("   no storage port in ViPR found matching portNetworkId " + portNetworkId);
-                        uem.getUnmanagedStoragePortNetworkIds().add(portNetworkId);
-                    }
-                }
-
-                s_logger.info("now discovering storage volumes in storage view " + storageView.getName());
-                for (String volumeNameStr : storageView.getVirtualVolumes()) {
-                    s_logger.info("found volume " + volumeNameStr);
-                    // volumeNameStr contains value like
-                    // (161,dd_V000195701573-00D57_VAPM00140801303-00614_vol,VPD83T3:6000144000000010f07dc46a0717e61d,2G)
-                    String[] tokens = volumeNameStr.split(",");
-                    String volumeName = tokens[1];
-
-                    VPlexVirtualVolumeInfo vvol = vvolMap.get(volumeName);
-                    Volume volume = findVirtualVolumeManagedByVipr(vvol);
-
-                    if (volume != null) {
-                        s_logger.info("this is a volume already managed by ViPR: " + volume.getLabel());
-                        uem.getKnownVolumeUris().add(volume.getId().toString());
-                    }
-
-                    // add to map of volume paths to export masks
-                    if (vvol != null) {
-                        String nativeGuid = vvol.getPath();
-                        s_logger.info("nativeGuid UnManagedVolume key for locating UnManagedExportMasks is " + nativeGuid);
-                        Set<UnManagedExportMask> maskSet = volumeToExportMasksMap.get(nativeGuid);
-                        if (maskSet == null) {
-                            maskSet = new HashSet<UnManagedExportMask>();
-                            s_logger.info("   creating new maskSet for nativeGuid " + nativeGuid);
-                            volumeToExportMasksMap.put(nativeGuid, maskSet);
+                        s_logger.info("looking at initiator network id " + initiatorNetworkId);
+                        if (initiatorNetworkId.matches(ISCSI_PATTERN)
+                                && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
+                                        || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
+                            s_logger.info("\tiSCSI network id normalized to " + initiatorNetworkId);
+                        } else if (initiatorNetworkId.matches(REGISTERED_PATTERN)) {
+                            initiatorNetworkId = initiatorNetworkId.substring(REGISTERED_PORT_PREFIX.length());
+                            initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
+                            s_logger.info("\tRegistered network id normalized to " + initiatorNetworkId);
+                        } else if (WWNUtility.isValidWWNAlias(initiatorNetworkId)) {
+                            initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
+                            s_logger.info("\twwn normalized to " + initiatorNetworkId);
+                        } else {
+                            s_logger.warn("\tthis is not a valid network id format, skipping");
+                            continue;
                         }
-                        maskSet.add(uem);
+
+                        // check if a host initiator exists for this id
+                        // if so, add to _knownInitiators
+                        // otherwise, add to _unmanagedInitiators
+                        Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, _dbClient);
+                        if (knownInitiator != null) {
+                            s_logger.info("   found an initiator in ViPR on host " + knownInitiator.getHostName());
+                            uem.getKnownInitiatorUris().add(knownInitiator.getId().toString());
+                            uem.getKnownInitiatorNetworkIds().add(knownInitiator.getInitiatorPort());
+                            knownInitiators.add(knownInitiator);
+                        } else {
+                            s_logger.info("   no hosts in ViPR found configured for initiator " + initiatorNetworkId);
+                            uem.getUnmanagedInitiatorNetworkIds().add(initiatorNetworkId);
+                        }
                     }
 
-                    // add this storage view to the volume to storage view map for this volume
-                    Set<VPlexStorageViewInfo> storageViewSet = volumeToStorageViewMap.get(volumeName);
-                    if (storageViewSet == null) {
-                        storageViewSet = new HashSet<VPlexStorageViewInfo>();
+                    s_logger.info("now discovering storage ports in storage view " + storageView.getName());
+                    List<String> targetPortNames = storageView.getPorts();
+
+                    if (targetPortNames.isEmpty()) {
+                        s_logger.info("no storage ports found in storage view " + storageView.getName());
+                        // continue; ?
                     }
-                    storageViewSet.add(storageView);
-                    volumeToStorageViewMap.put(volumeName, storageViewSet);
-                }
 
-                if (uem.getId() == null) {
-                    uem.setId(URIUtil.createId(UnManagedExportMask.class));
-                }
+                    // target port has value like - P0000000046E01E80-A0-FC02
+                    // PortWwn has value like - 0x50001442601e8002
+                    List<String> portWwns = new ArrayList<String>();
+                    for (String targetPortName : targetPortNames) {
+                        Map<String, String> portToWwpnMap = clusterPortMap.get(clusterName);
+                        if (portToWwpnMap.keySet().contains(targetPortName)) {
+                            portWwns.add(WwnUtils.convertWWN(portToWwpnMap.get(targetPortName), WwnUtils.FORMAT.COLON));
+                        }
+                    }
 
-                if (checkRecoverPointExportMask(uem, knownInitiators, rpPortInitiators)) {
-                    recoverPointExportMasks.add(uem.getId().toString());
+                    for (String portNetworkId : portWwns) {
+                        s_logger.info("looking at storage port network id " + portNetworkId);
+
+                        // check if a storage port exists for this id in ViPR
+                        // if so, add to _storagePorts
+                        StoragePort knownStoragePort = NetworkUtil.getStoragePort(portNetworkId, _dbClient);
+
+                        if (knownStoragePort != null) {
+                            s_logger.info("   found a matching storage port in ViPR " + knownStoragePort.getLabel());
+                            uem.getKnownStoragePortUris().add(knownStoragePort.getId().toString());
+                            knownPorts.add(knownStoragePort);
+                        } else {
+                            s_logger.info("   no storage port in ViPR found matching portNetworkId " + portNetworkId);
+                            uem.getUnmanagedStoragePortNetworkIds().add(portNetworkId);
+                        }
+                    }
+
+                    s_logger.info("now discovering storage volumes in storage view " + storageView.getName());
+                    for (String volumeNameStr : storageView.getVirtualVolumes()) {
+                        s_logger.info("found volume " + volumeNameStr);
+                        // volumeNameStr contains value like
+                        // (161,dd_V000195701573-00D57_VAPM00140801303-00614_vol,VPD83T3:6000144000000010f07dc46a0717e61d,2G)
+                        String[] tokens = volumeNameStr.split(",");
+                        String volumeName = tokens[1];
+
+                        VPlexVirtualVolumeInfo vvol = vvolMap.get(volumeName);
+                        Volume volume = findVirtualVolumeManagedByVipr(vvol);
+
+                        if (volume != null) {
+                            s_logger.info("this is a volume already managed by ViPR: " + volume.getLabel());
+                            uem.getKnownVolumeUris().add(volume.getId().toString());
+                        }
+
+                        // add to map of volume paths to export masks
+                        if (vvol != null) {
+                            String nativeGuid = vvol.getPath();
+                            s_logger.info("nativeGuid UnManagedVolume key for locating UnManagedExportMasks is " + nativeGuid);
+                            Set<UnManagedExportMask> maskSet = volumeToExportMasksMap.get(nativeGuid);
+                            if (maskSet == null) {
+                                maskSet = new HashSet<UnManagedExportMask>();
+                                s_logger.info("   creating new maskSet for nativeGuid " + nativeGuid);
+                                volumeToExportMasksMap.put(nativeGuid, maskSet);
+                            }
+                            maskSet.add(uem);
+                        }
+
+                        // add this storage view to the volume to storage view map for this volume
+                        Set<VPlexStorageViewInfo> storageViewSet = volumeToStorageViewMap.get(volumeName);
+                        if (storageViewSet == null) {
+                            storageViewSet = new HashSet<VPlexStorageViewInfo>();
+                        }
+                        storageViewSet.add(storageView);
+                        volumeToStorageViewMap.put(volumeName, storageViewSet);
+                    }
+
+                    if (uem.getId() == null) {
+                        uem.setId(URIUtil.createId(UnManagedExportMask.class));
+                    }
+
+                    if (checkRecoverPointExportMask(uem, knownInitiators, rpPortInitiators)) {
+                        recoverPointExportMasks.add(uem.getId().toString());
+                    }
+                    updateZoningMap(uem, knownInitiators, knownPorts);
+                    persistUnManagedExportMasks(unManagedExportMasksToCreate, unManagedExportMasksToUpdate, false);
+                    allCurrentUnManagedExportMaskUris.add(uem.getId());
                 }
-                updateZoningMap(uem, knownInitiators, knownPorts);
-                persistUnManagedExportMasks(unManagedExportMasksToCreate, unManagedExportMasksToUpdate, false);
-                allCurrentUnManagedExportMaskUris.add(uem.getId());
             }
 
             persistUnManagedExportMasks(unManagedExportMasksToCreate, unManagedExportMasksToUpdate, true);

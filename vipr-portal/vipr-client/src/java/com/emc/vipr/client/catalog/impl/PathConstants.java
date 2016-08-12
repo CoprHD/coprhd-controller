@@ -61,5 +61,5 @@ public class PathConstants {
     public static final String ORDER2_RESUME = ORDER2_URL + "/{id}/resume";
     public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
     public static final String SCHEDULED_EVENTS_DEACTIVATE_URL = SCHEDULED_EVENTS_URL + "/{id}/deactivate";
-    
+
 }

@@ -91,6 +91,7 @@ public class PathConstants {
     public static final String WORKFLOW_URL = "/vdc/workflows";
     public static final String WORKFLOW_STEP_URL = "/vdc/workflows/steps";
     public static final String TASK_URL = "/vdc/tasks";
+    public static final String EVENT_URL = "/vdc/events";
     public static final String HOST_URL = "/compute/hosts";
     public static final String HOST_DETACH_STORAGE_URL = HOST_URL + "/{hostId}/detach-storage";
     public static final String INITIATOR_BY_HOST_URL = HOST_URL + "/{hostId}/initiators";
@@ -197,4 +198,5 @@ public class PathConstants {
     public static final String APP_SUPPORT_CLONE_SET_URL = APP_SUPPORT_CLONE_URL + "/copy-sets";
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
+    public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
 }

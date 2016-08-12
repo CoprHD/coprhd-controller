@@ -5,6 +5,8 @@
 package com.emc.storageos.recoverpoint.utils;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +16,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyRole;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
@@ -28,7 +29,6 @@ import com.emc.fapiclient.ws.ExecutionState;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
-import com.emc.fapiclient.ws.GlobalCopyUID;
 import com.emc.fapiclient.ws.ImageAccessMode;
 import com.emc.fapiclient.ws.ImageAccessScenario;
 import com.emc.fapiclient.ws.PipeState;
@@ -87,8 +87,8 @@ public class RecoverPointImageManagementUtils {
             cgCopyName = impl.getGroupCopyName(cgCopy);
             cgName = impl.getGroupName(cgCopy.getGroupUID());
             if (waitForLinkState) {
-                // Make sure the CG is ready for enable
-                waitForCGLinkState(impl, cgCopy.getGroupUID(),
+                // Make sure the CG copy is ready for enable
+                waitForCGCopyLinkState(impl, cgCopy,
                         RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
             } else {
                 logger.info("Not waiting on any link states, proceeding with the operation");
@@ -266,7 +266,7 @@ public class RecoverPointImageManagementUtils {
 
             String bookmarkDate = new java.util.Date(snapshotToEnable.getClosingTimeStamp().getTimeInMicroSeconds()
                     / numMicroSecondsInMilli).toString();
-            logger.info("Enable snapshot image: " + bookmarkName + " of time " + bookmarkDate + " on CG Copy" + cgCopyName
+            logger.info("Enable snapshot image: " + bookmarkName + " of time " + bookmarkDate + " on CG Copy " + cgCopyName
                     + " for CG name " + cgName);
             impl.enableImageAccess(cgCopy, snapshotToEnable, accessMode, ImageAccessScenario.NONE);
 
@@ -274,7 +274,7 @@ public class RecoverPointImageManagementUtils {
                 // Verify image is enabled correctly
                 logger.info("Wait for image to be in correct mode");
                 // This will wait for the state change, and throw if it times out or gets some other error
-                waitForCGCopyState(impl, cgCopy, accessMode, false);
+                waitForCGCopyState(impl, cgCopy, false, accessMode);
             }
 
         } catch (FunctionalAPIActionFailedException_Exception e) {
@@ -426,17 +426,22 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
             // Wait for the RP failover to complete before obtaining the list of production copies
-            waitForCGCopyState(impl, cgCopyUID, null, false);
+            waitForCGCopyState(impl, cgCopyUID, false);
 
             ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgCopyUID.getGroupUID());
             List<ConsistencyGroupCopyUID> prodCopiesUIDs = groupSettings.getProductionCopiesUIDs();
 
-            for (ConsistencyGroupCopyUID prodCopyUID : prodCopiesUIDs) {
-                if (!copiesEqual(cgCopyUID, prodCopyUID)) {
-                    logger.info("Setting copy {} as the new production copy.", cgCopyName);
-                    impl.setProductionCopy(cgCopyUID, true);
-                    break;
-                }
+            // Check if the copy we want to make production is already the production copy. In some cases
+            // such as MetroPoint swap or CLR swap when the non-swap target is in direct access mode,
+            // our copy will not be set as production.
+            boolean isCopySetAsProduction = RecoverPointUtils.containsCopy(prodCopiesUIDs, cgCopyUID);
+
+            if (!isCopySetAsProduction) {
+                logger.info(String.format("Setting copy %s as the new production copy.", cgCopyName));
+                impl.setProductionCopy(cgCopyUID, true);
+            } else {
+                logger.info(String.format("Copy %s is already set as a production copy. Skipping step to set as production copy.",
+                        cgCopyName));
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToSetCopyAsProduction(cgCopyName, cgName, e);
@@ -448,44 +453,32 @@ public class RecoverPointImageManagementUtils {
     }
 
     /**
-     * Convenience method that determines if 2 CG copies are equal. The cluster and copy UIDs
-     * for each copy must be equal in order for the copies to be equal.
+     * Enables CG direct access mode on the specified copy.
      *
-     * @param firstCopy the first copy in the comparison
-     * @param secondCopy the second copy in the comparison.
-     * @return
+     * @param impl the FAPI implementation
+     * @param copyToEnableDirectAccess the copy to enable direct access on
+     * @throws RecoverPointException
      */
-    private boolean copiesEqual(ConsistencyGroupCopyUID firstCopy, ConsistencyGroupCopyUID secondCopy) {
-        if (firstCopy != null && secondCopy != null) {
-            GlobalCopyUID firstCopyGlobalCopyUID = firstCopy.getGlobalCopyUID();
-            GlobalCopyUID secondCopyGlobalCopyUID = secondCopy.getGlobalCopyUID();
-            return copiesEqual(firstCopyGlobalCopyUID, secondCopyGlobalCopyUID);
+    public void enableCGCopyDirectAcess(FunctionalAPIImpl impl, RPCopyRequestParams copyToEnableDirectAccess)
+            throws RecoverPointException {
+        String cgCopyName = NAME_UNKNOWN;
+        String cgName = NAME_UNKNOWN;
+
+        // Not checking cgCopUID for null because RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID
+        // ensures it will not be null.
+        ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToEnableDirectAccess
+                .getCopyVolumeInfo());
+
+        try {
+            cgCopyName = impl.getGroupCopyName(cgCopyUID);
+            cgName = impl.getGroupName(cgCopyUID.getGroupUID());
+
+            impl.enableDirectAccess(cgCopyUID);
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         }
-
-        return false;
-    }
-
-    /**
-     * Convenience method that determines if 2 CG copies are equal. The cluster and copy UIDs
-     * for each copy must be equal in order for the copies to be equal.
-     *
-     * @param firstCopy the first copy in the comparison
-     * @param secondCopy the second copy in the comparison.
-     * @return true if the copy UIDs are the same
-     */
-    private boolean copiesEqual(GlobalCopyUID firstCopy, GlobalCopyUID secondCopy) {
-        if (firstCopy != null && secondCopy != null) {
-            ClusterUID firstCopyClusterUID = firstCopy.getClusterUID();
-            ClusterUID secondCopyClusterUID = secondCopy.getClusterUID();
-
-            if (firstCopyClusterUID != null && secondCopyClusterUID != null
-                    && firstCopyClusterUID.getId() == secondCopyClusterUID.getId()
-                    && firstCopy.getCopyUID() == secondCopy.getCopyUID()) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -508,9 +501,10 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
             logger.info(String.format("Restore the image to copy name: %s for CG name: %s", cgCopyName, cgName));
             recoverProductionAndWait(impl, cgCopyUID);
-            // For restore, just wait for link state of the copy being restored
+            // For restore, just wait for link state of the copy being restored. Wait for active of paused link state.
+            // If one of the copies is in direct access mode, paused is a valid link state.
             waitForCGLinkState(impl, cgCopyUID.getGroupUID(),
-                    RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()));
+                    RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()), PipeState.PAUSED);
             logger.info("Successful restore to copy name: " + cgCopyName + " for CG Name: " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
@@ -540,7 +534,7 @@ public class RecoverPointImageManagementUtils {
         impl.recoverProduction(groupCopy, true);
         logger.info("Wait for recoverProduction to complete");
         // 4.0 logic. Wait for the copy to no longer be in image access mode.
-        this.waitForCGCopyState(impl, groupCopy, ImageAccessMode.UNKNOWN, false);
+        this.waitForCGCopyState(impl, groupCopy, false, ImageAccessMode.UNKNOWN);
     }
 
     /**
@@ -719,7 +713,7 @@ public class RecoverPointImageManagementUtils {
         logger.info("verifyGroupCopyImageIsEnabled called for copy " + cgCopyName + " of group " + cgName + " and bookmarkName/APIT: "
                 + bookmarkName);
         for (ConsistencyGroupCopyState groupCopyState : groupCopyStateList) {
-            if (RecoverPointUtils.cgCopyEqual(groupCopyState.getCopyUID(), groupCopy)) {
+            if (RecoverPointUtils.copiesEqual(groupCopyState.getCopyUID(), groupCopy)) {
                 StorageAccessState accessState = groupCopyState.getStorageAccessState();
                 if (expectLoggedAccess) {
                     // Explicitly looking for LOGGED_ACCESS
@@ -824,7 +818,7 @@ public class RecoverPointImageManagementUtils {
         Timestamp enabledApitTime = null;
         // logger.debug ("isGroupCopyImageEnabledForAPIT called for copy " + cgCopyName + " of group " + cgName);
         for (ConsistencyGroupCopyState groupCopyState : groupCopyStateList) {
-            if (RecoverPointUtils.cgCopyEqual(groupCopyState.getCopyUID(), groupCopy)) {
+            if (RecoverPointUtils.copiesEqual(groupCopyState.getCopyUID(), groupCopy)) {
                 StorageAccessState accessState = groupCopyState.getStorageAccessState();
                 if (accessState == StorageAccessState.DIRECT_ACCESS) {
                     // Not enabled
@@ -985,16 +979,16 @@ public class RecoverPointImageManagementUtils {
      *
      * @param port - RP handle to use for RP operations
      * @param groupCopy - RP group copy we are looking at
-     * @param accessMode - Access mode we are waiting for
      * @param expectRollComplete - true or false we are expecting the state to be LOGGED_ACCESS_WITH_ROLL, and the roll is complete
+     * @param accessMode - Access modes we are waiting for. Optional
      *
      * @return void
      *
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    public void waitForCGCopyState(FunctionalAPIImpl port, ConsistencyGroupCopyUID groupCopy, ImageAccessMode accessMode,
-            boolean expectRollComplete)
+    public void waitForCGCopyState(FunctionalAPIImpl port, ConsistencyGroupCopyUID groupCopy,
+            boolean expectRollComplete, ImageAccessMode... accessMode)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException,
             RecoverPointException {
         ConsistencyGroupUID groupUID = groupCopy.getGroupUID();
@@ -1006,11 +1000,13 @@ public class RecoverPointImageManagementUtils {
         final int sleepTimeSeconds = 15; // seconds
         final int secondsPerMin = 60;
         final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
-        logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
+
+        List<ImageAccessMode> accessModes = new ArrayList<ImageAccessMode>();
 
         logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
         if (accessMode != null) {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessMode);
+            accessModes = Arrays.asList(accessMode);
         } else {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: DIRECT_ACCESS or NO_ACCESS");
         }
@@ -1018,23 +1014,23 @@ public class RecoverPointImageManagementUtils {
             for (int perMinIter = 0; perMinIter < numItersPerMin; perMinIter++) {
                 groupCopyStateList = port.getGroupState(groupUID).getGroupCopiesStates();
                 for (ConsistencyGroupCopyState groupCopyState : groupCopyStateList) {
-                    if (RecoverPointUtils.cgCopyEqual(groupCopyState.getCopyUID(), groupCopy)) {
+                    if (RecoverPointUtils.copiesEqual(groupCopyState.getCopyUID(), groupCopy)) {
                         StorageAccessState copyAccessState = groupCopyState.getStorageAccessState();
                         logger.info("Current Copy Access State: " + copyAccessState);
 
-                        if (accessMode == ImageAccessMode.LOGGED_ACCESS) {
+                        if (accessModes.contains(ImageAccessMode.LOGGED_ACCESS)) {
                             // HACK HACK HACK WJE had to add check for no access journal preserved, otherwise my restore wouldn't continue
                             if (copyAccessState == StorageAccessState.LOGGED_ACCESS
                                     || copyAccessState == StorageAccessState.NO_ACCESS_JOURNAL_PRESERVED) {
                                 logger.info("Copy " + cgCopyName + " of group " + cgName + " is in logged access.  Enable has completed");
                                 return;
                             }
-                        } else if (accessMode == ImageAccessMode.VIRTUAL_ACCESS) {
+                        } else if (accessModes.contains(ImageAccessMode.VIRTUAL_ACCESS)) {
                             if (copyAccessState == StorageAccessState.VIRTUAL_ACCESS) {
                                 logger.info("Copy " + cgCopyName + " of group " + cgName + " is in virtual access.  Enable has completed");
                                 return;
                             }
-                        } else if (accessMode == ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL) {
+                        } else if (accessModes.contains(ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL)) {
                             if (expectRollComplete) {
                                 if (copyAccessState == StorageAccessState.LOGGED_ACCESS_ROLL_COMPLETE) {
                                     logger.info("Copy " + cgCopyName + " of group " + cgName
@@ -1082,7 +1078,7 @@ public class RecoverPointImageManagementUtils {
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState)
+    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState... desiredPipeState)
             throws RecoverPointException {
 
         int numRetries = 0;
@@ -1103,15 +1099,24 @@ public class RecoverPointImageManagementUtils {
             try {
                 cgState = impl.getGroupState(cgUID);
 
+                List<String> desiredPipeStates = new ArrayList<String>();
+
+                if (desiredPipeState != null) {
+                    // build the list of desired pipe states
+                    for (PipeState pipeState : desiredPipeState) {
+                        desiredPipeStates.add(pipeState.name());
+                    }
+                }
+
                 // Lets assume all links are in desired state and use boolean AND operation to concatenate the results
                 // to get a cumulative status on all the links.
                 // allLinksInDesiredState = true;
                 for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {
                     PipeState pipeState = linkstate.getPipeState();
-                    logger.info("CG link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+                    logger.info("CG link state is " + pipeState.toString() + "; desired states are: " + desiredPipeStates.toString());
 
                     // Special consideration if we want the link to be in the active state.
-                    if (PipeState.ACTIVE.equals(desiredPipeState)) {
+                    if (desiredPipeStates.contains(PipeState.ACTIVE.name())) {
                         if (PipeState.ACTIVE.equals(pipeState)) {
                             allLinksInDesiredState = true;
                         } else if (PipeState.STAND_BY.equals(pipeState)) {
@@ -1119,10 +1124,21 @@ public class RecoverPointImageManagementUtils {
                             // an ACTIVE link state as well.
                             logger.info("CG link state is STAND_BY, valid state for MetroPoint.");
                         } else if (PipeState.PAUSED.equals(pipeState)) {
-                            logger.info("CG link state is PAUSED.  Resume link.");
-                            impl.startGroupTransfer(cgUID);
-                            allLinksInDesiredState = false;
-                            break;
+                            if (desiredPipeStates.contains(PipeState.PAUSED.name())) {
+                                // When DIRECT_ACCESS mode is set on a target copy, the link will be paused. If one of
+                                // the desired states is PAUSED, we must respect that and not attempt to start group
+                                // transfer.
+                                logger.info("CG link state is PAUSED.");
+                                allLinksInDesiredState = true;
+                            } else {
+                                // We only want to start group transfer if the only desired state is the active state. When
+                                // target copies are in DIRECT_ACCESS mode, the link will be paused and we do not want
+                                // to resume group transfer.
+                                logger.info("CG link state is PAUSED.  Resume link.");
+                                impl.startGroupTransfer(cgUID);
+                                allLinksInDesiredState = false;
+                                break;
+                            }
                         } else if (PipeState.INITIALIZING.equals(pipeState)) {
                             logger.info("CG link state is INITIALIZING.");
                             isInitializing = true;
@@ -1133,14 +1149,14 @@ public class RecoverPointImageManagementUtils {
                             allLinksInDesiredState = false;
                             break;
                         }
-                    } else if (PipeState.SNAP_IDLE.equals(desiredPipeState)) {
+                    } else if (desiredPipeStates.contains(PipeState.SNAP_IDLE.name())) {
                         if (PipeState.SNAP_IDLE.equals(pipeState) || PipeState.SNAP_SHIPPING.equals(pipeState)) {
                             allLinksInDesiredState = true;
                             break;
                         }
                     } else {
                         // Other desired states (like UNKNOWN [inactive])
-                        if (pipeState.equals(desiredPipeState)) {
+                        if (desiredPipeStates.contains(pipeState.name())) {
                             logger.info("CG link state matches the desired state.");
                             allLinksInDesiredState = true;
                         } else {
@@ -1212,21 +1228,23 @@ public class RecoverPointImageManagementUtils {
                     if (!cgState.getSourceCopiesUIDs().isEmpty()) {
                         for (ConsistencyGroupCopyUID groupCopyUID : cgState.getSourceCopiesUIDs()) {
 
-                            if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), groupCopyUID.getGlobalCopyUID()) &&
-                                    copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                            if (RecoverPointUtils.copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), groupCopyUID.getGlobalCopyUID())
+                                    &&
+                                    RecoverPointUtils.copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
                                 found = true;
                             }
 
-                            if (copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), groupCopyUID.getGlobalCopyUID()) &&
-                                    copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID())) {
+                            if (RecoverPointUtils.copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), groupCopyUID.getGlobalCopyUID())
+                                    &&
+                                    RecoverPointUtils.copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID())) {
                                 found = true;
                             }
                         }
                     } else {
                         // Back-up plan. The cg state didn't tell us who the source is, so we need to make a guess on
                         // the link source and copy. Just find our copy in the link and go with it.
-                        if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID()) ||
-                                copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                        if (RecoverPointUtils.copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID()) ||
+                                RecoverPointUtils.copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
                             found = true;
                         }
                     }
@@ -1401,7 +1419,7 @@ public class RecoverPointImageManagementUtils {
             groupState = impl.getGroupState(groupUID);
             cgCopyStateList = groupState.getGroupCopiesStates();
             for (ConsistencyGroupCopyState cgCopyState : cgCopyStateList) {
-                if (RecoverPointUtils.cgCopyEqual(cgCopyState.getCopyUID(), copyId)) {
+                if (RecoverPointUtils.copiesEqual(cgCopyState.getCopyUID(), copyId)) {
                     return cgCopyState;
                 }
             }
@@ -1455,8 +1473,8 @@ public class RecoverPointImageManagementUtils {
             ConsistencyGroupState groupState = impl.getGroupState(groupUID);
             List<ConsistencyGroupLinkState> linkStates = groupState.getLinksStates();
             for (ConsistencyGroupLinkState cgLinkState : linkStates) {
-                if ((RecoverPointUtils.cgCopyEqual(cgLinkState.getGroupLinkUID().getSecondCopy(), cgCopy.getGlobalCopyUID()) || (RecoverPointUtils
-                        .cgCopyEqual(cgLinkState.getGroupLinkUID().getFirstCopy(), cgCopy.getGlobalCopyUID())))) {
+                if ((RecoverPointUtils.copiesEqual(cgLinkState.getGroupLinkUID().getSecondCopy(), cgCopy.getGlobalCopyUID()) || (RecoverPointUtils
+                        .copiesEqual(cgLinkState.getGroupLinkUID().getFirstCopy(), cgCopy.getGlobalCopyUID())))) {
                     return cgLinkState;
                 }
             }

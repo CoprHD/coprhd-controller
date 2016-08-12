@@ -11,8 +11,8 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
-import com.emc.storageos.db.client.model.uimodels.ExecutionWindowLengthType;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowType;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.vipr.model.catalog.ScheduleInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

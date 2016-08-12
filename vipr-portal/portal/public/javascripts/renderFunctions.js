@@ -568,12 +568,12 @@ render.taskResource = function(o, val) {
 
 render.actionableEvent = function(o, val) {
   var s = ""
-  if (o.aData.name != null) {
+  if (o.aData.id != null) {
     var resourceLink = getResourceLink("ACTIONABLE_EVENT", o.aData.id)
     if (resourceLink) {
       s += " <a href='" + resourceLink + "'>";
     }
-    s += o.aData.name;
+    s += o.aData.id;
     if (resourceLink) {
       s += "</a>";
     }

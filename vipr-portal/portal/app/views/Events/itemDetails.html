@@ -1,13 +1,21 @@
 <dl class="dl-horizontal">
-#{if details.approveDetails && event.eventStatus == 'pending'}
+  #{if event.eventStatus == 'pending'}
   <dt>&{'events.approveDetails'}:</dt>
-  <dd>${details.approveDetails}</dd>
-#{/if}
+  <dd>
+    #{list approveDetails, as:'detail'}
+       ${detail}
+    #{/list}
+  </dd>
+  #{/if}
 
-#{if details.declineDetails && event.eventStatus == 'pending'}
+  #{if event.eventStatus == 'pending'}
   <dt>&{'events.declineDetails'}:</dt>
-  <dd>${details.declineDetails}</dd>
-#{/if}
+  <dd>
+    #{list declineDetails, as:'detail'}
+       ${detail}
+    #{/list}
+  </dd>
+  #{/if}
 
   <dt>&{'events.tasks'}:</dt>
   <dd>

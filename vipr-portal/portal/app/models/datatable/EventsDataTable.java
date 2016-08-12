@@ -21,14 +21,14 @@ public class EventsDataTable extends DataTable {
 
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
-        addColumn("id").hidden();
         addColumn("warning").setCssClass("none");
         if (addResourceColumn) {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
             addColumn("resourceName").hidden();
         }
-        addColumn("name").setRenderFunction("render.actionableEvent");
+        addColumn("name");
         addColumn("eventStatus");
+        addColumn("id").setRenderFunction("render.actionableEvent");
         addColumn("creationTime").setRenderFunction("render.localDate");
         setDefaultSort("creationTime", "desc");
         sortAllExcept("id");

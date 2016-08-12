@@ -54,14 +54,29 @@ margin-bottom: 5px;
       <dt>&{'events.description'}:</dt>
       <dd>{{event.description}}&nbsp;</dd>
 
+      <dt>&{'events.warning'}:</dt>
+      <dd>{{event.warning}}&nbsp;</dd>
+
       <dt>&{'events.created'}:</dt>
       <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
       
-      <dt>Approve Details:</dt>
+      #{if details.approveDetails && event.eventStatus == 'pending'}
+      <dt>&{'events.approveDetails'}</dt>
       <dd>{{details.approveDetails}}</dd>
+      #{/if}
       
-      <dt>Decline Details:</dt>
+      #{if details.declineDetails && event.eventStatus == 'pending'}
+      <dt>&{'events.declineDetails'}:</dt>
       <dd>{{details.declineDetails}}</dd>
+      #{/if}
+      
+      <dt>&{'events.tasks'}:</dt>
+      <dd>
+      #{list tasks, as:'task'}
+      <a href="@{Tasks.details(task.id)}">${task.name}</a>#{if !task_isLast}, #{/if}
+      #{/list}
+      #{else}&nbsp;#{/else}
+      </dd>
     </dl>
     
    <div class="alert alert-danger" ng-show="event.isError">

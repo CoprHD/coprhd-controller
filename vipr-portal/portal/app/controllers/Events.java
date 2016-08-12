@@ -134,7 +134,12 @@ public class Events extends Controller {
 
         Common.angularRenderArgs().put("details", details);
 
-        render(event, details);
+        List<TaskResourceRep> tasks = Lists.newArrayList();
+        if (event != null && event.getTaskIds() != null) {
+            tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
+        }
+
+        render(event, details, tasks);
     }
 
     public static void detailsJson(String eventId) {
@@ -221,13 +226,16 @@ public class Events extends Controller {
 
     public static void itemDetails(String id) {
         EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
+        List<String> approveDetails = details.getApproveDetails();
+        List<String> declineDetails = details.getDeclineDetails();
+
         EventRestRep event = getViprClient().events().get(uri(id));
         List<TaskResourceRep> tasks = Lists.newArrayList();
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
 
-        render(details, event, tasks);
+        render(approveDetails, declineDetails, event, tasks);
     }
 
     // "Suppressing Sonar violation of Field names should comply with naming convention"

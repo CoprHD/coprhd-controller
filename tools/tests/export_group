@@ -30,7 +30,12 @@ def export_group_create(args):
 	    path_param['storage_ports'] = storage_ports
     except:
        print 'No path parameters (optional)'
-    o = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
+    (o, s) = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
+    if (s['state'] == 'ready'):
+	print 'Export group created with id ' + s['resource']['id']
+    elif (s['state'] != 'suspended_no_error'):
+	print 'Export group create failed.'
+	sys.exit(1);
 
 def export_group_update(args):
     bourne.connect(args.ip)
@@ -50,12 +55,22 @@ def export_group_update(args):
     except:
         print 'No path parameters (optional)'
     groupId = bourne.export_group_query(args.groupId)
-    o = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param)
+    (o, s) = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param)
+    if (s['state'] == 'ready'):
+	print 'Export group updated with id ' + s['resource']['id']
+    elif (s['state'] != 'suspended_no_error'):
+	print 'Export group update failed.'
+	sys.exit(1);
 
 def export_group_delete(args):
     bourne.connect(args.ip)
     groupId = bourne.export_group_query(args.groupId)
-    res = bourne.export_group_delete(groupId)
+    (o, s) = bourne.export_group_delete(groupId)
+    if (s['state'] == 'ready'):
+	print 'Export group delete succeeded'
+    elif (s['state'] != 'suspended_no_error'):
+	print 'Export group delete failed.'
+	sys.exit(1);
 
 def export_group_add_initiator(args):
     bourne.connect(args.ip)

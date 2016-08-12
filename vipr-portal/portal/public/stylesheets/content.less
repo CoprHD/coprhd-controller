@@ -809,6 +809,19 @@ div.dataTables_footer > div.dataTables_selectedItems {
   margin-left:20px;
 }
 
+.events-container  {
+  width:95%;
+  margin-left:20px;
+}
+
+.event-count .badge {
+    margin-left:2px;
+    margin-top:-5px;
+    vertical-align: middle;
+    background-color: @navbar-inverse-color;
+    color: @navbar-inverse-bg;
+}
+
 #system-logs {
   @logs-width: 800px;
   @expandable-width: 24px;
@@ -1139,6 +1152,14 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     opacity: 0.5;
 }
 
+.wizard-dialog .title-side-next {
+    font-size: 25px;
+    color: white;
+    text-transform: uppercase;
+    //opacity: 0.5;
+    padding:10px;
+}
+
 .wizard-dialog .step-side {
     margin-top: 0px;
     margin-bottom: 0px;
@@ -1164,11 +1185,49 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     bottom: 0px;
     min-height: 900px;
 
-    -webkit-transition: padding .2s ease,opacity .2s ease;
-    -moz-transition: padding .2s ease,opacity .2s ease;
-    -ms-transition: padding .2s ease,opacity .2s ease;
-    -o-transition: padding .2s ease,opacity .2s ease;
-    transition: padding .2s ease,opacity .2s ease;
+    -webkit-transition: opacity .2s ease;
+    -moz-transition: opacity .2s ease;
+    -ms-transition: opacity .2s ease;
+    -o-transition: opacity .2s ease;
+    transition: opacity .2s ease;
+}
+
+.wizard-side-close {
+    top: -5px;
+    right: -5px;
+    font-size: small;
+    position: absolute;
+}
+
+.wizard-side-next {
+    position: absolute;
+    font-size: 50px;
+    top: -8px;
+    right: 80px;
+}
+
+.popover {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    border: none;
+    font-size: 13px;
+}
+
+.wizard-side-next + .popover {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    border: none;
+    font-size: 13px;
+    top: 48px !important;
+    left: -210px !important;
+}
+
+.popover.bottom .arrow:after {
+     border-bottom-color: rgba(0, 0, 0, 0.75);
+}
+
+.popover.bottom .arrow {
+     border-bottom-color: rgba(0, 0, 0, 0);
 }
 
 .guide-menuopen{
@@ -1196,6 +1255,11 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-dialog .action-btn {
+    padding-top: 10px;
+    text-align: left;
+}
+
+.landingstep .action-btn {
     padding-top: 10px;
     text-align: center;
 }
@@ -1228,7 +1292,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .guide-textpanel .guide-error {
     margin-top: 10px;
-    color: red;
+    color: #d9534f;
 }
 
 .wizard-dialog p {

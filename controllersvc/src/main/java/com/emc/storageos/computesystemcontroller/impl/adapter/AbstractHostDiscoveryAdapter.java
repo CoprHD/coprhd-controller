@@ -170,6 +170,8 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
     /**
      * Finds cluster by IP addresses in the given tenant.
      * 
+     * @param discoveredHost
+     *            the discovered host
      * @param tenantId
      *            the tenant ID.
      * @param hostType
@@ -178,7 +180,7 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
      *            the IP addresses in the cluster.
      * @return the ID of the cluster.
      */
-    protected URI findClusterByAddresses(URI tenantId, Host.HostType hostType, List<String> clusterIpAddresses) {
+    protected URI findClusterByAddresses(Host discoveredHost, URI tenantId, Host.HostType hostType, List<String> clusterIpAddresses) {
         for (Host host : getModelClient().hosts().findAll(tenantId.toString(), true)) {
             // Skip unclustered hosts
             if (NullColumnValueGetter.isNullURI(host.getCluster())) {
@@ -186,6 +188,10 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
             }
             // Skip hosts of other types
             if (!StringUtils.equals(host.getType(), hostType.toString())) {
+                continue;
+            }
+            // Skip the current discovered host because the cluster may have changed
+            if (host.getId().toString().equals(discoveredHost.getId().toString())) {
                 continue;
             }
 

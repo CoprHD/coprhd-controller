@@ -17,13 +17,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -38,9 +38,9 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import com.emc.storageos.workflow.Workflow.Method;
 
 public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator implements
         VplexBackEndMaskingOrchestrator, Controller {
@@ -153,13 +153,15 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public Method createOrAddVolumesToExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs,
             TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumeMap, completer);
+                exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs,
             TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -184,16 +186,17 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
 
-            if (!exportMask.hasAnyVolumes()) {
-                // new export mask
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class,
-                            URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                    }
+            // new export mask
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorId : exportMask.getInitiators()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class,
+                        URI.create(initiatorId));
+                if (initiator != null) {
+                    initiators.add(initiator);
                 }
+            }
+
+            if (!exportMask.hasAnyVolumes()) {
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
@@ -205,10 +208,10 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     }
                 }
                 _dbClient.updateObject(exportMask);
-                device.doExportGroupCreate(array, exportMask, volumeMap, initiators, targets,
+                device.doExportCreate(array, exportMask, volumeMap, initiators, targets,
                         completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
         } catch (Exception ex) {
@@ -222,13 +225,15 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes,
+            List<URI> initiatorURIs,
             TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes,
+            List<URI> initiatorURIs,
             TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -267,9 +272,13 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes()
                             .isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);

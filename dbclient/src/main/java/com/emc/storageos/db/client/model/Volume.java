@@ -895,6 +895,7 @@ public class Volume extends BlockObject implements ProjectResource {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
             if (system != null) {
                 if (system.getSystemType().equals(DiscoveredSystemObject.Type.vplex.name())) {
+                    // TODO this seems wrong
                     StringSet associatedVolumeIds = getAssociatedVolumes();
                     if ((associatedVolumeIds == null) || (associatedVolumeIds.isEmpty())) {
                         return true;

@@ -1255,7 +1255,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                 && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
 
-            if (!volume.getAssociatedVolumes().isEmpty()
+            if (null != volume.getAssociatedVolumes() 
+                    && !volume.getAssociatedVolumes().isEmpty()
                     && volume.getAssociatedVolumes().size() > 1) {
 
                 // Return false if any of the following properties are different

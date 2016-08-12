@@ -1579,6 +1579,7 @@ public class RPHelper {
      * @return true if this is a VPLEX volume, false otherwise.
      */
     public static boolean isVPlexVolume(Volume volume) {
+        // TODO this is not a proper test, vvol-only ingestion would not have backend volumes
         return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
     }
 
@@ -1589,6 +1590,7 @@ public class RPHelper {
      * @return true if this is a VPLEX Distributed (aka Metro) volume, false otherwise.
      */
     public static boolean isVPlexDistributedVolume(Volume volume) {
+        // TODO this is not a proper test, vvol-only ingestion would not have backend volumes
         return (isVPlexVolume(volume) && (volume.getAssociatedVolumes().size() > 1));
     }
 

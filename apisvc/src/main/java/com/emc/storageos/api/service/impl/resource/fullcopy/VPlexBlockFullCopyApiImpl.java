@@ -56,6 +56,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
@@ -342,6 +343,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // a volume to hold the HA volume of the VPLEX volume copy.
                 vplexSrcVolume = (Volume) fcSourceObj;
                 StringSet assocVolumeURIs = vplexSrcVolume.getAssociatedVolumes();
+                if (null == assocVolumeURIs) {
+                    throw InternalServerErrorException.internalServerErrors
+                        .noAssociatedVolumesForVPLEXVolume(vplexSrcVolume.forDisplay());
+                }
                 Iterator<String> assocVolumeURIsIter = assocVolumeURIs.iterator();
                 while (assocVolumeURIsIter.hasNext()) {
                     URI assocVolumeURI = URI.create(assocVolumeURIsIter.next());

@@ -2679,7 +2679,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.getId().toString());
+                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
         VirtualPool sourceMirrorVPool = null;
@@ -3246,11 +3246,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *         source.
      */
     public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume) {
-        String vplexVolumeId = vplexVolume.getId().toString();
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
         // Get the backend volume that will serve as the source volume
@@ -3258,7 +3257,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
         if (snapshotSourceVolume == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolumeId);
+                    .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolume.forDisplay());
         }
 
         return snapshotSourceVolume;

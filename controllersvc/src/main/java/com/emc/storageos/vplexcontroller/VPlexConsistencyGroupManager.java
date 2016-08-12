@@ -666,15 +666,21 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             for (URI vplexVolumeURI : vplexVolumes) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
-                for (String assocVolumeId : associatedVolumes) {
-                    URI assocVolumeURI = URI.create(assocVolumeId);
-                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
-                    URI assocSystemURI = assocVolume.getStorageController();
-                    if (!localVolumesMap.containsKey(assocSystemURI)) {
-                        List<URI> systemVolumes = new ArrayList<URI>();
-                        localVolumesMap.put(assocSystemURI, systemVolumes);
+                if (null == associatedVolumes) {
+                    log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                            vplexVolume.forDisplay());
+                    continue;
+                } else {
+                    for (String assocVolumeId : associatedVolumes) {
+                        URI assocVolumeURI = URI.create(assocVolumeId);
+                        Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                        URI assocSystemURI = assocVolume.getStorageController();
+                        if (!localVolumesMap.containsKey(assocSystemURI)) {
+                            List<URI> systemVolumes = new ArrayList<URI>();
+                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                        }
+                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                     }
-                    localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                 }
             }
         }
@@ -747,17 +753,23 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             for (URI vplexVolumeURI : vplexVolumes) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
-                for (String assocVolumeId : associatedVolumes) {
-                    URI assocVolumeURI = URI.create(assocVolumeId);
-                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
-                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
-                        // The backend volume is in a backend CG
-                        URI assocSystemURI = assocVolume.getStorageController();
-                        if (!localVolumesMap.containsKey(assocSystemURI)) {
-                            List<URI> systemVolumes = new ArrayList<URI>();
-                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                if (null == associatedVolumes) {
+                    log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                            vplexVolume.forDisplay());
+                    continue;
+                } else {
+                    for (String assocVolumeId : associatedVolumes) {
+                        URI assocVolumeURI = URI.create(assocVolumeId);
+                        Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                        if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
+                            // The backend volume is in a backend CG
+                            URI assocSystemURI = assocVolume.getStorageController();
+                            if (!localVolumesMap.containsKey(assocSystemURI)) {
+                                List<URI> systemVolumes = new ArrayList<URI>();
+                                localVolumesMap.put(assocSystemURI, systemVolumes);
+                            }
+                            localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                         }
-                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                     }
                 }
             }

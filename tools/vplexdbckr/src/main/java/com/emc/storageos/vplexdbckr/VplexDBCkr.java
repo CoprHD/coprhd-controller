@@ -206,7 +206,7 @@ public class VplexDBCkr {
                     systemURI, volumeURI, null, null);
             volumeDescriptors.add(descriptor);
             // Add a descriptor for each of the associated volumes.
-            if (!volume.isIngestedVolume(dbClient)) {
+            if (!volume.isIngestedVolume(dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String assocVolId : volume.getAssociatedVolumes()) {
                     Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {

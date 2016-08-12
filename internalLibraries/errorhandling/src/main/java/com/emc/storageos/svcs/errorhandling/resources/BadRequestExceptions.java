@@ -1418,6 +1418,15 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedPlacementPolicy(final String placementPolicy);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException arrayAffinityPlacementPolicyNotAllowedForSystemType(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException arrayAffinityPlacementPolicyNotAllowedForHighAvailability();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateVirtualPoolOnlyAllowedToChange();
 

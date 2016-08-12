@@ -93,11 +93,12 @@ public class Approvals extends Controller {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
 
-        Logger.info("the order's tenant is {}", approval.getTenant().getId().toString());
-        Logger.info("the user's tenant is {}", Security.getUserInfo().getTenant());
+        Logger.info("the order's tenant is %s", approval.getTenant().getId().toString());
+        Logger.info("the user's tenant is %s", Security.getUserInfo().getTenant());
 
         if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
             flash.error("User doesn't have tenant's access");
+            render();
             return;
         }
 

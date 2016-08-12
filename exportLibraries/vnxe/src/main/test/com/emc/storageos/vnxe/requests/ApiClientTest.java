@@ -54,8 +54,6 @@ public class ApiClientTest {
         factory.setSocketConnectionTimeoutMs(3600000);
         factory.init();
         apiClient = factory.getUnityClient(host, port, userName, password);
-        //_client = new KHClient(host, port, userName, password);
-        //apiClient = new VNXeApiClient(_client);
     }
 
     // @Test

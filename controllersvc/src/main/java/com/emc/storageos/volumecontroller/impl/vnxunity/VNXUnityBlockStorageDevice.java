@@ -304,7 +304,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     // Check if the CG has blockHostAccess to a RP host. if the CG is exported to a RP, we could not delete the lun
                     // directly, we have to remove the volume from the CG first, then delete it.
                     StorageResource cg = apiClient.getStorageResource(cgId);
-                    List<BlockHostAccess>hosts = cg.getBlockHostAccess();
+                    List<BlockHostAccess> hosts = cg.getBlockHostAccess();
                     if (hosts != null && !hosts.isEmpty()) {
                         for (BlockHostAccess hostAccess : hosts) {
                             VNXeBase hostId = hostAccess.getHost();

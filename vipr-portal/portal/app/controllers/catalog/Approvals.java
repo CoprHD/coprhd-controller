@@ -4,10 +4,8 @@
  */
 package controllers.catalog;
 
-import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import com.emc.vipr.model.catalog.ScheduledEventRestRep;
-import play.Logger;
 import static util.BourneUtil.getCatalogClient;
 import static util.CatalogServiceUtils.getCatalogService;
 import static util.OrderUtils.getOrder;
@@ -61,7 +59,6 @@ public class Approvals extends Controller {
         for (ApprovalRestRep approval : approvals) {
             OrderRestRep order = null;
             CatalogServiceRestRep catalogService = null;
-            ScheduledEventRestRep scheduledEvent =null;
             if (approval.getOrder() != null) {
                 if (orders.keySet().contains(approval.getOrder().getId()) == false) {
                     order = getOrder(approval.getOrder());
@@ -83,12 +80,9 @@ public class Approvals extends Controller {
                         catalogService = catalogServices.get(order.getCatalogService().getId());
                     }
                 }
-                if (order.getScheduledEventId() != null) {
-                    scheduledEvent = getCatalogClient().orders().getScheduledEvent(order.getScheduledEventId());
-                }
             }
 
-            approvalRequestInfos.add(new ApprovalRequestInfo(approval, order, catalogService,scheduledEvent));
+            approvalRequestInfos.add(new ApprovalRequestInfo(approval, order, catalogService));
         }
 
         renderJSON(DataTablesSupport.createJSON(approvalRequestInfos, params));

@@ -13,9 +13,9 @@
     <dl class="dl-horizontal nomargin">
         <dt>
         #{if scheduledEvent != null}
-        #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
-            &{'order.number.first'}
-        #{/if}
+            #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
+                &{'order.number.first'}
+            #{/if}
         #{/if}
       &{'order.number'}:</dt>
       <dd>${order.orderNumber}</dd>

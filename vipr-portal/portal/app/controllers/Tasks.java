@@ -17,20 +17,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.workflow.WorkflowStepRestRep;
-import com.google.common.collect.Maps;
-
-import com.emc.storageos.model.tasks.TaskStatsRestRep;
-
-import models.datatable.TaskLogsDataTable;
-import models.datatable.TasksDataTable;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 
+import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.tasks.TaskStatsRestRep;
+import com.emc.storageos.model.workflow.WorkflowStepRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.impl.TaskUtil.State;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import controllers.security.Security;
+import controllers.tenant.TenantSelector;
+import controllers.util.Models;
+import models.datatable.TaskLogsDataTable;
+import models.datatable.TasksDataTable;
 import play.Logger;
 import play.data.binding.As;
 import play.i18n.Messages;
@@ -42,19 +49,10 @@ import util.TagUtils;
 import util.TaskUtils;
 import util.datatable.DataTablesSupport;
 
-import com.emc.sa.util.ResourceType;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.vipr.client.ViPRCoreClient;
-import com.google.common.collect.Lists;
-
-import controllers.security.Security;
-import controllers.tenant.TenantSelector;
-import controllers.util.Models;
-
 @With(Common.class)
 public class Tasks extends Controller {
     private static final String UNKNOWN = "resource.task.unknown";
+    private static final String DELETED = "resource.task.deleted";
 
     private static final int NORMAL_DELAY = 3000;
     private static final int MAX_TASKS = 1000;
@@ -357,6 +355,35 @@ public class Tasks extends Controller {
         return taskSummaries;
     }
 
+    public static void deleteTask(String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            getViprClient().tasks().delete(uri(taskId));
+            flash.success(MessagesUtils.get(DELETED, taskId));
+        }
+        listAll(false);
+    }
+
+    public static void rollbackTask(String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            getViprClient().tasks().rollback(uri(taskId));
+        }
+        details(taskId);
+    }
+
+    public static void retryTask(String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            getViprClient().tasks().resume(uri(taskId));
+        }
+        details(taskId);
+    }
+
+    public static void resumeTask(String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            getViprClient().tasks().resume(uri(taskId));
+        }
+        details(taskId);
+    }
+
     // "Suppressing Sonar violation of Field names should comply with naming convention"
     @SuppressWarnings("squid:S00116")
     private static class TaskSummary {
@@ -445,7 +472,7 @@ public class Tasks extends Controller {
         }
     }
 
-    private static class WorkflowStep {
+    public static class WorkflowStep {
         public String name;
         public String state;
         public String message;
@@ -492,6 +519,11 @@ public class Tasks extends Controller {
 
                 }
             }
+        }
+
+        public boolean isSuspended() {
+            return state != null && (State.suspended_no_error.name().equalsIgnoreCase(state) ||
+                    State.suspended_error.name().equalsIgnoreCase(state));
         }
     }
 }

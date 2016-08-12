@@ -25,6 +25,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
+import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -376,7 +377,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void discoverStorageSystem(AsyncTask[] tasks)
             throws ControllerException {
         try {
-            ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
+            if (tasks[0] instanceof ArrayAffinityAsyncTask) {
+                ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.ARRAYAFFINITY_DISCOVER_COLLECTION_LOCK,
+                        ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY);
+            } else {
+                ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
+            }
         } catch (Exception e) {
             _log.error(
                     "Problem in discoverStorageSystem due to {} ",

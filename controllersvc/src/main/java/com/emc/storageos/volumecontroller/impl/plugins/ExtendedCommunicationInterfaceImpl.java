@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -276,4 +277,7 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
 
     }
 
+    public void discoverArrayAffinity(AccessProfile accessProfile) {
+        _logger.info("Calling discoverArrayAffinity");
+    }
 }

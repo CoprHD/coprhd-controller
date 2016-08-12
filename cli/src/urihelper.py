@@ -109,6 +109,15 @@ class URIHelper(object):
     URI_ORDER_GET_ORDER_EXECUTION = URI_ORDER_GET_ORDER + "/execution"
 
     '''
+    Task module map and its uris
+    '''
+    TASK_URIS_MAP = dict()
+    URI_TASK = "/vdc/tasks"
+    URI_TASK_ID = URI_TASK + "/{0}"
+    URI_TASK_RESUME_ID = URI_TASK_ID + "/resume"
+    URI_TASK_ROLLBACK_ID = URI_TASK_ID + "/rollback"
+
+    '''
     Project module map and its uris
     '''
     PROJECT_URIS_MAP = dict()
@@ -185,6 +194,7 @@ class URIHelper(object):
         self.__fillExecutionWindowMap()
         self.__fillExportGroupMap()
         self.__fillOrderMap()
+        self.__fillTaskMap()
         self.__fillProjectMap()
         self.__fillTenantMap()
         self.__fillVpoolMap()
@@ -210,6 +220,7 @@ class URIHelper(object):
             "executionwindow"] = self.EXECUTION_WINDOW_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP["export"] = self.EXPORT_GROUP_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP["order"] = self.ORDER_URIS_MAP
+        self.COMPONENT_TYPE_VS_URIS_MAP["task"] = self.TASK_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP["project"] = self.PROJECT_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP["tenant"] = self.TENANT_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP[
@@ -282,6 +293,10 @@ class URIHelper(object):
         self.ORDER_URIS_MAP[
             "show-execution"] = self.URI_ORDER_GET_ORDER_EXECUTION
         
+    def __fillTaskMap(self):
+        self.TASK_URIS_MAP["resume"] = self.URI_TASK_RESUME_ID
+        self.TASK_URIS_MAP["rollback"] = self.URI_TASK_ROLLBACK_ID
+
     def __fillFileSharesMap(self):
         self.FILESHARE_URIS_MAP["tasks_list"] = self.URI_FILESHARE_TASK_LIST
         self.FILESHARE_URIS_MAP["task"] = self.URI_FILESHARE_TASK

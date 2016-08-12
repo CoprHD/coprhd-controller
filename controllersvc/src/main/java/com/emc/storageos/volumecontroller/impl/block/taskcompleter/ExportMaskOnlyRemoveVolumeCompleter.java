@@ -70,8 +70,8 @@ public class ExportMaskOnlyRemoveVolumeCompleter extends ExportTaskCompleter {
             } else {
                 // If the ExportGroup does not contain the exportMask, add it back.
                 exportGroup.addExportMask(getMask());
-                dbClient.updateAndReindexObject(exportMask);
-                dbClient.updateAndReindexObject(exportGroup);
+                dbClient.updateObject(exportMask);
+                dbClient.updateObject(exportGroup);
             }
 
             _log.info(String.format(

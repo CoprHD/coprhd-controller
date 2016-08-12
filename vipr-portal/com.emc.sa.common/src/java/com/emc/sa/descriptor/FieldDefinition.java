@@ -36,9 +36,6 @@ public class FieldDefinition extends ItemDefinition {
 
     /** Validation definition for this field. */
     public ValidationDefinition validation = new ValidationDefinition();
-    
-    /** The dynamic help. */
-    public String dynamicHelp;
 
     @Override
     public String toString() {
@@ -51,7 +48,6 @@ public class FieldDefinition extends ItemDefinition {
         builder.append("select", select);
         builder.append("options", options);
         builder.append("validation", validation);
-        builder.append("dynamicHelp", dynamicHelp);
         return builder.toString();
     }
 }

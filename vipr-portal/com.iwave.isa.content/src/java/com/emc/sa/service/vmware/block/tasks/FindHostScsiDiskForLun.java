@@ -100,7 +100,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private HostScsiDisk waitForValidState(HostScsiDisk disk) {
         logInfo("find.host.scsi.lun.esx.wait.valid", lunDiskName, host.getName());
         long startTime = System.currentTimeMillis();
-        while (!isValidState(disk) && canRetry(startTime, VALID_STATE_TIMEOUT)) {
+        while ((disk == null || !isValidState(disk)) && canRetry(startTime, VALID_STATE_TIMEOUT)) {
             pause(VALID_STATE_DELAY);
             disk = getLunDisk();
             if (disk == null) {

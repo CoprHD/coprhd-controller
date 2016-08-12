@@ -27,6 +27,7 @@ import com.emc.vipr.client.core.ComputeImages;
 import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
+import com.emc.vipr.client.core.Events;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -182,6 +183,10 @@ public class ViPRCoreClient {
 
     public VirtualDataCenters vdcs() {
         return new VirtualDataCenters(this, client);
+    }
+
+    public Events events() {
+        return new Events(this, client);
     }
 
     public Hosts hosts() {

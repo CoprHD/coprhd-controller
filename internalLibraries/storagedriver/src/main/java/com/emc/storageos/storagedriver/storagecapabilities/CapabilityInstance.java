@@ -67,7 +67,7 @@ public class CapabilityInstance {
      * @param properties The property values map.
      */
     public void setProperties(Map<String, List<String>> properties) {
-        properties.putAll(properties);
+        this.properties.putAll(properties);
     }    
 
     /**
@@ -78,7 +78,11 @@ public class CapabilityInstance {
      * @return The values for the passed property.
      */
     public List<String> getPropertyValues(String propertyName) {
-        return properties.get(propertyName);
+        if (properties != null) {
+            return properties.get(propertyName);
+        } else {
+            return null;
+        }
     }
     
     /**
@@ -101,9 +105,11 @@ public class CapabilityInstance {
      */
     public String getPropertyValue(String propertyName) {
         String propValue = null;
-        List<String> propVals = properties.get(propertyName);
-        if ((propVals != null) && (!propVals.isEmpty())) {
-            propValue = propVals.get(0);
+        if (properties != null) {
+            List<String> propVals = properties.get(propertyName);
+            if ((propVals != null) && (!propVals.isEmpty())) {
+                propValue = propVals.get(0);
+            }
         }
         return propValue;
     }

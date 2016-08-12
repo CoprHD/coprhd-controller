@@ -236,7 +236,7 @@ class Cluster(object):
 
         return
 
-    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=True)):
+    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=True):
         '''
         update cluster with datacenter, label
         Parameters:
@@ -266,8 +266,8 @@ class Cluster(object):
         # get the cluster uri
         cluster_uri = self.cluster_query(name, tenant)
 
-        if(!updateExports):
-            cluster_uri = cluster_uri + "?update-exports=false"
+        if(updateExports is not None):
+            cluster_uri = cluster_uri + "?update-exports=" + updateExports
 
 
         body = json.dumps(parms)

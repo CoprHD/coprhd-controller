@@ -17,6 +17,7 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.uimodels.*;
@@ -113,7 +114,8 @@ public class OrderManagerImpl implements OrderManager {
                 // either 1) the next execution window starting time
                 // or     2) the current time if it is in current execution window
                 ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-                order.setScheduledTime(ScheduleTimeHelper.getScheduledTime(executionWindow));
+                ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
+                order.setScheduledTime(helper.getScheduledTime());
             }
         }
         order.setMessage("");

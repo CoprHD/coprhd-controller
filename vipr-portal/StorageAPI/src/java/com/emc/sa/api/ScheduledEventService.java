@@ -21,7 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.model.util.ExecutionWindowHelper;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;

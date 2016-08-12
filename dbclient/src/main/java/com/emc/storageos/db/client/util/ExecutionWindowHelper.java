@@ -2,17 +2,18 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.sa.model.util;
+package com.emc.storageos.db.client.util;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowLengthType;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ExecutionWindowHelper {
     private static final Logger log = LoggerFactory.getLogger(ExecutionWindowHelper.class);
@@ -359,4 +360,59 @@ public class ExecutionWindowHelper {
     private int getDayOfMonth() {
         return window.getDayOfMonth();
     }
+
+    /**
+     * Get expected schedule time based on execution window
+     * @return
+     */
+    public Calendar getScheduledTime() {
+        Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        log.debug("currTime: {}", currTime.toString());
+        if (isActive(currTime)) {
+            log.debug("currTime {} is in active window, set it as scheduled time.", currTime.toString());
+            return currTime;
+        }
+
+        int year = currTime.get(Calendar.YEAR);
+        int month = currTime.get(Calendar.MONTH);
+        int day = currTime.get(Calendar.DAY_OF_MONTH);
+        int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+        int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+
+        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        scheduledTime.set(year, month, day, hour, min, 0);
+
+        if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
+            scheduledTime.set(Calendar.DAY_OF_MONTH, window.getDayOfMonth());
+        } else if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
+            int daysDiff = (window.getDayOfWeek()%7 + 1) - scheduledTime.get(Calendar.DAY_OF_WEEK); // java dayOfWeek starts from Sun.
+            scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
+        }
+
+        while (scheduledTime.before(currTime)) {
+            scheduledTime = getNextScheduledTime(scheduledTime, window);
+            log.debug("scheduledTime in loop: {}", scheduledTime.toString());
+        }
+
+        log.debug("scheduledTime: {}", scheduledTime.toString());
+        return scheduledTime;
+    }
+
+    /**
+     * Get next desired schedule time based on the previous one and execution window
+     * @param scheduledTime     previous schedule time
+     * @param window             execution window
+     * @return
+     */
+    private Calendar getNextScheduledTime(Calendar scheduledTime, ExecutionWindow window) {
+        if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
+            scheduledTime.add(Calendar.MONTH, 1);
+        } else if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
+            scheduledTime.add(Calendar.WEEK_OF_MONTH, 1);
+        } else if (window.getExecutionWindowType().equals(ExecutionWindowType.DAILY.name())) {
+            scheduledTime.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        return scheduledTime;
+    }
+
 }

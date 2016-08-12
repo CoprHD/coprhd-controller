@@ -13,33 +13,23 @@ import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
-import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshotSession;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.core.util.ResourceUtils;
-import com.emc.vipr.model.catalog.OrderCreateParam;
 
 @Service("CreateBlockSnapshot")
 public class CreateBlockSnapshotService extends ViPRService {

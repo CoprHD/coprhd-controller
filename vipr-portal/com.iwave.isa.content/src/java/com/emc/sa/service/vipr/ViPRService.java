@@ -13,7 +13,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;

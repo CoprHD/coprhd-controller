@@ -51,6 +51,7 @@ import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenter;
 import com.emc.storageos.driver.dellsc.scapi.objects.StorageCenterStorageUsage;
 import com.emc.storageos.driver.dellsc.scapi.rest.Parameters;
 import com.emc.storageos.driver.dellsc.scapi.rest.PayloadFilter;
+import com.emc.storageos.driver.dellsc.scapi.rest.PayloadFilter.ValueFilterType;
 import com.emc.storageos.driver.dellsc.scapi.rest.RestClient;
 import com.emc.storageos.driver.dellsc.scapi.rest.RestResult;
 import com.google.gson.Gson;
@@ -1118,13 +1119,12 @@ public class StorageCenterAPI implements AutoCloseable {
      *
      * @param ssn The Storage Center system serial number.
      * @param hostName The host name.
-     * @param iqnOrWwn The IQN or WWN to add.
      * @param isIscsi Whether it is iSCSI or FC.
      * @param osId The OS instance ID.
      * @return The created server.
      * @throws StorageCenterAPIException
      */
-    public ScPhysicalServer createServer(String ssn, String hostName, String iqnOrWwn, boolean isIscsi, String osId)
+    public ScPhysicalServer createServer(String ssn, String hostName, boolean isIscsi, String osId)
             throws StorageCenterAPIException {
         Parameters params = new Parameters();
         params.add("Name", hostName);
@@ -1193,7 +1193,7 @@ public class StorageCenterAPI implements AutoCloseable {
         PayloadFilter filter = new PayloadFilter();
         filter.append("scSerialNumber", ssn);
         if (product != null && !product.isEmpty()) {
-            filter.append("product", product);
+            filter.append("product", product, ValueFilterType.INCLUDESSTRING);
         }
 
         RestResult rr = restClient.post("StorageCenter/ScServerOperatingSystem/GetList", filter.toJson());

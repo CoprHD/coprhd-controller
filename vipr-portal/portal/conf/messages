@@ -3058,6 +3058,7 @@ order.validation.notInteger=Must be a valid integer
 order.validation.notNumber=Must be a valid number
 
 order.title.receipt=Order %s - %s
+order.number.first=First
 order.number=Order Number
 order.dateSubmitted=Date Submitted
 order.submittedBy=Submitted By
@@ -3092,8 +3093,8 @@ order.MONTHLY=month(s)
 order.WEEKLY=week(s)
 order.occurrences= for %s occurrences
 order.occurrences.indefinite=indefinitely
-order.additionalScheduleInfo=Retention
-order.additionalScheduleInfo.value=Retain %s Copies
+order.additionalScheduleInfo=Retention Policy
+order.additionalScheduleInfo.value=Max %s Copies
 
 order.host.with.cluster.decoration=%s [cluster: %s]
 
@@ -3714,7 +3715,7 @@ approval.approve=Approve
 approval.reject=Reject
 approval.approve.message=Approved request from user: %s
 approval.reject.message=Rejected request from user: %s
-approval.orderScheduled=This order is scheduled for multiple occurrences. Selecting Approve for this Order will result in all occurrences being approved.
+approval.orderScheduled=This order is scheduled for multiple occurrences. Selecting Approve will result in all occurrences being approved.
 approval.orderApproved=Approved by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
 approval.orderRejected=Rejected by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
 approval.notPending.error=Order %s is not in pending approval
@@ -3724,7 +3725,6 @@ approvalsTable.serviceTitle=Service
 approvalsTable.orderUserName=Submitted By
 approvalsTable.createdDate=Submit Date
 approvalsTable.approvedBy=Approver
-approvalsTable.recurring=Recurring
 approval.message=Message
 
 service.order=Order

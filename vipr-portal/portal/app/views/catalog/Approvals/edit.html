@@ -11,7 +11,13 @@
 
   <div class="pull-left span5">
     <dl class="dl-horizontal nomargin">
-      <dt>&{'order.number'}:</dt>
+        <dt>
+        #{if scheduledEvent != null}
+        #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
+            &{'order.number.first'}
+        #{/if}
+        #{/if}
+      &{'order.number'}:</dt>
       <dd>${order.orderNumber}</dd>
       
       <dt>&{'order.dateSubmitted'}:</dt>

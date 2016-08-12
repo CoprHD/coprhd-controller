@@ -455,7 +455,7 @@ public class DataCollectionJobScheduler {
             for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
                 String taskId = UUID.randomUUID().toString();
                 List<URI> systemIds = entry.getValue();
-                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType, true);
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType);
                 DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
                 jobs.add(job);
             }

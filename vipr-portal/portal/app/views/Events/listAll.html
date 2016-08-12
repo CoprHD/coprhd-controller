@@ -77,10 +77,10 @@
   #{/DataTable.buttonBar}
   #{/DataTable.table}
   #{DataTable.formAction @approveEvents(), id:'approveForm', table:'events',
-                       confirm:messages.get('resources.events.approve', name)/}
+                       prompt:messages.get('resources.events.approve'), answer:messages.get('resources.events.confirm')/}
 
   #{DataTable.formAction @declineEvents(), id:'declineForm', table:'events',
-                       confirm:messages.get('resources.events.decline', name)/}
+                       prompt:messages.get('resources.events.decline'), answer:messages.get('resources.events.confirm')/}
 
   </div>
 </div>

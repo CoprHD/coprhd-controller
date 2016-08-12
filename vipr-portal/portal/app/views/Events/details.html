@@ -32,8 +32,8 @@ margin-bottom: 5px;
     
     <div class="pull-right">
     #{if event.eventStatus.toString() == 'pending'}
-          <a class="btn btn-success" href="@{approveEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
-          <a class="btn btn-warning" href="@{declineEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
+          <a class="btn btn-success" href="#" onclick="if(prompt('&{'resources.events.approve'}') == '&{'resources.events.confirm'}') { window.location='@{approveEvent(event.id)}'; }"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
+          <a class="btn btn-warning" href="#" onclick="if(prompt('&{'resources.events.decline'}') == '&{'resources.events.confirm'}') { window.location='@{declineEvent(event.id)}'; }"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
 	#{/if}
     </div>
     

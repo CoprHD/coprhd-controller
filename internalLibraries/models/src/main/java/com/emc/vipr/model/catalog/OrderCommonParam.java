@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 public class OrderCommonParam implements Serializable {
 
@@ -35,11 +36,13 @@ public class OrderCommonParam implements Serializable {
         this.parameters = parameters;
     }
 
+    @JsonProperty("catalogService")
     @XmlElement(name = "catalog_service", required = true)
     public URI getCatalogService() {
         return catalogService;
     }
 
+    @JsonProperty("catalogService")
     public void setCatalogService(URI catalogService) {
         this.catalogService = catalogService;
     }

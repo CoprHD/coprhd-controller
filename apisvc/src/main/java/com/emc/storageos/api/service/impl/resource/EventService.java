@@ -163,19 +163,19 @@ public class EventService extends TaggedResource {
      * @param approve if true, get the approve details, if false the get the decline details
      * @return event details
      */
-    public String getEventDetails(ActionableEvent event, boolean approve) {
+    public List<String> getEventDetails(ActionableEvent event, boolean approve) {
 
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
 
         if (method == null || method.length == 0) {
             _log.info("Method is null or empty for event " + event.getId());
-            return "N/A";
+            return Lists.newArrayList("N/A");
         }
 
         ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
         if (eventMethod == null) {
             _log.info("Event method is null or empty for event " + event.getId());
-            return "N/A";
+            return Lists.newArrayList("N/A");
         }
 
         String eventMethodName = eventMethod.getMethodName() + "Details";
@@ -183,9 +183,9 @@ public class EventService extends TaggedResource {
         try {
             Method classMethod = getMethod(EventService.class, eventMethodName);
             if (classMethod == null) {
-                return "N/A";
+                return Lists.newArrayList("N/A");
             } else {
-                return (String) classMethod.invoke(this, eventMethod.getArgs());
+                return (List<String>) classMethod.invoke(this, eventMethod.getArgs());
             }
         } catch (SecurityException e) {
             _log.error(e.getMessage(), e.getCause());
@@ -257,8 +257,8 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    public String addInitiatorDetails(URI initiatorId) {
-        String result = "";
+    public List<String> addInitiatorDetails(URI initiatorId) {
+        List<String> result = Lists.newArrayList();
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
             List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
@@ -279,7 +279,7 @@ public class EventService extends TaggedResource {
                     }
 
                     if (update) {
-                        result += getVolumes(export.getVolumes(), true);
+                        result.addAll(getVolumes(export.getVolumes(), true));
                     }
                 }
             }
@@ -318,8 +318,8 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    public String removeInitiatorDetails(URI initiatorId) {
-        String result = "";
+    public List<String> removeInitiatorDetails(URI initiatorId) {
+        List<String> result = Lists.newArrayList();
 
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
@@ -330,7 +330,7 @@ public class EventService extends TaggedResource {
                 List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
                 // Only update if the list as changed
                 if (updatedInitiators.remove(initiatorId)) {
-                    result += getVolumes(export.getVolumes(), false);
+                    result.addAll(getVolumes(export.getVolumes(), false));
                 }
             }
         }
@@ -381,22 +381,22 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    public String hostVcenterUnassignDetails(URI hostId) {
-        String result = "";
+    public List<String> hostVcenterUnassignDetails(URI hostId) {
+        List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
         if (host != null) {
-            result += hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), true);
+            result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), true));
         }
         return result;
     }
 
     @SuppressWarnings("unused")
-    public String hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        String result = "";
+    public List<String> hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
-            result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+            result.addAll(hostClusterChangeDetails(hostId, clusterId, isVcenter));
         }
         return result;
     }
@@ -420,12 +420,12 @@ public class EventService extends TaggedResource {
     }
 
     @SuppressWarnings("unused")
-    public String hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        String result = "";
+    public List<String> hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
-            result += hostClusterChangeDetails(hostId, clusterId, isVcenter);
+            result.addAll(hostClusterChangeDetails(hostId, clusterId, isVcenter));
         }
         return result;
     }
@@ -448,20 +448,20 @@ public class EventService extends TaggedResource {
         return hostClusterChange(hostId, clusterId, isVcenter);
     }
 
-    private String getVolumes(StringMap volumes, boolean gainAccess) {
-        String result = "Host will " + (gainAccess ? " gain " : " lose ") + "access to volumes: ";
+    private List<String> getVolumes(StringMap volumes, boolean gainAccess) {
+        List<String> result = Lists.newArrayList();
         for (Entry<String, String> volume : volumes.entrySet()) {
-            result += volume.getKey() + " ";
+            result.add("Host will " + (gainAccess ? " gain " : " lose ") + "access to volume: " + volume.getKey());
         }
         return result;
     }
 
     @SuppressWarnings("unused")
-    public String hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
-        String result = "";
+    public List<String> hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
+        List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
         if (host == null) {
-            return "Host has been deleted";
+            return Lists.newArrayList("Host has been deleted");
         }
         URI oldClusterURI = host.getCluster();
 
@@ -473,7 +473,7 @@ public class EventService extends TaggedResource {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result += getVolumes(export.getVolumes(), false);
+                    result.addAll(getVolumes(export.getVolumes(), false));
                 }
             }
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -482,7 +482,7 @@ public class EventService extends TaggedResource {
             // Non-clustered host being added to a cluster
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result += getVolumes(eg.getVolumes(), true);
+                result.addAll(getVolumes(eg.getVolumes(), true));
             }
 
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -494,12 +494,12 @@ public class EventService extends TaggedResource {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result += getVolumes(export.getVolumes(), false);
+                    result.addAll(getVolumes(export.getVolumes(), false));
                 }
             }
             exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result += getVolumes(eg.getVolumes(), true);
+                result.addAll(getVolumes(eg.getVolumes(), true));
             }
         }
 

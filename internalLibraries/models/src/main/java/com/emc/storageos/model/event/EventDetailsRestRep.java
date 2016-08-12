@@ -4,12 +4,16 @@
  */
 package com.emc.storageos.model.event;
 
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.google.common.collect.Lists;
 
 /**
  * REST Response representing details for an Event.
@@ -18,27 +22,37 @@ import com.emc.storageos.model.DataObjectRestRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class EventDetailsRestRep extends DataObjectRestRep {
 
-    private String approveDetails;
-    private String declineDetails;
+    private List<String> approveDetails;
+    private List<String> declineDetails;
 
     public EventDetailsRestRep() {
     }
 
-    @XmlElement(name = "approve_details")
-    public String getApproveDetails() {
-        return approveDetails;
+    @XmlElementWrapper(name = "approve_details")
+    @XmlElement(name = "approve_detail")
+    public List<String> getApproveDetails() {
+        if (approveDetails == null) {
+            return Lists.newArrayList();
+        } else {
+            return approveDetails;
+        }
     }
 
-    public void setApproveDetails(String approveDetails) {
+    public void setApproveDetails(List<String> approveDetails) {
         this.approveDetails = approveDetails;
     }
 
-    @XmlElement(name = "decline_details")
-    public String getDeclineDetails() {
-        return declineDetails;
+    @XmlElementWrapper(name = "decline_details")
+    @XmlElement(name = "decline_detail")
+    public List<String> getDeclineDetails() {
+        if (declineDetails == null) {
+            return Lists.newArrayList();
+        } else {
+            return declineDetails;
+        }
     }
 
-    public void setDeclineDetails(String declineDetails) {
+    public void setDeclineDetails(List<String> declineDetails) {
         this.declineDetails = declineDetails;
     }
 }

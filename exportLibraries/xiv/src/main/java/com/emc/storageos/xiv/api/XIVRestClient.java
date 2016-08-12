@@ -639,6 +639,31 @@ public class XIVRestClient extends StandardRestClient {
         }
         return discHostPorts;
     }
+    
+    /**
+     * Get Host name for the port from Array
+     * @param xivSystem StorageSystem name
+     * @param portName Port name
+     * @return Host Name
+     * @throws Exception If error occurs during execution
+    */
+    public String getHostNameFromPort(final String xivSystem, final String portName) throws Exception {
+        final String portURI = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);
+        JSONObject portInstance = getInstance(portURI);
+    	String hostName = null;
+        
+        if (findAvailability(portInstance)) {
+        	JSONObject response = portInstance.getJSONObject(RESPONSE);
+            JSONObject data = response.getJSONObject(DATA);
+            JSONArray hostPorts = data.getJSONArray(HOSTPORT);
+            int portsize = hostPorts.length();
+            for (int i = 0; i < portsize; i++) {
+                JSONObject hostPort = hostPorts.getJSONObject(i);
+                hostName = hostPort.getString(HOST);
+            }
+        }
+        return hostName;
+    }
 
     /**
      * Gets Volumes mapped on the XIV
@@ -792,5 +817,4 @@ public class XIVRestClient extends StandardRestClient {
     public boolean getSystemsAvailability() throws Exception {
         return findAvailability(SYSTEMS_URL);
     }
-
 }

@@ -17,6 +17,10 @@ import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class HP3PARProvisioningHelper {
@@ -32,8 +36,32 @@ public class HP3PARProvisioningHelper {
             DriverTask task, Registry driverRegistry) {
 
         int volumesCreated = 0;
+        boolean IsDeDupEnabled = false;
+        
+        // get deduplicationCapability
+        CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilitis();
+		if (commonCapabilities != null) {
+			List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
+			if (dataService != null) {
+				for (DataStorageServiceOption dataServiceOption : dataService) {
+					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();
+					if (capabilityList != null) {
+						for (CapabilityInstance ci : capabilityList) {
+							String provTypeValue = ci
+									.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+							if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
+								IsDeDupEnabled = true;
+							}
+						}
+					}
+
+				}
+			}
+		}
+
         // For each requested volume
         for (StorageVolume volume : volumes) {
+
             try {
                 _log.info("3PARDriver:createVolumes for storage system native id {}, volume name {} - start",
                         volume.getStorageSystemId(), volume.getDisplayName());
@@ -44,8 +72,13 @@ public class HP3PARProvisioningHelper {
 
                 // Create volume
                 VolumeDetailsCommandResult volResult = null;
+                Boolean isThin = volume.getThinlyProvisioned();
+                if (IsDeDupEnabled) {
+                	isThin = false;
+                }
                 hp3parApi.createVolume(volume.getDisplayName(), volume.getStoragePoolId(),
-                        volume.getThinlyProvisioned(), volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
+                		isThin, IsDeDupEnabled, volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
+
                 volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
 
                 // Attributes of the volume in array

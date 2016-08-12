@@ -101,34 +101,39 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         BlockObject aFCSource = null;
         Map<URI, VirtualArray> vArrayCache = new HashMap<URI, VirtualArray>();
         List<BlockObject> sortedSourceObjectList = sortFullCopySourceList(fcSourceObjList);
-        for (BlockObject fcSourceObj : sortedSourceObjectList) {
-            // Make sure when there are multiple source objects,
-            // each full copy has a unique name.
-            aFCSource = fcSourceObj;
-            // volumes in VolumeGroup can be from different vArrays
-            varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
-            String copyName = null;
-            boolean inApplication = false;
-            if (aFCSource instanceof Volume && ((Volume) aFCSource).getApplication(_dbClient) != null) {
-                inApplication = true;
-            }
+        try {
+            for (BlockObject fcSourceObj : sortedSourceObjectList) {
+                // Make sure when there are multiple source objects,
+                // each full copy has a unique name.
+                aFCSource = fcSourceObj;
+                // volumes in VolumeGroup can be from different vArrays
+                varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
+                String copyName = null;
+                boolean inApplication = false;
+                if (aFCSource instanceof Volume && ((Volume) aFCSource).getApplication(_dbClient) != null) {
+                    inApplication = true;
+                }
 
-            if (NullColumnValueGetter.isNotNullValue(fcSourceObj.getReplicationGroupInstance()) && inApplication) {
-            	copyName = name + "-" + fcSourceObj.getReplicationGroupInstance() 
-            			+ (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
-            }  else {
-            	copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+                if (NullColumnValueGetter.isNotNullValue(fcSourceObj.getReplicationGroupInstance()) && inApplication) {
+                    copyName = name + "-" + fcSourceObj.getReplicationGroupInstance()
+                            + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+                }  else {
+                    copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+                }
+
+                VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
+                VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
+                        fcSourceObj, vpool, count);
+                List<VolumeRecommendation> placementRecommendations = getPlacementRecommendations(
+                        fcSourceObj, capabilities, varray, vpool.getId());
+                volumesList.addAll(prepareClonesForEachRecommendation(copyName, name,
+                        fcSourceObj, capabilities, createInactive, placementRecommendations));
             }
-             
-            VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
-            VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
-                    fcSourceObj, vpool, count);
-            List<VolumeRecommendation> placementRecommendations = getPlacementRecommendations(
-                    fcSourceObj, capabilities, varray, vpool.getId());
-            volumesList.addAll(prepareClonesForEachRecommendation(copyName, name,
-                    fcSourceObj, capabilities, createInactive, placementRecommendations));
+        } catch (Exception ex) {
+                handlePlacementFailure(volumesList);
+                throw ex;
         }
-        
+
         // get volume descriptors
         List<VolumeDescriptor> volumeDescriptors = prepareVolumeDescriptorsForFullCopy(volumesList, createInactive);
         

@@ -608,4 +608,27 @@ public class XtremIOV1Client extends XtremIOClient {
             XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
     }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
+        ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getLunMapsForInitiatorGroup");
+    }
+
+    @Override
+    public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index);
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
+        return volumesResponse.getContent();
+    }
 }

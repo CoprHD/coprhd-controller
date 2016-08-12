@@ -809,6 +809,19 @@ div.dataTables_footer > div.dataTables_selectedItems {
   margin-left:20px;
 }
 
+.events-container  {
+  width:95%;
+  margin-left:20px;
+}
+
+.event-count .badge {
+    margin-left:2px;
+    margin-top:-5px;
+    vertical-align: middle;
+    background-color: @navbar-inverse-color;
+    color: @navbar-inverse-bg;
+}
+
 #system-logs {
   @logs-width: 800px;
   @expandable-width: 24px;
@@ -1139,6 +1152,14 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     opacity: 0.5;
 }
 
+.wizard-dialog .title-side-next {
+    font-size: 25px;
+    color: white;
+    text-transform: uppercase;
+    //opacity: 0.5;
+    padding:10px;
+}
+
 .wizard-dialog .step-side {
     margin-top: 0px;
     margin-bottom: 0px;
@@ -1151,7 +1172,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     color: white;
     display: inline-block;
     padding: 12px;
-    width: 226px;
+    width: 306px;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
 }
@@ -1182,13 +1203,23 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     position: absolute;
     font-size: 50px;
     top: -8px;
-    right: 20px;
+    right: 80px;
 }
 
 .popover {
     background-color: rgba(0, 0, 0, 0.75);
     color: white;
     border: none;
+    font-size: 13px;
+}
+
+.wizard-side-next + .popover {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    border: none;
+    font-size: 13px;
+    top: 48px !important;
+    left: -210px !important;
 }
 
 .popover.bottom .arrow:after {

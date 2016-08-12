@@ -323,7 +323,7 @@
         {
           "image": "Service_Change_File_Virtual_Pool.png",
           "baseService": "ChangeFileVirtualPool"
-        }    
+        }            
       ]
     },
     {
@@ -384,6 +384,26 @@
           "image": "Service_Failback_File_System.png",
           "baseService": "FailbackFileSystem"
         }
+      ]
+    },
+    {
+      "title": "file.linux.title",
+      "image": "Category_File_Services_Linux.png",
+      "description": "file.linux.description",
+      "services": [
+        {
+          "image": "Service_Linux_Mount_NFS_Export.png",
+          "baseService": "LinuxMountNFSExport"
+        },
+        {
+          "image": "Service_Linux_Unmount_NFS_Export.png",
+          "baseService": "LinuxUnmountNFSExport"
+        },
+        {
+          "image": "Service_Linux_Create_Mount_NFS_Export.png",
+          "baseService": "LinuxCreateMountNFSExport"
+        }
+            
       ]
     },
     {

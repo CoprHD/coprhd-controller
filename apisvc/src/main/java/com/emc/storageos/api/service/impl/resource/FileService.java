@@ -15,9 +15,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +54,7 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -64,9 +67,11 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -121,13 +126,17 @@ import com.emc.storageos.model.file.FileSystemDeleteParam;
 import com.emc.storageos.model.file.FileSystemExpandParam;
 import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
+import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemReplicationSettings;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.FileSystemUnmountParam;
 import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
+import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
@@ -160,6 +169,7 @@ import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.iwave.ext.command.CommandException;
 
 @Path("/file/filesystems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -254,8 +264,7 @@ public class FileService extends TaskResourceService {
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
         UNKNOWN("unknown",
                 ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION),
-        UPDATE_RPO(
-                "update-rpo",
+        UPDATE_RPO("update-rpo",
                 ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
@@ -471,6 +480,8 @@ public class FileService extends TaskResourceService {
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
         if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+            // TODO: File does not use these fields and this should return an error if any of them are set.
+            // COP-22903
             if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
             }
@@ -756,8 +767,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/exports")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep export(@PathParam("id") URI id, FileSystemExportParam param)
-            throws InternalException {
+    public TaskResourceRep export(@PathParam("id") URI id, FileSystemExportParam param) throws InternalException {
 
         _log.info("Export request recieved {}", id);
 
@@ -2027,13 +2037,13 @@ public class FileService extends TaskResourceService {
      * @return Task resource representation
      * @throws InternalException
      */
+
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep updateFSExportRules(@PathParam("id") URI id,
-            @QueryParam("subDir") String subDir,
+    public TaskResourceRep updateFSExportRules(@PathParam("id") URI id, @QueryParam("subDir") String subDir,
             FileShareExportUpdateParams param) throws InternalException {
 
         // log input received.
@@ -2072,6 +2082,11 @@ public class FileService extends TaskResourceService {
             ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
             exportVerificationUtility.verifyExports(fs, null, param);
 
+            // Verify whether any mounts present on the export or not
+            List<MountInfo> unmountList = getMountedExports(id, subDir, param);
+            if (!unmountList.isEmpty()) {
+                throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
+            }
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
             FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
             fileServiceApi.updateExportRules(device.getId(), fs.getId(), param, task);
@@ -2110,8 +2125,7 @@ public class FileService extends TaskResourceService {
     @DELETE
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep deleteFSExportRules(@PathParam("id") URI id,
-            @QueryParam("allDirs") boolean allDirs,
+    public TaskResourceRep deleteFSExportRules(@PathParam("id") URI id, @QueryParam("allDirs") boolean allDirs,
             @QueryParam("subDir") String subDir) {
 
         // log input received.
@@ -2123,6 +2137,9 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
+        if (isExportMounted(id, subDir, allDirs)) {
+            throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
+        }
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         String path = fs.getPath();
@@ -2184,44 +2201,9 @@ public class FileService extends TaskResourceService {
 
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        FileShare fs = queryResource(id);
 
+        List<ExportRule> exportRule = getExportRules(id, allDirs, subDir);
         ExportRules rules = new ExportRules();
-        List<ExportRule> exportRule = new ArrayList<>();
-
-        // Query All Export Rules Specific to a File System.
-        List<FileExportRule> exports = queryDBFSExports(fs);
-        _log.info("Number of existing exports found : {} ", exports.size());
-        if (allDirs) {
-            // ALl EXPORTS
-            for (FileExportRule rule : exports) {
-                ExportRule expRule = new ExportRule();
-                // Copy Props
-                copyPropertiesToSave(rule, expRule, fs);
-                exportRule.add(expRule);
-            }
-        } else if (subDir != null && subDir.length() > 0) {
-            // Filter for a specific Sub Directory export
-            for (FileExportRule rule : exports) {
-                if (rule.getExportPath().endsWith("/" + subDir)) {
-                    ExportRule expRule = new ExportRule();
-                    // Copy Props
-                    copyPropertiesToSave(rule, expRule, fs);
-                    exportRule.add(expRule);
-                }
-            }
-        } else {
-            // Filter for No SUBDIR - main export rules with no sub dirs
-            for (FileExportRule rule : exports) {
-                if (rule.getExportPath().equalsIgnoreCase(fs.getPath())) {
-                    ExportRule expRule = new ExportRule();
-                    // Copy Props
-                    copyPropertiesToSave(rule, expRule, fs);
-                    exportRule.add(expRule);
-                }
-            }
-        }
-        _log.info("Number of export rules returning {}", exportRule.size());
         if (!exportRule.isEmpty()) {
             rules.setExportRules(exportRule);
         }
@@ -3364,6 +3346,50 @@ public class FileService extends TaskResourceService {
         return null;
     }
 
+    private List<MountInfo> queryDBFSMounts(URI fsId) {
+        _log.info("Querying File System mounts using FsId {}", fsId);
+        List<MountInfo> fsMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(fsId);
+            List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fsDBMounts != null && !fsDBMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fsDBMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    fsMounts.add(mountInfo);
+                }
+            }
+            return fsMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return fsMounts;
+    }
+
+    private List<MountInfo> queryDBHostMounts(URI host) {
+        _log.info("Querying NFS mounts for host {}", host);
+        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
+            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fileMounts != null && !fileMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fileMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    hostMounts.add(mountInfo);
+                }
+            }
+            return hostMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return hostMounts;
+    }
+
     private List<ExportRule> queryFSExports(FileShare fs) {
         List<ExportRule> rules = null;
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
@@ -3382,6 +3408,15 @@ public class FileService extends TaskResourceService {
         }
 
         return rules;
+    }
+
+    private void getMountInfo(FileMountInfo orig, MountInfo dest) {
+
+        dest.setFsId(orig.getFsId());
+        dest.setHostId(orig.getHostId());
+        dest.setMountPath(orig.getMountPath());
+        dest.setSecurityType(orig.getSecurityType());
+        dest.setSubDirectory(orig.getSubDirectory());
     }
 
     private void getExportRule(FileExportRule orig, ExportRule dest) {
@@ -3874,7 +3909,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3929,7 +3964,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3963,7 +3998,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -4116,4 +4151,326 @@ public class FileService extends TaskResourceService {
         return false;
     }
 
+    /**
+     * Perform a mount operation for a file system
+     * <p>
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            File system mount parameters
+     * @brief mount a FS
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/mount")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep mountExport(@PathParam("id") URI id, FileSystemMountParam param) throws InternalException {
+        _log.info("FileService::mount Request recieved {}", id);
+
+        String task = UUID.randomUUID().toString();
+
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+
+        // Get the FileSystem object from the URN
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        fs.setOpStatus(new OpStatusMap());
+
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.MOUNT_NFS_EXPORT);
+        fs.getOpStatus().createTaskStatus(task, op);
+        _dbClient.updateObject(fs);
+
+        // Now get ready to make calls into the controller
+        ComputeSystemOrchestrationController controller = getController(ComputeSystemOrchestrationController.class, null);
+        try {
+            controller.mountDevice(param.getHost(), id, param.getSubDir(), param.getSecurity(), param.getPath(),
+                    param.getFsType(), task);
+        } catch (Exception e) {
+            // treating all controller exceptions as internal error for now. controller
+            // should discriminate between validation problems vs. internal errors
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.MOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getName(), fs.getId().toString(), param.getHost().toString(), param.getSubDir(), param.getPath());
+
+        fs = _dbClient.queryObject(FileShare.class, id);
+        _log.debug("FileService::Mount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs
+                .getOpStatus().get(task).getStatus());
+
+        return toTask(fs, task, op);
+    }
+
+    /**
+     * Get list of mounts for the specified host.
+     * 
+     * @param id
+     *            the URN of a hist
+     * @brief List file system mounts
+     * @return List of file system mounts.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/mounts")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MountInfoList getHostNFSMounts(@QueryParam("host") URI host) {
+
+        ArgValidator.checkFieldUriType(host, Host.class, "id");
+        _log.info(String.format("Get list of mounts for host %1$s", host));
+
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(queryDBHostMounts(host));
+        return mountList;
+    }
+
+    /**
+     * Get list of mounts for the specified file system.
+     * 
+     * @param id
+     *            the URN of a ViPR File system
+     * @brief List file system mounts
+     * @return List of file system mounts.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/mount")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MountInfoList getMountListForFS(@PathParam("id") URI id) {
+
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        _log.info(String.format("Get list of file system mounts: %1$s", id));
+
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(queryDBFSMounts(id));
+        return mountList;
+    }
+
+    /**
+     * unmount an exported filesystem
+     * <p>
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @param id
+     *            the URN of the fs
+     * @param param
+     *            FileSystemUnmountParam
+     * @brief unmount fs
+     * @return Task resource representation
+     * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
+     */
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/unmount")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep unmountExport(@PathParam("id") URI id, FileSystemUnmountParam param)
+            throws InternalException {
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        return unmount(id, fs, param);
+    }
+
+    private TaskResourceRep unmount(URI id, FileShare fs, FileSystemUnmountParam param) {
+        _log.info("FileService::unmount export Request recieved {}", id);
+        String task = UUID.randomUUID().toString();
+
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.UNMOUNT_NFS_EXPORT);
+
+        fs.setOpStatus(new OpStatusMap());
+        fs.getOpStatus().createTaskStatus(task, op);
+        _dbClient.updateObject(fs);
+
+        // Now get ready to make calls into the controller
+
+        ComputeSystemOrchestrationController controller = getController(ComputeSystemOrchestrationController.class, null);
+        try {
+            controller.unmountDevice(param.getHostId(), id, param.getMountPath(), task);
+
+        } catch (InternalException e) {
+            // treating all controller exceptions as internal error for now. controller
+            // should discriminate between validation problems vs. internal errors
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.UNMOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN, param.getHostId(), param.getMountPath());
+
+        FileShare updatedfs = _dbClient.queryObject(FileShare.class, fs.getId());
+        _log.debug("FileService::unmount Before sending response, FS ID : {}, Taks : {} ; Status {}", updatedfs.getOpStatus().get(task),
+                updatedfs.getOpStatus().get(task).getStatus());
+
+        return toTask(updatedfs, task, op);
+    }
+
+    private boolean isExportMounted(URI fsId, String subDir, boolean allDirs) {
+        List<MountInfo> mountList = queryDBFSMounts(fsId);
+        if (mountList == null || mountList.isEmpty()) {
+            return false;
+        }
+        if (allDirs) {
+            return true;
+        }
+        if (subDir != null) {
+            for (MountInfo mount : mountList) {
+                if (subDir.equalsIgnoreCase(mount.getSubDirectory())) {
+                    return true;
+                }
+            }
+        } else {
+            for (MountInfo mount : mountList) {
+                if ("!nodir".equalsIgnoreCase(mount.getSubDirectory())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<MountInfo> getMountedExports(URI fsId, String subDir, FileShareExportUpdateParams param) {
+        List<MountInfo> mountList = queryDBFSMounts(fsId);
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        if (param.getExportRulesToDelete() != null) {
+            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
+        }
+        if (param.getExportRulesToModify() != null) {
+            unmountList.addAll(getModifyRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
+        }
+
+        return unmountList;
+    }
+
+    private List<MountInfo> getModifyRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<ExportRule> exportList = new ArrayList<ExportRule>();
+        exportList.addAll(rules.getExportRules());
+        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
+        for (MountInfo mount : mountList) {
+            String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
+                    || mount.getSubDirectory().equals(subDir)) {
+                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
+                        unmountList.add(mount);
+                    }
+                }
+            }
+        }
+        return unmountList;
+    }
+
+    private List<MountInfo> getDeleteRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
+        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<ExportRule> exportList = new ArrayList<ExportRule>();
+        exportList.addAll(rules.getExportRules());
+        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
+        for (MountInfo mount : mountList) {
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
+                    || mount.getSubDirectory().equals(subDir)) {
+                String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
+                        unmountList.add(mount);
+                    }
+                }
+            }
+        }
+        return unmountList;
+    }
+
+    private void unmountAllAssociatedExports(URI id, String subDir) {
+        List<MountInfo> mountList = queryDBFSMounts(id);
+        for (MountInfo mount : mountList) {
+            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null)
+                    || subDir.equalsIgnoreCase(mount.getSubDirectory())) {
+                FileSystemUnmountParam param = new FileSystemUnmountParam(mount.getHostId(), mount.getMountPath());
+                try {
+                    unmount(id, queryResource(id), param);
+                } catch (CommandException ex) {
+                    throw APIException.internalServerErrors.unexpectedHostOperationError(ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private List<ExportRule> getExportRules(URI id, boolean allDirs, String subDir) {
+        FileShare fs = queryResource(id);
+
+        List<ExportRule> exportRule = new ArrayList<>();
+
+        // Query All Export Rules Specific to a File System.
+        List<FileExportRule> exports = queryDBFSExports(fs);
+        _log.info("Number of existing exports found : {} ", exports.size());
+        if (allDirs) {
+            // ALL EXPORTS
+            for (FileExportRule rule : exports) {
+                ExportRule expRule = new ExportRule();
+                // Copy Props
+                copyPropertiesToSave(rule, expRule, fs);
+                exportRule.add(expRule);
+            }
+        } else if (subDir != null && subDir.length() > 0) {
+            // Filter for a specific Sub Directory export
+            for (FileExportRule rule : exports) {
+                if (rule.getExportPath().endsWith("/" + subDir)) {
+                    ExportRule expRule = new ExportRule();
+                    // Copy Props
+                    copyPropertiesToSave(rule, expRule, fs);
+                    exportRule.add(expRule);
+                }
+            }
+        } else {
+            // Filter for No SUBDIR - main export rules with no sub dirs
+            for (FileExportRule rule : exports) {
+                if (rule.getExportPath().equalsIgnoreCase(fs.getPath())) {
+                    ExportRule expRule = new ExportRule();
+                    // Copy Props
+                    copyPropertiesToSave(rule, expRule, fs);
+                    exportRule.add(expRule);
+                }
+            }
+        }
+        _log.info("Number of export rules returning {}", exportRule.size());
+        return exportRule;
+    }
+
+    private Map<ExportRule, List<String>> filterExportRules(List<ExportRule> newExportList, List<ExportRule> existingExportList) {
+        Map<ExportRule, List<String>> filteredExports = new HashMap<ExportRule, List<String>>();
+        _log.info("filtering export rules");
+        for (ExportRule newExport : newExportList) {
+            for (ExportRule oldExport : existingExportList) {
+                if (newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {
+                    List<String> hosts = new ArrayList<String>();
+                    if (oldExport.getReadOnlyHosts() != null) {
+                        hosts.addAll(oldExport.getReadOnlyHosts());
+                    }
+                    if (oldExport.getReadWriteHosts() != null) {
+                        hosts.addAll(oldExport.getReadWriteHosts());
+                    }
+                    if (oldExport.getRootHosts() != null) {
+                        hosts.addAll(oldExport.getRootHosts());
+                    }
+                    if (newExport.getReadOnlyHosts() != null) {
+                        hosts.removeAll(newExport.getReadOnlyHosts());
+                    }
+                    if (newExport.getReadWriteHosts() != null) {
+                        hosts.removeAll(newExport.getReadWriteHosts());
+                    }
+                    if (newExport.getRootHosts() != null) {
+                        hosts.removeAll(newExport.getRootHosts());
+                    }
+                    filteredExports.put(oldExport, hosts);
+                }
+            }
+        }
+        return filteredExports;
+    }
 }

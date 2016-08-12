@@ -27,6 +27,9 @@ public class VolumeVirtualPoolChangeParam {
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
     private String transferSpeed;
+    // Optional fields for migration
+    private boolean migrationSuspendBeforeCommit = false;
+    private boolean migrationSuspendBeforeDeleteSource = false;
     boolean forceFlag = false;
 
     public VolumeVirtualPoolChangeParam() {
@@ -82,18 +85,18 @@ public class VolumeVirtualPoolChangeParam {
     public void setProtection(BlockVirtualPoolProtectionParam protection) {
         this.protection = protection;
     }
-    
+
     /**
      * Parameter for Transfer Speed. Optional parameter for virtual volume migration
      * from VPLEX Local to Distributed.
      */
     @XmlElement(required = false, name = "transfer_speed")
     public String getTransferSpeedParam() {
-    	return transferSpeed; 
+        return transferSpeed;
     }
-    
+
     public void setTransferSpeedParam(String transferspeed) {
-    	this.transferSpeed = transferspeed; 
+        this.transferSpeed = transferspeed;
     }
 
     /**
@@ -112,6 +115,34 @@ public class VolumeVirtualPoolChangeParam {
     }
 
     /**
+     * Does the user want us to suspend the workflow before migration commit().
+     * 
+     * @return if migration suspend before commit
+     */
+    @XmlElement(required = false, name = "migration_suspend_before_commit")
+    public boolean isMigrationSuspendBeforeCommit() {
+        return migrationSuspendBeforeCommit;
+    }
+
+    public void setMigrationSuspendBeforeCommit(boolean migrationSuspendBeforeCommit) {
+        this.migrationSuspendBeforeCommit = migrationSuspendBeforeCommit;
+    }
+
+    /**
+     * Does the user want us to suspend before deleting the original source volume during the workflow.
+     * 
+     * @return if migration suspend before deleting the original source volume
+     */
+    @XmlElement(required = false, name = "migration_suspend_before_delete_source")
+    public boolean isMigrationSuspendBeforeDeleteSource() {
+        return migrationSuspendBeforeDeleteSource;
+    }
+
+    public void setMigrationSuspendBeforeDeleteSource(boolean migrationSuspendBeforeDeleteSource) {
+        this.migrationSuspendBeforeDeleteSource = migrationSuspendBeforeDeleteSource;
+    }
+
+    /*
      * Force Flag used to operate on internal objects.
      * 
      * @return True if force flag should be enabled

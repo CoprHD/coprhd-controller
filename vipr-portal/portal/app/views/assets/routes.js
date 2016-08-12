@@ -35,6 +35,9 @@ var routes = {
   Tasks_taskDetailsJson: #{jsAction @Tasks.detailsJson(':taskId')/},
   Tasks_taskDetails: #{jsAction @Tasks.details(':taskId')/},
   Tasks_countSummary: #{jsAction @Tasks.getCountSummary(':tenantId') /},
+  
+  Events_countSummary: #{jsAction @Events.getCountSummary(':tenantId') /},
+  Events_pendingEventCount: #{jsAction @Events.getPendingCount() /},
 
   BlockVolumes_volume: #{jsAction @resources.BlockVolumes.volume(':volumeId') /},
   BlockExportGroups_exportGroup: #{jsAction @resources.BlockExportGroups.exportGroup(':exportGroupId')/},

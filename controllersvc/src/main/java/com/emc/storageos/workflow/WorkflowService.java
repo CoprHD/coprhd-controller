@@ -102,7 +102,7 @@ public class WorkflowService implements WorkflowController {
     private String _zkStepToWorkflow = ZkPath.WORKFLOW.toString() + "/step2workflow";
     
     // Other constants
-    private static final String WORKFLOW_URI_Match = "urn:storageos:workflow.*";
+    private static final String WORKFLOW_URI_Match = "urn:storageos:Workflow.*";
 
     // Test-provided suspend variables that override system variables during unit testing.
     private String _suspendClassMethodTestOnly = null;
@@ -339,17 +339,29 @@ public class WorkflowService implements WorkflowController {
      * @param data
      */
     public void storeStepData(String stepOrWorkflowId, Object data) {
+        storeStepData(stepOrWorkflowId, null, data);
+    }
+    
+    /**
+     * Simplified method that will load step data using either a workflow id or a step id
+     * to locate the workflow. The key will be the text of stepOrWorkflowId.
+     * @param stepOrWorkflowId -- either a stepId or a Workflow Id used to identify the workflow (required)
+     * @param key -- 
+     * a string key that can be used to differentiate different sets of data for a single step (optional, can be null)
+     * @param data -- the data to be stored
+     */
+    public void storeStepData(String stepOrWorkflowId, String key, Object data) {
         Workflow workflow = null;
         if (stepOrWorkflowId.matches(WORKFLOW_URI_Match)) {
             workflow = loadWorkflowFromUri(URI.create(stepOrWorkflowId));
             if (workflow != null) {
-                storeStepData(workflow.getWorkflowURI(), null, stepOrWorkflowId, data);
+                storeStepData(workflow.getWorkflowURI(), key, stepOrWorkflowId, data);
                 return;
             }
         } else {
             workflow = getWorkflowFromStepId(stepOrWorkflowId);
             if (workflow != null) {
-                storeStepData(workflow.getWorkflowURI(), stepOrWorkflowId, stepOrWorkflowId, data);
+                storeStepData(workflow.getWorkflowURI(), key, stepOrWorkflowId, data);
                 return;
             }
         }
@@ -360,11 +372,11 @@ public class WorkflowService implements WorkflowController {
      * Saves data on behalf of a step.
      * The workflow URI and at least a stepId or key (or both) must be supplied.
      * @param workflowURI -- Mandatory, the URI of the containing workflow
-     * @param stepId -- The step identifier. (optional)
      * @param key --String key (optional).
+     * @param stepId -- The step identifier. (optional)
      * @param data -- A Java Serializable object.
      */
-    public void storeStepData(URI workflowURI, String stepId, String key, Object data) {
+    public void storeStepData(URI workflowURI, String key, String stepId, Object data) {
         
         WorkflowStepData dataRecord = getWorkflowStepData(workflowURI, stepId, key);
         boolean created = false;
@@ -393,16 +405,27 @@ public class WorkflowService implements WorkflowController {
      * return data stored against the step or workflow key (serialized Object) or null if no data found.
      */
     public Object loadStepData(String stepOrWorkflowId) {
+        return loadStepData(stepOrWorkflowId, null);
+    }
+    
+    /**
+     * Simplified method that will load step data using either a workflow id or a step id
+     * to locate the workflow. The key will be the text of stepOrWorkflowId.
+     * @param stepOrWorkflowId -- required URI of workflow, or stepId of step in workflow
+     * @param key -- optional key to differentiate multiple data in same step, may be null
+     * return data stored against the step or workflow key (serialized Object) or null if no data found.
+     */
+    public Object loadStepData(String stepOrWorkflowId, String key) {
         Workflow workflow = null;
         if (stepOrWorkflowId.matches(WORKFLOW_URI_Match)) {
             workflow = loadWorkflowFromUri(URI.create(stepOrWorkflowId));
             if (workflow != null) {
-                return loadStepData(workflow.getWorkflowURI(), null, stepOrWorkflowId);
+                return loadStepData(workflow.getWorkflowURI(), key, stepOrWorkflowId);
             }
         } else {
             workflow = getWorkflowFromStepId(stepOrWorkflowId);
             if (workflow != null) {
-                return loadStepData(workflow.getWorkflowURI(), stepOrWorkflowId, stepOrWorkflowId);
+                return loadStepData(workflow.getWorkflowURI(), key, stepOrWorkflowId);
             }
         }
         _log.info(String.format("No step data found for %s", stepOrWorkflowId));
@@ -412,12 +435,12 @@ public class WorkflowService implements WorkflowController {
     /**
      * Retrieve step data for a class.
      * @param workflowURI -- required workflow URI
+     * @param key - optional string key
      * @param stepId -- The step identifier (optional).
-     * @param key -- Key.
      * @return -- A Java serializable object, or null if no data found.
      * @throws Exception
      */
-    public Object loadStepData(URI workflowURI, String stepId, String key) {
+    public Object loadStepData(URI workflowURI, String key, String stepId) {
         try {
             Workflow workflow = loadWorkflowFromUri(workflowURI);
             if (workflow == null) {
@@ -449,7 +472,7 @@ public class WorkflowService implements WorkflowController {
     /**
      * Returns a WorkflowStepData from database based on workflowURI and stepId
      * @param workflowURI -- required workflow URI
-     * @param stepId -- optional stepId (ignored if not supplied)
+     * @param stepId -- optional stepId (required); can either be stepId or workflowId
      * @param label -- optional label (ignored if not supplied)
      * @return WorkflowStepData
      */
@@ -458,10 +481,11 @@ public class WorkflowService implements WorkflowController {
         List<WorkflowStepData> dataRecords = 
                 CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, WorkflowStepData.class, constraint);
         for (WorkflowStepData dataRecord : dataRecords) {
-            if (dataRecord.getWorkflowId().equals(workflowURI) && 
-                    (stepId == null || dataRecord.getStepId().equals(stepId)) &&
-                    (label == null || dataRecord.getLabel().equals(label))) {
-                return dataRecord;
+            if (dataRecord.getWorkflowId().equals(workflowURI) && dataRecord.getStepId().equals(stepId)) { 
+                if (label == null && NullColumnValueGetter.isNullValue(dataRecord.getLabel()) 
+                        || label != null && label.equals(dataRecord.getLabel()) ) {
+                    return dataRecord;
+                }
             }
         }
         return null;

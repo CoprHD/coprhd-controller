@@ -4603,5 +4603,5 @@ scheduler.onlyonce=Only Once
 scheduler.indefinitely=Indefinitely
 scheduler.endAfterRecurrences=End after recurrences
 scheduler.rangeOfRecurrence=Number of recurrences
-scheduler.retention=Retention
-scheduler.retention.helpText=Maximum number of snapshot or copies could be created. The oldest one will be purged when reaching this number.
+scheduler.retention=Retention Policy
+scheduler.retention.helpText=Maximum snapshots or copies to keep.

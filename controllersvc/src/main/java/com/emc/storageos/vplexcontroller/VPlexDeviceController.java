@@ -6770,24 +6770,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             volumeURIs.add(importedVolumeURI);
         }
 
-        Volume vplexVolume = null;
+        // Get the VPlex storage system and the volumes.
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+        Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+
+        // If there is a volume to be imported, we're creating a new Virtual Volume from
+        // the imported volume. Otherwise, we're upgrading an existing Virtual Volume to be
+        // distributed.
+        StorageSystem importedArray = null;
         Volume importedVolume = null;
+        if (importedVolumeURI != null) {
+            importedVolume = getDataObject(Volume.class, importedVolumeURI, _dbClient);
+            importedArray = getDataObject(StorageSystem.class, importedVolume.getStorageController(), _dbClient);
+            arrayMap.put(importedArray.getId(), importedArray);
+            volumeMap.put(importedVolumeURI, importedVolume);
+        }
+
         try {
-            // Get the VPlex storage system and the volumes.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-            vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-
-            // If there is a volume to be imported, we're creating a new Virtual Volume from
-            // the imported volume. Otherwise, we're upgrading an existing Virtual Volume to be
-            // distributed.
-            StorageSystem importedArray = null;
-            if (importedVolumeURI != null) {
-                importedVolume = getDataObject(Volume.class, importedVolumeURI, _dbClient);
-                importedArray = getDataObject(StorageSystem.class, importedVolume.getStorageController(), _dbClient);
-                arrayMap.put(importedArray.getId(), importedArray);
-                volumeMap.put(importedVolumeURI, importedVolume);
-            }
-
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     IMPORT_VOLUMES_WF_NAME, false, opId);

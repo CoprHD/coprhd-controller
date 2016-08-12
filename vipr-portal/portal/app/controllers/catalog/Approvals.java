@@ -93,11 +93,8 @@ public class Approvals extends Controller {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
 
-        Logger.info("the order's tenant is %s", approval.getTenant().getId().toString());
-        Logger.info("the user's tenant is %s", Security.getUserInfo().getTenant());
-
         if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
-            error(401, "No permission on the target tenant: " + approval.getTenant().getLink().getLinkName());
+            error(401, "User has no permission on the target tenant: " + approval.getTenant().getId());
         }
 
         OrderRestRep order = null;

@@ -25,10 +25,9 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.KeystoneTenant;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
-import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantCreateParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
-import com.emc.storageos.security.authentication.InternalTenantSvcClient;
+import com.emc.storageos.security.authentication.InternalTenantServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import org.junit.Before;
@@ -67,7 +66,7 @@ public class OpenStackSynchronizationTaskTest {
     private KeystoneUtils _keystoneUtils;
 
     @Mock
-    private InternalTenantSvcClient _internalTenantsService;
+    private InternalTenantServiceClient _internalTenantsService;
 
     @Before
     public void setupTest() {
@@ -75,7 +74,7 @@ public class OpenStackSynchronizationTaskTest {
         _synchronizationTask = spy(new OpenStackSynchronizationTask());
         _synchronizationTask.setDbClient(_dbClient);
         _synchronizationTask.setKeystoneUtilsService(_keystoneUtils);
-        _synchronizationTask.setInternalTenantSvcClient(_internalTenantsService);
+        _synchronizationTask.setInternalTenantServiceClient(_internalTenantsService);
 
         prepareTenants();
         prepareKeystoneProvider();

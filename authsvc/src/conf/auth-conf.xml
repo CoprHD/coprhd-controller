@@ -171,7 +171,7 @@
         <property name="localUsers" ref="localUserMap"/>
     </bean>
 
-    <bean id="internalTenantSvcClient" class="com.emc.storageos.security.authentication.InternalTenantSvcClient" >
+    <bean id="internalTenantServiceClient" class="com.emc.storageos.security.authentication.InternalTenantServiceClient" >
         <property name="coordinatorClient" ref="coordinator" />
     </bean>
 </beans>

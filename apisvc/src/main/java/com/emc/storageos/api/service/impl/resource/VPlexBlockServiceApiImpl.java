@@ -1088,6 +1088,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vplexVolume.getVirtualArray());
             Set<URI> vplexes = new HashSet<URI>();
             vplexes.add(vplexURI);
+            if (null == vplexVolume.getAssociatedVolumes()) {
+                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            }
             Iterator<String> assocIter = vplexVolume.getAssociatedVolumes().iterator();
             URI existingVolumeURI = new URI(assocIter.next());
             Volume existingVolume = _dbClient.queryObject(Volume.class, existingVolumeURI);
@@ -2385,14 +2388,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // We'll need to prepare a target volume and create a
             // descriptor for each backend volume being migrated.
             StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-            String assocVolumeId = assocVolumes.iterator().next();
-            URI assocVolumeURI = URI.create(assocVolumeId);
-            Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
-            VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                    assocVolume.getVirtualPool());
-            descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
-                    vplexVolume, assocVolume, newVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume), taskId, null, false, null));
+            if (null == assocVolumes) {
+                s_logger.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                        vplexVolume.forDisplay());
+            } else {
+                String assocVolumeId = assocVolumes.iterator().next();
+                URI assocVolumeURI = URI.create(assocVolumeId);
+                Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
+                VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
+                        assocVolume.getVirtualPool());
+                descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
+                        vplexVolume, assocVolume, newVarray, assocVolumeVPool,
+                        getVolumeCapacity(assocVolume), taskId, null, false, null));
+            }
         }
 
         return descriptors;
@@ -2456,6 +2464,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Prepare the backend volume(s) for migration.
             StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
+            if (null == assocVolumeIds) {
+                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            }
             for (String assocVolumeId : assocVolumeIds) {
                 Volume assocVolume = _permissionsHelper.getObjectById(
                         URI.create(assocVolumeId), Volume.class);
@@ -2491,16 +2502,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // migration to a larger target volume(s).
         boolean useNativeVolumeExpansion = true;
         StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
-        for (String assocVolumeId : assocVolumeIds) {
-            Volume assocVolume = _permissionsHelper.getObjectById(
-                    URI.create(assocVolumeId), Volume.class);
-            // If any backend volume does not support native expansion, then
-            // we use migration to expand the VPlex volume.
-            try {
-                super.verifyVolumeExpansionRequest(assocVolume, newSize);
-            } catch (Exception e) {
-                useNativeVolumeExpansion = false;
-                break;
+        if (null == assocVolumeIds) {
+            s_logger.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                    vplexVolume.forDisplay());
+            useNativeVolumeExpansion = false;
+        } else {
+            for (String assocVolumeId : assocVolumeIds) {
+                Volume assocVolume = _permissionsHelper.getObjectById(
+                        URI.create(assocVolumeId), Volume.class);
+                // If any backend volume does not support native expansion, then
+                // we use migration to expand the VPlex volume.
+                try {
+                    super.verifyVolumeExpansionRequest(assocVolume, newSize);
+                } catch (Exception e) {
+                    useNativeVolumeExpansion = false;
+                    break;
+                }
             }
         }
 
@@ -3479,7 +3496,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     systemURI, volumeURI, null, null);
             volumeDescriptors.add(descriptor);
             // Add a descriptor for each of the associated volumes.
-            if (!volume.isIngestedVolume(_dbClient)) {
+            if (!volume.isIngestedVolume(_dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String assocVolId : volume.getAssociatedVolumes()) {
                     Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
@@ -3581,6 +3598,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Package up the Volume descriptors
         for (Volume volume : preparedVolumes) {
+            if (null == volume.getAssociatedVolumes()) {
+                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
             for (String associatedVolumeStr : volume.getAssociatedVolumes()) {
                 Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeStr));
 

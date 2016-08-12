@@ -24,8 +24,11 @@ public class VplexDataMigrationService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
 
-    @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
+    @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
+
+    @Param(value = ServiceParams.MIGRATION_SUSPEND, required = false)
+    private Boolean migrationSuspend;
 
     @Param(value = ServiceParams.DISPLAY_JOURNALS, required = false)
     protected String displayJournals;
@@ -33,8 +36,7 @@ public class VplexDataMigrationService extends ViPRService {
     @Override
     public void execute() throws Exception {
         boolean forceFlag = BlockProvider.YES_VALUE.equalsIgnoreCase(displayJournals);
-        
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, forceFlag));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, migrationSuspend, forceFlag));
         addAffectedResources(tasks);
     }
 }

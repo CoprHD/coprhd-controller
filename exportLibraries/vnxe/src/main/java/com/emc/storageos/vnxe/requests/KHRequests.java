@@ -293,7 +293,8 @@ public class KHRequests<T> {
 
             if (statusCode == ClientResponse.Status.OK
                     || statusCode == ClientResponse.Status.ACCEPTED
-                    || statusCode == ClientResponse.Status.NO_CONTENT) {
+                    || statusCode == ClientResponse.Status.NO_CONTENT
+                    || statusCode == ClientResponse.Status.CREATED) {
                 return response;
             }
         }
@@ -346,6 +347,8 @@ public class KHRequests<T> {
         }
         if (job != null) {
             _logger.info("submitted the job: " + job.getId());
+        } else {
+            _logger.warn("No job returned.");
         }
         return job;
     }

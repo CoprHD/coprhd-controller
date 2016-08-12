@@ -107,12 +107,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
     }
 
     protected AssetOption createClusterOption(AssetOptionsContext ctx, ClusterRestRep cluster) {
-        String label = null;
-        if (cluster.getAutoExportEnabled()) {
-            label = cluster.getName();
-        } else {
-            label = getMessage("cluster.autoExportDisabled", cluster.getName());
-        }
+        String label = cluster.getName();
         return new AssetOption(cluster.getId(), label);
     }
 

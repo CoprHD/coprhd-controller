@@ -46,6 +46,8 @@ public class WorkflowStep extends DataObject {
     private Date startTime;
     /** Time step reached a terminal state */
     private Date endTime;
+    /** Whether the step should be suspended */
+    private Boolean suspendStep;
 
     @Name("workflow")
     @RelationIndex(cf = "RelationIndex", type = Workflow.class)
@@ -196,5 +198,15 @@ public class WorkflowStep extends DataObject {
     public void setEndTime(Date endTime) {
         this.endTime = endTime;
         setChanged("endTime");
+    }
+
+    @Name("suspendStep")
+    public Boolean getSuspendStep() {
+        return suspendStep;
+    }
+
+    public void setSuspendStep(Boolean suspendStep) {
+        this.suspendStep = suspendStep;
+        setChanged("suspendStep");
     }
 }

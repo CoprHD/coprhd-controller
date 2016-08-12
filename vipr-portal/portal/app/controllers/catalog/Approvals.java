@@ -92,7 +92,7 @@ public class Approvals extends Controller {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
         OrderRestRep order = null;
-        ScheduledEventRestRep scheduledEvent =null;
+        ScheduledEventRestRep scheduledEvent = null;
         CatalogServiceRestRep service = null;
         if (approval != null) {
             order = getOrder(approval.getOrder());

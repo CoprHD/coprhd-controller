@@ -242,11 +242,6 @@ public class KeystoneService extends TaskResourceService {
                     _authService.createTenantAndProjectForOpenstackTenant(tenant);
                 }
             }
-
-            if (_openStackSynchronizationTask.getSynchronizationTask() == null) {
-                _openStackSynchronizationTask
-                        .startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval(_keystoneUtils.getKeystoneProvider()));
-            }
         }
 
         tenantsToUpdate.addAll(tenantsToDelete);

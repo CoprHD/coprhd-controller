@@ -509,8 +509,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // if the Automatic Registration is selected and new interval value is not the same as the old one,
         // then reschedule the task
-        if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval &&
-            _openStackSynchronizationTask.getSynchronizationTask() != null) {
+        if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval) {
             _openStackSynchronizationTask.rescheduleTask(newSynchronizationInterval);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,

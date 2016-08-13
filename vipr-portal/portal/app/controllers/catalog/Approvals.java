@@ -22,6 +22,8 @@ import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
+import play.mvc.results.Result;
+import play.mvc.results.Unauthorized;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -94,7 +96,8 @@ public class Approvals extends Controller {
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
 
         if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
-            error(401, "User has no permission on the target tenant: " + approval.getTenant().getId());
+            Result result = new Unauthorized(String.format("Current user has no permission on the target tenant %s", approval.getTenant().getId()));
+            renderTemplate("errors/401.html", result);
         }
 
         OrderRestRep order = null;

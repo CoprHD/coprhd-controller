@@ -61,6 +61,10 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         else {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
+
+        // check for events here
+        BlockStorageUtils.checkEvents(hostId);
+
     }
 
     public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {

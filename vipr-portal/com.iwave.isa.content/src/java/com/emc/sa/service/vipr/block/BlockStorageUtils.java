@@ -98,6 +98,7 @@ import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
+import com.emc.sa.service.vipr.tasks.GetActionableEvents;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -166,6 +167,10 @@ public class BlockStorageUtils {
             return null;
         }
         return execute(new GetHost(hostId));
+    }
+
+    public static void checkEvents(URI resourceId) {
+        execute(new GetActionableEvents(resourceId));
     }
 
     public static Cluster getCluster(URI clusterId) {

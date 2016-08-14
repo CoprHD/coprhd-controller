@@ -55,6 +55,7 @@ public class ModelClient {
     private InitiatorFinder initiatorDAO;
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
+    private ActionableEventFinder actionableEventDAO;
 
     public ModelClient(DBClientWrapper client) {
         this.client = client;
@@ -268,6 +269,13 @@ public class ModelClient {
             hostDAO = new HostFinder(client);
         }
         return hostDAO;
+    }
+
+    public ActionableEventFinder actionableEvents() {
+        if (actionableEventDAO == null) {
+            actionableEventDAO = new ActionableEventFinder(client);
+        }
+        return actionableEventDAO;
     }
 
     public InitiatorFinder initiators() {

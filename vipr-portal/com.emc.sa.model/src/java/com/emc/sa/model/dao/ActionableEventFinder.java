@@ -7,9 +7,9 @@ package com.emc.sa.model.dao;
 import java.net.URI;
 import java.util.List;
 
-import com.beust.jcommander.internal.Lists;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.ActionableEvent;
+import com.google.common.collect.Lists;
 
 public class ActionableEventFinder extends TenantResourceFinder<ActionableEvent> {
     protected static final String RESOURCE_COLUMN_NAME = "resource";

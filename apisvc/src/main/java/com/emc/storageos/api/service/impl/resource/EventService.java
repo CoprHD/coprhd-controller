@@ -453,7 +453,7 @@ public class EventService extends TaggedResource {
         List<String> result = Lists.newArrayList();
         for (Entry<String, String> volume : volumes.entrySet()) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume.getKey()));
-            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: " + blockObject.getLabel() + " "
+            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: " + blockObject.getLabel() + " ID: "
                     + blockObject.getId());
         }
         return result;

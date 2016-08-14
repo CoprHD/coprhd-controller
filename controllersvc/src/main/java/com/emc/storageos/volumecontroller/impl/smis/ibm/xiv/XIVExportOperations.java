@@ -1260,7 +1260,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("createExportMask: initiators: {}", initiatorList);
         final ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         final String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
-        if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType) && _restAPIHelper.isClusteredHost(storage, initiatorList)) {
+        if (_restAPIHelper.isClusteredHost(storage, initiatorList, exportType)){
             _log.debug("Executing createExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.createRESTExportMask(storage, exportMaskURI, volumeURIHLUs, targetURIList, initiatorList, taskCompleter);
         } else {
@@ -1277,7 +1277,7 @@ public class XIVExportOperations implements ExportMaskOperations {
      * model.StorageSystem, com.emc.storageos.db.client.model.ExportMask)
      */
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         if (isClusterExportMask(storage, mask.getId())) {
             _log.debug("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
@@ -1390,7 +1390,7 @@ public class XIVExportOperations implements ExportMaskOperations {
      * @return Map of port name to Set of ExportMask URIs
      */
     @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         _log.info("{} findExportMasks START...", storage.getLabel());
         Map<String, Set<URI>> result = new HashMap<String, Set<URI>>();
         List<Initiator> initiators = new ArrayList<Initiator>();

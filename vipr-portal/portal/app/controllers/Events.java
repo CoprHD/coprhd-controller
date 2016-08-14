@@ -131,15 +131,18 @@ public class Events extends Controller {
         Common.angularRenderArgs().put("event", getEventSummary(event));
 
         EventDetailsRestRep details = EventUtils.getEventDetails(uri(eventId));
+        List<String> approveDetails = details.getApproveDetails();
+        List<String> declineDetails = details.getDeclineDetails();
 
-        Common.angularRenderArgs().put("details", details);
+        Common.angularRenderArgs().put("approveDetails", details);
+        Common.angularRenderArgs().put("declineDetails", details);
 
         List<TaskResourceRep> tasks = Lists.newArrayList();
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
 
-        render(event, details, tasks);
+        render(event, approveDetails, declineDetails, tasks);
     }
 
     public static void detailsJson(String eventId) {

@@ -17,6 +17,7 @@
   </dd>
   #{/if}
 
+  #{if event.eventStatus != 'pending'}
   <dt>&{'events.tasks'}:</dt>
   <dd>
     #{list tasks, as:'task'}
@@ -24,6 +25,7 @@
     #{/list}
     #{else}&nbsp;#{/else}
   </dd>
+  #{/if}
 
 
 </dl>

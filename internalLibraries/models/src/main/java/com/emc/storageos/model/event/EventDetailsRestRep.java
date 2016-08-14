@@ -12,18 +12,15 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.DataObjectRestRep;
-import com.google.common.collect.Lists;
-
 /**
  * REST Response representing details for an Event.
  */
 @XmlRootElement(name = "event_details")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class EventDetailsRestRep extends DataObjectRestRep {
+public class EventDetailsRestRep {
 
-    private List<String> approveDetails;
     private List<String> declineDetails;
+    private List<String> approveDetails;
 
     public EventDetailsRestRep() {
     }
@@ -31,11 +28,7 @@ public class EventDetailsRestRep extends DataObjectRestRep {
     @XmlElementWrapper(name = "approve_details")
     @XmlElement(name = "approve_detail")
     public List<String> getApproveDetails() {
-        if (approveDetails == null) {
-            return Lists.newArrayList();
-        } else {
-            return approveDetails;
-        }
+        return approveDetails;
     }
 
     public void setApproveDetails(List<String> approveDetails) {
@@ -45,14 +38,11 @@ public class EventDetailsRestRep extends DataObjectRestRep {
     @XmlElementWrapper(name = "decline_details")
     @XmlElement(name = "decline_detail")
     public List<String> getDeclineDetails() {
-        if (declineDetails == null) {
-            return Lists.newArrayList();
-        } else {
-            return declineDetails;
-        }
+        return declineDetails;
     }
 
     public void setDeclineDetails(List<String> declineDetails) {
         this.declineDetails = declineDetails;
     }
 }
+

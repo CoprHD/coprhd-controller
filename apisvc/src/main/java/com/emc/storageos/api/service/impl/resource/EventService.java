@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -451,7 +452,9 @@ public class EventService extends TaggedResource {
     private List<String> getVolumes(StringMap volumes, boolean gainAccess) {
         List<String> result = Lists.newArrayList();
         for (Entry<String, String> volume : volumes.entrySet()) {
-            result.add("Host will " + (gainAccess ? " gain " : " lose ") + "access to volume: " + volume.getKey());
+            BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume.getKey()));
+            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: " + blockObject.getLabel() + " "
+                    + blockObject.getId());
         }
         return result;
     }

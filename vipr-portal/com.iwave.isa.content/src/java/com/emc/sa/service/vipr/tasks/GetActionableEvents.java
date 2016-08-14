@@ -5,13 +5,13 @@
 package com.emc.sa.service.vipr.tasks;
 
 import java.net.URI;
-import java.util.List;
 
 import javax.inject.Inject;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.model.dao.ModelClient;
-import com.emc.storageos.db.client.model.ActionableEvent;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.storageos.db.client.model.Host;
 
 public class GetActionableEvents extends ViPRExecutionTask<Void> {
     @Inject
@@ -25,9 +25,18 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
 
     @Override
     public Void executeTask() throws Exception {
-        List<ActionableEvent> events = models.actionableEvents().findPendingByResource(id);
-        if (!events.isEmpty()) {
+        if (!models.actionableEvents().findPendingByResource(id).isEmpty()) {
             ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {}, new Object[] { id });
+        }
+
+        // for clusters, check all hosts in the cluster
+        if (BlockStorageUtils.isCluster(id)) {
+            for (Host host : models.hosts().findByCluster(id)) {
+                if (!models.actionableEvents().findPendingByResource(host.getId()).isEmpty()) {
+                    ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {}, new Object[] { host.getId() });
+
+                }
+            }
         }
         return null;
     }

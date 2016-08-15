@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +96,12 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
         XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiators);
         configureValidators(logger, validator);
         return validator;
+    }
+
+    @Override
+    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
+                                   Collection<? extends BlockObject> volumes) {
+        return null;
     }
 
     @Override

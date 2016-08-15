@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 import java.net.URI;
 import java.util.Collection;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
 import org.slf4j.Logger;
@@ -43,6 +44,12 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     public AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
             Collection<Initiator> initiatorList) {
         return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+    }
+
+    @Override
+    public AbstractSMISValidator createMultipleExportMasksValidator(StorageSystem storage, ExportMask exportMask,
+                                                                    Collection<? extends BlockObject> volumes) {
+        return new MultipleVmaxMaskValidator(storage, exportMask, volumes);
     }
 
     @Override

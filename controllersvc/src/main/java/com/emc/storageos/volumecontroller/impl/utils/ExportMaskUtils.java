@@ -505,7 +505,7 @@ public class ExportMaskUtils {
 
         String host = null;
         // Get the first host name
-        if (hosts.size() >= 1) {
+        if (!hosts.isEmpty()) {
             host = hosts.iterator().next();
         } 
 

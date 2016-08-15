@@ -240,6 +240,13 @@ public class DellSCDiscovery {
                     continue;
                 }
 
+                if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType) &&
+                        ("0.0.0.0".equals(scPort.iscsiIpAddress) ||
+                                scPort.iscsiIpAddress.length() == 0)) {
+                    // This isn't necessarily, so no need to log
+                    continue;
+                }
+
                 LOG.info("Discovered Port {}, storageSystem {}",
                         scPort.instanceId, scPort.scSerialNumber);
                 StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);

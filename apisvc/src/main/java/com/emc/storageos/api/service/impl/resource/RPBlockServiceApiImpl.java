@@ -4022,7 +4022,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Single migrations will be collected afterwards to be migrated explicitly in Step 4 and 6
             // below.
             rpVPlexGroupedMigrations(allSourceVolumesToMigrate, singleMigrations, 
-                    Volume.PersonalityTypes.SOURCE.name(), logMigrations, taskId);
+                    Volume.PersonalityTypes.SOURCE.name(), logMigrations, taskList, taskId);
             
             // Targets
             //
@@ -4034,7 +4034,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Single migrations will be collected afterwards to be migrated explicitly in Step 4 and 6
             // below.
             rpVPlexGroupedMigrations(allTargetVolumesToMigrate, singleMigrations, 
-                    Volume.PersonalityTypes.TARGET.name(), logMigrations, taskId);
+                    Volume.PersonalityTypes.TARGET.name(), logMigrations, taskList, taskId);
                             
             // Journals
             //
@@ -4207,10 +4207,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param singleMigrations Container to keep track of single migrations
      * @param type Personality type for logging
      * @param logMigrations Log buffer
-     * @param taskId Task id
+     * @param taskList List of tasks that will be returned to user
+     * @param taskId Task id of order
      */
     private void rpVPlexGroupedMigrations(HashMap<VirtualPool, List<Volume>> volumesToMigrate, 
-            Map<Volume, VirtualPool> singleMigrations, String type, StringBuffer logMigrations, String taskId) {
+            Map<Volume, VirtualPool> singleMigrations, String type, StringBuffer logMigrations, 
+            TaskList taskList, String taskId) {
         for (Map.Entry<VirtualPool, List<Volume>> entry : volumesToMigrate.entrySet()) {
             // List to hold volumes that are grouped by RG and migrated together
             List<Volume> volumesInRG = new ArrayList<Volume>();;
@@ -4220,8 +4222,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualPool migrateToVpool = entry.getKey();
             List<Volume> migrateVolumes = entry.getValue();
             
-            vplexBlockServiceApiImpl.migrateVolumesInReplicationGroup(migrateVolumes, migrateToVpool, 
-                    volumesNotInRG, volumesInRG, taskId);
+            TaskList taskList2 = vplexBlockServiceApiImpl.migrateVolumesInReplicationGroup(migrateVolumes, 
+                    migrateToVpool, volumesNotInRG, volumesInRG, taskId);
+            taskList.getTaskList().addAll(taskList2.getTaskList());
             
             for (Volume volumeInRG : volumesInRG) {
                 logMigrations.append(String.format("\tRP+VPLEX migrate %s [%s](%s) to vpool [%s](%s) - GROUPED BY RG\n",                        

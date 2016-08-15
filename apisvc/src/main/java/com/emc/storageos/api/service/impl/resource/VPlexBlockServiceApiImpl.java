@@ -1363,7 +1363,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Vpool change is a data migration");
 
                 List<Volume> volumesNotInRG = new ArrayList<Volume>();
-                migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, taskId);
+                taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, taskId);
                 
                 if (!volumesNotInRG.isEmpty()) {
                     for (Volume volume : volumesNotInRG) {
@@ -1401,10 +1401,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volumesNotInRG A container to store all volumes NOT in an RG
      * @param volumesInRG A container to store all the volumes in an RG
      * @param taskId The Task Id
+     * @return taskList Tasks generated for RG migrations
      */
-    protected void migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
+    protected TaskList migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
             List<Volume> volumesNotInRG, List<Volume> volumesInRG, String taskId) {
         Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+        TaskList taskList = new TaskList();
 
         // Group volumes by array groups
         for (Volume volume : volumes) {
@@ -1476,10 +1478,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
                         volume, vpool, taskId, null, null, null));
             }
+            
+            // Create a task object associated with the CG
+            taskList.getTaskList().add(createTaskForRG(vpool, rgVolumes, taskId));
 
             // Orchestrate the vpool changes of all volumes as a single request.
             orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
         }
+        return taskList;
     }
 
     /**

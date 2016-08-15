@@ -370,9 +370,10 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }
-            // If so, delete the ExportMask.
+            // If so, delete the ExportMask. 
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
+                    && (!exportMask.hasAnyExistingVolumes())
+                    && (!exportMask.hasAnyExistingInitiators())) {
                 device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;

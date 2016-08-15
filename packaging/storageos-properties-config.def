@@ -2891,7 +2891,7 @@
         type : "boolean",
         userConfigurable : false, 
         userMutable : true,
-        hidden : false,
+        hidden : true,
         advanced : false,
         tag : "Controller",
         reconfigRequired : false,

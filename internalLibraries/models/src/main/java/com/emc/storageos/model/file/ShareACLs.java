@@ -28,4 +28,8 @@ public class ShareACLs implements Serializable {
         this.shareACLs = shareACLs;
     }
 
+    @Override
+    public String toString() {
+        return "ShareACLs [shareACLs=" + shareACLs + "]";
+    }
 }

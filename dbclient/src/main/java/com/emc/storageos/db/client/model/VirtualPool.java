@@ -188,6 +188,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // Minimum number of data centers in this virtual pool
     // This is required only for object virtual pools
     private Integer minDataCenters;
+    
+    // has dedup supported storage pools
+    private Boolean dedupCapable;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -961,7 +964,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
-     * Returns whether or not the passed VirtualPool specifies VPlex high availability.
+     * Returns whether or not the passed VirtualPool specifies VPlex Distributed high availability.
      * 
      * @param virtualPool
      *            A reference to the VirtualPool.
@@ -971,6 +974,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         String highAvailability = virtualPool.getHighAvailability();
         return NullColumnValueGetter.isNotNullValue(highAvailability)
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
+    }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies VPlex Local high availability.
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies VPlex high availability, false otherwise.
+     */
+    public static boolean vPoolSpecifiesHighAvailabilityLocal(final VirtualPool virtualPool) {
+        String highAvailability = virtualPool.getHighAvailability();
+        return NullColumnValueGetter.isNotNullValue(highAvailability)
+                && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability));
     }
 
     /**
@@ -1542,5 +1558,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.scheduleSnapshot = scheduleSnapshot;
         setChanged("scheduleSnapshot");
     }
+
+	@Name("dedupCapable")
+	public Boolean getDedupCapable() {
+		return dedupCapable;	
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		if (null == dedupCapable) {
+			this.dedupCapable = false;
+		} else {
+			this.dedupCapable = dedupCapable;
+		}
+		setChanged("dedupCapable");
+	}
 
 }

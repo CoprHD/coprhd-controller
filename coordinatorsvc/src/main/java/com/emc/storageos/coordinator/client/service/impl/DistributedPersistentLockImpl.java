@@ -137,7 +137,7 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
             try {
                 if (clientName.equals(getLockOwner())) {
                     bZNodesCreated = true;
-                    _log.info("createZNodes(): owner is trying to create {} again.", _persistentLockName);
+                    _log.debug("createZNodes(): owner is trying to create {} again.", _persistentLockName);
                 }
             } catch (Exception e) {
                 _log.warn("createZNodes(): Problem while getting ZNodes: {}", _persistentLockName, e);

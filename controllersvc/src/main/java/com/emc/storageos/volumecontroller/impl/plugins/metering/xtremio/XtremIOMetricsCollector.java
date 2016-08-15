@@ -123,7 +123,7 @@ public class XtremIOMetricsCollector {
         log.info("Response - Counters: {}", Arrays.deepToString(response.getCounters()));
 
         // Segregate the responses by XEnv
-        ArrayListMultimap<String, Integer> xEnvToCPUvalues = ArrayListMultimap.create();
+        ArrayListMultimap<String, Double> xEnvToCPUvalues = ArrayListMultimap.create();
         int xEnvIndex = getIndexForAttribute(response.getMembers(), XtremIOConstants.NAME);
         int cpuIndex = getIndexForAttribute(response.getMembers(), XtremIOConstants.AVG_CPU_USAGE);
         String[][] counters = response.getCounters();
@@ -132,15 +132,15 @@ public class XtremIOMetricsCollector {
             String xEnv = counter[xEnvIndex];
             String cpuUtilization = counter[cpuIndex];
             if (cpuUtilization != null) {
-                xEnvToCPUvalues.put(xEnv, Integer.valueOf(cpuUtilization));
+                xEnvToCPUvalues.put(xEnv, Double.valueOf(cpuUtilization));
             }
         }
 
         // calculate the average usage for each XEnv for the queried period of time
         Map<String, Double> xEnvToAvgCPU = new HashMap<>();
         for (String xEnv : xEnvToCPUvalues.keySet()) {
-            List<Integer> cpuUsageList = xEnvToCPUvalues.get(xEnv);
-            Double avgCPU = (double) (cpuUsageList.stream().mapToInt(Integer::intValue).sum() / cpuUsageList.size());
+            List<Double> cpuUsageList = xEnvToCPUvalues.get(xEnv);
+            Double avgCPU = cpuUsageList.stream().mapToDouble(Double::doubleValue).sum() / cpuUsageList.size();
             log.info("XEnv: {}, collected CPU usage: {}, average: {}", xEnv, cpuUsageList.toString(), avgCPU);
             xEnvToAvgCPU.put(xEnv, avgCPU);
         }
@@ -149,8 +149,12 @@ public class XtremIOMetricsCollector {
         Map<URI, Double> scToAvgCPU = new HashMap<>();
         for (String xEnv : xEnvToAvgCPU.keySet()) {
             StorageHADomain sc = getStorageControllerForXEnv(xEnv, system, dbClient);
+            if (sc == null) {
+                log.debug("StorageHADomain not found for XEnv {}", xEnv);
+                continue;
+            }
 
-            Double scCPU = scToAvgCPU.get(sc);
+            Double scCPU = scToAvgCPU.get(sc.getId());
             Double xEnvCPU = xEnvToAvgCPU.get(xEnv);
             Double avgScCPU = (scCPU == null) ? xEnvCPU : ((xEnvCPU + scCPU) / 2.0);
             scToAvgCPU.put(sc.getId(), avgScCPU);

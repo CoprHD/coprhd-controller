@@ -15,6 +15,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -520,7 +522,12 @@ public class VolumeService extends TaskResourceService {
                     tagSet.add(tagLabel);
 
                     _dbClient.updateAndReindexObject(vol);
-                    return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,CinderConstants.STATUS_ACCEPT);
+                    if (isV1Call != null) {
+                    	_log.debug("Inside V1 call");
+                    	return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,CinderConstants.STATUS_OK);
+                    } else {
+                         return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,CinderConstants.STATUS_ACCEPT);
+                    }
                 }
                 else {
                     throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
@@ -549,14 +556,24 @@ public class VolumeService extends TaskResourceService {
     public Response updateVolume(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             VolumeUpdateRequestGen param, @Context HttpHeaders header) {
+    	
+
+    	 boolean ishex = volumeId.matches("[a-fA-F0-9\\-]+");
+         _log.debug(" Matcher  {}",ishex);
+         if (!ishex){
+         	_log.info("Update volume is failed : Invalid source volume id ");
+         	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id"); 
+         }
+    	
         if (volumeId == null){
         	_log.debug("Update volume is failed : Volume id is empty ");
         	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
         }  
+        
         Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null){
-        	_log.debug("Update volume is failed : Invalid source volume id ");
-        	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id");
+        	_log.debug("Update volume is failed : Non existent source volume id ");
+        	return CinderApiUtils.createErrorResponse(404, "Not Found : Non existent source volume id");
         }
         _log.debug("Update volume {}: ", vol.getLabel());
         String label = null;

@@ -18,8 +18,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +83,8 @@ public class XIVRestOperationsHelper {
     /**
      * Gets REST Client instance for a StorageSystem
      * 
-     * @param storage StorageSystem instance
+     * @param storage
+     *            StorageSystem instance
      * @return XIVRESTExportOperations instance
      */
     private XIVRestClient getRestClient(StorageSystem storage) {
@@ -100,34 +99,72 @@ public class XIVRestOperationsHelper {
         }
         return restClient;
     }
-
+    
     /**
      * Validates if the Host is part of a Cluster on XIV system. Uses initiators to find out the Hosts
      * 
      * @param storage XIV Storage System instance
      * @param exportMaskURI ExportMask instance
      * @param initiatorList Host Initiators
+     * @param exportType Host/Cluster export type of the operation
+     * @return True if the host is part of Cluster else false.
+     */
+    public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiators, String exportType) {
+    	boolean isClusteredHost = false;
+    	if(null != initiators && !initiators.isEmpty()) {
+    		Set<String> hostNames = new HashSet<String>();
+    		XIVRestClient restExportOpr = getRestClient(storage);
+    		
+    		//From Initiators find all the Hosts on Array
+    		for (Initiator initiator : initiators) {
+	    		try {
+	        		final String hostName = restExportOpr.getHostNameFromPort(storage.getSmisProviderIP(), Initiator.normalizePort(initiator.getInitiatorPort()));
+	        		if(null != hostName) {
+	        			hostNames.add(hostName);	
+	        		}
+				} catch (Exception e) {
+					_log.error("Unable to get host info from Port {} on array : {} ", initiator.getInitiatorPort(), storage.getLabel(), e);
+				}
+    		}
+    		
+    		//Check if Host is part of Cluster
+    		if(hostNames.isEmpty()) {
+	        	if(ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
+	        		isClusteredHost = true;
+	        	}
+	        } else {
+	        	Set<Boolean> result = new HashSet<Boolean>();
+	        	for(String hostName : hostNames) {
+	            	result.add(isClusteredHostOnArray(storage, hostName));
+	            }
+	        	isClusteredHost = (result.size() == 1 ? result.iterator().next() : false);	
+	        }
+    	}
+	    return isClusteredHost;
+    }
+
+    /**
+     * Validates if the Host is part of a Cluster on XIV system. Uses initiators to find out the Hosts
+     * 
+     * @param storage
+     *            XIV Storage System instance
+     * @param exportMaskURI
+     *            ExportMask instance
+     * @param initiatorList
+     *            Host Initiators
      * @return True if the host is part of Cluster else false.
      */
     public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiators) {
-        Set<Boolean> result = new HashSet<Boolean>();
-        if (null != initiators) {
-            for (Initiator initiator : initiators) {
-            	URI hostURI = initiator.getHost();
-            	if(null != hostURI) {
-            		Host host = _dbClient.queryObject(Host.class, hostURI);
-                    result.add(isClusteredHostOnArray(storage, host.getLabel()));	
-            	}
-            }
-        }
-        return result.size() == 1 ? result.iterator().next() : false;
+        return isClusteredHost(storage, initiators, null);
     }
 
     /**
      * Validates if the given Host name is identified as Clustered host with respect to XIV
      * 
-     * @param storage XIV storage system
-     * @param hostName Host name to ve validated
+     * @param storage
+     *            XIV storage system
+     * @param hostName
+     *            Host name to ve validated
      * @return true if the host is part of Cluster. Else false.
      */
     private boolean isClusteredHostOnArray(StorageSystem storage, String hostName) {
@@ -160,14 +197,21 @@ public class XIVRestOperationsHelper {
     }
 
     /**
-     * Creates Export mask for a Cluster. Creates Cluster, Host and Inititators on XIV. Exports the volume to the Cluster.
+     * Creates Export mask for a Cluster. Creates Cluster, Host and Inititators on XIV. Exports the volume to the
+     * Cluster.
      * 
-     * @param storage XIV Storage System
-     * @param exportMaskURI Export Mask URI
-     * @param volumeURIHLUs Volume URIs to be exported
-     * @param targetURIList Target ports (not used for XIV)
-     * @param initiatorList Initiator ports
-     * @param taskCompleter Task Completer instance
+     * @param storage
+     *            XIV Storage System
+     * @param exportMaskURI
+     *            Export Mask URI
+     * @param volumeURIHLUs
+     *            Volume URIs to be exported
+     * @param targetURIList
+     *            Target ports (not used for XIV)
+     * @param initiatorList
+     *            Initiator ports
+     * @param taskCompleter
+     *            Task Completer instance
      */
     public void createRESTExportMask(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter) {
@@ -282,9 +326,12 @@ public class XIVRestOperationsHelper {
     /**
      * Refresh the export mask with the user added configuration
      * 
-     * @param storage XIV sotrage system
-     * @param mask Export Mask instance
-     * @param _networkDeviceController Network configuration instance
+     * @param storage
+     *            XIV sotrage system
+     * @param mask
+     *            Export Mask instance
+     * @param _networkDeviceController
+     *            Network configuration instance
      */
     public void refreshRESTExportMask(StorageSystem storage, ExportMask mask, NetworkDeviceController _networkDeviceController) {
 
@@ -398,12 +445,18 @@ public class XIVRestOperationsHelper {
     /**
      * Deletes the Export Mask and its attributes
      * 
-     * @param storage XIV storage system
-     * @param exportMaskURI Export mask URI
-     * @param volumeURIList Volume URI as list
-     * @param targetURIList target port URI as list [ not used for xiv]
-     * @param initiatorList Initiator port URI as list
-     * @param taskCompleter task completer instance
+     * @param storage
+     *            XIV storage system
+     * @param exportMaskURI
+     *            Export mask URI
+     * @param volumeURIList
+     *            Volume URI as list
+     * @param targetURIList
+     *            target port URI as list [ not used for xiv]
+     * @param initiatorList
+     *            Initiator port URI as list
+     * @param taskCompleter
+     *            task completer instance
      */
     public void deleteRESTExportMask(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter) {
@@ -523,9 +576,12 @@ public class XIVRestOperationsHelper {
     /**
      * Find Export mask
      * 
-     * @param storage Storage System instance
-     * @param initiatorNames Initiator names
-     * @param mustHaveAllPorts Must have all the ports boolean
+     * @param storage
+     *            Storage System instance
+     * @param initiatorNames
+     *            Initiator names
+     * @param mustHaveAllPorts
+     *            Must have all the ports boolean
      * @return Initiator to Export mask map.
      */
     public Map<String, Set<URI>> findRESTExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
@@ -536,20 +592,20 @@ public class XIVRestOperationsHelper {
             final String storageIP = storage.getSmisProviderIP();
             XIVRestClient restExportOpr = getRestClient(storage);
             StringBuilder builder = new StringBuilder();
-            
+
             for (String initiatorName : initiatorNames) {
                 final String hostName = restExportOpr.getHostPortContainer(storageIP, initiatorName);
                 Set<String> exportMaskNames = new HashSet<String>();
-                if(null != hostName){
-                	exportMaskNames.add(hostName);
-                	final String clusterNames = restExportOpr.getHostContainer(storageIP, hostName);
-                	if(null != clusterNames){
-                		exportMaskNames.add(clusterNames);	
-                	}
+                if (null != hostName) {
+                    exportMaskNames.add(hostName);
+                    final String clusterNames = restExportOpr.getHostContainer(storageIP, hostName);
+                    if (null != clusterNames) {
+                        exportMaskNames.add(clusterNames);
+                    }
                 }
-                
+
                 // Find the existing masks
-                for(String exportMaskName : exportMaskNames) {
+                for (String exportMaskName : exportMaskNames) {
                     URIQueryResultList uriQueryList = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(exportMaskName), uriQueryList);
                     ExportMask exportMask = null;
@@ -595,14 +651,21 @@ public class XIVRestOperationsHelper {
     }
 
     /**
-     * Adds a volume to a Export Group
+     * Adds volumes to an export mask
      * 
-     * @param storage Storage system instance
-     * @param exportMaskURI Export mask URI
-     * @param volumeURIHLUs Volume to be added URI
-     * @param taskCompleter task completer instance
+     * @param storage
+     *            Storage system instance
+     * @param exportMaskURI
+     *            Export mask URI
+     * @param volumeURIHLUs
+     *            Volume to be added URI
+     * @param initiatorList
+     *            initiators to be valiated against for this operation
+     * @param taskCompleter
+     *            task completer instance
      */
-    public void addVolumeUsingREST(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter) {
+    public void addVolumesUsingREST(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList,
+            TaskCompleter taskCompleter) {
 
         _log.info("{} addVolume START...", storage.getLabel());
         try {
@@ -664,14 +727,21 @@ public class XIVRestOperationsHelper {
     }
 
     /**
-     * Removes a volume from a Export group
+     * Removes volumes from an Export mask
      * 
-     * @param storage Storage system instance
-     * @param exportMaskURI Export mask URI
-     * @param volumeURIList Volume to be removed URI
-     * @param taskCompleter task completer instance
+     * @param storage
+     *            Storage system instance
+     * @param exportMaskURI
+     *            Export mask URI
+     * @param volumeURIList
+     *            Volume to be removed URI
+     * @param initiatorList
+     *            initiators to be valiated against for this operation
+     * @param taskCompleter
+     *            task completer instance
      */
-    public void removeVolumeUsingREST(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList, TaskCompleter taskCompleter) {
+    public void removeVolumesUsingREST(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList, List<Initiator> initiatorList,
+            TaskCompleter taskCompleter) {
         try {
 
             // Export volume to Cluster
@@ -715,76 +785,90 @@ public class XIVRestOperationsHelper {
     }
 
     /**
-     * Add Initiator to a existing Export Mask.
-     * @param storage StorageSystem instance
-     * @param exportMaskURI Export mask URI where the initiator needs to be added
-     * @param initiatorList List of initiators need to be added
-     * @param taskCompleter Task Completer instance
+     * Add Initiators to an existing Export Mask.
+     * 
+     * @param storage
+     *            StorageSystem instance
+     * @param exportMaskURI
+     *            Export mask URI where the initiator needs to be added
+     * @param volumeURIList
+     *            Volume to be validated against this operation
+     * @param initiatorList
+     *            List of initiators need to be added
+     * @param taskCompleter
+     *            Task Completer instance
      */
-	public void addInitiatorUsingREST(StorageSystem storage, URI exportMaskURI, List<Initiator> initiatorList, TaskCompleter taskCompleter) {
-		
-		try {
+    public void addInitiatorsUsingREST(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIs, List<Initiator> initiatorList,
+            TaskCompleter taskCompleter) {
+        try {
 
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             XIVRestClient restExportOpr = getRestClient(storage);
 
             final String storageIP = storage.getSmisProviderIP();
-            
-	        List<Initiator> userAddedInitiators = new ArrayList<Initiator>();
-	        for (Initiator initiator : initiatorList) {
-	            final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
-	
-	            // Add Initiators to Host.
-	            if (!restExportOpr.createHostPort(storageIP, host.getLabel(), Initiator.normalizePort(initiator.getInitiatorPort()),
-	                    initiator.getProtocol().toLowerCase())) {
-	            	userAddedInitiators.add(initiator);
-	            }
-	        }
-	        mask.addToUserCreatedInitiators(userAddedInitiators);
+
+            List<Initiator> userAddedInitiators = new ArrayList<Initiator>();
+            for (Initiator initiator : initiatorList) {
+                final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+
+                // Add Initiators to Host.
+                if (!restExportOpr.createHostPort(storageIP, host.getLabel(), Initiator.normalizePort(initiator.getInitiatorPort()),
+                        initiator.getProtocol().toLowerCase())) {
+                    userAddedInitiators.add(initiator);
+                }
+            }
+            mask.addToUserCreatedInitiators(userAddedInitiators);
             ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
             _dbClient.updateObject(mask);
-	        taskCompleter.ready(_dbClient);
-		} catch (Exception e) {
-			_log.error("Unexpected error: addInitiator failed.", e);
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Unexpected error: addInitiator failed.", e);
             ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
             taskCompleter.error(_dbClient, error);
-		}
-	}
-	
-	/**
-	 * Removes a initiator from ExportMask
-	 * @param storage StorageSystem instance
-	 * @param exportMaskURI ExportMask URI where Initiator needs to be removed
-	 * @param initiatorList List of Initiators to be removed
-	 * @param taskCompleter Task Completer instance
-	 */
-	public void removeInitiatorUsingREST(StorageSystem storage, URI exportMaskURI, List<Initiator> initiatorList, TaskCompleter taskCompleter) {
-		
-		try {
+        }
+    }
 
+    /**
+     * Removes initiators from an existing export mask
+     * 
+     * @param storage
+     *            StorageSystem instance
+     * @param exportMaskURI
+     *            ExportMask URI where Initiator needs to be removed
+     * @param volumeURIList
+     *            Volume to be validated against this operation
+     * @param initiatorList
+     *            List of Initiators to be removed
+     * @param taskCompleter
+     *            Task Completer instance
+     */
+    public void removeInitiatorsUsingREST(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIs, List<Initiator> initiatorList,
+            TaskCompleter taskCompleter) {
+        try {
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             XIVRestClient restExportOpr = getRestClient(storage);
 
             final String storageIP = storage.getSmisProviderIP();
-            
+
             List<URI> userRemovedInitiators = new ArrayList<URI>();
             if (null != initiatorList) {
                 for (Initiator initiator : initiatorList) {
                     final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
                     final String normalizedPort = Initiator.normalizePort(initiator.getInitiatorPort());
-                    if(restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(), true)) {
-                    	userRemovedInitiators.add(initiator.getId());
+                    if (restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(),
+                            true)) {
+                        userRemovedInitiators.add(initiator.getId());
                     }
                 }
             }
-	        mask.removeFromUserAddedInitiatorsByURI(userRemovedInitiators);
+            mask.removeFromUserAddedInitiatorsByURI(userRemovedInitiators);
             ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
             _dbClient.updateObject(mask);
-	        taskCompleter.ready(_dbClient);
-		} catch (Exception e) {
-			_log.error("Unexpected error: addInitiator failed.", e);
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Unexpected error: addInitiator failed.", e);
             ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
             taskCompleter.error(_dbClient, error);
-		}
-	}
+        }
+    }
 }

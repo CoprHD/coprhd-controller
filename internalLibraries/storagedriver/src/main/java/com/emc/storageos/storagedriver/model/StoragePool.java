@@ -116,8 +116,8 @@ public class StoragePool extends StorageObject {
     private Long minimumThickVolumeSize;
 
     private SupportedResourceType supportedResourceType;
-
-    public static enum SupportedResourceType {
+    
+	public static enum SupportedResourceType {
         THICK_ONLY,
         THIN_ONLY,
         THIN_AND_THICK
@@ -278,7 +278,7 @@ public class StoragePool extends StorageObject {
     public void setPoolServiceType(PoolServiceType poolServiceType) {
         this.poolServiceType = poolServiceType.name();
     }
-
+	
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }

@@ -584,8 +584,6 @@ public class ExportUtils {
      * for an export mask that:<ol>
      * <li>is for the same storage system</li>
      * <li>is not one used by the same export group</li>
-     * <li>has the initiator added into it by the application</li>
-     * <li>has the exact set of initiators which a prerequisite to sharing an initiator group</li>
      * </ol>  
      * @param dbClient an instance of DbClient
      * @param initiatorUri the URI of the initiator being checked
@@ -600,9 +598,7 @@ public class ExportUtils {
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
-                            !exportMaskURIs.contains(exportMask.getId()) && 
-                            exportMask.hasUserInitiator(initiatorUri) && 
-                            StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
+                    !exportMaskURIs.contains(exportMask.getId())) {
                 _log.info(String.format("Initiator %s is shared with mask %s.", 
                         initiatorUri, exportMask.getMaskName()));
                 return true;
@@ -1573,5 +1569,46 @@ public class ExportUtils {
             }
         }
         return result;
+    }
+
+    /**
+     * Selects and returns the list targets (storage ports) that need to be removed from
+     * an export mask when the initiators are removed from the storage group. If checks if
+     * the targets are used by other initiators before they can be removed. It returns
+     * an empty list if there are not any targets to remove.
+     *
+     * @param mask the export mask from which the initiator will be removed
+     * @param initiators the initiators being removed
+     * @return a list of targets that are no longer needed by an initiators.
+     */
+    public static List<URI> getRemoveInitiatorStoragePorts(
+            ExportMask mask, List<Initiator> initiators, DbClient dbClient) {
+        // uris of ports candidates for removal
+        Set<URI> portUris = new HashSet<URI>();
+        List<URI> remainingInitiators = ExportUtils.getExportMaskAllInitiators(mask, dbClient); // ask Ameer - do i need this function
+        for (Initiator initiator : initiators) {
+            portUris.addAll(ExportUtils.getInitiatorPortsInMask(mask, initiator, dbClient));
+            remainingInitiators.remove(initiator.getId());
+        }
+
+        // for the remaining initiators, get the networks and check if the ports are in use
+        if (!remainingInitiators.isEmpty()) {
+            Iterator<Initiator> remInitiators = dbClient.queryIterativeObjects(Initiator.class,
+                    remainingInitiators);
+            List<URI> initiatorPortUris = null;
+            while (remInitiators.hasNext()) {
+                Initiator initiator = remInitiators.next();
+                // stop looping if all the the ports are found to be in use
+                if (portUris.isEmpty()) {
+                    break;
+                }
+                initiatorPortUris = ExportUtils.getInitiatorPortsInMask(mask, initiator, dbClient);
+                _log.info("Ports {} are in use in by initiator {} ",
+                        initiatorPortUris, initiator.getInitiatorPort());
+                portUris.removeAll(initiatorPortUris);
+            }
+        }
+        _log.info("Ports {} are going to be removed", portUris);
+        return new ArrayList<URI>(portUris);
     }
 }

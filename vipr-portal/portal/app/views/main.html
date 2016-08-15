@@ -40,6 +40,7 @@
         #{get 'navBarRight' /}
         #{if isActiveSite }
         	#{viprSystemTasks/}
+        	#{viprEvents/}
 	    	#{nav.vdcMenu vdcs:vdcs, token:token/}
 	    #{/if}
         <li id="nav_help">
@@ -52,6 +53,14 @@
             </a>
           #{/else}
         </li>
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+        <li id="colWiz" ng-controller="navBarController">
+          <a href ng-click="toggleGuide(false)">
+            #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
+          </a>
+
+        </li>
+        #{/deadbolt.restrict}
 
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.tenantName} -  ${currentUser?.commonName} <b class="caret"></b></a>
@@ -195,6 +204,7 @@
         #{nav.item 'object.buckets', href: @resources.ObjectBuckets.buckets()/}
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
+        #{nav.item 'events', href: @Events.listAll()/}
       #{/nav.menuSection}
     #{/nav.menu}
   #{/license.ifController}   
@@ -326,7 +336,11 @@
 
 #{/nav.mainMenu}
 #{get 'menu'/}
-
+#{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+<div id="wizard" ng-controller="wizardController" ng-init="checkGuide()" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
+  #{GettingStarted.gettingStarted/}
+</div>
+#{/deadbolt.restrict}
 #{nav.contentArea}
   #{get 'breadcrumbs'/}
   #{doLayout /}

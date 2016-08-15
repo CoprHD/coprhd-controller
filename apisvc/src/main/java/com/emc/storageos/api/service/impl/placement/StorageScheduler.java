@@ -639,12 +639,13 @@ public class StorageScheduler implements Scheduler {
         Map<URI, Double> arrayToHostWeightMap = new HashMap<URI, Double>();
         Map<URI, Set<URI>> preferredPoolMap = null;
         boolean canUseNonPreferred = false;
-        int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
-                CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, CustomConfigConstants.GLOBAL_KEY, null));
         if (capabilities.getArrayAffinity()) {
             String computeIdStr = capabilities.getCompute();
             preferredPoolMap = getPreferredPoolMap(computeIdStr, arrayToHostWeightMap);
             _log.info("ArrayAffinity - preferred arrays for {} - {}", computeIdStr, arrayToHostWeightMap);
+
+            int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, CustomConfigConstants.GLOBAL_KEY, null));
             canUseNonPreferred = preferredPoolMap.keySet().size() < limit;
         } else {
             preferredPoolMap = new HashMap<URI, Set<URI>>();
@@ -681,13 +682,7 @@ public class StorageScheduler implements Scheduler {
                 Joiner.on(',').join(Collections2.transform(candidateSystems, CommonTransformerFunctions.fctnDataObjectToID())));
 
         // process the sorted candidate arrays
-        int systemCount = 0;
         for (StorageSystem system : candidateSystems) {
-            if (capabilities.getArrayAffinity() && systemCount >= limit) { // check max number of allowed arrays
-                _log.info("ArrayAffinity - reached maximum allowed number of arrays configured. Processed: {}, Limit: {}",
-                        systemCount, limit);
-                break;
-            }
             URI systemURI = system.getId();
             // get all available pools of the array
             List<StoragePool> availablePools = candidatePoolMap.get(system.getId());
@@ -762,7 +757,6 @@ public class StorageScheduler implements Scheduler {
                     _log.info("ArrayAffinity - no recommended pools found from secondary pools");
                 }
             }
-            systemCount++;
         }
 
         // No recommendations found on any storage system.
@@ -1634,6 +1628,10 @@ public class StorageScheduler implements Scheduler {
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
+        if (vpool.getDedupCapable() != null) {
+        	volume.setIsDeduplicated(vpool.getDedupCapable());
+        }
+
         dbClient.createObject(volume);
         return volume;
     }
@@ -1727,6 +1725,10 @@ public class StorageScheduler implements Scheduler {
             if (null != autoTierPolicyUri) {
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
+        }
+        
+        if (vpool.getDedupCapable() != null) {
+        	volume.setIsDeduplicated(vpool.getDedupCapable());
         }
 
         if (newVolume) {

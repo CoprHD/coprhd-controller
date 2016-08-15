@@ -36,6 +36,7 @@ import util.builders.BlockVirtualPoolBuilder;
 import util.builders.BlockVirtualPoolUpdateBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ProtectionSourcePolicy;
@@ -98,6 +99,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     // VMAX Host IO Limits attributes
     public Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     public Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+    public Boolean enableDeDup;
 
     // Indicates policy that will be used for resource placement of the VirtualPool
     public String placementPolicy;
@@ -229,6 +231,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         raidLevels = defaultSet(virtualPool.getRaidLevels());
         hostIOLimitBandwidth = virtualPool.getHostIOLimitBandwidth();
         hostIOLimitIOPs = virtualPool.getHostIOLimitIOPs();
+        enableDeDup = virtualPool.getDedupCapable();
         placementPolicy = virtualPool.getPlacementPolicy();
 
         VirtualPoolHighAvailabilityParam highAvailabilityType = virtualPool.getHighAvailability();
@@ -385,6 +388,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setRaidLevels(raidLevels);
         builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
         builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
+        builder.setDedupCapable(defaultBoolean(enableDeDup));
         builder.setPlacementPolicy(placementPolicy);
 
         if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
@@ -462,6 +466,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             builder.setRaidLevels(defaultSet(raidLevels));
             builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
             builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
+            builder.setDedupCapable(defaultBoolean(enableDeDup));
 
             if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
                 builder.setRecoverPointJournalSize(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));
@@ -530,7 +535,8 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         BlockVirtualPoolBuilder builder = new BlockVirtualPoolBuilder();
         apply(builder);
         builder.setUseMatchedPools(true);
-        return new MatchingBlockStoragePoolsCall(builder.getVirtualPool());
+        BlockVirtualPoolParam myvpool = builder.getVirtualPool();
+        return new MatchingBlockStoragePoolsCall(myvpool);
     }
 
     public ConnectedBlockVirtualPoolsCall connectedVirtualPools() {

@@ -1558,11 +1558,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
         switch (step) {
             case 1:
-                updateGuideCookies3(1, 2,'full');
+                updateGuideCookies4(1, 2,'full',true);
                 return;
                 break;
             case 2:
-                updateGuideCookies3(2, 3,'full');
+                updateGuideCookies4(2, 3,'full',true);
                 return;
                 break;
             default:

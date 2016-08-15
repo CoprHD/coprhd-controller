@@ -3597,20 +3597,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + exportMask.getMaskName());
 
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
-                    List<URI> storagePortURIs = ExportUtils.checkIfStoragePortsNeedsToBeRemoved(exportMask);
 
-                    if (!storagePortURIs.isEmpty()) {
-                        hasSteps = true;
+                    if (exportMask.getCreatedBySystem()) {
+                        List<URI> storagePortURIs = ExportUtils.checkIfStoragePortsNeedsToBeRemoved(exportMask);
 
-                        // Create a Step to remove storage ports from the Storage View
-                        Workflow.Method removePortsFromViewMethod = storageViewRemoveStoragePortsMethod(vplexURI, exportURI,
-                                exportMask.getId(), storagePortURIs);
-                        Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                        storageViewStepId = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
-                                String.format("Updating VPLEX Storage View to remove StoragePorts for ExportGroup %s Mask %s", exportURI,
-                                        exportMask.getMaskName()),
-                                null, vplex.getId(), vplex.getSystemType(),
-                                this.getClass(), removePortsFromViewMethod, rollbackMethod, null);
+                        if (!storagePortURIs.isEmpty()) {
+                            hasSteps = true;
+
+                            // Create a Step to remove storage ports from the Storage View
+                            Workflow.Method removePortsFromViewMethod = storageViewRemoveStoragePortsMethod(vplexURI, exportURI,
+                                    exportMask.getId(), storagePortURIs);
+                            Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+                            storageViewStepId = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
+                                    String.format("Updating VPLEX Storage View to remove StoragePorts for ExportGroup %s Mask %s", exportURI,
+                                            exportMask.getMaskName()),
+                                    null, vplex.getId(), vplex.getSystemType(),
+                                    this.getClass(), removePortsFromViewMethod, rollbackMethod, null);
+                        }
                     }
 
                     // this next chunk of code covers the situation where the export mask

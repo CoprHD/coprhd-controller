@@ -8,15 +8,19 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import controllers.Common;
+
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -25,8 +29,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
+
 import play.Logger;
 import play.libs.F.Promise;
 import play.mvc.Controller;
@@ -401,7 +407,8 @@ public class ViprResourceController extends Controller {
         }
     }
 
-    protected static void saveJsonAsCookie(String cookieKey,JsonObject jobject) {
+    @SuppressWarnings("deprecation")
+	protected static void saveJsonAsCookie(String cookieKey,JsonObject jobject) {
         response.setCookie(cookieKey, URLEncoder.encode(jobject.toString()));
     }
 }

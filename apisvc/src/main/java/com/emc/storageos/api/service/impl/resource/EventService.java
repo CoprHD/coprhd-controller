@@ -40,11 +40,13 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
-import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -54,6 +56,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -452,9 +455,26 @@ public class EventService extends TaggedResource {
     private List<String> getVolumes(StringMap volumes, boolean gainAccess) {
         List<String> result = Lists.newArrayList();
         for (Entry<String, String> volume : volumes.entrySet()) {
-            BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume.getKey()));
-            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: " + blockObject.getLabel() + " ID: "
-                    + blockObject.getId());
+            String projectName = null;
+            String volumeName = null;
+            URI blockURI = URI.create(volume.getKey());
+            if (URIUtil.isType(blockURI, Volume.class)) {
+                Volume block = _dbClient.queryObject(Volume.class, blockURI);
+                projectName = block.getProject().getName();
+                volumeName = block.getLabel();
+            } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
+                BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
+                projectName = block.getProject().getName();
+                volumeName = block.getLabel();
+            } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
+                BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
+                projectName = block.getProject().getName();
+                volumeName = block.getLabel();
+            }
+
+            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: Project "
+                    + (projectName == null ? "N/A" : projectName) + " " + (volumeName == null ? "N/A" : volumeName)
+                    + " ID: " + blockURI);
         }
         return result;
     }

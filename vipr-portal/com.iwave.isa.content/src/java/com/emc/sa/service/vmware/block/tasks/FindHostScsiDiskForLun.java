@@ -111,8 +111,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         }
         if (disk == null) {
             diskNotFound(true);
-        }
-        else if (!isValidState(disk)) {
+        } else if (!isValidState(disk)) {
             diskInvalid(disk);
         }
         return disk;

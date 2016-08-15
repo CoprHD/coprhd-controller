@@ -5,6 +5,7 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import static util.BourneUtil.getCatalogClient;
 import static util.CatalogServiceUtils.getCatalogService;
 import static util.OrderUtils.getOrder;
@@ -58,7 +59,7 @@ public class Approvals extends Controller {
         for (ApprovalRestRep approval : approvals) {
             OrderRestRep order = null;
             if (approval.getOrder() != null) {
-                if (orders.keySet().contains(approval.getOrder().getId()) == false) {
+                if (!orders.keySet().contains(approval.getOrder().getId())) {
                     order = getOrder(approval.getOrder());
                     if (order != null) {
                         orders.put(order.getId(), order);
@@ -70,7 +71,7 @@ public class Approvals extends Controller {
             }
             CatalogServiceRestRep catalogService = null;
             if (order != null && order.getCatalogService() != null) {
-                if (catalogServices.keySet().contains(order.getCatalogService().getId()) == false) {
+                if (!catalogServices.keySet().contains(order.getCatalogService().getId())) {
                     catalogService = getCatalogService(order.getCatalogService());
                     if (catalogService != null) {
                         catalogServices.put(catalogService.getId(), catalogService);
@@ -91,14 +92,19 @@ public class Approvals extends Controller {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
         OrderRestRep order = null;
+        ScheduledEventRestRep scheduledEvent = null;
         CatalogServiceRestRep service = null;
         if (approval != null) {
             order = getOrder(approval.getOrder());
             if (order != null) {
                 service = getCatalogService(order.getCatalogService());
+                URI scheduledEventId = order.getScheduledEventId();
+                if (scheduledEventId != null) {
+                    scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                }
             }
         }
-        render(approval, order, service);
+        render(approval, order, service, scheduledEvent);
     }
 
     public static void submit(String id, ApprovalsForm approval) {

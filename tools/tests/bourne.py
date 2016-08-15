@@ -3776,7 +3776,7 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uris, cos_uri, cg_uri, wait):
+    def volume_change_cos(self, uris, cos_uri, cg_uri):
         params = {}
         ids = []
         

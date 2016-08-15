@@ -5097,11 +5097,6 @@ recoverpoint_change_vpool_test()
             secho 'Change Virtual Pool - VPLEX Data Migration (RecoverPoint)'
             run volume change_cos ${PROJECT}/${base_volume} ${rp_migrate_vpool}
 
-            # This extra sleep is needed because we have 4 Tasks running (Source, Source Journal, Target, Target Journal)
-            # and the CLI only waits for the main Task to complete.
-            secho 'Sleeping 1sec to allow ALL Tasks to complete and systems to catch up...'
-            sleep 1
-
             secho 'Change Virtual Pool - Remove RecoverPoint Protection'
             run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}'-migrate'
 

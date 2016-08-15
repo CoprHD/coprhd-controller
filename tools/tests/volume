@@ -161,7 +161,7 @@ def volume_change_cos(args):
     if (args.consistencyGroup):
         cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
     start = time.time()
-    tr_list = bourne.volume_change_cos(uris, cos_uri, cg_uri, args.wait)
+    tr_list = bourne.volume_change_cos(uris, cos_uri, cg_uri)
     total = time.time() - start
     print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
     for tr in tr_list:
@@ -476,7 +476,6 @@ change_cos = argparse.ArgumentParser(parents = [parser], conflict_handler='resol
 change_cos.add_argument('name',	help = 'names of all the volumes to change cos')
 change_cos.add_argument('cos', help = 'name of the new cos')
 change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
-change_cos.add_argument('--wait', action='store_true', help = 'wait for the operation to complete')
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

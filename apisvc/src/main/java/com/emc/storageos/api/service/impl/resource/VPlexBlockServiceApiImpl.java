@@ -1361,9 +1361,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             _dbClient, new StringBuffer());
             if ((vpoolChange != null) && (vpoolChange == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
                 s_logger.info("Vpool change is a data migration");
+                ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
+                operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
+                        vpoolChangeParam.getMigrationSuspendBeforeCommit());
+                operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                        vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
 
                 List<Volume> volumesNotInRG = new ArrayList<Volume>();
-                taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, taskId);
+                taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, operationsWrapper, taskId);
                 
                 if (!volumesNotInRG.isEmpty()) {
                     for (Volume volume : volumesNotInRG) {
@@ -1400,11 +1405,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param vpool The vpool to migrate to
      * @param volumesNotInRG A container to store all volumes NOT in an RG
      * @param volumesInRG A container to store all the volumes in an RG
+     * @param controllerOperationsWrapper values from controller called used to determine if
+     *   we need to suspend on commit or deletion of source volumes
      * @param taskId The Task Id
      * @return taskList Tasks generated for RG migrations
      */
     protected TaskList migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
-            List<Volume> volumesNotInRG, List<Volume> volumesInRG, String taskId) {
+            List<Volume> volumesNotInRG, List<Volume> volumesInRG, 
+            ControllerOperationValuesWrapper controllerOperationValues, String taskId) {
         Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
         TaskList taskList = new TaskList();
 
@@ -1476,7 +1484,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
             for (Volume volume : volumesInRGRequest) {
                 descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                        volume, vpool, taskId, null, null, null));
+                        volume, vpool, taskId, null, null, controllerOperationValues));
             }
             
             // Create a task object associated with the CG

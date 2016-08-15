@@ -592,15 +592,25 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 boolean newClusterInUse = cluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, cluster.getId());
 
                 if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
+                    String name = null;
+                    String description = null;
+                    
+                    if (cluster != null && oldCluster == null) {
+                        name = "Added to cluster " + cluster.getLabel();
+                        description = "Host " + host.getLabel() + " will be added to shared exports for cluster "
+                                + cluster.getLabel();
+                    } else if (cluster == null && oldCluster != null) {
+                        name = "Removed from cluster " + oldCluster.getLabel();
+                        description = "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                + oldCluster.getLabel();
+                    } else {
+                        name = "Moved cluster from " + oldCluster.getLabel() + " to " + cluster.getLabel();
+                        description = "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                + oldCluster.getLabel() + " and added to shared exports for cluster "
+                                + cluster.getLabel();
+                    }
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
-                            "Moved cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
-                                    + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
-                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                    + (cluster == null ? " N/A " : cluster.getLabel()),
-                            "Host storage will be modified",
-                            host,
-                            "hostClusterChange",
+                            name, description, "Host storage will be modified", host, "hostClusterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     isVCenter });
                 } else {

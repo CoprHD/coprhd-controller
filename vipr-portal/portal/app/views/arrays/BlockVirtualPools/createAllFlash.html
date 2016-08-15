@@ -10,22 +10,18 @@ titleKey = "BlockVirtualPools.create.title"
 #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
-
-
 <div id="virtualPool" class="container ng-scope">
-    <form-header title-key="Automatically Create Virtual Pools" description-key="" image-val="/public/img/assets/VirtualPool.png" class="ng-isolate-scope"><div class="form-header">
-        <!-- ngIf: image --><div ng-if="image" class="image ng-scope">
-        <img ng-src="/public/img/assets/VirtualPool.png" src="/public/img/assets/VirtualPool.png">
-    </div><!-- end ngIf: image -->
-
-    </div>
+    <form-header title-key="Automatically Create Virtual Pools" description-key="" image-val="/public/img/assets/VirtualPool.png" class="ng-isolate-scope">
+    	<div class="form-header">
+        	<div ng-if="image" class="image ng-scope">
+        		<img ng-src="/public/img/assets/VirtualPool.png" src="/public/img/assets/VirtualPool.png">
+        	</div>
+    	</div>
     </form-header>
     <fieldset class="form form-horizontal ng-pristine ng-valid" style="padding-top:20px">
-    <h5>
-        We have detected the following storage systems
-    </h5>
+    <h5>        We have detected the following Storage System type </h5>
         %{
-        for(type in types) {
+        	for(type in types) {
         }%
         <p>&{'StorageSystemType.'+type}</p>
         %{
@@ -33,7 +29,6 @@ titleKey = "BlockVirtualPools.create.title"
         }%
     <h5 style="padding-top:40px">
         Do you want the system to create Virtual Pools automatically?<br>
-        <!--a>Learn more how...</a-->
     </h5>
     </fieldset>
 </div>

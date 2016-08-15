@@ -19,6 +19,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -30,6 +31,14 @@ import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 
 /**
  * Handle commands about Zookeeper and output some human readable information.
@@ -76,6 +85,27 @@ public class ZkCmdHandler implements Watcher {
         zk.setData(nodePath, memStream.toByteArray(), -1);
     }
 
+    public void rollbackDataRevision() throws Exception {
+        DrUtil drUtil = new DrUtil(ZKUtil.getCoordinatorClient());
+        if (!precheckForRollback(drUtil)) {
+            return;
+        }
+        LocalRepository localRepository = LocalRepository.getInstance();
+        PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
+        String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
+        log.info("Previous data revision at local {}", prevRevision);
+        if (StringUtils.isNotEmpty(prevRevision)) {
+            long rollbackTargetRevision = Long.parseLong(prevRevision);
+            drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                    DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
+            log.info("Manual rollback to {} has been triggered", rollbackTargetRevision);
+            System.out.println(String.format("Rollback to %s has been initiated successfully", prevRevision));
+        } else {
+            log.warn("No valid previous revision found. Skip rollback");
+            System.out.println("Can't find viable previous data revision. Rollback oparation has been aborted");
+        }
+    }
+
     public void tuneDrConfig(String key, String value) throws Exception {
         assureNodeExist(DR_CONFIG_PATH);
         Properties config = new Properties();
@@ -88,6 +118,32 @@ public class ZkCmdHandler implements Watcher {
         Properties newConfig = new Properties();
         newConfig.load(new ByteArrayInputStream(zk.getData(DR_CONFIG_PATH, null, null)));
         System.out.println(newConfig);
+    }
+
+    /**
+     * @return true if pre-check passed for rollback, otherwise return false
+     */
+    private boolean precheckForRollback(DrUtil drUtil) {
+        if(!drUtil.isStandby()) {
+            log.warn("Rollback is only allowed on standby site, current site is Active site, skip rollback");
+            System.out.println("Rollback is only allowed on standby site, current site is Active site, skip rollback");
+            return false;
+        }
+
+        String activeSiteId = drUtil.getActiveSite().getUuid();
+        if (!StringUtils.isEmpty(activeSiteId) && drUtil.getSiteNetworkState(activeSiteId).getNetworkHealth() != NetworkHealth.BROKEN) {
+            log.warn("Rollback is only allowed when Active site is lost, Active site is alive now, skip rollback");
+            System.out.println("Rollback is only allowed when Active site is lost, Active site is alive now, skip rollback");
+            return false;
+        }
+
+        if(!drUtil.isAllSyssvcUp()) {
+            log.warn("Rollback is only allowed when all syssvcs are online, there's offline syssvc now, skip rollback");
+            System.out.println("Rollback is only allowed when all syssvcs are online, there's offline syssvc now, skip rollback");
+            return false;
+        }
+
+        return true;
     }
 
     private void assureNodeExist(String path) throws Exception{

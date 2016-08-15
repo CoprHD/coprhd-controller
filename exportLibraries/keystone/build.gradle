@@ -1,4 +1,6 @@
 dependencies {
     compile project(":errorhandling"),
-                     project(":serviceutils")   
+            project(":serviceutils"),
+            project(":cinder"),
+            project(":dbclient")
 }

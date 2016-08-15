@@ -92,9 +92,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateObjectVirtualPoolCreateParams(param, _dbClient);
         VirtualPool cos = prepareVirtualPool(param);
-
+        StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator, errorMessage);
         _dbClient.createObject(cos);
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, cos);
@@ -110,9 +110,11 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualPoolList listObjectVirtualPool(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualPoolList listObjectVirtualPool(
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId,
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
-        return getVirtualPoolList(VirtualPool.Type.object, shortVdcId);
+        return getVirtualPoolList(VirtualPool.Type.object, shortVdcId, tenantId);
     }
 
     /**
@@ -174,14 +176,14 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         VirtualPool vpool = prepareVirtualPool(param);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
-
+        StringBuffer errorMessage = new StringBuffer();
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool,
                 allPools,
                 null,
                 null,
                 null,
                 _dbClient,
-                _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+                _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -316,9 +318,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             }
             cos.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
-
+        StringBuffer errorMessage = new StringBuffer();
         // invokes implicit pool matching algorithm.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator, errorMessage);
 
         _dbClient.updateAndReindexObject(cos);
 

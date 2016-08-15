@@ -30,7 +30,7 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
 public class IsilonSyncIQJob extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncIQJob.class);
-    private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
+    private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
     private String _jobName;
     private URI _storageSystemUri;

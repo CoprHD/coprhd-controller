@@ -8,6 +8,8 @@
         <entry key="Discovery-block-all" value="discovery-block-context.xml" />
         <entry key="Discovery-block-unmanaged_volumes" value="volumediscovery-block-context.xml" />
         <entry key="Discovery-block-block_snapshots" value="snapshotdiscovery-block-context.xml" />
+        <entry key="ArrayAffinity-block-host" value="arrayaffinitydiscovery-block-host-context.xml" />
+        <entry key="ArrayAffinity-block" value="arrayaffinitydiscovery-block-context.xml" />
         <entry key="Discovery-vplex-unmanaged_volumes" value="discovery-vplex-context.xml" />
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-unmanaged_filesystems" value="discovery-netappc-context.xml" />
@@ -47,10 +49,14 @@
         <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
         <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
 
+        <entry key="ArrayAffinity-unity-host" value="discovery-vnxunity-context.xml" />
+        <entry key="ArrayAffinity-unity" value="discovery-vnxunity-context.xml" />
  
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
+        <entry key="ArrayAffinity-xtremio-host" value="discovery-xtremio-context.xml" />
+        <entry key="ArrayAffinity-xtremio" value="discovery-xtremio-context.xml" />
 
         <entry key="Scanner-ceph" value="discovery-ceph-context.xml" />
         <entry key="Discovery-ceph-all" value="discovery-ceph-context.xml" />
@@ -60,6 +66,7 @@
 
         <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
         <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
+        <entry key="Scanner-externaldevice" value="discovery-externaldevice-context.xml" />
         <entry key="Discovery-externaldevice-unmanaged_volumes" value="discovery-externaldevice-context.xml" />
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
@@ -84,6 +91,7 @@
         <!-- how often the job should be scheduled automatically -->
         <entry key="metering-interval" value="3600" />
         <entry key="discovery-interval" value="3600" />
+        <entry key="arrayaffinity-discovery-interval" value="3600" />
         <entry key="compute-discovery-interval" value="3600" />
         <entry key="ns-discovery-interval" value="3600" />
         <entry key="cs-discovery-interval" value="86400" />
@@ -95,6 +103,7 @@
         <entry key="metering-refresh-interval" value="720" />
          <!--Increased the refresh interval from 60sec to 10min to avoid frequent refreshes -->
         <entry key="discovery-refresh-interval" value="600" />
+        <entry key="arrayaffinity-discovery-refresh-interval" value="600" />
         <entry key="ns-discovery-refresh-interval" value="60" />
         <entry key="compute-discovery-refresh-interval" value="60" />
         <entry key="cs-discovery-refresh-interval" value="60" />
@@ -131,6 +140,7 @@
         
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
+        <entry key="enable-arrayaffinity-discovery" value="false" />
         <entry key="enable-autoscan" value="false" />
 
         <entry key="capacity-compute-delay" value="5"/>

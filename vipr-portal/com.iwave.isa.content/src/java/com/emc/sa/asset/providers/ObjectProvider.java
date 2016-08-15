@@ -109,17 +109,17 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("objectVirtualPool")
-    @AssetDependencies({ "virtualArray" })
+    @AssetDependencies({ "objectVirtualArray" })
     public List<AssetOption> getObjectVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting getObjectVirtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
-        List<ObjectVirtualPoolRestRep> virtualPools = api(ctx).objectVpools().getByVirtualArray(virtualArray);
+        List<ObjectVirtualPoolRestRep> virtualPools = api(ctx).objectVpools().getByVirtualArrayAndTenant(virtualArray, ctx.getTenant());
         return BlockProvider.createVirtualPoolResourceOptions(virtualPools);
     }
 
     @Asset("objectVirtualPool")
     public List<AssetOption> getObjectVirtualPools(AssetOptionsContext ctx) {
         debug("getting objectVirtualPools");
-        return createBaseResourceOptions(api(ctx).objectVpools().getAll());
+        return createBaseResourceOptions(api(ctx).objectVpools().getByTenant(ctx.getTenant()));
     }
     
     @Asset("objectACLPermission")

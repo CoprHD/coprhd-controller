@@ -303,6 +303,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             _log.info("createSingleVolumeSnapshot operation START");
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
+
+            validator.createSnapshot(storage, snapshotObj, volume).validate();
+
             // Need to terminate an restore sessions, so that we can
             // restore from the same snapshot multiple times
             terminateAnyRestoreSessionsForVolume(storage, volume, taskCompleter);
@@ -507,8 +510,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             if (targetGroupPath != null) {
                 CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
                 if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
-                    deleteTarget = false;
-
                     // remove targets from parking SLO group
                     if (storage.checkIfVmax3()) {
                         Iterator<BlockSnapshot> iter = snapshotList.iterator();
@@ -517,10 +518,27 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
                             _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
                         }
-                    }
 
-                    CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
-                    _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                        // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
+                        // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
+                        CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(groupSynchronized);
+                        CIMArgument[] outArgsDetach = new CIMArgument[5];
+                        CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                        _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                                inArgsDetach, outArgsDetach, null);
+                    } else {
+                        /*
+                         * The VMAX2 MRS(ReturnToResourcePool) call internally does 3 operations:
+                         * 1) Detach GroupSynchronized
+                         * 2) Delete target storage group
+                         * 3) Delete target devices
+                         *
+                         * So, if the call succeeds we no longer need to perform delete target steps (set flag to false).
+                         */
+                        CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
+                        _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                        deleteTarget = false;
+                    }
                 } else {
                     _log.info("GroupSynchronized {} not found", groupSynchronized.toString());
                 }

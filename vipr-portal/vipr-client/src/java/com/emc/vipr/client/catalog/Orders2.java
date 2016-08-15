@@ -200,5 +200,5 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     public void deactivate(URI id) {
         doDeactivate(id);
     }
-
+    
 }

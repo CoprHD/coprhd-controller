@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -29,13 +31,17 @@ import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio.XtremIOMetricsCollector;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOArrayAffinityDiscoverer;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
@@ -57,6 +63,8 @@ public class XtremIOCommunicationInterface extends
 
     private XtremIOClientFactory xtremioRestClientFactory = null;
     private XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
+    private XtremIOArrayAffinityDiscoverer arrayAffinityDiscoverer;
+    private XtremIOMetricsCollector metricsCollector;
 
     public void setXtremioRestClientFactory(
             XtremIOClientFactory xtremioRestClientFactory) {
@@ -67,12 +75,26 @@ public class XtremIOCommunicationInterface extends
         this.unManagedVolumeDiscoverer = unManagedVolumeDiscoverer;
     }
 
+    public void setArrayAffinityDiscoverer(XtremIOArrayAffinityDiscoverer arrayAffinityDiscoverer) {
+        this.arrayAffinityDiscoverer = arrayAffinityDiscoverer;
+    }
+
+    public void setMetricsCollector(XtremIOMetricsCollector metricsCollector) {
+        this.metricsCollector = metricsCollector;
+    }
+
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        _logger.info("Start collecting statistics for ip address {}", accessProfile.getIpAddress());
-        _logger.info("Collect statistics for XtremIO not supported.");
-        _logger.info("End collecting statistics for ip address {}", accessProfile.getIpAddress());
+        _logger.info("Start collecting statistics for IP address {}", accessProfile.getIpAddress());
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+            metricsCollector.collectMetrics(storageSystem, _dbClient);
+        } catch (Exception ex) {
+            _logger.error("Error collecting statistics", ex);
+            throw XtremIOApiException.exceptions.meteringFailed(accessProfile.getIpAddress(), ex.getMessage());
+        }
+        _logger.info("End collecting statistics for IP address {}", accessProfile.getIpAddress());
     }
 
     @Override
@@ -135,10 +157,10 @@ public class XtremIOCommunicationInterface extends
             discoverUnManagedVolumes(accessProfile);
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
-            xtremioRestClientFactory.setModel(XtremIOProvUtils.getXtremIOVersion(_dbClient, storageSystem));
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+                    accessProfile.getUserName(), accessProfile.getPassword(), XtremIOProvUtils.getXtremIOVersion(_dbClient, storageSystem),
+                    true);
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
             discoverXtremIOSystem(xtremIOClient, storageSystem);
         }
@@ -263,6 +285,7 @@ public class XtremIOCommunicationInterface extends
             xioSystemPool.setPoolServiceType(PoolServiceType.block.name());
             xioSystemPool.setFreeCapacity(system.getTotalCapacity() - system.getUsedCapacity());
             xioSystemPool.setTotalCapacity(system.getTotalCapacity());
+            xioSystemPool.setSubscribedCapacity(system.getSubscribedCapacity());
             if ((xioSystemPool.getStorageDevice() == null) || !xioSystemPool.getStorageDevice().equals(systemInDB.getId())) {
                 xioSystemPool.setStorageDevice(systemInDB.getId());
             }
@@ -426,5 +449,67 @@ public class XtremIOCommunicationInterface extends
         } else {
             return OperationalStatus.NOT_OK;
         }
+    }
+
+    @Override
+    public void discoverArrayAffinity(AccessProfile accessProfile) throws BaseCollectionException {
+        _logger.info("XtremIO Array Affinity discovery started for : {}", accessProfile.toString());
+        boolean errorOccurred = false;
+        StringBuilder errorStrBldr = new StringBuilder();
+        try {
+            XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
+                    URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
+                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+            
+            List<XtremIOSystem> xioSystems = xtremIOClient.getXtremIOSystemInfo();
+            _logger.info("Found {} clusters for XMS {}", xioSystems.size(), accessProfile.getIpAddress());
+            for (XtremIOSystem xioSystem : xioSystems) {
+                try {
+                    String sysNativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.xtremio.name(),
+                            xioSystem.getSerialNumber());
+                    // check if system registered in ViPR
+                    List<StorageSystem> systems = CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, sysNativeGuid);
+                    if (systems.isEmpty()) {
+                        _logger.info("No Storage System found in database for {}, hence skipping..", sysNativeGuid);
+                        continue;
+                    }
+                    StorageSystem system = systems.get(0);
+
+                    // Host based array affinity discovery
+                    if (accessProfile.getProps() != null && accessProfile.getProps().get(Constants.HOST_IDS) != null) {
+                        String hostIdsStr = accessProfile.getProps().get(Constants.HOST_IDS);
+                        _logger.info("Array Affinity Discovery started for Hosts {}, for XtremIO system {}",
+                                hostIdsStr, system.getNativeGuid());
+                        String[] hostIds = hostIdsStr.split(Constants.ID_DELIMITER);
+                        for (String hostId : hostIds) {
+                            _logger.info("Processing Host {}", hostId);
+                            Host host = _dbClient.queryObject(Host.class, URI.create(hostId));
+                            if (host != null && !host.getInactive()) {
+                                arrayAffinityDiscoverer.findAndUpdatePreferredPoolsForHost(system, host, _dbClient);
+                            }
+                        }
+                    } else {    // Storage system based array affinity discovery
+                        _logger.info("Array Affinity Discovery started for XtremIO system {}", system.getNativeGuid());
+                        arrayAffinityDiscoverer.findAndUpdatePreferredPools(system, _dbClient, _partitionManager);
+                    }
+                } catch (Exception ex) {
+                    String errMsg = String.format("Error discovering Array Affinity for XtremIO system %s. Reason: %s",
+                            xioSystem.getSerialNumber(), ex.getMessage());
+                    _logger.error(errMsg, ex);
+                    errorOccurred = true;
+                    errorStrBldr.append(errMsg);
+                }
+            }
+        } catch (Exception e) {
+            _logger.error("Error discovering Array Affinity for XtremIO Provider {}", accessProfile.getIpAddress(), e);
+            throw XtremIOApiException.exceptions.discoveryFailed(accessProfile.getIpAddress());
+        } finally {
+            if (errorOccurred) {
+                _logger.error("Array Affinity discovery for XtremIO Provider {} failed. {}",
+                        accessProfile.getIpAddress(), errorStrBldr.toString());
+                throw XtremIOApiException.exceptions.discoveryFailed(accessProfile.getIpAddress());
+            }
+        }
+        _logger.info("XtremIO Array Affinity discovery ended");
     }
 }

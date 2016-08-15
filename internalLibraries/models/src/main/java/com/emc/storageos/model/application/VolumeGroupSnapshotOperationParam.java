@@ -17,6 +17,10 @@ public class VolumeGroupSnapshotOperationParam {
     // By default, consider snapshot operation for all array replication groups in Application */
     private Boolean partial = Boolean.FALSE;
     private List<URI> snapshots;
+    // alternative to passing a list of full copy volumes
+    private String copySetName;
+    // alternative to passing partial flag and list of full copy volumes
+    private List<String> subGroups;
 
     public VolumeGroupSnapshotOperationParam() {
     }
@@ -41,7 +45,7 @@ public class VolumeGroupSnapshotOperationParam {
         this.partial = partial;
     }
 
-    @XmlElementWrapper(required = true, name = "snapshots")
+    @XmlElementWrapper(name = "snapshots")
     /**
      * List of snapshot IDs.
      *
@@ -62,5 +66,36 @@ public class VolumeGroupSnapshotOperationParam {
 
     public void setSnapshots(List<URI> snapshots) {
         this.snapshots = snapshots;
+    }
+
+    /**
+     * @return the copySetName
+     */
+    @XmlElement(name = "copy_set_name", required = false)
+    public String getCopySetName() {
+        return copySetName;
+    }
+
+    /**
+     * @param copySetName the copySetName to set
+     */
+    public void setCopySetName(String copySetName) {
+        this.copySetName = copySetName;
+    }
+
+    /**
+     * @return the subGroups
+     */
+    @XmlElementWrapper(required = true, name = "subgroups")
+    @XmlElement(required = false, name = "subgroup")
+    public List<String> getSubGroups() {
+        return subGroups;
+    }
+
+    /**
+     * @param subGroups the subGroups to set
+     */
+    public void setSubGroups(List<String> subGroups) {
+        this.subGroups = subGroups;
     }
 }

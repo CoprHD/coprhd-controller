@@ -37,6 +37,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -598,7 +599,8 @@ public class DbServiceImpl implements DbService {
 
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
-            if (mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+            int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
+            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
                 checkDBOfflineInfo();
             }
 
@@ -671,6 +673,8 @@ public class DbServiceImpl implements DbService {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
             if (isGeoDbsvc()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
+            } else {
+                _schemaUtil.checkAndInitStorageSystemTypes(_dbClient);
             }
 
             startBackgroundTasks();

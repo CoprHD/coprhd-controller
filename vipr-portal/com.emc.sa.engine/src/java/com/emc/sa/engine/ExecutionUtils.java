@@ -14,13 +14,13 @@ import java.util.MissingResourceException;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.inject.Injector;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.util.Messages;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.util.Messages;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -73,9 +73,9 @@ public class ExecutionUtils {
 
     protected static <T> T execute(ExecutionTask<T> task, ExecutionContext context) throws ExecutionException {
         ExecutionTaskLog log = context.logCurrentTask(task);
-
         long startTime = System.currentTimeMillis();
         try {
+
             injectValues(task, context);
             T result = task.executeTask();
             long elapsedTime = System.currentTimeMillis() - startTime;

@@ -71,6 +71,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
+        <property name="customConfigHandler" ref="customConfigHandler"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 
@@ -110,7 +111,7 @@
         <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
     
-     <bean id="fileMirrorSchedular" class="com.emc.storageos.api.service.impl.placement.FileMirrorSchedular">
+     <bean id="fileMirrorScheduler" class="com.emc.storageos.api.service.impl.placement.FileMirrorScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="storageScheduler" ref="storagescheduler" />
         <property name="fileScheduler" ref="filescheduler"/>
@@ -152,6 +153,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
+    <bean id="eventService" class="com.emc.storageos.api.service.impl.resource.EventService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
     <bean id="vcenterService" class="com.emc.storageos.api.service.impl.resource.VcenterService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -181,14 +187,14 @@
     <bean id="fileMirrorServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.FileMirrorServiceApiImpl">
         <property name="dbClient" ref="dbclient" />
         <property name="coordinator" ref="coordinator" />
-        <property name="fileScheduler" ref="fileMirrorSchedular" />
+        <property name="fileScheduler" ref="fileMirrorScheduler" />
         <property name ="defaultFileServiceApiImpl" ref="defaultFileServiceApiImpl"/>
     </bean>
     
     <bean id="fileRemoteMirrorServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.FileRemoteMirrorServiceApiImpl">
         <property name="dbClient" ref="dbclient" />
         <property name="coordinator" ref="coordinator" />
-        <property name="fileScheduler" ref="fileMirrorSchedular" />
+        <property name="fileScheduler" ref="fileMirrorScheduler" />
         <property name ="fileMirrorServiceApiImpl" ref="fileMirrorServiceApiImpl"/>
     </bean>
     
@@ -196,7 +202,7 @@
         <property name="storageSchedulers">
             <map>
                 <entry key="file" value-ref="filescheduler"/>
-                <entry key="mirrorfile" value-ref="fileMirrorSchedular"/>
+                <entry key="mirrorfile" value-ref="fileMirrorScheduler"/>
             </map>
         </property>
         <property name="dbClient" ref="dbclient"/>
@@ -440,6 +446,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
+    <bean id="storageSystemTypeService" class="com.emc.storageos.api.service.impl.resource.StorageSystemTypeService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
     <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -486,6 +497,7 @@
                 <ref bean="tenantService"/>
                 <ref bean="tenantsService"/>
                 <ref bean="hostService"/>
+                <ref bean="eventService"/>
                 <ref bean="computeSystemService"/>
                 <ref bean="computeVirtualPoolService"/>
                 <ref bean="computeElementService"/>
@@ -497,6 +509,7 @@
                 <ref bean="ipInterfaceService"/>
                 <ref bean="customConfigService"/>
                 <ref bean="volumeGroupService"/>
+                <ref bean="storageSystemTypeService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -721,7 +734,6 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="keystoneUtils" ref="keystoneUtils"/>
                     <property name="tenantsService" ref="tenantsService"/>
-                    <property name="ovfProperties" ref="ovfProperties"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>

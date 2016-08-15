@@ -285,9 +285,12 @@ public abstract class AbstractSecuredWebServer {
         if (_app != null) {
             ResourceConfig config = new DefaultResourceConfig();
             config.add(_app);
+ 
             Map<String, MediaType> type = config.getMediaTypeMappings();
             type.put("json", MediaType.APPLICATION_JSON_TYPE);
             type.put("xml", MediaType.APPLICATION_XML_TYPE);
+            type.put("octet-stream", MediaType.APPLICATION_OCTET_STREAM_TYPE);
+            type.put("form-data", MediaType.MULTIPART_FORM_DATA_TYPE);
             servletHandler.addServlet(new ServletHolder(new ServletContainer(config)), "/*");
             // AuthZ resource filters
             Map<String, Object> props = new HashMap<String, Object>();

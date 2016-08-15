@@ -14,9 +14,6 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +23,13 @@ import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -488,6 +490,33 @@ public class RecoveryManager implements Runnable {
         if (state == ClusterInfo.ClusterState.STABLE) {
             log.warn("Cluster is stable and no need to do node recovery");
             throw new IllegalStateException("Cluster is stable and no need to do node recovery");
+        }
+
+        // Disable node recovery when standby site state is unexpected as db repair would be failed in these scenarios.
+        DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        if (drUtil.isMultisite()) {
+            List<Site> allStandbySites = drUtil.listStandbySites();
+            for (Site site : allStandbySites) {
+                if (!site.getState().equals(SiteState.STANDBY_SYNCED)
+                        && !site.getState().equals(SiteState.STANDBY_PAUSED)
+                        && !site.getState().equals(SiteState.STANDBY_DEGRADED)) {
+                    log.error("Node recovery is not allowed as standby site({}) status is unexpected({})",
+                            site.getName(), site.getState());
+                    throw new IllegalStateException("Node recovery is not allowed as standby site status is unexpected");
+                }
+            }
+        }
+
+        // Disable node recovery when other connected vdc cluster state is DEGRADED as geo db repair would be failed then.
+        if (drUtil.isMultivdc()) {
+            List<String> allOtherVdcs = drUtil.getOtherVdcIds();
+            for (String vdc : allOtherVdcs) {
+                state = coordinator.getCoordinatorClient().getControlNodesState(vdc);
+                if (state == ClusterInfo.ClusterState.DEGRADED) {
+                    log.error("Node recovery is not allowed as a connected vdc({}) status is degraded", vdc);
+                    throw new IllegalStateException("Node recovery is not allowed as a connected vdc status is degraded");
+                }
+            }
         }
     }
 

@@ -58,11 +58,11 @@ suseConfig
 bash /opt/ADG/conf/configure.sh installRepositories
 bash /opt/ADG/conf/configure.sh installPackages
 bash /opt/ADG/conf/configure.sh installJava
-bash /opt/ADG/conf/configure.sh installNginx
 bash /opt/ADG/conf/configure.sh installStorageOS
 bash /opt/ADG/conf/configure.sh installNetwork
 bash /opt/ADG/conf/configure.sh installXorg
 bash /opt/ADG/conf/configure.sh disableStorageOS
+systemctl enable docker
 
 #======================================
 # CoprHD setup

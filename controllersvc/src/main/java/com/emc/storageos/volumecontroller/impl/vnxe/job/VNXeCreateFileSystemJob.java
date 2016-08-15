@@ -61,7 +61,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
 
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, _storagePool);
+                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, _storagePool, null);
             }
             URI fsId = getTaskCompleter().getId();
             FileShare fsObj = dbClient.queryObject(FileShare.class, fsId);

@@ -19,13 +19,13 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
@@ -271,10 +272,19 @@ public class VPlexScheduler implements Scheduler {
         // have enough capacity to hold at least one resource of the
         // requested size.
         _log.info("Getting placement recommendations for srcVarray {}", srcVarray.getId());
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPools = getMatchingPools(srcVarray, null, excludeStorageSystem,
-                mirrorVpool, capabilities);
+                mirrorVpool, capabilities, attributeMap);
 
         _log.info("Found {} Matching pools for VirtualArray for the Mirror", allMatchingPools.size());
+
+        if (CollectionUtils.isEmpty(allMatchingPools)) {
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(srcVarray.getLabel(), srcVpool.getLabel(), errorMessage.toString());
+        }
 
         // Due to VirtualPool attribute matching, we should only get storage
         // pools on storage systems that are connected to a VPlex
@@ -547,11 +557,17 @@ public class VPlexScheduler implements Scheduler {
         // Don't look for SRDF in the HA side.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
         // We don't require that the HA side have the same storage controller.
-        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);;
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
-                haVarray, haStorageSystem, haVpool, haCapabilities);
+                haVarray, haStorageSystem, haVpool, haCapabilities, attributeMap);
         if (allMatchingPoolsForHaVarray.isEmpty()) {
-            throw BadRequestException.badRequests.noMatchingHighAvailabilityStoragePools(haVpool.getLabel(), haVarray.getLabel());
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw BadRequestException.badRequests.noMatchingHighAvailabilityStoragePools(haVpool.getLabel(), haVarray.getLabel(),
+                    errorMessage.toString());
         }
         _log.info("Found {} matching pools for HA varray", allMatchingPoolsForHaVarray.size());
 
@@ -816,8 +832,9 @@ public class VPlexScheduler implements Scheduler {
                 // resource of the requested size.
                 VirtualArray vplexHaNH = _dbClient.queryObject(VirtualArray.class,
                         URI.create(vplexHaNHId));
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
                 List<StoragePool> allMatchingPools = getMatchingPools(vplexHaNH, null, cos,
-                        capabilities);
+                        capabilities, attributeMap);
                 _log.info("Found {} matching pools for HA varray", allMatchingPools.size());
 
                 // Now from the list of candidate pools, we only want pools
@@ -857,14 +874,14 @@ public class VPlexScheduler implements Scheduler {
      * @param virtualArray The desired varray.
      * @param storageSystemURI The desired storage system, or null.
      * @param virtualPool The required CoS.
-     * 
+     * @param attributeMap
      * @return A list of storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray virtualArray,
             URI storageSystemURI, VirtualPool virtualPool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
         return getMatchingPools(virtualArray, storageSystemURI, null, virtualPool,
-                capabilities);
+                capabilities, attributeMap);
     }
 
     /**
@@ -878,14 +895,14 @@ public class VPlexScheduler implements Scheduler {
      * @param excludeStorageSystemURI The storage system that should be excluded or null.
      * @param vpool The required virtual pool.
      * @param capabilities The virtual pool capabilities.
-     * 
+     * @param attributeMap
      * @return A list of storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray,
             URI storageSystemURI, URI excludeStorageSystemURI, VirtualPool vpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
 
-        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities);
+        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
         Iterator<StoragePool> storagePoolIter = storagePools.iterator();
         while (storagePoolIter.hasNext()) {
             StoragePool storagePool = storagePoolIter.next();

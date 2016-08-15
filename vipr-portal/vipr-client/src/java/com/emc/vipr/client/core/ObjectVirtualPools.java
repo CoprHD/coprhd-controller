@@ -105,6 +105,31 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
         return ResourceUtils.defaultList(response.getVirtualPool());
     }
 
+
+    /**
+     * Lists all virtual pools of specific tenant
+     * <p>
+     * API Call: <tt>GET /object/vpools</tt>
+     *
+     * @return the list of virtual pool references of specific tenant
+     */
+    public List<NamedRelatedVirtualPoolRep> listByTenant(URI tenantId) {
+        UriBuilder builder = client.uriBuilder(baseUrl);
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
+        return ResourceUtils.defaultList(response.getVirtualPool());
+    }
+
+    public List<ObjectVirtualPoolRestRep> getByTenant(URI tenantId) {
+        return getByTenant(tenantId, null);
+    }
+
+    public List<ObjectVirtualPoolRestRep> getByTenant(URI tenantId, ResourceFilter<ObjectVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByTenant(tenantId);
+        return getByRefs(refs, filter);
+    }
+
+
     /**
      * Gets a list of all object virtual pools.
      * <p>
@@ -189,6 +214,13 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
         return defaultList(response.getVirtualPool());
     }
 
+    public List<NamedRelatedVirtualPoolRep> listByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        UriBuilder builder = client.uriBuilder(String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools");
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build(varrayId));
+        return defaultList(response.getVirtualPool());
+    }
+
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
@@ -221,6 +253,27 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     public List<ObjectVirtualPoolRestRep> getByVirtualArray(URI varrayId, ResourceFilter<ObjectVirtualPoolRestRep> filter) {
         List<NamedRelatedVirtualPoolRep> refs = listByVirtualArray(varrayId);
         return getByRefs(objectVpools(refs), filter);
+    }
+
+    public List<ObjectVirtualPoolRestRep> getByVirtualArray(URI varrayId, URI tenantId, ResourceFilter<ObjectVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
+        return getByRefs(objectVpools(refs), filter);
+    }
+
+    /**
+     * Gets the storage pools that are associated with the given block virtual pool and tenant.
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @param tenantId
+     *            the ID of tenant
+     * @return the list of virtual pools.
+     *
+     * @see #listByVirtualArray(URI)
+     * @see #getByRefs(java.util.Collection)
+     */
+    public List<ObjectVirtualPoolRestRep> getByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        return getByVirtualArray(varrayId, tenantId, null);
     }
 
     @Override

@@ -15,6 +15,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -26,13 +27,15 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
-import com.emc.storageos.vplex.api.VPlexApiException;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
+
+    public static final String DIRECTOR_MIN_PORT_COUNT_SETTING = "controller_vplex_director_min_port_count";
 
     public static List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI,
@@ -108,9 +111,11 @@ public class VPlexBackEndOrchestratorUtil {
     public static boolean validateExportMask(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            DbClient dbClient, Map<String, String> portWwnToClusterMap) {
+            DbClient dbClient, CoordinatorClient coordinator, Map<String, String> portWwnToClusterMap) {
 
         boolean passed = true;
+        Integer directorMinPortCount = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                coordinator, DIRECTOR_MIN_PORT_COUNT_SETTING));
 
         // Rule 1. An Export Mask must have at least two initiators from each director.
         // This is a warning if the ExportMask is non-ViPR.
@@ -127,7 +132,7 @@ public class VPlexBackEndOrchestratorUtil {
                     portsInDirector++;
                 }
             }
-            if (portsInDirector < 2) {
+            if (portsInDirector < directorMinPortCount) {
                 if (mask.getCreatedBySystem()) {    // ViPR created
                     _log.info(String.format(
                             "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two)",

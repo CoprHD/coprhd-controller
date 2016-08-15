@@ -25,6 +25,7 @@
 
     <bean id="keystoneUtils" class="com.emc.storageos.keystone.restapi.utils.KeystoneUtils">
         <property name="keystoneFactory" ref="keystoneFactory"/>
+        <property name="ovfProperties" ref="ovfProperties"/>
     </bean>
 
 </beans>

@@ -121,9 +121,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
             _log.info("Adding file remote replicaition copies to DB ");
             _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
-
+        StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator, errorMessage);
 
         if (null != cos.getMatchedStoragePools() || null != cos.getInvalidMatchedPools()) {
             ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedFileSystems(cos,
@@ -144,9 +144,11 @@ public class FileVirtualPoolService extends VirtualPoolService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualPoolList listFileVirtualPool(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualPoolList listFileVirtualPool(
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId,
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
-        return getVirtualPoolList(VirtualPool.Type.file, shortVdcId);
+        return getVirtualPoolList(VirtualPool.Type.file, shortVdcId, tenantId);
     }
 
     /**
@@ -205,14 +207,14 @@ public class FileVirtualPoolService extends VirtualPoolService {
         VirtualPool vpool = prepareVirtualPool(param, fileReplRemoteSettingsMap, false);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
-
+        StringBuffer errorMessage = new StringBuffer();
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool,
                 allPools,
                 null,
                 null,
                 fileReplRemoteSettingsMap,
                 _dbClient,
-                _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+                _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -352,9 +354,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
         if (null != param.getLongTermRetention()) {
             cos.setLongTermRetention(param.getLongTermRetention());
         }
-
+        StringBuffer errorMessage = new StringBuffer();
         // invokes implicit pool matching algorithm.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator, errorMessage);
         // adding supported coses to unmanaged volumes
 
         if (null != cos.getMatchedStoragePools() || null != cos.getInvalidMatchedPools()) {

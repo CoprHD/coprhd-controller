@@ -275,7 +275,7 @@ public class DellSCDiscovery {
             Map<ScReplayProfile, List<String>> cgInfo = util.getGCInfo(api, storageSystem.getNativeId());
             ScVolume[] volumes = api.getAllVolumes(storageSystem.getNativeId());
             for (ScVolume volume : volumes) {
-                if (volume.inRecycleBin) {
+                if (volume.inRecycleBin || volume.liveVolume || volume.cmmDestination || volume.replicationDestination) {
                     continue;
                 }
                 StorageVolume driverVol = util.getStorageVolumeFromScVolume(api, volume, cgInfo);

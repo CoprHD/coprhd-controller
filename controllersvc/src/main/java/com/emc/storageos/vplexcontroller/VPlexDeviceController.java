@@ -3009,10 +3009,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // assemble a list of other ExportGroups that reference this ExportMask
                     List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
 
-                    boolean existingVolumes = exportMask.getExistingVolumes() != null &&
-                            !exportMask.getExistingVolumes().isEmpty();
-                    boolean existingInitiators = exportMask.getExistingInitiators() != null &&
-                            !exportMask.getExistingInitiators().isEmpty();
+                    boolean existingVolumes = exportMask.hasAnyExistingVolumes();
+                    boolean existingInitiators = exportMask.hasAnyExistingInitiators();
 
                     boolean removeVolumes = false;
                     boolean removeInitiators = false;
@@ -3202,12 +3200,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             _networkDeviceController);
                 }
 
-                boolean existingVolumes = exportMask.getExistingVolumes() != null &&
-                        !exportMask.getExistingVolumes().isEmpty();
-                boolean existingInitiators = exportMask.getExistingInitiators() != null &&
-                        !exportMask.getExistingInitiators().isEmpty();
-
-                if (existingVolumes || existingInitiators) {
+                if (exportMask.hasAnyExistingVolumes() || exportMask.hasAnyExistingInitiators()) {
                     _log.warn("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
                 }
@@ -3583,10 +3576,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Fetch exportMask again as exportMask zoning Map might have changed in zoneExportRemoveVolumes
                 exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
 
-                boolean existingVolumes = exportMask.getExistingVolumes() != null &&
-                        !exportMask.getExistingVolumes().isEmpty();
-                boolean existingInitiators = exportMask.getExistingInitiators() != null &&
-                        !exportMask.getExistingInitiators().isEmpty();
+                boolean existingVolumes = exportMask.hasAnyExistingVolumes();
+                boolean existingInitiators = exportMask.hasAnyExistingInitiators();
 
                 String storageViewStepId = null;
                 if (!remainingVolumesInMask.isEmpty()) {
@@ -4492,18 +4483,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
-            boolean existingInitiators = exportMask.getExistingInitiators() != null &&
-                    !exportMask.getExistingInitiators().isEmpty();
-
-            boolean existingVolumes = exportMask.getExistingVolumes() != null &&
-                    !exportMask.getExistingVolumes().isEmpty();
-
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
             // removing storage ports from the storage view as we don't know which ports
             // might be existing ports. If storage ports are removed then we could end up
             // removing all storage ports but leaving the existing initiators and volumes.
-            if (!existingInitiators && !existingVolumes) {
+            if (!exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes()) {
                 if (targetURIs != null && targetURIs.isEmpty() == false) {
                     List<PortInfo> targetPortInfos = new ArrayList<PortInfo>();
                     List<URI> targetsToRemoveFromStorageView = new ArrayList<URI>();
@@ -4730,13 +4715,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         boolean doFireCompleter = true;
         boolean otherExportGroupsPresent = !otherExportGroups.isEmpty();
-        boolean existingVolumes = exportMask.getExistingVolumes() != null
-                && !exportMask.getExistingVolumes().isEmpty();
-        boolean existingInitiators = exportMask.getExistingInitiators() != null
-                && !exportMask.getExistingInitiators().isEmpty();
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
-        if (removeAllInits && !existingInitiators && !otherExportGroupsPresent && !existingVolumes) {
+        if (removeAllInits && !exportMask.hasAnyExistingInitiators() && !otherExportGroupsPresent && !exportMask.hasAnyExistingVolumes()) {
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -5141,18 +5122,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
-            boolean existingInitiators = exportMask.getExistingInitiators() != null &&
-                    !exportMask.getExistingInitiators().isEmpty();
-
-            boolean existingVolumes = exportMask.getExistingVolumes() != null &&
-                    !exportMask.getExistingVolumes().isEmpty();
-
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
             // removing storageports from the storage view as we don't know which ports
             // might be existing ports. If storage ports are removed then we could end up
             // removing all storage ports but leaving the existing initiators and volumes.
-            if (!existingInitiators && !existingVolumes) {
+            if (!exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes()) {
                 if (targetURIs != null && targetURIs.isEmpty() == false) {
                     List<PortInfo> targetPortInfos = new ArrayList<PortInfo>();
                     List<URI> targetsAddedToStorageView = new ArrayList<URI>();
@@ -5196,7 +5171,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorPortInfo.add(portInfo);
             }
 
-            if (!initiatorPortInfo.isEmpty() && !existingVolumes) {
+            if (!initiatorPortInfo.isEmpty() && !exportMask.hasAnyExistingVolumes()) {
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {

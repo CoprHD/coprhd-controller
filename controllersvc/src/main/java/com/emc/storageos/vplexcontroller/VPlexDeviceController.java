@@ -152,6 +152,7 @@ import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
@@ -5894,6 +5895,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void validateVPlexVolume(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
         Volume vplexVolume = null;
         try {
+            // Skip this if validation disabled
+            ValidatorConfig validatorConfig = new ValidatorConfig();
+            validatorConfig.setCoordinator(coordinator);
+            if (!validatorConfig.validationEnabled()) {
+                WorkflowStepCompleter.stepSucceeded(stepId, "Validations not enabled");
+                return;
+            }
+            
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
 

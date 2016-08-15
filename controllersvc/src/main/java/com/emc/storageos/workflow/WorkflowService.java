@@ -2490,7 +2490,7 @@ public class WorkflowService implements WorkflowController {
         // Check to see if we are re-entering this step after a previous execution already created the export workflow.
         // If this is the case, do not create it again.
         try {
-            String stepData = (String) WorkflowService.getInstance().loadStepData(generateWorkflowCreatedKey(stepId, workflowKey));
+            String stepData = (String) WorkflowService.getInstance().loadStepData(stepId, workflowKey);
             if (stepData != null && stepData.equalsIgnoreCase(Boolean.TRUE.toString())) {
                 _log.info("Idempotency check: we already created this workflow and therefore will not create it again.");
                 return true;
@@ -2512,20 +2512,7 @@ public class WorkflowService implements WorkflowController {
      */
     public void markWorkflowBeenCreated(String stepId, String workflowKey) {
         // Mark this workflow as created/executed so we don't do it again on retry/resume
-        WorkflowService.getInstance().storeStepData(generateWorkflowCreatedKey(stepId, workflowKey), Boolean.TRUE.toString());
-    }
-
-    /**
-     * Generate a unique key for a workflow created by a workflow step.
-     * 
-     * @param stepId
-     *            step ID
-     * @param workflowKey
-     *            identifies this workflow from other workflows that this step may create
-     * @return a unique key
-     */
-    private String generateWorkflowCreatedKey(String stepId, String workflowKey) {
-        return stepId + ":" + workflowKey;
+        WorkflowService.getInstance().storeStepData(stepId, workflowKey, Boolean.TRUE.toString());
     }
 
     /**

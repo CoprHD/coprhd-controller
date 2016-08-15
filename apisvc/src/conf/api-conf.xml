@@ -388,7 +388,7 @@
          <property name="coordinator" ref="coordinator"/>
          <property name="blockScheduler" ref="vplexscheduler"/>
          <property name="tenantsService" ref="tenantsService" />
-         <property name="maxCgVolumesForMigration" value="25"/>
+         <property name="maxCgVolumesForMigration" value="100"/>
     </bean>
 
     <bean id="defaultExportGroupServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultExportGroupServiceApiImpl">

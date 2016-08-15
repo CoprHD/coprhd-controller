@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -455,21 +456,27 @@ public class EventService extends TaggedResource {
     private List<String> getVolumes(StringMap volumes, boolean gainAccess) {
         List<String> result = Lists.newArrayList();
         for (Entry<String, String> volume : volumes.entrySet()) {
-            String projectName = null;
+            URI project = null;
             String volumeName = null;
             URI blockURI = URI.create(volume.getKey());
             if (URIUtil.isType(blockURI, Volume.class)) {
                 Volume block = _dbClient.queryObject(Volume.class, blockURI);
-                projectName = block.getProject().getName();
+                project = block.getProject().getURI();
                 volumeName = block.getLabel();
             } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
                 BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
-                projectName = block.getProject().getName();
+                project = block.getProject().getURI();
                 volumeName = block.getLabel();
             } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
                 BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
-                projectName = block.getProject().getName();
+                project = block.getProject().getURI();
                 volumeName = block.getLabel();
+            }
+
+            Project projectObj = _dbClient.queryObject(Project.class, project);
+            String projectName = null;
+            if (projectObj != null) {
+                projectName = projectObj.getLabel();
             }
 
             result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: Project "

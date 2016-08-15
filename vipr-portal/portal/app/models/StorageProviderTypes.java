@@ -85,6 +85,19 @@ public class StorageProviderTypes {
         return allproviders;
     }
 
+    public static List<StringOption> getAllFlashProviderOption() {
+        List<StringOption> allproviders = new ArrayList<StringOption>();
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+            if (storagetypeRest.getIsSmiProvider()) {
+                if (StringUtils.equals(SMIS, storagetypeRest.getStorageTypeName()) || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName()) ) {
+                    allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
+                }
+            }
+        }
+        return allproviders;
+    }
+
     public static List<StringOption> getProvidersWithSSL() {
         List<StringOption> allproviders = new ArrayList<StringOption>();
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);

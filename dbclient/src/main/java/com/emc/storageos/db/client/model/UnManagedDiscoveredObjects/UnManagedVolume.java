@@ -64,7 +64,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         REMOTE_MIRRORING("remoteMirror", "remoteMirror"),
         IS_VPLEX_VOLUME("isVplexVolume", "isVplexVolume"),
         IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
-        EXPORTGROUP_TYPE("exportGroupType", "exportGroupType");
+        EXPORTGROUP_TYPE("exportGroupType", "exportGroupType"),
+        IS_COMPRESSION_ENABLED("emcCompression", "emcCompression");
 
         private final String _charactersticsKey;
         private final String _charactersticAlternateKey;

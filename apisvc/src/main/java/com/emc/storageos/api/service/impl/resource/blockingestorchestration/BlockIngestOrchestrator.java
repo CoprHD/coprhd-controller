@@ -183,6 +183,30 @@ public abstract class BlockIngestOrchestrator {
     }
 
     /**
+     * validate compression Attributes
+     *
+     * @param vpool
+     * @param unManagedVolume
+     * @return
+     */
+    protected void checkCompressionAttributes(VirtualPool vPool, UnManagedVolume unManagedVolume, boolean isExportedVolumeIngest) {
+        // Skip validation for unExportedVolumes and VPLEX virtual volumes
+        if (!isExportedVolumeIngest || VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+            return;
+        }
+        Boolean isVolumeCompressionEnabled = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
+                SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString()));
+        if (isVolumeCompressionEnabled && isVolumeCompressionEnabled != vPool.getCompressionEnabled()) {
+            _logger.error(
+                    "Unmanaged Volume {} is not a match for the virtual pool {} Compression.",
+                    unManagedVolume.getLabel(), vPool.getLabel());
+            throw IngestionException.exceptions
+                    .unmanagedExportedVolumeVpoolCompressionMismatch(
+                            unManagedVolume.getLabel(), vPool.getLabel());
+        }
+    }
+
+    /**
      * validate Host IO limits
      *
      * @param vpool

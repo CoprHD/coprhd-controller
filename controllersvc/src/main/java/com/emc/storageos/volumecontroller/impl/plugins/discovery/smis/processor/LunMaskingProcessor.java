@@ -29,6 +29,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.VolHostIOObject;
+import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
@@ -189,6 +190,7 @@ public class LunMaskingProcessor extends StorageProcessor {
             String hostIoBw = String.valueOf(instance.getPropertyValue(SmisConstants.EMC_MAX_BANDWIDTH));
             String hostIoPs = String.valueOf(instance.getPropertyValue(SmisConstants.EMC_MAX_IO));
             String fastSetting = SmisUtils.getSLOPolicyName(instance);
+            boolean emcCompression = SmisUtils.getEMCCompressionForStorageGroup(instance);
 
             _logger.info("Bw {} and Iops {} found for SG : {} ",
                     new Object[] { hostIoBw, hostIoPs, String.valueOf(instance.getPropertyValue(Constants.ELEMENTNAME)) });
@@ -204,6 +206,7 @@ public class LunMaskingProcessor extends StorageProcessor {
                 obj.setVolNativeGuid(volumeNativeGuid);
                 obj.setHostIoBw(hostIoBw);
                 obj.setHostIops(hostIoPs);
+                obj.setCompression(emcCompression);
                 _logger.debug("Volume key: {}..obj : {}", volumeNativeGuid, obj.toString());
                 volToIolimits.put(volumeNativeGuid, obj);
                 if (!Strings.isNullOrEmpty(fastSetting)) {

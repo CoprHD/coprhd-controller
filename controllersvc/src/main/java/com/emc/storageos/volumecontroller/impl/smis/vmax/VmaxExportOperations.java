@@ -87,6 +87,7 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMaskingViewJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisMaskingViewAddVolumeJob;
@@ -4609,9 +4610,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             // we need to opt out..
                             CIMInstance newChildGroupInstance = _helper.getInstance(storage, newChildGroupPath, false,
                                     false, SmisConstants.PS_EMC_COMPRESSION);
-                            String emcCompression = CIMPropertyFactory.getPropertyValue(newChildGroupInstance,
-                                    SmisConstants.CP_EMC_COMPRESSION);
-                            if ((emcCompression != null) && emcCompression.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                            if (SmisUtils.getEMCCompressionForStorageGroup(newChildGroupInstance)) {
                                 CIMInstance toUpdate = new CIMInstance(newChildGroupInstance.getObjectPath(),
                                         _helper.getV3CompressionProperties(false));
                                 _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);

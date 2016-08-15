@@ -71,6 +71,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             checkVolumeExportState(unManagedVolume, unManagedVolumeExported);
             checkVPoolValidForExportInitiatorProtocols(requestContext.getVpool(unManagedVolume), unManagedVolume);
             checkHostIOLimits(requestContext.getVpool(unManagedVolume), unManagedVolume, unManagedVolumeExported);
+            checkCompressionAttributes(requestContext.getVpool(unManagedVolume), unManagedVolume, unManagedVolumeExported);
 
             StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray(unManagedVolume));
 

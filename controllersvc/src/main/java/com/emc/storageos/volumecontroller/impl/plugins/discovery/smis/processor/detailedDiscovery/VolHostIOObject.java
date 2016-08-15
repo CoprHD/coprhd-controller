@@ -11,6 +11,7 @@ public class VolHostIOObject {
     private String hostIoBw;
     private String hostIops;
     private String fastSetting;
+    private boolean compression = false;
 
     public String getVolNativeGuid() {
         return volNativeGuid;
@@ -42,6 +43,14 @@ public class VolHostIOObject {
 
     public void setFastSetting(String fastSetting) {
         this.fastSetting = fastSetting;
+    }
+
+    public boolean getCompression() {
+        return compression;
+    }
+
+    public void setCompression(boolean compression) {
+        this.compression = compression;
     }
 
     public String toString() {

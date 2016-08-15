@@ -96,7 +96,7 @@ public class Approvals extends Controller {
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
 
         if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
-            Result result = new Unauthorized(String.format("Current user has no permission on the target tenant %s", approval.getTenant().getId()));
+            Result result = new Unauthorized( MessagesUtils.get("approval.noTenantAccess", approval.getTenant().getId()) );
             renderTemplate("errors/401.html", result);
         }
 

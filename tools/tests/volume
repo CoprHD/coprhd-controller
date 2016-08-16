@@ -161,7 +161,7 @@ def volume_change_cos(args):
     if (args.consistencyGroup):
         cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
     start = time.time()
-    tr = bourne.volume_change_cos(uri, cos_uri, cg_uri, args.suspend)
+    tr = bourne.volume_change_cos(uris, cos_uri, cg_uri, args.suspend)
     total = time.time() - start
     print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
     if (tr['state'] == 'ready'):

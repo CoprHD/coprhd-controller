@@ -78,6 +78,7 @@ import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -118,6 +119,7 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deleteEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
@@ -134,6 +136,7 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/approve")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskList approveEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
@@ -621,6 +624,7 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/decline")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskList declineEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());

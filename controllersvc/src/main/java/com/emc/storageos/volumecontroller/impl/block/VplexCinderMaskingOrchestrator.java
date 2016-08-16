@@ -561,10 +561,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 remainingVolumes.remove(volume.toString());
             }
 
-            // If it is last volume, delete the ExportMask.
+            // If it is last volume and there are no existing initiators
+            // or existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null
-                            || exportMask.getExistingVolumes().isEmpty())) {
+                    && !exportMask.hasAnyExistingVolumes()
+                    && !exportMask.hasAnyExistingInitiators()) {
                 _log.debug(String.format("Calling doExportDelete on the device %s",
                         array.getId().toString()));
                 device.doExportDelete(array, exportMask, null, null, completer);

@@ -167,8 +167,8 @@ def volume_change_cos(args):
     if (tr['state'] == 'ready'):
         print 'Volume CoS change succeeded'
     elif (tr['state'] != 'suspended_no_error'):
-	print 'Volume CoS change failed.'
-	sys.exit(1);
+        print 'Volume CoS change failed.'
+        sys.exit(1);
     else:
         print 'Volume CoS change failed.'
 

@@ -3782,25 +3782,22 @@ class Bourne:
 
     def volume_change_cos(self, uris, cos_uri, cg_uri, suspend):
         dosuspend='false'
-	if (suspend):
-	    dosuspend=suspend
+        if (suspend):
+            dosuspend=suspend
 
-	
         ids = []
-
         if (type(uris) is list):
             for u in uris:
                 ids.append(u)
         else:
             ids.append(uris)
         
-	params = {}
+        params = {}
         params['volumes'] = ids
         params['vpool'] = cos_uri
         params['consistency_group'] = cg_uri
-	params['migration_suspend_before_commit'] = dosuspend
-	params['migration_suspend_before_delete_source'] = dosuspend
-
+        params['migration_suspend_before_commit'] = dosuspend
+        params['migration_suspend_before_delete_source'] = dosuspend
         
         print "Change Cos Params = ", params
     

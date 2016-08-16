@@ -43,6 +43,14 @@ public class DriverManager /*extends AbstractManager*/ {
     private LocalRepository localRepository;
     protected CoordinatorClientExt coordinator;
 
+    public void setCoordinator(CoordinatorClientExt coordinator) {
+        this.coordinator = coordinator;
+    }
+
+    public void setLocalRepository(final LocalRepository localRepository) {
+        this.localRepository = localRepository;
+    }
+
 //    @Override
 //    protected URI getWakeUpUrl() {
 //        return SysClientFactory.URI_WAKEUP_DRIVER_MANAGER;

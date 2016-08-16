@@ -411,7 +411,8 @@ public class HP3PARExpUnexpHelper {
                             }
                             catch(Exception e){
                             	if(e.getMessage().contains(HP3PARConstants.VLUN_DOES_NOT_EXIST)){
-                            		_log.info("The VLUN does not exist on the array and hence we treat the delete as success");
+                            		_log.info("The VLUN(export info) does not exist on the 3PAR "
+                            				+ "array and hence this unexport will be treated as success");
                             	}
                             	else{
                             		throw e;

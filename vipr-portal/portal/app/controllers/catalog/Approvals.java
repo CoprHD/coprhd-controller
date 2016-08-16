@@ -13,13 +13,17 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import controllers.security.Security;
 import models.datatable.ApprovalsDataTable;
 import models.datatable.ApprovalsDataTable.ApprovalRequestInfo;
+import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
+import play.mvc.results.Result;
+import play.mvc.results.Unauthorized;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -90,6 +94,12 @@ public class Approvals extends Controller {
     public static void edit(String id) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         ApprovalRestRep approval = catalog.approvals().get(uri(id));
+
+        if (! approval.getTenant().getId().toString().equals(Security.getUserInfo().getTenant())) {
+            Result result = new Unauthorized( MessagesUtils.get("approval.noTenantAccess", approval.getTenant().getId()) );
+            renderTemplate("errors/401.html", result);
+        }
+
         OrderRestRep order = null;
         CatalogServiceRestRep service = null;
         if (approval != null) {

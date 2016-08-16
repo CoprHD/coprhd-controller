@@ -412,7 +412,7 @@ except:
 
 # volume <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne volume cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | change_cos_matches | change_cos | change_cos_multi | change_link | full_copy | full_copy_list | verify | exports)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | change_cos_matches | change_cos | change_link | full_copy | full_copy_list | verify | exports)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # volume create label project cos size
@@ -594,9 +594,6 @@ try:
     elif (cmd == "change_cos"):
         args = change_cos.parse_args()
         volume_change_cos(args)
-    elif (cmd == "change_cos_multi"):
-        args = change_cos_multi.parse_args()
-        volumes_change_cos(args)
     elif (cmd == "change_cos_matches"):
         args = change_cos_matches.parse_args()
         volume_change_cos_matches(args)

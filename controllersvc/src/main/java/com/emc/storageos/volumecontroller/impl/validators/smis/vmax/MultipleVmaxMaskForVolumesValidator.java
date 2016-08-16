@@ -33,6 +33,11 @@ public class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends 
     }
 
     @Override
+    protected String getFriendlyId(T blockObject) {
+        return String.format("%s/%s", blockObject.getId(), blockObject.getNativeGuid());
+    }
+
+    @Override
     protected CIMObjectPath getCIMObjectPath(T obj) {
         return getCimPath().getBlockObjectPath(storage, obj);
     }

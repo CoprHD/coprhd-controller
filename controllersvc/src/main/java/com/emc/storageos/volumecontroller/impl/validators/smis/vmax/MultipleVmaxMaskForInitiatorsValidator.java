@@ -1,7 +1,7 @@
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.google.common.collect.Lists;
@@ -20,7 +20,7 @@ import static com.google.common.collect.Collections2.transform;
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
  * {@link Initiator} is not shared by another masking view out of management.
  */
-public class MultipleVmaxMaskForInitiatorsValidator<Initiator> extends AbstractMultipleVmaxMaskValidator {
+public class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
 
     private static final Logger log = LoggerFactory.getLogger(MultipleVmaxMaskForInitiatorsValidator.class);
 
@@ -38,7 +38,12 @@ public class MultipleVmaxMaskForInitiatorsValidator<Initiator> extends AbstractM
     }
 
     @Override
-    protected CIMObjectPath getCIMObjectPath(DataObject obj) throws Exception {
+    protected String getFriendlyId(Initiator initiator) {
+        return String.format("%s/%s", initiator.getId(), initiator.getInitiatorPort());
+    }
+
+    @Override
+    protected CIMObjectPath getCIMObjectPath(Initiator obj) throws Exception {
         try {
             CIMObjectPath[] initiatorPaths = getCimPath().getInitiatorPaths(storage, new String[]{});
             if (initiatorPaths != null && initiatorPaths.length > 0) {
@@ -52,7 +57,7 @@ public class MultipleVmaxMaskForInitiatorsValidator<Initiator> extends AbstractM
     }
 
     @Override
-    protected Collection getDataObjects() {
+    protected Collection<Initiator> getDataObjects() {
         if (dataObjects != null) {
             checkRequestedInitiatorsBelongToMask();
             return dataObjects;
@@ -65,7 +70,7 @@ public class MultipleVmaxMaskForInitiatorsValidator<Initiator> extends AbstractM
             initURIs.add(URI.create(initURI));
         }
 
-        dataObjects = initURIs;
+        dataObjects = getDbClient().queryObject(Initiator.class, initURIs);
         return dataObjects;
     }
 

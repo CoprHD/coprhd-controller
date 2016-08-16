@@ -61,6 +61,7 @@ public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> ex
                 continue;
             }
 
+            String friendlyId = getFriendlyId(dataObject);
             CloseableIterator<CIMInstance> assocMasks = getHelper().getAssociatorInstances(storage, path, null,
                     SmisConstants.SYMM_LUNMASKINGVIEW, null, null, null);
 
@@ -68,20 +69,22 @@ public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> ex
                 CIMInstance assocMask = assocMasks.next();
                 String name = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
 
-                log.info("{} has associated mask {}", dataObject.getId(), name);
+                log.info("{} has associated mask {}", friendlyId, name);
                 if (!exportMask.getMaskName().equals(name)) {
                     // Does ViPR know about this other mask?
                     List<ExportMask> exportMasks = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
                             ExportMask.class, AlternateIdConstraint.Factory.getExportMaskByNameConstraint(name));
 
                     if (exportMasks.isEmpty()) {
-                        getLogger().logDiff(dataObject.getId().toString(), "associated masks", exportMask.getMaskName(), name);
+                        getLogger().logDiff(friendlyId, "<associated masks>", exportMask.getMaskName(), name);
                     }
                 }
             }
         }
         return true;
     }
+
+    protected abstract String getFriendlyId(T dataObject);
 
     protected abstract CIMObjectPath getCIMObjectPath(T obj) throws Exception;
 

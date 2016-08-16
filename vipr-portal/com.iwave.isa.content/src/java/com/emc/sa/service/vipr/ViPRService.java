@@ -215,7 +215,7 @@ public abstract class ViPRService extends AbstractExecutionService {
      * @param volumeOrCGId
      * @param tasks
      */
-    protected void addRetainedReplicas(URI volumeOrCGId, Tasks<? extends DataObjectRestRep> tasks) {
+    protected <T extends DataObjectRestRep> void addRetainedReplicas(URI volumeOrCGId, List< Task<T> > tasks) {
         if (!isRetentionRequired()) {
             return;
         }
@@ -230,7 +230,7 @@ public abstract class ViPRService extends AbstractExecutionService {
         StringSet retainedResource = new StringSet();
         retention.setAssociatedReplicaIds(retainedResource);
         
-        for (Task<? extends DataObjectRestRep> task : tasks.getTasks()) {
+        for (Task<? extends DataObjectRestRep> task : tasks) {
             URI resourceId = task.getResourceId();
             if (resourceId != null && !volumeOrCGId.equals(resourceId)) {
                 retainedResource.add(resourceId.toString());

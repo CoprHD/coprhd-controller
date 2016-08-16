@@ -101,7 +101,7 @@ public class CreateBlockSnapshotService extends ViPRService {
                     
                 }
                 addAffectedResources(tasks);
-                addRetainedReplicas(volume.getId(), tasks);
+                addRetainedReplicas(volume.getId(), tasks.getTasks());
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
@@ -114,7 +114,7 @@ public class CreateBlockSnapshotService extends ViPRService {
                     tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
                 }
                 addAffectedResources(tasks);
-                addRetainedReplicas(uri(consistencyGroupId), tasks);
+                addRetainedReplicas(uri(consistencyGroupId), tasks.getTasks());
             }
         }
     }

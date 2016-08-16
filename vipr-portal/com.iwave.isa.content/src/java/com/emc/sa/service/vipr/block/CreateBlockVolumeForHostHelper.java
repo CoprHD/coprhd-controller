@@ -68,14 +68,14 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
     }
 
     public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
-        List<URI> batchForExportIds = Lists.newArrayList();
-        int i = 0;
+        List<URI> batchVolumeIds = Lists.newArrayList();
+        int batchCount = 0;
         Iterator<URI> ids = volumeIds.iterator();
         while (ids.hasNext()) {
-            i++;
+            batchCount++;
             URI id = ids.next();
-            batchForExportIds.add(id);
-            if (i == EXPORT_CHUNK_SIZE || !ids.hasNext()) {
+            batchVolumeIds.add(id);
+            if (batchCount == EXPORT_CHUNK_SIZE || !ids.hasNext()) {
                 // See if an existing export exists for the host ports
                 ExportGroupRestRep export = null;
                 if (cluster != null) {
@@ -88,23 +88,23 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                 if (export == null) {
                     URI exportId = null;
                     if (cluster != null) {
-                        exportId = BlockStorageUtils.createClusterExport(project, virtualArray, batchForExportIds, hlu, cluster,
+                        exportId = BlockStorageUtils.createClusterExport(project, virtualArray, batchVolumeIds, hlu, cluster,
                                 new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator);
                     } else {
-                        exportId = BlockStorageUtils.createHostExport(project, virtualArray, batchForExportIds, hlu, host, new HashMap<URI, Integer>(),
+                        exportId = BlockStorageUtils.createHostExport(project, virtualArray, batchVolumeIds, hlu, host, new HashMap<URI, Integer>(),
                                 minPaths, maxPaths, pathsPerInitiator);
                     }
                     logInfo("create.block.volume.create.export", exportId);
                 }
                 // Add the volume to the existing export
                 else {
-                    BlockStorageUtils.addVolumesToExport(batchForExportIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
+                    BlockStorageUtils.addVolumesToExport(batchVolumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
                             pathsPerInitiator);
                     logInfo("create.block.volume.update.export", export.getId());
                 }
 
-                batchForExportIds.clear();
-                i = 0;
+                batchVolumeIds.clear();
+                batchCount = 0;
             }
         }
 

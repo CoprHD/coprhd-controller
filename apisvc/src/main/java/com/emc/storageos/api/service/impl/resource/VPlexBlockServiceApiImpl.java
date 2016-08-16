@@ -1370,14 +1370,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 List<Volume> volumesNotInRG = new ArrayList<Volume>();
                 taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, operationsWrapper, taskId);
                 
+                // Migrate volumes not in Replication Group as single volumes
                 if (!volumesNotInRG.isEmpty()) {
                     for (Volume volume : volumesNotInRG) {
-                        TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
-                                volume, vpool, vpoolChangeParam, taskId);
-                        if (taskList2 != null && taskList2.getTaskList().isEmpty()) {
-                            taskList.getTaskList().addAll(taskList2.getTaskList());
-                            
-                        }
+                        taskList.getTaskList().addAll(changeVolumeVirtualPool(volume.getStorageController(), 
+                                volume, vpool, vpoolChangeParam, taskId).getTaskList());
                     }
                 }
                 
@@ -1388,12 +1385,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Otherwise proceed as we normally would performing
         // individual vpool changes for each volume.
         for (Volume volume : volumes) {
-            TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
-                    volume, vpool, vpoolChangeParam, taskId);
-            if (taskList2 != null && !taskList2.getTaskList().isEmpty()) {
-                taskList.getTaskList().addAll(taskList2.getTaskList());
-                
-            }
+            taskList.getTaskList().addAll(
+                    changeVolumeVirtualPool(volume.getStorageController(), 
+                            volume, vpool, vpoolChangeParam, taskId).getTaskList());
         }
         return taskList;
     }

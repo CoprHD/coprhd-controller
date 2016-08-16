@@ -2502,7 +2502,7 @@ public class RecoverPointClient {
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID())
                     .getProductionCopiesUIDs();
 
-            // Need to determine if we need to resume production or perform a failover. This is based of the swap
+            // Need to determine if we need to resume production or perform a failover. This is based off the swap
             // copy information. If the swap copy is a production copy and has the REPLICA role, we know it's a
             // production copy acting as 'Target at Production'. In this case, we must resume production to reverse
             // data replication. Otherwise, we need to perform a failover.

@@ -555,7 +555,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                     + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
                                     + (cluster == null ? " N/A " : cluster.getLabel()),
                             "Host storage will be modified",
-                            host,
+                            host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostVcenterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     currentDatacenter.getId(), isVCenter });
@@ -567,7 +568,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                     + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
                                     + (cluster == null ? " N/A " : cluster.getLabel()),
                             "Host storage will be modified",
-                            host,
+                            host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostDatacenterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     currentDatacenter.getId(), isVCenter });
@@ -610,7 +612,9 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                 + cluster.getLabel();
                     }
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
-                            name, description, "Host storage will be modified", host, "hostClusterChange",
+                            name, description, "Host storage will be modified", host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            "hostClusterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     isVCenter });
                 } else {
@@ -631,14 +635,16 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             "Removed initiator " + oldInitiator.getInitiatorPort(),
                             "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
                             "Host storage will be modified",
-                            oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
+                            oldInitiator, Lists.newArrayList(host.getId(), oldInitiator.getId()), "removeInitiator",
+                            new Object[] { oldInitiator.getId() });
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_ADD, host.getTenant(),
                             "Added initiator " + newInitiator.getInitiatorPort(),
                             "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
                             "Host storage will be modified",
-                            newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+                            newInitiator, Lists.newArrayList(host.getId(), newInitiator.getId()), "addInitiator",
+                            new Object[] { newInitiator.getId() });
                 }
             }
         }
@@ -664,7 +670,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 EventUtil.createActionableEvent(dbClient, EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
                         "Removed from vCenter",
                         "Host " + host.getLabel() + " will be unassigned from vCenter and shared exports will be unexported.",
-                        "Host will lose access to shared storage", host,
+                        "Host will lose access to shared storage", host, Lists.newArrayList(host.getId(), host.getCluster()),
                         "hostVcenterUnassign", new Object[] { deletedHost });
             }
         }

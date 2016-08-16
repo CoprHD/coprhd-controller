@@ -25,14 +25,14 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
 
     @Override
     public Void executeTask() throws Exception {
-        if (!models.actionableEvents().findPendingByResource(id).isEmpty()) {
+        if (!models.actionableEvents().findPendingByAffectedResources(id).isEmpty()) {
             ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {}, new Object[] { id });
         }
 
         // for clusters, check all hosts in the cluster
         if (BlockStorageUtils.isCluster(id)) {
             for (Host host : models.hosts().findByCluster(id)) {
-                if (!models.actionableEvents().findPendingByResource(host.getId()).isEmpty()) {
+                if (!models.actionableEvents().findPendingByAffectedResources(host.getId()).isEmpty()) {
                     ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {}, new Object[] { host.getId() });
 
                 }

@@ -21,6 +21,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private StringSet taskIds;
     private StringSet approveDetails;
     private StringSet declineDetails;
+    private StringSet affectedResources;
 
     public enum Status {
         pending, approved, declined
@@ -170,6 +171,20 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setDeclineDetails(StringSet declineDetails) {
         this.declineDetails = declineDetails;
         setChanged("declineDetails");
+    }
+
+    @Name("affectedResources")
+    @AlternateId("AffectedResources")
+    public StringSet getAffectedResources() {
+        if (affectedResources == null) {
+            affectedResources = new StringSet();
+        }
+        return affectedResources;
+    }
+
+    public void setAffectedResources(StringSet affectedResources) {
+        this.affectedResources = affectedResources;
+        setChanged("affectedResources");
     }
 
     public static class Method implements Serializable {

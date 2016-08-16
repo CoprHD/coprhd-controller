@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 
 public class ActionableEventFinder extends TenantResourceFinder<ActionableEvent> {
     protected static final String RESOURCE_COLUMN_NAME = "resource";
+    protected static final String AFFECTED_RESOURCES_COLUMN_NAME = "affectedResources";
 
     public ActionableEventFinder(DBClientWrapper client) {
         super(ActionableEvent.class, client);
@@ -33,4 +34,18 @@ public class ActionableEventFinder extends TenantResourceFinder<ActionableEvent>
         return client.findBy(ActionableEvent.class, RESOURCE_COLUMN_NAME, resourceId);
     }
 
+    public List<ActionableEvent> findPendingByAffectedResources(URI affectedResourceId) {
+        List<NamedElement> events = findIdsByAffectedResources(affectedResourceId);
+        List<ActionableEvent> result = Lists.newArrayList();
+        for (ActionableEvent event : findByIds(toURIs(events))) {
+            if (event != null && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+                result.add(event);
+            }
+        }
+        return result;
+    }
+
+    public List<NamedElement> findIdsByAffectedResources(URI affectedResourceId) {
+        return client.findBy(ActionableEvent.class, AFFECTED_RESOURCES_COLUMN_NAME, affectedResourceId);
+    }
 }

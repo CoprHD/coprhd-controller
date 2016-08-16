@@ -187,7 +187,7 @@ URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
 URI_BLOCK_SNAPSHOTS_EXPOSE      = URI_BLOCK_SNAPSHOTS + '/expose'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
-URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
+URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME_LIST   + '/vpool-change'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
 URI_VOLUMES_SEARCH              = URI_VOLUME_LIST     + '/search'
 URI_VOLUMES_SEARCH_PROJECT      = URI_VOLUMES_SEARCH  + '?project={0}'
@@ -3702,7 +3702,7 @@ class Bourne:
             'vpool' :  cos,
             'size' : size,
             'count' : count,
-	    'consistency_group' : consistencyGroup,
+            'consistency_group' : consistencyGroup,
         }        
 
         print "ADD JOURNAL Params = ", parms
@@ -3780,41 +3780,40 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uri, cos_uri, cg_uri, suspend):
-	dosuspend='false'
+    def volume_change_cos(self, uris, cos_uri, cg_uri, suspend):
+        dosuspend='false'
 	if (suspend):
 	    dosuspend=suspend
 
-        parms = {
-            'vpool' : cos_uri,
-            'consistency_group' : cg_uri,
-	    'migration_suspend_before_commit' : dosuspend,
-	    'migration_suspend_before_delete_source' : dosuspend
-        }
-        tr = self.api('PUT', URI_VOLUME_CHANGE_VPOOL.format(uri), parms, {})
-
-        self.assert_is_dict(tr)
-        result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
-        return result
-
-    def volumes_change_cos(self, names, cos_uri, cg_uri, suspend):
-	dosuspend='false'
-	if (suspend):
-	    dosuspend=suspend
-
-        parms = {
-            'vpool' : cos_uri,
-            'consistency_group' : cg_uri,
-	    'migration_suspend_before_commit' : dosuspend,
-	    'migration_suspend_before_delete_source' : dosuspend
-        }
 	
-	parms['volumes'] = names
+        ids = []
 
-        tr = self.api('POST', URI_BLOCK_VOLUMES_CHANGE_VPOOL.format(), parms, {})
+        if (type(uris) is list):
+            for u in uris:
+                ids.append(u)
+        else:
+            ids.append(uris)
+        
+	params = {}
+        params['volumes'] = ids
+        params['vpool'] = cos_uri
+        params['consistency_group'] = cg_uri
+	params['migration_suspend_before_commit'] = dosuspend
+	params['migration_suspend_before_delete_source'] = dosuspend
 
-        self.assert_is_dict(tr)
-        result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+        
+        print "Change Cos Params = ", params
+    
+        posturi = URI_VOLUME_CHANGE_VPOOL
+        resp = self.api('POST', posturi, params, {})
+        print "RESPONSE = ", resp
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        print tr_list
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
         return result
 
     def volume_change_cos_matches(self, uri):

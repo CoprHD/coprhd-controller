@@ -2133,7 +2133,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {        
+        TaskList taskList = new TaskList();
         
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
@@ -2161,7 +2162,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
                 _dbClient, notSuppReasonBuff, validMigrations)) {
-            return rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam);
+            taskList = rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam);
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
@@ -2173,7 +2174,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 + "Please select one volume at a time.");
             }
         }
-        return createTasksForVolumes(vpool, volumes, taskId);
+        
+        taskList.getTaskList().addAll(
+                createTasksForVolumes(vpool, volumes, taskId).getTaskList());
+        
+        return taskList;
     }
 
     /**

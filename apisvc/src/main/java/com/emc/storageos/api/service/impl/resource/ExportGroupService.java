@@ -484,6 +484,9 @@ public class ExportGroupService extends TaskResourceService {
 
             // validate the RP BlockSnapshots for ExportGroup create
             validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
+            
+            // Validate VPLEX backend snapshots for export.
+            validateVPLEXBlockSnapshotsForExport(blockObjURIs);
         }
     }
 
@@ -508,6 +511,9 @@ public class ExportGroupService extends TaskResourceService {
                     blockObjToAdd.add(volParam.getId());
                     blockObjURIs.add(volParam.getId());
                 }
+                
+                // Validate VPLEX backend snapshots for export.
+                validateVPLEXBlockSnapshotsForExport(blockObjURIs);
 
                 // Collect the existing block objects from the export group. We are combining
                 // the block objects being added with the existing export block objects so that
@@ -528,6 +534,28 @@ public class ExportGroupService extends TaskResourceService {
             // Validate any RP BlockSnapshots being added to ensure no corresponding target volumes
             // have already been exported.
             validateSnapshotTargetNotExported(blockObjToAdd, blockObjExisting);
+        }
+    }
+    
+    /**
+     * Validate VPLEX backend snapshots for export.
+     * 
+     * @param blockObjURIs The URIs of the block objects to be exported.
+     */
+    private void validateVPLEXBlockSnapshotsForExport(List<URI> blockObjURIs) {
+        // We do not allow a VPLEX backend snapshot that is exposed as a VPLEX
+        // volume to be exported to a host/cluster. If the user was to write
+        // to the snapshot, this would invalidate the VPLEX volume as the 
+        // VPLEX would not be aware of these writes. Further, we know this will
+        // fail for VMAX3 backend snapshots with the error "A device cannot belong
+        // to more than one storage group in use by FAST".
+        for (URI blockObjectURI : blockObjURIs) {
+            if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+                if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshot.getNativeGuid()).isEmpty()) {
+                    throw APIException.badRequests.cantExportSnapshotExposedAsVPLEXVolume(snapshot.getLabel());
+                }
+            }
         }
     }
 

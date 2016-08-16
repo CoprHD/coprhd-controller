@@ -268,11 +268,19 @@ angular.module("portalApp").controller({
     		resetModal();
     		$scope.edit = edit;
     		$scope.rule.subDir = "";
+    		var security = ["sys"];
     		alert(sec);
     		alert(Object.prototype.toString.call(sec));
+    		var objClass = Object.prototype.toString.call(sec).slice(8, -1);
+    		alert("objClass" + objClass);
     		if (edit) {
     			$scope.exportPath = path;
-    			$scope.rule.security = sec;
+    			if(objClass === 'String') {
+    				security = sec.split();
+    			} else if (objClass === 'Array') {
+    				security = sec;
+    			}
+    			$scope.rule.security = security;
         		$scope.rule.anon = anon;
         		var data = {params: { id: id, path: path, sec: sec} };
         		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
@@ -281,7 +289,7 @@ angular.module("portalApp").controller({
         			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
         		}
     		} else {
-    			$scope.rule.security = "sys";
+    			$scope.rule.security = ["sys"];
         		$scope.rule.anon = "root";
         		$scope.rule.endpoints = [];
         		$scope.rule.endpoints.push(angular.copy($scope.add));
@@ -306,7 +314,14 @@ angular.module("portalApp").controller({
     		$scope.rule.anon = newVal.anon;
     		alert("newVal.security " + newVal.security);
     		alert(Object.prototype.toString.call(newVal.security));
-    		$scope.rule.security = newVal.security;
+    		var objClass = Object.prototype.toString.call(sec).slice(8, -1);
+    		alert("objClass watch " + objClass);
+    		if(objClass === 'String') {
+    			$scope.rule.security = newVal.security.split();
+			} else if (objClass === 'Array') {
+				$scope.rule.security = newVal.security;
+			}
+    	    //$scope.rule.security = newVal.security;
     		$scope.rule.subDir = newVal.subDir;
     		$scope.ro = ro.toString();
     		$scope.rw = rw.toString();

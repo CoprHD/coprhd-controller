@@ -240,6 +240,9 @@ public class DiscoveryUtils {
                 String uri = itr.next();
                 VirtualPool vPool = dbClient.queryObject(VirtualPool.class, URI.create(uri));
                 if (vPool != null && !vPool.getInactive()) {
+                    //NOTE: There was a discussion whether to honor Compression attribute for an not exported volume and 
+                    // it was decided in the best interest to not honor. Even host IO limits are not honored for an not exported 
+                    // volume today.
                     boolean isVolumeExported = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                             SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString()));
                     boolean isVolumeCompressionEnabled = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(

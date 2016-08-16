@@ -129,6 +129,11 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     }
 
     @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiators) {
+        return null;
+    }
+
+    @Override
     public Validator addVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
         logger = new ValidatorLogger(log);
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);

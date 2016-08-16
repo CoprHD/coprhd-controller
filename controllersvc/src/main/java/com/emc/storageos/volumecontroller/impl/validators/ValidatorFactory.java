@@ -117,6 +117,11 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiators) {
+        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList, initiators);
+    }
+
+    @Override
     public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
         return getSystemValidator(storage).deleteVolumes(storage, volumes);
     }

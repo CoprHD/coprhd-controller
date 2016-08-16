@@ -47,9 +47,17 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     }
 
     @Override
-    public AbstractSMISValidator createMultipleExportMasksValidator(StorageSystem storage, ExportMask exportMask,
-                                                                    Collection<? extends BlockObject> volumes) {
-        return new MultipleVmaxMaskValidator(storage, exportMask, volumes);
+    public AbstractSMISValidator createMultipleExportMasksForBlockObjectsValidator(StorageSystem storage,
+                                                                                   ExportMask exportMask,
+                                                                                   Collection<? extends BlockObject> blockObjects) {
+        return new MultipleVmaxMaskForVolumesValidator(storage, exportMask, blockObjects);
+    }
+
+    @Override
+    public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(StorageSystem storage,
+                                                                                 ExportMask exportMask,
+                                                                                 Collection<Initiator> initiators) {
+        return new MultipleVmaxMaskForInitiatorsValidator(storage, exportMask, initiators);
     }
 
     @Override

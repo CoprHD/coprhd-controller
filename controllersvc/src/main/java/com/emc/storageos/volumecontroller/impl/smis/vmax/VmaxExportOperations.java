@@ -1539,7 +1539,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         taskCompleter.getOpId());
 
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                validator.removeInitiators(storage, exportMask, volumeURIList).validate();
+                validator.removeInitiators(storage, exportMask, volumeURIList, initiatorList).validate();
 
                 if (context != null) {
                     exportMaskRollback(storage, context, taskCompleter);

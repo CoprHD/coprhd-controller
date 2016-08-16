@@ -113,6 +113,12 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     }
 
     @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
+                                      Collection<Initiator> initiators) {
+        return null;
+    }
+
+    @Override
     public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
         return null;
     }

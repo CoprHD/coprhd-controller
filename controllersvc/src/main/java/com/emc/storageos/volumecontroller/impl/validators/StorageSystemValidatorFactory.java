@@ -85,6 +85,18 @@ public interface StorageSystemValidatorFactory {
     Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList);
 
     /**
+     * Create an {@link Validator} instance for validating an export mask remove initiators operation
+     *
+     * @param storage
+     * @param exportMask
+     * @param volumeURIList
+     * @param initiators
+     * @return
+     */
+    Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
+                               Collection<Initiator> initiators);
+
+    /**
      * Create an {@link Validator} instance for validating an export mask add initiators operation
      *
      * @param storage

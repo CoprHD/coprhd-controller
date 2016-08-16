@@ -64,10 +64,6 @@ URI_BLOCKSNAPSHOT_BULKGET       = URI_SERVICES_BASE + '/block/snapshots/bulk'
 URI_FILESNAPSHOT_BULKGET        = URI_SERVICES_BASE + '/file/snapshots/bulk'
 URI_EXPORTGROUP_BULKGET         = URI_SERVICES_BASE + '/block/exports/bulk'
 
-URI_BLOCK                       = URI_SERVICES_BASE + '/block'
-URI_BLOCK_VOLUMES               = URI_BLOCK         + '/volumes'
-URI_BLOCK_VOLUMES_CHANGE_VPOOL  = URI_BLOCK_VOLUMES + '/vpool-change'
-
 URI_LOGOUT                      = URI_SERVICES_BASE + '/logout'
 URI_MY_PASSWORD_CHANGE          = URI_SERVICES_BASE + '/password'
 URI_USER_PASSWORD_CHANGE        = URI_MY_PASSWORD_CHANGE + '/reset/'

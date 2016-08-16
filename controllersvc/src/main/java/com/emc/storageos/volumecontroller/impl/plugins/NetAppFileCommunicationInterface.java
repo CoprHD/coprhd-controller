@@ -922,6 +922,9 @@ public class NetAppFileCommunicationInterface extends
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
 
                 for (Quota quota : quotas) {
+                    if(quota==null){
+                        continue;
+                    }
                     String fsNativeId;
                     if (quota.getVolume().startsWith(VOL_ROOT)) {
                         fsNativeId = quota.getVolume();
@@ -952,6 +955,14 @@ public class NetAppFileCommunicationInterface extends
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
                     unManagedFileQuotaDirectory.setNativeId("/vol/" + quota.getVolume() + "/" + quota.getQtree());
+                    String tempVolume=quota.getVolume();
+                    String tempQTreeName = quota.getQtree();
+                    Qtree tempQtree = qTreeNameQTreeMap.get(tempVolume+tempQTreeName);
+                    if(tempQtree==null){
+                        continue;
+                    }
+                    
+                    _logger.info(" Volume Name::"+tempVolume+" QtreeName::"+tempQTreeName+" Qtree::"+tempQtree.getQtree());
                     if ("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
                         unManagedFileQuotaDirectory.setOpLock(true);
                     }

@@ -4,12 +4,6 @@
         confirmMsg = _confirm.escapeJavaScript();
         confirmMsg = org.apache.commons.lang.StringEscapeUtils.escapeHtml(confirmMsg);
         onSubmit += "if (!confirm('${confirmMsg.raw()}')) { return false; } "
-    } else if (_prompt) {
-        promptMsg = _prompt.escapeJavaScript();
-        promptMsg = org.apache.commons.lang.StringEscapeUtils.escapeHtml(promptMsg);
-        answer = _answer.escapeJavaScript();
-        answer = org.apache.commons.lang.StringEscapeUtils.escapeHtml(answer);
-        onSubmit += "if (prompt('${promptMsg.raw()}') != '${answer.raw()}') { return false; } "
     }
     onSubmit += "\$(this.ids).val(table.${_table}.dataTable.getSelectedValues()); "
     onSubmit += "util.onFormSubmitted('#${_id}'); return true;"

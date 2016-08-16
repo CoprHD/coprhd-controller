@@ -72,17 +72,16 @@
      }
    #{DataTable.expandHtml @itemDetails(':id'), table:'events'/}
    #{DataTable.buttonBar}
-    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'approveForm'/}
-    #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], submit:'declineForm'/}
+    #{Form.button name:'resources.events.approveEvent', class:'success', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], action:'$("#approveEvent").modal("show")'/}
+    #{Form.button name:'resources.events.declineEvent', class:'warning', data:['enabled':'selected','property':'eventStatus', 'value':'pending'], action:'$("#declineEvent").modal("show")'/}
   #{/DataTable.buttonBar}
   #{/DataTable.table}
-  #{DataTable.formAction @approveEvents(), id:'approveForm', table:'events',
-                       prompt:messages.get('resources.events.approve'), answer:messages.get('resources.events.confirm')/}
-
-  #{DataTable.formAction @declineEvents(), id:'declineForm', table:'events',
-                       prompt:messages.get('resources.events.decline'), answer:messages.get('resources.events.confirm')/}
 
   </div>
+
+#{include 'Events/approveEvents.html'/}  
+#{include 'Events/declineEvents.html'/}  
+  
 </div>
 
 #{set 'moreScripts'}

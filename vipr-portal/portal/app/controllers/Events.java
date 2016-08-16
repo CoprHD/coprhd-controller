@@ -47,6 +47,9 @@ public class Events extends Controller {
     private static final String APPROVED_MULTIPLE = "resources.event.approved.multiple";
     private static final String DECLINED = "resources.event.declined";
     private static final String DECLINED_MULTIPLE = "resources.event.declined.multiple";
+    private static final String APPROVE_CONFIRM_FAILED = "resources.events.approve.confirm.failed";
+    private static final String DECLINE_CONFIRM_FAILED = "resources.events.decline.confirm.failed";
+    private static final String CONFIRM_TEXT = "confirm";
 
     private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
         @Override
@@ -184,9 +187,12 @@ public class Events extends Controller {
         return eventSummaries;
     }
 
-    public static void approveEvents(@As(",") String[] ids) {
-        try{
-            for(String eventId:ids) {
+    public static void approveEvents(@As(",") String[] ids, String confirm) {
+        try {
+            if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, confirm));
+            }
+            for (String eventId : ids) {
                 getViprClient().events().approve(uri(eventId));
             }
             flash.success(MessagesUtils.get(APPROVED_MULTIPLE));
@@ -196,20 +202,23 @@ public class Events extends Controller {
         }
         listAll();
     }
-    
-    public static void declineEvents(@As(",") String[] ids) {
-        try{
-            for(String eventId:ids) {
+
+    public static void declineEvents(@As(",") String[] ids, String confirm) {
+        try {
+            if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, confirm));
+            }
+            for (String eventId : ids) {
                 getViprClient().events().decline(uri(eventId));
             }
             flash.success(MessagesUtils.get(DECLINED_MULTIPLE));
-        } catch(Exception e) {
+        } catch (Exception e) {
             flashException(e);
             listAll();
         }
         listAll();
     }
-    
+
     public static void approveEvent(String eventId) {
         try {
             if (StringUtils.isNotBlank(eventId)) {

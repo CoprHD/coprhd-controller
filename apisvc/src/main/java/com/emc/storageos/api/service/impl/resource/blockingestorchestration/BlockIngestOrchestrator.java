@@ -194,9 +194,9 @@ public abstract class BlockIngestOrchestrator {
         if (!isExportedVolumeIngest || VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             return;
         }
-        Boolean isVolumeCompressionEnabled = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
+        boolean isVolumeCompressionEnabled = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString()));
-        if (isVolumeCompressionEnabled && isVolumeCompressionEnabled != vPool.getCompressionEnabled()) {
+        if (isVolumeCompressionEnabled != vPool.getCompressionEnabled()) {
             _logger.error(
                     "Unmanaged Volume {} is not a match for the virtual pool {} Compression.",
                     unManagedVolume.getLabel(), vPool.getLabel());

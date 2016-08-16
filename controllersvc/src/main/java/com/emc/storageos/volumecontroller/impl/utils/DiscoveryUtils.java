@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -212,6 +213,42 @@ public class DiscoveryUtils {
                                 + "since Auto-tiering Policy %s in UnManaged Volume does not match with vPool's (%s)";
                         _log.info(String.format(msg, new Object[] { uri, unManagedVolume.getId(),
                                 autoTierPolicyId, vPool.getAutoTierPolicyName() }));
+                        vPoolsToRemove.add(uri);
+                    }
+                } else {
+                    // remove Inactive vPool URI
+                    vPoolsToRemove.add(uri);
+                }
+            }
+        }
+        for (String uri : vPoolsToRemove) {     // UnManagedVolume object is persisted by caller
+            supportedVpoolURIs.remove(uri);
+        }
+    }
+
+    /**
+     * Filters supported vPools in UnManaged Volume based on Compression.
+     *
+     * @param unManagedVolume the UnManaged volume
+     */
+    public static void filterSupportedVpoolsBasedOnCompression(UnManagedVolume unManagedVolume, DbClient dbClient) {
+        StringSet supportedVpoolURIs = unManagedVolume.getSupportedVpoolUris();
+        List<String> vPoolsToRemove = new ArrayList<String>();
+        if (supportedVpoolURIs != null) {
+            Iterator<String> itr = supportedVpoolURIs.iterator();
+            while (itr.hasNext()) {
+                String uri = itr.next();
+                VirtualPool vPool = dbClient.queryObject(VirtualPool.class, URI.create(uri));
+                if (vPool != null && !vPool.getInactive()) {
+                    boolean isVolumeExported = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
+                            SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString()));
+                    boolean isVolumeCompressionEnabled = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
+                            SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString()));
+                    if (isVolumeExported && (isVolumeCompressionEnabled != vPool.getCompressionEnabled())) {
+                        String msg = "Removing vPool %s from SUPPORTED_VPOOL_LIST in UnManagedVolume %s "
+                                + "since Compression %s in UnManaged Volume does not match with vPool's Compression (%s)";
+                        _log.info(String.format(msg, new Object[] { uri, unManagedVolume.getId(),
+                                isVolumeCompressionEnabled, vPool.getCompressionEnabled() }));
                         vPoolsToRemove.add(uri);
                     }
                 } else {

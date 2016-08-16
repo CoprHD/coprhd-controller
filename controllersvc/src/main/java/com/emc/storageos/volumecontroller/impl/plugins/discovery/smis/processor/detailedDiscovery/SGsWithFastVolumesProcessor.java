@@ -137,7 +137,7 @@ public class SGsWithFastVolumesProcessor extends StorageProcessor {
                     // StorageVolumeInfoProcessor updated supported_vpool_list based on its pool's presence in vPool
                     // Now, filter those vPools based on policy associated
                     DiscoveryUtils.filterSupportedVpoolsBasedOnTieringPolicy(unManagedVolume, policyName, system, _dbClient);
-
+                    DiscoveryUtils.filterSupportedVpoolsBasedOnCompression(unManagedVolume, _dbClient);
                     _unManagedVolumesUpdate.add(unManagedVolume);
                 }
 

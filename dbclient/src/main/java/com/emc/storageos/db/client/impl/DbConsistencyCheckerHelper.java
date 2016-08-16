@@ -8,12 +8,13 @@ package com.emc.storageos.db.client.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -31,8 +32,6 @@ import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.util.RangeBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
@@ -108,62 +107,65 @@ public class DbConsistencyCheckerHelper {
         Class objClass = doType.getDataObjectClass();
         _log.info("Check Data Object CF {}", objClass);
 
-        List<ColumnField> indexedFields = new ArrayList<>();
+        Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
         for (ColumnField field : doType.getColumnFields()) {
             if (field.getIndex() == null) {
                 continue;
             }
-            indexedFields.add(field);
+            indexedFields.put(field.getName(), field);
         }
 
         if (indexedFields.isEmpty()) {
             return dirtyCount;
         }
-
+        
         Keyspace keyspace = dbClient.getKeyspace(objClass);
-
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
-
-        OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows()
-                .withColumnRange(CompositeColumnNameSerializer.get().buildRange().greaterThanEquals(DataObject.INACTIVE_FIELD_NAME)
-                        .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1))
-                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
+        OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
 
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
-            Set<URI> ids = new HashSet<>();
+            boolean inactiveObject = false;
+            
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
-                // If inactive is true, skip this record
-                if (column.getBooleanValue() != true) {
-                    ids.add(URI.create(objRow.getKey()));
+                if (column.getName().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue() == true) {
+                	inactiveObject = true;
                 }
             }
+            
+            if (inactiveObject) {
+            	continue;
+            }
 
-            for (ColumnField indexedField : indexedFields) {
-                Rows<String, CompositeColumnName> rows = dbClient.queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
-                for (Row<String, CompositeColumnName> row : rows) {
-                    for (Column<CompositeColumnName> column : row.getColumns()) {
-                        // we don't build index if the value is null, refer to ColumnField.
-                        if (!column.hasValue()) {
-                            continue;
-                        }
-                        String indexKey = getIndexKey(indexedField, column);
-                        if (indexKey == null) {
-                            continue;
-                        }
-                        boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
-                                getIndexColumns(indexedField, column, row.getKey()));
-                        if (!isColumnInIndex) {
-                            dirtyCount++;
-                            logMessage(String.format(
-                                    "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
-                                    indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
-                                    indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
-                                    true, toConsole);
-                            DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
-                                    String.format("id:%s, cfName:%s", row.getKey(),
-                                            indexedField.getDataObjectType().getSimpleName()));
-                        }
-                    }
+            for (Column<CompositeColumnName> column : objRow.getColumns()) {
+            	if (!indexedFields.containsKey(column.getName().getOne())) {
+            		continue;
+            	}
+            	
+            	// we don't build index if the value is null, refer to ColumnField.
+                if (!column.hasValue()) {
+                    continue;
+                }
+            	
+            	ColumnField indexedField = indexedFields.get(column.getName().getOne());
+            	String indexKey = getIndexKey(indexedField, column);
+            	
+                if (indexKey == null) {
+                    continue;
+                }
+                
+                boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                        getIndexColumns(indexedField, column, objRow.getKey()));
+                
+                if (!isColumnInIndex) {
+                    dirtyCount++;
+                    logMessage(String.format(
+                            "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                            indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
+                            indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                            true, toConsole);
+                    DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
+                            String.format("id:%s, cfName:%s", objRow.getKey(),
+                                    indexedField.getDataObjectType().getSimpleName()));
                 }
             }
         }

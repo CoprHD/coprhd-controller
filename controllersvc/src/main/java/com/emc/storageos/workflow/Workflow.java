@@ -912,6 +912,10 @@ public class Workflow implements Serializable {
         return _stepStatusMap;
     }
 
+    public void setStepStatusMap(Map<String, StepStatus> stepStatusMap) {
+        this._stepStatusMap = stepStatusMap;
+    }
+
     public Boolean getRollbackContOnError() {
         return _rollbackContOnError;
     }

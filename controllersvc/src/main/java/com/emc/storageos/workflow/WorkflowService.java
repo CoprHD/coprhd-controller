@@ -988,10 +988,11 @@ public class WorkflowService implements WorkflowController {
             if (!isExistingWorkflow(workflow)) {
                 return workflow;
             }
+            // Load the workflow object from ZK.
             String path = getZKWorkflowPath(workflow);
-            // WorkflowPersisted persisted = (WorkflowPersisted) _dataManager.getData(path, false);
-            // workflow = persisted.getWorkflow(this, _dispatcher);
             workflow = (Workflow) _dataManager.getData(path, false);
+            // The stepMap and stepStatusMap can be large; they are saved
+            // separately in ZK and reconstructed from the database.
             workflow._stepMap = new HashMap<String, Step>();
             workflow._stepStatusMap = new HashMap<String, StepStatus>();
             workflow._service = this;
@@ -1035,8 +1036,20 @@ public class WorkflowService implements WorkflowController {
      */
     public void persistWorkflow(Workflow workflow) throws WorkflowException {
         try {
+            // Save off and the stepMap and stepStatus map and null it. The
+            // steps are persisted in ZK separately, and they can be big.
+            Map<String, Workflow.Step> stepMap = workflow.getStepMap();
+            Map<String, StepStatus> stepStatusMap = workflow.getStepStatusMap();
+            workflow.setStepMap(null);
+            workflow.setStepStatusMap(null);
+
+            // Persist the workflow in ZK.
             String path = getZKWorkflowPath(workflow);
             _dataManager.putData(path, workflow);
+            
+            // Restore the values
+            workflow.setStepMap(stepMap);
+            workflow.setStepStatusMap(stepStatusMap);
         } catch (Exception ex) {
             throw new WorkflowException("Cannot persist workflow data in ZK", ex);
         }
@@ -2533,7 +2546,7 @@ public class WorkflowService implements WorkflowController {
                 throw WorkflowException.exceptions.workflowNotFound(stepId);
             }
             // Load the Workflow state from ZK
-            workflow = (Workflow) _dataManager.getData(workflowPath, false);
+            workflow = loadWorkflow(workflow);
             if (workflow == null) {
                 throw WorkflowException.exceptions.workflowNotFound(workflowPath);
             }

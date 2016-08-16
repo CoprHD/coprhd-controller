@@ -974,7 +974,33 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
         workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
         WorkflowState state = waitOnWorkflowComplete(taskId);
-        printLog("Workflow state after resume: " + state);
+        printLog("Workflow state: " + state);
+        assertTrue(state == WorkflowState.SUCCESS);
+    }
+    
+    @Test
+    /**
+     * This test generates a simple two step workflow to validate all type of step saved data. The first step
+     * saves data, and the second step validates it was retrieved.
+     */
+    public void test17_big_workflow() {
+        int nsteps = 1000;
+        byte[] bigArgs = new byte[2500];
+        String taskId = UUID.randomUUID().toString();
+        String[] args = new String[1];
+        args[0] = taskId;
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "validate big workflow", false, taskId);
+        String lastStepId = null;
+        for (int i=0; i < nsteps; i++) {
+            String message = String.format("Step %d of %d steps", i+1, nsteps);
+            lastStepId = workflow.createStep("null", message, lastStepId, nullURI, this.getClass().getName(), false, this.getClass(),
+                    stepBigArgsMethod(bigArgs), stepBigArgsMethod(bigArgs), false, null);
+        }
+        WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
+        workflow.executePlan(completer, "Validation of step data complete", new WorkflowCallback(), args, null, null);
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state: " + state);
         assertTrue(state == WorkflowState.SUCCESS);
     }
 
@@ -1235,6 +1261,20 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
             Assert.assertEquals("keya-data", keyaData);
             String keybData = (String) workflowService.loadStepData(storerStepId, "keyb");
             Assert.assertEquals("keyb-data", keybData);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            log.error("Exception in stepLoadData: ", ex.getMessage(), ex);
+            ServiceCoded coded = WorkflowException.errors.unforeseen();
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+        }
+    }
+    
+    private Workflow.Method stepBigArgsMethod(byte[] arg) {
+        return new Workflow.Method("stepBigArgs", arg);
+    }
+    
+    public void stepBigArgs(byte[] arg, String stepId) {
+        try {
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             log.error("Exception in stepLoadData: ", ex.getMessage(), ex);

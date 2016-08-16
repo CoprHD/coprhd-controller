@@ -126,9 +126,12 @@ task prepareWar(type: Copy, dependsOn:':portal:unpackWebjars') {
 
     if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
         println("Using CoprHD in login file")
-        // replace the import of the emc them with the import of the coprhd theme
+        // replace the import of the emc theme with the import of the coprhd theme
         filter { String line ->
             line.contains('<div class="navbar-brand">EMC ViPR Controller</div>') ? '<div class="navbar-brand">CoprHD</div>' : line
+        }
+        filter { String line ->
+            line.contains('<title>ViPR Login</title>') ? '<title>CoprHD Login</title>' : line
         }
     } else {
         println("Using regular EMC Vipr login page")

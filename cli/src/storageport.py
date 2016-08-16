@@ -241,7 +241,28 @@ class Storageport(object):
         if(ssuri is not None):
             porturis = self.storageport_list_uri(ssuri)
             is_found = False
-            if(portname is not None):
+            if(portname is not None and groupname is not None) :
+                if(storagedeviceType!="vplex"):
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,"Argument -portname/-pn and -group/-g not allowed for non-VPLEX")
+                else:
+                    for porturi in porturis:
+                        sport = self.storageport_show_id(ssuri, porturi['id'])
+                        if((sport['transport_type'] == transportType) and
+                           (groupname == sport['port_group']) and portname == sport['port_name']):
+                            self.storageport_update_uri(
+                                                        sport['id'],
+                                                        tzuri,
+                                                        varraysToAdd,
+                                                        varraysToRemove,
+                                                        None)
+                            is_found = True
+                            break
+                    if(is_found is False):
+                        raise SOSError(
+                            SOSError.NOT_FOUND_ERR, "Group name or Port name : %s %s is not found" %
+                                       (groupname,portname))
+            elif(portname is not None):
                 for porturi in porturis:
                     sport = self.storageport_show_id(ssuri, porturi['id'])
                     if(sport['transport_type'] == transportType and
@@ -615,15 +636,14 @@ def update_parser(subcommand_parsers, common_parser):
                                 dest='transporttype',
                                 required=True)
 
-    argport = update_parser.add_mutually_exclusive_group(required=False)
 
-    argport.add_argument('-portname', '-pn',
+    update_parser.add_argument('-portname', '-pn',
                          help='portName or label that belong to' +
                          ' storagesystem ',
                          metavar='<storageportname>',
                          dest='portname')
 
-    argport.add_argument('-group', '-g',
+    update_parser.add_argument('-group', '-g',
                          help='Group that should be processed',
                          metavar='<portgroup>',
                          dest='group')

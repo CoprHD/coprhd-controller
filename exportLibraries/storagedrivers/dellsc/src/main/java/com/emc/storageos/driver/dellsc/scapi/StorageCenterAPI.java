@@ -1363,4 +1363,37 @@ public class StorageCenterAPI implements AutoCloseable {
 
         throw new StorageCenterAPIException("Failed to get API connection");
     }
+
+    /**
+     * Workaround for tests. Will make sure a volume is active somewhere so
+     * snapshots and other operations can be performed on it.
+     *
+     * @param volumeId The instance ID of the volume.
+     */
+    public void checkAndInitVolume(String volumeId) {
+        ScVolume volume = getVolume(volumeId);
+        if (volume == null) {
+            // Just let the calling method handle the subsequent failure
+            return;
+        }
+
+        if (volume.active && volume.replayAllowed) {
+            // It's all good
+            return;
+        }
+
+        ScServer[] servers = getServerDefinitions(volume.scSerialNumber);
+        for (ScServer server : servers) {
+            if (!"down".equalsIgnoreCase(server.status)) {
+                try {
+                    ScMappingProfile mapping = createVolumeMappingProfile(
+                            volume.instanceId, server.instanceId, -1, new String[0], -1);
+                    deleteMappingProfile(mapping.instanceId);
+                    break;
+                } catch (StorageCenterAPIException e) {
+                    LOG.debug("Failed to activate volume to server {}.", server.instanceId);
+                }
+            }
+        }
+    }
 }

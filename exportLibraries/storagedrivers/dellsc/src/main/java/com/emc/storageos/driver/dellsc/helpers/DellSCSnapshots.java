@@ -65,6 +65,16 @@ public class DellSCSnapshots {
         for (VolumeSnapshot snapshot : snapshots) {
             try {
                 StorageCenterAPI api = connectionManager.getConnection(snapshot.getStorageSystemId());
+
+                // Make sure we can create a replay.
+                // Automated tests have an artificial workflow where they create a volume
+                // and try to create a snapshot without ever having data written to it. The
+                // SC array will not activate a volume until it is mapped, so if we try to
+                // create a snapshot right away it will fail. As a workaround, since we know
+                // this should only ever happen in a test scenario, we temporarily map/unmap
+                // it to get it to be activated.
+                api.checkAndInitVolume(snapshot.getParentId());
+
                 ScReplay replay = api.createReplay(snapshot.getParentId());
                 util.getVolumeSnapshotFromReplay(replay, snapshot);
                 createCount++;

@@ -2251,7 +2251,7 @@ vpool.heading.fileCriteria=File Storage Criteria
 vpool.heading.dataProtection=Data Protection/High Availability
 vpool.heading.quota=Quota
 vpool.heading.poolAssociation=Storage Pool Association
-vpool.enableDeDup=DeDup Capable
+vpool.enableDeDup=Support De-duplication
 
 vpool.protocols=Protocols
 vpool.protocols.help=Matching storage pools will be limited to those that can support all selected protocols

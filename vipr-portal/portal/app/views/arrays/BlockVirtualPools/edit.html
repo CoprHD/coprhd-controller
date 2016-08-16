@@ -117,9 +117,6 @@
         <control-group v-field='vpool.provisioningType' required>
           <select-one options="provisioningTypeOptions" auto-default v-disabled='locked'></select-one>
         </control-group>
-        <control-group v-field="vpool.enableDeDup">
-          <boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
-        </control-group>
 
         <control-group v-field='vpool.protocols'  type="array" required>
           <select-many options="protocolsAvailableOptions" v-disabled='locked'></select-many>
@@ -147,6 +144,13 @@
               </div>
             </control-group>
           </div>
+        </div>
+        <div ng-if="vpool.provisioningType == '${models.ProvisioningTypes.THIN}'">
+        	<div ng-if="['${models.StorageSystemTypes.HP3PAR}'].indexOf(vpool.systemType) > -1">
+        		<control-group v-field="vpool.enableDeDup">
+        			<boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
+        		</control-group>
+        	</div>
         </div>
         <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.uniqueAutoTierPolicyNames'>

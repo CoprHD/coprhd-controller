@@ -57,6 +57,7 @@ public class HP3PARConstants {
     public static final String TASK_TYPE_REMOVE_VOLUME_FROM_CONSISTENCY_GROUP = "remove-volume-from-consistency-group";
     public static final String TASK_TYPE_ADD_VOLUME_TO_CONSISTENCY_GROUP = "add-volume-to-consistency-group";
     
+    public static final String VLUN_DOES_NOT_EXIST = "VLUN does not exist";
 
     public static enum provisioningType
     {
@@ -119,6 +120,40 @@ public class HP3PARConstants {
 		}
 
 		copyType(String type, int value)
+        {
+            this.type = type;
+            this.value= value;
+        }       
+    }
+
+    public static enum vLunType
+    {
+    	EMPTY("EMPTY" , 1),
+    	PORT("PORT", 2),
+    	HOST("HOST", 3),
+    	MATCHED_SET("MATCHED_SET", 4),
+    	HOST_SET("HOST_SET", 5);
+        	
+        public String type= "";
+        public int value = 0;
+        
+        public String getType() {
+			return type;
+		}
+
+		public void setType(String type) {
+			this.type = type;
+		}
+
+		public int getValue() {
+			return value;
+		}
+
+		public void setValue(int value) {
+			this.value = value;
+		}
+
+		vLunType(String type, int value)
         {
             this.type = type;
             this.value= value;

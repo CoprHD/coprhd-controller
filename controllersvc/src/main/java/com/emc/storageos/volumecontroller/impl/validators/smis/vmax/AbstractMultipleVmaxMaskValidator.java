@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -84,10 +88,31 @@ public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> ex
         return true;
     }
 
+    /**
+     * Returns a friendly ID string for the given {@code dataObject}.
+     *
+     * @param dataObject    DataObject
+     * @return              A friendly ID
+     */
     protected abstract String getFriendlyId(T dataObject);
 
+    /**
+     * Returns a {@link CIMObjectPath} instance representing the {@link DataObject}
+     * on the SMI-S provider.
+     *
+     * @param obj   DataObject
+     * @return      CIMObjectPath or null, if no representation is found
+     * @throws Exception
+     */
     protected abstract CIMObjectPath getCIMObjectPath(T obj) throws Exception;
 
+    /**
+     * Return a collection of {@link DataObject} based on what was passed into the constructor.
+     * If null was passed in, then this method would be expected to look at the {@link ExportMask}
+     * for objects to return.
+     *
+     * @return  Collection of DataObject
+     */
     protected abstract Collection<T> getDataObjects();
 
 }

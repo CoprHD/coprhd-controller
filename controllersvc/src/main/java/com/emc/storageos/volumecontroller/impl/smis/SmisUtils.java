@@ -298,5 +298,4 @@ public class SmisUtils {
         String emcCompression = CIMPropertyFactory.getPropertyValue(storageGroup, SmisConstants.CP_EMC_COMPRESSION);
         return (emcCompression != null) ? emcCompression.equalsIgnoreCase(Boolean.TRUE.toString()) : false;
     }
-
 }

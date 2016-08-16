@@ -1058,7 +1058,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.importVolume(vplexURI, descriptors, vplexProject.getId(),
                     vplexProject.getTenantOrg().getURI(), vpool.getId(),
-                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, taskId);
+                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, Boolean.TRUE, taskId);
         } catch (InternalException ex) {
             s_logger.error("ControllerException on importVolume", ex);
             String errMsg = String.format("ControllerException: %s", ex.getMessage());
@@ -1160,7 +1160,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             try {
                 s_logger.info("Calling VPlex controller.");
                 VPlexController controller = getController();
-                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, taskId);
+                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, Boolean.TRUE, taskId);
                 // controller.importVolume(vplexURI, vpool.getId(),
                 // null, null, /* no need to pass System Project/Tenant */
                 // null, /* no import volume */

@@ -313,7 +313,8 @@ public class StorageCenterAPI implements AutoCloseable {
         ScServer result = null;
         ScServerHba hba = findServerHba(ssn, iqnOrWwn);
 
-        if (hba != null) {
+        // If the initiator has been seen but never used to define a server it will have a null server
+        if (hba != null && hba.server != null) {
             RestResult rr = restClient.get(String.format("StorageCenter/ScServer/%s", hba.server.instanceId));
             if (checkResults(rr)) {
                 result = gson.fromJson(rr.getResult(), ScServer.class);

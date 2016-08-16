@@ -1506,6 +1506,7 @@ public class VolumeGroupService extends TaskResourceService {
         // validate name
         String name = param.getName();
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
+        name = TimeUtils.formatDateForCurrent(name);
 
         // snapsetLabel is normalized in RP, do it here too to avoid potential mismatch
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);

@@ -16,7 +16,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.service.vipr.block.ConsistencyUtils;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;

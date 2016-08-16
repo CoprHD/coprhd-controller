@@ -26,7 +26,7 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 
-public class DriverManager /*extends AbstractManager*/ {
+public class DriverManager {
 
     public static final String DRIVER_DIR = "/data/drivers";
     public static final String CONTROLLER_SERVICE = "controllersvc";
@@ -50,69 +50,6 @@ public class DriverManager /*extends AbstractManager*/ {
     public void setLocalRepository(final LocalRepository localRepository) {
         this.localRepository = localRepository;
     }
-
-//    @Override
-//    protected URI getWakeUpUrl() {
-//        return SysClientFactory.URI_WAKEUP_DRIVER_MANAGER;
-//    }
-
-//    @Override
-//    protected void innerRun() {
-//
-//        addDriverInfoListener();
-//
-//        while (doRun) {
-//            initializeLocalAndTargetInfo();
-//
-//            // remove drivers and restart controller service
-//            List<String> toRemove = minus(localDrivers, targetDrivers);
-//            boolean removeSuccess = false;
-//            if (toRemove != null && !toRemove.isEmpty()) {
-//                try {
-//                    removeSuccess = removeDrivers(toRemove);
-//                } catch (Exception e) {
-//                    log.warn("Exception thrown when trying to remove drivers file", e);
-//                    retrySleep();
-//                    continue;
-//                } finally {
-//                    restartControllerService();
-//                    if (!removeSuccess) {
-//                        log.warn("Failed to remove some driver file, will short sleep and retry");
-//                        retrySleep();
-//                        continue;
-//                    }
-//                }
-//            }
-//
-//            // download drivers and restart controller service
-//            List<String> toDownload = minus(targetDrivers, localDrivers);
-//            boolean downloadSuccess = false;
-//            if (toDownload != null && !toDownload.isEmpty()) {
-//                try {
-//                    downloadSuccess = downloadDrivers(toDownload);
-//                } catch (Exception e) {
-//                    log.warn("Exception thrown when trying to download drivers file", e);
-//                    retrySleep();
-//                    continue;
-//                } finally {
-//                    restartControllerService();
-//                    if (!downloadSuccess) {
-//                        log.warn("Failed to download some driver file, will short sleep and retry");
-//                        retrySleep();
-//                        continue;
-//                    }
-//                }
-//            }
-//
-//            // restart controller service if it's needed
-//            if(!restartControllerService()) {
-//                retrySleep();
-//                continue;
-//            }
-//
-//            longSleep();
-//        }
-//    }
 
     /**
      * return true if no need to restart or restart succeeded, otherwise return false
@@ -151,10 +88,8 @@ public class DriverManager /*extends AbstractManager*/ {
         return true;
     }
 
-    //TODO
     private boolean downloadDrivers(List<String> drivers) {
         for (String driver : drivers) {
-            // This is to emulating downloading by just creating a local file
             File driverFile = new File (DRIVER_DIR + "/" + driver);
             try {
                 String uri = SysClientFactory.URI_GET_DRIVER + "?name=" + driver;
@@ -236,7 +171,6 @@ public class DriverManager /*extends AbstractManager*/ {
         return drivers;
     }
 
-    // change to public to be called in syssvcimpl
     public void addDriverInfoListener() {
         try {
             coordinator.getCoordinatorClient().addNodeListener(new DriverInfoListener());
@@ -281,7 +215,6 @@ public class DriverManager /*extends AbstractManager*/ {
                             restartControllerService();
                             if (!removeSuccess) {
                                 log.warn("Failed to remove some driver file, will short sleep and retry");
-//                                retrySleep();
                                 continue;
                             }
                         }
@@ -295,13 +228,11 @@ public class DriverManager /*extends AbstractManager*/ {
                             downloadSuccess = downloadDrivers(toDownload);
                         } catch (Exception e) {
                             log.warn("Exception thrown when trying to download drivers file", e);
-//                            retrySleep();
                             continue;
                         } finally {
                             restartControllerService();
                             if (!downloadSuccess) {
                                 log.warn("Failed to download some driver file, will short sleep and retry");
-//                                retrySleep();
                                 continue;
                             }
                         }
@@ -309,7 +240,6 @@ public class DriverManager /*extends AbstractManager*/ {
 
                     // restart controller service if it's needed
                     if(!restartControllerService()) {
-//                        retrySleep();
                         continue;
                     }
                     // It means all logic finished smoothly if thread goes here, exit loop, finish thread

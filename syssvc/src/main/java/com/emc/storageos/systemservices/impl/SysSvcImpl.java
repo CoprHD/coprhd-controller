@@ -143,12 +143,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _propertyManagerThread.start();
     }
 
-//    private void startDriverManager() {
-//        _driverManagerThread = new Thread(_driverMgr);
-//        _driverManagerThread.setName("DriverManager");
-//        _driverManagerThread.start();
-//    }
-
     private void startVdcManager() {
         _vdcManagerThread = new Thread(_vdcMgr);
         _vdcManagerThread.setName("VdcManager");

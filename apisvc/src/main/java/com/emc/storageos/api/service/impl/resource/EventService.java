@@ -220,6 +220,9 @@ public class EventService extends TaggedResource {
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
 
+        event.setApproveDetails(new StringSet(getEventDetails(event, true)));
+        event.setDeclineDetails(new StringSet(getEventDetails(event, false)));
+
         if (method == null || method.length == 0) {
             _log.info("Method is null or empty for event " + event.getId());
             event.setEventStatus(eventStatus);

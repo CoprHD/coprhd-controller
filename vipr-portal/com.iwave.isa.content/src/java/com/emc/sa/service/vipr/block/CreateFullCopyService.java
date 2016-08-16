@@ -11,12 +11,9 @@ import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
 
-import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
-import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;

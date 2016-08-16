@@ -13,8 +13,9 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateCloneOfApplication;
-import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
+import com.emc.sa.service.vipr.application.tasks.RemoveApplicationFullCopy;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
@@ -61,12 +62,14 @@ public class CreateCloneOfApplicationService extends ViPRService {
         if (replica == null) {
             return;
         }
-        List<URI> cloneIds = new ArrayList<URI>();
         for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
             info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
-            cloneIds.add(uri(obsoleteCloneId));
+            String typeName = getModelClient().getTypeName(uri(obsoleteCloneId));
+            if (typeName.equals(Volume.class.getSimpleName())) {
+                execute(new RemoveApplicationFullCopy(applicationId, uri(obsoleteCloneId), ""));
+            }
         }
-        execute(new DeleteSnapshotForApplication(applicationId, cloneIds));
+        
         getModelClient().delete(replica);
     }
 }

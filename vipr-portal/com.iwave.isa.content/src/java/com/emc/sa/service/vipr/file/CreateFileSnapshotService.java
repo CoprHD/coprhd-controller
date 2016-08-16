@@ -6,8 +6,6 @@ package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import static com.emc.sa.service.ServiceParams.NAME;
-import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
-import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 
 import java.util.ArrayList;
 import java.util.List;

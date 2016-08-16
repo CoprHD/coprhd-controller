@@ -64,6 +64,10 @@ URI_BLOCKSNAPSHOT_BULKGET       = URI_SERVICES_BASE + '/block/snapshots/bulk'
 URI_FILESNAPSHOT_BULKGET        = URI_SERVICES_BASE + '/file/snapshots/bulk'
 URI_EXPORTGROUP_BULKGET         = URI_SERVICES_BASE + '/block/exports/bulk'
 
+URI_BLOCK                       = URI_SERVICES_BASE + '/block'
+URI_BLOCK_VOLUMES               = URI_BLOCK         + '/volumes'
+URI_BLOCK_VOLUMES_CHANGE_VPOOL  = URI_BLOCK_VOLUMES + '/vpool-change'
+
 URI_LOGOUT                      = URI_SERVICES_BASE + '/logout'
 URI_MY_PASSWORD_CHANGE          = URI_SERVICES_BASE + '/password'
 URI_USER_PASSWORD_CHANGE        = URI_MY_PASSWORD_CHANGE + '/reset/'
@@ -3776,12 +3780,38 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uri, cos_uri, cg_uri):
+    def volume_change_cos(self, uri, cos_uri, cg_uri, suspend):
+	dosuspend='false'
+	if (suspend):
+	    dosuspend=suspend
+
         parms = {
             'vpool' : cos_uri,
-            'consistency_group' : cg_uri
+            'consistency_group' : cg_uri,
+	    'migration_suspend_before_commit' : dosuspend,
+	    'migration_suspend_before_delete_source' : dosuspend
         }
         tr = self.api('PUT', URI_VOLUME_CHANGE_VPOOL.format(uri), parms, {})
+
+        self.assert_is_dict(tr)
+        result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+        return result
+
+    def volumes_change_cos(self, names, cos_uri, cg_uri, suspend):
+	dosuspend='false'
+	if (suspend):
+	    dosuspend=suspend
+
+        parms = {
+            'vpool' : cos_uri,
+            'consistency_group' : cg_uri,
+	    'migration_suspend_before_commit' : dosuspend,
+	    'migration_suspend_before_delete_source' : dosuspend
+        }
+	
+	parms['volumes'] = names
+
+        tr = self.api('POST', URI_BLOCK_VOLUMES_CHANGE_VPOOL.format(), parms, {})
 
         self.assert_is_dict(tr)
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)

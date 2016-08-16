@@ -3797,10 +3797,8 @@ class Bourne:
         
         posturi = URI_VOLUME_CHANGE_VPOOL
         resp = self.api('POST', posturi, params, {})
-        print "RESPONSE = ", resp
         self.assert_is_dict(resp)
         tr_list = resp['task']
-        print tr_list
         result = list()
         for tr in tr_list:
             s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)

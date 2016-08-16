@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
@@ -130,12 +131,20 @@ public class Events extends Controller {
 
         Common.angularRenderArgs().put("event", getEventSummary(event));
 
-        EventDetailsRestRep details = EventUtils.getEventDetails(uri(eventId));
-        List<String> approveDetails = details.getApproveDetails();
-        List<String> declineDetails = details.getDeclineDetails();
+        List<String> approveDetails = Lists.newArrayList();
+        List<String> declineDetails = Lists.newArrayList();
 
-        Common.angularRenderArgs().put("approveDetails", details);
-        Common.angularRenderArgs().put("declineDetails", details);
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+            EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
+            approveDetails = details.getApproveDetails();
+            declineDetails = details.getDeclineDetails();
+        } else {
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getApproveDetails();
+        }
+
+        Common.angularRenderArgs().put("approveDetails", approveDetails);
+        Common.angularRenderArgs().put("declineDetails", declineDetails);
 
         List<TaskResourceRep> tasks = Lists.newArrayList();
         if (event != null && event.getTaskIds() != null) {
@@ -228,11 +237,19 @@ public class Events extends Controller {
     }
 
     public static void itemDetails(String id) {
-        EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
-        List<String> approveDetails = details.getApproveDetails();
-        List<String> declineDetails = details.getDeclineDetails();
-
         EventRestRep event = getViprClient().events().get(uri(id));
+        List<String> approveDetails = Lists.newArrayList();
+        List<String> declineDetails = Lists.newArrayList();
+
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+            EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
+            approveDetails = details.getApproveDetails();
+            declineDetails = details.getDeclineDetails();
+        } else {
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getApproveDetails();
+        }
+
         List<TaskResourceRep> tasks = Lists.newArrayList();
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());

@@ -43,6 +43,22 @@ public class EventMapper {
             to.setTaskIds(taskIds);
         }
 
+        if ((from.getApproveDetails() != null) && (!from.getApproveDetails().isEmpty())) {
+            List<String> approveDetails = new ArrayList<String>();
+            for (String details : from.getApproveDetails()) {
+                approveDetails.add(details);
+            }
+            to.setApproveDetails(approveDetails);
+        }
+
+        if ((from.getDeclineDetails() != null) && (!from.getDeclineDetails().isEmpty())) {
+            List<String> declineDetails = new ArrayList<String>();
+            for (String details : from.getDeclineDetails()) {
+                declineDetails.add(details);
+            }
+            to.setDeclineDetails(declineDetails);
+        }
+
         return to;
     }
 

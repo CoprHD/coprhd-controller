@@ -60,24 +60,20 @@ margin-bottom: 5px;
       <dt>&{'events.created'}:</dt>
       <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
       
-       #{if event.eventStatus == 'pending'}
-	   <dt>&{'events.approveDetails'}:</dt>
+       <dt>&{'events.approveDetails'}:</dt>
 	   <dd>
           #{list approveDetails, as:'detail'}
 		    <li> ${detail}
 		  #{/list}
 	   </dd>
-	   #{/if}
-		
-	   #{if event.eventStatus == 'pending'}
+	   
 	   <dt>&{'events.declineDetails'}:</dt>
 	   <dd>
 		 #{list declineDetails, as:'detail'}
 		    <li> ${detail}
 		 #{/list}
 	   </dd>
-	   #{/if}
-      
+	   
       <dt>&{'events.tasks'}:</dt>
       <dd>
       #{list tasks, as:'task'}

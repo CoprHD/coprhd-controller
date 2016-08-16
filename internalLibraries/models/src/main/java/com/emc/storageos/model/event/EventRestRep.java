@@ -30,6 +30,8 @@ public class EventRestRep extends DataObjectRestRep {
     private String eventStatus;
     private String eventCode;
     private List<RelatedResourceRep> taskIds;
+    private List<String> approveDetails;
+    private List<String> declineDetails;
 
     private RelatedResourceRep tenant;
 
@@ -101,5 +103,25 @@ public class EventRestRep extends DataObjectRestRep {
 
     public void setTaskIds(List<RelatedResourceRep> taskIds) {
         this.taskIds = taskIds;
+    }
+
+    @XmlElementWrapper(name = "approve_details")
+    @XmlElement(name = "approve_detail")
+    public List<String> getApproveDetails() {
+        return approveDetails;
+    }
+
+    public void setApproveDetails(List<String> approveDetails) {
+        this.approveDetails = approveDetails;
+    }
+
+    @XmlElementWrapper(name = "decline_details")
+    @XmlElement(name = "decline_detail")
+    public List<String> getDeclineDetails() {
+        return declineDetails;
+    }
+
+    public void setDeclineDetails(List<String> declineDetails) {
+        this.declineDetails = declineDetails;
     }
 }

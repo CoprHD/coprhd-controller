@@ -1007,6 +1007,42 @@ vplex_setup() {
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (source)"
+            run cos create block ${VPOOL_BASE}_migration_src false                            \
+                             --description 'vpool-for-vplex-distributed-volumes-src'    \
+                             --protocols FC                                         \
+                             --numpaths 2                                           \
+                             --provisionType 'Thin'                                 \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable true
+
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VMAX_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (target)"
+            run cos create block ${VPOOL_BASE}_migration_tgt false                            \
+                             --description 'vpool-for-vplex-distributed-volumes-tgt'    \
+                             --protocols FC                                         \
+                             --numpaths 2                                           \
+                             --provisionType 'Thin'                                 \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable true
+
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VNX2_NATIVEGUID
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VMAX_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"

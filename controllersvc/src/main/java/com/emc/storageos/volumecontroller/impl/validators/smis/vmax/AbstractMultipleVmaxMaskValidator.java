@@ -25,7 +25,7 @@ import java.util.List;
  * Abstract template class for validating that a resource has only associated masking views that are
  * managed by ViPR.
  */
-public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends AbstractSMISValidator {
+abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends AbstractSMISValidator {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractMultipleVmaxMaskValidator.class);
     protected StorageSystem storage;
@@ -40,7 +40,7 @@ public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> ex
      * @param dataObjects   List of dataObjects to check.
      *                      May be null, in which case all user added volumes from {@code exportMask} is used.
      */
-    public AbstractMultipleVmaxMaskValidator(StorageSystem storage, ExportMask exportMask,
+    AbstractMultipleVmaxMaskValidator(StorageSystem storage, ExportMask exportMask,
                                              Collection<T> dataObjects) {
         this.storage = storage;
         this.exportMask = exportMask;
@@ -52,7 +52,7 @@ public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> ex
      * from {@code storage} are managed by ViPR.
      *
      * @return true - errors are logged by the shared {@link ValidatorLogger}
-     * @throws Exception
+     * @throws Exception on provider connection failures.
      */
     @Override
     public boolean validate() throws Exception {
@@ -102,7 +102,7 @@ public abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> ex
      *
      * @param obj   DataObject
      * @return      CIMObjectPath or null, if no representation is found
-     * @throws Exception
+     * @throws Exception on provider connection failures.
      */
     protected abstract CIMObjectPath getCIMObjectPath(T obj) throws Exception;
 

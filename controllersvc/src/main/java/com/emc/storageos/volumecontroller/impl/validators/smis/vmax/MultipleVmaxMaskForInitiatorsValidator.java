@@ -24,7 +24,7 @@ import static com.google.common.collect.Collections2.transform;
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
  * {@link Initiator} is not shared by another masking view out of management.
  */
-public class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
+class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
 
     private static final Logger log = LoggerFactory.getLogger(MultipleVmaxMaskForInitiatorsValidator.class);
 
@@ -36,7 +36,7 @@ public class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmax
      * @param initiators  List of dataObjects to check.
      *                    May be null, in which case all user added initiators from {@code exportMask} is used.
      */
-    public MultipleVmaxMaskForInitiatorsValidator(StorageSystem storage, ExportMask exportMask,
+    MultipleVmaxMaskForInitiatorsValidator(StorageSystem storage, ExportMask exportMask,
                                                   Collection<Initiator> initiators) {
         super(storage, exportMask, initiators);
     }
@@ -88,9 +88,9 @@ public class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmax
         Collection<String> maskInitiatorURIs = userAddedInitiators.values();
         Collection<String> reqInitiatorURIs = transform(dataObjects, FCTN_VOLUME_URI_TO_STR);
 
-        for (String reqVolumeURI : reqInitiatorURIs) {
-            if (!maskInitiatorURIs.contains(reqVolumeURI)) {
-                String msg = String.format("Requested initiator %s does not belong in mask %s", reqVolumeURI, exportMask);
+        for (String reqInitiatorURI : reqInitiatorURIs) {
+            if (!maskInitiatorURIs.contains(reqInitiatorURI)) {
+                String msg = String.format("Requested initiator %s does not belong in mask %s", reqInitiatorURI, exportMask);
                 throw new IllegalArgumentException(msg);
             }
         }

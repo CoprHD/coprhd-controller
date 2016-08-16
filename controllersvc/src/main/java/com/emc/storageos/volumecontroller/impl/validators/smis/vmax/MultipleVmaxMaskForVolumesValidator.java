@@ -22,7 +22,7 @@ import static com.google.common.collect.Collections2.transform;
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
  * {@link BlockObject} is not shared by another masking view out of management.
  */
-public class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends AbstractMultipleVmaxMaskValidator<T> {
+class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends AbstractMultipleVmaxMaskValidator<T> {
 
     /**
      * Default constructor.
@@ -32,7 +32,7 @@ public class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends 
      * @param blockObjects List of blockobjects to check.
      *                     May be null, in which case all user added volumes from {@code exportMask} is used.
      */
-    public MultipleVmaxMaskForVolumesValidator(StorageSystem storage, ExportMask exportMask, Collection<T> blockObjects) {
+    MultipleVmaxMaskForVolumesValidator(StorageSystem storage, ExportMask exportMask, Collection<T> blockObjects) {
         super(storage, exportMask, blockObjects);
     }
 
@@ -50,6 +50,7 @@ public class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends 
      * Use this to access {@code blockObjects}, since it may be null.
      * @return  Collection of BlockObject instances.
      */
+    @SuppressWarnings("unchecked")
     protected Collection<T> getDataObjects() {
         if (dataObjects != null) {
             // When first calling this method, caller has provided a list of block objects

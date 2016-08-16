@@ -77,6 +77,7 @@ import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemUnmountParam;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.ShareACL;
@@ -158,6 +159,11 @@ public class FileStorageUtils {
             // Deactivate CIFS Shares
             for (SmbShareResponse share : getCifsShares(fileSystemId)) {
                 deactivateCifsShare(fileSystemId, share.getShareName());
+            }
+            
+            // Unmount all mount for for filesystem and all sub-directories
+            for (MountInfo mountInfo : getMountList(fileSystemId)) {
+                unmountNFSExport(fileSystemId, mountInfo.getHostId(), mountInfo.getMountPath());
             }
 
             // Delete all export rules for filesystem and all sub-directories

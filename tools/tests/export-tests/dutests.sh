@@ -2815,7 +2815,7 @@ test_23() {
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
-    runcmd blockconsistencygroup delete ${PROJECT}/$CGNAME}
+    runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
 }
 
 cleanup() {

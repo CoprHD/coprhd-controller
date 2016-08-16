@@ -217,7 +217,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             // since they would update beacon
             startPropertyManager();
             startVdcManager();
-//            startDriverManager();
 
             startDiagnosticsScheduler();
             

@@ -55,7 +55,6 @@ import com.emc.vipr.model.sys.TargetVersionResponse;
 import static com.emc.storageos.coordinator.client.model.Constants.MAX_UPLOAD_SIZE;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.setInstallableRemovable;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterResponse;
-
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.RemoteRepositoryException;
@@ -78,6 +77,7 @@ public class UpgradeService {
     private PropertyManager _propertyManager;
     @Autowired
     private VdcManager _vdcManager;
+
     /**
      * Callback for other components to register itself for upgrade check before upgrade process starts.
      */

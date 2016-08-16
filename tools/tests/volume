@@ -157,13 +157,39 @@ def volume_change_cos(args):
     if (args.consistencyGroup):
         cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
     start = time.time()
-    tr = bourne.volume_change_cos(uri, cos_uri, cg_uri)
+    tr = bourne.volume_change_cos(uri, cos_uri, cg_uri, args.suspend)
     total = time.time() - start
     print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
     if (tr['state'] == 'ready'):
         print 'Volume CoS change succeeded'
-    else:
-        print 'Volume CoS change failed.'
+    elif (tr['state'] != 'suspended_no_error'):
+	print 'Volume CoS change failed.'
+	sys.exit(1);
+
+def volumes_change_cos(args):
+    bourne.connect(args.ip)
+    names = args.name.split(',')
+    uris = []
+    for name in names:
+        print "Querying for volume: " + name
+        uri = bourne.volume_query(name)
+        vol = bourne.volume_show(uri)
+        # Only remove active volumes
+        if (not vol['inactive']):
+            uris.append(uri)
+    cos_uri = bourne.cos_query('block', args.cos)
+    cg_uri= ''
+    if (args.consistencyGroup):
+        cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
+    start = time.time()
+    tr = bourne.volumes_change_cos(uris, cos_uri, cg_uri, args.suspend)
+    total = time.time() - start
+    print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
+    if (tr['state'] == 'ready'):
+        print 'Volume CoS change succeeded'
+    elif (tr['state'] != 'suspended_no_error'):
+	print 'Volume CoS change failed.'
+	sys.exit(1);
 
 def volume_change_cos_matches(args):
     bourne.connect(args.ip)
@@ -405,7 +431,7 @@ except:
 
 # volume <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne volume cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | change_cos_matches | change_cos | change_link | full_copy | full_copy_list | verify | exports)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | change_cos_matches | change_cos | change_cos_multi | change_link | full_copy | full_copy_list | verify | exports)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # volume create label project cos size
@@ -471,6 +497,14 @@ change_cos = argparse.ArgumentParser(parents = [parser], conflict_handler='resol
 change_cos.add_argument('name',	help = 'name of volume whose cos is modified')
 change_cos.add_argument('cos', help = 'name of the cos')
 change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
+change_cos.add_argument('--suspend', action='store_true', help = 'suspend the workflow before commit and delete of original source volume')
+
+# volume change_cos multi label cos
+change_cos_multi = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+change_cos_multi.add_argument('name',	help = 'vol1,vol2,vol3')
+change_cos_multi.add_argument('cos', help = 'name of the cos')
+change_cos_multi.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
+change_cos_multi.add_argument('--suspend', action='store_true', help = 'suspend the workflow before commit and delete of original source volume')
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -585,6 +619,9 @@ try:
     elif (cmd == "change_cos"):
         args = change_cos.parse_args()
         volume_change_cos(args)
+    elif (cmd == "change_cos_multi"):
+        args = change_cos_multi.parse_args()
+        volumes_change_cos(args)
     elif (cmd == "change_cos_matches"):
         args = change_cos_matches.parse_args()
         volume_change_cos_matches(args)

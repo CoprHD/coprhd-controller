@@ -20,18 +20,45 @@
   var editMode = #{get 'editMode'/};
   var errors = #{get 'errors'/};
 
-    $(document).ready(function() {
-		if (!editMode && !errors) {
-    		setDefaults();
-        }
-		var authType = $('#ldapSources_mode').val();
-		if (editMode && authType == '${keyStoneType}') {
-			$('#ldapSources_groupAttribute').prop("disabled", true);
-		}
-    	$('#ldapSources_mode').on('change', setFormByType);
-    	$('#ldapSources_mode').on('change', setDefaults);
+  function showTenantsDialog() {
+      table.tenants.dataTable.create();
+      table.tenants.dataTable.updateSelectedFooter();
+      table.tenants.dataTable.reset();
+      $('#addTenants').modal({
+          backdrop: 'static',
+          keyboard: false
+      });
+  }
 
-        setFormByType();       
+  function selectAllTenants() {
+      table.tenants.dataTable.selectAll();
+  }
+
+    function submitForm(){
+        $('#ldapSourceForm').submit();
+    }
+
+    $(document).ready(function() {
+        if (!editMode && !errors) {
+            setDefaults();
+        }
+        var authType = $('#ldapSources_mode').val();
+        if (editMode && authType == '${keyStoneType}') {
+            $('#ldapSources_groupAttribute').prop("disabled", true);
+            $('#ldapSources_synchronizationInterval').val('${defaultInterval}');
+        }
+        $('#ldapSources_mode').on('change', setFormByType);
+        $('#ldapSources_mode').on('change', setDefaults);
+        $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSyncOptions);
+
+        setFormByType();
+    });
+
+    $(window).load(function(){
+        var showDialog = '${showDialog}';
+        if (showDialog === 'true' && editMode) {
+            showTenantsDialog();
+        }
     });
     
     function setFormByType() {
@@ -45,6 +72,7 @@
     	        $('#ldapSources_groupAttribute').closest($ctrlElements).show();
     	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
                 $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).hide();
+                $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
     	    } else {
     	        $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
     	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
@@ -53,6 +81,7 @@
     	    }
         }else if (authType == 'keystone'){
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).show();
+            showTenantsSyncOptions();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
             $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
@@ -63,6 +92,7 @@
             
         } else {
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).hide();
+            $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
             $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
             $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
@@ -72,12 +102,32 @@
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).show();
         }
     }
-    
+
+  // Shows Tenants Synchronization Options fields when "Automatic Registration and Tenant Mapping" field is checked
+  // on Create of Auth Provider and hides Tenants Synchronization Options fields if Registration in Keystone
+  // was done earlier.
+  function showTenantsSyncOptions() {
+      var $ctrlElements = $("fieldset");
+      var autoRegCheckbox = $('#ldapSources_autoRegCoprHDNImportOSProjects');
+      var autoRegSet = autoRegCheckbox.is(':checked');
+      var isAutoRegOn = '${readOnlyCheckboxForAutomaticRegistration}';
+      var isAutoRegOn = (isAutoRegOn === 'true');
+
+      if ((autoRegSet && !editMode) || (autoRegSet && editMode && !isAutoRegOn)) {
+          $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).show();
+          $('#ldapSources_synchronizationInterval').closest($ctrlElements).show();
+      } else {
+          $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
+          $('#ldapSources_synchronizationInterval').closest($ctrlElements).hide();
+      }
+    }
+
     function setDefaults() {
         var authType = $('#ldapSources_mode').val();
         var group = $('#ldapSources_groupAttribute');
         var search = $('#ldapSources_searchFilter');
         var serverUrls = $('#ldapSources_serverUrls');
+        var interval = $('#ldapSources_synchronizationInterval');
 
         if (!group.val()) {
             group.val('CN');
@@ -85,6 +135,7 @@
         if (authType == '${keyStoneType}') {
         	group.val('tenant_id');
             serverUrls.val('${keystoneServerURL}');
+            interval.val('${defaultInterval}');
         }
         
         if (authType == '${ldapType}') {
@@ -193,6 +244,25 @@
     </fieldset>
 
     <fieldset>
+    #{field 'ldapSources.tenantsSynchronizationOptions'}
+        %{
+        }%
+      #{Form.selectManyControlGroup field:field, options:tenantsOptions/}
+    #{/field}
+
+    #{field 'ldapSources.synchronizationInterval'}
+        %{
+            field.helpTextKey = field.name + '.description'
+            field.required = true
+         if (readOnlyCheckboxForAutomaticRegistration) {
+            field.value = readOnlySynchronizationInterval
+         }
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    </fieldset>
+
+    <fieldset>
     <legend>Group</legend>
     #{field 'ldapSources.groupAttribute'}
      %{
@@ -272,6 +342,32 @@
 
 
   </fieldset>
-  #{Form.saveCancel  /}
+    #{Form.buttonBar}
+    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'submitForm();'/}
+    #{Form.button name:'button.cancel', icon:'trash', size:'large', href:@list()/}
+    #{/Form.buttonBar}
 #{/form}
+
+#{DataTable.formAction @addTenants(), id:'addTenantsForm', table:'tenants', fields:formFields/}
+#{Modal.dialog id:'addTenants'}
+  #{Modal.body}
+    #{DataTable.header titleKey:'ldapSources.addTenants', hideAlerts:true/}
+    %{
+        options = [
+            'fnInitComplete': 'selectAllTenants',
+            'iDisplayLength': '8'
+        ]
+    }%
+    #{DataTable.table id: 'tenants',
+                      dataTable: tenants,
+                      source: @tenantsListJson(),
+                      selectable: true,
+                      delayCreate: true,
+                      options:options /}
+  #{/Modal.body}
+    #{Modal.footer}
+        #{Form.button 'button.save', class:'success', icon:'ok-sign', submit:'addTenantsForm',
+                      data:['enabled':'selected', 'table':'tenants']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
 </div>

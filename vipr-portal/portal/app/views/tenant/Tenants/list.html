@@ -1,5 +1,7 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
+#{set isKeystoneAuthnProviderCreated:controllers.tenant.Tenants.isKeystoneAuthnProviderCreated() /}
+#{sourceSelector /}
 
 #{DataTable.header titleKey:'tenants.list.title' /}
 
@@ -7,7 +9,12 @@
   #{DataTable.crudTable id:'tenants', 
                         dataTable:dataTable, 
                         actions: ['Tenants.roleAssignments': @listRoles(':id')],
-                        deleteConfirm:messages.get('tenants.deleteConfirm')/}
+                        deleteConfirm:messages.get('tenants.deleteConfirm')}
+    #{if isKeystoneAuthnProviderCreated}
+         #{Form.button name:'button.synchronize', class:'primary', action:'$("#synchronizeOSTenants").modal()'/}
+         #{Form.button name:'button.syncOptions', class:'primary', action:'$("#syncOptions").modal()'/}
+    #{/if}
+  #{/DataTable.crudTable}
 #{/deadbolt.restrict}
 
 #{deadbolt.restrict roles:[['!SECURITY_ADMIN']]}
@@ -16,3 +23,8 @@
     actions: ['Tenants.roleAssignments': @listRoles(':id')],
     disableSelectable:true/}
 #{/deadbolt.restrict}
+
+#{if isKeystoneAuthnProviderCreated}
+    #{include 'tenant/Tenants/synchronizeOSTenants.html'/}
+    #{include 'tenant/Tenants/syncOptions.html'/}
+#{/if}

@@ -14,30 +14,30 @@
  * limitations under the License.
  *
  */
-
 package com.emc.storageos.keystone.restapi.model.response;
 
+import javax.xml.bind.annotation.XmlElementRef;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Keystone API Tenant response class.
+ * Keystone API get Tenants response class.
  */
-public class TenantResponse {
+@XmlRootElement(name = "openstack_tenants")
+public class TenantListRestResp {
 
-    private KeystoneTenant tenants[];
-    private String tenants_links[];
+    List<KeystoneTenant> openstackTenants;
 
-    public KeystoneTenant[] getTenants() {
-        return tenants;
+    @XmlElementRef(name="openstack_tenant")
+    public List<KeystoneTenant> getOpenstackTenants() {
+        if (openstackTenants == null) {
+            openstackTenants = new ArrayList<>();
+        }
+        return openstackTenants;
     }
 
-    public void setTenants(KeystoneTenant[] tenants) {
-        this.tenants = tenants;
-    }
-
-    public String[] getTenants_links() {
-        return tenants_links;
-    }
-
-    public void setTenants_links(String[] tenants_links) {
-        this.tenants_links = tenants_links;
+    public void setOpenstackTenants(List<KeystoneTenant> openstackTenants) {
+        this.openstackTenants = openstackTenants;
     }
 }

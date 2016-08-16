@@ -2208,38 +2208,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
         	//throw 
         }
-       /* 
-
-        if (vplex) {
-            // Look at all source and target volumes and make sure they can all be expanded
-            vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeID));
-                    if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
-                        vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, URI.create(volumeID)),
-                                newSize);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
-        } else {
-            // Look at all source and target volumes and make sure they can all be expanded
-            super.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    try {
-                        super.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, new URI(volumeID)), newSize);
-                    } catch (URISyntaxException e) {
-                        throw APIException.badRequests.invalidURI(volumeID, e);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
-        }
-        */
         
         // Validate the source volume size is not greater than the target volume size
         RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));

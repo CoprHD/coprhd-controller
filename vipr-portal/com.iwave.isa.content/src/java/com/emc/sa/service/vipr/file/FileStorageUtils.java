@@ -162,7 +162,7 @@ public class FileStorageUtils {
             }
             
             // Unmount all mount for for filesystem and all sub-directories
-            for (MountInfo mountInfo : getMountList(fileSystemId)) {
+            for (MountInfo mountInfo : getMountList(fileSystemId).getMountList()) {
                 unmountNFSExport(fileSystemId, mountInfo.getHostId(), mountInfo.getMountPath());
             }
 

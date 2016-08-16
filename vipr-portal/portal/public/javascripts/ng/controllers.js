@@ -268,6 +268,8 @@ angular.module("portalApp").controller({
     		resetModal();
     		$scope.edit = edit;
     		$scope.rule.subDir = "";
+    		alert(sec);
+    		alert(Object.prototype.toString.call(sec));
     		if (edit) {
     			$scope.exportPath = path;
     			$scope.rule.security = sec;
@@ -302,6 +304,8 @@ angular.module("portalApp").controller({
     			}
     		});
     		$scope.rule.anon = newVal.anon;
+    		alert("newVal.security " + newVal.security);
+    		alert(Object.prototype.toString.call(newVal.security));
     		$scope.rule.security = newVal.security;
     		$scope.rule.subDir = newVal.subDir;
     		$scope.ro = ro.toString();

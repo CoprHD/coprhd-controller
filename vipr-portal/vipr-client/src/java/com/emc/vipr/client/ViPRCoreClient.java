@@ -27,6 +27,7 @@ import com.emc.vipr.client.core.ComputeImages;
 import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
+import com.emc.vipr.client.core.Events;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -49,6 +50,7 @@ import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
+import com.emc.vipr.client.core.StorageSystemType;
 import com.emc.vipr.client.core.StorageSystems;
 import com.emc.vipr.client.core.StorageTiers;
 import com.emc.vipr.client.core.TasksResources;
@@ -66,6 +68,7 @@ import com.emc.vipr.client.core.VirtualDataCenter;
 import com.emc.vipr.client.core.VirtualDataCenters;
 import com.emc.vipr.client.core.VirtualNasServers;
 import com.emc.vipr.client.core.Workflows;
+import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.IPsec;
 
@@ -76,7 +79,7 @@ public class ViPRCoreClient {
     public ViPRCoreClient() {}
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
-     * 
+     *
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public ViPRCoreClient(String host) {
@@ -85,7 +88,7 @@ public class ViPRCoreClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host).withIgnoringCertificates(ignoreCertificates)
-     * 
+     *
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @param ignoreCertificates True if SSL certificates should be ignored.
      */
@@ -99,7 +102,7 @@ public class ViPRCoreClient {
 
     /**
      * Sets the authentication token to be used for this client.
-     * 
+     *
      * @param authToken
      *            The authentication token to set.
      */
@@ -109,7 +112,7 @@ public class ViPRCoreClient {
 
     /**
      * Sets the proxy token to be used for this client.
-     * 
+     *
      * @param proxyToken
      *            The authentication token to set.
      */
@@ -123,7 +126,7 @@ public class ViPRCoreClient {
 
     /**
      * Performs an authentication login and returns the updated client.
-     * 
+     *
      * @see AuthClient#login(String, String)
      * @param username
      *            The username.
@@ -138,7 +141,7 @@ public class ViPRCoreClient {
 
     /**
      * Sets the authentication token and returns the updated client.
-     * 
+     *
      * @see #setAuthToken(String)
      * @param token
      *            The authentication token to set.
@@ -151,7 +154,7 @@ public class ViPRCoreClient {
 
     /**
      * Sets the proxy token and returns the updated client.
-     * 
+     *
      * @see #setProxyToken(String)
      * @param token
      *            The proxy token to set.
@@ -181,6 +184,10 @@ public class ViPRCoreClient {
 
     public VirtualDataCenters vdcs() {
         return new VirtualDataCenters(this, client);
+    }
+
+    public Events events() {
+        return new Events(this, client);
     }
 
     public Hosts hosts() {
@@ -230,11 +237,11 @@ public class ViPRCoreClient {
     public ObjectVirtualPools objectVpools() {
         return new ObjectVirtualPools(this, client);
     }
-    
+
     public ObjectBuckets objectBuckets() {
         return new ObjectBuckets(this, client);
     }
-    
+
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
     }
@@ -304,6 +311,10 @@ public class ViPRCoreClient {
         return new StoragePools(this, client);
     }
 
+    public OpenStackTenants openStackTenants() {
+        return new OpenStackTenants(this, client);
+    }
+
     public StoragePorts storagePorts() {
         return new StoragePorts(this, client);
     }
@@ -311,7 +322,7 @@ public class ViPRCoreClient {
     public StorageSystems storageSystems() {
         return new StorageSystems(this, client);
     }
-    
+
     public VirtualNasServers virtualNasServers() {
         return new VirtualNasServers(this, client);
     }
@@ -395,7 +406,7 @@ public class ViPRCoreClient {
     public UserGroup getUserGroup() {
         return new UserGroup(this, client);
     }
-    
+
     public Site site(){
         return new Site(client);
     }
@@ -403,17 +414,20 @@ public class ViPRCoreClient {
     public IPsec ipsec() {
         return new IPsec(client);
     }
-    
+
     public SchedulePolicies schedulePolicies() {
         return new SchedulePolicies(this, client);
     }
 
     public ApplicationSupport application() {
         return new ApplicationSupport(client);
-
     }
-    
+
     public ObjectNamespaces objectNamespace() {
         return new ObjectNamespaces(this, client);
+    }
+
+    public StorageSystemType storageSystemType() {
+        return new StorageSystemType(client);
     }
 }

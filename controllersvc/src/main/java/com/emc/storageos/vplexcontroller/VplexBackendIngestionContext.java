@@ -251,8 +251,10 @@ public class VplexBackendIngestionContext {
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
 
                 // There may be two backing volumes, so we need to pick the right label.  But for now....
+                // If any backend volume has a mirror, then we need to recalculate the label as well...
+                boolean hasBackendMirror = unmanagedMirrors != null && !unmanagedMirrors.isEmpty();
                 if (_unmanagedVirtualVolume.getLabel() == null || _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL1) ||
-                        _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL2)) {
+                        _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL2) || hasBackendMirror) {
                     String baseLabel = backendVol.getLabel();
                     // Remove the -0 or -1 from the backing volume label, if it's there.
                     if (baseLabel.endsWith("-0") || baseLabel.endsWith("-1")) {
@@ -647,8 +649,8 @@ public class VplexBackendIngestionContext {
                                 clusterIds);
 
                         // 5. need to go ahead and persist any changes to backend volume info
-                        _dbClient.persistObject(associatedVolumeSource);
-                        _dbClient.persistObject(associatedVolumeMirror);
+                        _dbClient.updateObject(associatedVolumeSource);
+                        _dbClient.updateObject(associatedVolumeMirror);
                     } else {
                         String reason = "couldn't find all associated device components in mirror device: ";
                         reason += " associatedVolumeSource is " + associatedVolumeSource;

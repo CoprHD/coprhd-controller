@@ -4,22 +4,31 @@
  */
 package controllers.tenant;
 
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
+import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
+import com.emc.storageos.model.keystone.OSTenantRestRep;
+import com.emc.storageos.model.keystone.OSTenantListRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.tenant.*;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.security.Security;
+import controllers.util.Models;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 import models.RoleAssignmentType;
 import models.Roles;
+import models.TenantSource;
+import models.TenantsSynchronizationOptions;
+import models.datatable.OpenStackTenantsDataTable;
 import models.datatable.TenantRoleAssignmentDataTable;
 import models.datatable.TenantsDataTable;
 import models.security.UserInfo;
@@ -34,6 +43,9 @@ import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Util;
 import play.mvc.With;
+import play.Logger;
+import play.exceptions.ActionNotFoundException;
+import play.mvc.Controller;
 import util.*;
 import util.datatable.DataTablesSupport;
 
@@ -51,23 +63,64 @@ import static util.RoleAssignmentUtils.putTenantRoleAssignmentChanges;
 @Restrictions({ @Restrict("ROOT_TENANT_ADMIN"), @Restrict("HOME_TENANT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class Tenants extends ViprResourceController {
     protected static final String UNKNOWN = "tenants.unknown";
+    protected static final String UPDATED = "keystoneProvider.updated";
+    protected static final String SAVED = "LDAPsources.saved";
+    protected static final String INTERVAL_ERROR = "ldapSources.synchronizationInterval.integerRequired";
+    private static String authnProviderName = "";
+    // Minimum interval in seconds.
+    public static final int MIN_INTERVAL_DELAY = 10;
 
     public static void list() {
         TenantsDataTable dataTable = new TenantsDataTable();
+        renderArgs.put("sources", TenantSource.options(TenantSource.TENANTS_SOURCE_ALL, TenantSource.TENANTS_SOURCE_LOCAL, TenantSource.TENANTS_SOURCE_OS));
+        renderArgs.put("currentSource", Models.currentSource());
+        if (isKeystoneAuthnProviderCreated()) {
+            AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
+            authnProviderName = authnProvider.getName();
+            TenantsSyncOptionsForm keystoneProvider = new TenantsSyncOptionsForm();
+            keystoneProvider.readFrom(authnProvider);
+            renderArgs.put("tenantsOptions",
+                    TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
+            renderArgs.put("interval", getInterval(authnProvider));
+            renderArgs.put("osTenantsToAdd", new KeystoneSynchronizationTenantsDataTable());
+            renderArgs.put("osTenantsToRemove", new KeystoneSynchronizationTenantsDataTable());
+            render(dataTable, keystoneProvider);
+        }
         render(dataTable);
+    }
+
+    public static void selectSource(String source, String url) {
+        Models.setSource(source);
+
+        if (url != null) {
+            try {
+                redirect(Common.toSafeRedirectURL(url));
+            } catch (ActionNotFoundException noAction) {
+                Logger.error(noAction, "Action not found for %s", url);
+                badRequest();
+            }
+        }
     }
 
     public static void listJson() {
         List<TenantsDataTable.Tenant> tenants = Lists.newArrayList();
         List<TenantOrgRestRep> subtenants;
         UserInfo user = Security.getUserInfo();
+        String source = Models.currentSource();
 
         if (Security.isRootTenantAdmin() || Security.isSecurityAdmin()) {
             TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-            tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
+            if (source.equals(TenantSource.getTenantSource(rootTenant.getUserMappings())) ||
+                source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
+                tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
+            }
             subtenants = TenantUtils.getSubTenants(rootTenant.getId());
         } else if (Security.isHomeTenantAdmin()) {
-            tenants.add(new TenantsDataTable.Tenant(TenantUtils.getUserTenant(), true));
+            TenantOrgRestRep userTenant = TenantUtils.getUserTenant();
+            if (source.equals(TenantSource.getTenantSource(userTenant.getUserMappings())) ||
+                source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
+                tenants.add(new TenantsDataTable.Tenant(userTenant, true));
+            }
             subtenants = getViprClient().tenants().getByIds(user.getSubTenants());
         } else {
             subtenants = getViprClient().tenants().getByIds(user.getSubTenants());
@@ -76,12 +129,101 @@ public class Tenants extends ViprResourceController {
         for (TenantOrgRestRep tenant : subtenants) {
             boolean admin = Security.isRootTenantAdmin() || user.hasSubTenantRole(tenant.getId().toString(), Security.TENANT_ADMIN)
                     || Security.isSecurityAdmin();
-            if (admin) {
+            if (admin && (source.equals(TenantSource.getTenantSource(tenant.getUserMappings())) ||
+                          source.equals(TenantSource.TENANTS_SOURCE_ALL)))  {
                 tenants.add(new TenantsDataTable.Tenant(tenant, admin));
             }
         }
 
         renderJSON(DataTablesSupport.createJSON(tenants, params));
+    }
+
+    public static void synchronizeOSTenants(@As(",") String[] ids) {
+        List<OSTenantRestRep> tenants = OpenStackTenantsUtils.getOpenStackTenantsFromDataBase();
+        if (ids != null) {
+            List<String> idList = Arrays.asList(ids);
+            if(!idList.get(0).isEmpty()) {
+                for (OSTenantRestRep tenant : tenants) {
+                    if (idList.contains(tenant.getId().toString())) {
+                        if (tenant.getExcluded()) {
+                            tenant.setExcluded(false);
+                        } else {
+                            tenant.setExcluded(true);
+                        }
+                    }
+                }
+
+                OSTenantListRestRep params = new OSTenantListRestRep();
+                params.setOSTenantsRestRep(tenants);
+
+                OpenStackTenantsUtils.updateOpenStackTenants(params);
+            }
+        }
+
+        flash.success(MessagesUtils.get(UPDATED));
+        list();
+    }
+
+    /**
+     * Gets the list of OpenStack tenants.
+     */
+    public static void tenantsListToAddJson() {
+        OpenStackTenantsUtils.synchronizeOpenStackTenants();
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (OSTenantRestRep tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+            if(tenant.getExcluded()) {
+                tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
+    }
+
+    public static void tenantsListToRemoveJson() {
+        OpenStackTenantsUtils.synchronizeOpenStackTenants();
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (OSTenantRestRep tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+            if(!tenant.getExcluded()) {
+                tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
+    }
+    public static boolean isKeystoneAuthnProviderCreated() {
+        AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
+        if (authnProvider != null && authnProvider.getAutoRegCoprHDNImportOSProjects()) {
+            return true;
+        }
+        return false;
+    }
+
+    public static String getInterval(AuthnProviderRestRep authnProvider) {
+        String interval = "";
+        for (String option : authnProvider.getTenantsSynchronizationOptions()) {
+            // There is only ADDITION, DELETION and interval in this StringSet.
+            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) &&
+                    !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                interval = option;
+            }
+        }
+        return interval;
+    }
+
+    public static class KeystoneSynchronizationTenantsDataTable extends OpenStackTenantsDataTable {
+        public KeystoneSynchronizationTenantsDataTable() {
+            alterColumn("name").setRenderFunction(null);
+        }
+    }
+
+    @FlashException("edit")
+    public static void syncOptions(TenantsSyncOptionsForm keystoneProvider) {
+        String interval = keystoneProvider.synchronizationInterval;
+        if (!StringUtils.isNumeric(interval) || (StringUtils.isNumeric(interval) && (Integer.parseInt(interval) < MIN_INTERVAL_DELAY))) {
+            flash.error(MessagesUtils.get(INTERVAL_ERROR, keystoneProvider.synchronizationInterval));
+        } else {
+            keystoneProvider.update();
+            flash.success(MessagesUtils.get(SAVED, authnProviderName));
+        }
+        list();
     }
 
     @FlashException("list")
@@ -93,7 +235,7 @@ public class Tenants extends ViprResourceController {
         }
 
         QuotaInfo quota = TenantUtils.getQuota(id);
-        
+
 
         if (viprTenant != null) {
             TenantForm tenant = new TenantForm().from(viprTenant, quota);
@@ -200,7 +342,7 @@ public class Tenants extends ViprResourceController {
 
         Gson g = new Gson();
         renderArgs.put("domainsJson", g.toJson(domains));
-        
+
         List<StringOption> allNamespace = TenantUtils.getUnmappedNamespace();
         renderArgs.put("namespaceOptions", allNamespace);
     }
@@ -298,7 +440,7 @@ public class Tenants extends ViprResourceController {
 
     /**
      * Removes a number of role assignments from the given tenant, and redisplays the role assignment page.
-     * 
+     *
      * @param tenantId
      *            the tenant ID.
      * @param ids
@@ -337,6 +479,55 @@ public class Tenants extends ViprResourceController {
         }
     }
 
+    public static class TenantsSyncOptionsForm {
+        public String id;
+        public String name;
+        public List<String> tenantsSynchronizationOptions;
+        public String synchronizationInterval;
+
+        public void readFrom(AuthnProviderRestRep keystoneProvider) {
+            this.id = stringId(keystoneProvider);
+            this.name = keystoneProvider.getName();
+            this.tenantsSynchronizationOptions = Lists.newArrayList(keystoneProvider.getTenantsSynchronizationOptions());
+        }
+
+        private void update() {
+            AuthnUpdateParam param = new AuthnUpdateParam();
+            AuthnProviderRestRep provider = AuthnProviderUtils.getKeystoneAuthProvider();
+
+            AuthnUpdateParam.TenantsSynchronizationOptionsChanges tenantsSynchronizationOptionsChanges = getTenantsSynchronizationOptionsChanges(
+                    provider);
+            if (!(tenantsSynchronizationOptionsChanges.getAdd().isEmpty() && tenantsSynchronizationOptionsChanges.getRemove().isEmpty())) {
+                param.setTenantsSynchronizationOptionsChanges(tenantsSynchronizationOptionsChanges);
+                param.setLabel(this.name);
+                param.setMode(provider.getMode());
+                AuthnProviderUtils.update(provider.getId().toString(), param);
+            }
+        }
+
+        private AuthnUpdateParam.TenantsSynchronizationOptionsChanges
+        getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
+
+            Set<String> newValues;
+            if (this.tenantsSynchronizationOptions != null) {
+                newValues = Sets.newHashSet(tenantsSynchronizationOptions);
+                newValues.add(synchronizationInterval);
+            } else {
+                newValues = Sets.newHashSet(synchronizationInterval);
+            }
+
+            Set<String> oldValues = provider.getTenantsSynchronizationOptions();
+
+            AuthnUpdateParam.TenantsSynchronizationOptionsChanges changes = new AuthnUpdateParam.TenantsSynchronizationOptionsChanges();
+            changes.getAdd().addAll(newValues);
+            changes.getAdd().removeAll(oldValues);
+            changes.getRemove().addAll(oldValues);
+            changes.getRemove().removeAll(newValues);
+
+            return changes;
+        }
+    }
+
     public static class TenantForm {
         public String id;
 
@@ -345,7 +536,6 @@ public class Tenants extends ViprResourceController {
         @MinSize(2)
         public String name;
 
-        @Required
         @MaxSize(128)
         @MinSize(2)
         public String description;

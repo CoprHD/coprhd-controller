@@ -83,19 +83,19 @@ public class BlockDeviceExportController implements BlockExportController {
     /**
      * Export one or more volumes. The volumeToExports parameter has
      * all the information required to do the add volumes operation.
-     * 
+     *
      * @param export URI of ExportMask
      * @param volumeMap Volume-lun map to be part of the export mask
      * @param initiatorURIs List of URIs for the initiators to be added to the export mask
      * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
-     * 
+     *
      */
     @Override
     public void exportGroupCreate(URI export, Map<URI, Integer> volumeMap,
             List<URI> initiatorURIs, String opId)
             throws ControllerException {
-        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, opId);
+        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, volumeMap, opId);
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
@@ -134,11 +134,11 @@ public class BlockDeviceExportController implements BlockExportController {
 
     /**
      * Delete the export.
-     * 
-     * @param export URI of ExportMask
+     *
+     * @param export URI of ExportGroup
      * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
-     * 
+     *
      */
     @Override
     public void exportGroupDelete(URI export, String opId) throws ControllerException {
@@ -204,7 +204,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * Some block objects are volumes that are associated with RP snapshots
      * Some volumes in the export mask don't belong to the export group being removed.
      * This method sorts out of relevant from the irrelevant and creates a real list of URIs to remove.
-     * 
+     *
      * @param exportGroup export group
      * @param exportMask export mask
      * @return URIs of block objects to remove
@@ -255,7 +255,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * Takes in a map of blockObject URIs to Integer and converts that to a mapping of
      * Storage array to map of blockObject URIs to Integer. Basically,
      * separating the volumes by arrays.
-     * 
+     *
      * @param uriToHLU [in] - BlockObjects URIs to HLU Integer value
      * @return StorageSystem URI to BlockObjects URIs to HLU Integer value.
      * @throws IOException
@@ -280,7 +280,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * If any of the volumes are protected RP snapshots, all of the volumes/snaps for
      * that storage system should go through the protection controller so we don't fire
      * off multiple export group operations on the same export group concurrently.
-     * 
+     *
      * @param volumes - BlockObject URI list
      * @return Mapping of storage arrays (StorageSystem URI) to volumes list
      * @throws IOException
@@ -333,7 +333,7 @@ public class BlockDeviceExportController implements BlockExportController {
     /**
      * Get the correct storage controller for the blockObject so the export operation
      * is completed successfully.
-     * 
+     *
      * @param blockObject block object, volume/snapshot
      * @return URI of a block or protection controller
      */
@@ -354,8 +354,8 @@ public class BlockDeviceExportController implements BlockExportController {
     }
 
     @Override
-    public void exportGroupUpdate(URI export, 
-            Map<URI, Integer> addedBlockObjectMap, 
+    public void exportGroupUpdate(URI export,
+            Map<URI, Integer> addedBlockObjectMap,
             Map<URI, Integer> removedBlockObjectMap,
             List<URI> updatedClusters, List<URI> updatedHosts,
             List<URI> updatedInitiators, String opId)
@@ -377,7 +377,7 @@ public class BlockDeviceExportController implements BlockExportController {
             StringSetUtil.removeDuplicates(updatedHosts);
             StringSetUtil.removeDuplicates(updatedInitiators);
 
-            computeDiffs(export, 
+            computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, updatedInitiators,
                     addedStorageToBlockObjects, removedStorageToBlockObjects,
                     addedInitiators, removedInitiators, addedHosts, removedHosts,
@@ -448,12 +448,12 @@ public class BlockDeviceExportController implements BlockExportController {
     /**
      * Compute the maps of volumes to be added and removed and the lists of initiators
      * to be added and removed.
-     * 
+     *
      * @param expoUri the export group URI
      * @param addedBlockObjectsFromRequest : the map of block objects that were requested to be
-     *            added. (Passed separately to avoid concurrency problem). 
+     *            added. (Passed separately to avoid concurrency problem).
      * @param removedBlockObjectsFromRequest : the map of block objects that wee reqested
-     *              to be removed.
+     *            to be removed.
      * @param newInitiators the updated list of initiators that reflect what needs
      *            to be added and removed from the current list of initiators
      * @param addedBlockObjects a map to be filled with storage-system-to-added-volumed
@@ -465,7 +465,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * @param addedClusters list of clusters to add
      * @param removedClusters list of cluster to remove
      */
-    private void computeDiffs(URI expoUri, 
+    private void computeDiffs(URI expoUri,
             Map<URI, Integer> addedBlockObjectsFromRequest,
             Map<URI, Integer> removedBlockObjectsFromRequest,
             List<URI> newInitiators,
@@ -477,7 +477,7 @@ public class BlockDeviceExportController implements BlockExportController {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-        
+
         BlockObjectControllerKey controllerKey = null;
 
         // If there are existing volumes, make sure their controller is represented in the
@@ -506,7 +506,7 @@ public class BlockDeviceExportController implements BlockExportController {
         for (URI uri : addedBlockObjectsFromRequest.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, uri);
             URI storageControllerUri = getExportStorageController(bo);
-            
+
             controllerKey = new BlockObjectControllerKey();
             controllerKey.setStorageControllerUri(bo.getStorageController());
             if (!storageControllerUri.equals(bo.getStorageController())) {
@@ -515,10 +515,10 @@ public class BlockDeviceExportController implements BlockExportController {
             // add an entry in each map for the storage system if not already exists
             getOrAddStorageMap(controllerKey, addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
             getOrAddStorageMap(controllerKey, removedBlockObjects);
-            
-            _log.info("Block object {} to add to storage: {}",  bo.getId(), controllerKey.getController());
+
+            _log.info("Block object {} to add to storage: {}", bo.getId(), controllerKey.getController());
         }
-        
+
         for (URI uri : removedBlockObjectsFromRequest.keySet()) {
             if (existingMap.containsKey(uri)) {
                 BlockObject bo = BlockObject.fetch(_dbClient, uri);
@@ -529,15 +529,15 @@ public class BlockDeviceExportController implements BlockExportController {
                 if (!storageControllerUri.equals(bo.getStorageController())) {
                     controllerKey.setProtectionControllerUri(storageControllerUri);
                 }
-                
+
                 // add an empty map for the added blocks so that the two maps have the same keyset
-                getOrAddStorageMap(controllerKey,  addedBlockObjects);
-                getOrAddStorageMap(controllerKey,  removedBlockObjects).put(uri, existingMap.get(uri));
-                
+                getOrAddStorageMap(controllerKey, addedBlockObjects);
+                getOrAddStorageMap(controllerKey, removedBlockObjects).put(uri, existingMap.get(uri));
+
                 _log.info("Block object {} to remove from storage: {}", bo.getId(), controllerKey.getController());
             }
         }
-        
+
         // compute the list of initiators to be added and removed
         for (URI uri : newInitiators) {
             if (exportGroup.getInitiators() == null ||
@@ -706,7 +706,7 @@ public class BlockDeviceExportController implements BlockExportController {
             volume = _dbClient.queryObject(Volume.class, volumeURI);
             URI oldVpoolURI = volume.getVirtualPool();
             List<URI> rollbackList = new ArrayList<URI>();
-            List<Volume>updatedVolumes = new ArrayList<Volume>();
+            List<Volume> updatedVolumes = new ArrayList<Volume>();
             rollbackList.add(volumeURI);
             // Check if it is a VPlex volume, and get backend volumes
             Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
@@ -723,7 +723,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     rollbackList.add(backendHa.getId());
                     updatedVolumes.add(backendHa);
                 }
-                
+
             }
             // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool in event of error.
             taskCompleter = new VolumeVpoolChangeTaskCompleter(rollbackList, oldVpoolURI, opId);
@@ -862,7 +862,7 @@ public class BlockDeviceExportController implements BlockExportController {
              * get corresponding export mask for each volume
              * group volumes by export mask
              * create workflow step for each export mask.
-             * 
+             *
              * For VNX Block:
              * Policy is set on volume during its creation.
              * Whether it is exported or not, send all volumes
@@ -982,7 +982,7 @@ public class BlockDeviceExportController implements BlockExportController {
     /**
      * Separates the VNX/HDS volumes to another list which is grouped based on system URI.
      * It also removes those volumes from the original list.
-     * 
+     *
      * @param volumes all volumes list
      * @return systemToVolumeMap [[system_uri, list of volumes to modify its tieringpolicy].
      */

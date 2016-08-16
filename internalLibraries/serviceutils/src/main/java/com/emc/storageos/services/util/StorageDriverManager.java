@@ -40,6 +40,7 @@ public class StorageDriverManager implements ApplicationContextAware {
     }
 
     private Map<String, String> storageSystemsMap = new HashMap<>();
+    private Map<String, String> storageProvidersMap = new HashMap<>();
     private Set<String>  blockSystems = new HashSet<>();
     private Set<String>  fileSystems = new HashSet<>();
     private Set<String>  providerManaged = new HashSet<>();
@@ -53,8 +54,12 @@ public class StorageDriverManager implements ApplicationContextAware {
         return fileSystems.contains(storageSystemType);
     }
 
-    public boolean isDriverManaged(String storageSystemType) {
-        return storageSystemsMap.values().contains(storageSystemType);
+    public boolean isDriverManaged(String type) {
+        return storageSystemsMap.values().contains(type) || storageProvidersMap.values().contains(type);
+    }
+
+    public boolean isProvider(String type) {
+        return storageProvidersMap.values().contains(type);
     }
 
     public boolean isProviderStorageSystem(String storageSystemType) {
@@ -103,5 +108,13 @@ public class StorageDriverManager implements ApplicationContextAware {
 
     public void setDirectlyManaged(Set<String> directlyManaged) {
         this.directlyManaged = directlyManaged;
+    }
+
+    public void setStorageProvidersMap(Map<String, String> storageProvidersMap) {
+        this.storageProvidersMap = storageProvidersMap;
+    }
+
+    public Map<String, String> getStorageProvidersMap() {
+        return storageProvidersMap;
     }
 }

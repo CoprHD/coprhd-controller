@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.google.common.base.Joiner;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -659,15 +660,25 @@ public abstract class CommandHandler {
     }
 
     public static class CheckDBHandler extends CommandHandler {
+        boolean specificCF = false;
+
         public CheckDBHandler(String[] args) {
-            if (args.length != 1) {
+            if (args.length > 2) {
                 throw new IllegalArgumentException("Invalid command option. ");
+            }
+            if (args.length == 2) {
+                specificCF = true;
+                cfName = args[1];
             }
         }
 
         @Override
         public void process(DBClient _client) {
-            _client.checkDB();
+            if (specificCF) {
+                _client.checkDB(cfName);
+            } else {
+                _client.checkDB();
+            }
         }
     }
 
@@ -676,10 +687,14 @@ public abstract class CommandHandler {
         static final String KEY_ID = "id";
         static final String KEY_CFNAME = "cfName";
         static final String KEY_COMMENT_CHAR = DbCheckerFileWriter.COMMENT_CHAR;
+        boolean specificCF = false;
 
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {
                 rebuildIndexFileName = args[1];
+            } else if (args.length == 3 && args[1].equalsIgnoreCase(Main.CF_NAME)) {
+                specificCF = true;
+                cfName = args[2];               
             } else {
                 throw new IllegalArgumentException("Invalid command option. ");
             }
@@ -687,6 +702,16 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
+            if (specificCF) {
+                boolean allSuccess = _client.rebuildIndex(cfName);
+                if (allSuccess) {
+                    System.out.println(String.format("\nSuccessfully rebuilt all the indices for CF %s.", cfName));
+                } else {
+                    System.out.println("\nSome error happened when perform rebuilding, please check the log for more details.");
+                }
+                return;
+            }
+            
             if (rebuildIndexFileName == null) {
                 System.out.println("rebuild Index file is null");
                 return;
@@ -713,7 +738,7 @@ public abstract class CommandHandler {
                     }
                 }
             } catch (IOException e) {
-                System.err.println("Error occured when reading the cleanup file.");
+                System.err.println("Error occurred when reading the cleanup file.");
                 e.printStackTrace();
             }
             if (successCounter > 0) {
@@ -733,6 +758,40 @@ public abstract class CommandHandler {
                 }
             }
             return cleanUpMap;
+        }
+    }
+    
+    public static class RunMigrationCallback extends CommandHandler {
+        private static final Logger log = LoggerFactory.getLogger(DeleteHandler.class);
+
+        private String migrationCallbackClass;
+
+        public RunMigrationCallback(String[] args) {
+            if (args.length == 2) {
+                migrationCallbackClass = args[1];
+            } else {
+                throw new IllegalArgumentException("Invalid command option. ");
+            }
+        }
+
+        @Override
+        public void process(DBClient _client) {
+            try {
+                Class clazz = Class.forName(migrationCallbackClass);
+                BaseCustomMigrationCallback callback = (BaseCustomMigrationCallback)clazz.newInstance();
+                callback.setDbClient(_client.getDbClient());
+                callback.setCoordinatorClient(_client.getDbClient().getCoordinatorClient());
+                System.out.print("Running migration callback:");
+                System.out.println(migrationCallbackClass);
+                callback.process();
+                System.out.println("Done");
+            } catch(ClassNotFoundException ex) {
+                System.out.println("Error: Migration callback class not found - " + migrationCallbackClass);
+            }
+            catch (Exception ex) {
+                System.out.println(String.format("Unknown exception. Please check dbutils.log", ex.getMessage()));
+                log.error("Unexpected exception when executing migration callback", ex);
+            }
         }
     }
 }

@@ -292,8 +292,7 @@ public class ComputeUtils {
         }
     }
 
-    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray,
-            boolean updateBootVolumeOnHost) {
+    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray) {
 
         if ((hosts == null) || (volumeIds == null)) {
             return Collections.emptyList();
@@ -315,14 +314,6 @@ public class ComputeUtils {
                             hosts.get(x).getHostName(), errorMessage);
                 }
                 ExecutionUtils.clearRollback(); // prevent exports from rolling back on exception
-                /**
-                 * The caller of this method expresses intent of whether the boot target should be updated on the host in question
-                 * The OS Install API call already sets the boot volume and sets the boot targets, hence the following piece of code
-                 * is executed only of updateBootVolumeOnHost and is typically set to true in the Bare Metal Case.
-                 */
-                if (updateBootVolumeOnHost) {
-                    ViPRExecutionUtils.execute(new SetBootVolume(hosts.get(x), volumeIds.get(x)));
-                }
             }
         }
 
@@ -714,6 +705,7 @@ public class ComputeUtils {
         for (Host host : hosts) {
             if (host != null) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
+                ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host))));
             }
         }
     }

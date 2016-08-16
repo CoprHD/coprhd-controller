@@ -17,8 +17,8 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportRemoveVolumeCompleter.class);
@@ -32,22 +32,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
         super(ExportGroup.class, egUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
-    }
-
-    private ExportGroup prepareExportGroups(DbClient dbClient, Operation.Status status)
-            throws DeviceControllerException {
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-        for (URI volumeURI : _volumes) {
-            BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-            _log.info("export_volume_remove: completed");
-            recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status, eventMessage(status, volume, exportGroup),
-                    exportGroup, volume);
-            if (status.name().equals(Operation.Status.ready.name())) {
-                exportGroup.removeVolume(volumeURI);
-            }
-        }
-
-        return exportGroup;
     }
 
     @Override
@@ -72,11 +56,17 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                 case ready:
                     operation.ready();
                     break;
+                case suspended_no_error:
+                    operation.suspendedNoError();
+                    break;
+                case suspended_error:
+                    operation.suspendedError(coded);
+                    break;
                 default:
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            dbClient.persistObject(exportGroup);
+            dbClient.updateObject(exportGroup);
 
             _log.info(String.format("Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

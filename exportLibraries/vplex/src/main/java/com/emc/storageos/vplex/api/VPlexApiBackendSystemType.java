@@ -16,7 +16,9 @@ public enum VPlexApiBackendSystemType {
     SCALEIO("scaleio"),
     VMAX("vmax"),
     VNXBLOCK("vnxblock"),
-    XTREMIO("xtremio");
+    XTREMIO("xtremio"),
+	IBMXIV("ibmxiv"),
+    UNITY("unity");
 
     private String _type;
 

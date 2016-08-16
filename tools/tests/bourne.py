@@ -137,6 +137,10 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
+URI_TASK                    = URI_VDC    + "/tasks"
+URI_TASK_GET                = URI_TASK   + '/{0}'
+URI_TASK_LIST               = URI_TASK
+
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
 URI_IPSEC_KEY               = '/ipsec/key'
@@ -251,6 +255,7 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST       = URI_BLOCK_CONSISTENCY_
 
 URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
 URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE           = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/accessmode"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL       = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
 
@@ -349,6 +354,8 @@ URI_INITIATORS                  = URI_SERVICES_BASE   + '/compute/initiators'
 URI_INITIATOR                   = URI_SERVICES_BASE   + '/compute/initiators/{0}'
 URI_INITIATOR_REGISTER          = URI_SERVICES_BASE   + '/compute/initiators/{0}/register'
 URI_INITIATOR_DEREGISTER        = URI_SERVICES_BASE   + '/compute/initiators/{0}/deregister'
+URI_INITIATOR_ALIASGET          = URI_SERVICES_BASE   + "/compute/initiators/{0}/alias/{1}"
+URI_INITIATOR_ALIASSET          = URI_SERVICES_BASE   + "/compute/initiators/{0}/alias"
 URI_INITIATORS_BULKGET          = URI_SERVICES_BASE   + '/compute/initiators/bulk'
 URI_IPINTERFACES                = URI_SERVICES_BASE   + '/compute/ip-interfaces'
 URI_IPINTERFACE                 = URI_SERVICES_BASE   + '/compute/ip-interfaces/{0}'
@@ -413,6 +420,9 @@ URI_WORKFLOW_LIST               = URI_SERVICES_BASE + '/vdc/workflows'
 URI_WORKFLOW_RECENT             = URI_WORKFLOW_LIST + '/recent'
 URI_WORKFLOW_INSTANCE           = URI_WORKFLOW_LIST + '/{0}'
 URI_WORKFLOW_STEPS              = URI_WORKFLOW_INSTANCE + '/steps'
+URI_WORKFLOW_RESUME             = URI_WORKFLOW_LIST + '/{0}/resume'
+URI_WORKFLOW_ROLLBACK           = URI_WORKFLOW_LIST + '/{0}/rollback'
+URI_WORKFLOW_SUSPEND		= URI_WORKFLOW_LIST + '/{0}/suspend/{1}'
 
 URI_AUDIT_QUERY = URI_SERVICES_BASE + '/audit/logs/?time_bucket={0}&language={1}'
 URI_MONITOR_QUERY = URI_SERVICES_BASE + '/monitoring/events/?time_bucket={0}'
@@ -471,6 +481,11 @@ URI_MIGRATION                   = URI_MIGRATIONS + '/{0}'
 URI_ZONE                        = URI_SERVICES_BASE + '/zone/{0}'
 URI_ZONES	                = URI_SERVICES_BASE + '/zone'
 URI_ZONE_CAPACITY               = URI_SERVICES_BASE + '/zone/capacity'
+
+URI_CUSTOMCONFIGS               = URI_SERVICES_BASE + '/config/controller'
+URI_CUSTOMCONFIG                = URI_CUSTOMCONFIGS + '/{0}'
+URI_CUSTOMCONFIG_DELETE         = URI_CUSTOMCONFIG + '/deactivate'
+
 
 URI_REPLICATION_GROUP           = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}'
 URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
@@ -1139,6 +1154,10 @@ class Bourne:
                 self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
+	    if (obj_op['state'] == 'suspended_no_error'):
+		# Important to not change this format as sanity and other scripts rely on it in this order with commas
+		print 'Operation suspended, ' + obj_op['id'] + ", " + obj_op['workflow']['id']
+
         return obj_op
 
     #
@@ -1154,6 +1173,33 @@ class Bourne:
             time.sleep(3)
             obj_op = show_opfn(pid, sid, op)
             tmo += 3
+            if (tmo > API_SYNC_TIMEOUT):
+                break
+
+        if (type(obj_op) is dict):
+            print str(obj_op)
+            if (obj_op['state'] == 'pending'):
+                raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'error' and not ignore_error):
+                raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
+
+        return obj_op
+
+    def api_sync_4(self, id, showfn, ignore_error=False):
+        obj_op = showfn(id)
+        tmo = 0
+	seen_pending = 0
+
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+            time.sleep(1)
+	    if (obj_op['state'] == 'pending'):
+		seen_pending = 1;
+	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
+		break
+		
+            obj_op = showfn(id)
+            tmo += 1
             if (tmo > API_SYNC_TIMEOUT):
                 break
 
@@ -3561,6 +3607,15 @@ class Bourne:
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
 
+    def task_list(self):
+        return self.api('GET', URI_TASK_LIST)
+
+    def task_show(self, uri):
+        return self.api('GET', URI_TASK_GET.format(uri))
+
+    def task_follow(self, uri):
+        return self.api_sync_4(uri, self.task_show)
+
     def volume_list(self, project):
         puri = self.project_query(project)
         puri = puri.strip()
@@ -3603,7 +3658,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3618,6 +3673,9 @@ class Bourne:
 
         if (consistencyGroup != ''):
             parms['consistency_group'] =  consistencyGroup
+
+        if (computeResource):
+            parms['computeResource'] = computeResource
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
@@ -3752,7 +3810,7 @@ class Bourne:
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
         return result
 
-    def volume_change_link(self, uri, operation, copy_uri, type, pit):
+    def volume_change_link(self, uri, operation, copy_uri, type, am, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -3762,6 +3820,9 @@ class Bourne:
 
         if (pit):
             copy['pointInTime'] = pit
+
+        if (am):
+            copy['accessMode'] = am
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -4205,6 +4266,31 @@ class Bourne:
         o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(group), copies_param )
         self.assert_is_dict(o)
         
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_accessmode(self, group, copyType, targetVarray, am):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy['accessMode'] = am
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE.format(group), copies_param )
+        self.assert_is_dict(o)
+
         if ('task' in o):
             tasks = []
             for task in o['task']:
@@ -4836,6 +4922,7 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
+
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -4887,7 +4974,7 @@ class Bourne:
         try:
 	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o
+	    print o
         return (o, s)
 
     def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
@@ -4968,10 +5055,12 @@ class Bourne:
            clusterChanges['remove'] = clusterEntry
         parms['cluster_changes'] = clusterChanges
 
-        print str(parms)
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
         o = self.api('PUT', URI_EXPORTGROUP_INSTANCE.format(groupId), parms)
         self.assert_is_dict(o)
-        print 'OOO: ' + str(o) + ' :OOO'
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         return (o, s)
 
@@ -8029,6 +8118,23 @@ class Bourne:
     def workflow_get(self, uri):
         return self.api('GET', URI_WORKFLOW_INSTANCE.format(uri))
 
+    def workflow_show_task(self, uri, task):
+        workflow_task_uri = URI_WORKFLOW_INSTANCE + '/tasks/{1}'
+        return self.api('GET', workflow_task_uri.format(uri, task))
+
+    def workflow_resume(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_rollback(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_suspend(self, uri, step):
+        return self.api('PUT', URI_WORKFLOW_SUSPEND.format(uri, step), null)
+
     def workflow_recent(self):
         return self.api('GET', URI_WORKFLOW_RECENT)
 
@@ -8211,7 +8317,8 @@ class Bourne:
         # since we are using sysadmin as user, check on all subtenants for now
         # go in reverse order, most likely, we are in the latest subtenant
         for tenant in reversed(tenants):
-            print tenant
+	    if(BOURNE_DEBUG == '1'):
+		print tenant
             hosts = self.host_list(tenant['id'])
             for host in hosts:
 	        host_detail = self.host_show(host['id'])
@@ -8292,6 +8399,17 @@ class Bourne:
     def initiator_deregister(self, name):
         uri = self.initiator_query(name)
         return self.api('POST', URI_INITIATOR_DEREGISTER.format(uri))
+
+    def initiator_aliasget(self, name, systemuri):
+        uri = self.initiator_query(name)
+        return self.api('GET', URI_INITIATOR_ALIASGET.format(uri,systemuri))
+
+    def initiator_aliasset(self, name, systemuri, alias):
+        uri = self.initiator_query(name)
+        params = {'system_uri': systemuri,
+                  'initiator_alias': alias
+                   }
+        return self.api('PUT', URI_INITIATOR_ALIASSET.format(uri), params)
 
     #
     # Compute Resources - host ipinterface
@@ -8668,8 +8786,12 @@ class Bourne:
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
 
-    def block_snapshot_session_delete(self, session_uri):
-        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+    def block_snapshot_session_delete(self, session_uri, vipronly):
+        posturi = URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri)
+	if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+        
+        tasklist = self.api('POST', posturi)
 
         self.assert_is_dict(tasklist)
         tasks = tasklist['task']
@@ -8872,3 +8994,53 @@ class Bourne:
         # complete, then they are all complete.
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
+
+
+    def customconfig_query(self, name, scopetype, scope, isdefault):
+        if (self.__is_uri(name)):
+            return name
+
+        cclist = self.customconfig_list()
+        for ccrel in cclist:
+            try:
+                if (ccrel['name'] == name):
+                    cc = self.api('GET', ccrel['link']['href'])
+                    ccscope = cc['scope']
+                    ccsysdflt = str(cc['system_default'])
+                    print ccsysdflt
+                    print isdefault
+                    if ((ccscope['type'] == scopetype) and (ccscope['value'] == scope) and (ccsysdflt == isdefault)):
+                        return ccrel['id']
+            except KeyError:
+                print 'No name key'
+        raise Exception('Bad custom configuration name: ' + name)
+
+    def customconfig_list(self):
+        cc_list = self.api('GET', URI_CUSTOMCONFIGS)
+        if (not cc_list):
+            return {}
+        ccs = cc_list['config']
+        if (type(ccs) != list):
+            return [ccs]
+        return ccs
+
+    def customconfig_show(self, uri):
+        return self.api('GET', URI_CUSTOMCONFIG.format(uri))
+
+    def customconfig_delete(self, uri):
+        return self.api('POST', URI_CUSTOMCONFIG_DELETE.format(uri))
+
+    def customconfig_create(self, type, value, scopetype, scope, register):
+        scope = {
+            'type' : scopetype,
+            'value' : scope,
+        }
+
+        parms = {
+            'config_type' : type,
+            'value' : value,
+            'scope' : scope,
+            'registered' : register,
+        }
+
+        return self.api('POST', URI_CUSTOMCONFIGS, parms, {})

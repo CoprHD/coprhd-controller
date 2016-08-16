@@ -3,6 +3,7 @@ package controllers.catalog;
 import java.util.List;
 
 import models.datatable.DiagramDataTable;
+import models.datatable.DiagramDataTable.Diagram;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.datatable.DataTablesSupport;
@@ -29,9 +30,8 @@ public class CustomWorkflow extends Controller {
 	}
 	public static void diagramsJson(){
 		TenantSelector.addRenderArgs();
-		List<String> diagrams = DiagramDataTable.fetch();
+		List<Diagram> diagrams = DiagramDataTable.fetch();
         renderJSON(DataTablesSupport.createJSON(diagrams, params));
 	}
-	
 	
 }

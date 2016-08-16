@@ -17,13 +17,13 @@ public class DiagramDataTable extends DataTable  {
         setDefaultSort("name", "asc");
 	}
 	
-	public static List<String> fetch(){
-		List<String> diagrams = Lists.newArrayList();
+	public static List<Diagram> fetch(){
+		List<Diagram> diagrams = Lists.newArrayList();
 		File folder = new File(DIAGRAM_PATH); 
 		try {
 			for (final File fileEntry : folder.listFiles()) {
 			    if (fileEntry.isFile()) {
-			    	diagrams.add(fileEntry.getName()); 
+			    	diagrams.add(new Diagram(fileEntry.getName())); 
 			    }
 			}
 		} catch (Exception e) {
@@ -31,5 +31,13 @@ public class DiagramDataTable extends DataTable  {
 		}
 		return diagrams;
 	}
+	
+	public static class Diagram{
+		  public String name;
+		 
+		  public Diagram(String name){
+			  this.name = name;
+		  }
+	 }
 	
 }

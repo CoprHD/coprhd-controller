@@ -604,8 +604,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), "");
                 unManagedVolume.putVolumeCharacterstics(
                         SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
-                unManagedVolume.putVolumeCharacterstics(
-                        SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString(), Boolean.FALSE.toString());
 
                 // reset local replica info
                 unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_FULL_COPY.name(), FALSE);
@@ -675,6 +673,10 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         unManagedVolumeCharacteristics.put(
                                 SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString(),
                                 Boolean.TRUE.toString());
+                    } else {
+                        unManagedVolumeCharacteristics.put(
+                                SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString(),
+                                Boolean.FALSE.toString());
                     }
                 }
                 unManagedVolumeCharacteristics.put(

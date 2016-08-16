@@ -292,6 +292,10 @@ public class SmisUtils {
             compressionRatio = Constants.DEFAULT_COMPRESSION_RATIO;
         }
         return compressionRatio;
+    }
 
+    public static boolean getEMCCompressionForStorageGroup(CIMInstance storageGroup) {
+        String emcCompression = CIMPropertyFactory.getPropertyValue(storageGroup, SmisConstants.CP_EMC_COMPRESSION);
+        return (emcCompression != null) ? emcCompression.equalsIgnoreCase(Boolean.TRUE.toString()) : false;
     }
 }

@@ -6422,7 +6422,6 @@ public class SmisCommandHelper implements SmisConstants {
 
         String hostIOLimitBandwidth = CIMPropertyFactory.getPropertyValue(groupInstance, EMC_MAX_BANDWIDTH);
         String hostIOLimitIOPs = CIMPropertyFactory.getPropertyValue(groupInstance, EMC_MAX_IO);
-        String emcCompression = CIMPropertyFactory.getPropertyValue(groupInstance, CP_EMC_COMPRESSION);
 
         if (storage.checkIfVmax3()) {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(CIMPropertyFactory.getPropertyValue(groupInstance,
@@ -6430,7 +6429,7 @@ public class SmisCommandHelper implements SmisConstants {
                     hostIOLimitBandwidth,
                     hostIOLimitIOPs, storage);
             storageGroupPolicyLimitsParam
-                    .setCompression((emcCompression != null) ? emcCompression.equalsIgnoreCase(Boolean.TRUE.toString()) : false);
+                    .setCompression(SmisUtils.getEMCCompressionForStorageGroup(groupInstance));
         } else {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage,
                     groupInstance.getObjectPath()),

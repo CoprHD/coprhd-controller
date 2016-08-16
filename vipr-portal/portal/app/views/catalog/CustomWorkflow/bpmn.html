@@ -7,7 +7,7 @@
 
     <div class="message intro"><BR><BR><BR>
       <div>
-        Drop BPMN diagram from your desktop or <a id="js-create-diagram" href>create a new diagram</a> to get started.
+        <a id="js-create-diagram" href></a> 
       </div>
 	  
     </div>
@@ -26,6 +26,27 @@
     <div class="canvas" id="js-canvas"></div>
     <div id="js-properties-panel"></div>
   </div>
+   <ul class="buttons">
+    <li>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    </li>
+     <li>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    </li> 
+    
+    <li>
+     <a id="js-download-diagram">
+       <button class="btn btn-info btn-large" name="save" > ${messages.get('button.save')}</button>
+     </a>
+    </li>
+    <li>
 
+  </ul>
+
+ <script>
+    window.onload = function(){
+      document.getElementById("js-create-diagram").click();
+    }
+ </script>
   
   #{script 'workflow.js'/}

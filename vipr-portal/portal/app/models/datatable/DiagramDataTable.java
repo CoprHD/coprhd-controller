@@ -1,0 +1,35 @@
+package models.datatable;
+
+import java.io.File;
+import java.util.List;
+
+import util.datatable.DataTable;
+
+import com.google.common.collect.Lists;
+
+public class DiagramDataTable extends DataTable  {
+
+	private static final String DIAGRAM_PATH = "/diagrams/";
+	
+	public DiagramDataTable(){
+		addColumn("name");
+		sortAll();
+        setDefaultSort("name", "asc");
+	}
+	
+	public static List<String> fetch(){
+		List<String> diagrams = Lists.newArrayList();
+		File folder = new File(DIAGRAM_PATH); 
+		try {
+			for (final File fileEntry : folder.listFiles()) {
+			    if (fileEntry.isFile()) {
+			    	diagrams.add(fileEntry.getName()); 
+			    }
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return diagrams;
+	}
+	
+}

@@ -92,9 +92,7 @@ a:link {
 }
 /* line 95, styles/app.less */
 .buttons > li > a {
-  background: #DDD;
-  border: solid 1px #666;
-  display: inline-block;
+ display: inline-block;
   padding: 5px;
 }
 /* line 103, styles/app.less */
@@ -111,7 +109,7 @@ a:link {
   top: 0;
   bottom: 0;
   right: 0;
-  width: 260px;
+  width: 270px;
   z-index: 10;
   border-left: 1px solid #ccc;
   overflow: auto;

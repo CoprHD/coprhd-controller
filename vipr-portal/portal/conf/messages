@@ -146,7 +146,9 @@ nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
 nav.storageSystemTypes=Storage System Types
-nav.customworkflow=Workflow Modeler
+nav.customWorkflow=Workflow Modeler
+diagram.crud.title=Workflow Diagrams
+diagrams.name=Name
 
 # Override messages in the Secure plugin
 secure.title=

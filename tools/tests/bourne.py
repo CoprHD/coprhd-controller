@@ -3795,8 +3795,6 @@ class Bourne:
         params['migration_suspend_before_commit'] = dosuspend
         params['migration_suspend_before_delete_source'] = dosuspend
         
-        print "Change Cos Params = ", params
-    
         posturi = URI_VOLUME_CHANGE_VPOOL
         resp = self.api('POST', posturi, params, {})
         print "RESPONSE = ", resp

@@ -1327,6 +1327,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
+        
+        taskList.getTaskList().addAll(
+                createTasksForVolumes(vpool, Arrays.asList(volume), taskId).getTaskList());
+        
         return taskList;
     }
 

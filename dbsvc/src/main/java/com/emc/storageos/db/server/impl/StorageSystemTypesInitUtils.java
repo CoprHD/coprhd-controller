@@ -48,6 +48,7 @@ public class StorageSystemTypesInitUtils {
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
     private static final String VNXFILE_SMIS = "vnxfile_smis";
+    private static final String HP3PAR = "hp3par";
 
     private static final Map<META_TYPE, List<String>> SYSTEMS_AND_PROVIDERS;
 
@@ -63,7 +64,7 @@ public class StorageSystemTypesInitUtils {
 
     static {
         SYSTEMS_AND_PROVIDERS = new HashMap<META_TYPE, List<String>>();
-        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN, HP3PAR));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE, asList(VNX_FILE, ISILON, NETAPP, NETAPPC));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
@@ -73,6 +74,7 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
         DISPLAY_NAME_MAP.put(VNX_BLOCK, "EMC VNX Block");
+        DISPLAY_NAME_MAP.put(HP3PAR, "HPE 3PAR");
         DISPLAY_NAME_MAP.put(VNX_FILE, "EMC VNX File");
         DISPLAY_NAME_MAP.put(ISILON, "EMC Isilon");
         DISPLAY_NAME_MAP.put(NETAPP, "NetApp 7-mode");
@@ -100,6 +102,7 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(SCALEIOAPI, "443");
         SSL_PORT_MAP.put(VNX_BLOCK, "5989");
         SSL_PORT_MAP.put(VMAX, "5989");
+        SSL_PORT_MAP.put(HP3PAR, "8080");
         SSL_PORT_MAP.put(SMIS, "5989");
         SSL_PORT_MAP.put(HITACHI, "2001");
         SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -130,6 +133,7 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(XTREMIO, "443");
         NON_SSL_PORT_MAP.put(VNX_BLOCK, "5988");
         NON_SSL_PORT_MAP.put(VMAX, "5988");
+        NON_SSL_PORT_MAP.put(HP3PAR, "8008");
         NON_SSL_PORT_MAP.put(ISILON, "8080");
         NON_SSL_PORT_MAP.put(NETAPP, "443");
         NON_SSL_PORT_MAP.put(NETAPPC, "443");

@@ -149,8 +149,12 @@ public class XtremIOMetricsCollector {
         Map<URI, Double> scToAvgCPU = new HashMap<>();
         for (String xEnv : xEnvToAvgCPU.keySet()) {
             StorageHADomain sc = getStorageControllerForXEnv(xEnv, system, dbClient);
+            if (sc == null) {
+                log.debug("StorageHADomain not found for XEnv {}", xEnv);
+                continue;
+            }
 
-            Double scCPU = scToAvgCPU.get(sc);
+            Double scCPU = scToAvgCPU.get(sc.getId());
             Double xEnvCPU = xEnvToAvgCPU.get(xEnv);
             Double avgScCPU = (scCPU == null) ? xEnvCPU : ((xEnvCPU + scCPU) / 2.0);
             scToAvgCPU.put(sc.getId(), avgScCPU);

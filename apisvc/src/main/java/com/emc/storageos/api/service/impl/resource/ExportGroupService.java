@@ -36,6 +36,7 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -269,7 +270,13 @@ public class ExportGroupService extends TaskResourceService {
                 addVolumeURIs.add(volParam.getId());
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
+            /**
+             * Validate ExportGroup add volume's nativeId/nativeGuid
+             */
+            validateBlockObjectNativeId(addVolumeURIs);
         }
+
+
 
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
@@ -339,6 +346,24 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
 
         return taskRes;
+    }
+
+    /**
+     * Validates the given list of BlockObject's are having valid nativeId/nativeGuid
+     * 
+     * @param blockObjectURIs Block Object's URI list
+     */
+    private void validateBlockObjectNativeId(List<URI> blockObjectURIs) {
+        if (!CollectionUtils.isEmpty(blockObjectURIs)) {
+            for (URI boURI : blockObjectURIs) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boURI);
+                ArgValidator.checkEntity(bo, boURI, false);
+                if (NullColumnValueGetter.isNullValue(bo.getNativeId())
+                        || NullColumnValueGetter.isNullValue(bo.getNativeGuid())) {
+                    throw APIException.badRequests.nativeIdCannotBeNull(boURI);
+                }
+            }
+        }
     }
 
     /**
@@ -458,7 +483,10 @@ public class ExportGroupService extends TaskResourceService {
             }
 
             // validate the RP BlockSnapshots for ExportGroup create
-            validateRPBlockSnapshotsForExport(blockObjURIs);
+            validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
+            
+            // Validate VPLEX backend snapshots for export.
+            validateVPLEXBlockSnapshotsForExport(blockObjURIs);
         }
     }
 
@@ -470,6 +498,8 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validateBlockSnapshotsForExportGroupUpdate(ExportUpdateParam param, ExportGroup exportGroup) {
         if (param != null && exportGroup != null) {
+            List<URI> blockObjToAdd = new ArrayList<URI>();
+            List<URI> blockObjExisting = new ArrayList<URI>();
             List<URI> blockObjURIs = new ArrayList<URI>();
 
             List<VolumeParam> addVolumeParams = param.getVolumes().getAdd();
@@ -478,8 +508,12 @@ public class ExportGroupService extends TaskResourceService {
             if (addVolumeParams != null && !addVolumeParams.isEmpty()) {
                 // Collect the block objects being added from the request param
                 for (VolumeParam volParam : addVolumeParams) {
+                    blockObjToAdd.add(volParam.getId());
                     blockObjURIs.add(volParam.getId());
                 }
+                
+                // Validate VPLEX backend snapshots for export.
+                validateVPLEXBlockSnapshotsForExport(blockObjURIs);
 
                 // Collect the existing block objects from the export group. We are combining
                 // the block objects being added with the existing export block objects so that
@@ -487,12 +521,67 @@ public class ExportGroupService extends TaskResourceService {
                 // easily through validation.
                 if (exportGroup.getVolumes() != null) {
                     for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-                        blockObjURIs.add(URI.create(entry.getKey()));
+                        URI uri = URI.create(entry.getKey());
+                        blockObjURIs.add(uri);
+                        blockObjExisting.add(uri);
                     }
                 }
 
                 // validate the RP BlockSnapshots for ExportGroup create
-                validateRPBlockSnapshotsForExport(blockObjURIs);
+                validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
+            }
+
+            // Validate any RP BlockSnapshots being added to ensure no corresponding target volumes
+            // have already been exported.
+            validateSnapshotTargetNotExported(blockObjToAdd, blockObjExisting);
+        }
+    }
+    
+    /**
+     * Validate VPLEX backend snapshots for export.
+     * 
+     * @param blockObjURIs The URIs of the block objects to be exported.
+     */
+    private void validateVPLEXBlockSnapshotsForExport(List<URI> blockObjURIs) {
+        // We do not allow a VPLEX backend snapshot that is exposed as a VPLEX
+        // volume to be exported to a host/cluster. If the user was to write
+        // to the snapshot, this would invalidate the VPLEX volume as the 
+        // VPLEX would not be aware of these writes. Further, we know this will
+        // fail for VMAX3 backend snapshots with the error "A device cannot belong
+        // to more than one storage group in use by FAST".
+        for (URI blockObjectURI : blockObjURIs) {
+            if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+                if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshot.getNativeGuid()).isEmpty()) {
+                    throw APIException.badRequests.cantExportSnapshotExposedAsVPLEXVolume(snapshot.getLabel());
+                }
+            }
+        }
+    }
+
+    /**
+     * Validate any RP BlockSnapshots being added to ensure no corresponding target volumes
+     * have already been exported.
+     *
+     * @param blockObjectsToAdd the list of block object to export
+     * @param blockObjectsExisting the list of block objects already exported
+     */
+    private void validateSnapshotTargetNotExported(List<URI> blockObjectsToAdd, List<URI> blockObjectsExisting) {
+        for (URI blockObjToAdd : blockObjectsToAdd) {
+            if (URIUtil.isType(blockObjToAdd, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjToAdd);
+
+                // Search the list of existing BlockObjects for a Volume that corresponds to the snapshot's
+                // referenced target Volume. This is done by matching on the nativeId.
+
+                for (URI blockObjExisting : blockObjectsExisting) {
+                    if (URIUtil.isType(blockObjExisting, Volume.class)) {
+                        Volume volume = _dbClient.queryObject(Volume.class, blockObjExisting);
+                        if (snapshot.getNativeId() != null && snapshot.getNativeId().equals(volume.getNativeId())) {
+                            throw APIException.badRequests.snapshotTargetAlreadyExported(volume.getId(), snapshot.getId());
+                        }
+                    }
+                }
             }
         }
     }
@@ -503,7 +592,7 @@ public class ExportGroupService extends TaskResourceService {
      *
      * @param blockObjURIs the list of BlockObject URIs.
      */
-    private void validateRPBlockSnapshotsForExport(List<URI> blockObjURIs) {
+    private void validateDuplicateRPBlockSnapshotsForExport(List<URI> blockObjURIs) {
         Map<URI, List<String>> cgToRpSiteMap = new HashMap<URI, List<String>>();
 
         for (URI blockObjectURI : blockObjURIs) {
@@ -529,7 +618,7 @@ public class ExportGroupService extends TaskResourceService {
                         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class,
                                 snapshot.getConsistencyGroup());
                         String rpCopyName = RPHelper.getCgCopyName(_dbClient, cg, snapshot.getVirtualArray(), false);
-                        throw APIException.badRequests.duplicateRpBookMarkExport(rpCopyName, cg.getLabel());
+                        throw APIException.badRequests.duplicateRpBookmarkExport(rpCopyName, cg.getLabel());
                     } else {
                         rpSites.add(snapshot.getEmInternalSiteName());
                     }
@@ -1337,6 +1426,23 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
         validateInitiatorsInExportGroup(exportGroup);
+        /**
+         * ExportGroup Add/Remove volume should have valid nativeId
+         */
+        List<URI> boURIList = new ArrayList<>();
+        if (param.getVolumes() != null) {
+            if (param.getVolumes().getAdd() != null) {
+                for (VolumeParam volParam : param.getVolumes().getAdd()) {
+                    boURIList.add(volParam.getId());
+                }
+            }
+            if (param.getVolumes().getRemove() != null) {
+                for (URI volURI : param.getVolumes().getRemove()) {
+                    boURIList.add(volURI);
+                }
+            }
+        }
+        validateBlockObjectNativeId(boURIList);
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters

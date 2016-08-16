@@ -405,8 +405,21 @@ public class VnxExportOperations implements ExportMaskOperations {
                         storage.getSerialNumber());
                 return;
             }
-            deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
-            taskCompleter.ready(_dbClient);
+            String[] volumeNames = null;
+
+            volumeNames = _helper.getBlockObjectAlternateNames(volumeURIList);
+            /**
+             * This extra condition makes sure ViPR do not pass null as volume name while invoking HidePaths.
+             * If we pass null into HidePaths call, SMI will remove the entire storage group and that will give DU.
+             */
+            if (volumeNames == null || volumeNames.length == 0) {
+                _log.error("Volume's {} alternate name can not be null", volumeURIList);
+                ServiceError error = DeviceControllerException.errors.removeVolumeFromMaskFailed(volumeURIList.toString());
+                taskCompleter.error(_dbClient, error);
+            } else {
+                deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
+                taskCompleter.ready(_dbClient);
+            }
         } catch (Exception e) {
             _log.error("Unexpected error: removeVolumes failed.", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("removeVolumes", e.getMessage());

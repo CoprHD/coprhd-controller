@@ -1665,8 +1665,8 @@ def vpool_update(args):
                              args.fr_removecopies,
                              args.mindatacenters,
                              args.snapshotsched,
-                             args.dedupcapable,
-                             args.placementpolicy)
+                             args.placementpolicy,
+                             args.dedupcapable)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide at least one of parameters")

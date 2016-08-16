@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -82,6 +83,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * A service that provides APIs for viewing, approving, declining and removing actionable events.
@@ -287,7 +289,7 @@ public class EventService extends TaggedResource {
                     }
 
                     if (update) {
-                        result.addAll(getVolumes(export.getVolumes(), true));
+                        result.addAll(getVolumes(initiator.getHost(), export.getVolumes(), true));
                     }
                 }
             }
@@ -338,7 +340,7 @@ public class EventService extends TaggedResource {
                 List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
                 // Only update if the list as changed
                 if (updatedInitiators.remove(initiatorId)) {
-                    result.addAll(getVolumes(export.getVolumes(), false));
+                    result.addAll(getVolumes(initiator.getHost(), export.getVolumes(), false));
                 }
             }
         }
@@ -456,9 +458,24 @@ public class EventService extends TaggedResource {
         return hostClusterChange(hostId, clusterId, isVcenter);
     }
 
-    private List<String> getVolumes(StringMap volumes, boolean gainAccess) {
+    private Set<String> getHostVolumes(URI hostId) {
+        List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
+        Set<String> volumeIds = Sets.newHashSet();
+        for (ExportGroup export : ComputeSystemControllerImpl.getExportGroups(_dbClient, hostId, hostInitiators)) {
+            volumeIds.addAll(export.getVolumes().keySet());
+        }
+        return volumeIds;
+    }
+
+    private List<String> getVolumes(URI hostId, StringMap volumes, boolean gainAccess) {
         List<String> result = Lists.newArrayList();
+        Set<String> hostVolumes = Sets.newHashSet();
+
         for (Entry<String, String> volume : volumes.entrySet()) {
+            // if host has access to volume in an exclusive export, skip it from the list of changes
+            if (hostVolumes.contains(volume.getKey())) {
+                continue;
+            }
             URI project = null;
             String volumeName = null;
             URI blockURI = URI.create(volume.getKey());
@@ -506,7 +523,7 @@ public class EventService extends TaggedResource {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result.addAll(getVolumes(export.getVolumes(), false));
+                    result.addAll(getVolumes(hostId, export.getVolumes(), false));
                 }
             }
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -515,7 +532,7 @@ public class EventService extends TaggedResource {
             // Non-clustered host being added to a cluster
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result.addAll(getVolumes(eg.getVolumes(), true));
+                result.addAll(getVolumes(hostId, eg.getVolumes(), true));
             }
 
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -527,12 +544,12 @@ public class EventService extends TaggedResource {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result.addAll(getVolumes(export.getVolumes(), false));
+                    result.addAll(getVolumes(hostId, export.getVolumes(), false));
                 }
             }
             exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result.addAll(getVolumes(eg.getVolumes(), true));
+                result.addAll(getVolumes(hostId, eg.getVolumes(), true));
             }
         }
 

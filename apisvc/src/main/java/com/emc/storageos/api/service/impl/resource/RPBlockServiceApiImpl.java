@@ -2183,6 +2183,32 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         _log.debug("Verify if RP volume {} can be expanded", volume.getId());
 
         boolean vplex = RPHelper.isVPlexVolume(volume);
+        
+        //validate the source
+        if (vplex) {
+        	vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
+        } else {
+           super.verifyVolumeExpansionRequest(volume, newSize);
+        }
+        
+        //validate the targets
+        if (volume.getRpTargets() != null) {
+        	for (String volumeId : volume.getRpTargets()) {        	   
+        		Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
+	        		
+        		if (RPHelper.isVPlexVolume(targetVolume)) {
+        			if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
+                        vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
+	        		} 
+        		} else {
+	                    super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
+        		}
+    		}        	
+        } else {
+        	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
+        	//throw 
+        }
+       /* 
 
         if (vplex) {
             // Look at all source and target volumes and make sure they can all be expanded
@@ -2213,7 +2239,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
             }
         }
-
+        */
+        
         // Validate the source volume size is not greater than the target volume size
         RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));
     }

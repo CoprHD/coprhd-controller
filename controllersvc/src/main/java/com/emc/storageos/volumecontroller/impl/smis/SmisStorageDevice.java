@@ -553,9 +553,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 taskCompleter);
         try {
-
-            validator.expandVolumes(storageSystem, volume).validate();
-
             if (!doesStorageSystemSupportVolumeExpand(storageSystem)) {
                 ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
                 taskCompleter.error(_dbClient, error);
@@ -609,18 +606,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             Set<Volume> cloneVolumes = new HashSet<Volume>();
 
             _helper.callRefreshSystem(storageSystem, null, false);
-
-            if (validator == null) {
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-            } else {
-                validator.deleteVolumes(storageSystem, volumes).validate();
-            }
 
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));

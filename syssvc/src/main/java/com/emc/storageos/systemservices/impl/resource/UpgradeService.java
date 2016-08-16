@@ -578,15 +578,15 @@ public class UpgradeService {
             case "vdc":
                 _vdcManager.wakeup();
                 break;
-            case "driver":
-                _driverManager.wakeup();
-                break;
+//            case "driver":
+//                _driverManager.wakeup();
+//                break;
             default:
                 _upgradeManager.wakeup();
                 _secretsManager.wakeup();
                 _propertyManager.wakeup();
                 _vdcManager.wakeup();
-                _driverManager.wakeup();
+//                _driverManager.wakeup();
         }
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {

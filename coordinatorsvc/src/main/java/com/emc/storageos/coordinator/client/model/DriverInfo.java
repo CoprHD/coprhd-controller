@@ -34,6 +34,9 @@ public class DriverInfo implements CoordinatorSerializable {
     }
 
     public List<String> getDrivers() {
+        if (drivers == null) {
+            return new ArrayList<String>();
+        }
         return drivers;
     }
 

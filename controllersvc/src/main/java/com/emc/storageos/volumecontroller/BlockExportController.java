@@ -42,6 +42,12 @@ public interface BlockExportController extends Controller {
      * @param updatedClusters the updated list of clusters
      * @param updatedHosts the updated list of hosts
      * @param updatedInitiators the updates list of initiators
+     * @param addedClusters TODO
+     * @param removedClusters TODO
+     * @param addedHosts TODO
+     * @param removedHosts TODO
+     * @param addedInitiators TODO
+     * @param removedInitiators TODO
      * @param opId the taskId
      * @throws ControllerException
      */
@@ -51,7 +57,7 @@ public interface BlockExportController extends Controller {
             List<URI> updatedClusters,
             List<URI> updatedHosts,
             List<URI> updatedInitiators,
-            String opId) throws ControllerException;
+            List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId) throws ControllerException;
 
     /**
      * Delete the export.

@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
-import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ExportUtils;
@@ -91,12 +90,20 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             // Remove the block objects being deleted from any existing path parameters.
             exportGroupService.removeBlockObjectsFromPathParamMap(removedBlockObjectsMap.keySet(), exportGroup);
 
+            List<URI> addedInitiators = new ArrayList<URI>();
+            List<URI> removedInitiators = new ArrayList<URI>();
+            List<URI> addedHosts = new ArrayList<URI>();
+            List<URI> removedHosts = new ArrayList<URI>();
+            List<URI> addedClusters = new ArrayList<URI>();
+            List<URI> removedClusters = new ArrayList<URI>();
+
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             List<URI> newHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> newClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
             exportGroupService.validateClientsAndUpdate(exportGroup, project, storageMap.keySet(), exportUpdateParam, newClusters,
-                    newHosts, newInitiators);
+                    newHosts, newInitiators, addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators);
+
             _log.info("All clients were successfully validated");
             dbClient.persistObject(exportGroup);
             if (exportPathParam != null) {
@@ -107,7 +114,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
             exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
-                    newClusters, newHosts, newInitiators, task);
+                    newClusters, newHosts, newInitiators, addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators,
+                    task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

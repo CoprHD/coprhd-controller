@@ -30,7 +30,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -354,22 +353,17 @@ public class BlockDeviceExportController implements BlockExportController {
     }
 
     @Override
-    public void exportGroupUpdate(URI export, 
-            Map<URI, Integer> addedBlockObjectMap, 
+    public void exportGroupUpdate(URI export,
+            Map<URI, Integer> addedBlockObjectMap,
             Map<URI, Integer> removedBlockObjectMap,
             List<URI> updatedClusters, List<URI> updatedHosts,
-            List<URI> updatedInitiators, String opId)
+            List<URI> updatedInitiators, List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId)
             throws ControllerException {
         Map<BlockObjectControllerKey, Map<URI, Integer>> addedStorageToBlockObjects =
                 new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
         Map<BlockObjectControllerKey, Map<URI, Integer>> removedStorageToBlockObjects =
                 new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
-        List<URI> addedInitiators = new ArrayList<URI>();
-        List<URI> removedInitiators = new ArrayList<URI>();
-        List<URI> addedHosts = new ArrayList<URI>();
-        List<URI> removedHosts = new ArrayList<URI>();
-        List<URI> addedClusters = new ArrayList<URI>();
-        List<URI> removedClusters = new ArrayList<URI>();
+
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
@@ -538,16 +532,7 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         }
         
-        // compute the list of initiators to be added and removed
-        for (URI uri : newInitiators) {
-            if (exportGroup.getInitiators() == null ||
-                    !exportGroup.getInitiators().contains(uri.toString())) {
-                addedInitiators.add(uri);
-            } else {
-                existingInitiators.remove(uri);
-            }
-        }
-        removedInitiators.addAll(existingInitiators);
+
         _log.info("Initiators to add: {}", addedInitiators.toArray());
         _log.info("Initiators to remove: {}", removedInitiators.toArray());
 
@@ -559,32 +544,23 @@ public class BlockDeviceExportController implements BlockExportController {
             // As a foundation for our calculations, first determine what the initiator list
             // will look like at the end of this operation, which is the current initiator list
             // minus the removed ones plus the added ones.
-            StringSet updatedInitiatorIds = new StringSet();
-            if (exportGroup.getInitiators() != null) {
-                updatedInitiatorIds.addAll(exportGroup.getInitiators());
-            }
-            if (removedInitiators != null) {
-                updatedInitiatorIds.removeAll(StringSetUtil.uriListToStringSet(removedInitiators));
-            }
-            if (addedInitiators != null) {
-                updatedInitiatorIds.addAll(StringSetUtil.uriListToStringSet(addedInitiators));
-            }
 
-            // Get the initiator objects. We'll need to know the Host object.
-            List<Initiator> updatedInitiators = new ArrayList<>();
-            if (updatedInitiatorIds != null && !updatedInitiatorIds.isEmpty()) {
-                updatedInitiators = _dbClient.queryObject(Initiator.class, StringSetUtil.stringSetToUriList(updatedInitiatorIds));
-            }
+            List<Initiator> addedInitiatorList = new ArrayList<>();
+            addedInitiatorList = _dbClient.queryObject(Initiator.class, addedInitiators);
+
+            List<Initiator> removedInitiatorList = new ArrayList<>();
+            removedInitiatorList = _dbClient.queryObject(Initiator.class, removedInitiators);
+
 
             // See if any hosts need to be removed.
             // We do this by looping through the hosts in the export group and making sure there's
             // at least one initiator that belongs to that host in the list of initiators when the task is done.
             if (exportGroup.getHosts() != null) {
                 for (URI hostId : StringSetUtil.stringSetToUriList(exportGroup.getHosts())) {
-                    boolean remove = true;
-                    for (Initiator initiator : updatedInitiators) {
+                    boolean remove = false;
+                    for (Initiator initiator : removedInitiatorList) {
                         if (initiator.getHost().equals(hostId)) {
-                            remove = false;
+                            remove = true;
                             break;
                         }
                     }
@@ -598,7 +574,7 @@ public class BlockDeviceExportController implements BlockExportController {
             // We do this by looking at the list of initiators when the task is done and
             // seeing if the hosts associated with those initiators are in the export group.
             // If they are not, we add them to the temporary list for the completer.
-            for (Initiator initiator : updatedInitiators) {
+            for (Initiator initiator : addedInitiatorList) {
                 if ((exportGroup.getHosts() == null || !exportGroup.getHosts().contains(initiator.getHost().toString())) &&
                         !addedHosts.contains(initiator.getHost())) {
                     addedHosts.add(initiator.getHost());
@@ -615,32 +591,23 @@ public class BlockDeviceExportController implements BlockExportController {
                 // that will apply to the export group at the end of the task. We do this by
                 // starting with the current export group host list minus the hosts we're removing
                 // plus the hosts we're adding as part of this update.
-                Set<URI> updatedHostIds = new HashSet<>();
-                if (exportGroup.getHosts() != null) {
-                    updatedHostIds.addAll(StringSetUtil.stringSetToUriList(exportGroup.getHosts()));
-                }
-                if (addedHosts != null) {
-                    updatedHostIds.addAll(addedHosts);
-                }
-                if (removedHosts != null) {
-                    updatedHostIds.removeAll(removedHosts);
-                }
 
-                // Load all of the hosts since we need to examine the cluster ID
-                List<Host> updatedHosts = new ArrayList<>();
-                if (!updatedHostIds.isEmpty()) {
-                    updatedHosts = _dbClient.queryObject(Host.class, updatedHostIds);
-                }
+                List<Host> addedHostList = new ArrayList<>();
+                addedHostList = _dbClient.queryObject(Host.class, addedHosts);
+
+                List<Host> removedHostList = new ArrayList<>();
+                removedHostList = _dbClient.queryObject(Host.class, removedHosts);
+
 
                 // See if any clusters need to be removed.
                 // We do this by looping through the clusters in the export group and making sure there's
                 // at least one host that belongs to that cluster in the list of hosts when the task is done.
                 if (exportGroup.getClusters() != null) {
                     for (URI clusterId : StringSetUtil.stringSetToUriList(exportGroup.getClusters())) {
-                        boolean remove = true;
-                        for (Host host : updatedHosts) {
+                        boolean remove = false;
+                        for (Host host : removedHostList) {
                             if (clusterId.equals(host.getCluster())) {
-                                remove = false;
+                                remove = true;
                                 break;
                             }
                         }
@@ -654,7 +621,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 // We do this by looking at the list of hosts when the task is done and
                 // seeing if the clusters associated with those hosts are in the export group.
                 // If they are not, we add them to the temporary list for the completer.
-                for (Host host : updatedHosts) {
+                for (Host host : addedHostList) {
                     if ((exportGroup.getClusters() == null || !exportGroup.getClusters().contains(host.getCluster().toString())) &&
                             !addedClusters.contains(host.getCluster())) {
                         addedClusters.add(host.getCluster());

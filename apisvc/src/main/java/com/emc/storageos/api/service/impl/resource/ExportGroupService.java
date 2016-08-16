@@ -738,33 +738,45 @@ public class ExportGroupService extends TaskResourceService {
      * @param newClusters a list to be populated with the updated list of clusters
      * @param newHosts a list to be populated with the updated list of hosts
      * @param newInitiators a list to be populated with the updated list of initiators
+     * @param addedClusters TODO
+     * @param removedClusters TODO
+     * @param addedHosts TODO
+     * @param removedHosts TODO
+     * @param addedInitiators TODO
+     * @param removedInitiators TODO
      */
     void validateClientsAndUpdate(ExportGroup exportGroup,
             Project project, Collection<URI> storageSystems,
             ExportUpdateParam param, List<URI> newClusters,
-            List<URI> newHosts, List<URI> newInitiators) {
+            List<URI> newHosts, List<URI> newInitiators, List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators) {
         if (param.getClusters() != null) {
             if (param.getClusters().getRemove() != null) {
                 for (URI uri : param.getClusters().getRemove()) {
-                    newClusters.remove(uri);
-                    removeClusterData(uri, newHosts, newInitiators);
+                    if (!removedClusters.contains(uri)) {
+                        removedClusters.add(uri);
+                        // removeClusterData(uri, newHosts, newInitiators);
+                    }
+
                 }
             }
             if (param.getClusters().getAdd() != null) {
                 for (URI uri : param.getClusters().getAdd()) {
                     Cluster cluster = queryObject(Cluster.class, uri, true);
                     validateClusterData(cluster, exportGroup, storageSystems, project, newHosts, newInitiators);
-                    if (!newClusters.contains(uri)) {
-                        newClusters.add(uri);
+                    if (!addedClusters.contains(uri)) {
+                        addedClusters.add(uri);
                     }
                 }
             }
         }
-        _log.info("Updated list of clusters: {}", newClusters.toArray());
+
+        _log.info("Updated list of Added clusters: {}", addedClusters.toArray());
+        _log.info("Updated list of Removed clusters: {}", removedClusters.toArray());
+
         if (param.getHosts() != null) {
             if (param.getHosts().getRemove() != null) {
                 for (URI uri : param.getHosts().getRemove()) {
-                    newHosts.remove(uri);
+                    removedHosts.add(uri);
                     removeHostData(uri, newInitiators);
                 }
             }
@@ -779,17 +791,19 @@ public class ExportGroupService extends TaskResourceService {
                         }
                     }
                     validateHostData(host, exportGroup, storageSystems, project, newInitiators);
-                    if (!newHosts.contains(uri)) {
-                        newHosts.add(uri);
+                    if (!addedHosts.contains(uri)) {
+                        addedHosts.add(uri);
                     }
                 }
             }
         }
-        _log.info("Updated list of hosts: {}", newHosts.toArray());
+        _log.info("Updated list of Added Hosts: {}", addedHosts.toArray());
+        _log.info("Updated list of Removed Hosts: {}", removedHosts.toArray());
+
         if (param.getInitiators() != null) {
             if (param.getInitiators().getRemove() != null) {
                 for (URI uri : param.getInitiators().getRemove()) {
-                    newInitiators.remove(uri);
+                    removedInitiators.add(uri);
                 }
             }
             if (param.getInitiators().getAdd() != null) {
@@ -815,15 +829,15 @@ public class ExportGroupService extends TaskResourceService {
                             throw APIException.badRequests.invalidParameterExportGroupInitiatorNotInHost(initiator.getId());
                         }
                     }
-                    if (!newInitiators.contains(uri)) {
-                        newInitiators.add(uri);
+                    if (!addedInitiators.contains(uri)) {
+                        addedInitiators.add(uri);
                     }
                 }
             }
         }
-        validateInitiatorHostOS(newInitiators);
+        validateInitiatorHostOS(addedInitiators);
         List<URI> connectStorageSystems = new ArrayList<>();
-        filterOutInitiatorsNotAssociatedWithVArray(exportGroup, storageSystems, connectStorageSystems, newInitiators);
+        filterOutInitiatorsNotAssociatedWithVArray(exportGroup, storageSystems, connectStorageSystems, addedInitiators);
 
         // Validate if we're adding new Volumes to the export. If so, we want to make sure that there
         // connections from the volumes to the StorageSystems. If the newInitiators list is empty, then
@@ -1269,7 +1283,10 @@ public class ExportGroupService extends TaskResourceService {
         List<Host> clusterHosts = getChildren(cluster.getId(), Host.class, "cluster");
         for (Host host : clusterHosts) {
             validateHostData(host, exportGroup, storageSystems, project, allInitiators);
-            allHosts.add(host.getId());
+            if (!allHosts.contains(host.getId())) {
+                allHosts.add(host.getId());
+            }
+
         }
         _log.info("Cluster {} was validated successfully", cluster.getId().toString());
     }

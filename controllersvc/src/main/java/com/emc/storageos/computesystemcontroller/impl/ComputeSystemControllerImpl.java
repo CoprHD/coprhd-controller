@@ -884,7 +884,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                 stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
         blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
-                newHosts, newInitiators, stepId);
+                newHosts, newInitiators, null, null, null, null, null, null, stepId);
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {

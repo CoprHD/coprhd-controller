@@ -3855,6 +3855,7 @@ approvalsTable.orderUserName=Submitted By
 approvalsTable.createdDate=Submit Date
 approvalsTable.approvedBy=Approver
 approval.message=Message
+approval.noTenantAccess=Current user has no access on the target tenant %s
 
 service.order=Order
 service.preview=Preview

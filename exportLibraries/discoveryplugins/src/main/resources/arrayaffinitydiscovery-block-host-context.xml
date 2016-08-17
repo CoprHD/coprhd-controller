@@ -22,7 +22,7 @@
 				<!-- All processors after this -->
 
 				<!-- This should be executed at the end of the array affinity discovery -->
-				<ref bean="updatePreferredPoolIds" />
+				<ref bean="updatePreferredPools" />
 
 				<!-- "complete" should be the last step. All new steps above this -->
 				<ref bean="complete" />
@@ -68,7 +68,7 @@
 		<property name="value" value="dbClient" />
 	</bean>
 
-	<bean id="updatePreferredPoolIds" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+	<bean id="updatePreferredPools" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
 				<ref bean="accessProfile"/>
@@ -77,8 +77,8 @@
 			</list>
 		</property>
 		<property name="instance" ref="arrayAffinityProcessor" />
-		<property name="method" value="updatePreferredPoolIds" />
-		<property name="message" value="Invoking updatePreferredPoolIds" />
+		<property name="method" value="updatePreferredPools" />
+		<property name="message" value="Invoking updatePreferredPools" />
 	</bean>
 
 	<bean id="arrayAffinityProcessor"

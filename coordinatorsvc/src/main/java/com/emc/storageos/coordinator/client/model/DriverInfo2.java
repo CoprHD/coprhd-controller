@@ -1,15 +1,12 @@
 package com.emc.storageos.coordinator.client.model;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.jsoup.helper.StringUtil;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 public class DriverInfo2 {
 

@@ -79,6 +79,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String CREATE_FILESYSTEM_SNAPSHOT_WF_NAME = "CREATE_FILESYSTEM_SNAPSHOT_WORKFLOW";
     static final String DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME = "DELETE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
     static final String DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME = "DELETE_FILESYSTEM_EXPORT_RULES_WORKFLOW";
+    static final String EXPAND_FILESYSTEM_WF_NAME = "EXPAND_FILESYSTEM_WORFLOW";
+    static final String DELETE_FILESYSTEM_SNAPSHOT_WF_NAME = "DELETE_FILESYSTEM_SNAPSHOT_WORKFLOW";
+    static final String RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME = "RESTORE_FILESYSTEM_SNAPSHOT_WORFLOW";
+    static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -100,6 +104,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD = "addStepsToReplicateNFSExportRules";
+    private static final String RESTORE_FILESYSTEM_SNAPSHOT_METHOD = "restoreFS";
+    private static final String DELETE_FILESYSTEM_SNAPSHOT_METHOD = "delete";
+    private static final String DELETE_FILESYSTEM_SHARE_ACLS_METHOD = "deleteShareACLs";
 
     /*
      * (non-Javadoc)
@@ -368,14 +375,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, taskId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Creating CIFS Share : " + smbShare.getName() + " for FileSystem : " + fileObj.getLabel();
-            successMessage = "CIFS Share creation for FileSystem :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating CIFS share for file system : %s, share name: %s ", uri, smbShare.getName());
+            successMessage = String.format("Creating CIFS share for file system : %s, share name: %s finished succesfully.", uri,
+                    smbShare.getName());
             opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SHARE.getName();
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, taskId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Creating CIFS Share : " + smbShare.getName() + " for Snapshot :" + fileObj.getLabel();
-            successMessage = "CIFS Share creation for Snapshot :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating CIFS share for file system snapshot : %s, share name: %s ", uri, smbShare.getName());
+            successMessage = String.format("Creating CIFS share for file system : %s, share name: %s finished succesfully.", uri,
+                    smbShare.getName());
             opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
         }
         try {
@@ -386,7 +395,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not create CIFS share for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Creating CIFS share for file system : %s, share name: %s failed.", uri,
+                    smbShare.getName()), ex);
             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -404,15 +414,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Creating NFS Export for File System :" + fileObj.getLabel();
-            successMessage = "NFS Export creation for FileSystem :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating NFS export for file system : %s", uri);
+            successMessage = String.format("Creating NFS export for file system : %s finished succesfully.", uri);
             opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Creating NFS Export for FileSystem Snapshot :" + fileObj.getLabel();
-            successMessage = "NFS Export creation for FileSystem Snapshot :" + fileObj.getLabel() + " finished successfully";
+            stepDescription = String.format("Creating NFS export for file system snapshot : %s", uri);
+            successMessage = String.format("Creating NFS export for file system snapshot : %s finished succesfully.", uri);
             opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
         }
         try {
@@ -422,7 +432,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep, stepDescription, storage, args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not create NFS Export for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Creating NFS export for file system/snapshot : %s failed", uri), ex);
             ServiceError serviceError = DeviceControllerException.errors.exportFileShareFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -440,15 +450,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Updating File System : " + fileObj.getLabel() + " Export Rules: " + param.toString();
-            successMessage = "File System: " + fileObj.getLabel() + " Export Rule updated successfully";
+            stepDescription = String.format("Updating file system : %s export rules: %s", uri, param.toString());
+            successMessage = String.format("Updating file system : %s export rules: %s finished successfully.", uri, param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Updating FileSystem Snapshot : " + fileObj.getLabel() + " Export Rules: " + param.toString();
-            successMessage = "FileSystem Snapshot : " + fileObj.getLabel() + " Export Rule updated successfully";
+            stepDescription = String.format("Updating file system : %s export rules: %s", uri, param.toString());
+            successMessage = String.format("Updating file system : %s export rules: %s finished successfully.", uri, param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT.getName();
         }
         try {
@@ -460,7 +470,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
-            s_logger.error("Could not update NFS Export Rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Updating file system : %s export rules: %s failed.", uri, param.toString()), ex);
             ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -479,16 +489,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Updating File System : " + fileObj.getLabel() + " CIFS Share: " + shareName + " ACLs " + param.toString();
-            successMessage = "File System: " + fileObj.getLabel() + " CIFS Share ACLs updated successfully";
+            stepDescription = String.format("Updating file system : %s share : %s  ACLs: %s", uri, shareName, param.toString());
+            successMessage = String.format("Updating file system : %s share : %s  ACLs: %s finished successfully.", uri, shareName,
+                    param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Updating FileSystem Snapshot : " + fileObj.getLabel() + " CIFS Share: " + shareName + " ACLs "
-                    + param.toString();
-            successMessage = "File System Snapshot : " + fileObj.getLabel() + " CIFS Share ACLs updated successfully";
+            stepDescription = String.format("Updating file system snapshot : %s share : %s  ACLs: %s", uri, shareName, param.toString());
+            successMessage = String.format("Updating file system snapshot : %s share : %s  ACLs: %s finished successfully.", uri, shareName,
+                    param.toString());
             opName = ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL.getName();
         }
         try {
@@ -500,31 +511,29 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not update CIFS Share ACLs for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(
-                    fileObj.toString(), opName, ex);
+            s_logger.error(String.format("Updating file system : %s share : %s  ACLs: %s failed.", uri, shareName, param.toString()), ex);
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
 
     @Override
     public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId) throws ControllerException {
-        FileShare fileShare = s_dbClient.queryObject(FileShare.class, fsURI);
         // Using VNXeFSSnapshotTaskCompleter as it will serve the purpose..
         VNXeFSSnapshotTaskCompleter completer = new VNXeFSSnapshotTaskCompleter(Snapshot.class, snapshot, opId);
         Workflow workflow = null;
         try {
             workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
             String snapshotFSStep = workflow.createStepId();
-            String stepDescription = "Creating File System Snapshot :" + fileShare.getLabel();
+            String stepDescription = String.format("Creating file system: %s snapshot : %s", fsURI, snapshot);
             Object[] args = new Object[] { storage, snapshot, fsURI };
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_SNAPSHOT_METHOD, snapshotFSStep, stepDescription, storage,
                     args);
-            String successMessage = "File System: " + fileShare.getLabel() + " snapshot " + snapshot.toString() + " created successfully";
+            String successMessage = String.format("Creating file system: %s snapshot : %s finished successfully.", fsURI, snapshot);
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
-            s_logger.error("Could not create snapshot for filesystem: " + fsURI + " " + fileShare.getLabel(), ex);
+            s_logger.error(String.format("Creating file system: %s snapshot : %s failed.", fsURI, snapshot), ex);
             String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT.getName();
             ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(fsURI.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -542,17 +551,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem : " + fileObj.getLabel();
-            successMessage = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem : " + fileObj.getLabel()
-                    + " finished successfully.";
+            stepDescription = String.format("Deleting file system: %s CIFS share: %s ", uri, fileSMBShare.getName());
+            successMessage = String.format("Deleting file system: %s CIFS share: %s finished succesfully.", uri, fileSMBShare.getName());
             opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem Snapshot : " + fileObj.getLabel();
-            successMessage = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem Snapshot : " + fileObj.getLabel()
-                    + " finished successfully.";
+            stepDescription = String.format("Deleting file system snapshot: %s CIFS share: %s ", uri, fileSMBShare.getName());
+            successMessage = String.format("Deleting file system snapshot: %s CIFS share: %s finished succesfully.", uri,
+                    fileSMBShare.getName());
             opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE.getName();
         }
         try {
@@ -563,7 +571,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not delete CIFS Share for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Deleting file system snapshot: %s CIFS share: %s failed.", uri, fileSMBShare.getName()), ex);
             ServiceError serviceError = DeviceControllerException.errors.deleteCIFSShareFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -580,15 +588,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(FileShare.class, uri);
-            stepDescription = "Deleting Export Rules for File System : " + fileObj.getLabel();
-            successMessage = "Deleting Export Rules for File System : " + fileObj.getLabel() + " finished successfully.";
+            stepDescription = String.format("Deleting export rules for file system : %s ", uri);
+            successMessage = String.format("Deleting export rules for file system : %s finished successfully.", uri);
             opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SYSTEM.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, opId);
             fileObj = s_dbClient.queryObject(Snapshot.class, uri);
-            stepDescription = "Deleting Export Rules for File System Snapshot : " + fileObj.getLabel();
-            successMessage = "Deleting Export Rules for File System Snapshot : " + fileObj.getLabel() + " finished successfully.";
+            stepDescription = String.format("Deleting export rules for file system snapshot : %s ", uri);
+            successMessage = String.format("Deleting export rules for file system snapshot : %s finished successfully.", uri);
             opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT.getName();
         }
         try {
@@ -599,11 +607,92 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error("Could not delete export rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            s_logger.error(String.format("Deleting export rules for file system snapshot : %s failed. ", uri), ex);
             ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 
+    }
+
+    @Override
+    public void restoreFS(URI storage, URI fs, URI snapshot, String opId) throws ControllerException {
+        // Using VNXeFSSnapshotTaskCompleter as it will serve the purpose..
+        VNXeFSSnapshotTaskCompleter completer = new VNXeFSSnapshotTaskCompleter(Snapshot.class, snapshot, opId);
+        Workflow workflow = null;
+        try {
+            workflow = this._workflowService.getNewWorkflow(this, RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
+            String restoreFSStep = workflow.createStepId();
+            String stepDescription = String.format("Restoring file System : %s from snapshot: %s", fs, snapshot);
+            Object[] args = new Object[] { storage, fs, snapshot };
+            _fileDeviceController.createMethod(workflow, null, RESTORE_FILESYSTEM_SNAPSHOT_METHOD, restoreFSStep, stepDescription, storage,
+                    args);
+            String successMessage = String.format("Restoring file system : %s from snapshot: %s finished successfully.", fs, snapshot);
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error(String.format("Restoring file system : %s from snapshot: %s failed.", fs, snapshot), ex);
+            String opName = ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(fs.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
+    @Override
+    public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
+            throws ControllerException {
+        Snapshot snap = s_dbClient.queryObject(Snapshot.class, uri);
+        FileSnapshotWorkflowCompleter completer = new FileSnapshotWorkflowCompleter(uri, opId);
+        Workflow workflow = null;
+        try {
+            workflow = this._workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId, completer);
+            String deleteSnapshotStep = workflow.createStepId();
+            String stepDescription = String.format("Deleting file System : %s snapshot: %s", snap.getParent(), uri);
+            Object[] args = new Object[] { storage, pool, uri, forceDelete, deleteType };
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SNAPSHOT_METHOD, deleteSnapshotStep, stepDescription,
+                    storage, args);
+            String successMessage = String.format("Deleting file System : %s snapshot: %s finished successfully.", snap.getParent(), uri);
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error(String.format("Deleting file System : %s snapshot: %s failed.", snap.getParent(), uri), ex);
+            String opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(uri.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
+    @Override
+    public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws ControllerException {
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, taskId);
+
+            stepDescription = String.format("Deleting file system : %s share : %s  ACLs: %s", uri, shareName);
+            successMessage = String.format("Deleting file system : %s share : %s  ACLs: %s finished successfully", uri, shareName);
+            opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, taskId);
+            stepDescription = String.format("Deleting file system snapshot : %s share: %s  ACLs: %s", uri, shareName);
+            successMessage = String.format("Deleting file system snapshot : %s share: %s  ACLs: %s finished successfully", uri, shareName);
+            opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL.getName();
+        }
+        try {
+            Workflow workflow = this._workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME, false, taskId, completer);
+            String shareACLDeleteStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, shareName };
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLDeleteStep, stepDescription,
+                    storage, args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error(String.format("Deleting file system snapshot : %s share: %s  ACLs: %s failed.", uri, shareName), ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(uri.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
     }
 
     @Override
@@ -1410,4 +1499,5 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             exportRulesToModify.add(targetExportRule);
         }
     }
+
 }

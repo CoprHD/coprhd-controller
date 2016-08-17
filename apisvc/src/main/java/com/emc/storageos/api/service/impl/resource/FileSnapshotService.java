@@ -906,13 +906,12 @@ public class FileSnapshotService extends TaskResourceService {
         CifsShareUtility.checkForUpdateShareACLOperationOnStorage(
                 device.getSystemType(), OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL.name());
 
-        FileController controller = getController(FileController.class, device.getSystemType());
-
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snapshot.getId(),
                 taskId, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL);
         op.setDescription("Delete ACL of Snapshot Cifs share");
 
-        controller.deleteShareACLs(device.getId(), snapshot.getId(), shareName, taskId);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.deleteShareACLs(device.getId(), snapshot.getId(), shareName, taskId);
 
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL,
                 true, AuditLogManager.AUDITOP_BEGIN,
@@ -950,16 +949,15 @@ public class FileSnapshotService extends TaskResourceService {
                 _log.error("Invalid Operation. Restore snapshot is not supported by ISILON");
                 throw APIException.badRequests.isilonSnapshotRestoreNotSupported();
             }
-            FileController controller = getController(FileController.class,
-                    device.getSystemType());
+
             _log.info(String.format(
                     "Snapshot restore --- Snapshot id: %1$s, FileShare: %2$s, task %3$s", id, fs.getId(), task));
             _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                     task, ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT);
             op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(),
                     task, ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT);
-
-            controller.restoreFS(device.getId(), fs.getId(), snap.getId(), task);
+            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+            fileServiceApi.restoreFS(device.getId(), fs.getId(), snap.getId(), task);
             auditOp(OperationTypeEnum.RESTORE_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                     snap.getId().toString(), fs.getId().toString());
         } else {
@@ -1018,11 +1016,10 @@ public class FileSnapshotService extends TaskResourceService {
                 if (null != fs) {
                     StorageSystem device = _dbClient.queryObject(
                             StorageSystem.class, fs.getStorageDevice());
-                    FileController controller = getController(
-                            FileController.class, device.getSystemType());
                     op = _dbClient.createTaskOpStatus(Snapshot.class, snap
                             .getId(), task, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT);
-                    controller.delete(device.getId(), null, snap.getId(),
+                    FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+                    fileServiceApi.deleteSnapshot(device.getId(), null, snap.getId(),
                             false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), task);
                     auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT, true,
                             AuditLogManager.AUDITOP_BEGIN, snap.getId()

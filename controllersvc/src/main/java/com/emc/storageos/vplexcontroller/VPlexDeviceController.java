@@ -6414,8 +6414,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Migration is committed, failing rollback");
                 // Don't allow rollback to go further than the first error.
                 _workflowService.setWorkflowRollbackContOnError(stepId, false);
-                String opName = ResourceOperationTypeEnum.ROLLBACK_COMMIT_VOLUME_MIGRATION.getName();
-                ServiceError serviceError = VPlexApiException.errors.rollbackCommitMigration(opName);
+                ServiceError serviceError = VPlexApiException.errors.cantRollbackCommittedMigration();
                 WorkflowStepCompleter.stepFailed(stepId, serviceError);
             } else {
                 _log.info("No Migrations are not committed");
@@ -6425,8 +6424,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Exception determining commit rollback state", e);
             // Don't allow rollback to go further than the first error.
             _workflowService.setWorkflowRollbackContOnError(stepId, false);
-            String opName = ResourceOperationTypeEnum.ROLLBACK_COMMIT_VOLUME_MIGRATION.getName();
-            ServiceError serviceError = VPlexApiException.errors.rollbackCommitMigration(opName);
+            ServiceError serviceError = VPlexApiException.errors.cantRollbackExceptionDeterminingCommitState(e);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
@@ -8529,7 +8527,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // source volumes from the backend full copies. We execute this
             // after the invalidate cache steps.
             waitFor = createWorkflowStepForRestoreNativeFullCopy(workflow, nativeSystem,
-                    nativeFullCopyURIs, waitFor, null);
+                    nativeFullCopyURIs, waitFor, rollbackMethodNullMethod());
 
             // Generate post restore steps
             waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -9093,7 +9091,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // backend full copy volumes. We execute this after the
             // invalidate cache steps.
             createWorkflowStepForResyncNativeFullCopy(workflow, nativeSystem,
-                    nativeFullCopyURIs, waitFor, null);
+                    nativeFullCopyURIs, waitFor, rollbackMethodNullMethod());
 
             // Generate post restore steps
             waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -9611,7 +9609,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 "Restore VPLEX backend volume %s from snapshot %s",
                 parentVolumeURI, snapshotURI), waitFor,
                 parentSystemURI, parentSystem.getSystemType(),
-                BlockDeviceController.class, restoreVolumeMethod, null, null);
+                BlockDeviceController.class, restoreVolumeMethod, rollbackMethod, null);
         _log.info(
                 "Created workflow step to restore VPLEX backend volume {} from snapshot {}",
                 parentVolumeURI, snapshotURI);
@@ -11907,7 +11905,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Note that if the snapshot is associated with a CG, then block
                 // controller will resync all snapshots in the snapshot set. We
                 // execute this after the invalidate cache.
-                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, null);
+                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, rollbackMethodNullMethod());
 
                 // Generate post restore steps
                 waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -12264,7 +12262,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Now create a workflow step to natively restore the backend
             // volume. We execute this after the invalidate cache.
             createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
-                    snapSessionURI, waitFor, null);
+                    snapSessionURI, waitFor, rollbackMethodNullMethod());
 
             // Generate post restore steps
             waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -12441,7 +12439,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         workflow.createStep(RESTORE_SNAP_SESSION_STEP, String.format(
                 "Restore snapshot session %s", snapSessionURI), waitFor,
                 parentSystemURI, parentSystem.getSystemType(),
-                BlockDeviceController.class, restoreMethod, null, null);
+                BlockDeviceController.class, restoreMethod, rollbackMethod, null);
         _log.info("Created workflow step to restore snapshot session {}", snapSessionURI);
 
         return RESTORE_SNAP_SESSION_STEP;

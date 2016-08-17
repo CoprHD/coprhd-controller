@@ -12,12 +12,12 @@ import static controllers.Common.getUserMessage;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import jobs.vipr.TenantsCall;
@@ -110,6 +110,7 @@ public class VirtualArrays extends ViprResourceController {
     private static final String XTREMIO_FLASH_VARRAY = "va-xtremio";
     private static final String UNITY_FLASH_VARRAY = "va-unity-all-flash";
     private static final String VARRAY_PREFIX = "va-";
+    private static final String VARRAY_POSTFIX = "-auto-";
 
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
@@ -222,9 +223,9 @@ public class VirtualArrays extends ViprResourceController {
 
 						for (VirtualArrayRestRep availVarray : availVarrays) {
 							if (StringUtils.equals(availVarray.getName(), vArrayName)) {
-								Random rand = new Random();
-								int randprefix = rand.nextInt(100);
-								vArrayName = vArrayName + randprefix;
+								Calendar localCalendar = Calendar.getInstance();
+								long currTime = localCalendar.getTimeInMillis() / 1000; // Made time in seconds for name length
+								vArrayName = vArrayName + VARRAY_POSTFIX + currTime;
 								break;
 							}
 						}
@@ -336,9 +337,9 @@ public class VirtualArrays extends ViprResourceController {
 		List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
 		for (VirtualArrayRestRep availVarray : availVarrays) {
 			if (StringUtils.equals(availVarray.getName(), vArrayName)) {
-				Random rand = new Random();
-				int randprefix = rand.nextInt(100);
-				vArrayName = vArrayName + randprefix;
+				Calendar localCalendar = Calendar.getInstance();
+				long currTime = localCalendar.getTimeInMillis() / 1000; // Made time in seconds for name length
+				vArrayName = vArrayName + VARRAY_POSTFIX + currTime;
 				break;
 			}
 		}

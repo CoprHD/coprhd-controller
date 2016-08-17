@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.fileorchestrationcontroller;
@@ -29,9 +29,20 @@ import com.emc.storageos.model.file.ShareACL;
 
 public class FileOrchestrationUtils {
 
-    public static HashMap<String, List<ExportRule>> getFSExportRuleMap(FileShare fs, DbClient s_dbClient) {
+    private FileOrchestrationUtils() {
+
+    }
+
+    /**
+     * This method generates export map for the file system export rules.
+     * 
+     * @param fs File System Object
+     * @param dbClient
+     * @return
+     */
+    public static HashMap<String, List<ExportRule>> getFSExportRuleMap(FileShare fs, DbClient dbClient) {
         ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
-        List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(s_dbClient, FileExportRule.class,
+        List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, FileExportRule.class,
                 containmentConstraint);
         Set<String> exportPaths = new HashSet<String>();
 
@@ -64,6 +75,15 @@ public class FileOrchestrationUtils {
         return exportRulesMap;
     }
 
+    /**
+     * This method checks for export rules that has to added on target file system
+     * 
+     * @param sourceFileShare Source File System
+     * @param targetFileShare Target File System
+     * @param sourceExportRules Source FS Export Rules
+     * @param targetExportRules Target FS Export Rules
+     * @param exportRulesToAdd List Containing Export Rules that has to be added
+     */
     public static void checkForExportRuleToAdd(FileShare sourceFileShare, FileShare targetFileShare, List<ExportRule> sourceExportRules,
             List<ExportRule> targetExportRules, List<ExportRule> exportRulesToAdd) {
         for (ExportRule sourceExportRule : sourceExportRules) {
@@ -113,6 +133,15 @@ public class FileOrchestrationUtils {
         }
     }
 
+    /**
+     * This method checks for export rules that has to deleted on target file system
+     * 
+     * @param sourceFileShare Source File System
+     * @param targetFileShare Target File System
+     * @param sourceExportRules Source FS Export Rules
+     * @param targetExportRules Target FS Export Rules
+     * @param exportRulesToDelete List Containing Export Rules that has to be deleted
+     */
     public static void checkForExportRuleToDelete(FileShare sourceFileShare, FileShare targetFileShare, List<ExportRule> sourceExportRules,
             List<ExportRule> targetExportRules, List<ExportRule> exportRulesToDelete) {
         for (ExportRule targetExportRule : targetExportRules) {
@@ -144,6 +173,15 @@ public class FileOrchestrationUtils {
         }
     }
 
+    /**
+     * This method checks for export rules that has to modified on target file system
+     * 
+     * @param sourceFileShare Source File System
+     * @param targetFileShare Target File System
+     * @param sourceExportRules Source FS Export Rules
+     * @param targetExportRules Target FS Export Rules
+     * @param exportRulesToModify List Containing Export Rules that has to be modified.
+     */
     public static void checkForExportRuleToModify(FileShare sourceFileShare, FileShare targetFileShare, List<ExportRule> sourceExportRules,
             List<ExportRule> targetExportRules, List<ExportRule> exportRulesToModify) {
         for (ExportRule sourceExportRule : sourceExportRules) {
@@ -167,6 +205,12 @@ public class FileOrchestrationUtils {
         }
     }
 
+    /**
+     * 
+     * @param sourceExportRule Source File System
+     * @param targetExportRule Target File System
+     * @param exportRulesToModify List Containing Export Rules that has to be modified.
+     */
     public static void checkForExportRuleEndpointsToModify(ExportRule sourceExportRule, ExportRule targetExportRule,
             List<ExportRule> exportRulesToModify) {
         boolean isExportRuleToModify = false;
@@ -204,11 +248,19 @@ public class FileOrchestrationUtils {
         }
     }
 
-    public static List<ShareACL> queryShareACLs(String shareName, URI fs, DbClient s_dbClient) {
+    /**
+     * This method queries ACLs for File System share.
+     * 
+     * @param shareName Name of the share.
+     * @param fs URI of the file system.
+     * @param dbClient
+     * @return ListShareACL
+     */
+    public static List<ShareACL> queryShareACLs(String shareName, URI fs, DbClient dbClient) {
 
         List<ShareACL> aclList = new ArrayList<ShareACL>();
         ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fs);
-        List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(s_dbClient, CifsShareACL.class,
+        List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, CifsShareACL.class,
                 containmentConstraint);
 
         if (shareAclList != null) {

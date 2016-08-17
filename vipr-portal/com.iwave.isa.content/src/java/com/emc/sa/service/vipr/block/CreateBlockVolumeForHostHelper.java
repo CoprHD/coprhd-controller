@@ -108,7 +108,7 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
 
 
     public List<BlockObjectRestRep> createAndExportVolumes() {
-        List<URI> volumeIds = createVolumes();
+        List<URI> volumeIds = createVolumes(getComputeResource());
         return exportVolumes(volumeIds);
     }
 }

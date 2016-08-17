@@ -271,6 +271,13 @@ public class EventService extends TaggedResource {
         }
     }
 
+    /**
+     * Get details for the addInitiator method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiatorId the id if the initiator to add
+     * @return list of event details
+     */
     @SuppressWarnings("unused")
     public List<String> addInitiatorDetails(URI initiatorId) {
         List<String> result = Lists.newArrayList();
@@ -332,6 +339,13 @@ public class EventService extends TaggedResource {
         return toTask(initiator, taskId, op);
     }
 
+    /**
+     * Get details for the removeInitiator method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiatorId the id if the initiator to remove
+     * @return list of event details
+     */
     @SuppressWarnings("unused")
     public List<String> removeInitiatorDetails(URI initiatorId) {
         List<String> result = Lists.newArrayList();
@@ -383,6 +397,7 @@ public class EventService extends TaggedResource {
 
     /**
      * Unassign host from a vCenter
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param hostId the host to unassign
      * @return task for updating host
@@ -395,6 +410,13 @@ public class EventService extends TaggedResource {
         return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), true);
     }
 
+    /**
+     * Get details for the hostVcenterUnassign method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host id to unassign from vCenter
+     * @return list of event details
+     */
     @SuppressWarnings("unused")
     public List<String> hostVcenterUnassignDetails(URI hostId) {
         List<String> result = Lists.newArrayList();
@@ -405,6 +427,17 @@ public class EventService extends TaggedResource {
         return result;
     }
 
+    /**
+     * Get details for the hostDatacenterChange method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moving datacenters
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return list of event details
+     */
     @SuppressWarnings("unused")
     public List<String> hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
@@ -418,6 +451,7 @@ public class EventService extends TaggedResource {
 
     /**
      * Method to move a host to a new datacenter and update shared exports.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param hostId the host that is moving datacenters
      * @param clusterId the cluster the host is moving to
@@ -434,6 +468,17 @@ public class EventService extends TaggedResource {
         return hostClusterChange(hostId, clusterId, isVcenter);
     }
 
+    /**
+     * Get details for the hostVcenterChange method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moving vcenters
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return list of event details
+     */
     @SuppressWarnings("unused")
     public List<String> hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
@@ -447,6 +492,7 @@ public class EventService extends TaggedResource {
 
     /**
      * Method to move a host to a new vcenter and update shared exports.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param hostId the host that is moving vcenters
      * @param clusterId the cluster the host is moving to
@@ -511,6 +557,16 @@ public class EventService extends TaggedResource {
         return result;
     }
 
+    /**
+     * Get details for the hostClusterChange method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moving clusters
+     * @param clusterId the cluster the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return list of event details
+     */
     @SuppressWarnings("unused")
     public List<String> hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
@@ -563,6 +619,7 @@ public class EventService extends TaggedResource {
 
     /**
      * Method to move a host to a new cluster and update shared exports.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param hostId the host that is moving clusters
      * @param clusterId the cluster the host is moving to

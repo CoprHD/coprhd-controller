@@ -155,10 +155,10 @@ public class DellSCCloning {
      * @return The restore task.
      */
     public DriverTask restoreFromClone(List<VolumeClone> clones) {
-        LOG.info("Restoring volume clone");
+        LOG.info("Restore from clone not currently supported.");
         DriverTask task = new DellSCDriverTask("restoreVolumeClone");
         task.setStatus(TaskStatus.FAILED);
         task.setMessage("Restore from clone not currently supported.");
-        return task;
+        return null;
     }
 }

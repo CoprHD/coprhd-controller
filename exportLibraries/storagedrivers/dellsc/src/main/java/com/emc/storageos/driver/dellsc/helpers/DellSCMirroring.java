@@ -177,7 +177,7 @@ public class DellSCMirroring {
         LOG.info("Resuming volume mirror not supported.");
         DriverTask task = new DellSCDriverTask("resumeVolumeMirror");
         task.setStatus(TaskStatus.FAILED);
-        return task;
+        return null;
     }
 
     /**
@@ -193,6 +193,6 @@ public class DellSCMirroring {
         // nothing to restore to in SC terms.
         DriverTask task = new DellSCDriverTask("restoreVolumeMirror");
         task.setStatus(TaskStatus.FAILED);
-        return task;
+        return null;
     }
 }

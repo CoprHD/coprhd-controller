@@ -310,6 +310,7 @@ public class DellSCProvisioning {
         if (!usedRecommendedPorts.isTrue()) {
             selectedPorts.addAll(usedPorts);
         }
+        usedRecommendedPorts.setValue(true);
 
         task.setMessage(errBuffer.toString());
 

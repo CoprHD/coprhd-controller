@@ -30,6 +30,7 @@ import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPI;
 import com.emc.storageos.driver.dellsc.scapi.StorageCenterAPIException;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplay;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScReplayProfile;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -208,6 +209,14 @@ public class DellSCConsistencyGroups {
         DellSCDriverTask task = new DellSCDriverTask("createCGSnapshot");
         try {
             StorageCenterAPI api = connectionManager.getConnection(volumeConsistencyGroup.getStorageSystemId());
+
+            // Make sure all of our volumes are active for the automated tests that try to
+            // snap right away before writing anything to them.
+            ScVolume[] volumes = api.getConsistencyGroupVolumes(volumeConsistencyGroup.getNativeId());
+            for (ScVolume volume : volumes) {
+                api.checkAndInitVolume(volume.instanceId);
+            }
+
             ScReplay[] replays = api.createConsistencyGroupSnapshots(volumeConsistencyGroup.getNativeId());
             if (populateCgSnapshotInfo(snapshots, replays)) {
                 task.setStatus(TaskStatus.READY);

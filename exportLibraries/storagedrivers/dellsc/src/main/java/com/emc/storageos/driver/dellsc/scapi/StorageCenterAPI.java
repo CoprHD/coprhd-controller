@@ -145,6 +145,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
         LOG.warn("REST call result:\n\tURL:         {}\n\tStatus Code: {}\n\tReason:      {}\n\tText:        {}",
                 result.getUrl(), result.getResponseCode(), result.getErrorMsg(), text);
+        result.setErrorMsg(text);
         return false;
     }
 
@@ -718,6 +719,24 @@ public class StorageCenterAPI implements AutoCloseable {
             LOG.error(msg);
             throw new StorageCenterAPIException(msg);
         }
+    }
+
+    /**
+     * Gets the volumes that are part of a consistency group.
+     *
+     * @param instanceId The CG ID.
+     * @return The volumes.
+     * @throws StorageCenterAPIException
+     */
+    public ScVolume[] getConsistencyGroupVolumes(String instanceId) throws StorageCenterAPIException {
+        LOG.debug("Getting volume for consistency group {}", instanceId);
+
+        RestResult rr = restClient.get(String.format("StorageCenter/ScReplayProfile/%s/VolumeList", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScVolume[].class);
+        }
+
+        throw new StorageCenterAPIException(rr.getErrorMsg());
     }
 
     /**

@@ -114,7 +114,8 @@ public class DellSCSnapshots {
         // Going with option 2 for now.
         task.setStatus(TaskStatus.FAILED);
         task.setMessage("Snapshot restore is not supported at this time.");
-        return task;
+        LOG.warn("Snapshot restore is not supported at this time.");
+        return null;
     }
 
     /**

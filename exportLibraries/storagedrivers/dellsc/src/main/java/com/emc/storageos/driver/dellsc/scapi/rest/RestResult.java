@@ -88,6 +88,15 @@ public class RestResult {
         return this.result;
     }
 
+    /**
+     * Set the error text.
+     *
+     * @param text The text.
+     */
+    public void setErrorMsg(String text) {
+        this.errorMsg = text;
+    }
+
     @Override
     public String toString() {
         return String.format("[%d] %s %s %s", this.responseCode, this.errorMsg, this.result, this.url);

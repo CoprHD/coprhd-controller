@@ -198,16 +198,7 @@ public class EventService extends TaggedResource {
             } else {
                 return (List<String>) classMethod.invoke(this, eventMethod.getArgs());
             }
-        } catch (SecurityException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
-        } catch (IllegalAccessException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
-        } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
-        } catch (InvocationTargetException e) {
+        } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             _log.error(e.getMessage(), e.getCause());
             throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
         }
@@ -256,16 +247,7 @@ public class EventService extends TaggedResource {
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
-        } catch (SecurityException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
-        } catch (IllegalAccessException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
-        } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
-        } catch (InvocationTargetException e) {
+        } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             _log.error(e.getMessage(), e.getCause());
             throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         }

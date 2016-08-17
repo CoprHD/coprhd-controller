@@ -6414,8 +6414,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Migration is committed, failing rollback");
                 // Don't allow rollback to go further than the first error.
                 _workflowService.setWorkflowRollbackContOnError(stepId, false);
-                String opName = ResourceOperationTypeEnum.ROLLBACK_COMMIT_VOLUME_MIGRATION.getName();
-                ServiceError serviceError = VPlexApiException.errors.rollbackCommitMigration(opName);
+                ServiceError serviceError = VPlexApiException.errors.cantRollbackCommittedMigration();
                 WorkflowStepCompleter.stepFailed(stepId, serviceError);
             } else {
                 _log.info("No Migrations are not committed");
@@ -6425,8 +6424,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Exception determining commit rollback state", e);
             // Don't allow rollback to go further than the first error.
             _workflowService.setWorkflowRollbackContOnError(stepId, false);
-            String opName = ResourceOperationTypeEnum.ROLLBACK_COMMIT_VOLUME_MIGRATION.getName();
-            ServiceError serviceError = VPlexApiException.errors.rollbackCommitMigration(opName);
+            ServiceError serviceError = VPlexApiException.errors.cantRollbackExceptionDeterminingCommitState(e);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
@@ -6712,7 +6710,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void importVolume(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
             URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel, String setTransferSpeed,
-            String opId) throws ControllerException {
+            Boolean markInactive, String opId) throws ControllerException {
         // Figure out the various arguments.
         List<VolumeDescriptor> vplexDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
@@ -6747,23 +6745,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             volumeURIs.add(importedVolumeURI);
         }
 
+        // Get the VPlex storage system and the volumes.
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+        Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+
+        // If there is a volume to be imported, we're creating a new Virtual Volume from
+        // the imported volume. Otherwise, we're upgrading an existing Virtual Volume to be
+        // distributed.
+        StorageSystem importedArray = null;
+        Volume importedVolume = null;
+        if (importedVolumeURI != null) {
+            importedVolume = getDataObject(Volume.class, importedVolumeURI, _dbClient);
+            importedArray = getDataObject(StorageSystem.class, importedVolume.getStorageController(), _dbClient);
+            arrayMap.put(importedArray.getId(), importedArray);
+            volumeMap.put(importedVolumeURI, importedVolume);
+        }
+
         try {
-            // Get the VPlex storage system and the volumes.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-            Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-
-            // If there is a volume to be imported, we're creating a new Virtual Volume from
-            // the imported volume. Otherwise, we're upgrading an existing Virtual Volume to be
-            // distributed.
-            Volume importedVolume = null;
-            StorageSystem importedArray = null;
-            if (importedVolumeURI != null) {
-                importedVolume = getDataObject(Volume.class, importedVolumeURI, _dbClient);
-                importedArray = getDataObject(StorageSystem.class, importedVolume.getStorageController(), _dbClient);
-                arrayMap.put(importedArray.getId(), importedArray);
-                volumeMap.put(importedVolumeURI, importedVolume);
-            }
-
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     IMPORT_VOLUMES_WF_NAME, false, opId);
@@ -6906,6 +6904,40 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             TaskCompleter completer = new VPlexTaskCompleter(Volume.class,
                     volumeURIs, opId, null);
             completer.error(_dbClient, serviceError);
+            
+            // Since the WF construction does not throw an exception, the code in the API
+            // service that would mark prepared volumes for deletion is not invoked. As such,
+            // we will do it here if the flag so indicates. In the case of importing a volume
+            // for the purpose of creating a VPLEX fully copy, the flag will be false. In this
+            // case only, this workflow is constructed as part of an executing step in an outer
+            // workflow. If we fail here, this would cause that workflow step to fail and initiate
+            // rollback in the outer workflow. In that outer workflow, there is a rollback step
+            // that will mark the volumes for deletion, so in that case, we don't want to do it
+            // here.
+            if (markInactive) {
+                // Mark the prepared VPLEX volume for deletion if this is an import
+                // operation, rather than an upgrade of a local volume to distributed.
+                if ((importedVolumeURI != null) && (vplexVolume != null)) {
+                    _dbClient.markForDeletion(vplexVolume);
+                }
+                
+                // For distributed volumes, mark the volume prepared for the HA side of 
+                // the VPLEX volume for deletion.
+                if (createdVolumeURI != null) {
+                    Volume createdVolume = _dbClient.queryObject(Volume.class, createdVolumeURI);
+                    if (createdVolume != null) {
+                        _dbClient.markForDeletion(vplexVolume);
+                    }
+                }
+                
+                // Lastly we may need to mark the import volume for deletion. We only 
+                // need to do this when the import volume is the internal volume prepared
+                // when creating a VPLEX volume from a backend snapshot. For importing
+                // a non-VPLEX volume to VPLEX, this will be a public volume.
+                if ((importedVolume != null) && (importedVolume.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT))) {
+                    _dbClient.markForDeletion(importedVolume);
+                }
+            }
         }
     }
 
@@ -8380,7 +8412,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Reuse the import volume API to create a sub workflow to execute
         // the import.
         importVolume(vplexSystemURI, volumeDescriptors, projectURI, tenantURI,
-                importVolume.getVirtualPool(), importVolume.getLabel(), null, stepId);
+                importVolume.getVirtualPool(), importVolume.getLabel(), null, Boolean.FALSE, stepId);
         _log.info("Created and started sub workflow to import the copy");
     }
 
@@ -8495,7 +8527,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // source volumes from the backend full copies. We execute this
             // after the invalidate cache steps.
             waitFor = createWorkflowStepForRestoreNativeFullCopy(workflow, nativeSystem,
-                    nativeFullCopyURIs, waitFor, null);
+                    nativeFullCopyURIs, waitFor, rollbackMethodNullMethod());
 
             // Generate post restore steps
             waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -9059,7 +9091,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // backend full copy volumes. We execute this after the
             // invalidate cache steps.
             createWorkflowStepForResyncNativeFullCopy(workflow, nativeSystem,
-                    nativeFullCopyURIs, waitFor, null);
+                    nativeFullCopyURIs, waitFor, rollbackMethodNullMethod());
 
             // Generate post restore steps
             waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -9577,7 +9609,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 "Restore VPLEX backend volume %s from snapshot %s",
                 parentVolumeURI, snapshotURI), waitFor,
                 parentSystemURI, parentSystem.getSystemType(),
-                BlockDeviceController.class, restoreVolumeMethod, null, null);
+                BlockDeviceController.class, restoreVolumeMethod, rollbackMethod, null);
         _log.info(
                 "Created workflow step to restore VPLEX backend volume {} from snapshot {}",
                 parentVolumeURI, snapshotURI);
@@ -11873,7 +11905,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Note that if the snapshot is associated with a CG, then block
                 // controller will resync all snapshots in the snapshot set. We
                 // execute this after the invalidate cache.
-                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, null);
+                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, rollbackMethodNullMethod());
 
                 // Generate post restore steps
                 waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -12230,7 +12262,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Now create a workflow step to natively restore the backend
             // volume. We execute this after the invalidate cache.
             createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
-                    snapSessionURI, waitFor, null);
+                    snapSessionURI, waitFor, rollbackMethodNullMethod());
 
             // Generate post restore steps
             waitFor = addPostRestoreResyncSteps(workflow, vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
@@ -12407,7 +12439,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         workflow.createStep(RESTORE_SNAP_SESSION_STEP, String.format(
                 "Restore snapshot session %s", snapSessionURI), waitFor,
                 parentSystemURI, parentSystem.getSystemType(),
-                BlockDeviceController.class, restoreMethod, null, null);
+                BlockDeviceController.class, restoreMethod, rollbackMethod, null);
         _log.info("Created workflow step to restore snapshot session {}", snapSessionURI);
 
         return RESTORE_SNAP_SESSION_STEP;

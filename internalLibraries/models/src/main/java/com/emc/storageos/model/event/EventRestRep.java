@@ -13,10 +13,12 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.adapters.CalendarAdapter;
 
 /**
  * REST Response representing an Event.
@@ -128,6 +130,7 @@ public class EventRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "event_execution_time")
+    @XmlJavaTypeAdapter(CalendarAdapter.class)
     public Calendar getEventExecutionTime() {
         return eventExecutionTime;
     }

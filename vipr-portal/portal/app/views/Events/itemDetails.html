@@ -23,6 +23,10 @@
     #{else}&nbsp;#{/else}
   </dd>
   #{/if}
-
+  
+  #{if event.eventExecutionTime != null}
+	  <dt>&{'events.executionTime'}:</dt>
+	  <dd id="executionTime">{{getLocalDateTime($('#executionTime'),event.eventExecutionTime)}}&nbsp;</dd>
+  #{/if}
 
 </dl>

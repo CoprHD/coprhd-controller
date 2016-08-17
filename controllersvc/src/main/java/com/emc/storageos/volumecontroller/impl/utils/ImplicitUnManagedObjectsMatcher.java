@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.utils;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 public class ImplicitUnManagedObjectsMatcher {
     private static final String LOCAL = "LOCAL";
-    private static final String CLUSTER_PREFIX = "cluster-";
     private static final Logger _log = LoggerFactory
             .getLogger(ImplicitUnManagedObjectsMatcher.class);
     private static final String INVALID = "Invalid";

@@ -619,7 +619,7 @@ public class HostService extends TaskResourceService {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
             if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-            host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+                host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
             }
             _dbClient.persistObject(host);
             auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),

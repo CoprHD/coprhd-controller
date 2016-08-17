@@ -227,45 +227,6 @@ public class DiscoveryUtils {
     }
 
     /**
-     * Filters supported vPools in UnManaged Volume based on Compression.
-     *
-     * @param unManagedVolume the UnManaged volume
-     */
-    public static void filterSupportedVpoolsBasedOnCompression(UnManagedVolume unManagedVolume, DbClient dbClient) {
-        StringSet supportedVpoolURIs = unManagedVolume.getSupportedVpoolUris();
-        List<String> vPoolsToRemove = new ArrayList<String>();
-        if (supportedVpoolURIs != null) {
-            Iterator<String> itr = supportedVpoolURIs.iterator();
-            while (itr.hasNext()) {
-                String uri = itr.next();
-                VirtualPool vPool = dbClient.queryObject(VirtualPool.class, URI.create(uri));
-                if (vPool != null && !vPool.getInactive()) {
-                    //NOTE: There was a discussion whether to honor Compression attribute for an not exported volume and 
-                    // it was decided in the best interest to not honor. Even host IO limits are not honored for an not exported 
-                    // volume today.
-                    boolean isVolumeExported = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
-                            SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString()));
-                    boolean isVolumeCompressionEnabled = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
-                            SupportedVolumeCharacterstics.IS_COMPRESSION_ENABLED.toString()));
-                    if (isVolumeExported && (isVolumeCompressionEnabled != vPool.getCompressionEnabled())) {
-                        String msg = "Removing vPool %s from SUPPORTED_VPOOL_LIST in UnManagedVolume %s "
-                                + "since Compression %s in UnManaged Volume does not match with vPool's Compression (%s)";
-                        _log.info(String.format(msg, new Object[] { uri, unManagedVolume.getId(),
-                                isVolumeCompressionEnabled, vPool.getCompressionEnabled() }));
-                        vPoolsToRemove.add(uri);
-                    }
-                } else {
-                    // remove Inactive vPool URI
-                    vPoolsToRemove.add(uri);
-                }
-            }
-        }
-        for (String uri : vPoolsToRemove) {     // UnManagedVolume object is persisted by caller
-            supportedVpoolURIs.remove(uri);
-        }
-    }
-
-    /**
      * Checks the UnManaged Volume's policy with vPool's policy.
      *
      * @param vPool the vPool

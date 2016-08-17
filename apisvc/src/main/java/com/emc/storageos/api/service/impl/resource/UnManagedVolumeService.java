@@ -36,6 +36,7 @@ import com.emc.storageos.api.mapper.functions.MapUnmanagedVolume;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestExportStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestUnexportedVolumesSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
@@ -260,8 +261,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient, param.getUnManagedVolumes(), vpool,
                     varray, project, tenant, param.getVplexIngestionMethod());
 
+            // create tasks for each i
             while (requestContext.hasNext()) {
-
                 UnManagedVolume unManagedVolume = requestContext.next();
                 if (null == unManagedVolume) {
                     _logger.info("No Unmanaged Volume with URI {} found in database. Continuing...",
@@ -272,135 +273,14 @@ public class UnManagedVolumeService extends TaskResourceService {
                 Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class,
                         unManagedVolume.getId(), taskId, ResourceOperationTypeEnum.INGEST_VOLUMES);
 
-                try {
-                    _logger.info("Ingestion started for unmanagedvolume {}", unManagedVolume.getNativeGuid());
-                    List<URI> volList = new ArrayList<URI>();
-                    volList.add(requestContext.getCurrentUnManagedVolumeUri());
-                    VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(volList, vpool, _dbClient);
-
-                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume,
-                            !IngestStrategyFactory.DISREGARD_PROTECTION);
-
-                    @SuppressWarnings("unchecked")
-                    BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext,
-                            VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
-
-                    _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
-                    if (null == blockObject) {
-                        throw IngestionException.exceptions.generalVolumeException(
-                                unManagedVolume.getLabel(), "check the logs for more details");
-                    }
-
-                    requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
-                    requestContext.getProcessedUnManagedVolumeMap().put(
-                            unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-
-                } catch (APIException ex) {
-                    _logger.error("APIException occurred", ex);
-                    _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
-                    requestContext.getVolumeContext().rollback();
-                } catch (Exception ex) {
-                    _logger.error("Exception occurred", ex);
-                    _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(),
-                            taskId, IngestionException.exceptions.generalVolumeException(
-                                    unManagedVolume.getLabel(), ex.getLocalizedMessage()));
-                    requestContext.getVolumeContext().rollback();
-                }
-
                 TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
                 taskList.getTaskList().add(task);
                 taskMap.put(unManagedVolume.getId().toString(), taskId);
             }
 
-            // update the task status
-            for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
-                VolumeIngestionContext volumeContext = requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID);
-                UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
-                String taskId = taskMap.get(unManagedVolume.getId().toString());
-                String taskMessage = "";
-                boolean ingestedSuccessfully = false;
-                if (unManagedVolume.getInactive()) {
-                    ingestedSuccessfully = true;
-                    taskMessage = INGESTION_SUCCESSFUL_MSG;
-                } else {
-                    // check in the created objects for corresponding block object without any internal flags set
-                    BlockObject createdObject = requestContext.findCreatedBlockObject(unManagedVolumeGUID.replace(
-                            VolumeIngestionUtil.UNMANAGEDVOLUME,
-                            VolumeIngestionUtil.VOLUME));
-                    _logger.info("checking partial ingestion status of block object " + createdObject);
-                    if ((null != createdObject)
-                            && (!createdObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) ||
-                                    // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
-                                    (createdObject instanceof Volume && ((Volume) createdObject).checkForRp() && ((Volume) createdObject)
-                                            .getProtectionSet() == null))
-                            ||
-                            // If this is a successfully processed VPLEX backend volume, it will have the INTERNAL_OBJECT Flag
-                            (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume) && createdObject
-                                    .checkInternalFlags(Flag.INTERNAL_OBJECT))) {
-                        _logger.info("successfully partially ingested block object {} ", createdObject.forDisplay());
-                        ingestedSuccessfully = true;
-                        taskMessage = INGESTION_SUCCESSFUL_MSG;
-                    } else {
-                        _logger.info("block object {} was not partially ingested successfully", createdObject);
-                        ingestedSuccessfully = false;
-                        StringBuffer taskStatus = requestContext.getTaskStatusMap().get(unManagedVolume.getNativeGuid());
-                        if (taskStatus == null) {
-                            // No task status found. Put in a default message.
-                            taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
-                                    unManagedVolume.getLabel());
-                        } else {
-                            taskMessage = taskStatus.toString();
-                        }
-                    }
-                }
+            IngestUnexportedVolumesSchedulingThread.executeApiTask(
+                    _asyncTaskService.getExecutorService(), requestContext, ingestStrategyFactory, this, _dbClient, taskMap, taskList);
 
-                if (ingestedSuccessfully) {
-                    _dbClient.ready(UnManagedVolume.class,
-                            unManagedVolume.getId(), taskId, taskMessage);
-                } else {
-                    _dbClient.error(UnManagedVolume.class, unManagedVolume.getId(), taskId,
-                            IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
-                }
-
-                // Commit any ingested CG
-                commitIngestedCG(requestContext, unManagedVolume);
-
-                // Commit the volume's internal resources
-                volumeContext.commit();
-
-                // Commit this volume's updated data objects if any after ingestion
-                Set<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
-                if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    for (DataObject dob : updatedObjects) {
-                        _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                        _dbClient.updateObject(dob);
-                    }
-                }
-
-                // Commit this volume's created data objects if any after ingestion
-                Set<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
-                if (createdObjects != null && !createdObjects.isEmpty()) {
-                    for (DataObject dob : createdObjects) {
-                        _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                        _dbClient.createObject(dob);
-                    }
-                }
-            }
-
-            for (BlockObject bo : requestContext.getBlockObjectsToBeCreatedMap().values()) {
-                _logger.info("Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
-                _dbClient.createObject(bo);
-            }
-            for (UnManagedVolume umv : requestContext.getUnManagedVolumesToBeDeleted()) {
-                _logger.info("Deleting UnManagedVolume {} (hash {})", umv.forDisplay(), umv.hashCode());
-                _dbClient.updateObject(umv);
-            }
-
-            // record the events after they have been persisted
-            for (BlockObject volume : requestContext.getBlockObjectsToBeCreatedMap().values()) {
-                recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
-                        Status.ready, volume.getId());
-            }
         } catch (InternalException e) {
             throw e;
         } catch (Exception e) {
@@ -776,7 +656,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      * @param unManagedVolume unmanaged volume to ingest against this CG
      * @throws Exception
      */
-    private void commitIngestedCG(IngestionRequestContext requestContext, UnManagedVolume unManagedVolume) throws Exception {
+    public void commitIngestedCG(IngestionRequestContext requestContext, UnManagedVolume unManagedVolume) throws Exception {
 
         VolumeIngestionContext volumeContext = requestContext.getVolumeContext();
 
@@ -905,7 +785,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      * @param blockObj
      * @return
      */
-    private OperationTypeEnum getOpByBlockObjectType(BlockObject blockObj) {
+    public OperationTypeEnum getOpByBlockObjectType(BlockObject blockObj) {
         OperationTypeEnum operationType = OperationTypeEnum.CREATE_BLOCK_VOLUME;
         if (blockObj instanceof BlockSnapshot) {
             operationType = OperationTypeEnum.CREATE_VOLUME_SNAPSHOT;

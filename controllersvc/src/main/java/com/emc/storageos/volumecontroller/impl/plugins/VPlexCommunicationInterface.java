@@ -108,7 +108,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
-    private static int BATCH_SIZE = 40;
+    private static int BATCH_SIZE = 10;
 
     // WWN for offline ports
     public static final String OFFLINE_PORT_WWN = "00:00:00:00:00:00:00:00";

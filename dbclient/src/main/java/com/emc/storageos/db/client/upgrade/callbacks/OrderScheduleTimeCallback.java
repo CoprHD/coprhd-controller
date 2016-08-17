@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -47,8 +47,8 @@ public class OrderScheduleTimeCallback extends BaseCustomMigrationCallback {
                 ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
                 order.setScheduledTime(helper.getScheduledTime());
 
+                dbClient.updateObject(order);
             }
-            dbClient.updateObject(order);
         }
 
         return;

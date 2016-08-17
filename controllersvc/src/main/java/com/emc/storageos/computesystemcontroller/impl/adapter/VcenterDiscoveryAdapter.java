@@ -476,8 +476,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
             URI oldDatacenterURI = target.getVcenterDataCenter();
             URI newDatacenterURI = targetDatacenter.getId();
+            info("Discovering host " + target.getLabel() + " (" + target.getId() + ")");
             if (NullColumnValueGetter.isNullURI(oldDatacenterURI) || (!NullColumnValueGetter.isNullURI(newDatacenterURI)
                     && newDatacenterURI.toString().equalsIgnoreCase(oldDatacenterURI.toString()))) {
+                info("setting vCenter datacenter to " + targetDatacenter.getLabel() + " (" + targetDatacenter.getId() + ") and tenant to "
+                        + targetDatacenter.getTenant() + " for host " + target.getLabel());
                 target.setVcenterDataCenter(targetDatacenter.getId());
                 target.setTenant(targetDatacenter.getTenant());
             }

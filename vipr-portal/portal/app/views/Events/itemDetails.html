@@ -4,14 +4,14 @@
   <dd>
     #{list approveDetails, as:'detail'}
        <li> ${detail}
-    #{/list}
+    #{/list}&nbsp;
   </dd>
 
   <dt>&{'events.declineDetails'}:</dt>
   <dd>
     #{list declineDetails, as:'detail'}
        <li> ${detail}
-    #{/list}
+    #{/list}&nbsp;
   </dd>
 
   #{if event.eventStatus != 'pending'}
@@ -22,11 +22,6 @@
     #{/list}
     #{else}&nbsp;#{/else}
   </dd>
-  #{/if}
-  
-  #{if event.eventExecutionTime != null}
-	  <dt>&{'events.executionTime'}:</dt>
-	  <dd id="executionTime">{{getLocalDateTime($('#executionTime'),event.eventExecutionTime)}}&nbsp;</dd>
   #{/if}
 
 </dl>

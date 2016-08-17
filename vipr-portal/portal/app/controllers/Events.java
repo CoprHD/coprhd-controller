@@ -280,6 +280,9 @@ public class Events extends Controller {
         public String eventStatus;
         public String eventCode;
         public String warning;
+        public long eventExecutionTime;
+        public List<String> approveDetails;
+        public List<String> declineDetails;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
@@ -291,6 +294,9 @@ public class Events extends Controller {
             eventStatus = event.getEventStatus();
             eventCode = event.getEventCode();
             warning = event.getWarning();
+            eventExecutionTime = event.getEventExecutionTime().getTimeInMillis();
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
         }
     }
 }

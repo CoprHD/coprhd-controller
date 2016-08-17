@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.api.service.impl.response;
 
@@ -66,6 +79,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,6 +140,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
+
+import static com.emc.storageos.model.ResourceTypeEnum.*;
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
@@ -193,6 +209,7 @@ public class ResourceTypeMapping {
         classMapping.put(VOLUME_GROUP, VolumeGroup.class);
         classMapping.put(BLOCK_SNAPSHOT_SESSION, BlockSnapshotSession.class);
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
+        classMapping.put(OPENSTACK_TENANT, OSTenant.class);
         classMapping.put(STORAGE_SYSTEM_TYPE, StorageSystemType.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {

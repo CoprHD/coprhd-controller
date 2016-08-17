@@ -31,12 +31,4 @@ public class HP3PARException extends Exception {
     public void setStatusCode(int statusCode) {
         this.statusCode = statusCode;
     }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }

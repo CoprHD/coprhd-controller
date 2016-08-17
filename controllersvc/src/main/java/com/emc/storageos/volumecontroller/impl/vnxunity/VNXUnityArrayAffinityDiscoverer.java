@@ -77,11 +77,15 @@ public class VNXUnityArrayAffinityDiscoverer {
 
         StorageSystem system = dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
 
-        String hostIdStr = accessProfile.getProps().get(Constants.HOST);
-        if (hostIdStr != null) {
+        String hostIdsStr = accessProfile.getProps().get(Constants.HOST_IDS);
+        if (hostIdsStr != null) {
             // array affinity for a host
-            logger.info("Processing host {}", hostIdStr);
-            processHost(system, apiClient, dbClient, hostIdStr);
+            logger.info("Processing hosts {}", hostIdsStr);
+            String[] hostIds = hostIdsStr.split(Constants.ID_DELIMITER);
+            for (String hostId : hostIds) {
+                logger.info("Processing host {}", hostId);
+                processHost(system, apiClient, dbClient, hostId);
+            }
         } else {
             // array affinity for all hosts
             logger.info("Processing all hosts");
@@ -90,7 +94,7 @@ public class VNXUnityArrayAffinityDiscoverer {
     }
 
     /**
-     * Update preferredPoolIds of a host
+     * Update preferredPools of a host
      * @param system
      * @param apiClient
      * @param dbClient

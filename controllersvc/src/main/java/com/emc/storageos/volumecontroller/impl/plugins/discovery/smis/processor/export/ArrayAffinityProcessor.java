@@ -34,7 +34,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
 /*
- * Refresh preferredPoolIds for a host
+ * Refresh preferredPools for a host
  */
 public class ArrayAffinityProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(ArrayAffinityProcessor.class);
@@ -48,22 +48,26 @@ public class ArrayAffinityProcessor {
      * @param dbClient DbClient
      * @return true if there is mapped volume
      */
-    public void updatePreferredPoolIds(AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
-        _logger.info("Calling updatePreferredPoolIds");
+    public void updatePreferredPools(AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+        _logger.info("Calling updatePreferredPools");
 
         try {
             if (profile != null && profile.getProps() != null) {
-                String hostIdStr = profile.getProps().get(Constants.HOST);
+                String hostIdsStr = profile.getProps().get(Constants.HOST_IDS);
                 String systemIdsStr = profile.getProps().get(Constants.SYSTEM_IDS);
                 String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
                 Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
 
-                if (StringUtils.isNotEmpty(hostIdStr)) {
-                    Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
-                    if (host != null && !host.getInactive()) {
-                        Map<String, String> preferredPoolURIs = getPreferredPoolMap(host.getId(), profile, cimClient, dbClient);
-                        if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIdSet, dbClient, preferredPoolURIs)) {
-                            dbClient.updateObject(host);
+                if (StringUtils.isNotEmpty(hostIdsStr)) {
+                    String[] hostIds = hostIdsStr.split(Constants.ID_DELIMITER);
+                    for (String hostId : hostIds) {
+                        _logger.info("Processing Host {}", hostId);
+                        Host host = dbClient.queryObject(Host.class, URI.create(hostId));
+                        if (host != null && !host.getInactive()) {
+                            Map<String, String> preferredPoolURIs = getPreferredPoolMap(host.getId(), profile, cimClient, dbClient);
+                            if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIdSet, dbClient, preferredPoolURIs)) {
+                                dbClient.updateObject(host);
+                            }
                         }
                     }
                 }

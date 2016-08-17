@@ -476,12 +476,14 @@ public class XtremIOCommunicationInterface extends
                     StorageSystem system = systems.get(0);
 
                     // Host based array affinity discovery
-                    if (accessProfile.getProps() != null && accessProfile.getProps().get(Constants.HOST) != null) {
-                        String hostIdStr = accessProfile.getProps().get(Constants.HOST);
-                        _logger.info("Array Affinity Discovery started for Host {}, for XtremIO system {}",
-                                hostIdStr, system.getNativeGuid());
-                        if (StringUtils.isNotEmpty(hostIdStr)) {
-                            Host host = _dbClient.queryObject(Host.class, URI.create(hostIdStr));
+                    if (accessProfile.getProps() != null && accessProfile.getProps().get(Constants.HOST_IDS) != null) {
+                        String hostIdsStr = accessProfile.getProps().get(Constants.HOST_IDS);
+                        _logger.info("Array Affinity Discovery started for Hosts {}, for XtremIO system {}",
+                                hostIdsStr, system.getNativeGuid());
+                        String[] hostIds = hostIdsStr.split(Constants.ID_DELIMITER);
+                        for (String hostId : hostIds) {
+                            _logger.info("Processing Host {}", hostId);
+                            Host host = _dbClient.queryObject(Host.class, URI.create(hostId));
                             if (host != null && !host.getInactive()) {
                                 arrayAffinityDiscoverer.findAndUpdatePreferredPoolsForHost(system, host, _dbClient);
                             }

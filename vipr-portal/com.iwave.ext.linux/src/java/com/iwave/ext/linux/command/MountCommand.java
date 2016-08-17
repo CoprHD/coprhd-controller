@@ -22,4 +22,13 @@ public class MountCommand extends LinuxCommand {
     public void setMountAll() {
         addArgument("-a");
     }
+
+    public void enableOptions() {
+        addArgument("-o");
+    }
+
+    public void setOptions(String arg, String sec) {
+        addArgument(arg + ",sec=" + sec);
+    }
+
 }

@@ -650,11 +650,11 @@ public class ControllerServiceImpl implements ControllerService {
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         for (AsyncTask task : tasks) {
             if (task instanceof ArrayAffinityAsyncTask) {
-                URI hostId = ((ArrayAffinityAsyncTask) task).getHostId();
+                List<URI> hostIds = ((ArrayAffinityAsyncTask) task).getHostIds();
                 List<URI> systemIds = ((ArrayAffinityAsyncTask) task).getSystemIds();
                 ArrayAffinityDataCollectionTaskCompleter completer =
-                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType, NullColumnValueGetter.isNullURI(hostId));
-                DataCollectionJob job = new DataCollectionArrayAffinityJob(hostId, systemIds, completer, task._namespace);
+                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType);
+                DataCollectionJob job = new DataCollectionArrayAffinityJob(hostIds, systemIds, completer, task._namespace);
                 jobs.add(job);
             } else {
                 DiscoverTaskCompleter completer = new DiscoverTaskCompleter(task, jobType);

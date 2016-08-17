@@ -5,6 +5,7 @@
 package com.emc.storageos.model.event;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -32,6 +33,7 @@ public class EventRestRep extends DataObjectRestRep {
     private List<RelatedResourceRep> taskIds;
     private List<String> approveDetails;
     private List<String> declineDetails;
+    private Calendar eventExecutionTime;
 
     private RelatedResourceRep tenant;
 
@@ -123,5 +125,14 @@ public class EventRestRep extends DataObjectRestRep {
 
     public void setDeclineDetails(List<String> declineDetails) {
         this.declineDetails = declineDetails;
+    }
+
+    @XmlElement(name = "event_execution_time")
+    public Calendar getEventExecutionTime() {
+        return eventExecutionTime;
+    }
+
+    public void setEventExecutionTime(Calendar eventExecutionTime) {
+        this.eventExecutionTime = eventExecutionTime;
     }
 }

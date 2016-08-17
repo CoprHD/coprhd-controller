@@ -34,6 +34,7 @@ public class EventMapper {
         to.setDescription(from.getDescription());
         to.setWarning(from.getWarning());
         to.setEventCode(from.getEventCode());
+        to.setEventExecutionTime(from.getEventExecutionTime());
 
         if ((from.getTaskIds() != null) && (!from.getTaskIds().isEmpty())) {
             List<RelatedResourceRep> taskIds = new ArrayList<RelatedResourceRep>();

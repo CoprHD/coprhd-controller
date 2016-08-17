@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.Calendar;
 
 @Cf("ActionableEvent")
 public class ActionableEvent extends DataObject implements TenantResource {
@@ -22,6 +23,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private StringSet approveDetails;
     private StringSet declineDetails;
     private StringSet affectedResources;
+    private Calendar eventExecutionTime;
 
     public enum Status {
         pending, approved, declined
@@ -171,6 +173,16 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setDeclineDetails(StringSet declineDetails) {
         this.declineDetails = declineDetails;
         setChanged("declineDetails");
+    }
+
+    @Name("eventExecutionTime")
+    public Calendar getEventExecutionTime() {
+        return this.eventExecutionTime;
+    }
+
+    public void setEventExecutionTime(Calendar eventExecutionTime) {
+        this.eventExecutionTime = eventExecutionTime;
+        setChanged("eventExecutionTime");
     }
 
     @Name("affectedResources")

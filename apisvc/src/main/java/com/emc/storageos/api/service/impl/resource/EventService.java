@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -225,6 +226,7 @@ public class EventService extends TaggedResource {
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
 
+        event.setEventExecutionTime(Calendar.getInstance());
         event.setApproveDetails(new StringSet(getEventDetails(event, true)));
         event.setDeclineDetails(new StringSet(getEventDetails(event, false)));
 

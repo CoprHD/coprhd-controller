@@ -18,10 +18,16 @@ package com.emc.storageos.driver.dellsc.scapi;
 
 import java.math.BigDecimal;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 /**
  * Utility functions for dealing with size.
  */
 public class SizeUtil {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SizeUtil.class);
 
     /**
      * The number of bytes in a kilobyte.
@@ -37,6 +43,11 @@ public class SizeUtil {
      * The number of bytes in a gigabyte.
      */
     public static final Long GB = 1024L * 1024L * 1024L;
+
+    /**
+     * Empty String
+     */
+    public static final String EMPTY_STR = "";
 
     /**
      * Converts bytes to gigabytes.
@@ -87,18 +98,24 @@ public class SizeUtil {
      * @return The speed in gigabits.
      */
     public static Long speedStrToGigabits(String speedStr) {
-        if ("Unknown".equals(speedStr)) {
-            return 0L;
+      Long gbits = 0L;
+      try{
+        if ("Unknown".equals(speedStr) || EMPTY_STR.equals(speedStr)) {
+            return gbits;
         }
 
         String[] parts = speedStr.split(" ");
-        Long gbits = new BigDecimal(parts[0]).longValue();
+        gbits = new BigDecimal(parts[0]).longValue();
         if (parts.length > 1) {
             if ("Mbps".equals(parts[1])) {
                 gbits = gbits / KB;
             }
         }
+      }catch(Exception e) {
+        String failureMsg = String.format("Error converting speed value (%s) to Giagabits", speedStr);
+        LOG.warn(failureMsg, e);
+      }
 
-        return gbits;
+      return gbits;
     }
 }

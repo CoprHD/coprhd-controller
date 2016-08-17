@@ -294,7 +294,7 @@ public class Events extends Controller {
             eventStatus = event.getEventStatus();
             eventCode = event.getEventCode();
             warning = event.getWarning();
-            eventExecutionTime = event.getEventExecutionTime() == null ? null : event.getEventExecutionTime().getTimeInMillis();
+            eventExecutionTime = event.getEventExecutionTime() == null ? 0 : event.getEventExecutionTime().getTimeInMillis();
             approveDetails = event.getApproveDetails();
             declineDetails = event.getDeclineDetails();
         }

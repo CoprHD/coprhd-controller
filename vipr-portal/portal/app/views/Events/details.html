@@ -60,7 +60,7 @@ margin-bottom: 5px;
       <dt>&{'events.created'}:</dt>
       <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
       
-	  #{if event.eventExecutionTime != null}
+      #{if event.eventStatus.toString() != 'pending'}
 	  <dt>&{'events.executionTime'}:</dt>
 	  <dd id="executionTime">{{getLocalDateTime($('#executionTime'),event.eventExecutionTime)}}&nbsp;</dd>
 	  #{/if}

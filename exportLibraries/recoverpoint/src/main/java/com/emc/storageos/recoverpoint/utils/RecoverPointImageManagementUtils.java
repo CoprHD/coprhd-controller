@@ -1197,7 +1197,7 @@ public class RecoverPointImageManagementUtils {
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState desiredPipeState)
+    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState... desiredPipeState)
             throws RecoverPointException {
 
         int numRetries = 0;
@@ -1208,6 +1208,15 @@ public class RecoverPointImageManagementUtils {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        }
+
+        List<String> desiredPipeStates = new ArrayList<String>();
+
+        if (desiredPipeState != null) {
+            // build the list of desired pipe states
+            for (PipeState pipeState : desiredPipeState) {
+                desiredPipeStates.add(pipeState.name());
+            }
         }
 
         while (numRetries++ < MAX_RETRIES) {
@@ -1252,7 +1261,7 @@ public class RecoverPointImageManagementUtils {
                         continue;
                     }
 
-                    if (desiredPipeState.equals(PipeState.ACTIVE)) {
+                    if (desiredPipeStates.contains(PipeState.ACTIVE.name())) {
                         // Treat SNAP_IDLE as ACTIVE
                         if (linkstate.getPipeState().equals(PipeState.SNAP_IDLE)) {
                             linkstate.setPipeState(PipeState.ACTIVE);
@@ -1262,7 +1271,7 @@ public class RecoverPointImageManagementUtils {
                     PipeState pipeState = linkstate.getPipeState();
                     logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 
-                    if (pipeState.equals(desiredPipeState)) {
+                    if (desiredPipeStates.contains(pipeState.name())) {
                         logger.info("Copy link state matches the desired state.");
                         return;
                     } else {

@@ -353,7 +353,7 @@ public class BlockStorageUtils {
             String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new CreateBlockVolume(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId));
+                count, baseVolumeName, consistencyGroupId, computeResource));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();

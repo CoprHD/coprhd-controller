@@ -13,6 +13,7 @@ import javax.xml.bind.annotation.XmlElement;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 public class OrderCommonParam implements Serializable {
+    static final long serialVersionUID = 2016081709567510155L;
 
     /**
      * Parameters to an order

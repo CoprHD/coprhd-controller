@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import jobs.vipr.TenantsCall;
@@ -199,6 +200,8 @@ public class VirtualArrays extends ViprResourceController {
 			}
 		} 
 		else if (StringUtils.equals(defaultVarrayType, MAPPING1X1)) {
+			// Read available virtual array
+			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
 			// If storage system ids are passed, use them and create virtual arrays
 			JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 			JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
@@ -215,7 +218,17 @@ public class VirtualArrays extends ViprResourceController {
 					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
 					if (storageSystem != null && isEMCAFA(storageSystem)) {
 						VirtualArrayForm virtualArray = new VirtualArrayForm();
-						virtualArray.name = VARRAY_PREFIX + storagename;
+						String vArrayName = VARRAY_PREFIX + storagename;
+
+						for (VirtualArrayRestRep availVarray : availVarrays) {
+							if (StringUtils.equals(availVarray.getName(), vArrayName)) {
+								Random rand = new Random();
+								int randprefix = rand.nextInt(100);
+								vArrayName = vArrayName + randprefix;
+								break;
+							}
+						}
+						virtualArray.name = vArrayName;
 						VirtualArrayRestRep varray = virtualArray.save();
 						virtualArray.load(varray);
 
@@ -318,8 +331,19 @@ public class VirtualArrays extends ViprResourceController {
     }
 
     private static void createVirtualArray(StorageSystemRestRep storageSystem) {
+    	// Check for existing virtual array
+    	String vArrayName = VARRAY_PREFIX + storageSystem.getName();
+		List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
+		for (VirtualArrayRestRep availVarray : availVarrays) {
+			if (StringUtils.equals(availVarray.getName(), vArrayName)) {
+				Random rand = new Random();
+				int randprefix = rand.nextInt(100);
+				vArrayName = vArrayName + randprefix;
+				break;
+			}
+		}
 		VirtualArrayForm virtualArray = new VirtualArrayForm();
-		virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
+		virtualArray.name = vArrayName;
 		VirtualArrayRestRep varray = virtualArray.save();
 		virtualArray.load(varray);
 

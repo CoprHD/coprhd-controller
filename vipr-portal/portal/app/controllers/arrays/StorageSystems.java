@@ -283,13 +283,12 @@ public class StorageSystems extends ViprResourceController {
         Task<?> sp = storageArray.save();
         String message = storageArray.isStorageProviderManaged()
                 && StringUtils.isEmpty(storageArray.id) ? MessagesUtils.get(
-                SAVED_SMIS, storageArray.name) : MessagesUtils.get(SAVED_ARRAY,
-                storageArray.name);
+                SAVED_SMIS, storageArray.name) : MessagesUtils.get(SAVED_ARRAY, storageArray.name);
         flash.success(message);
 
         //check if checklist is running on this step
         JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
-        if(jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
+        if(jobject != null && jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
 			if (jobject.get(GUIDE_COMPLETED_STEP).getAsInt() == 3
 					&& jobject.get(GUIDE_VISIBLE).getAsBoolean()) {
 				JsonObject dataObject = getCookieAsJson(GUIDE_DATA);

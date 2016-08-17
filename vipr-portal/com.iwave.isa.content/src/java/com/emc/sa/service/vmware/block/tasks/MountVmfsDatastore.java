@@ -24,7 +24,6 @@ public class MountVmfsDatastore extends RetryableTask<Void> {
     public MountVmfsDatastore(HostSystem host, Datastore datastore) {
         this.host = host;
         this.datastore = datastore;
-        // TODO add detail message in properties
         provideDetailArgs(datastore.getName(), host.getName());
     }
 

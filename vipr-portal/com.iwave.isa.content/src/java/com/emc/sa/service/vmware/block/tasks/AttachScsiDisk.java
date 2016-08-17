@@ -21,7 +21,7 @@ public class AttachScsiDisk extends RetryableTask<Void> {
     public AttachScsiDisk(HostSystem host, List<HostScsiDisk> disks) {
         this.host = host;
         this.disks = disks;
-        // TODO add provide details
+        provideDetailArgs(disks, host.getName());
     }
 
     @Override

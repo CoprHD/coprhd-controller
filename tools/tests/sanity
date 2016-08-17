@@ -2624,10 +2624,18 @@ rp_targets()
         --max_snapshots 10
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rp_targets --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rp_targets --storage $STORAGE_ARRAY_2_NATIVEGUID
-        run cos update block rp_targets --storage $STORAGE_ARRAY_3_NATIVEGUID
-        run cos update block rp_targets --storage $STORAGE_ARRAY_4_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_targets --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_2_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_targets --storage $STORAGE_ARRAY_2_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_3_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_targets --storage $STORAGE_ARRAY_3_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_4_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_targets --storage $STORAGE_ARRAY_4_NATIVEGUID
+        fi
     fi
 }
 
@@ -2643,10 +2651,18 @@ rpxio_targets()
         --max_snapshots 10
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpxio_targets --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpxio_targets --storage $STORAGE_ARRAY_2_NATIVEGUID
-        run cos update block rpxio_targets --storage $STORAGE_ARRAY_3_NATIVEGUID
-        run cos update block rpxio_targets --storage $STORAGE_ARRAY_4_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpxio_targets --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_2_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpxio_targets --storage $STORAGE_ARRAY_2_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_3_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpxio_targets --storage $STORAGE_ARRAY_3_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_4_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpxio_targets --storage $STORAGE_ARRAY_4_NATIVEGUID
+        fi
     fi
 }
 
@@ -2663,10 +2679,18 @@ rpvplex_targets()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplex_targets --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_targets --storage $STORAGE_ARRAY_2_NATIVEGUID
-        run cos update block rpvplex_targets --storage $STORAGE_ARRAY_3_NATIVEGUID
-        run cos update block rpvplex_targets --storage $STORAGE_ARRAY_4_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_2_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets --storage $STORAGE_ARRAY_2_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_3_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets --storage $STORAGE_ARRAY_3_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_4_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets --storage $STORAGE_ARRAY_4_NATIVEGUID
+        fi
     fi
 
     # Migrate will always use auto pool match to force migrations
@@ -2680,10 +2704,18 @@ rpvplex_targets()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_2_NATIVEGUID
-        run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_3_NATIVEGUID
-        run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_4_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_2_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_2_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_3_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_3_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_4_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_targets-migrate --storage $STORAGE_ARRAY_4_NATIVEGUID
+        fi
     fi
 }
 
@@ -2701,10 +2733,18 @@ rpvplex_ha()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplex_ha --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_ha --storage $STORAGE_ARRAY_2_NATIVEGUID
-        run cos update block rpvplex_ha --storage $STORAGE_ARRAY_3_NATIVEGUID
-        run cos update block rpvplex_ha --storage $STORAGE_ARRAY_4_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+                run cos update block rpvplex_ha --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_2_NATIVEGUID" != "NONE" ]; then
+                run cos update block rpvplex_ha --storage $STORAGE_ARRAY_2_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_3_NATIVEGUID" != "NONE" ]; then
+                run cos update block rpvplex_ha --storage $STORAGE_ARRAY_3_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_4_NATIVEGUID" != "NONE" ]; then
+                run cos update block rpvplex_ha --storage $STORAGE_ARRAY_4_NATIVEGUID
+        fi
     fi
 
     run cos create block rpvplex_ha$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -2718,10 +2758,18 @@ rpvplex_ha()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_2_NATIVEGUID
-        run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_3_NATIVEGUID
-        run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_4_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_2_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_2_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_3_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_3_NATIVEGUID
+        fi
+        if [ "$STORAGE_ARRAY_4_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_ha-migrate --storage $STORAGE_ARRAY_4_NATIVEGUID
+        fi
     fi
 }
 
@@ -2757,6 +2805,7 @@ rp_cdp()
         --rp_rpo_type MINUTES
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
+
         run cos update block rp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
         run cos update block rp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
     fi
@@ -2792,8 +2841,10 @@ rpxio_cdp()
         --rp_rpo_type MINUTES
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpxio_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpxio_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpxio_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpxio_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -2829,8 +2880,10 @@ rp_crr()
         --rp_rpo_type MINUTES
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rp_crr --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rp_crr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_crr --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rp_crr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -2866,8 +2919,10 @@ rp_clr()
         --rp_rpo_type MINUTES
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rp_clr --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rp_clr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_clr --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rp_clr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -2909,8 +2964,10 @@ rpvplex_cdp()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplex_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpvplex_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpvplex_cdp$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -2931,7 +2988,9 @@ rpvplex_cdp()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplex_cdp-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_cdp-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -2975,8 +3034,10 @@ rpvplex_crr()
         --haCos rpvplex_ha
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplex_crr --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_crr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_crr --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpvplex_crr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpvplex_crr$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -2998,7 +3059,9 @@ rpvplex_crr()
         --haCos rpvplex_ha-migrate
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplex_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3044,8 +3107,10 @@ rpvplex_clr()
         --haCos rpvplex_ha
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplex_clr --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpvplex_clr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_clr --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpvplex_clr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpvplex_clr$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -3068,7 +3133,9 @@ rpvplex_clr()
         --haCos rpvplex_ha-migrate
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplex_clr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplex_clr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3114,8 +3181,10 @@ rpmp_cdp()
         --activeProtectionAtHASite false
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpmp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpmp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpmp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpmp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpmp_cdp$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -3138,7 +3207,9 @@ rpmp_cdp()
         --activeProtectionAtHASite false
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpmp_cdp-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpmp_cdp-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3204,9 +3275,11 @@ rpmp_crr()
         --activeProtectionAtHASite false
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpmp_crr --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpmp_crr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpmp_crr-upgradeMP --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpmp_crr --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpmp_crr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpmp_crr-upgradeMP --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpmp_crr$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -3229,7 +3302,9 @@ rpmp_crr()
         --activeProtectionAtHASite false
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpmp_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpmp_crr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3275,8 +3350,10 @@ rpmp_clr()
         --activeProtectionAtHASite false
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpmp_clr --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rpmp_clr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpmp_clr --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rpmp_clr-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpmp_clr$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -3299,7 +3376,9 @@ rpmp_clr()
         --activeProtectionAtHASite false
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpmp_clr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpmp_clr-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3317,7 +3396,9 @@ rp_noprotection()
         --multiVolumeConsistency
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rp_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3336,7 +3417,9 @@ rpvplexlocal_noprotection()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplexlocal_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplexlocal_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpvplexlocal_noprotection$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -3351,7 +3434,9 @@ rpvplexlocal_noprotection()
         --highavailability vplex_local
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplexlocal_noprotection-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplexlocal_noprotection-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3373,7 +3458,9 @@ rpvplexdist_noprotection()
         --haCos rpvplex_ha
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-        run cos update block rpvplexdist_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplexdist_noprotection --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 
     run cos create block rpvplexdist_noprotection$1-migrate $POOLS_AUTO_MATCH_MIGRATE \
@@ -3390,7 +3477,9 @@ rpvplexdist_noprotection()
         --haCos rpvplex_ha-migrate
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
-        run cos update block rpvplexdist_noprotection-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rpvplexdist_noprotection-migrate --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 

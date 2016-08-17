@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -35,7 +36,7 @@ public class HostCompleter extends ComputeSystemCompleter {
             switch (status) {
                 case error:
                     Host host = dbClient.queryObject(Host.class, id);
-                    if (host != null) {
+                    if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                         host.setProvisioningStatus(Host.ProvisioningJobStatus.ERROR.toString());
                         dbClient.persistObject(host);
                     }

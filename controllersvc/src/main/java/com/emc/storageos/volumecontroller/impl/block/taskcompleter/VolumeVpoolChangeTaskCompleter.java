@@ -105,7 +105,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             // Special rollback for RP, RP+VPLEX, and MetroPoint in the case
                             // where the operation tried to apply RP Protection to the volume 
                             // and now it needs to be reverted.
-                            RPHelper.rollbackProtectionOnVolume(volume, oldVpool, false, dbClient);
+                            RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
                         } 
                         
                         if (RPHelper.isVPlexVolume(volume)) {

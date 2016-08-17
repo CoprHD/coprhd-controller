@@ -1779,7 +1779,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (isChangeVpool || isChangeVpoolForProtectedVolume) {
                     Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
                     VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
-                    RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, false, _dbClient);
+                    RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
                 }
 
                 for (URI volumeURI : volumeURIs) {

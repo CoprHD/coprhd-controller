@@ -1601,10 +1601,9 @@ public class RPHelper {
      *
      * @param volume Volume to remove protection from
      * @param oldVpool The old vpool, this the original vpool of the volume before trying to add protection
-     * @param keepInCG If true, do not remove the CG reference on the volume. Use for remove protection operation. 
      * @param dbClient DBClient object
      */
-    public static void rollbackProtectionOnVolume(Volume volume, VirtualPool oldVpool, boolean keepInCG, DbClient dbClient) {
+    public static void rollbackProtectionOnVolume(Volume volume, VirtualPool oldVpool, DbClient dbClient) {
         // Rollback any RP specific changes to this volume
         if (volume.checkForRp()) {
             if (!VirtualPool.vPoolSpecifiesProtection(oldVpool)) {
@@ -1636,9 +1635,7 @@ public class RPHelper {
                 }
 
                 // Null out any RP specific fields on the volume
-                if (!keepInCG) {
-                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                }
+                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 volume.setPersonality(NullColumnValueGetter.getNullStr());
                 volume.setProtectionController(NullColumnValueGetter.getNullURI());
                 volume.setRSetName(NullColumnValueGetter.getNullStr());

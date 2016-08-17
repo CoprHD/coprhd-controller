@@ -23,6 +23,7 @@ import java.util.TimeZone;
  */
 public class ScheduleInfo implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(ScheduleInfo.class);
+    static final long serialVersionUID = 2016081711117510155L;
 
     public static final String HOUR_OF_DAY = "hourOfDay";
     public static final String MINUTE_OF_HOUR = "minuteOfHour";

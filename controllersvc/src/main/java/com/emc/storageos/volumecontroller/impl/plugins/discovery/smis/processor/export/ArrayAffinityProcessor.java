@@ -34,7 +34,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
 /*
- * Refresh preferredPoolIds for a host
+ * Refresh preferredPools for a host
  */
 public class ArrayAffinityProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(ArrayAffinityProcessor.class);
@@ -48,8 +48,8 @@ public class ArrayAffinityProcessor {
      * @param dbClient DbClient
      * @return true if there is mapped volume
      */
-    public void updatePreferredPoolIds(AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
-        _logger.info("Calling updatePreferredPoolIds");
+    public void updatePreferredPools(AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+        _logger.info("Calling updatePreferredPools");
 
         try {
             if (profile != null && profile.getProps() != null) {

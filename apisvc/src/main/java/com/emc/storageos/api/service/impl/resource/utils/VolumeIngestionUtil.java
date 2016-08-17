@@ -3082,38 +3082,38 @@ public class VolumeIngestionUtil {
      */
     public static BlockObject getBlockObject(String nativeGUID, DbClient dbClient) {
         _logger.info("Checking for unmanagedvolume {} [Volume] ingestion status.", nativeGUID);
-        List<URI> blockObjectUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGUID));
-        if (!blockObjectUris.isEmpty()) {
-            for (URI blockObjectUri : blockObjectUris) {
-                BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectUri);
-                if (!blockObject.getInactive()) {
-                    _logger.info("Found volume {} ingested.", nativeGUID);
-                    return blockObject;
-                }
+        URIQueryResultList results = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGUID), results);
+        Iterator<URI> blockObjectUris = results.iterator();
+        if (blockObjectUris.hasNext()) {
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectUris.next());
+            if (!blockObject.getInactive()) {
+                _logger.info("Found volume {} ingested.", nativeGUID);
+                return blockObject;
             }
         }
 
         _logger.info("Checking for unmanagedvolume {} [Snap] ingestion status", nativeGUID);
-        blockObjectUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(nativeGUID));
-        if (!blockObjectUris.isEmpty()) {
-            for (URI blockObjectUri : blockObjectUris) {
-                BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectUri);
-                if (!blockObject.getInactive()) {
-                    _logger.info("Found snapshot {} ingested.", nativeGUID);
-                    return blockObject;
-                }
+        results = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(nativeGUID), results);
+        blockObjectUris = results.iterator();
+        if (blockObjectUris.hasNext()) {
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectUris.next());
+            if (!blockObject.getInactive()) {
+                _logger.info("Found snapshot {} ingested.", nativeGUID);
+                return blockObject;
             }
         }
 
         _logger.info("Checking for unmanagedvolume {} [Mirror] ingestion status", nativeGUID);
-        blockObjectUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(nativeGUID));
-        if (!blockObjectUris.isEmpty()) {
-            for (URI blockObjectUri : blockObjectUris) {
-                BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectUri);
-                if (!blockObject.getInactive()) {
-                    _logger.info("Found mirror {} ingested.", nativeGUID);
-                    return blockObject;
-                }
+        results = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(nativeGUID), results);
+        blockObjectUris = results.iterator();
+        if (blockObjectUris.hasNext()) {
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectUris.next());
+            if (!blockObject.getInactive()) {
+                _logger.info("Found mirror {} ingested.", nativeGUID);
+                return blockObject;
             }
         }
 

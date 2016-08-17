@@ -545,7 +545,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 }
 
-                if (!oldDatacenter.getVcenter().toString().equals(currentDatacenter.toString())) {
+                if (!oldDatacenter.getVcenter().toString().equals(currentDatacenter.getVcenter().toString())) {
                     Vcenter oldVcenter = dbClient.queryObject(Vcenter.class, oldDatacenter.getVcenter());
                     Vcenter currentVcenter = dbClient.queryObject(Vcenter.class, currentDatacenter.getVcenter());
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_VCENTER_CHANGE, host.getTenant(),

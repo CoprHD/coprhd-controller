@@ -36,6 +36,9 @@ public class StorageSystemType extends DataObject {
 
     private Boolean isSecretKey = false;
 
+    // This is to indicate if the driver file is successfully uploaded on all nodes
+    private Boolean isUsable = false;
+
     private String sslPort;
     private String nonSslPort;
     private String driverClassName;
@@ -143,6 +146,16 @@ public class StorageSystemType extends DataObject {
     public void setIsSecretKey(Boolean isSecretKey) {
         this.isSecretKey = isSecretKey;
         setChanged("isSecretKey");
+    }
+
+    @Name("isUsable")
+    public Boolean getIsUsable() {
+        return isUsable;
+    }
+
+    public void setIsUsable(Boolean isUsable) {
+        this.isUsable = isUsable;
+        setChanged("isUsable");
     }
 
     @Name("sslPort")

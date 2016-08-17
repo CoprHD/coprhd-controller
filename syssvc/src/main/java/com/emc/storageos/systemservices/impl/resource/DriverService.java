@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +35,10 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.StorageSystemType;
 
 /**
  * Defines the API for making requests to the backup service.
@@ -46,6 +51,15 @@ public class DriverService {
     private CoordinatorClient coordinator;
     private Service service;
     private CoordinatorClientExt coordinatorExt;
+    private DbClient dbClient;
+
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
@@ -79,6 +93,29 @@ public class DriverService {
         }
         driver.close();
         os.close();
+        
+        // update meta data, set usable false for now
+        StorageSystemType type = new StorageSystemType();
+        URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+        type.setId(ssTyeUri);
+        type.setStorageTypeId(ssTyeUri.toString());
+
+        type.setStorageTypeName("typename");
+        type.setMetaType("block");
+        type.setDriverClassName("driver class");
+        type.setStorageTypeDispName("display_name");
+        type.setNonSslPort("1234");
+        type.setSslPort("4321");
+
+        type.setIsSmiProvider(false);
+        type.setIsDefaultSsl(true);
+        type.setIsDefaultMDM(false);
+        type.setIsOnlyMDM(false);
+        type.setIsElementMgr(false);
+        type.setIsSecretKey(false);
+
+        dbClient.createObject(type);
+        
         // set target info
         String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
         List<String> drivers = coordinator.getTargetInfo(DriverInfo.class).getDrivers();

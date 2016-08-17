@@ -134,6 +134,7 @@
                     <property name="coordinator" ref="coordinator" />
                     <property name="service" ref="serviceinfo" />
                     <property name="coordinatorExt" ref="coordinatorclientext" />
+                    <property name="dbClient" ref="dbclient"/>
                 </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.DbConsistencyService">

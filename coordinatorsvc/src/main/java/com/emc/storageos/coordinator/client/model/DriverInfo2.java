@@ -1,5 +1,6 @@
 package com.emc.storageos.coordinator.client.model;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,10 +18,10 @@ public class DriverInfo2 {
     private static final String KEY_INIT_NODE = "initNode";
     private static final String KEY_FINISH_NODES = "finishNodes";
 
-    private List<String> drivers;
+    private List<String> drivers = new ArrayList<String>();
     private String initNode;
     // Node name format $siteid_$nodeid, e.g. "1b2fe070-5e3c-11e6-29b3-f8319a30ed54_vipr1"
-    private List<String> finishNodes;
+    private List<String> finishNodes = new ArrayList<String>();
 
     public DriverInfo2() {
     }

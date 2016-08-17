@@ -143,7 +143,7 @@ public class Events extends Controller {
             declineDetails = details.getDeclineDetails();
         } else {
             approveDetails = event.getApproveDetails();
-            declineDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
         }
 
         Common.angularRenderArgs().put("approveDetails", approveDetails);
@@ -256,7 +256,7 @@ public class Events extends Controller {
             declineDetails = details.getDeclineDetails();
         } else {
             approveDetails = event.getApproveDetails();
-            declineDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
         }
 
         List<TaskResourceRep> tasks = Lists.newArrayList();

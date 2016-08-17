@@ -127,6 +127,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolPlacementPolicyMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.StorageSystemArrayAffinityDiscoveryMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration"/>
             </list>
         </entry>
     </util:map>

@@ -547,7 +547,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     blockExportController.exportGroupUpdate(exportGroup.getId(),
                             noUpdatesVolumeMap, noUpdatesVolumeMap,
-                            updatedClusters, updatedHosts, updatedInitiators, null, null, null, null, null, null, task);
+                            null, null, null, null, null, null, task);
 
                     while (true) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);

@@ -39,9 +39,6 @@ public interface BlockExportController extends Controller {
      * @param addedBlockObjectMap (only the block objects that were added);
      * @param removedBlockObjectMap (only the block objects that were removed)
      * can be null in which case computed from updatedBlockObjectMap
-     * @param updatedClusters the updated list of clusters
-     * @param updatedHosts the updated list of hosts
-     * @param updatedInitiators the updates list of initiators
      * @param addedClusters TODO
      * @param removedClusters TODO
      * @param addedHosts TODO
@@ -54,10 +51,10 @@ public interface BlockExportController extends Controller {
     public void exportGroupUpdate(URI export, 
             Map<URI, Integer> addedBlockObjectMap,
             Map<URI,  Integer> removedBlockObjectMap,
-            List<URI> updatedClusters,
-            List<URI> updatedHosts,
-            List<URI> updatedInitiators,
-            List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId) throws ControllerException;
+            List<URI> addedClusters,
+            List<URI> removedClusters,
+            List<URI> addedHosts,
+            List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId) throws ControllerException;
 
     /**
      * Delete the export.

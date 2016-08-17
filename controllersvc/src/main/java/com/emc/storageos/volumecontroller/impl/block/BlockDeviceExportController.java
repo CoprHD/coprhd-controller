@@ -356,8 +356,8 @@ public class BlockDeviceExportController implements BlockExportController {
     public void exportGroupUpdate(URI export,
             Map<URI, Integer> addedBlockObjectMap,
             Map<URI, Integer> removedBlockObjectMap,
-            List<URI> updatedClusters, List<URI> updatedHosts,
-            List<URI> updatedInitiators, List<URI> addedClusters, List<URI> removedClusters, List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId)
+            List<URI> addedClusters, List<URI> removedClusters,
+            List<URI> addedHosts, List<URI> removedHosts, List<URI> addedInitiators, List<URI> removedInitiators, String opId)
             throws ControllerException {
         Map<BlockObjectControllerKey, Map<URI, Integer>> addedStorageToBlockObjects =
                 new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
@@ -367,15 +367,18 @@ public class BlockDeviceExportController implements BlockExportController {
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
-            StringSetUtil.removeDuplicates(updatedClusters);
-            StringSetUtil.removeDuplicates(updatedHosts);
-            StringSetUtil.removeDuplicates(updatedInitiators);
+            StringSetUtil.removeDuplicates(addedInitiators);
+            StringSetUtil.removeDuplicates(removedInitiators);
+            StringSetUtil.removeDuplicates(addedHosts);
+            StringSetUtil.removeDuplicates(removedHosts);
+            StringSetUtil.removeDuplicates(addedClusters);
+            StringSetUtil.removeDuplicates(removedClusters);
 
             computeDiffs(export, 
-                    addedBlockObjectMap, removedBlockObjectMap, updatedInitiators,
-                    addedStorageToBlockObjects, removedStorageToBlockObjects,
-                    addedInitiators, removedInitiators, addedHosts, removedHosts,
-                    addedClusters, removedClusters);
+                    addedBlockObjectMap, removedBlockObjectMap, addedStorageToBlockObjects,
+                    removedStorageToBlockObjects, addedInitiators,
+                    removedInitiators, addedHosts, removedHosts, addedClusters,
+                    removedClusters);
 
             // Generate a flat list of volume/snap objects that will be added
             // to the export update completer so the completer will know what
@@ -448,8 +451,6 @@ public class BlockDeviceExportController implements BlockExportController {
      *            added. (Passed separately to avoid concurrency problem). 
      * @param removedBlockObjectsFromRequest : the map of block objects that wee reqested
      *              to be removed.
-     * @param newInitiators the updated list of initiators that reflect what needs
-     *            to be added and removed from the current list of initiators
      * @param addedBlockObjects a map to be filled with storage-system-to-added-volumed
      * @param removedBlockObjects a map to be filled with storage-system-to-removed-volumed
      * @param addedInitiators a list to be filled with added initiators
@@ -462,12 +463,12 @@ public class BlockDeviceExportController implements BlockExportController {
     private void computeDiffs(URI expoUri, 
             Map<URI, Integer> addedBlockObjectsFromRequest,
             Map<URI, Integer> removedBlockObjectsFromRequest,
-            List<URI> newInitiators,
             Map<BlockObjectControllerKey, Map<URI, Integer>> addedBlockObjects,
             Map<BlockObjectControllerKey, Map<URI, Integer>> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators,
-            List<URI> addedHosts, List<URI> removedHosts,
-            List<URI> addedClusters, List<URI> removedClusters) {
+            List<URI> addedInitiators,
+            List<URI> removedInitiators, List<URI> addedHosts,
+            List<URI> removedHosts, List<URI> addedClusters,
+            List<URI> removedClusters) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
@@ -565,7 +566,7 @@ public class BlockDeviceExportController implements BlockExportController {
                         }
                     }
                     if (remove) {
-                        removedHosts.add(hostId);
+                        // removedHosts.add(hostId); // This logic is wrong
                     }
                 }
             }
@@ -612,7 +613,7 @@ public class BlockDeviceExportController implements BlockExportController {
                             }
                         }
                         if (remove) {
-                            removedClusters.add(clusterId);
+                            // removedClusters.add(clusterId); // This logic is wrong.
                         }
                     }
                 }

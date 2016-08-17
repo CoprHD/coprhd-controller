@@ -114,8 +114,7 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
             exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
-                    newClusters, newHosts, newInitiators, addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators,
-                    task);
+                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

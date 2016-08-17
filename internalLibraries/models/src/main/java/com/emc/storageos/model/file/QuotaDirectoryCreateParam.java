@@ -114,7 +114,7 @@ public class QuotaDirectoryCreateParam {
      * Security style for the quota directory.
      * Default is "unix".
      * Valid values:
-     *   parents
+     *   parent
      *   unix
      *   ntfs
      *   mixed

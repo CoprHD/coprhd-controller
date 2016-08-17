@@ -2204,15 +2204,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 	        		
         		if (RPHelper.isVPlexVolume(targetVolume)) {
         			if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
-                        vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
+        				vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
 	        		} 
         		} else {
-	                    super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
+                    super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
         		}
     		}        	
         } else {
-        	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-        	//throw 
+        	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());        	
         }
         
         // Validate the source volume size is not greater than the target volume size

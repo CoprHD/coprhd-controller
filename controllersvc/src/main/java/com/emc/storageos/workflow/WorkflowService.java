@@ -1971,22 +1971,21 @@ public class WorkflowService implements WorkflowController {
      *            - List of lock keys to be acquired
      * @param time
      *            - Maximum wait time, 0 means poll
-     * @return
+     * @return 
+     *      true if locks acquired, false otherwise
      */
     public boolean acquireWorkflowStepLocks(String stepId, List<String> lockKeys, long time) {
         String workflowPath = getZKStep2WorkflowPath(stepId);
         boolean gotLocks = false;
         try {
-            // Get the workflow path from ZK
-            workflowPath = (String) _dataManager.getData(workflowPath, false);
-            // It is not an error to try and update using a non-existent stepId
+            Workflow workflow = null;
+            try {
+                workflow = loadWorkflowFromStepId(stepId);
+            } catch (WorkflowException ex) {
+                _log.info("Workflow not found for stepId: " + stepId);
+            }
             if (workflowPath == null) {
                 return false;
-            }
-            // Load the Workflow state from ZK
-            Workflow workflow = (Workflow) _dataManager.getData(workflowPath, false);
-            if (workflow == null) {
-                throw new WorkflowException("Could not load workflow for step: " + stepId);
             }
             Long stepStartTimeSeconds = System.currentTimeMillis();
             StepStatus stepStatus = workflow.getStepStatusMap().get(stepId);
@@ -2444,6 +2443,7 @@ public class WorkflowService implements WorkflowController {
                     // Load the Workflow state from ZK
                     if (parentPath != null) {
                         Workflow parentWorkflow = (Workflow) _dataManager.getData(parentPath, false);
+                        parentWorkflow = loadWorkflow(parentWorkflow);
                         // Get the StepStatus for our step.
                         StepStatus status = parentWorkflow.getStepStatus(orchestrationId);
                         if (status != null && status.startTime != null) {

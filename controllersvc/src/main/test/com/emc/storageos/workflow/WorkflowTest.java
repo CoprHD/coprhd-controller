@@ -984,7 +984,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
      * saves data, and the second step validates it was retrieved.
      */
     public void test17_big_workflow() {
-        int nsteps = 1000;
+        int nsteps = 100;
         byte[] bigArgs = new byte[2500];
         String taskId = UUID.randomUUID().toString();
         String[] args = new String[1];

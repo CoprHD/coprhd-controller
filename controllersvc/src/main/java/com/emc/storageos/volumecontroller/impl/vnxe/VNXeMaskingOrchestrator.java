@@ -153,18 +153,15 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
                     "exportGroupDelete", true, token);
-            String zoningStep = generateZoningDeleteWorkflow(workflow, null,
-                    exportGroup, exportMasks);
+            // Serialize all export mask delete steps
             String deleteStep = null;
             for (ExportMask exportMask : exportMasks) {
-                if (deleteStep == null) {
-                    deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep,
-                            storage, exportGroup, exportMask, null, null, null);
-                } else {
-                    deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
-                            storage, exportGroup, exportMask, null, null, null);
-                }
+                deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
+                        storage, exportGroup, exportMask, null, null, null);
             }
+            // complete with the zoning delete
+            generateZoningDeleteWorkflow(workflow, deleteStep,
+                    exportGroup, exportMasks);
 
             String successMessage = String.format(
                     "Export was successfully removed from StorageArray %s",
@@ -362,8 +359,6 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
                 maskToInitiatorsMap.put(mask.getId(), initURIList);
             }
-            String zoningStep = generateZoningRemoveInitiatorsWorkflow(workflow, null,
-                    exportGroup, maskToInitiatorsMap);
             String deleteStep = null;
             for (ExportMask exportMask : exportMasksMap.keySet()) {
                 List<Initiator> inits = exportMasksMap.get(exportMask);
@@ -373,18 +368,14 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         exportMask.getStoragePorts() != null) {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
-                    if (deleteStep == null) {
-                        deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                                exportGroup, exportMask, null, null, null);
-                    } else {
-                        deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                                exportGroup, exportMask, null, null, null);
-                    }
-
+                    deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
+                            exportGroup, exportMask, null, null, null);
                 }
                 _log.info(String.format("exportRemoveInitiator end - Array: %s ExportMask: %s",
                         storageURI.toString(), exportGroupURI.toString()));
             }
+            generateZoningRemoveInitiatorsWorkflow(workflow, deleteStep,
+                    exportGroup, maskToInitiatorsMap);
 
             String successMessage = String.format(
                     "Initiators successfully removed from export StorageArray %s",
@@ -519,32 +510,22 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     }
                 }
                 if (!deleteMasks.isEmpty()) {
-                    String zoningStep = generateZoningDeleteWorkflow(workflow, null,
-                            exportGroup, exportMasks);
                     String deleteStep = null;
                     for (ExportMask exportMask : deleteMasks) {
-                        if (deleteStep == null) {
-                            deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                                    exportGroup, exportMask, null, null, null);
-                        } else {
-                            deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                                    exportGroup, exportMask, null, null, null);
-                        }
+                        deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
+                                exportGroup, exportMask, null, null, null);
                     }
+                    generateZoningDeleteWorkflow(workflow, deleteStep,
+                            exportGroup, exportMasks);
                 }
                 if (!updateMasks.isEmpty()) {
-                    String zoningStep = generateZoningRemoveVolumesWorkflow(workflow,
-                            null, exportGroup, exportMasks, volumes);
                     String unexportStep = null;
                     for (ExportMask exportMask : updateMasks) {
-                        if (unexportStep == null) {
-                            unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, zoningStep,
-                                    storage, exportGroup, exportMask, volumes, null, null);
-                        } else {
-                            unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, unexportStep,
-                                    storage, exportGroup, exportMask, volumes, null, null);
-                        }
+                        unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, unexportStep,
+                                storage, exportGroup, exportMask, volumes, null, null);
                     }
+                    generateZoningRemoveVolumesWorkflow(workflow,
+                            unexportStep, exportGroup, exportMasks, volumes);
                 }
                 String successMessage = String.format(
                         "Volumes successfully unexported from StorageArray %s",

@@ -1098,10 +1098,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      */
     public String generateDeviceSpecificDeleteWorkflow(Workflow workflow, String previousStep,
             ExportGroup exportGroup, ExportMask mask, List<URI> volumes, List<URI> initiators, StorageSystem storage) throws Exception {
-        String unZoneStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
-                Arrays.asList(mask));
-        return generateExportMaskDeleteWorkflow(workflow, unZoneStep, storage,
+        String unMaskStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                 exportGroup, mask, volumes, initiators, null);
+        return generateZoningDeleteWorkflow(workflow, unMaskStep, exportGroup,
+                Arrays.asList(mask));
     }
 
     /**
@@ -1131,11 +1131,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             StorageSystem storage, Map<URI, List<URI>> maskToInitiatorsMap,
             List<URI> volumes, List<URI> initiatorsToRemove, boolean removeTargets) throws Exception {
 
-        String unZoneStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep, exportGroup,
-                maskToInitiatorsMap);
-
-        return generateExportMaskRemoveInitiatorsWorkflow(workflow, unZoneStep, storage,
+        String unMaskStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
                 exportGroup, mask, volumes, initiatorsToRemove, removeTargets);
+
+        return generateZoningRemoveInitiatorsWorkflow(workflow, unMaskStep, exportGroup,
+                maskToInitiatorsMap);
     }
 
     /**
@@ -1162,11 +1162,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     public String generateDeviceSpecificRemoveVolumesWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask mask, StorageSystem storage,
             List<URI> volumesToRemove, List<URI> initiatorURIs, ExportTaskCompleter completer) throws Exception {
-        String zoningStep = generateZoningRemoveVolumesWorkflow(workflow, previousStep,
-                exportGroup, Arrays.asList(mask), volumesToRemove);
-
-        return generateExportMaskRemoveVolumesWorkflow(workflow, zoningStep, storage, exportGroup,
+        String unMaskStep = generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage, exportGroup,
                 mask, volumesToRemove, initiatorURIs, completer);
+
+        return generateZoningRemoveVolumesWorkflow(workflow, unMaskStep,
+                exportGroup, Arrays.asList(mask), volumesToRemove);
     }
 
     /**

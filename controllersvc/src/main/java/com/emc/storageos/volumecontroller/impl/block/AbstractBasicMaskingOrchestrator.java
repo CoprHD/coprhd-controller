@@ -70,7 +70,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * @param initiatorURIs
      * @param volumeMap
      * @param token
-     * @param zoningStepNeeded Determine whether zone step is needed
+     * @param zoningStepNeeded
+     *            Determine whether zone step is needed
      * @return
      * @throws Exception
      */
@@ -107,11 +108,16 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * maintained.
      *
      *
-     * @param storageURI - URI referencing underlying storage array
-     * @param exportGroupURI - URI referencing Bourne-level masking, ExportGroup
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer URI
-     * @param token - Identifier for operation
+     * @param storageURI
+     *            - URI referencing underlying storage array
+     * @param exportGroupURI
+     *            - URI referencing Bourne-level masking, ExportGroup
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer URI
+     * @param token
+     *            - Identifier for operation
      * @throws Exception
      */
     @Override
@@ -281,7 +287,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             for (String existingMaskInitiatorStr : mask.getInitiators()) {
 
                                 // Now look at it from a different angle. Which one of our export group initiators
-                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing one,
+                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing
+                                // one,
                                 // we should add it to this mask.
                                 Iterator<URI> initiatorIter = initiatorURIsCopy.iterator();
                                 while (initiatorIter.hasNext()) {
@@ -301,7 +308,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                             if (!existingMaskInitiators.contains(initiatorCopy)) {
                                                 existingMaskInitiators.add(initiatorCopy);
                                             }
-                                            initiatorIter.remove(); // remove this from the list of initiators we'll make a new mask from
+                                            initiatorIter.remove(); // remove this from the list of initiators we'll
+                                                                    // make a new mask from
                                         }
                                     }
                                 }
@@ -486,7 +494,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             }
                             _log.info(String.format("ExportMask %s (%s) will be updated with these volumes %s", exportMask.getMaskName(),
                                     exportMask.getId(), CommonTransformerFunctions.collectionString(volumeMap.entrySet())));
-                            break; // Do the reconciliation once, based on the first non-empty refreshedVolumeMap that's found
+                            break; // Do the reconciliation once, based on the first non-empty refreshedVolumeMap that's
+                                   // found
                         }
                     }
                 }
@@ -613,7 +622,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     }
                     if (mask.getCreatedBySystem()) {
                         if (mask.hasUserInitiator(initiator.getId())) {
-                            // If there's more than one export group, that means there's my export group plus another one.
+                            // If there's more than one export group, that means there's my export group plus another
+                            // one.
                             // Best to just leave that initiator alone.
                             Set<URI> exportGroupURIs = new HashSet<URI>();
                             if (ExportUtils.isExportMaskShared(_dbClient, mask.getId(), exportGroupURIs)) {
@@ -682,11 +692,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 }
                             }
 
-                            // Place the volumes to remove into the map corresponding to the map we're currently processing.
+                            // Place the volumes to remove into the map corresponding to the map we're currently
+                            // processing.
                             if (!volumesToRemove.isEmpty()) {
-                                // Only remove volumes from masks as a side-effect of initiator removal for non-initiator export group
+                                // Only remove volumes from masks as a side-effect of initiator removal for
+                                // non-initiator export group
                                 // types.
-                                // Otherwise this logic may remove volumes from masks that have references to other initiators to the same
+                                // Otherwise this logic may remove volumes from masks that have references to other
+                                // initiators to the same
                                 // host.
                                 if (!exportGroup.forInitiator()) {
                                     List<URI> removeVolumesList = existingMasksToRemoveVolumes.get(mask.getId());
@@ -697,7 +710,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                     }
                                     removeVolumesList.addAll(volumesToRemove);
                                 } else {
-                                    // Just a reminder to the world in the case where Initiator is used in this odd situation.
+                                    // Just a reminder to the world in the case where Initiator is used in this odd
+                                    // situation.
                                     _log.info(
                                             "Removing volumes from an Initiator type export group as part of an initiator removal is not supported.");
                                 }
@@ -709,11 +723,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         // are not already in the masks to the remove list
                         for (BlockObject blockObject : blockObjects) {
                             if (mask.hasUserCreatedVolume(blockObject.getWWN())) {
-                                // If any system-created initiator in the mask is not in our list to remove, then we shouldn't remove
-                                // the block object because another initiator in a ViPR export group is depending on that object being
+                                // If any system-created initiator in the mask is not in our list to remove, then we
+                                // shouldn't remove
+                                // the block object because another initiator in a ViPR export group is depending on
+                                // that object being
                                 // there.
                                 //
-                                // Once all user-added initiators are slated for removal, the block volume can be removed
+                                // Once all user-added initiators are slated for removal, the block volume can be
+                                // removed
                                 // as well.
 
                                 // CTRL-8804- Volumes can be removed, if there are no user Added initiators.
@@ -736,11 +753,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 if (mask.getInitiators() != null && exportGroup.getInitiators() != null) {
                                     for (URI maskInitiatorId : URIUtil.toURIList(mask.getInitiators())) {
 
-                                        // We are only concerned about initiators in the mask that are NOT the ones being removed.
+                                        // We are only concerned about initiators in the mask that are NOT the ones
+                                        // being removed.
                                         if (!initiatorURIs.contains(maskInitiatorId)) {
 
-                                            // This block will check to see if the export group we're currently referring to
-                                            // has any initiators that are still part of the export group, even after removing
+                                            // This block will check to see if the export group we're currently
+                                            // referring to
+                                            // has any initiators that are still part of the export group, even after
+                                            // removing
                                             // consideration of initiators we are removing from the export group.
                                             if (exportGroup.getInitiators().contains(maskInitiatorId.toString())) {
                                                 okToRemove = false;
@@ -750,8 +770,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                 break;
                                             }
 
-                                            // This block will make sure the volumes/initiator combination is not in any other export group.
-                                            // This is far less likely to be the case, but we do support overlapping export groups, so this
+                                            // This block will make sure the volumes/initiator combination is not in any
+                                            // other export group.
+                                            // This is far less likely to be the case, but we do support overlapping
+                                            // export groups, so this
                                             // check is necessary.
                                             Initiator maskInitiator = _dbClient.queryObject(Initiator.class, maskInitiatorId);
                                             Set<URI> exportGroupURIs = new HashSet<URI>();
@@ -762,7 +784,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                             // Remove our export group from the list
                                             exportGroupURIs.remove(exportGroup.getId());
 
-                                            // If there are any other export groups that reference this mask, do they contain the initiator
+                                            // If there are any other export groups that reference this mask, do they
+                                            // contain the initiator
                                             // and block object as well?
                                             if (!exportGroupURIs.isEmpty()
                                                     && ExportUtils.checkIfAnyExportGroupsContainInitiatorAndBlockObject(_dbClient,
@@ -998,7 +1021,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         boolean deleteEntireMask = removingLastVolumeFromMask;
                         boolean anyVolumesFoundInAnotherExportGroup = false;
 
-                        // Volume removal -- check to see if that volume is already in another export group with that initiator.
+                        // Volume removal -- check to see if that volume is already in another export group with that
+                        // initiator.
                         // check to see if the export mask has other initiators that aren't being removed.
                         for (URI egVolumeID : volumeURIs) {
                             String volumeIdStr = egVolumeID.toString();
@@ -1007,9 +1031,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 if (exportGroup.getInitiators() != null) {
                                     for (String initiatorIdStr : exportGroup.getInitiators()) {
                                         if (exportMask.hasInitiator(initiatorIdStr)) {
-                                            // In here, we're looking at an initiator that is both in our export group and in the export
+                                            // In here, we're looking at an initiator that is both in our export group
+                                            // and in the export
                                             // mask we're looking at,
-                                            // so it needs further scrutiny. Is this combo in more than one export group? If so, leave it
+                                            // so it needs further scrutiny. Is this combo in more than one export
+                                            // group? If so, leave it
                                             // alone.
                                             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorIdStr));
 
@@ -1062,7 +1088,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         boolean exportMaskIsShared = ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null);
                         @SuppressWarnings("unchecked")
                         List<URI> initiatorsToRemove = (exportMask.getUserAddedInitiators() != null)
-                        ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
+                                ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
                         List<URI> allExportMaskInitiators = ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient);
                         // We should remove initiators from the ExportMask IF:
                         // 1). ExportMask is not Shared
@@ -1125,7 +1151,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                         storage, maskToInitiatorsMap,
                                         maskVolumeURIs, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true);
                                 // Don't delete the target ports if we're deleting the entire mask anyway.
-                                // This is because we're removing initiators from an export mask that impacts other export masks.
+                                // This is because we're removing initiators from an export mask that impacts other
+                                // export masks.
                                 // The end result of removing these initiators is to remove initiators that ViPR added
                                 // to masks that it is not managing. (See vmaxexport-ingest.sh test_24)
                             }
@@ -1139,7 +1166,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             // should remove initiators or volumes
                             @SuppressWarnings("unchecked")
                             List<URI> userAddedVolumes = (exportMask.getUserAddedVolumes() != null)
-                            ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()) : Collections.EMPTY_LIST;
+                                    ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()) : Collections.EMPTY_LIST;
                             userAddedVolumes.removeAll(volumesToRemove);
                             boolean removingAllUserAddedVolumes = userAddedVolumes.isEmpty();
                             boolean canRemoveVolumes = (!volumesToRemove.isEmpty() && !removingLastVolumeFromMask);
@@ -1152,7 +1179,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                             canRemoveVolumes, initiatorsToRemove.size(), allExportMaskInitiators.size(),
                                             removingLastVolumeFromMask, removingAllUserAddedVolumes));
                             /**
-                             * We can remove initiators from MaskingView only if there is no other volumes are part of MaskingView.
+                             * We can remove initiators from MaskingView only if there is no other volumes are part of
+                             * MaskingView.
                              */
                             if (canRemoveInitiators) {
                                 _log.info(String.format(
@@ -1168,7 +1196,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                         storage, maskToInitiatorsMap,
                                         maskVolumeURIs, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true);
                                 // Don't delete the target ports if we're deleting the entire mask anyway.
-                                // This is because we're removing initiators from an export mask that impacts other export masks.
+                                // This is because we're removing initiators from an export mask that impacts other
+                                // export masks.
                                 // The end result of removing these initiators is to remove initiators that ViPR added
                                 // to masks that it is not managing. (See vmaxexport-ingest.sh test_24)
                                 generatedWorkFlowSteps = true;
@@ -1206,13 +1235,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                 }
 
-                if (!exportMasksToZoneDelete.isEmpty()) {
-                    _log.info("generating workflow to remove all zones in exportmask");
-                    // Add the zone ExportMask delete operations
-                    previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep,
-                            exportGroup, exportMasksToZoneDelete);
-                }
-
                 if (!exportMasksToDelete.isEmpty()) {
                     for (ExportMask exportMaskToDelete : exportMasksToDelete) {
                         _log.info("generating workflow to remove exportmask {}", exportMaskToDelete.getMaskName());
@@ -1223,6 +1245,13 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
                                 exportMaskToDelete, maskVolumeURIs, maskInitiatorURIs, storage);
                     }
+                }
+
+                if (!exportMasksToZoneDelete.isEmpty()) {
+                    _log.info("generating workflow to remove all zones in exportmask");
+                    // Add the zone ExportMask delete operations
+                    previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep,
+                            exportGroup, exportMasksToZoneDelete);
                 }
 
                 if (generatedWorkFlowSteps) {
@@ -1303,7 +1332,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 // Search for this initiator in another export group
                                 List<ExportGroup> exportGroupList = ExportUtils.getInitiatorExportGroups(initiator, _dbClient);
                                 if (exportMask.hasUserInitiator(URI.create(initiatorIdStr))) {
-                                    // If there's more than one export group, that means there's my export group plus another one. (at
+                                    // If there's more than one export group, that means there's my export group plus
+                                    // another one. (at
                                     // least)
                                     // Best to just leave that initiator alone.
                                     if ((exportGroupList != null && exportGroupList.size() > 1)
@@ -1321,12 +1351,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             }
                         }
 
-                        // Check to see if we need to remove initiators. We may need to remove initiators even if we're going to
+                        // Check to see if we need to remove initiators. We may need to remove initiators even if we're
+                        // going to
                         // remove the whole mask.
-                        if (!initiatorsToRemove.isEmpty() &&              // If there are initiators to remove
-                                ((!deleteEntireMask) ||                   // And either the entire mask isn't being deleted (then go for it)
+                        if (!initiatorsToRemove.isEmpty() && // If there are initiators to remove
+                                ((!deleteEntireMask) || // And either the entire mask isn't being deleted (then go for
+                                                        // it)
                                         (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient)
-                                        .size()))) {
+                                                .size()))) {
                             // or we are deleting the entire mask and we need to delete only a subset of initiators
                             _log.info(String.format("mask %s - going to remove the "
                                     + "following initiators %s", exportMask.getMaskName(),
@@ -1338,10 +1370,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             previousStep = generateDeviceSpecificRemoveInitiatorsWorkflow(
                                     workflow, previousStep, exportGroup, exportMask,
                                     storage, maskToInitiatorsMap,
-                                    maskVolumeURIs, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true); // see comment
+                                    maskVolumeURIs, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true); // see
+                                                                                                                              // comment
                             // below
                             // Don't delete the target ports if we're deleting the entire mask anyway.
-                            // This is because we're removing initiators from an export mask that impacts other export masks.
+                            // This is because we're removing initiators from an export mask that impacts other export
+                            // masks.
                             // The end result of removing these initiators is to remove initiators that ViPR added
                             // to masks that it is not managing. (See vmaxexport-ingest.sh test_24)
                         }
@@ -1353,7 +1387,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             exportMasksToZoneDelete.add(exportMask);
                             someOperationDone = true;
                         } else {
-                            // Volume removal -- check to see if that volume is already in another export group with that initiator.
+                            // Volume removal -- check to see if that volume is already in another export group with
+                            // that initiator.
                             for (String volumeIdStr : exportGroup.getVolumes().keySet()) {
                                 URI egVolumeID = URI.create(volumeIdStr);
                                 BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
@@ -1379,7 +1414,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                         .format("Export Mask %s does not contain initiator %s, so we will not modify this export mask",
                                                                 exportMask.getId().toString(), initiatorIdStr));
                                             } else {
-                                                // We're in a case where there are no user added initiators for this *existing* mask. So, we
+                                                // We're in a case where there are no user added initiators for this
+                                                // *existing* mask. So, we
                                                 // should be able remove any
                                                 // of the volumes that we added to the system.
                                                 volumesToRemove.add(egVolumeID);
@@ -1410,15 +1446,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     }
                 }
                 if (!exportMasksToZoneDelete.isEmpty()) {
-                    // CTRL-8506 - VNX StorageGroup cannot be deleted because of a race condition with
-                    // the zoning. This is a live host test case. So, some initiators are still logged
-                    // in by the time ViPR tries to delete the StorageGroup.
-                    // General Solution:
-                    // When we have to delete ExportMask, we'll un-zone first so that any initiators
-                    // that are possibly logged into the array get a chance to log out. That way, there
-                    // should not be any problems with removing the ExportMask off the array.
-                    previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep, exportGroup,
-                            exportMasksToZoneDelete);
                     for (ExportMask exportMask : exportMasksToZoneDelete) {
                         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
                         List<URI> maskInitiatorURIs = Lists.newArrayList(
@@ -1427,11 +1454,23 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
                                 exportMask, volumeURIs, maskInitiatorURIs, storage);
                     }
+                    // CTRL-8506 - VNX StorageGroup cannot be deleted because of a race condition with
+                    // the zoning. This is a live host test case. So, some initiators are still logged
+                    // in by the time ViPR tries to delete the StorageGroup.
+                    // General Solution:
+                    // When we have to delete ExportMask, we'll un-zone first so that any initiators
+                    // that are possibly logged into the array get a chance to log out. That way, there
+                    // should not be any problems with removing the ExportMask off the array.
+                    //
+                    // TODO: I'm reversing the order, which may re-break the issue above. Need to investigate this,
+                    // it could be that they were being done at the same time. I don't see any issue with doing the
+                    // export mask delete with logged-in initiators. WJEIV
+                    previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep, exportGroup,
+                            exportMasksToZoneDelete);
                 }
                 if (!exportMasksToZoneRemoveVolumes.isEmpty()) {
-                    // Remove all the indicated volumes from the indicated
-                    // export masks.
-                    generateDeviceSpecificZoningRemoveVolumesWorkflow(workflow, null,
+                    // Remove all the indicated volumes from the indicated export masks.
+                    generateDeviceSpecificZoningRemoveVolumesWorkflow(workflow, previousStep,
                             exportGroup, exportMasksToZoneRemoveVolumes,
                             new ArrayList<URI>(volumesToZoneRemoveVolumes));
                 }

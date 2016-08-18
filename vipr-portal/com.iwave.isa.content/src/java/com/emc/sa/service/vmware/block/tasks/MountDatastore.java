@@ -17,11 +17,11 @@ import com.vmware.vim25.ResourceInUse;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
-public class MountVmfsDatastore extends RetryableTask<Void> {
+public class MountDatastore extends RetryableTask<Void> {
     private final HostSystem host;
     private final Datastore datastore;
 
-    public MountVmfsDatastore(HostSystem host, Datastore datastore) {
+    public MountDatastore(HostSystem host, Datastore datastore) {
         this.host = host;
         this.datastore = datastore;
         provideDetailArgs(datastore.getName(), host.getName());

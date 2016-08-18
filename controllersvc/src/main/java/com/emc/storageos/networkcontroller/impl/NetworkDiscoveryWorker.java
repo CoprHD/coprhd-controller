@@ -570,12 +570,6 @@ public class NetworkDiscoveryWorker {
         
         List<Network> localNetworks = getSystemRealNetwork(networkSystem, networks, transitFabrics);
         List<Network> connectedNetworks = this.getConnectedNetwork(networkSystem.getId().toString(), networks, transitFabrics);
-        for (Network nw : localNetworks) {
-        	dump("localnetwork=", nw);
-        }
-        for (Network nw : connectedNetworks) {
-        	dump("connectedNetwork=", nw);
-        }
         
         for (Network localNetwork : localNetworks) {
         	boolean modified = false;
@@ -591,26 +585,12 @@ public class NetworkDiscoveryWorker {
         	}
         	if (modified) {
         		localNetwork.setRoutedNetworks(networkSet);
-        		dump("update network=", localNetwork);
         		dbClient.updateAndReindexObject(localNetwork);
         	}
         }
         
     }
     
-    private void dump(String prefix,Network network) {
-    	StringBuffer sb = new StringBuffer();
-    	sb.append(prefix + ":");
-    	sb.append("label=" + network.getLabel() + ",");
-    	if (network.getRoutedNetworks() != null) {
-        	for (String str : network.getRoutedNetworks()) {
-        		sb.append(",routed=" + str);
-        	}
-    	} else {
-    		sb.append(",routed=null" );
-    	}
-    	_log.info(sb.toString());
-    }
     private List<Network> getConnectedNetwork(String selfSystemId, List<Network> networks, Set<String> transitFabrics) {
     	List<Network> connectedNetworks = new ArrayList<Network>();
     	Set<String> connectedSystems = new HashSet<String>();

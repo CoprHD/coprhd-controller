@@ -8,15 +8,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
-import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
@@ -85,7 +80,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
                 return export;
             }
         }
-        throw new IllegalArgumentException("no exports found");
+        throw new IllegalArgumentException("No exports found for the provided security type and subdirectory.");
     }
 
     private List<FileExport> queryDBFSExports(FileShare fs) {

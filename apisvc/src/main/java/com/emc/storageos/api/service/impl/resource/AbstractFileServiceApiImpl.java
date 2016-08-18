@@ -130,8 +130,10 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     /**
      * Looks up controller dependency for given hardware
      * 
-     * @param clazz controller interface
-     * @param hw hardware name
+     * @param clazz
+     *            controller interface
+     * @param hw
+     *            hardware name
      * @param <T>
      * @return
      */
@@ -239,11 +241,11 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
             throws InternalException {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.updateExportRules(storage, fsURI, param, opId);
+        controller.updateExportRules(storage, fsURI, param, unmountExport, opId);
     }
 
     @Override
@@ -269,10 +271,10 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) {
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId) {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.deleteExportRules(storage, uri, allDirs, subDirs, taskId);
+        controller.deleteExportRules(storage, uri, allDirs, subDirs, unmountExport, taskId);
     }
 
     @Override

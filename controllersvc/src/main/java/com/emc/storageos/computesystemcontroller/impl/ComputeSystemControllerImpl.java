@@ -56,6 +56,8 @@ import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -67,6 +69,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -1693,9 +1696,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         String waitFor = null; // the wait for key returned by previous call
         _log.info("Generating steps for mounting device");
         // create a step
+        String hostname = _dbClient.queryObject(Host.class, args.getHostId()).getHostName();
         String hostType = getHostType(args.getHostId());
         waitFor = workflow.createStep(null,
-                String.format("Verifying mount point: %s", args.getMountPath()),
+                String.format("Verifying mount point: %s for host: %s", args.getMountPath(), hostname),
                 null, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1703,7 +1707,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 rollbackMethodNullMethod(), null);
 
         waitFor = workflow.createStep(null,
-                String.format("Creating Directory: %s", args.getMountPath()),
+                String.format("Creating Directory: %s for host: %s", args.getMountPath(), hostname),
                 waitFor, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1711,7 +1715,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 deleteDirectoryMethod(args), null);
 
         waitFor = workflow.createStep(null,
-                String.format("Adding to etc/fstab:%n%s", args.getMountPath()),
+                String.format("Adding to etc/fstab:%n%s for host: %s", args.getMountPath(), hostname),
                 waitFor, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1719,7 +1723,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 removeFromFSTabMethod(args), null);
 
         waitFor = workflow.createStep(null,
-                String.format("Mounting device:%n%s", args.getResId()),
+                String.format("Mounting device:%n%s for host: %s", args.getResId(), hostname),
                 waitFor, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1732,9 +1736,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         String waitFor = null; // the wait for key returned by previous call
         _log.info("Generating steps for mounting device");
         // create a step
+        String hostname = _dbClient.queryObject(Host.class, args.getHostId()).getHostName();
         String hostType = getHostType(args.getHostId());
         waitFor = workflow.createStep(null,
-                String.format("Unmounting device: %s", args.getMountPath()),
+                String.format("Unmounting device: %s for host: %s", args.getMountPath(), hostname),
                 null, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1742,7 +1747,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 mountDeviceMethod(args), null);
 
         waitFor = workflow.createStep(null,
-                String.format("removing from etc/fstab:%n%s", args.getMountPath()),
+                String.format("removing from etc/fstab:%n%s for host: %s", args.getMountPath(), hostname),
                 waitFor, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1750,7 +1755,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 removeFromFSTabRollBackMethod(args), null);
 
         waitFor = workflow.createStep(null,
-                String.format("Delete Directory:%n%s", args.getResId()),
+                String.format("Delete Directory:%n%s for host: %s", args.getMountPath(), hostname),
                 waitFor, args.getHostId(),
                 hostType,
                 this.getClass(),
@@ -1763,6 +1768,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.createDirectory(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
@@ -1778,6 +1786,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.addToFSTab(hostId, mountPath, resId, subDirectory, security, fsType);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
@@ -1794,6 +1805,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.mountDevice(hostId, mountPath);
             createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1810,6 +1824,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.verifyMountPoint(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
@@ -1825,6 +1842,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.deleteDirectory(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
             removeMountDBEntry(resId, hostId, mountPath);
@@ -1841,6 +1861,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.removeFromFSTab(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
@@ -1856,6 +1879,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.unmountDevice(hostId, mountPath);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {
@@ -1890,6 +1916,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
             WorkflowStepCompleter.stepExecuting(stepId);
             FileMountInfo fsMount = getMountInfo(hostId, mountPath, resId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
             adapter.addToFSTab(hostId, mountPath, resId, fsMount.getSubDirectory(), fsMount.getSecurityType(), "auto");
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (ControllerException e) {

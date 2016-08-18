@@ -38,6 +38,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -100,6 +101,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD = "addStepsToReplicateNFSExportRules";
+
+    private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
+    private static final String VERIFY_MOUNT_DEPENDENCIES_METHOD = "verifyMountDependencies";
+    private static final String IS_EXPORT_MOUNTED_METHOD = "isExportMounted";
 
     /*
      * (non-Javadoc)
@@ -430,7 +435,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void updateExportRules(URI storage, URI uri, FileExportUpdateParams param, String opId) throws ControllerException {
+    public void updateExportRules(URI storage, URI uri, FileExportUpdateParams param, boolean unmountExport, String opId)
+            throws ControllerException {
         FileObject fileObj = null;
         String stepDescription = null;
         String successMessage = null;
@@ -453,9 +459,24 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
-            String exportRuleUpdateStep = workflow.createStepId();
+            String waitFor = null;
+            // Check if the export should be unmounted before deleting
+            if (unmountExport == true) {
+                // get all the mounts and generate steps for unmounting them
+                List<MountInfo> mountList = _fileDeviceController.getMountedExports(uri, param.getSubDir(), param);
+                for (MountInfo mount : mountList) {
+                    Object[] args = new Object[] { mount.getHostId(), mount.getFsId(), mount.getMountPath() };
+                    waitFor = _fileDeviceController.createMethod(workflow, waitFor, UNMOUNT_FILESYSTEM_EXPORT_METHOD, null,
+                            "Unmounting path:" + mount.getMountPath(), storage, args);
+                }
+            } else if (URIUtil.isType(uri, FileShare.class)) {
+                // Check if the export rule is mounted and throw an error if mounted
+                Object[] args = new Object[] { uri, param };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, VERIFY_MOUNT_DEPENDENCIES_METHOD,
+                        null, "Verifying mount dependencies", storage, args);
+            }
             Object[] args = new Object[] { storage, uri, param };
-            _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep, stepDescription,
+            _fileDeviceController.createMethod(workflow, waitFor, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, null, stepDescription,
                     storage, args);
             workflow.executePlan(completer, successMessage);
 
@@ -570,7 +591,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String opId) throws ControllerException {
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String opId)
+            throws ControllerException {
         FileObject fileObj = null;
         String stepDescription = null;
         String successMessage = null;
@@ -593,9 +615,24 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
-            String exportdeleteStep = workflow.createStepId();
+            String waitFor = null;
+            // Check if the export should be unmounted before deleting
+            if (unmountExport == true) {
+                // get all the mounts and generate steps for unmounting them
+                List<MountInfo> mountList = _fileDeviceController.getAllMountedExports(uri, subDirs, allDirs);
+                for (MountInfo mount : mountList) {
+                    Object[] args = new Object[] { mount.getHostId(), mount.getFsId(), mount.getMountPath() };
+                    waitFor = _fileDeviceController.createMethod(workflow, waitFor, UNMOUNT_FILESYSTEM_EXPORT_METHOD, null,
+                            "Unmounting path:" + mount.getMountPath(), storage, args);
+                }
+            } else if (URIUtil.isType(uri, FileShare.class)) {
+                // Check if the export is mounted and throw an error if mounted
+                Object[] args = new Object[] { uri, subDirs, allDirs };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, IS_EXPORT_MOUNTED_METHOD, null,
+                        "Checking if the export is mounted", storage, args);
+            }
             Object[] args = new Object[] { storage, uri, allDirs, subDirs };
-            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_RULES, exportdeleteStep, stepDescription, storage,
+            _fileDeviceController.createMethod(workflow, waitFor, DELETE_FILESYSTEM_EXPORT_RULES, null, stepDescription, storage,
                     args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
@@ -769,9 +806,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system CIFS shares to target.
      * 
-     * @param systemTarget - URI of target StorageSystem where source CIFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
-     * @param cifsPort -StoragePort, CIFS port of target File System where new shares has to be created.
+     * @param systemTarget
+     *            - URI of target StorageSystem where source CIFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param cifsPort
+     *            -StoragePort, CIFS port of target File System where new shares has to be created.
      * @param taskId
      */
     public void addStepsToReplicateCIFSShares(URI systemTarget, URI fsURI, StoragePort cifsPort, String taskId) {
@@ -848,8 +888,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system CIFS ACLs to target system.
      * 
-     * @param systemTarget - URI of target StorageSystem where source CIFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
+     * @param systemTarget
+     *            - URI of target StorageSystem where source CIFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
      * @param taskId
      */
     public void addStepsToReplicateCIFSShareACLs(URI systemTarget, URI fsURI, String taskId) {
@@ -1012,9 +1054,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system NFS export to target.
      * 
-     * @param systemTarget - URI of target StorageSystem where source NFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
-     * @param nfsPort -StoragePort, NFS port of target File System where new export has to be created.
+     * @param systemTarget
+     *            - URI of target StorageSystem where source NFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
+     * @param nfsPort
+     *            -StoragePort, NFS port of target File System where new export has to be created.
      * @param taskId
      */
     public void addStepsToReplicateNFSExports(URI systemTarget, URI fsURI, StoragePort nfsPort, String taskId) {
@@ -1099,8 +1144,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     /**
      * Child workflow for replicating source file system NFS export Rules to target.
      * 
-     * @param systemTarget - URI of target StorageSystem where source NFS shares has to be replicated.
-     * @param fsURI -URI of the source FileSystem
+     * @param systemTarget
+     *            - URI of target StorageSystem where source NFS shares has to be replicated.
+     * @param fsURI
+     *            -URI of the source FileSystem
      * @param taskId
      */
     public void addStepsToReplicateNFSExportRules(URI systemTarget, URI fsURI, String taskId) {

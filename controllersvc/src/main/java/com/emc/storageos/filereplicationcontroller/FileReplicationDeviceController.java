@@ -361,7 +361,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             FileShare target = dbClient.queryObject(FileShare.class, targetURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             completer = new FileMirrorCancelTaskCompleter(combined, opId);
-            getRemoteMirrorDevice(system).doCancelMirrorLink(system, target, completer);
+            getRemoteMirrorDevice(system).doCancelMirrorLink(system, target, completer, null);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

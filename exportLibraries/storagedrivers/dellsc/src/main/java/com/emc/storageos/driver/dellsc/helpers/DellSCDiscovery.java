@@ -57,6 +57,8 @@ public class DellSCDiscovery {
 
     private static final Logger LOG = LoggerFactory.getLogger(DellSCDiscovery.class);
 
+    private static final String EMPTY_IPADDR = "0.0.0.0";
+
     private DellSCConnectionManager connectionManager;
     private String driverName;
     private String driverVersion;
@@ -241,15 +243,22 @@ public class DellSCDiscovery {
                 }
 
                 if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType) &&
-                        ("0.0.0.0".equals(scPort.iscsiIpAddress) ||
+                        (EMPTY_IPADDR.equals(scPort.iscsiIpAddress) ||
                                 scPort.iscsiIpAddress.length() == 0)) {
                     // This isn't necessarily, so no need to log
                     continue;
                 }
 
+                StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
+
+                // One more check needed for iSCSI ports after getting their iSCSI settings
+                if (ScControllerPort.ISCSI_TRANSPORT_TYPE.equals(scPort.transportType) &&
+                        EMPTY_IPADDR.equals(port.getIpAddress())) {
+                    continue;
+                }
+
                 LOG.info("Discovered Port {}, storageSystem {}",
                         scPort.instanceId, scPort.scSerialNumber);
-                StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
                 storagePorts.add(port);
             }
             task.setStatus(DriverTask.TaskStatus.READY);

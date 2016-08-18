@@ -425,6 +425,12 @@ public class RecoverPointImageManagementUtils {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
             try {
+                // Wait for the RP failover to complete before obtaining the list of production copies.
+                // This wait looks for the ACTIVE CG copy state. If the failover copy was initially
+                // in direct access mode, it will already be ACTIVE. When a swap is performed and the failover
+                // copy is in direct access mode, a wait/sleep will be required before any other CG operation
+                // is performed. This is to ensure the swap/RP failover has time to complete.
+                waitForCGCopyState(impl, cgCopyUID, false);
                 logger.info(String.format("Setting copy %s as the new production copy.", cgCopyName));
                 impl.setProductionCopy(cgCopyUID, true);
             } catch (FunctionalAPIActionFailedException_Exception e) {
@@ -446,7 +452,7 @@ public class RecoverPointImageManagementUtils {
                     throw e;
                 }
             }
-        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
             throw RecoverPointException.exceptions.failedToSetCopyAsProduction(cgCopyName, cgName, e);
         }
     }

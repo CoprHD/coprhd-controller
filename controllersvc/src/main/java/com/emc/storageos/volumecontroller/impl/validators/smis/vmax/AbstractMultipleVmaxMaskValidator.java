@@ -4,11 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
@@ -56,7 +54,6 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
      */
     @Override
     public boolean validate() throws Exception {
-        log.info("Validating initiators: {}", getDataObjects().size());
         // Check for each resource, that only known masks are found to be associated with it on the array
         for (T dataObject : getDataObjects()) {
             CIMObjectPath path = getCIMObjectPath(dataObject);

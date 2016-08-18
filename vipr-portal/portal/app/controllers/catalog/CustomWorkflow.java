@@ -31,7 +31,7 @@ public class CustomWorkflow extends Controller {
 		//renderArgs.put("filePath", "C:\\Users\\hariks\\Desktop\\bpmn"+fileName);
 		String content = "";
 		try {
-			content = new Scanner(new File("../conf/diagrams/"+fileName)).useDelimiter("\\Z").next();
+			content = new Scanner(new File("/opt/storageos/portal/conf/diagrams/"+fileName)).useDelimiter("\\Z").next();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

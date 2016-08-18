@@ -9,7 +9,7 @@ import com.google.common.collect.Lists;
 
 public class DiagramDataTable extends DataTable  {
 
-	private static final String DIAGRAM_PATH = "../conf/diagrams/";
+	private static final String DIAGRAM_PATH = "/opt/storageos/portal/conf/diagrams/";
 	
 	public DiagramDataTable(){
 		addColumn("name").setRenderFunction("renderLink");;

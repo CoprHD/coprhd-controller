@@ -601,7 +601,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     for (ExportMask exportMask : exportMaskRemoveInitiator) {
                         Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
-                        generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep,
+                        previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep,
                                 storage, exportGroup, exportMask, new ArrayList<URI>(volumeURIs), initiatorURIs, true);
                     }
                 }

@@ -542,6 +542,42 @@ public class ComputeSystemHelper {
         return uris;
     }
 
+    /**
+     * Update the cluster references for the host and its initiators
+     * 
+     * @param dbClient dbclient
+     * @param clusterURI the cluster that the host is being assigned to
+     * @param hostURI the host id
+     */
+    public static void updateHostAndInitiatorClusterReferences(DbClient dbClient, URI clusterURI, URI hostURI) {
+        Host host = dbClient.queryObject(Host.class, hostURI);
+        host.setCluster(clusterURI);
+        dbClient.updateObject(host);
+        updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+    }
+
+    /**
+     * Update the hosts vcenter datacenter reference
+     * 
+     * @param dbClient dbclient
+     * @param hostURI the host id to update
+     */
+    public static void updateHostVcenterDatacenterReference(DbClient dbClient, URI hostURI) {
+        Host host = dbClient.queryObject(Host.class, hostURI);
+        URI clusterURI = host.getCluster();
+        if (NullColumnValueGetter.isNullURI(clusterURI)) {
+            host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+        } else {
+            Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
+            if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+                host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+            } else {
+                host.setVcenterDataCenter(cluster.getVcenterDataCenter());
+            }
+        }
+        dbClient.updateObject(host);
+    }
+
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
         Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);

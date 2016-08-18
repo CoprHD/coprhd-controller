@@ -118,7 +118,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UPDATE_EXPORT_GROUP_STEP = "UpdateExportGroupStep";
     private static final String UPDATE_FILESHARE_EXPORT_STEP = "UpdateFileshareExportStep";
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
-    private static final String UPDATE_INITIATOR_CLUSTER_NAMES_STEP = "UpdateInitiatorClusterNamesStep";
+    private static final String UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP = "UpdateHostAndInitiatorClusterNamesStep";
 
     private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
     private static final String MOUNT_AND_ATTACH_STEP = "MountAndAttachStep";
@@ -467,7 +467,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, isVcenter);
             }
 
-            waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId);
 
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
@@ -490,7 +490,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
-            waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -741,13 +741,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepForUpdatingInitiatorClusterName(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
+    public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
         for (URI hostId : hostIds) {
-            waitFor = workflow.createStep(UPDATE_INITIATOR_CLUSTER_NAMES_STEP,
-                    String.format("Updating initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
+            waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
+                    String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
                     hostId, hostId.toString(),
                     this.getClass(),
-                    updateInitiatorClusterNameMethod(hostId, clusterId),
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId),
                     null, null);
         }
         return waitFor;
@@ -1277,13 +1277,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public Workflow.Method updateInitiatorClusterNameMethod(URI hostId, URI clusterId) {
-        return new Workflow.Method("updateInitiatorClusterName", hostId, clusterId);
+    public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId) {
+        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId);
     }
 
-    public void updateInitiatorClusterName(URI hostId, URI clusterId, String stepId) {
+    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
-        ComputeSystemHelper.updateInitiatorClusterName(_dbClient, clusterId, hostId);
+        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
+        ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId);
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 

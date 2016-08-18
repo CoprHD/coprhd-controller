@@ -96,6 +96,8 @@ public class VCenterAPI {
             throw new VMWareException(e);
         } catch (MalformedURLException e) {
             throw new VMWareException(e);
+        } catch (RuntimeException e) {
+            throw new VMWareException(e);
         }
     }
 

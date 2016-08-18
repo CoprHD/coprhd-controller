@@ -1893,7 +1893,7 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         if (param.getSecurityStyle() != null) {
             ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
-                    EnumSet.allOf(FileShareQuotaDirectory.SecurityStyles.class));
+                    EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
         }
 
         // Get the FileSystem object from the URN

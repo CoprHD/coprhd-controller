@@ -1062,7 +1062,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         boolean exportMaskIsShared = ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null);
                         @SuppressWarnings("unchecked")
                         List<URI> initiatorsToRemove = (exportMask.getUserAddedInitiators() != null)
-                                ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
+                        ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
                         List<URI> allExportMaskInitiators = ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient);
                         // We should remove initiators from the ExportMask IF:
                         // 1). ExportMask is not Shared
@@ -1139,7 +1139,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             // should remove initiators or volumes
                             @SuppressWarnings("unchecked")
                             List<URI> userAddedVolumes = (exportMask.getUserAddedVolumes() != null)
-                                    ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()) : Collections.EMPTY_LIST;
+                            ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()) : Collections.EMPTY_LIST;
                             userAddedVolumes.removeAll(volumesToRemove);
                             boolean removingAllUserAddedVolumes = userAddedVolumes.isEmpty();
                             boolean canRemoveVolumes = (!volumesToRemove.isEmpty() && !removingLastVolumeFromMask);
@@ -1151,8 +1151,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                             exportMask.getMaskName(), exportMask.getId(), canRemoveInitiators,
                                             canRemoveVolumes, initiatorsToRemove.size(), allExportMaskInitiators.size(),
                                             removingLastVolumeFromMask, removingAllUserAddedVolumes));
-
-                            if (canRemoveInitiators || (removingAllUserAddedVolumes && exportMask.hasAnyExistingInitiators())) {
+                            /**
+                             * We can remove initiators from MaskingView only if there is no other volumes are part of MaskingView.
+                             */
+                            if (canRemoveInitiators) {
                                 _log.info(String.format(
                                         "Determined that we can remove initiators from mask %s (%s): %s",
                                         exportMask.getMaskName(), exportMask.getId(),
@@ -1218,9 +1220,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         List<URI> maskInitiatorURIs = Lists.newArrayList(
                                 Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMaskToDelete, null),
                                         CommonTransformerFunctions.fctnDataObjectToID()));
-                        generateDeviceSpecificExportMaskDeleteWorkflow(workflow,                                // here first
-                                previousStep, exportGroup, exportMaskToDelete, maskVolumeURIs, maskInitiatorURIs,
-                                storage);
+                        previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
+                                exportMaskToDelete, maskVolumeURIs, maskInitiatorURIs, storage);
                     }
                 }
 
@@ -1325,7 +1326,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         if (!initiatorsToRemove.isEmpty() &&              // If there are initiators to remove
                                 ((!deleteEntireMask) ||                   // And either the entire mask isn't being deleted (then go for it)
                                         (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient)
-                                                .size()))) {
+                                        .size()))) {
                             // or we are deleting the entire mask and we need to delete only a subset of initiators
                             _log.info(String.format("mask %s - going to remove the "
                                     + "following initiators %s", exportMask.getMaskName(),

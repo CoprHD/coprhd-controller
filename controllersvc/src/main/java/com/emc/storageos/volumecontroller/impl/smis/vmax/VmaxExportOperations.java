@@ -4,6 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Sets.intersection;
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -28,11 +33,11 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -72,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
 import com.emc.storageos.volumecontroller.impl.StorageGroupPolicyLimitsParam;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskVolumeToStorageGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExportGroupCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -97,11 +103,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Sets.intersection;
-import static com.google.common.collect.Sets.newHashSet;
 
 public class VmaxExportOperations implements ExportMaskOperations {
 
@@ -1707,7 +1708,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllInitiators) {
+            boolean mustHaveAllInitiators) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         Map<URI, ExportMask> maskMap = new HashMap<>();
@@ -1719,6 +1720,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             // 'maskNames' will be used to do one-time operations against the ExportMask
             List<String> maskNames = new ArrayList<String>();
+            Set<String> maskNamesFromArray = new HashSet<>();
 
             // Iterate through each port name ...
             for (String initiatorName : initiatorPathsMap.keySet()) {
@@ -1747,7 +1749,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // Look up ExportMask by deviceId/name and storage URI
                     ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
                     boolean foundMaskInDb = (exportMask != null);
-
+                    maskNamesFromArray.add(name);
                     // If there was no export group found in the database,
                     // then create a new one
                     if (!foundMaskInDb) {
@@ -1878,6 +1880,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 builder.append(String.format("\nXM:%s is matching%s: ", exportMask.getMaskName(), qualifier)).append('\n')
                         .append(exportMask.toString());
             }
+            /**
+             * Needs to clean up stale EM from ViPR DB.
+             */
+            cleanStaleExportMasks(maskNamesFromArray, initiatorNames);
             _log.info(builder.toString());
         } catch (Exception e) {
             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
@@ -1894,8 +1900,53 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return matchingMasks;
     }
 
+    /**
+     * Method to clean ExportMask stale instances from ViPR db if any stale EM available
+     * 
+     * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
+     * @param initiatorNames initiator names
+     */
+    private void cleanStaleExportMasks(Set<String> maskNamesFromArray, List<String> initiatorNames) {
+        
+        Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, _dbClient);
+        Set<ExportMask> exportMasks = new HashSet<>();
+        Set<ExportMask> staleExportMasks = new HashSet<>();
+        _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
+        for (Initiator initiator : initiators) {
+            URIQueryResultList emUris = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()),
+                    emUris);
+            ExportMask exportMask = null;
+            for (URI emUri : emUris) {
+                _log.debug("Export Mask URI :{}", emUri);
+                exportMask = _dbClient.queryObject(ExportMask.class, emUri);
+                if (exportMask != null && !exportMask.getInactive()) {
+                    exportMasks.add(exportMask);
+                    if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
+                        _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
+                        List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), _dbClient);
+                        if (CollectionUtils.isEmpty(egList)) {
+                            _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
+                                    exportMask.getMaskName());
+                            staleExportMasks.add(exportMask);
+                        } else {
+                            _log.info("Export mask is having association with ExportGroup {}", egList);
+                        }
+                    }
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(staleExportMasks)) {
+            _dbClient.markForDeletion(staleExportMasks);
+            _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
+        }
+
+        _log.info("Export Mask cleanup activity done");
+
+    }
+
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         try {
             CIMInstance instance = _helper.getSymmLunMaskingView(storage, mask);

@@ -333,6 +333,9 @@ AuthSourceType.keystone=Keystone
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
 
+TenantsSynchronizationOptions.ADDITION=Automatic addition of Tenants
+TenantsSynchronizationOptions.DELETION=Automatic deletion of Tenants
+
 TransportProtocol.FC=FC
 TransportProtocol.IP=IP
 TransportProtocol.Ethernet=Ethernet
@@ -1467,6 +1470,7 @@ tenants.saved=Tenant '%s' saved successfully.
 tenants.unknown=Unknown Tenant ID '%s'
 tenants.quota=Quota
 tenants.mappedDomains=Mapped Domains
+tenants.source=Source
 tenant.group.help=One group per line
 tenant.attribute.help=One Value per line
 tenant.removeDomain=Remove Domain
@@ -1633,6 +1637,19 @@ approvalConfig.approverEmail.help=The email addresses for approvers (comma separ
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
 
+keystoneProvider.title=OpenStack Synchronization Options
+keystoneProvider.addRemoveTenants=Add/Remove OpenStack Tenants to/from CoprHD
+keystoneProvider.addTenants=Add OpenStack Tenants to CoprHD
+keystoneProvider.removeTenants=Remove OpenStack Tenants from CoprHD
+keystoneProvider.synchronizationInterval=Synchronization interval
+keystoneProvider.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 s
+keystoneProvider.tenantsSynchronizationOptions =Tenants synchronization options
+keystoneProvider.updated=Tenants successfully updated
+osTenantsToAdd.name=Name
+osTenantsToAdd.description=Description
+osTenantsToRemove.name=Name
+osTenantsToRemove.description=Description
+
 Introspection.Started=%s assets added to the discovery queue.
 
 #### Infrastructure management
@@ -1653,6 +1670,12 @@ ldapSources.disable=Disabled
 ldapSources.disable.help=Disabled providers will not have their connectivity validated or be available for processing login requests
 ldapSources.autoRegCoprHDNImportOSProjects=Automatic Registration and Tenant Mapping
 ldapSources.autoRegCoprHDNImportOSProjects.help=This SDS controller will be added as Block Storage Service in Keystone. Tenants and Projects from Keystone will be imported automatically.
+ldapSources.tenantsSynchronizationOptions =Tenants synchronization options
+ldapSources.addTenants=Add Tenants
+ldapSources.addTenants.description=Check which OpenStack Tenants to add.
+ldapSources.synchronizationInterval=Synchronization interval
+ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 seconds.
+ldapSources.synchronizationInterval.integerRequired=Integer value greater than 10 required.
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute
@@ -3832,6 +3855,7 @@ approvalsTable.orderUserName=Submitted By
 approvalsTable.createdDate=Submit Date
 approvalsTable.approvedBy=Approver
 approval.message=Message
+approval.noTenantAccess=Current user has no access on the target tenant %s
 
 service.order=Order
 service.preview=Preview
@@ -4004,6 +4028,8 @@ button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
+button.synchronize=Synchronize
+button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
 
 button.mirroring.start=Start
@@ -4729,7 +4755,7 @@ gettingStarted.initialsetup.title=Initial Setup
 gettingStarted.initialsetup.text=To use ViPR you will need to configure some basic settings first.<br><br>The initial setup includes:<br>- Setting new root and system password<br>- Configuring the network settings for the nodes<br>- Configuring the Connect EMC settings<br>- Configuring the SMTP settings for sending notification emails
 gettingStarted.initialsetup.button=Start Initial Setup
 gettingStarted.storagesystem.title=Storage System
-gettingStarted.storagesystem.text=To use ViPR you will need to discover Storage Systems.<br><br>When a System Administrator adds storage systems to the ViPR Controller virtual data center, ViPR Controller discovers the arrays' physical ports and storage pools and brings them under ViPR Controller management.<br><br>This guide can help you configure the following Storage Systems:<ul><li>VMAX All Flash<li>XtremIO<li>Unity</ul>
+gettingStarted.storagesystem.text=To use ViPR you will need to discover Storage Systems.<br><br>When a System Administrator adds storage systems to the ViPR Controller virtual data center, ViPR Controller discovers the arrays' physical ports and storage pools and brings them under ViPR Controller management.<br><br>This guide can help you configure the following Storage Systems:<ul><li>VMAX All-Flash<li>XtremIO<li>Unity All-Flash</ul>
 gettingStarted.storagesystem.button=Discover Storage System
 gettingStarted.fabricmanager.title=Fabric Manager
 gettingStarted.fabricmanager.text=To use ViPR you will need to discover Fabric Managers.<br><br>When you add a Fabric Manager to ViPR, ViPR discovers and registers Fibre Channel networks (Brocade Fabrics or Cisco VSANs). <br><br>Through discovery of the SAN switch topology, ViPR can identify the hosts and storage systems connected through the same SAN switch. This allows ViPR to automatically build the connectivity between the hosts and storage systems when you run a provisioning service, such as "Creating a block volume for a host."

@@ -561,20 +561,11 @@ public class ComputeSystemHelper {
      * 
      * @param dbClient dbclient
      * @param hostURI the host id to update
+     * @param vCenterDataCenterId the id of the vcenter datacenter to set on the host
      */
-    public static void updateHostVcenterDatacenterReference(DbClient dbClient, URI hostURI) {
+    public static void updateHostVcenterDatacenterReference(DbClient dbClient, URI hostURI, URI vCenterDataCenterId) {
         Host host = dbClient.queryObject(Host.class, hostURI);
-        URI clusterURI = host.getCluster();
-        if (NullColumnValueGetter.isNullURI(clusterURI)) {
-            host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
-        } else {
-            Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
-            if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
-                host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
-            } else {
-                host.setVcenterDataCenter(cluster.getVcenterDataCenter());
-            }
-        }
+        host.setVcenterDataCenter(vCenterDataCenterId);
         dbClient.updateObject(host);
     }
 

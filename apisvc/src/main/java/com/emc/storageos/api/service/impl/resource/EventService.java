@@ -385,7 +385,7 @@ public class EventService extends TaggedResource {
      * @return task for updating host
      */
     public TaskResourceRep hostVcenterUnassign(URI hostId) {
-        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), true);
+        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), true, NullColumnValueGetter.getNullURI());
     }
 
     /**
@@ -440,7 +440,7 @@ public class EventService extends TaggedResource {
      */
 
     public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, isVcenter);
+        return hostClusterChange(hostId, clusterId, isVcenter, datacenterId);
     }
 
     /**
@@ -478,7 +478,7 @@ public class EventService extends TaggedResource {
      */
 
     public TaskResourceRep hostVcenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, isVcenter);
+        return hostClusterChange(hostId, clusterId, isVcenter, datacenterId);
     }
 
     private Set<String> getHostVolumes(URI hostId) {
@@ -597,9 +597,10 @@ public class EventService extends TaggedResource {
      * @param clusterId the cluster the host is moving to
      * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
      *            datastores
+     * @param vCenterDataCenterId the vcenter datacenter id to set
      * @return task for updating export groups
      */
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter) {
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId) {
         Host hostObj = queryObject(Host.class, hostId, true);
         URI oldClusterURI = hostObj.getCluster();
         String taskId = UUID.randomUUID().toString();
@@ -613,7 +614,7 @@ public class EventService extends TaggedResource {
                 && NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
             // Remove host from shared export
-            controller.removeHostsFromExport(Arrays.asList(hostId), oldClusterURI, isVcenter, taskId);
+            controller.removeHostsFromExport(Arrays.asList(hostId), oldClusterURI, isVcenter, vCenterDataCenterId, taskId);
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
@@ -628,7 +629,7 @@ public class EventService extends TaggedResource {
             controller.addHostsToExport(Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
-            ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId);
+            ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
             _dbClient.ready(Host.class, hostId, taskId);
         }
 

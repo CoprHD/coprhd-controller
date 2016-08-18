@@ -467,7 +467,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, isVcenter);
             }
 
-            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId);
+            URI vCenterDataCenterId = NullColumnValueGetter.getNullURI();
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+            if (cluster != null && !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+                vCenterDataCenterId = cluster.getVcenterDataCenter();
+            }
+
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
 
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
@@ -481,7 +487,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, String taskId) throws ControllerException {
+    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(hostIds, false, taskId);
@@ -490,7 +497,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
-            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
+                    vCenterDataCenterId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -741,13 +749,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
+    public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId,
+            URI vCenterDataCenterId) {
         for (URI hostId : hostIds) {
             waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
                     String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
                     hostId, hostId.toString(),
                     this.getClass(),
-                    updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId),
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId, vCenterDataCenterId),
                     null, null);
         }
         return waitFor;
@@ -1277,14 +1286,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId) {
-        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId);
+    public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId, URI vCenterDataCenterId) {
+        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId, vCenterDataCenterId);
     }
 
-    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, String stepId) {
+    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
-        ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId);
+        ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 

@@ -4,14 +4,20 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import java.net.URI;
 import java.util.Collection;
@@ -39,6 +45,48 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
     MultipleVmaxMaskForInitiatorsValidator(StorageSystem storage, ExportMask exportMask,
                                                   Collection<Initiator> initiators) {
         super(storage, exportMask, initiators);
+    }
+
+    /**
+     * Returns true if:
+     * 1. ViPR is managing the associated mask
+     * AND
+     * 2. The associated mask has an export group
+     *
+     * @param mask      The export mask in the ViPR request
+     * @param assocMask An export mask found to be associated with {@code mask}.
+     * @return
+     */
+    @Override
+    protected boolean validate(CIMInstance mask, CIMInstance assocMask) {
+        boolean assocMaskHasExportGroup = false;
+        String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
+
+        // Does ViPR know about this other mask?
+        List<ExportMask> exportMasks = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
+                ExportMask.class, AlternateIdConstraint.Factory.getExportMaskByNameConstraint(assocName));
+
+        if (!exportMasks.isEmpty()) {
+            ExportMask em = exportMasks.get(0);
+            log.info("MV {} is tracked by {}", assocName, em.getId());
+            // Check if it's part of an ExportGroup
+            List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
+                    ExportGroup.class, ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(em.getId()));
+            assocMaskHasExportGroup = !exportGroups.isEmpty();
+            log.info("MV {} has {} export group(s)", assocName, exportGroups.size());
+        } else {
+            log.info("MV {} is not tracked by any ExportMask", assocName);
+        }
+
+        /*
+         * FIXME COP-24841 - Stop making dangerous assumptions about impacted masking views.
+         *
+         * Here, we allow validation to pass based simply on the associated ExportMask being part of
+         * an ExportGroup.  We assume that the orchestration layer has also generated a step to be run
+         * in parallel for removing the initiator from this other mask.  Instead, we should acquire
+         * an explicit list of impacted masking views and consider it when determining a pass/fail result.
+         */
+        return assocMaskHasExportGroup;
     }
 
     @Override

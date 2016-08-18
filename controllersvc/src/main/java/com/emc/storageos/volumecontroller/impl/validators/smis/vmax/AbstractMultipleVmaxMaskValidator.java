@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Abstract template class for validating that a resource has only associated masking views that are
@@ -56,6 +56,7 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
      */
     @Override
     public boolean validate() throws Exception {
+        log.info("Validating initiators: {}", getDataObjects().size());
         // Check for each resource, that only known masks are found to be associated with it on the array
         for (T dataObject : getDataObjects()) {
             CIMObjectPath path = getCIMObjectPath(dataObject);
@@ -66,27 +67,45 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
             }
 
             String friendlyId = getFriendlyId(dataObject);
-            CloseableIterator<CIMInstance> assocMasks = getHelper().getAssociatorInstances(storage, path, null,
-                    SmisConstants.SYMM_LUNMASKINGVIEW, null, null, null);
+            CIMObjectPath mvPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
+            CIMInstance mvInstance = getHelper().getInstance(storage, mvPath, false, false, null);
+            CloseableIterator<CIMInstance> assocMasks = null;
 
-            while (assocMasks.hasNext()) {
-                CIMInstance assocMask = assocMasks.next();
-                String name = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
+            try {
+                assocMasks = getHelper().getAssociatorInstances(storage, path, null,
+                        SmisConstants.SYMM_LUNMASKINGVIEW, null, null, null);
 
-                log.info("{} has associated mask {}", friendlyId, name);
-                if (!exportMask.getMaskName().equals(name)) {
-                    // Does ViPR know about this other mask?
-                    List<ExportMask> exportMasks = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
-                            ExportMask.class, AlternateIdConstraint.Factory.getExportMaskByNameConstraint(name));
+                while (assocMasks.hasNext()) {
+                    CIMInstance assocMask = assocMasks.next();
+                    String name = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
 
-                    if (exportMasks.isEmpty()) {
+                    log.info("{} has associated mask {}", friendlyId, name);
+
+                    if (exportMask.getMaskName().equals(name)) {
+                        continue;
+                    }
+
+                    if (!validate(mvInstance, assocMask)) {
                         getLogger().logDiff(friendlyId, "<associated masks>", exportMask.getMaskName(), name);
                     }
+                }
+            } finally {
+                if (assocMasks != null) {
+                    assocMasks.close();
                 }
             }
         }
         return true;
     }
+
+    /**
+     * Compare and validate {@code mask} and {@code assocMask}.
+     *
+     * @param mask      The export mask in the ViPR request
+     * @param assocMask An export mask found to be associated with {@code mask}.
+     * @return          True if validation passed, false otherwise.
+     */
+    protected abstract boolean validate(CIMInstance mask, CIMInstance assocMask) throws WBEMException;
 
     /**
      * Returns a friendly ID string for the given {@code dataObject}.

@@ -2173,7 +2173,6 @@ public class FileService extends TaskResourceService {
         catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
             _log.error("Error Processing Export Updates {}", e.getMessage(), e);
-            // throw e;
         } catch (Exception e) {
             _log.error("Error Processing Export Updates {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
@@ -4305,7 +4304,7 @@ public class FileService extends TaskResourceService {
         auditOp(OperationTypeEnum.UNMOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN, param.getHostId(), param.getMountPath());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::unmount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
+        _log.debug("FileService::unmount Before sending response, FS ID : {}, Task : {} ; Status {}", fs.getOpStatus().get(task),
                 fs.getOpStatus().get(task).getStatus());
 
         return toTask(fs, task, op);

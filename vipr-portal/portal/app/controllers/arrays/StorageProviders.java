@@ -310,12 +310,27 @@ public class StorageProviders extends ViprResourceController {
 				if (storage_systems == null) {
 					storage_systems = new JsonArray();
 				}
-				JsonObject storage = new JsonObject();
-				storage.addProperty("id", providerUri.toString());
-				storage.addProperty("name", smisProvider.name);
-				storage_systems.add(storage);
-				dataObject.add(STORAGE_SYSTEMS, storage_systems);
-				saveJsonAsCookie(GUIDE_DATA, dataObject);
+				boolean addToCookie = true;
+                for(Object storageObject: storage_systems) {
+                	JsonObject storagearray = (JsonObject)storageObject;
+                	if(storagearray.get("id") != null) {
+                		String arrayId = storagearray.get("id").getAsString();
+                		if(StringUtils.equals(arrayId, providerUri.toString())) {
+                			addToCookie = false; //update case, don't add in cookie
+                		}
+                		else {
+                			continue;
+                		}
+                	}
+                }
+				if (addToCookie) {
+					JsonObject storage = new JsonObject();
+					storage.addProperty("id", providerUri.toString());
+					storage.addProperty("name", smisProvider.name);
+					storage_systems.add(storage);
+					dataObject.add(STORAGE_SYSTEMS, storage_systems);
+					saveJsonAsCookie(GUIDE_DATA, dataObject);
+				}
 				list();
 			}
         }

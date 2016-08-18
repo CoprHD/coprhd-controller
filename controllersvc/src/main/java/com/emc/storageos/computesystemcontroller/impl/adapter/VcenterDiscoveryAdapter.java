@@ -97,6 +97,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<URI> deletedClusters = Lists.newArrayList();
             Set<URI> discoveredHosts = Sets.newHashSet();
             processor.discover(changes, deletedHosts, deletedClusters, discoveredHosts);
+            deletedHosts.removeAll(discoveredHosts);
             processor.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             // only update registration status of hosts if the vcenter is unregistered
             // to ensure newly discovered hosts are marked as unregistered

@@ -18,7 +18,12 @@
         _data['form'] = _submit
     }
     else if (_href) {
-        action = "window.location = \"${_href}\"; util.onButtonSubmitted(this)";
+        if (_action) {
+            action = _action;
+        } else {
+            action = "";
+        }
+        action += "window.location = \"${_href}\"; util.onButtonSubmitted(this)";
     }
     else {
         action = _action

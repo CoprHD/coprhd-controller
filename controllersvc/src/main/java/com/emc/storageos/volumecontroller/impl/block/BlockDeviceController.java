@@ -769,7 +769,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         deviceURI, getDeviceType(deviceURI),
                         this.getClass(),
                         new Workflow.Method("updateConsistencyGroup", deviceURI, consistencyGroupURI, volumesToAdd, volumesToRemove),
-                        null, null);
+                        rollbackMethodNullMethod(), null);
                 if (volumesToAdd != null) {
                     _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
                             Joiner.on("\t").join(volumesToAdd),

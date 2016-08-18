@@ -94,7 +94,7 @@ public class VNXUnityArrayAffinityDiscoverer {
     }
 
     /**
-     * Update preferredPoolIds of a host
+     * Update preferredPools of a host
      * @param system
      * @param apiClient
      * @param dbClient

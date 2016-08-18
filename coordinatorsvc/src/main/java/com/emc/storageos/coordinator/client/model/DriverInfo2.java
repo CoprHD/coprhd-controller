@@ -54,12 +54,12 @@ public class DriverInfo2 {
         try {
             String driversStr = config.getConfig(KEY_DRIVERS);
             if (driversStr != null && !driversStr.isEmpty()) {
-                drivers = Arrays.asList(driversStr.split(","));
+                drivers = new ArrayList<String>(Arrays.asList(driversStr.split(",")));
             }
             initNode = config.getConfig(KEY_INIT_NODE);
             String finishNodesStr = config.getConfig(KEY_FINISH_NODES);
             if (finishNodesStr != null && !finishNodesStr.isEmpty()) {
-                finishNodes = Arrays.asList(finishNodesStr.split(","));
+                finishNodes = new ArrayList<String>(Arrays.asList(finishNodesStr.split(",")));
             }
         } catch (Exception ex) {
             throw new IllegalArgumentException("Unrecognized configuration data for DriverInfo", ex);

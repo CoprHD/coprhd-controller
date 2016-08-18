@@ -112,6 +112,7 @@ public class VolumeIngestionUtil {
     public static final String VOLUME_TEXT = "Volume";
     public static final String FALSE = "false";
     public static final String TRUE = "true";
+    public static final String RP_JOURNAL = "journal";
 
     /**
      * Validation Steps 1. validate PreExistingVolume uri. 2. Check PreExistingVolume is under
@@ -1455,7 +1456,6 @@ public class VolumeIngestionUtil {
      * Creates an ExportMask for the given arguments and returns the BlockObject.
      *
      * @param eligibleMask an UnManagedExportMask to base the ExportMask on
-     * @param system the StorageSystem for the ExportMask
      * @param unManagedVolume the UnManagedVolume being ingested
      * @param exportGroup the ExportGroup for the ExportMask
      * @param volume the Volume object for the ExportMask
@@ -1465,8 +1465,7 @@ public class VolumeIngestionUtil {
      * @param exportMaskLabel the name of the ExportMask
      * @throws Exception
      */
-    public static <T extends BlockObject> ExportMask createExportMask(UnManagedExportMask eligibleMask, StorageSystem system,
-            UnManagedVolume unManagedVolume,
+    public static <T extends BlockObject> ExportMask createExportMask(UnManagedExportMask eligibleMask, UnManagedVolume unManagedVolume,
             ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel)
             throws Exception {
         _logger.info("Creating ExportMask for unManaged Mask {}", eligibleMask.getMaskName());
@@ -1482,8 +1481,8 @@ public class VolumeIngestionUtil {
 
         Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
 
-        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(),
-                exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
+        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(eligibleMask.getStorageSystemUri(), exportGroup,
+                eligibleMask.getMaskName(), exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
                 eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
@@ -1544,6 +1543,7 @@ public class VolumeIngestionUtil {
                     "ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
                     exportGroup.getLabel(), unManagedExportMask.getMaskName());
             errorMessages.add(errorMessage.toString());
+            _logger.warn(errorMessage);
             return false;
         }
 
@@ -1553,6 +1553,7 @@ public class VolumeIngestionUtil {
                     "Unmanaged export mask %s has no initiators and therefore it can't be ingested.  (ExportGroup: %s)",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             errorMessages.add(errorMessage.toString());
+            _logger.warn(errorMessage);
             return false;
         }
 
@@ -1571,6 +1572,7 @@ public class VolumeIngestionUtil {
                 "ExportGroup %s has no initiators that match unmanaged export mask %s and therefore can't be ingested with it.",
                 exportGroup.getLabel(), unManagedExportMask.getMaskName());
         errorMessages.add(errorMessage.toString());
+        _logger.warn(errorMessage);
         return false;
     }
 
@@ -1652,6 +1654,7 @@ public class VolumeIngestionUtil {
             errorMessage.append(" in unmanaged export mask ").append(mask.getMaskName());
             errorMessage.append(" are not available in Virtual Array ").append(getVarrayName(varray, dbClient));
             errorMessages.add(errorMessage.toString());
+            _logger.warn(errorMessages.toString());
             return false;
         }
         return true;
@@ -2433,7 +2436,7 @@ public class VolumeIngestionUtil {
                 }
 
                 if (queryExportGroups.size() > 1) {
-                    _logger.info("More than one export group contains the initiator(s) requested.  Choosing the first one: "
+                    _logger.info("More than one export group contains the initiator(s) requested.  Choosing : "
                             + eg.getId().toString());
                 }
                 exportGroup = eg;
@@ -2938,6 +2941,22 @@ public class VolumeIngestionUtil {
             String exportGroupType = unManagedVolume.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.EXPORTGROUP_TYPE.toString());
 
+            Set<URI> supportedVirtualArrays = new HashSet<URI>();
+            supportedVirtualArrays.add(blockObject.getVirtualArray());
+            // If this is a MetroPoint volume we're going to have multiple ExportGroups which may belong to more than one
+            // virtual array
+            if (blockObject instanceof Volume && RPHelper.isMetroPointVolume(dbClient, (Volume) blockObject)) {
+                StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
+                        SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(), unManagedVolume.getVolumeInformation());
+                if (vplexBackendVolumes != null && !vplexBackendVolumes.isEmpty()) {
+                    StringSet vplexBackendVolumeGUIDs = getListofVolumeIds(vplexBackendVolumes);
+                    List<BlockObject> associatedVolumes = getVolumeObjects(vplexBackendVolumeGUIDs, requestContext, dbClient);
+                    for (BlockObject associatedVolume : associatedVolumes) {
+                        supportedVirtualArrays.add(associatedVolume.getVirtualArray());
+                    }
+                }
+            }
+
             // If there are unmanaged export masks, get the corresponding ViPR export masks
             StringSet unmanagedExportMasks = unManagedVolume.getUnmanagedExportMasks();
             if (null != unmanagedExportMasks && !unmanagedExportMasks.isEmpty()) {
@@ -2999,7 +3018,12 @@ public class VolumeIngestionUtil {
                             updatedObjects.add(unManagedExportMask);
                         }
                     }
-
+                    // If the mask for ingested volume contains JOURNAL keyword, make sure we add it to
+                    // the ExportGroup created for journals
+                    boolean isJournalExport = false;
+                    if (unManagedExportMask.getMaskName().toLowerCase().contains(RP_JOURNAL)) {
+                        isJournalExport = true;
+                    }
                     _logger.info("exportGroupType is " + exportGroupType);
                     URI computeResource = requestContext.getCluster() != null ? requestContext.getCluster() : requestContext.getHost();
                     _logger.info("computeResource is " + computeResource);
@@ -3010,8 +3034,22 @@ public class VolumeIngestionUtil {
                         _logger.info("exportGroup.getType() is " + exportGroup.getType());
                         boolean exportGroupTypeMatches = (null != exportGroupType)
                                 && exportGroupType.equalsIgnoreCase(exportGroup.getType());
+                        boolean isRPJournalExportGroup = exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+                        // do not add RP source or target volumes to export group meant only for journals
+                        // If the mask for ingested volume contains JOURNAL keyword, make sure we add it to
+                        // the ExportGroup created for journals
+                        if (isJournalExport && !isRPJournalExportGroup) {
+                            _logger.info(
+                                    "Block object is associated with RP journal mask but export group is not marked for RP journals. Not adding to the export group");
+                            continue;
+                        } else if (!isJournalExport && isRPJournalExportGroup) {
+                            _logger.info(
+                                    "Block object is not associated with RP journal mask but export group is marked for RP journals. Not adding to the export group");
+                            continue;
+                        }
+
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
-                                exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
+                                supportedVirtualArrays.contains(exportGroup.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
                             // check if this ExportGroup URI has already been loaded in this ingestion request
                             ExportGroup loadedExportGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId(),

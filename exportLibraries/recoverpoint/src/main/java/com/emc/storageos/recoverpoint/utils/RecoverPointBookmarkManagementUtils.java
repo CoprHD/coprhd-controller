@@ -27,6 +27,7 @@ import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
+import com.emc.fapiclient.ws.PipeState;
 import com.emc.fapiclient.ws.ReplicationSetSettings;
 import com.emc.fapiclient.ws.Snapshot;
 import com.emc.fapiclient.ws.SnapshotConsistencyType;
@@ -243,15 +244,20 @@ public class RecoverPointBookmarkManagementUtils {
             }
         }
 
+        // Make sure the CG is in a good state before we make bookmarks
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+        for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
+            // Make sure the CG is ready for enable
+            imageManager.waitForCGLinkState(impl, cgID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgID), PipeState.PAUSED);
+        }
+
         try {
             impl.createBookmark(uniqueCGUIDlist, request.getBookmark(),
                     BookmarkConsolidationPolicy.NEVER_CONSOLIDATE, SnapshotConsistencyType.APPLICATION_CONSISTENT);
             logger.info(String.format("Created RP Bookmark successfully: %s", request.getBookmark()));
             response.setCgBookmarkMap(findRPBookmarks(impl, rpCGSet, request));
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToCreateBookmarkOnRecoverPoint(e);
-        } catch (FunctionalAPIInternalError_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToCreateBookmarkOnRecoverPoint(e);
         }
 

@@ -446,7 +446,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
 
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                    completer = new MirrorFileStartTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                    completer = new MirrorFileStartTaskCompleter(FileShare.class, asList(copyId), opId, storage);
                     completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer, null);
                 }

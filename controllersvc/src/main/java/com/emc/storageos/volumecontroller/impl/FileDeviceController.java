@@ -4130,45 +4130,24 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         List<MountInfo> mountList = queryDBFSMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         if (param.getExportRulesToDelete() != null) {
-            unmountList.addAll(getDeleteRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
+            unmountList.addAll(getRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
         }
         if (param.getExportRulesToModify() != null) {
-            unmountList.addAll(getModifyRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
+            unmountList.addAll(getRulesToUnmount(param.getExportRulesToModify(), mountList, fsId, subDir));
         }
 
         return unmountList;
     }
 
-    private List<MountInfo> getModifyRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
+    private List<MountInfo> getRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         List<ExportRule> exportList = new ArrayList<ExportRule>();
         exportList.addAll(rules.getExportRules());
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
         for (MountInfo mount : mountList) {
             String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            if ((mount.getSubDirectory() == null || !(mount.getSubDirectory().length() > 0)
-                    || "!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
-                    || mount.getSubDirectory().equals(subDir)) {
-                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
-                        unmountList.add(mount);
-                    }
-                }
-            }
-        }
-        return unmountList;
-    }
-
-    private List<MountInfo> getDeleteRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
-        List<MountInfo> unmountList = new ArrayList<MountInfo>();
-        List<ExportRule> exportList = new ArrayList<ExportRule>();
-        exportList.addAll(rules.getExportRules());
-        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
-        for (MountInfo mount : mountList) {
-            if ((mount.getSubDirectory() == null || !(mount.getSubDirectory().length() > 0)
-                    || "!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
-                    || mount.getSubDirectory().equals(subDir)) {
-                String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+            if (mount.getSubDirectory().equals(subDir)
+                    || "!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty())) {
                 for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
                     if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                         unmountList.add(mount);

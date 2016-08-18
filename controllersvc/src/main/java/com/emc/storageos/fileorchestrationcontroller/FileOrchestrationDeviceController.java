@@ -461,7 +461,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
             String waitFor = null;
             // Check if the export should be unmounted before deleting
-            if (unmountExport == true) {
+            if (unmountExport) {
                 // get all the mounts and generate steps for unmounting them
                 List<MountInfo> mountList = _fileDeviceController.getMountedExports(uri, param.getSubDir(), param);
                 for (MountInfo mount : mountList) {
@@ -617,7 +617,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId, completer);
             String waitFor = null;
             // Check if the export should be unmounted before deleting
-            if (unmountExport == true) {
+            if (unmountExport) {
                 // get all the mounts and generate steps for unmounting them
                 List<MountInfo> mountList = _fileDeviceController.getAllMountedExports(uri, subDirs, allDirs);
                 for (MountInfo mount : mountList) {

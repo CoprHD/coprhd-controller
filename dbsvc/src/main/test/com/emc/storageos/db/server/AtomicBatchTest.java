@@ -49,23 +49,26 @@ import com.emc.storageos.db.client.model.Volume;
 public class AtomicBatchTest extends DbsvcTestBase{
     
     private RowMutator rowMutator;
-    private String[] objectIds;
     private String[] indexIds;
     private String[] timeSeriesIds;
+    private CompositeColumnName[] objects;
+    private IndexColumnName[] indexes;
     private TimeSeriesType<AuditLog> timeSeriesType = TypeMap.getTimeSeriesType(AuditLogTimeSeries.class);
     
     @Before
     public void setupTest() {
         rowMutator = new RowMutator(this.getDbClientContext(), false);
         
-        objectIds = new String[3];
-        for (int i = 0; i < objectIds.length; i++) {
-            objectIds[i] = URIUtil.createId(Volume.class).toString();
+        objects = new CompositeColumnName[3];
+        for (int i = 0; i < objects.length; i++) {
+            objects[i] = new CompositeColumnName(URIUtil.createId(Volume.class).toString(), "One", "Two", "Three", UUIDs.timeBased(), null);
         }
         
         indexIds = new String[3];
+        indexes = new IndexColumnName[3];
         for (int i = 0; i < indexIds.length; i++) {
             indexIds[i] = UUID.randomUUID().toString();
+            indexes[i] = new IndexColumnName("One", "Two", "Three", "Four", UUIDs.timeBased(), null);
         }
         
         timeSeriesIds = new String[3];
@@ -76,60 +79,60 @@ public class AtomicBatchTest extends DbsvcTestBase{
     
     @Test
     public void insertRecords() throws Exception {
-        for (String objectId : objectIds) {
-            rowMutator.insertRecordColumn("Volume", objectId, new CompositeColumnName("One", "Two", "Three"), "test");
+        for (CompositeColumnName column : objects) {
+            rowMutator.insertRecordColumn("Volume", column.getRowKey(), column, column.getRowKey());
         }
                 
         rowMutator.execute();
         
-        for (String objectId : objectIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
-            assertEquals(result.one().getString("key"), objectId);
+        for (CompositeColumnName column : objects) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", column.getRowKey()));
+            verifyDataObject(result.one(), column);
         }
     }
     
     @Test
     public void insertIndexes() throws Exception {
-        for (String indexId : indexIds) {
-            rowMutator.insertIndexColumn("AltIdIndex", indexId, new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+        for (int i = 0; i < indexIds.length; i++) {
+            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], indexes[i], indexIds[i]);
         }
                 
         rowMutator.execute();
         
-        for (String indexId : indexIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
-            assertEquals(result.one().getString("key"), indexId);
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            verifyIndexObject(result.one(), indexes[i], indexIds[i]);
         }
     }
     
     @Test
     public void insertRecordsAndIndexes() throws Exception {
-        for (String objectId : objectIds) {
-            rowMutator.insertRecordColumn("Volume", objectId, new CompositeColumnName("One", "Two", "Three"), "test");
+        for (CompositeColumnName column : objects) {
+            rowMutator.insertRecordColumn("Volume", column.getRowKey(), column, column.getRowKey());
         }
         
         for (int i = 0; i < indexIds.length; i++) {
-            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], indexes[i], indexIds[i]);
         }
                 
         rowMutator.execute();
         
-        for (String objectId : objectIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
-            assertEquals(result.one().getString("key"), objectId);
+        for (CompositeColumnName column : objects) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", column.getRowKey()));
+            verifyDataObject(result.one(), column);
         }
         
-        for (String indexId : indexIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
-            assertEquals(result.one().getString("key"), indexId);
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            verifyIndexObject(result.one(), indexes[i], indexIds[i]);
         }
     }
     
     @Test
-    public void insertInsertRecordsErrorOccurs() throws Exception {
-        rowMutator.insertRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"), "test");
+    public void insertRecordsErrorOccurs() throws Exception {
+        rowMutator.insertRecordColumn("Volume", objects[0].getRowKey(), objects[0], objects[0].getRowKey());
         rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
-        rowMutator.insertRecordColumn("Volume", objectIds[1], new CompositeColumnName("One", "Two", "Three"), "test");
+        rowMutator.insertRecordColumn("Volume", objects[1].getRowKey(), objects[1], objects[1].getRowKey());
         
         try {
             rowMutator.execute();
@@ -138,36 +141,17 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (String objectId : objectIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
+        for (CompositeColumnName column : objects) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", column.getRowKey()));
             assertFalse(result.iterator().hasNext());
         }
     }
     
     @Test
-    public void insertInsertIndexesErrorOccurs() throws Exception {
-        rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+    public void insertIndexesErrorOccurs() throws Exception {
+        rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], indexes[0], indexIds[0]);
         rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
-        rowMutator.insertIndexColumn("AltIdIndex", indexIds[1], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
-        
-        try {
-            rowMutator.execute();
-            fail();
-        } catch (Exception e) {
-            //exception is expected
-        }
-        
-        for (String indexId : indexIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
-            assertFalse(result.iterator().hasNext());
-        }
-    }
-    
-    @Test
-    public void insertInsertIndexAndRecordErrorOccurs() throws Exception {
-        rowMutator.insertRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"), "test");
-        rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
-        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.insertIndexColumn("AltIdIndex", indexIds[1], indexes[0], indexIds[0]);
         
         try {
             rowMutator.execute();
@@ -180,23 +164,42 @@ public class AtomicBatchTest extends DbsvcTestBase{
             ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
             assertFalse(result.iterator().hasNext());
         }
+    }
+    
+    @Test
+    public void insertIndexAndRecordErrorOccurs() throws Exception {
+        rowMutator.insertRecordColumn("Volume", objects[0].getRowKey(), objects[0], objects[0].getRowKey());
+        rowMutator.insertIndexColumn("AltIdIndex", indexIds[0], indexes[0], indexIds[0]);
+        rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         
-        for (String objectId : objectIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
+        try {
+            rowMutator.execute();
+            fail();
+        } catch (Exception e) {
+            //exception is expected
+        }
+        
+        for (String indexId : indexIds) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
+            assertFalse(result.iterator().hasNext());
+        }
+        
+        for (CompositeColumnName column : objects) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", column.getRowKey()));
             assertFalse(result.iterator().hasNext());
         }
     }
     
     @Test
     public void deleteRecordsWithError() {
-        for (int i = 0; i < objectIds.length; i++) {
-            rowMutator.insertRecordColumn("Volume", objectIds[i], new CompositeColumnName("One", "Two", "Three"), "test");
+        for (CompositeColumnName column : objects) {
+            rowMutator.insertRecordColumn("Volume", column.getRowKey(), column, column.getRowKey());
         }
         
         rowMutator.execute();
         
         rowMutator = new RowMutator(this.getDbClientContext(), false);
-        rowMutator.deleteRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.deleteRecordColumn("Volume", objects[0].getRowKey(), objects[0]);
         rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         
         try {
@@ -206,16 +209,16 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (String objectId : objectIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
-            assertEquals(result.one().getString("key"), objectId);
+        for (CompositeColumnName column : objects) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", column.getRowKey()));
+            verifyDataObject(result.one(), column);
         }
     }
     
     @Test
     public void deleteIndexesWithError() {
         for (int i = 0; i < indexIds.length; i++) {
-            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], indexes[i], indexIds[i]);
         }
         
         rowMutator.execute();
@@ -231,37 +234,37 @@ public class AtomicBatchTest extends DbsvcTestBase{
             //exception is expected
         }
         
-        for (String indexId : indexIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
-            assertEquals(result.one().getString("key"), indexId);
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            verifyIndexObject(result.one(), indexes[i], indexIds[i]);
         }
     }
     
     @Test
     public void deleteRecordsAndIndexesWithError() throws Exception {
-        for (String objectId : objectIds) {
-            rowMutator.insertRecordColumn("Volume", objectId, new CompositeColumnName("One", "Two", "Three"), "test");
+        for (CompositeColumnName column : objects) {
+            rowMutator.insertRecordColumn("Volume", column.getRowKey(), column, column.getRowKey());
         }
         
         for (int i = 0; i < indexIds.length; i++) {
-            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], new IndexColumnName("One", "Two", "Three", "Four", null), "test");
+            rowMutator.insertIndexColumn("AltIdIndex", indexIds[i], indexes[i], indexIds[i]);
         }
                 
         rowMutator.execute();
         
         rowMutator = new RowMutator(this.getDbClientContext(), false);
         rowMutator.deleteIndexColumn("AltIdIndex", indexIds[0], new IndexColumnName("One", "Two", "Three", "Four", null));
-        rowMutator.deleteRecordColumn("Volume", objectIds[0], new CompositeColumnName("One", "Two", "Three"));
+        rowMutator.deleteRecordColumn("Volume", objects[0].getRowKey(), objects[0]);
         rowMutator.deleteRecordColumn("NO-EXISTS-TABLE", "key", new CompositeColumnName("One", "Two", "Three"));
         
-        for (String objectId : objectIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", objectId));
-            assertEquals(result.one().getString("key"), objectId);
+        for (CompositeColumnName column : objects) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"Volume\" where key='%s'", column.getRowKey()));
+            verifyDataObject(result.one(), column);
         }
         
-        for (String indexId : indexIds) {
-            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexId));
-            assertEquals(result.one().getString("key"), indexId);
+        for (int i = 0; i < indexIds.length; i++) {
+            ResultSet result = this.getDbClientContext().getSession().execute(String.format("select * from \"AltIdIndex\" where key='%s'", indexIds[i]));
+            verifyIndexObject(result.one(), indexes[i], indexIds[i]);
         }
     }
     
@@ -349,8 +352,8 @@ public class AtomicBatchTest extends DbsvcTestBase{
             }
             });
         
-        RowMutator rowMutator = new RowMutator(mockContext, true);
-        rowMutator.execute();
+        RowMutator rowMutatorWithMock = new RowMutator(mockContext, true);
+        rowMutatorWithMock.execute();
         
         verify(session, times(2)).execute(any(BatchStatement.class));
         
@@ -381,14 +384,33 @@ public class AtomicBatchTest extends DbsvcTestBase{
             }
             });
         
-        RowMutator rowMutator = new RowMutator(mockContext, false);
+        RowMutator rowMutatorWithMock = new RowMutator(mockContext, false);
         try {
-            rowMutator.execute();
+            rowMutatorWithMock.execute();
             fail();
         } catch (Exception e) {
           //exception is expected
         }
         
         verify(session, times(1)).execute(any(BatchStatement.class));
+    }
+    
+    private void verifyDataObject(Row row, CompositeColumnName column) {
+        assertEquals(column.getRowKey(), row.getString("key"));
+        assertEquals(column.getOne(), row.getString("column1"));
+        assertEquals(column.getTwo(), row.getString("column2"));
+        assertEquals(column.getThree(), row.getString("column3"));
+        assertEquals(column.getTimeUUID(), row.getUUID("column4"));
+        assertEquals(column.getRowKey(), UTF8Serializer.instance.deserialize(row.getBytes("value")));
+    }
+    
+    private void verifyIndexObject(Row row, IndexColumnName column, String key) {
+        assertEquals(key, row.getString("key"));
+        assertEquals(column.getOne(), row.getString("column1"));
+        assertEquals(column.getTwo(), row.getString("column2"));
+        assertEquals(column.getThree(), row.getString("column3"));
+        assertEquals(column.getFour(), row.getString("column4"));
+        assertEquals(column.getTimeUUID(), row.getUUID("column5"));
+        assertEquals(key, UTF8Serializer.instance.deserialize(row.getBytes("value")));
     }
 }

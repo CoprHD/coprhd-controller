@@ -1666,24 +1666,32 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     private String generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export.getId());
 
-        if (add) {
-            export.getAddDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
-                    StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
-        } else {
-            export.getRemoveDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
-                    StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
-                    StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
-
-        }
+        /*
+         * ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export.getId());
+         * if (add) {
+         * export.getAddDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
+         * StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
+         * StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
+         * StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
+         * } else {
+         * export.getRemoveDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
+         * StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
+         * StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
+         * StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
+         * 
+         * }
+         */
 
         _log.info("ExportGroupState for " + export.getId() + " = " + export);
 
         if (export.getInitiators().isEmpty()) {
+            /**
+             * TODO if Two threads accessing the same EG.
+             * Thread 1. Removing all initiators from EG.
+             * Thread 2. Adding a new set of Initiators to same EG
+             * In this case, we should not delete the EG
+             */
             waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                     String.format("Deleting export group %s", export.getId()), waitFor,
                     export.getId(), export.getId().toString(),
@@ -1691,13 +1699,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     deleteExportGroupMethod(export.getId()),
                     null, null);
         } else {
-            // TODO needs to change the argument here.
             waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                     String.format("Updating export group %s", export.getId()), waitFor,
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), export.getVolumesMap(),
-                            export.getClusters(), export.getHosts(), export.getInitiators(), null, null, null),
+                            export.getAddedClusters(), export.getRemovedClusters(), export.getAddedHosts(), export.getRemovedHosts(),
+                            export.getAddedInitiators(), export.getRemovedInitiators()),
                     null, null);
         }
 

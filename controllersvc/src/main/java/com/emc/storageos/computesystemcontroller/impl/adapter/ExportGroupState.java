@@ -209,6 +209,30 @@ public class ExportGroupState implements Serializable {
         this.removedClusters.add(id);
     }
 
+    public Collection<URI> getRemovedInitiators() {
+        return removedInitiators;
+    }
+
+    public Collection<URI> getRemovedHosts() {
+        return removedHosts;
+    }
+
+    public Collection<URI> getRemovedClusters() {
+        return removedClusters;
+    }
+
+    public Collection<URI> getAddedInitiators() {
+        return addedInitiators;
+    }
+
+    public Collection<URI> getAddedHosts() {
+        return addedHosts;
+    }
+
+    public Collection<URI> getAddedClusters() {
+        return addedClusters;
+    }
+
     @Override
     public String toString() {
         return "ExportGroupState: [ExportId: " + this.id + ", Initiators: " + this.initiators + ", Hosts: "

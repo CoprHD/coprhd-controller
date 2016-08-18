@@ -139,7 +139,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             JobState policyState = policy.getLastJobState();
 
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                doCancelReplicationPolicy(system, policyName, completer);
+                doCancelReplicationPolicy(system, policyName);
             }
             cmdResult = doStopReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
@@ -168,13 +168,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer)
+    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName)
             throws DeviceControllerException {
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
-        String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
-        BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName, completer);
+        BiosCommandResult cmdResult = doCancelReplicationPolicy(system, devPolicyName, completer);
         if (cmdResult.getCommandSuccess()) {
-            WorkflowStepCompleter.stepSucceded(completer.getOpId());
+            completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -414,8 +414,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setLastJobState(JobState.canceled);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                IsilonSyncIQJob isiSyncJobcancel = null;
                 try {
-                    IsilonSyncIQJob isiSyncJobcancel = new IsilonSyncIQJob(policyName, system.getId(), taskCompleter, policyName);
+                    isiSyncJobcancel = new IsilonSyncIQJob(policyName, system.getId(), taskCompleter, policyName);
                     ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobcancel));
                     return BiosCommandResult.createPendingResult();
                 } catch (Exception ex) {
@@ -430,6 +431,34 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             } else {
                 return BiosCommandResult.createSuccessfulResult();
             }
+        } catch (IsilonException e) {
+            return BiosCommandResult.createErrorResult(e);
+        }
+
+    }
+
+    public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName){
+        try {
+            IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+            JobState policyState = policy.getLastJobState();
+
+            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
+                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                modifiedPolicy.setName(policyName);
+                modifiedPolicy.setLastJobState(JobState.canceled);
+                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                return BiosCommandResult.createSuccessfulResult();
+
+            } else {
+                _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,
+                        policyState);
+                ServiceError error = DeviceControllerErrors.isilon
+                        .jobFailed(
+                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                return BiosCommandResult.createErrorResult(error);
+             }
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         }

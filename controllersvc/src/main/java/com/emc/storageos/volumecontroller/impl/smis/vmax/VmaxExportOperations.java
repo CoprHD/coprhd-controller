@@ -1863,7 +1863,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             // Adjust the matchingMap if there are any masksNotContainingAllInitiators / singleIGContainedMasks
             if (!masksNotContainingAllInitiators.isEmpty() || !masksWithReusableIGs.isEmpty()) {
                 _log.info("ExportMasks not containing all initiators requested: {}", masksNotContainingAllInitiators);
-                _log.info("ExportMasks having all initiators in single Initiator Group: {}", masksWithReusableIGs);
+                _log.info("ExportMasks whose IGs can be reused to create new masking view: {}", masksWithReusableIGs);
                 // Remove references to the ExportMask URIs from the matchingMasks map entries
                 Iterator<Entry<String, Set<URI>>> matchingMapEntryIterator = matchingMasks.entrySet().iterator();
                 while (matchingMapEntryIterator.hasNext()) {
@@ -1883,7 +1883,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = maskMap.get(exportMaskURI);
                 String qualifier = (masksNotContainingAllInitiators.contains(exportMaskURI))
                         ? ", but not containing all initiators we're looking for"
-                        : (masksWithReusableIGs.contains(exportMaskURI) ? ", but all initiators we're looking for  are in a single Initiator Group"
+                        : (masksWithReusableIGs.contains(exportMaskURI) ? ", but it's IGs can be reused to create new masking view"
                                 : SmisConstants.EMPTY_STRING);
                 builder.append(String.format("\nXM:%s is matching%s: ", exportMask.getMaskName(), qualifier)).append('\n')
                         .append(exportMask.toString());
@@ -1922,11 +1922,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
          * or completely different set of initiators.
          */
         Set<URI> masksWithReusableIGs = new HashSet<>();
-        _log.info("Initiators in Request : {} ", Joiner.on(";").join(initiatorNames));
+        _log.info("Initiators in Request : {} ", Joiner.on(", ").join(initiatorNames));
         WBEMClient client = _helper.getConnection(storage).getCimClient();
         for (URI exportMaskURI : maskMap.keySet()) {
             ExportMask mask = maskMap.get(exportMaskURI);
-            String maskName = mask.getLabel();
+            String maskName = mask.getMaskName();
             _log.info("Checking if mask {} can be skipped from getting reused", maskName);
             // Find all the initiators associated with the MaskingView
             CIMInstance instance = _helper.getSymmLunMaskingView(storage, mask);
@@ -1942,7 +1942,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     boolean allIGsSatisfy = false;
                     for (CIMObjectPath igPath : childInitiatorGroupPaths) {
                         List<String> initiatorNamesFromIG = _helper.getInitiatorNamesForInitiatorGroup(storage, igPath);
-                        _log.info("Initiators in IG {}: {}", igPath.toString(), Joiner.on(";").join(initiatorNamesFromIG));
+                        _log.info("Initiators in IG {}: {}", igPath.toString(), Joiner.on(", ").join(initiatorNamesFromIG));
                         int initialSize = initiatorNamesFromIG.size();
                         initiatorNamesFromIG.removeAll(initiatorNames);
                         if (initiatorNamesFromIG.isEmpty() || (initialSize == initiatorNamesFromIG.size())) {

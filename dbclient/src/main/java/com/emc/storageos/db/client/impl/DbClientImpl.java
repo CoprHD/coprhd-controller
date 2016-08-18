@@ -307,11 +307,21 @@ public class DbClientImpl implements DbClient {
         ctx.init(hostSupplier);
     }
     
+    /**
+     * Get local or geo cassandra session depending on class annotation or id of dataObj
+     * @param dataObj data object
+     * @return cassandra session
+     */
     protected Session getSession(DataObject dataObj) {
         Class<? extends DataObject> clazz = dataObj.getClass();
         return getSession(clazz);
     }
     
+    /**
+     * Get local or geo cassandra session keyspace depending on class annotation of clazz 
+     * @param clazz class information of data object
+     * @return cassandra session
+     */
     protected <T extends DataObject> Session getSession(Class<T> clazz) {
         return getDbClientContext(clazz).getSession();
     }
@@ -1419,6 +1429,17 @@ public class DbClientImpl implements DbClient {
         return TypeMap.getTimeSeriesType(tsType);
     }
     
+    /**
+     * Convenience helper that queries for multiple rows for collection of row
+     * keys for a single column
+     * 
+     * @param context dbClientContext
+     * @param ids row keys.
+     * @param cf column family
+     * @param column column field for the column to query
+     * @return matching rows
+     * @throws DatabaseException
+     */
     protected Map<String, List<CompositeColumnName>> queryRowsWithAColumn(DbClientContext context, Collection<URI> ids, String tableName, ColumnField column) {
         PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement( 
                 String.format("Select * from \"%s\" where column1=? and key in ? ALLOW FILTERING", tableName));
@@ -1871,6 +1892,16 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
     
+    /**
+     * Convenience helper that queries for multiple rows for collection of row
+     * keys
+     * 
+     * @param context local or geo dbclientContext to query rows against
+     * @param ids row keys
+     * @param tableName column family/table name
+     * @return matching rows
+     * @throws DatabaseException
+     */
     protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
         PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(String.format("Select * from \"%s\" where key in ?", tableName));
         

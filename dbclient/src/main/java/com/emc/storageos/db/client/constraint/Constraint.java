@@ -58,6 +58,10 @@ public interface Constraint {
 
     }
     
+    /**
+     * set dbClientContext for this constraint based query
+     * @param dbClientContext
+     */
     void setDbClientContext(DbClientContext dbClientContext);
 
     /**

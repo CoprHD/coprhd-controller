@@ -55,6 +55,10 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
     
+    private static final int RETRY_POLICY_INTERVAL_EVERY_RETRY = 1000;
+
+    private static final int RETRY_POLICY_MAX_TIMES = 10;
+
     private static final Logger log = LoggerFactory.getLogger(DbClientContext.class);
 
     private static final int DEFAULT_MAX_CONNECTIONS = 64;
@@ -254,7 +258,7 @@ public class DbClientContext {
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
                 .withPoolingOptions(poolingOptions)
-                .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
+                .withRetryPolicy(new ViPRRetryPolicy(RETRY_POLICY_MAX_TIMES, RETRY_POLICY_INTERVAL_EVERY_RETRY))
                 .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(DEFAULT_CONN_TIMEOUT).setReadTimeoutMillis(DEFAULT_SOCKET_READ_TIMEOUT))
@@ -263,73 +267,6 @@ public class DbClientContext {
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         prepareStatementMap = new HashMap<String, PreparedStatement>();
         initDone = true;
-    }
-
-    public class ViPRRetryPolicy implements RetryPolicy {
-        private int maxRetry;
-        private int sleepInMS;
-
-        public ViPRRetryPolicy(int maxRetry, int sleepInMS) {
-            this.maxRetry = maxRetry;
-            this.sleepInMS = sleepInMS;
-        }
-
-        public RetryDecision onReadTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredResponses, int receivedResponses, boolean dataRetrieved, int nbRetry) {
-            log.warn("onReadTimeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
-            if (nbRetry == maxRetry)
-                return RetryDecision.rethrow();
-
-            delay();
-
-            return RetryDecision.retry(cl);
-        }
-
-        private void delay() {
-            try {
-                Thread.sleep(sleepInMS);
-            } catch (InterruptedException e) {
-                //ignore
-            }
-        }
-
-        public RetryDecision onWriteTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, WriteType writeType, int requiredAcks, int receivedAcks, int nbRetry) {
-            log.warn("write timeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
-            if (nbRetry == maxRetry)
-                return RetryDecision.rethrow();
-
-            delay();
-            // If the batch log write failed, retry the operation as this might just be we were unlucky at picking candidates
-            return RetryDecision.retry(cl);
-        }
-
-        public RetryDecision onUnavailable(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry) {
-            log.warn("onUnavailable statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
-            if (nbRetry == maxRetry) {
-                return RetryDecision.rethrow();
-            }
-
-            delay();
-            return RetryDecision.tryNextHost(cl);
-        }
-
-        public RetryDecision onRequestError(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, DriverException e, int nbRetry) {
-            log.warn("onRequestError statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
-            if (nbRetry == maxRetry) {
-                return RetryDecision.rethrow();
-            }
-
-            delay();
-            return RetryDecision.tryNextHost(cl);
-
-        }
-
-        public void init(com.datastax.driver.core.Cluster cluster) {
-            // nothing to do
-        }
-
-        public void close() {
-            // nothing to do
-        }
     }
 
     private Cluster initConnection(String[] contactPoints) {
@@ -670,5 +607,72 @@ public class DbClientContext {
         }
         
         return Collections.emptySet();
+    }
+    
+    private class ViPRRetryPolicy implements RetryPolicy {
+        private int maxRetry;
+        private int sleepInMS;
+
+        public ViPRRetryPolicy(int maxRetry, int sleepInMS) {
+            this.maxRetry = maxRetry;
+            this.sleepInMS = sleepInMS;
+        }
+
+        public RetryDecision onReadTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredResponses, int receivedResponses, boolean dataRetrieved, int nbRetry) {
+            log.warn("onReadTimeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry)
+                return RetryDecision.rethrow();
+
+            delay();
+
+            return RetryDecision.retry(cl);
+        }
+
+        private void delay() {
+            try {
+                Thread.sleep(sleepInMS);
+            } catch (InterruptedException e) {
+                //ignore
+            }
+        }
+
+        public RetryDecision onWriteTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, WriteType writeType, int requiredAcks, int receivedAcks, int nbRetry) {
+            log.warn("write timeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry)
+                return RetryDecision.rethrow();
+
+            delay();
+            // If the batch log write failed, retry the operation as this might just be we were unlucky at picking candidates
+            return RetryDecision.retry(cl);
+        }
+
+        public RetryDecision onUnavailable(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry) {
+            log.warn("onUnavailable statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry) {
+                return RetryDecision.rethrow();
+            }
+
+            delay();
+            return RetryDecision.tryNextHost(cl);
+        }
+
+        public RetryDecision onRequestError(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, DriverException e, int nbRetry) {
+            log.warn("onRequestError statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry) {
+                return RetryDecision.rethrow();
+            }
+
+            delay();
+            return RetryDecision.tryNextHost(cl);
+
+        }
+
+        public void init(com.datastax.driver.core.Cluster cluster) {
+            // nothing to do
+        }
+
+        public void close() {
+            // nothing to do
+        }
     }
 }

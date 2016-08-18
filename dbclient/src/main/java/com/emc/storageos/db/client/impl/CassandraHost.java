@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.db.client.impl;
 
+/**
+ * This class represents the cassandra node with name and port information
+ */
 public class CassandraHost {
     private String host;
     private int port;

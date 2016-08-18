@@ -18,12 +18,14 @@ import java.util.MissingResourceException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -31,7 +33,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class CatalogBuilder {
-
+    private static final Logger log = Logger.getLogger(CatalogBuilder.class);
+    
     private ModelClient models;
     private ServiceDescriptors descriptors;
     private Messages MESSAGES = new Messages(CatalogBuilder.class, "default-catalog");
@@ -131,6 +134,10 @@ public class CatalogBuilder {
         service.setImage(def.image);
         service.setCatalogCategoryId(parentId);
         service.setSortedIndex(sortedIndexCounter++);
+        log.info("Create new service" + def.baseService);
+        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
+            service.setRecurringAllowed(true);
+        }
         models.save(service);
 
         if (def.lockFields != null) {

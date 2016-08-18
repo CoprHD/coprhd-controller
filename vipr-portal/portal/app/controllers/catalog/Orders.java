@@ -34,6 +34,9 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleInfo;
+import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
+import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
@@ -225,16 +228,26 @@ public class Orders extends OrderExecution {
         checkAuthenticity();
 
         OrderCreateParam order = createAndValidateOrder(serviceId);
-        OrderRestRep submittedOrder = null;
+        String status = null;
+        String orderId = null;
         try {
-            submittedOrder = getCatalogClient().orders().submit(order);
+            if (isSchedulerEnabled()) {
+                ScheduledEventCreateParam event = createScheduledOrder(order);
+                ScheduledEventRestRep submittedEvent = getCatalogClient().orders().submitScheduledEvent(event);
+                status = submittedEvent.getEventStatus();
+                orderId = submittedEvent.getLatestOrderId().toString();
+            } else {
+                OrderRestRep submittedOrder = getCatalogClient().orders().submit(order);
+                status = submittedOrder.getOrderStatus();
+                orderId = submittedOrder.getId().toString();
+            }
         } catch (Exception e) {
             Logger.error(e, MessagesUtils.get("order.submitFailed"));
             flash.error(MessagesUtils.get("order.submitFailed"));
             Common.handleError();
         }
 
-        if (OrderRestRep.ERROR.equalsIgnoreCase(submittedOrder.getOrderStatus())) {
+        if (OrderRestRep.ERROR.equalsIgnoreCase(status)) {
             flash.error(MessagesUtils.get("order.submitFailed"));
         }
         else {
@@ -243,8 +256,7 @@ public class Orders extends OrderExecution {
 
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-
-        String orderId = submittedOrder.getId().toString();
+        
         receipt(orderId);
     }
 
@@ -416,6 +428,8 @@ public class Orders extends OrderExecution {
         public List<ResourceDetails> affectedResources;
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
+        public ScheduledEventRestRep scheduledEvent;
+        
         public Map<URI, String> viprTaskStepMessages;
 
         public OrderDetails(String orderId) {
@@ -458,6 +472,10 @@ public class Orders extends OrderExecution {
                     }
                     checkLastUpdated(log);
                 }
+            }
+            URI scheduledEventId = order.getScheduledEventId();
+            if (scheduledEventId != null) {
+                scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
             }
         }
 
@@ -564,6 +582,10 @@ public class Orders extends OrderExecution {
             } catch (RuntimeException e) {
                 return false;
             }
+        }
+
+        public ScheduledEventRestRep getScheduledEvent() {
+            return scheduledEvent;
         }
     }
 

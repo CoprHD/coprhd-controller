@@ -154,6 +154,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -1523,19 +1524,21 @@ public class FileService extends TaskResourceService {
         if (getNumSnapshots(fs) >= vpool.getMaxNativeSnapshots()) {
             throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
         }
-
+        
+        String label = TimeUtils.formatDateForCurrent(param.getLabel());
+        
         // check duplicate fileshare snapshot names for this fileshare
-        checkForDuplicateName(param.getLabel(), Snapshot.class, id, "parent", _dbClient);
+        checkForDuplicateName(label, Snapshot.class, id, "parent", _dbClient);
 
         Snapshot snap = new Snapshot();
         snap.setId(URIUtil.createId(Snapshot.class));
-        snap.setParent(new NamedURI(id, param.getLabel()));
-        snap.setLabel(param.getLabel());
+        snap.setParent(new NamedURI(id, label));
+        snap.setLabel(label);
         snap.setOpStatus(new OpStatusMap());
-        snap.setProject(new NamedURI(fs.getProject().getURI(), param.getLabel()));
+        snap.setProject(new NamedURI(fs.getProject().getURI(), label));
 
-        String convertedName = param.getLabel().replaceAll("[^\\dA-Za-z_]", "");
-        _log.info("Original name {} and converted name {}", param.getLabel(), convertedName);
+        String convertedName = label.replaceAll("[^\\dA-Za-z_]", "");
+        _log.info("Original name {} and converted name {}", label, convertedName);
         snap.setName(convertedName);
 
         fs.setOpStatus(new OpStatusMap());

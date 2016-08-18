@@ -806,21 +806,6 @@ public class BlockVirtualPools extends ViprResourceController {
     	return virtualpoolAllFlashMap;
     }
 
-    private static void updateVirtualPoolCookie(String vpid, String vpname){
-        JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
-        JsonArray vpcookies = dataObject.getAsJsonArray(VPOOL_COOKIES);
-        if (vpcookies == null) {
-        	vpcookies = new JsonArray();
-        }
-        JsonObject jsonvarray = new JsonObject();
-        jsonvarray.addProperty("id", vpid);
-        jsonvarray.addProperty("name", vpname);
-        
-        vpcookies.add(jsonvarray);
-        dataObject.add(VPOOL_COOKIES, vpcookies);
-        saveJsonAsCookie(GUIDE_DATA, dataObject);
-    }
-
     private static void buildVpoolCookies( String vpoolid, String vpoolname, JsonArray vpools) {
         JsonObject jsonvarray = new JsonObject();
         jsonvarray.addProperty("id", vpoolid);
@@ -877,7 +862,6 @@ public class BlockVirtualPools extends ViprResourceController {
 		BlockVirtualPoolRestRep vpoolTask = vpool.save();
 		if (vpoolTask != null) {
             buildVpoolCookies(vpoolTask.getId().toString(), vpool.name,vpools);
-			//updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
 		}
     }
 
@@ -887,7 +871,6 @@ public class BlockVirtualPools extends ViprResourceController {
 		blockvpool = vpool.save();
 		if (blockvpool != null) {
             buildVpoolCookies(vpid, vpool.name,vpools);
-			//updateVirtualPoolCookie(vpid, vpool.name);
 		}
     }
 

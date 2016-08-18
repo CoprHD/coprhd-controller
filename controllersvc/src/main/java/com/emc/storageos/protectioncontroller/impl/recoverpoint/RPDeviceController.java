@@ -6784,6 +6784,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 _log.info(String.format("Removing protection from Volume [%s] (%s) and moving it to Virtual Pool [%s] (%s)",
                         volume.getLabel(), volume.getId(), vpool.getLabel(), vpool.getId()));
+                // Rollback Protection on the volume 
                 RPHelper.rollbackProtectionOnVolume(volume, vpool, _dbClient);
             }
 

@@ -6011,6 +6011,31 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Gets the initiator names for initiator group.
+     *
+     * @param storage the storage
+     * @param igPath the ig path
+     * @return the initiators for initiator group
+     * @throws WBEMException the WBEM exception
+     */
+    public List<String> getInitiatorNamesForInitiatorGroup(StorageSystem storage, CIMObjectPath igPath) throws WBEMException {
+        List<String> initiatorNames = new ArrayList<String>();
+        CloseableIterator<CIMInstance> initiatorsForIg = getAssociatorInstances(storage, igPath, null,
+                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null,
+                SmisConstants.PS_STORAGE_ID);
+        if (initiatorsForIg != null) {
+            while (initiatorsForIg.hasNext()) {
+                CIMInstance initiatorInstance = initiatorsForIg.next();
+                String initiatorPort = CIMPropertyFactory.getPropertyValue(initiatorInstance,
+                        SmisConstants.CP_STORAGE_ID);
+                initiatorNames.add(Initiator.normalizePort(initiatorPort));
+            }
+            initiatorsForIg.close();
+        }
+        return initiatorNames;
+    }
+
+    /**
      * Find a phantom (not belonging to any masking view) with matches the FAST (auto-tiering) policy name and limits
      * setting
      *

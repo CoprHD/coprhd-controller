@@ -88,18 +88,30 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         } else if (useOldVpoolMap) {
                             oldVpoolURI = oldVpools.get(id);
                         }
-                        
+                                                
                         Volume volume = dbClient.queryObject(Volume.class, id);
                         _log.info("Rolling back virtual pool on volume {}({})", id, volume.getLabel());
+                        
+                        URI newVpoolURI = volume.getVirtualPool();
+                        if (newVpools != null && !newVpools.isEmpty()) {
+                            newVpoolURI = newVpools.get(id);
+                            if (newVpoolURI != null) {     
+                                newVpoolURI = volume.getVirtualPool();
+                            }
+                        }
                                                                         
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
+                        VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
                        
                         volume.setVirtualPool(oldVpoolURI);
                         _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
                         
                         // Only rollback protection on the volume if the volume specifies RP and the 
-                        // old vpool did not have protection.
-                        boolean rollbackProtection = volume.checkForRp() && !VirtualPool.vPoolSpecifiesProtection(oldVpool);
+                        // old vpool did not have protection and the new one does (so we were trying to add
+                        // RP protection but it failed for some reason so we need to rollback).
+                        boolean rollbackProtection = volume.checkForRp() 
+                                && !VirtualPool.vPoolSpecifiesProtection(oldVpool)
+                                && VirtualPool.vPoolSpecifiesProtection(newVpool);
 
                         if (rollbackProtection) {
                             // Special rollback for RP, RP+VPLEX, and MetroPoint in the case

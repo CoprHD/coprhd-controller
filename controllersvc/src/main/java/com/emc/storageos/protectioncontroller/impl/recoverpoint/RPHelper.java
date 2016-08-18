@@ -1694,6 +1694,10 @@ public class RPHelper {
                                     associatedVolume.getLabel(),
                                     oldVpool.getLabel()));
                         }
+                        // If the old vpool did not specify multi volume consistency,
+                        // remove the CG reference of the volume since we are rolling back
+                        // in the case of VPLEX and Array rollback those steps will be fired
+                        // before we get here anyway.
                         if (!oldVpool.getMultivolumeConsistency()) {
                             associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                         }

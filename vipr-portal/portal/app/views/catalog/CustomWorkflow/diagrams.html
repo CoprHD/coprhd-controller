@@ -26,3 +26,14 @@
         window.location.href = url();   
      }
   </script>
+  
+  <script type="text/javascript">
+function renderLink(o, val) {
+	
+	var data = o.aData;
+    var url = #{jsAction @diagram(':id')/};
+    var href = url(data);
+	
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>

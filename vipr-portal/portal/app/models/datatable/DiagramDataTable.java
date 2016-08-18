@@ -9,10 +9,10 @@ import com.google.common.collect.Lists;
 
 public class DiagramDataTable extends DataTable  {
 
-	private static final String DIAGRAM_PATH = "/diagrams/";
+	private static final String DIAGRAM_PATH = "../conf/diagrams/";
 	
 	public DiagramDataTable(){
-		addColumn("name");
+		addColumn("name").setRenderFunction("renderLink");;
 		sortAll();
         setDefaultSort("name", "asc");
 	}
@@ -34,9 +34,11 @@ public class DiagramDataTable extends DataTable  {
 	
 	public static class Diagram{
 		  public String name;
+		  public String id;
 		 
 		  public Diagram(String name){
 			  this.name = name;
+			  this.id = name;
 		  }
 	 }
 	

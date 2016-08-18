@@ -1,6 +1,9 @@
 package controllers.catalog;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Scanner;
 
 import models.datatable.DiagramDataTable;
 import models.datatable.DiagramDataTable.Diagram;
@@ -20,6 +23,20 @@ public class CustomWorkflow extends Controller {
 
 	public static void canvas() {
 		TenantSelector.addRenderArgs();
+		render();
+	}
+	
+	public static void diagram(String fileName) {
+		TenantSelector.addRenderArgs();
+		//renderArgs.put("filePath", "C:\\Users\\hariks\\Desktop\\bpmn"+fileName);
+		String content = "";
+		try {
+			content = new Scanner(new File("../conf/diagrams/"+fileName)).useDelimiter("\\Z").next();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		renderArgs.put("diagramXML", content);
 		render();
 	}
 	

@@ -16,6 +16,7 @@ prepare: clean
 createAppliance:
 	cat ${RUN_DIR}/../configurations.sh > config.sh
 	cat ViPRBase_config.sh >> config.sh
+	udevd -d &
 	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance
 
 bless:

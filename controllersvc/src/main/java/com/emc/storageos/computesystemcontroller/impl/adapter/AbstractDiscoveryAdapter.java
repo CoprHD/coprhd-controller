@@ -8,6 +8,7 @@ import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.ComputeSystemDialogProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryVersionValidator;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -500,6 +502,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
+    private String getMessage(String key, Object... arguments) {
+        String message = ComputeSystemDialogProperties.getString(key);
+        return MessageFormat.format(message, arguments);
+    }
+
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
 
         log.info("There are " + changes.size() + " changes");
@@ -550,12 +557,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     Vcenter oldVcenter = dbClient.queryObject(Vcenter.class, oldDatacenter.getVcenter());
                     Vcenter currentVcenter = dbClient.queryObject(Vcenter.class, currentDatacenter.getVcenter());
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_VCENTER_CHANGE, host.getTenant(),
-                            "Moved vcenter from " + oldVcenter.getLabel()
-                                    + " to " + currentVcenter.getLabel(),
-                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                    + (cluster == null ? " N/A " : cluster.getLabel()),
-                            "Host storage will be modified",
+
+                    getMessage("ComputeSystem.hostVcenterChangeLabel", oldVcenter.getLabel(), currentVcenter.getLabel()),
+                            getMessage("ComputeSystem.hostVcenterChangeDescription", host.getLabel(),
+                                    oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
+                            getMessage("ComputeSystem.hostVcenterChangeWarning"),
                             host, Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostVcenterChange",
@@ -563,12 +569,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                     currentDatacenter.getId(), isVCenter });
                 } else {
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
-                            "Moved datacenter from " + oldDatacenter.getLabel()
-                                    + " to " + currentDatacenter.getLabel(),
-                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                    + (cluster == null ? " N/A " : cluster.getLabel()),
-                            "Host storage will be modified",
+                            getMessage("ComputeSystem.hostDatacenterChangeLabel", oldDatacenter.getLabel(), currentDatacenter.getLabel()),
+                            getMessage("ComputeSystem.hostDatacenterChangeDescription", host.getLabel(),
+                                    oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
+                            getMessage("ComputeSystem.hostDatacenterWarning"),
                             host, Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostDatacenterChange",
@@ -597,23 +601,22 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
                     String name = null;
                     String description = null;
-                    
+
                     if (cluster != null && oldCluster == null) {
-                        name = "Added to cluster " + cluster.getLabel();
-                        description = "Host " + host.getLabel() + " will be added to shared exports for cluster "
-                                + cluster.getLabel();
+                        name = getMessage("ComputeSystem.hostClusterChangeAddedLabel", cluster.getLabel());
+                        description = getMessage("ComputeSystem.hostClusterChangeAddedDescription", host.getLabel(), cluster.getLabel());
                     } else if (cluster == null && oldCluster != null) {
-                        name = "Removed from cluster " + oldCluster.getLabel();
-                        description = "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                + oldCluster.getLabel();
+                        name = getMessage("ComputeSystem.hostClusterChangeRemovedLabel", cluster.getLabel());
+                        description = getMessage("ComputeSystem.hostClusterChangeRemovedDescription", host.getLabel(),
+                                oldCluster.getLabel());
                     } else {
-                        name = "Moved cluster from " + oldCluster.getLabel() + " to " + cluster.getLabel();
-                        description = "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                + oldCluster.getLabel() + " and added to shared exports for cluster "
-                                + cluster.getLabel();
+                        name = getMessage("ComputeSystem.hostClusterChangeMovedLabel", oldCluster.getLabel(), cluster.getLabel());
+                        description = getMessage("ComputeSystem.hostClusterMovedDescription", host.getLabel(), oldCluster.getLabel(),
+                                cluster.getLabel());
                     }
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
-                            name, description, "Host storage will be modified", host, Lists.newArrayList(host.getId(), host.getCluster(),
+                            name, description, getMessage("ComputeSystem.hostClusterChangeWarning"), host,
+                            Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostClusterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
@@ -633,17 +636,17 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
-                            "Removed initiator " + oldInitiator.getInitiatorPort(),
-                            "Initiator " + oldInitiator.getInitiatorPort() + " will be deleted and removed from export groups",
-                            "Host storage will be modified",
+                            getMessage("ComputeSystem.removeInitiatorLabel", oldInitiator.getInitiatorPort()),
+                            getMessage("ComputeSystem.removeInitiatorDescription", oldInitiator.getInitiatorPort()),
+                            getMessage("ComputeSystem.removeInitiatorWarning"),
                             oldInitiator, Lists.newArrayList(host.getId(), oldInitiator.getId()), "removeInitiator",
                             new Object[] { oldInitiator.getId() });
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_ADD, host.getTenant(),
-                            "Added initiator " + newInitiator.getInitiatorPort(),
-                            "Initiator " + newInitiator.getInitiatorPort() + " will be added to export groups",
-                            "Host storage will be modified",
+                            getMessage("ComputeSystem.addInitiatorLabel", newInitiator.getInitiatorPort()),
+                            getMessage("ComputeSystem.addInitiatorDescription", newInitiator.getInitiatorPort()),
+                            getMessage("ComputeSystem.addInitiatorWarning"),
                             newInitiator, Lists.newArrayList(host.getId(), newInitiator.getId()), "addInitiator",
                             new Object[] { newInitiator.getId() });
                 }
@@ -669,9 +672,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
             } else {
                 EventUtil.createActionableEvent(dbClient, EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
-                        "Removed from vCenter",
-                        "Host " + host.getLabel() + " will be unassigned from vCenter and shared exports will be unexported.",
-                        "Host will lose access to shared storage", host, Lists.newArrayList(host.getId(), host.getCluster()),
+                        getMessage("ComputeSystem.hostVcenterUnassignLabel"),
+                        getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel()),
+                        getMessage("ComputeSystem.hostVcenterUnassignWarning"),
+                        host, Lists.newArrayList(host.getId(), host.getCluster()),
                         "hostVcenterUnassign", new Object[] { deletedHost });
             }
         }

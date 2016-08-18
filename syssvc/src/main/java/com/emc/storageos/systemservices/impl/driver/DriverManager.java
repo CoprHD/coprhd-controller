@@ -12,6 +12,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import javax.ws.rs.core.MediaType;
 
@@ -32,6 +35,7 @@ import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 
 public class DriverManager {
 
@@ -41,7 +45,7 @@ public class DriverManager {
     private static final Logger log = LoggerFactory.getLogger(PropertyManager.class);
     private static final int MAX_RETRY_TIMES = 5;
     private static final String DRIVERS_UPDATE_LOCK = "driversupdatelock";
-
+    private static final ThreadPoolExecutor EXECUTOR = new NamedThreadPoolExecutor("DriverUpdateThead", 1);
     protected volatile boolean doRun = true;
 
     private List<String> localDrivers;
@@ -185,24 +189,15 @@ public class DriverManager {
         return result;
     }
 
-    private void assureDriverInfoNodeExist() {
-        if (!coordinator.getCoordinatorClient().nodeExists(LISTEN_PATH)) {
-            DriverInfo2 initDriversInfo = new DriverInfo2();
-            coordinator.getCoordinatorClient().persistServiceConfiguration(initDriversInfo.toConfiguration());
-            log.info("Created DriverInfo ZNode");
-        }
-    }
     private void initializeLocalAndTargetInfo() {
         localDrivers = getLocalDrivers();
         log.info("Local drivers initialized: {}", Arrays.toString(localDrivers.toArray()));
-
-        assureDriverInfoNodeExist();
 
         DriverInfo2 targetDriversInfo = new DriverInfo2(coordinator.getCoordinatorClient().queryConfiguration(DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID));
         targetDrivers = targetDriversInfo.getDrivers();
         initNode = targetDriversInfo.getInitNode();
 
-        log.info("Target drivers info initialized: {}, finish node: {}", Arrays.toString(targetDrivers.toArray()), initNode);
+        log.info("Target drivers info initialized: {}, init node: {}", Arrays.toString(targetDrivers.toArray()), initNode);
     }
 
     private List<String> getLocalDrivers() {
@@ -239,7 +234,7 @@ public class DriverManager {
      * Check and update local drivers asynchronously, so not to block notification thread
      */
     private void checkAndUpdate() {
-        Thread  t = new Thread(new Runnable() {
+        EXECUTOR.submit(new Runnable() {
             @Override
             public void run() {
                 int retryTimes = 0;
@@ -294,6 +289,10 @@ public class DriverManager {
                     }
                     // It means all logic finished smoothly if thread goes here, exit loop, finish thread
                     log.info("Update finished smoothly, congratulations");
+                    if ((toRemove == null || toRemove.isEmpty()) && (toDownload == null || toDownload.isEmpty())) {
+                        log.info("No change, no need to update drivers info, break to finish thread");
+                        break;
+                    }
                     InterProcessLock lock = null;
                     try {
                         lock = getLock(DRIVERS_UPDATE_LOCK);
@@ -303,8 +302,7 @@ public class DriverManager {
                         if (info.getFinishNodes() == null) {
                             info.setFinishNodes(new ArrayList<String>());
                         }
-                        String localNode = coordinator.getNodeEndpointForSvcId(service.getId()).toString();
-                        info.getFinishNodes().add(String.format("%s_%s", coordinator.getCoordinatorClient().getSiteId(), localNode));
+                        info.getFinishNodes().add(String.format("%s_%s", coordinator.getCoordinatorClient().getSiteId(), service.getId()));
                         coordinator.getCoordinatorClient().persistServiceConfiguration(info.toConfiguration());
                         if (areAllNodesUpdated(info)) {
                             log.info("Last update thread has finished update");
@@ -325,8 +323,6 @@ public class DriverManager {
                 }
             }
         });
-        t.setName("DriverUpdateThead");
-        t.start();
     }
 
     private InterProcessLock getLock(String name) throws Exception {

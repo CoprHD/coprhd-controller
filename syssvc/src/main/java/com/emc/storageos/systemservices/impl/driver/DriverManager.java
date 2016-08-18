@@ -1,6 +1,5 @@
 package com.emc.storageos.systemservices.impl.driver;
 
-import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
 import java.io.BufferedOutputStream;
 import java.io.File;

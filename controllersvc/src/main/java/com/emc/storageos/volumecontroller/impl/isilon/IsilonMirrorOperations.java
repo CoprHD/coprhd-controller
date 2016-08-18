@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncIQJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,7 +172,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             throws DeviceControllerException {
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
-        BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
+        BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName, completer);
         if (cmdResult.getCommandSuccess()) {
             WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
@@ -401,7 +402,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      * @param policyName
      * @return
      */
-    public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName) {
+    public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
         try {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
@@ -413,15 +414,21 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setLastJobState(JobState.canceled);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                return BiosCommandResult.createSuccessfulResult();
+                try {
+                    IsilonSyncIQJob isiSyncJobcancel = new IsilonSyncIQJob(policyName, system.getId(), taskCompleter, policyName);
+                    ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobcancel));
+                    return BiosCommandResult.createPendingResult();
+                } catch (Exception ex) {
+                    _log.error("Cancel Replication Job Failed ", ex);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("Cancel Replication Job Failed as:" + ex.getMessage());
+                    if (taskCompleter != null) {
+                        taskCompleter.error(_dbClient, error);
+                    }
+                    return BiosCommandResult.createErrorResult(error);
+                }
 
             } else {
-                _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,
-                        policyState);
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed(
-                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
-                return BiosCommandResult.createErrorResult(error);
+                return BiosCommandResult.createSuccessfulResult();
             }
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);

@@ -520,7 +520,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 List<URI> hostInitiators = ComputeSystemHelper.getChildrenUris(dbClient, host.getId(), Initiator.class, "host");
                 if (hostInitiators.size() == oldInitiatorObjects.size()) {
                     log.info("No initiators were re-discovered for host " + host.getId() + " so we will not delete its initiators");
-                    oldInitiatorObjects.clear();
+                    DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "No initiators were discovered", null);
+                    continue;
                 }
             }
 

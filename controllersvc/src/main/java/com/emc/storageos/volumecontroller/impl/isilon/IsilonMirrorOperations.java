@@ -139,7 +139,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             JobState policyState = policy.getLastJobState();
 
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                doCancelReplicationPolicy(system, policyName);
+                doCancelReplicationPolicy(system, policyName, completer);
             }
             cmdResult = doStopReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
@@ -288,7 +288,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     /**
      * Get isilon device represented by the StorageDevice
      * 
-     * @param StorageSystem
+     * @param device
      *            object
      * @return IsilonSshApi object
      */

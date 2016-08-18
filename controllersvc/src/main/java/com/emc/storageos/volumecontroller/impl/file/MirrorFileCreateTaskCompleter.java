@@ -21,8 +21,8 @@ public class MirrorFileCreateTaskCompleter extends MirrorFileTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileStartTaskCompleter.class);
     private URI vpoolChangeURI;
 
-    public MirrorFileCreateTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFileCreateTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
     }
 
     public MirrorFileCreateTaskCompleter(Class clazz, URI id, String opId) {
@@ -50,7 +50,7 @@ public class MirrorFileCreateTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
+    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
         return this.mirrorSyncStatus = FileShare.MirrorStatus.UNKNOWN;
     }
 

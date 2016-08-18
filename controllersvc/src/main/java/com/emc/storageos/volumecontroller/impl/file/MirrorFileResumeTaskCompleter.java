@@ -23,8 +23,8 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
 
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileResumeTaskCompleter.class);
 
-    public MirrorFileResumeTaskCompleter(Class clazz, List<URI> ids, String opId) {
-        super(clazz, ids, opId);
+    public MirrorFileResumeTaskCompleter(Class clazz, List<URI> ids, String opId, URI storageUri) {
+        super(clazz, ids, opId, storageUri);
     }
 
     public MirrorFileResumeTaskCompleter(Class clazz, URI id, String opId) {
@@ -50,7 +50,7 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
+    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
         this.mirrorSyncStatus = MirrorStatus.SYNCHRONIZED;
         return mirrorSyncStatus;
     }

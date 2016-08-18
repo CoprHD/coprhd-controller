@@ -41,13 +41,19 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory
             .getLogger(MirrorFileTaskCompleter.class);
 
-    public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId) {
+    public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId, URI stoageUri) {
+
         super(clazz, ids, opId);
+        this.storageUri = stoageUri;
     }
 
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     protected FileShare.MirrorStatus mirrorSyncStatus = FileShare.MirrorStatus.OTHER;
+
+
+
+    protected URI storageUri;
 
     protected MirrorStatus getMirrorSyncStatus() {
         return mirrorSyncStatus;
@@ -79,6 +85,9 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     protected List<FileShare> fileshareCache;
 
+    public URI getStorageUri() {
+        return storageUri;
+    }
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -100,7 +109,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             if (Operation.Status.ready.equals(status)) {
                 List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
                 for (FileShare fs : fileshares) {
-                    fs.setMirrorStatus(getFileMirrorStatusForSuccess().name());
+                    fs.setMirrorStatus(getFileMirrorStatusForSuccess(fs).name());
                     fs.setAccessState(getFileShareAccessStateForSuccess(fs).name());
                     if (fs.getMirrorfsTargets() != null) {
                         List<URI> targetFsURIs = new ArrayList<URI>();
@@ -109,7 +118,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                         }
                         List<FileShare> targetFileShares = dbClient.queryObject(FileShare.class, targetFsURIs);
                         for (FileShare targetFileShare : targetFileShares) {
-                            targetFileShare.setMirrorStatus(getFileMirrorStatusForSuccess().name());
+                            targetFileShare.setMirrorStatus(getFileMirrorStatusForSuccess(fs).name());
                             targetFileShare.setAccessState(getFileShareAccessStateForSuccess(targetFileShare).name());
 
                         }
@@ -254,7 +263,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         throw new IllegalStateException("Expected a source FileShare with an non-null Replication parent");
     }
 
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
+    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
         return this.mirrorSyncStatus;
     }
 

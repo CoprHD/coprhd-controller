@@ -115,10 +115,10 @@ public class DriverManager {
             if (toDownload != null && toDownload.contains(type.getDriverFileName())) {
                 type.setIsUsable(true);
                 dbClient.updateObject(type);
-                log.info("update: {} done", type.getgetDriverFileName());
+                log.info("update: {} done", type.getDriverFileName());
             } else if (toRemove != null && toRemove.contains(type.getDriverFileName())) {
                 dbClient.removeObject(type);
-                log.info("remove: {} done", type.getgetDriverFileName());
+                log.info("remove: {} done", type.getDriverFileName());
             }
         }
     }

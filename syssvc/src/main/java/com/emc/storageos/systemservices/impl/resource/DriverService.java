@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.DriverInfo;
+import com.emc.storageos.coordinator.client.model.DriverInfo2;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -113,15 +115,19 @@ public class DriverService {
         type.setIsOnlyMDM(false);
         type.setIsElementMgr(false);
         type.setIsSecretKey(false);
+        type.setDriverFileName(name);
 
         dbClient.createObject(type);
         
         // set target info
         String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
-        List<String> drivers = coordinator.getTargetInfo(DriverInfo.class).getDrivers();
-        drivers.add(name);
-        DriverInfo info = new DriverInfo(localNode, drivers);
-        coordinator.setTargetInfo(info);
+        DriverInfo2 info = new DriverInfo2(coordinator.queryConfiguration(DriverInfo2.CONFIG_ID, DriverInfo2.CONFIG_ID));
+        info.setInitNode(localNode);
+        if (info.getDrivers() == null) {
+            info.setDrivers(new ArrayList<String>());
+        }
+        info.getDrivers().add(name);
+        coordinator.persistServiceConfiguration(info.toConfiguration());
         log.info("set target info successfully");
         return Response.ok().build();
     }

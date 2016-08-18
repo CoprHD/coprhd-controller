@@ -1,5 +1,7 @@
 package com.emc.storageos.systemservices.impl.driver;
 
+import static com.emc.storageos.api.mapper.SystemsMapper.map;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,15 +11,20 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.DriverInfo2;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
@@ -25,6 +32,7 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.StorageSystemType;
 
 public class DriverManager {
 
@@ -33,6 +41,7 @@ public class DriverManager {
     private static final String LISTEN_PATH = String.format("/config/%s/%s", DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID);
     private static final Logger log = LoggerFactory.getLogger(PropertyManager.class);
     private static final int MAX_RETRY_TIMES = 5;
+    private static final String DRIVERS_UPDATE_LOCK = "driversupdatelock";
 
     protected volatile boolean doRun = true;
 
@@ -43,6 +52,7 @@ public class DriverManager {
     private LocalRepository localRepository;
     private CoordinatorClientExt coordinator;
     private DbClient dbClient;
+    private Service service;
 
     private List<String> toRemove;
     private List<String> toDownload;
@@ -61,6 +71,10 @@ public class DriverManager {
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
+    }
+
+    public void setService(Service service) {
+        this.service = service;
     }
 
     /**
@@ -82,20 +96,31 @@ public class DriverManager {
         }
     }
 
-    // TODO
+    // TODO Not finall implementation, need to consider multi-sites situation
     // to see if all nodes (except paused sites) are in the finished nodes
-    private boolean areAllNodesUpdated() {
-        return false;
+    private boolean areAllNodesUpdated(DriverInfo2 info) {
+        DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        return drUtil.getLocalSite().getNodeCount() == info.getFinishNodes().size();
     }
 
     // TODO
     // access cassandra database to mark driver as usable or delete driver
     private void updateMetaData() {
-        if (toDownload != null && !toDownload.isEmpty()) {
-            
+        if (!(toDownload != null && !toDownload.isEmpty()) && !(toRemove != null && !toRemove.isEmpty())) {
+            return;
         }
-        if (toRemove != null && !toRemove.isEmpty()) {
-            
+        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (iter.hasNext()) {
+            StorageSystemType type = iter.next();
+            if (toDownload != null && toDownload.contains(type.getDriverFileName())) {
+                type.setIsUsable(true);
+                dbClient.updateObject(type);
+                log.info("update: {} done", type.getgetDriverFileName());
+            } else if (toRemove != null && toRemove.contains(type.getDriverFileName())) {
+                dbClient.removeObject(type);
+                log.info("remove: {} done", type.getgetDriverFileName());
+            }
         }
     }
 
@@ -270,16 +295,57 @@ public class DriverManager {
                     }
                     // It means all logic finished smoothly if thread goes here, exit loop, finish thread
                     log.info("Update finished smoothly, congratulations");
-                    if (areAllNodesUpdated()) {
-                        updateMetaData();
+                    InterProcessLock lock = null;
+                    try {
+                        lock = getLock(DRIVERS_UPDATE_LOCK);
+                        log.info("Acquired lock, update local node to finish nodes list");
+                        DriverInfo2 info = new DriverInfo2(coordinator.getCoordinatorClient()
+                                .queryConfiguration(DriverInfo2.CONFIG_KIND, DriverInfo2.CONFIG_ID));
+                        if (info.getFinishNodes() == null) {
+                            info.setFinishNodes(new ArrayList<String>());
+                        }
+                        String localNode = coordinator.getNodeEndpointForSvcId(service.getId()).toString();
+                        info.getFinishNodes().add(String.format("%s_%s", coordinator.getCoordinatorClient().getSiteId(), localNode));
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(info.toConfiguration());
+                        if (areAllNodesUpdated(info)) {
+                            log.info("Last update thread has finished update");
+                            updateMetaData();
+                        }
+                        break;
+                    } catch (Exception e) {
+                        log.error("error happend when updating driver info", e);
+                    } finally {
+                        if (lock != null) {
+                            try {
+                                lock.release();
+                            } catch (Exception ignore) {
+                                log.warn("lock release failed");
+                            }
+                        }
                     }
-                    break;
                 }
             }
         });
         t.setName("DriverUpdateThead");
         t.start();
     }
+
+    private InterProcessLock getLock(String name) throws Exception {
+        InterProcessLock lock = null;
+        while (true) {
+            try {
+                lock = coordinator.getCoordinatorClient().getLock(name); // global lock across all sites
+                lock.acquire();
+                break; // got lock
+            } catch (Exception e) {
+                if (coordinator.isConnected()) {
+                    throw e;
+                }
+            }
+        }
+        return lock;
+    }
+
     class DriverInfoListener implements NodeListener {
         @Override
         public String getPath() {

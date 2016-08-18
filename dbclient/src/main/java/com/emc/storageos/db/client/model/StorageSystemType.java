@@ -17,6 +17,8 @@ public class StorageSystemType extends DataObject {
     // Display Name of Storage Type, like VMAX, VNX, Isilion
     private String storageTypeDispName;
 
+    private String driverFileName;
+
     // Storage type like Block, File or Object
     private String metaType;
 
@@ -56,6 +58,16 @@ public class StorageSystemType extends DataObject {
     public void setStorageTypeName(String name) {
         this.storageTypeName = name;
         setChanged("storageTypeName");
+    }
+
+    @Name("driverFileName")
+    public String getDriverFileName() {
+        return driverFileName;
+    }
+
+    public void setDriverFileName(String name) {
+        this.driverFileName = name;
+        setChanged("driverFileName");
     }
 
     @Name("storageTypeDispName")

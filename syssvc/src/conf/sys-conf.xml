@@ -244,6 +244,7 @@
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
     </bean>
 
     <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">

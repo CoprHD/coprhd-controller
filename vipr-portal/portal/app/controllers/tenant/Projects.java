@@ -160,9 +160,7 @@ public class Projects extends ViprResourceController {
                 		String projectId = projectjson.get("id").getAsString();
                 		if(StringUtils.equals(projectId, project.id)) {
                 			addToCookie = false; //update case, don't add in cookie
-                		}
-                		else {
-                			continue;
+                			break;
                 		}
                 	}
                 }

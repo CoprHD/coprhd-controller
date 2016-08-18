@@ -317,9 +317,7 @@ public class StorageProviders extends ViprResourceController {
                 		String arrayId = storagearray.get("id").getAsString();
                 		if(StringUtils.equals(arrayId, providerUri.toString())) {
                 			addToCookie = false; //update case, don't add in cookie
-                		}
-                		else {
-                			continue;
+                			break;
                 		}
                 	}
                 }

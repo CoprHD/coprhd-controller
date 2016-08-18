@@ -151,9 +151,7 @@ public class SanSwitches extends ViprResourceController {
                 		String fabricId = sanswitch.get("id").getAsString();
                 		if(StringUtils.equals(fabricId, sanTask.getResourceId().toString())) {
                 			addToCookie = false; //update case, don't add in cookie
-                		}
-                		else {
-                			continue;
+                			break;
                 		}
                 	}
                 }

@@ -309,7 +309,6 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-                Logger.info("vmax - "+vpools);
 				createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, VMAX_DIAMOND_DESC, vpools);
 			}
 		}
@@ -328,7 +327,6 @@ public class BlockVirtualPools extends ViprResourceController {
 				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-                Logger.info("xio - "+vpools);
 				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, XIO_DIAMOND_DESC, vpools);
 			}
 		}
@@ -350,7 +348,6 @@ public class BlockVirtualPools extends ViprResourceController {
 				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, UNITY_DIAMOND_DESC, vpools);
 			}
 		}
-        Logger.info("final - "+vpools);
         dataObject.add(VPOOL_COOKIES, vpools);
         saveJsonAsCookie(GUIDE_DATA, dataObject);
         list();

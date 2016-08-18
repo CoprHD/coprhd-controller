@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.Iterator;
 
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -166,6 +167,19 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         // Get the set of virtual arrays that are associated with block vpools
         Set<URI> varrayIds = new HashSet<>();
         for (BlockVirtualPoolRestRep vpool : client.blockVpools().getByTenant(context.getTenant())) {
+            varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
+        }
+        filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
+        return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
+    }
+
+
+    @Asset("objectVirtualArray")
+    public List<AssetOption> getObjectVirtualArrays(AssetOptionsContext context) {
+        ViPRCoreClient client = api(context);
+        // Get the set of virtual arrays that are associated with object vpools
+        Set<URI> varrayIds = new HashSet<>();
+        for (ObjectVirtualPoolRestRep vpool : client.objectVpools().getByTenant(context.getTenant())) {
             varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
         }
         filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));

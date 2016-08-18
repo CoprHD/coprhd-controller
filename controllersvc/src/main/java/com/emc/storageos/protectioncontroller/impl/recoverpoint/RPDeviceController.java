@@ -469,7 +469,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     @Override
     public String addStepsForCreateVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         // Just grab a legit target volume that already has an assigned protection controller.
         // This will work for all operations, adding, removing, vpool change, etc.
@@ -703,7 +703,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     @Override
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
-            throws InternalException {
+                    throws InternalException {
         // Filter to get only the RP volumes.
         List<VolumeDescriptor> rpVolumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE, VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
@@ -1152,13 +1152,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     _log.info(String.format("RP Export: StorageSystem = [%s] RPSite = [%s] VirtualArray = [%s]", storageSystem.getLabel(),
                             rpSiteName, varray.getLabel()));
 
-                    String exportGroupGeneratedName = RPHelper.generateExportGroupName(rpSystem, storageSystem, internalSiteName, varray);
-                    boolean isJournalExport = rpExport.getIsJournalExport();
-                    // Setup the export group - we may or may not need to create it, but we need to have everything
-                    // ready in
-                    // case we do
-                    ExportGroup exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, varray,
-                            _dbClient.queryObject(Project.class, params.getProject()), 0, isJournalExport);
+                boolean isJournalExport = rpExport.getIsJournalExport();
+                String exportGroupGeneratedName = RPHelper.generateExportGroupName(rpSystem, storageSystem, internalSiteName, varray,
+                        isJournalExport);
+                // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
+                ExportGroup exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, varray,
+                        _dbClient.queryObject(Project.class, params.getProject()), 0, isJournalExport);
 
                     // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                     Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
@@ -6356,7 +6355,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     @Override
     public String addStepsForExpandVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeURIs, String taskId)
-            throws InternalException {
+                    throws InternalException {
         // There are no RP specific operations done during the expand process.
         // Most of what is required from RP as part of the volume expand is handled in Pre and Post Expand steps.
         return null;

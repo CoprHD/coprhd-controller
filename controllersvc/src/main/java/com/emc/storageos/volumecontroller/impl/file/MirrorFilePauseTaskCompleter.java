@@ -52,8 +52,12 @@ public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
-        this.mirrorSyncStatus = MirrorStatus.PAUSED;
-        return mirrorSyncStatus;
+        if(fs.getStorageDevice().equals(getStorageUri())) {
+            return MirrorStatus.PAUSED;
+        } else {
+            return MirrorStatus.valueOf(fs.getMirrorStatus());
+        }
+
     }
 
 }

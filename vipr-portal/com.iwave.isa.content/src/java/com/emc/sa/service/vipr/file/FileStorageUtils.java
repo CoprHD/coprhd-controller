@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -239,7 +240,7 @@ public class FileStorageUtils {
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, exportRule.security, exportRule.permission, DEFAULT_ROOT_USER,
+        return createFileSystemExport(fileSystemId, comment, exportRule.getCSSecurity(), exportRule.permission, DEFAULT_ROOT_USER,
                 exportRule.exportHosts, subDirectory);
     }
 
@@ -255,7 +256,7 @@ public class FileStorageUtils {
     }
 
     public static String createFileSnapshotExport(URI fileSnapshotId, String comment, FileExportRule exportRule, String subDirectory) {
-        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.security, exportRule.permission,
+        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.getCSSecurity(), exportRule.permission,
                 DEFAULT_ROOT_USER, exportRule.exportHosts, subDirectory);
     }
 
@@ -462,14 +463,15 @@ public class FileStorageUtils {
 
         Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
         for (FileExportRule fileExportRule : fileExportRules) {
-            if (!rules.containsKey(fileExportRule.security)) {
+            String csSecType = fileExportRule.getCSSecurity();
+            if (!rules.containsKey(csSecType)) {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-                rules.put(fileExportRule.security, rule);
-            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
-                rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
+                rules.put(csSecType, rule);
+            } else if (!rules.get(csSecType).containsKey(fileExportRule.permission)) {
+                rules.get(csSecType).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
             } else {
-                rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
+                rules.get(csSecType).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
@@ -517,14 +519,15 @@ public class FileStorageUtils {
 
         Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
         for (FileExportRule fileExportRule : fileExportRules) {
-            if (!rules.containsKey(fileExportRule.security)) {
+            String csSecType = fileExportRule.getCSSecurity();
+            if (!rules.containsKey(csSecType)) {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-                rules.put(fileExportRule.security, rule);
-            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
-                rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
+                rules.put(csSecType, rule);
+            } else if (!rules.get(csSecType).containsKey(fileExportRule.permission)) {
+                rules.get(csSecType).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
             } else {
-                rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
+                rules.get(csSecType).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
@@ -644,7 +647,7 @@ public class FileStorageUtils {
         protected List<String> exportHosts;
 
         @Param
-        protected String security;
+        protected List<String> security;
 
         @Param
         protected String permission;
@@ -657,11 +660,11 @@ public class FileStorageUtils {
             this.exportHosts = exportHosts;
         }
 
-        public String getSecurity() {
+        public List<String> getSecurity() {
             return security;
         }
 
-        public void setSecurity(String security) {
+        public void setSecurity(List<String> security) {
             this.security = security;
         }
 
@@ -671,6 +674,17 @@ public class FileStorageUtils {
 
         public void setPermission(String permission) {
             this.permission = permission;
+        }
+        
+        public String getCSSecurity() {
+            StringBuilder strSecurity = new StringBuilder();
+            Iterator<String> secIter = security.iterator();
+            strSecurity.append(secIter.next());
+            while(secIter.hasNext()) {
+                strSecurity.append(";")
+                           .append(secIter.next());
+            }
+            return strSecurity.toString();
         }
     }
 

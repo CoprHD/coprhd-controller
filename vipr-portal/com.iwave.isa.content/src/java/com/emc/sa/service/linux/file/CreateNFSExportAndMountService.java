@@ -92,7 +92,9 @@ public class CreateNFSExportAndMountService extends ViPRService {
             exportHosts.add(BlockStorageUtils.getHost(mount.getHost()).getHostName());
             export.setExportHosts(exportHosts);
             export.setPermission(mount.getPermission());
-            export.setSecurity(mount.getSecurity());
+            List<String> secList = new ArrayList<String>();
+            secList.add(mount.getSecurity());
+            export.setSecurity(secList);
             exportList.add(export);
         }
 

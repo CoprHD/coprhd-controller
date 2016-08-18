@@ -2030,6 +2030,8 @@ public class FileService extends TaskResourceService {
      *            the URN of a ViPR fileSystem
      * @param subDir
      *            sub-directory within a filesystem
+     * @param unmountExport
+     *            Whether to unmount an export when deleting or modifying a rule
      * @brief Update file system export
      * @return Task resource representation
      * @throws InternalException
@@ -2110,6 +2112,8 @@ public class FileService extends TaskResourceService {
      *            sub-directory within a filesystem
      * @param allDirs
      *            All Dirs within a filesystem
+     * @param unmountExport
+     *            Whether to unmount an export when deleting the rule
      * @return Task resource representation
      * @throws InternalException
      */

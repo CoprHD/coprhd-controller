@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToLabel;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
@@ -1320,7 +1321,20 @@ public class ControllerUtils {
                 Volume clone = dbClient.queryObject(Volume.class, cloneID);
                 if (clone != null && !clone.getInactive()
                         && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
-                    groupNames.add(clone.getReplicationGroupInstance());
+                    // if the volume is a backing volume for a vplex virtual volume, check the virtual volume for full
+                    // copies
+                    if (VPlexUtil.isVplexBackendVolume(clone, dbClient)) {
+                        List<Volume> vplexCloneVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                                Volume.class, getVolumesByAssociatedId(clone.getId().toString()));
+                        if (vplexCloneVolumes != null && !vplexCloneVolumes.isEmpty()) {
+                            Volume vplexClone = vplexCloneVolumes.iterator().next();
+                            if (!NullColumnValueGetter.isNullValue(vplexClone.getFullCopySetName())) {
+                                groupNames.add(clone.getReplicationGroupInstance());
+                            }
+                        }
+                    } else if (!NullColumnValueGetter.isNullValue(clone.getFullCopySetName())) {
+                        groupNames.add(clone.getReplicationGroupInstance());
+                    }
                 }
             }
 

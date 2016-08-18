@@ -1784,6 +1784,8 @@ test_7() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 8

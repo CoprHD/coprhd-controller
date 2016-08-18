@@ -325,12 +325,12 @@
 <target name="kernel-macros"                       depends="kernel-macros-3.12.51-52.31.1_1"/>
 <target name="kernel-source"                       depends="kernel-source-3.12.51-52.31.1_1"/>
 <target name="keyutils-devel"                      depends="keyutils-devel-1.5.9-3.29_1"/>
-<target name="kiwi"                                depends="kiwi-7.02.45-1.1_1"/>
-<target name="kiwi-desc-isoboot"                   depends="kiwi-desc-isoboot-7.02.45-1.1_1"/>
-<target name="kiwi-desc-oemboot"                   depends="kiwi-desc-oemboot-7.02.45-1.1_1"/>
-<target name="kiwi-desc-vmxboot"                   depends="kiwi-desc-vmxboot-7.02.45-1.1_1"/>
-<target name="kiwi-templates"                      depends="kiwi-templates-7.02.45-1.1_1"/>
-<target name="kiwi-tools"                          depends="kiwi-tools-7.02.45-1.1_1"/>
+<target name="kiwi"                                depends="kiwi-7.02.98-30.1.11133.0.PTF.986602_1"/>
+<target name="kiwi-desc-isoboot"                   depends="kiwi-desc-isoboot-7.02.98-30.1.11133.0.PTF.986602_1"/>
+<target name="kiwi-desc-oemboot"                   depends="kiwi-desc-oemboot-7.02.98-30.1.11133.0.PTF.986602_1"/>
+<target name="kiwi-desc-vmxboot"                   depends="kiwi-desc-vmxboot-7.02.98-30.1.11133.0.PTF.986602_1"/>
+<target name="kiwi-templates"                      depends="kiwi-templates-7.02.98-30.1.11133.0.PTF.986602_1"/>
+<target name="kiwi-tools"                          depends="kiwi-tools-7.02.98-30.1.11133.0.PTF.986602_1"/>
 <target name="krb5"                                depends="krb5-1.12.1-28.1_1"/>
 <target name="krb5-devel"                          depends="krb5-devel-1.12.1-28.1_1"/>
 <target name="lcms2"                               depends="lcms2-2.5-4.20_2"/>
@@ -474,6 +474,7 @@
 <target name="libsmartcols1"                       depends="libsmartcols1-2.25-10.1_1"/>
 <target name="libsndfile1"                         depends="libsndfile1-1.0.25-24.1_1"/>
 <target name="libsoftokn3"                         depends="libsoftokn3-3.21.1-46.2_1"/>
+<target name="libsoftokn3-hmac"                    depends="libsoftokn3-hmac-3.21.1-46.2_1"/>
 <target name="libspeex1"                           depends="libspeex1-1.1.999_1.2rc1-22.64_1"/>
 <target name="libsqlite3-0"                        depends="libsqlite3-0-3.8.3.1-1.14_1"/>
 <target name="libtasn1"                            depends="libtasn1-3.7-11.1_1"/>

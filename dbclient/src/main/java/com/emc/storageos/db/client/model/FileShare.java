@@ -132,7 +132,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
         public static MirrorStatus getMirrorStatus(String state) {
             for (MirrorStatus stateValue : copyOfValues) {
-                if (state != null && stateValue.name().equalsIgnoreCase(state)) {
+                if (state != null && stateValue.getStatus().contains(state)) {
                     return stateValue;
                 }
             }

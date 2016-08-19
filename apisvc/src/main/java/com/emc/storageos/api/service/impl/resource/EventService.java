@@ -385,7 +385,7 @@ public class EventService extends TaggedResource {
      * @return task for updating host
      */
     public TaskResourceRep hostVcenterUnassign(URI hostId) {
-        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), true, NullColumnValueGetter.getNullURI());
+        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true);
     }
 
     /**
@@ -440,7 +440,7 @@ public class EventService extends TaggedResource {
      */
 
     public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, isVcenter, datacenterId);
+        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter);
     }
 
     /**
@@ -478,7 +478,7 @@ public class EventService extends TaggedResource {
      */
 
     public TaskResourceRep hostVcenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, isVcenter, datacenterId);
+        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter);
     }
 
     private Set<String> getHostVolumes(URI hostId) {
@@ -596,12 +596,12 @@ public class EventService extends TaggedResource {
      * 
      * @param hostId the host that is moving clusters
      * @param clusterId the cluster the host is moving to
+     * @param vCenterDataCenterId the vcenter datacenter id to set
      * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
      *            datastores
-     * @param vCenterDataCenterId the vcenter datacenter id to set
      * @return task for updating export groups
      */
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId) {
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
         Host hostObj = queryObject(Host.class, hostId, true);
         URI oldClusterURI = hostObj.getCluster();
         String taskId = UUID.randomUUID().toString();

@@ -2089,7 +2089,18 @@ public class VNXeApiClient {
                 initCreateParam.setInitiatorWWNorIqn(newInit.getInitiatorId());
             }
             HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
-            req.createHostInitiator(initCreateParam);
+            try {
+                req.createHostInitiator(initCreateParam);
+            } catch (VNXeException e) {
+                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the host 
+                // initiator with the created host, it would throw error, saying the initiator exists. ignore the error.
+                String message = e.getMessage();
+                if (message != null && message.contains(VNXeConstants.INITIATOR_EXISITNG)) {
+                    _logger.info("The initiator exists. Ignore the error.");
+                } else {
+                    throw e;
+                }
+            }
 
         }
         

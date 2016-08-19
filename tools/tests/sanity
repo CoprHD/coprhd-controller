@@ -5004,6 +5004,7 @@ recoverpoint_direct_access_test()
 
         secho 'Swap/swap-back while single target volume is in direct access mode'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp       
+        sleep 10
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
 
         # Failover to each of the remaining target copies and set access mode to direct access.  Test swap/swap-back.
@@ -5021,12 +5022,14 @@ recoverpoint_direct_access_test()
 
                     secho 'Swap/swap-back while each target copies are in direct access mode'
                     run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${target_vol} rp
+                    sleep 10
                     run volume change_link ${PROJECT}/${target_vol} swap ${PROJECT}/${src_volume} rp
                 fi
             done
         fi
        
         secho 'Failover'
+        sleep 10
         run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS

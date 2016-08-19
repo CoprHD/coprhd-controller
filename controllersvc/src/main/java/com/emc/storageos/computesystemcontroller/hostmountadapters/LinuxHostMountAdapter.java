@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.iwave.ext.command.CommandException;
 
 /**
  * 
@@ -128,8 +129,14 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     public void deleteDirectory(URI hostId, String mountPath) {
         mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
         // Delete directory
-        if (mountUtils.isDirectoryEmpty(mountPath)) {
-            mountUtils.deleteDirectory(mountPath);
+        try {
+            if (mountUtils.isDirectoryEmpty(mountPath)) {
+                mountUtils.deleteDirectory(mountPath);
+            }
+        } catch (CommandException ex) {
+            if (!ex.getMessage().contains("No such file or directory")) {
+                throw ex;
+            }
         }
     }
 
@@ -144,7 +151,13 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     public void unmountDevice(URI hostId, String mountPath) {
         mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
         // unmount device
-        mountUtils.unmountPath(mountPath);
+        try {
+            mountUtils.unmountPath(mountPath);
+        } catch (CommandException ex) {
+            if (!ex.getMessage().contains("not mounted")) {
+                throw ex;
+            }
+        }
     }
 
 }

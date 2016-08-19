@@ -1712,7 +1712,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostType,
                 this.getClass(),
                 createDirectoryMethod(args),
-                deleteDirectoryMethod(args), null);
+                createDirectoryRollBackMethod(args), null);
 
         waitFor = workflow.createStep(null,
                 String.format("Adding to etc/fstab:%n%s for host: %s", args.getMountPath(), hostname),
@@ -1728,12 +1728,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostType,
                 this.getClass(),
                 mountDeviceMethod(args),
-                removeFromFSTabMethod(args), null);
+                unmountDeviceMethod(args), null);
         return waitFor;
     }
 
     public String addStepsForUnmountDevice(Workflow workflow, HostDeviceInputOutput args) {
         String waitFor = null; // the wait for key returned by previous call
+        FileMountInfo fsMount = getMountInfo(args.getHostId(), args.getMountPath(), args.getResId());
+        args.setFsType(fsMount.getFsType());
+        args.setSecurity(fsMount.getSecurityType());
+        args.setSubDirectory(fsMount.getSubDirectory());
         _log.info("Generating steps for mounting device");
         // create a step
         String hostname = _dbClient.queryObject(Host.class, args.getHostId()).getHostName();
@@ -1744,7 +1748,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostType,
                 this.getClass(),
                 unmountDeviceMethod(args),
-                mountDeviceMethod(args), null);
+                unmountRollBackMethod(args), null);
 
         waitFor = workflow.createStep(null,
                 String.format("removing from etc/fstab:%n%s for host: %s", args.getMountPath(), hostname),
@@ -1800,24 +1804,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public void mount(URI resId, URI hostId, String mountPath, String subDir,
-            String security, String fsType, String stepId) {
-        try {
-            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
-            WorkflowStepCompleter.stepExecuting(stepId);
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
-            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
-            adapter.mountDevice(hostId, mountPath);
-            createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (ControllerException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            throw e;
-        } catch (Exception ex) {
-            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
-            throw ex;
-        }
+    public void mount(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        mountDir(resId, hostId, mountPath, subDir, security, fsType, stepId);
+        createMountDBEntry(resId, hostId, mountPath, subDir, security, fsType);
     }
 
     public void verifyMountPoint(URI hostId, String mountPath, String stepId) {
@@ -1839,22 +1828,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public void deleteDirectory(URI resId, URI hostId, String mountPath, String stepId) {
-        try {
-            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
-            WorkflowStepCompleter.stepExecuting(stepId);
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
-            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
-            adapter.deleteDirectory(hostId, mountPath);
-            WorkflowStepCompleter.stepSucceded(stepId);
-            removeMountDBEntry(resId, hostId, mountPath);
-        } catch (ControllerException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            throw e;
-        } catch (Exception ex) {
-            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
-            throw ex;
-        }
+        deleteDir(resId, hostId, mountPath, stepId);
+        removeMountDBEntry(resId, hostId, mountPath);
     }
 
     public void removeFromFSTab(URI hostId, String mountPath, String stepId) {
@@ -1930,6 +1905,50 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    public void deleteDir(URI resId, URI hostId, String mountPath, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.deleteDirectory(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void unmountRollBack(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        mountDir(resId, hostId, mountPath, subDir, security, fsType, stepId);
+    }
+
+    public void mountDir(URI resId, URI hostId, String mountPath, String subDir, String security, String fsType, String stepId) {
+        try {
+            HostMountAdapter adapter = getMountAdapters().get(_dbClient.queryObject(Host.class, hostId).getType());
+            WorkflowStepCompleter.stepExecuting(stepId);
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getMountHostKey(_dbClient, hostId));
+            _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.FILE_MOUNT_OPERATIONS));
+            adapter.mountDevice(hostId, mountPath);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (ControllerException e) {
+            WorkflowStepCompleter.stepFailed(stepId, e);
+            throw e;
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, APIException.badRequests.commandFailedToComplete(ex.getMessage()));
+            throw ex;
+        }
+    }
+
+    public void createDirectoryRollBack(URI resId, URI hostId, String mountPath, String stepId) {
+        deleteDir(resId, hostId, mountPath, stepId);
+    }
+
     public Method createDirectoryMethod(HostDeviceInputOutput args) {
         return new Workflow.Method("createDirectory", args.getHostId(), args.getMountPath());
     }
@@ -1940,8 +1959,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Method mountDeviceMethod(HostDeviceInputOutput args) {
-        return new Workflow.Method("mount", args.getResId(), args.getHostId(), args.getMountPath(),
-                args.getSubDirectory(), args.getSecurity(), args.getFsType());
+        return new Workflow.Method("mount", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
     }
 
     public Method verifyMountPointMethod(HostDeviceInputOutput args) {
@@ -1962,6 +1981,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public Method deleteDirectoryMethod(HostDeviceInputOutput args) {
         return new Workflow.Method("deleteDirectory", args.getResId(), args.getHostId(), args.getMountPath());
+    }
+
+    public Method createDirectoryRollBackMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("createDirectoryRollBack", args.getResId(), args.getHostId(), args.getMountPath());
+    }
+
+    public Method unmountRollBackMethod(HostDeviceInputOutput args) {
+        return new Workflow.Method("unmountRollBack", args.getResId(), args.getHostId(), args.getMountPath(), args.getSubDirectory(),
+                args.getSecurity(), args.getFsType());
     }
 
     /**

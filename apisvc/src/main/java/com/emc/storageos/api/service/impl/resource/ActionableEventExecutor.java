@@ -440,7 +440,7 @@ public class ActionableEventExecutor {
      */
     public List<String> hostVcenterUnassignDeclineDetails(URI hostId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostVcenterUnassignDeclineDetails", host.getLabel()));
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -469,7 +469,7 @@ public class ActionableEventExecutor {
      */
     public List<String> hostVcenterChangeDeclineDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostVcenterChangeDeclineDetails", host.getLabel()));
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -498,7 +498,7 @@ public class ActionableEventExecutor {
      */
     public List<String> hostDatacenterChangeDeclineDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostDatacenterChangeDeclineDetails", host.getLabel()));
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -527,7 +527,7 @@ public class ActionableEventExecutor {
      */
     public List<String> hostClusterChangeDeclineDetails(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostClusterChangeDeclineDetails", host.getLabel()));
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -549,7 +549,7 @@ public class ActionableEventExecutor {
      * @return list of details
      */
     public List<String> removeInitiatorDeclineDetails(URI initiator) {
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("removeInitiatorDeclineDetails"));
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDeclineDetails"));
 
     }
 
@@ -572,7 +572,7 @@ public class ActionableEventExecutor {
      * @return list of details
      */
     public List<String> addInitiatorDeclineDetails(URI initiator) {
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("addInitiatorDeclineDetails"));
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
     }
 
 }

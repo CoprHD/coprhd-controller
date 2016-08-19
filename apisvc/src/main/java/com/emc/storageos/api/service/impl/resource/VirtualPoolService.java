@@ -787,10 +787,10 @@ public abstract class VirtualPoolService extends TaggedResource {
                 tenant = tenant_input.getId();
             }
 
+            Set<VirtualPool> vpoolSet = new HashSet<VirtualPool>();
             for (VirtualPool virtualPool : vpoolObjects) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
-                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
-
+                    vpoolSet.add(virtualPool);
                 }
             }
 
@@ -799,9 +799,13 @@ public abstract class VirtualPoolService extends TaggedResource {
                 List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
                 for (VirtualPool virtualPool : vpoolObjects) {
                     if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
-                        list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+                        vpoolSet.add(virtualPool);
                     }
                 }
+            }
+
+            for (VirtualPool virtualPool : vpoolSet) {
+                list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
             }
         }
 

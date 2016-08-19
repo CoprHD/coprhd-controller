@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.computesystemcontroller;
 
+import java.text.MessageFormat;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
@@ -27,5 +28,10 @@ public class ComputeSystemDialogProperties {
             _log.fatal("Could not locate Resource Bundle: " + key);
             return '!' + key + '!';
         }
+    }
+
+    public static String getMessage(String key, Object... arguments) {
+        String message = ComputeSystemDialogProperties.getString(key);
+        return MessageFormat.format(message, arguments);
     }
 }

@@ -32,6 +32,13 @@ public class EventUtil {
     public static String removeInitiator = "removeInitiator";
     public static String addInitiator = "addInitiator";
 
+    public static String hostVcenterUnassignDecline = "hostVcenterUnassignDecline";
+    public static String hostVcenterChangeDecline = "hostVcenterChangeDecline";
+    public static String hostDatacenterChangeDecline = "hostDatacenterChangeDecline";
+    public static String hostClusterChangeDecline = "hostClusterChangeDecline";
+    public static String removeInitiatorDecline = "removeInitiatorDecline";
+    public static String addInitiatorDecline = "addInitiatorDecline";
+
     public enum EventCode {
         HOST_CLUSTER_CHANGE("101"),
         HOST_INITIATOR_ADD("102"),

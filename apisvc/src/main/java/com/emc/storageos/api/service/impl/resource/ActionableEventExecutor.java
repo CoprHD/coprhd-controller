@@ -10,11 +10,12 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Map.Entry;
 
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.ComputeSystemDialogProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -418,4 +419,160 @@ public class ActionableEventExecutor {
         }
         return result;
     }
+
+    /**
+     * Decline method that is invoked when the hostVcenterUnassign event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param host the host that is unassigned from vCenter
+     * @return task
+     */
+    public TaskResourceRep hostVcenterUnassignDecline(URI host) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for hostVcenterUnassign
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is unassigned from vCenter
+     * @return list of details
+     */
+    public List<String> hostVcenterUnassignDeclineDetails(URI hostId) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostVcenterUnassignDeclineDetails", host.getLabel()));
+    }
+
+    /**
+     * Decline method that is invoked when the hostVcenterChange event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moved to a different vCenter
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, will perform vCenter operations
+     * @return task
+     */
+    public TaskResourceRep hostVcenterChangeDecline(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for hostVcenterChange
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moved to a different vCenter
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, will perform vCenter operations
+     * @return list of details
+     */
+    public List<String> hostVcenterChangeDeclineDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostVcenterChangeDeclineDetails", host.getLabel()));
+    }
+
+    /**
+     * Decline method that is invoked when the hostDatacenterChange event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moved to a different datacenter
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, will perform vCenter operations
+     * @return task
+     */
+    public TaskResourceRep hostDatacenterChangeDecline(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for hostDatacenterChange
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moved to a different datacenter
+     * @param clusterId the cluster the host is moving to
+     * @param datacenterId the datacenter the host is moving to
+     * @param isVcenter if true, will perform vCenter operations
+     * @return list of details
+     */
+    public List<String> hostDatacenterChangeDeclineDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostDatacenterChangeDeclineDetails", host.getLabel()));
+    }
+
+    /**
+     * Decline method that is invoked when the hostClusterChange event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moved to a different cluster
+     * @param clusterId the cluster the host is moving to
+     * @param vCenterDataCenterId the datacenter the host is moving to
+     * @param isVcenter if true, will perform vCenter operations
+     * @return task
+     */
+    public TaskResourceRep hostClusterChangeDecline(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for hostClusterChange
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host that is moved to a different cluster
+     * @param clusterId the cluster the host is moving to
+     * @param vCenterDataCenterId the datacenter the host is moving to
+     * @param isVcenter if true, will perform vCenter operations
+     * @return list of details
+     */
+    public List<String> hostClusterChangeDeclineDetails(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("hostClusterChangeDeclineDetails", host.getLabel()));
+    }
+
+    /**
+     * Decline method that is invoked when the removeInitiator event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiator the initiator to remove
+     * @return task
+     */
+    public TaskResourceRep removeInitiatorDecline(URI initiator) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for removeInitiator
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiator the initiator to remove
+     * @return list of details
+     */
+    public List<String> removeInitiatorDeclineDetails(URI initiator) {
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("removeInitiatorDeclineDetails"));
+
+    }
+
+    /**
+     * Decline method that is invoked when the addInitiator event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiator the initiator to add
+     * @return task
+     */
+    public TaskResourceRep addInitiatorDecline(URI initiator) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for addInitiator
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiator the initiator to add
+     * @return list of details
+     */
+    public List<String> addInitiatorDeclineDetails(URI initiator) {
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("addInitiatorDeclineDetails"));
+    }
+
 }

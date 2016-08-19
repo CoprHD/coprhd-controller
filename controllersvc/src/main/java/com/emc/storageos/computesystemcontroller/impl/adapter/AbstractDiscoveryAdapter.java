@@ -572,7 +572,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             getMessage("ComputeSystem.hostDatacenterChangeLabel", oldDatacenter.getLabel(), currentDatacenter.getLabel()),
                             getMessage("ComputeSystem.hostDatacenterChangeDescription", host.getLabel(),
                                     oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
-                            getMessage("ComputeSystem.hostDatacenterWarning"),
+                            getMessage("ComputeSystem.hostDatacenterChangeWarning"),
                             host, Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostDatacenterChange",
@@ -611,7 +611,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                 oldCluster.getLabel());
                     } else {
                         name = getMessage("ComputeSystem.hostClusterChangeMovedLabel", oldCluster.getLabel(), cluster.getLabel());
-                        description = getMessage("ComputeSystem.hostClusterMovedDescription", host.getLabel(), oldCluster.getLabel(),
+                        description = getMessage("ComputeSystem.hostClusterChangeMovedDescription", host.getLabel(), oldCluster.getLabel(),
                                 cluster.getLabel());
                     }
                     EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),

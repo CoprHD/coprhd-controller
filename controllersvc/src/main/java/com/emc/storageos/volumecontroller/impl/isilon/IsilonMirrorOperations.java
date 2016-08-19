@@ -406,31 +406,34 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         try {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
+            if(policy != null) {
+                JobState policyState = policy.getLastJobState();
 
-            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
-                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setName(policyName);
-                modifiedPolicy.setLastJobState(JobState.canceled);
-                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                IsilonSyncIQJob isiSyncJobcancel = null;
-                try {
-                    isiSyncJobcancel = new IsilonSyncIQJob(policyName, system.getId(), taskCompleter, policyName);
-                    ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobcancel));
-                    return BiosCommandResult.createPendingResult();
-                } catch (Exception ex) {
-                    _log.error("Cancel Replication Job Failed ", ex);
-                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("Cancel Replication Job Failed as:" + ex.getMessage());
-                    if (taskCompleter != null) {
-                        taskCompleter.error(_dbClient, error);
+                if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                    _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
+                    IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                    modifiedPolicy.setName(policyName);
+                    modifiedPolicy.setLastJobState(JobState.canceled);
+                    isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                    IsilonSyncIQJob isiSyncJobcancel = null;
+                    try {
+                        isiSyncJobcancel = new IsilonSyncIQJob(policyName, system.getId(), taskCompleter, policyName);
+                        ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobcancel));
+                        return BiosCommandResult.createPendingResult();
+                    } catch (Exception ex) {
+                        _log.error("Cancel Replication Job Failed ", ex);
+                        ServiceError error = DeviceControllerErrors.isilon.jobFailed("Cancel Replication Job Failed as:" + ex.getMessage());
+                        if (taskCompleter != null) {
+                            taskCompleter.error(_dbClient, error);
+                        }
+                        return BiosCommandResult.createErrorResult(error);
                     }
-                    return BiosCommandResult.createErrorResult(error);
-                }
 
-            } else {
-                return BiosCommandResult.createSuccessfulResult();
+                } else {
+                    return BiosCommandResult.createSuccessfulResult();
+                }
             }
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         }

@@ -606,7 +606,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         name = getMessage("ComputeSystem.hostClusterChangeAddedLabel", cluster.getLabel());
                         description = getMessage("ComputeSystem.hostClusterChangeAddedDescription", host.getLabel(), cluster.getLabel());
                     } else if (cluster == null && oldCluster != null) {
-                        name = getMessage("ComputeSystem.hostClusterChangeRemovedLabel", cluster.getLabel());
+                        name = getMessage("ComputeSystem.hostClusterChangeRemovedLabel", oldCluster.getLabel());
                         description = getMessage("ComputeSystem.hostClusterChangeRemovedDescription", host.getLabel(),
                                 oldCluster.getLabel());
                     } else {

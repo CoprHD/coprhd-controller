@@ -362,6 +362,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 if (policy.getEnabled()) {
                 	
                     _log.info("Replication Policy - {} ENABLED successfully", policy.toString());
+                    if(policyState.equals(JobState.finished)) {
+                    	return BiosCommandResult.createSuccessfulResult();
+                    }
                 }
                 
             }
@@ -384,9 +387,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                     }
                     return BiosCommandResult.createErrorResult(error);
                 }
-            }else if(policyState.equals(JobState.finished)) {
-            	return BiosCommandResult.createSuccessfulResult();
-            } else {
+           } else {
                 _log.error("Replication Policy - {} can't be STARTED because policy is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
@@ -408,9 +409,16 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      * @return
      */
     public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
-        try {
+    	IsilonSyncPolicy policy = null;
+    	try {
             IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+            try {
+            	policy = isi.getReplicationPolicy(policyName);
+            } catch (IsilonException e) {
+            	policy = null;
+            	return BiosCommandResult.createSuccessfulResult();
+            }
+            
             if(policy != null) {
                 JobState policyState = policy.getLastJobState();
 
@@ -433,7 +441,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         }
                         return BiosCommandResult.createErrorResult(error);
                     }
-
                 } else {
                     return BiosCommandResult.createSuccessfulResult();
                 }

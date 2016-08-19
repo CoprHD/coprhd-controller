@@ -2787,6 +2787,13 @@ test_19() {
 test_20() {
     echot "Test 20: (VMAX) Remove volume removes volume when SG is shared by out-of-management masking view"
     expname=${EXPORT_GROUP_NAME}t20
+
+    # Check to make sure we're running VMAX only
+    if [ "${SS: 0:-1}" != "vmax" ]; then
+	echo "test_20 only runs on VMAX.  Bypassing for ${SS}."
+	return
+    fi
+
     HIJACK_MV=hijack
 
     # Make sure we start clean; no masking views on the array

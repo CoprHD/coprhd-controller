@@ -37,7 +37,7 @@ import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
 import com.emc.sa.service.vmware.block.tasks.FindLunsBackingDatastore;
-import com.emc.sa.service.vmware.block.tasks.MountVmfsDatastore;
+import com.emc.sa.service.vmware.block.tasks.MountDatastore;
 import com.emc.sa.service.vmware.block.tasks.RefreshStorage;
 import com.emc.sa.service.vmware.block.tasks.SetMultipathPolicy;
 import com.emc.sa.service.vmware.block.tasks.SetStorageIOControl;
@@ -236,7 +236,7 @@ public class VMwareSupport {
 
     public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
         execute(new UnmountVmfsDatastore(host, datastore));
-        addRollback(new MountVmfsDatastore(host, datastore));
+        addRollback(new MountDatastore(host, datastore));
     }
 
     /**

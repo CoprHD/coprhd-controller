@@ -12,9 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -45,10 +45,12 @@ public class CloneCreateWorkflowCompleter extends VolumeTaskCompleter {
         List<Volume> toUpdate = new ArrayList<Volume>();
         for (URI fullCopyURI : getIds()) {
             Volume fullCopy = dbClient.queryObject(Volume.class, fullCopyURI);
-            Volume source = dbClient.queryObject(Volume.class, fullCopy.getAssociatedSourceVolume());
-            if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                toUpdate.add(source);
+            if (fullCopy.getAssociatedSourceVolume() != null) {
+                Volume source = dbClient.queryObject(Volume.class, fullCopy.getAssociatedSourceVolume());
+                if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                    source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                    toUpdate.add(source);
+                }
             }
         }
         if (!toUpdate.isEmpty()) {

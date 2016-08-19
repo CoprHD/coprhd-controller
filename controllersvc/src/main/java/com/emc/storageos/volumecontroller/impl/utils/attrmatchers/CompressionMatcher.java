@@ -37,23 +37,18 @@ public class CompressionMatcher extends AttributeMatcher {
                 .on("\t").join(getNativeGuidFromPools(pools)));
         // defensive copy
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>();
-        StringSet deviceTypes = (StringSet) attributeMap.get(Attributes.system_type.toString());
-
-        if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
-            Iterator<StoragePool> poolIterator = pools.iterator();
-            while (poolIterator.hasNext()) {
-                StoragePool pool = poolIterator.next();
-                // check whether pool matching with vpool or not.
-                // if it doesn't match remove it from all pools.
-                if (pool.getCompressionEnabled()) {
-                    filteredPoolList.add(pool);
-                } else {
-                    _logger.info("Ignoring pool {} as it doesn't support compression", pool.getNativeGuid());
-                }
+        
+        Iterator<StoragePool> poolIterator = pools.iterator();
+        while (poolIterator.hasNext()) {
+            StoragePool pool = poolIterator.next();
+            // Check and return back only those StoragePools that have compression flag enabled.
+            if (pool.getCompressionEnabled()) {
+                filteredPoolList.add(pool);
+            } else {
+                _logger.info("Ignoring pool {} as it doesn't support compression", pool.getNativeGuid());
             }
-        } else {
-            filteredPoolList = new ArrayList<StoragePool> (); 
         }
+      
         _logger.info("Pools Matching Compression attribute Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         if (CollectionUtils.isEmpty(filteredPoolList)) {
@@ -67,13 +62,9 @@ public class CompressionMatcher extends AttributeMatcher {
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         boolean status = false;       
-        if (null != attributeMap && 
-        	attributeMap.containsKey(Attributes.compression_enabled.toString()) && 
+        if (null != attributeMap && attributeMap.containsKey(Attributes.compression_enabled.toString()) && 
         	(boolean) attributeMap.get(Attributes.compression_enabled.toString())) {        
-            StringSet deviceTypes = (StringSet) attributeMap.get(Attributes.system_type.toString());
-            if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
-                status = true;
-             }
+        	 	status = true;
         }
         return status;
     }

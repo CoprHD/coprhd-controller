@@ -400,7 +400,7 @@ public class EventService extends TaggedResource {
         List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
         if (host != null) {
-            result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), true, NullColumnValueGetter.getNullURI()));
+            result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
         }
         return result;
     }
@@ -422,7 +422,7 @@ public class EventService extends TaggedResource {
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
-            result.addAll(hostClusterChangeDetails(hostId, clusterId, isVcenter, datacenterId));
+            result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;
     }
@@ -460,7 +460,7 @@ public class EventService extends TaggedResource {
         Host host = queryObject(Host.class, hostId, true);
         VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
         if (host != null && datacenter != null) {
-            result.addAll(hostClusterChangeDetails(hostId, clusterId, isVcenter, datacenterId));
+            result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;
     }
@@ -540,8 +540,8 @@ public class EventService extends TaggedResource {
      * @param vCenterDataCenterId the datacenter to assign the host to
      * @return list of event details
      */
-    @SuppressWarnings("unused")      // Invoked using reflection for the event framework
-    public List<String> hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId) {
+    @SuppressWarnings("unused")         // Invoked using reflection for the event framework
+    public List<String> hostClusterChangeDetails(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
         if (host == null) {

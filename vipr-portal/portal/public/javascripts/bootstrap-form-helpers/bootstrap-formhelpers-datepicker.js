@@ -328,9 +328,9 @@
    * =================================== */
 
   $(window).on('load', function () {
+    
     $('div.bfh-datepicker').each(function () {
       var $datepicker = $(this)
-
       $datepicker.bfhdatepicker($datepicker.data())
     })
   })

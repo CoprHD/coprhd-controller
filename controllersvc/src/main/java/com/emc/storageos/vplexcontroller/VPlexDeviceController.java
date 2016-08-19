@@ -2992,7 +2992,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Add a steps to remove exports on the VPlex.
             List<URI> exportMaskUris = new ArrayList<URI>();
             List<URI> volumeUris = new ArrayList<URI>();
-            String storageViewStepId = ZONING_STEP;
+            String storageViewStepId = null;
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 

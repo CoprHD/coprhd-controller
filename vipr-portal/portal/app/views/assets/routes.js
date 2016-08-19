@@ -38,6 +38,7 @@ var routes = {
   
   Events_countSummary: #{jsAction @Events.getCountSummary(':tenantId') /},
   Events_pendingEventCount: #{jsAction @Events.getPendingCount() /},
+  Events_details: #{jsAction @Events.details(':id') /},
 
   BlockVolumes_volume: #{jsAction @resources.BlockVolumes.volume(':volumeId') /},
   BlockExportGroups_exportGroup: #{jsAction @resources.BlockExportGroups.exportGroup(':exportGroupId')/},

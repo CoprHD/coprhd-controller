@@ -373,7 +373,7 @@ public class StorageScheduler implements Scheduler {
          * of pool's subscribed capacity to total capacity(suborder).
          * This order is kept through the selection procedure.
          */
-        Collections.sort(storagePools, new StoragePoolDefaultComparator());
+        Collections.sort(storagePools, _storagePoolComparator);
     }
 
     /**

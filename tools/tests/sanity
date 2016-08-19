@@ -12518,6 +12518,9 @@ arrayaffinity_cos_setup()
                          --multiVolumeConsistency \
                          --placement_policy default_policy
 
+    run cos update block $COS_ARRAYAFFINITY --storage $VMAX_NATIVEGUID
+    run cos update block $COS_ARRAYAFFINITY --storage $VNXB_NATIVEGUID
+
     run cos create block $COS_ARRAYAFFINITY_VMAX \
 	    --description 'Virtual-Pool-for-arrayaffinity-vmax' true \
                          --protocols FC \
@@ -12530,6 +12533,8 @@ arrayaffinity_cos_setup()
                          --multiVolumeConsistency \
                          --placement_policy array_affinity
 
+    run cos update block $COS_ARRAYAFFINITY_VMAX --storage $VMAX_NATIVEGUID
+
     run cos create block $COS_ARRAYAFFINITY_VNX \
 	    --description 'Virtual-Pool-for-arrayaffinity-vnx' true \
                          --protocols FC \
@@ -12541,6 +12546,8 @@ arrayaffinity_cos_setup()
                          --neighborhoods $NH \
                          --multiVolumeConsistency \
                          --placement_policy array_affinity
+
+    run cos update block $COS_ARRAYAFFINITY_VNX --storage $VNXB_NATIVEGUID
 }
 
 arrayaffinity_host_setup()
@@ -12567,20 +12574,13 @@ arrayaffinity_setup()
     arrayaffinity_vnxblock_setup_once
 
     arrayaffinity_cos_setup
-
-    run cos update block $COS_ARRAYAFFINITY_VMAX --storage $VMAX_NATIVEGUID
-    run cos update block $COS_ARRAYAFFINITY --storage $VMAX_NATIVEGUID
-
-    run cos update block $COS_ARRAYAFFINITY_VNX --storage $VNXB_NATIVEGUID
-    run cos update block $COS_ARRAYAFFINITY --storage $VNXB_NATIVEGUID
-
     arrayaffinity_host_setup
     secho "Completed array affinity setup"
 }
 
 arrayaffinity_cos_tests()
 {
-    echo "Executing arraya ffinity update cos tests"
+    echo "Executing array affinity update cos tests"
 
     run cos update block $COS_ARRAYAFFINITY_VMAX --placement_policy default_policy
     run cos update block $COS_ARRAYAFFINITY_VNX --placement_policy default_policy

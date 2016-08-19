@@ -721,10 +721,19 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
      */
     @Override
     public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        // The volume descriptors include the VPLEX source volume, which we do not want
+        // to pass to the completer. In case of error constructing the WF, the completer
+        // must mark all volumes prepared for this request inactive. However, we must not
+        // mark the VPLEX source volume inactive!
+        List<URI> volUris = new ArrayList<>();
+        for (VolumeDescriptor descriptor : volumeDescriptors) {
+            if (descriptor.getParameters().get(VolumeDescriptor.PARAM_IS_COPY_SOURCE_ID) == null) {
+                volUris.add(descriptor.getVolumeURI());
+            }
+        }
         TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
-        Workflow workflow = null;
 
+        Workflow workflow = null;
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});

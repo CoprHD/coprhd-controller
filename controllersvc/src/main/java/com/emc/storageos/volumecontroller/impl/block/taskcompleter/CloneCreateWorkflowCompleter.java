@@ -60,6 +60,8 @@ public class CloneCreateWorkflowCompleter extends VolumeTaskCompleter {
                 }
             }
             
+            // On error we need to make sure we clean up the volumes prepared 
+            // for this request.
             if (status == Operation.Status.error) {
                 volume.setInactive(Boolean.TRUE);
                 toUpdate.add(volume);

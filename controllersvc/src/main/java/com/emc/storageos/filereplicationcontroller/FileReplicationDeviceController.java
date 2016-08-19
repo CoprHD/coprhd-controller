@@ -338,41 +338,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitFor;
     }
 
-    private Workflow.Method cancelMirrorLinkMethod(URI systemURI, URI sourceURI, URI targetURI) {
-        return new Workflow.Method(CANCEL_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);
-    }
-
-    /**
-     * Cancel Mirror session
-     * 
-     * @param systemURI
-     * @param sourceURI
-     * @param targetURI
-     * @param opId
-     * @return
-     */
-    public boolean cancelMirrorFilePairStep(URI systemURI, URI sourceURI, URI targetURI, String opId) {
-        log.info("START Suspend Mirror link");
-        TaskCompleter completer = null;
-
-        try {
-            WorkflowStepCompleter.stepExecuting(opId);
-            StorageSystem system = getStorageSystem(systemURI);
-            FileShare target = dbClient.queryObject(FileShare.class, targetURI);
-            List<URI> combined = Arrays.asList(sourceURI, targetURI);
-            completer = new FileMirrorCancelTaskCompleter(combined, opId);
-            getRemoteMirrorDevice(system).doCancelMirrorLink(system, target, completer, null);
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-            return false;
-        }
-
-        return true;
-    }
 
     private Method detachMirrorPairMethod(URI systemURI, URI sourceURI, URI targetURI) {
         return new Method(DETACH_FILE_MIRROR_PAIR_METH, systemURI, sourceURI, targetURI);

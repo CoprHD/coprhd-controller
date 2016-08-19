@@ -66,6 +66,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
@@ -797,8 +798,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         String zoningStep = workflow.createStepId();
 
+        ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskURIs, zoningStep);
+
         Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportMasksDeleteMethod(exportGroupURI, exportMaskURIs, volumeURIs);
+                .zoneExportMasksDeleteMethod(exportGroupURI, exportMaskURIs, volumeURIs, zoneTaskCompleter);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),

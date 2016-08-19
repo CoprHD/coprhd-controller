@@ -31,7 +31,6 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -83,6 +82,7 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -1237,9 +1237,9 @@ public class NetworkDeviceController implements NetworkController {
      * @return
      */
     public Workflow.Method zoneExportMasksDeleteMethod(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs) {
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer) {
         return new Workflow.Method("zoneExportMasksDelete",
-                exportGroupURI, exportMaskURIs, volumeURIs);
+                exportGroupURI, exportMaskURIs, volumeURIs, completer);
     }
 
     /**
@@ -1256,12 +1256,12 @@ public class NetworkDeviceController implements NetworkController {
      * @return true if successful
      */
     public boolean zoneExportMasksDelete(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer, String token) {
         ExportGroup exportGroup = _dbClient
                 .queryObject(ExportGroup.class, exportGroupURI);
         _log.info(String.format("Entering zoneExportMasksDelete for ExportGroup: %s (%s)",
                 exportGroup.getLabel(), exportGroup.getId()));
-        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, completer, token);
     }
 
     /**
@@ -1274,7 +1274,7 @@ public class NetworkDeviceController implements NetworkController {
      * @return
      */
     private boolean doZoneExportMasksDelete(ExportGroup exportGroup,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer, String token) {
         NetworkFCContext context = new NetworkFCContext();
         boolean status = false;
         try {
@@ -1313,6 +1313,9 @@ public class NetworkDeviceController implements NetworkController {
             }
             // Update the workflow state.
             completeWorkflowState(token, "zoneExportMasksDelete", result);
+            if (completer != null) {
+                completer.ready(_dbClient); // completer only exists if we're deleting export masks
+            }
 
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroup.toString());
         } catch (Exception ex) {
@@ -1323,6 +1326,9 @@ public class NetworkDeviceController implements NetworkController {
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
+            if (completer != null) {
+                completer.error(_dbClient, svcError);
+            }
         }
         return status;
     }
@@ -1440,7 +1446,7 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format(
                 "Entering zoneExportRemoveVolumes for ExportGroup: %s (%s) Volumes: %s",
                 exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, null, token);
     }
 
     /**

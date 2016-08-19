@@ -169,7 +169,19 @@ public class HostInitiators extends ViprResourceController {
             Validation.valid(formName, this);
 
             String protocol = getProtocolFromWWN(port.trim());
-            if (BlockProtocols.isFC(protocol)) {
+            if (BlockProtocols.isISCSI(protocol)){
+                boolean valid = EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.IQN);
+                if (!valid) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidIQN");
+                }
+            }
+            else if (BlockProtocols.isRBD(protocol)) {
+                boolean valid = EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.RBD);
+                if (!valid) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidRBD");
+                }
+            }
+            else {
                 Validation.required(formName + ".node", node);
                 Validation.required(formName + ".port", port);
                 if (node != null && !EndpointUtility.isValidEndpoint(node.trim(), Endpoint.EndpointType.WWN)) {
@@ -177,18 +189,6 @@ public class HostInitiators extends ViprResourceController {
                 }
                 if (port != null && !EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.WWN)) {
                     Validation.addError(formName + ".port", "initiators.port.invalidWWN");
-                }
-            }
-            else if (BlockProtocols.isISCSI(protocol)){
-                boolean valid = EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.IQN);
-                if (!valid) {
-                    Validation.addError(formName + ".port", "initiators.port.invalidIQN");
-                }
-            }
-            else {
-                boolean valid = EndpointUtility.isValidEndpoint(port.trim(), Endpoint.EndpointType.RBD);
-                if (!valid) {
-                    Validation.addError(formName + ".port", "initiators.port.invalidRBD");
                 }
             }
         }

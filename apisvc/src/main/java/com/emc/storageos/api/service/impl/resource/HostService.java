@@ -818,11 +818,6 @@ public class HostService extends TaskResourceService {
                 (initiator != null ? initiator.getInitiatorNode() : null);
         String port = param.getPort() != null ? param.getPort() :
                 (initiator != null ? initiator.getInitiatorPort() : null);
-        ArgValidator.checkFieldValueWithExpected(param == null
-                || HostInterface.Protocol.FC.toString().equals(protocol)
-                || HostInterface.Protocol.iSCSI.toString().equals(protocol)
-                || HostInterface.Protocol.RBD.toString().equals(protocol),
-                "protocol", protocol, HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI, HostInterface.Protocol.RBD);
         // Validate the passed node and port based on the protocol.
         // Note that for iSCSI the node is optional.
         if (HostInterface.Protocol.FC.toString().equals(protocol)) {
@@ -846,7 +841,7 @@ public class HostService extends TaskResourceService {
             if (param.getNode() != null) {
                 throw APIException.badRequests.invalidNodeForiScsiPort();
             }
-        } else {
+        } else if (HostInterface.Protocol.RBD.toString().equals(protocol)) {
             // Make sure the port is a valid RBD pseudo port
             if (!RBDUtility.isValidRBDPseudoPort(port)) {
                 throw APIException.badRequests.invalidRBDInitiatorPort();
@@ -854,6 +849,9 @@ public class HostService extends TaskResourceService {
             if (param.getNode() != null) {
                 throw APIException.badRequests.invalidNodeForRBDPort();
             }
+        } else {
+            throw APIException.badRequests.invalidParameterValueWithExpected("protocol", protocol,
+                    HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI, HostInterface.Protocol.RBD);
         }
         // last validate that the initiator port is unique
         if (initiator == null || (param.getPort() != null &&

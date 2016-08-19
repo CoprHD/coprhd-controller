@@ -3021,10 +3021,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         for (BlockSnapshotRestRep snapshot : snapshots) {
             // Ignore RP Bookmarks for snapshot session options
-            boolean isRPSnapshot = snapshot.getTechnologyType() == null 
-                                    || (snapshot.getTechnologyType() != null 
+            boolean isRPSnapshot = (snapshot.getTechnologyType() != null 
                                         && snapshot.getTechnologyType().equalsIgnoreCase(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE));
-            if (!isRPSnapshot) {            
+            boolean validSnapshotOption = snapshot.getTechnologyType() == null || !isRPSnapshot;
+            if (validSnapshotOption) {            
                 options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
             }
         }

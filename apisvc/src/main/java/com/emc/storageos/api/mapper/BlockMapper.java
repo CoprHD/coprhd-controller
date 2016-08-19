@@ -342,7 +342,7 @@ public class BlockMapper {
         }
         BlockSnapshotRestRep to = new BlockSnapshotRestRep();
         mapBlockObjectFields(from, to);
-
+        
         // Map the consistency group
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
 
@@ -367,6 +367,7 @@ public class BlockMapper {
         to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        to.setTechnologyType(from.getTechnologyType());
         return to;
     }
 

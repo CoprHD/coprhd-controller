@@ -61,6 +61,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 
 /**
  * Block Service subtask (parts of larger operations) default implementation.
@@ -98,6 +99,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
 
+        //A check for XIV array. XIV supports only four special character .~-_
+        checkVolumeNamesForXIV(preparedVolumes.get(0));
+        
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
 
@@ -116,6 +120,21 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         return taskList;
     }
+    
+    private void checkVolumeNamesForXIV(Volume volume) {
+		URI storageSystemUri = volume.getStorageController();
+		if(null != storageSystemUri){
+			StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+			if(storageSystem.deviceIsType(Type.ibmxiv)){
+				if(volume.getLabel().matches("^[-\\w._~]+")){
+					return;
+				}else{
+					throw APIException.badRequests.cantCreateXIVVolumes(volume.getLabel());
+				}
+			}
+		}
+		
+	}
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size, Project project,

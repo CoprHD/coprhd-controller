@@ -97,6 +97,24 @@
             </div>
           </div>
   
+   		  
+   		    <collapse title="&{'scheduler.title'}">
+   		          <div class="form-group">
+				     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
+				     <div class="col-sm-6 controls">
+					     <div class="row col-gap-sm">
+					        <div class="col-xs-3">
+					        	<input type="checkbox" id="schedulerEnabled" name="schedulerEnabled" value="{{schedulerEnabled}}" ng-model="schedulerEnabled" 
+					        	  ng-change="enableScheduler()"/>
+					        </div>
+					     </div>
+				     </div>
+				   </div>
+				   
+  		       	   #{Services.scheduler /}
+  		    </collapse> 
+  		  
+  		  
           <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">
             <span class="label label-warning"><i v-icon='exclamation-sign'></i></span>
             {{'service.destructive' | t}}
@@ -109,7 +127,11 @@
           #{/if}
           
           <button-bar>
-            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form><span v-icon=shopping-cart></span> &{"service.order"}</button>
+            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+                <span v-icon=shopping-cart></span>
+                <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
+                <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+            </button>
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>
 

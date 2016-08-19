@@ -67,13 +67,18 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
                 ExportMask.class, AlternateIdConstraint.Factory.getExportMaskByNameConstraint(assocName));
 
         if (!exportMasks.isEmpty()) {
-            ExportMask em = exportMasks.get(0);
-            log.info("MV {} is tracked by {}", assocName, em.getId());
-            // Check if it's part of an ExportGroup
-            List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
-                    ExportGroup.class, ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(em.getId()));
-            assocMaskHasExportGroup = !exportGroups.isEmpty();
-            log.info("MV {} has {} export group(s)", assocName, exportGroups.size());
+            for (ExportMask em : exportMasks) {
+                log.info("MV {} is tracked by {}", assocName, em.getId());
+                // Check if it's part of an ExportGroup
+                List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
+                        ExportGroup.class, ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(em.getId()));
+
+                if (!exportGroups.isEmpty()) {
+                    assocMaskHasExportGroup = true;
+                    log.info("MV {} has {} export group(s)", assocName, exportGroups.size());
+                    break;
+                }
+            }
         } else {
             log.info("MV {} is not tracked by any ExportMask", assocName);
         }

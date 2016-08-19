@@ -584,7 +584,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         //cancel step
         //cancel step
         Workflow.Method cancelMethodStep = cancelMirrorPairMeth(secondarysystem.getId(),
-                targetFileShare.getId(), policyName);
+                targetFileShare.getId(), mirrorPolicyName);
 
         String waitForCancel = workflow.createStep(
                 CANCEL_MIRROR_FILESHARE_STEP,

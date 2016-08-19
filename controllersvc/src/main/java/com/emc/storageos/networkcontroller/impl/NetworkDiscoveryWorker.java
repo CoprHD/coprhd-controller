@@ -291,7 +291,7 @@ public class NetworkDiscoveryWorker {
                 removedCount++;
                 dbClient.removeObject(entry);
             } else {
-                updated.add(entry);		// update counters
+                updated.add(entry);        // update counters
             }
         }
         // Persist created, modified.
@@ -554,94 +554,116 @@ public class NetworkDiscoveryWorker {
          * the routedNetwork should be updated based on transit vsan:
          * */
         Map<String, String> fabricIdsMap = getDevice().getFabricIdsMap(networkSystem);
-        
+        _log.info("fabricIdsMap = {}", fabricIdsMap);
+
         Set<String> transitFabrics = new HashSet<String>();
         List<Network> networks = getCurrentTransportZones();
         Network opNetwork = null;
         for (Entry<String, String> entry : fabricIdsMap.entrySet()) {
-        	opNetwork = getNetworkByNativeId(networks, entry.getValue());
-        	Set<String> endpoints = getDevice().getRoutedEndpoints(networkSystem, entry.getValue(), entry.getKey());
-        	// we determine transit VSAN: 1. more than one network system has the network, 2. network has no endpoints.
-        	if (opNetwork!=null && opNetwork.getNetworkSystems().size()>1 && endpoints.isEmpty()) {
-        		_log.info("fabric id={} is a transit vsan", entry.getValue());
-        		transitFabrics.add(entry.getValue());
-        	}
+            opNetwork = getNetworkByNativeId(networks, entry.getValue());
+            Set<String> endpoints = getDevice().getRoutedEndpoints(networkSystem, entry.getValue(), entry.getKey());
+            // we determine transit VSAN: 1. more than one network system has the network, 2. network has no endpoints.
+            if (opNetwork!=null && opNetwork.getNetworkSystems().size()>1 && endpoints.isEmpty()) {
+                _log.info("fabric id={} is a transit vsan", entry.getValue());
+                transitFabrics.add(entry.getValue());
+            }
         }
-        
+
         List<Network> localNetworks = getSystemRealNetwork(networkSystem, networks, transitFabrics);
         List<Network> connectedNetworks = this.getConnectedNetwork(networkSystem.getId().toString(), networks, transitFabrics);
-        
+        for (Network nw : localNetworks) {
+            dumpRoutedNetworks("localNetwork = ", nw);
+        }
+        for (Network nw : connectedNetworks) {
+            dumpRoutedNetworks("connectedNetwork = ", nw);
+        }
+
         for (Network localNetwork : localNetworks) {
-        	boolean modified = false;
-        	StringSet networkSet = localNetwork.getRoutedNetworks();
-        	if (networkSet == null) {
-        		networkSet = new StringSet();
-        	}
-        	for (Network connectedNetwork : connectedNetworks) {
-        		if (!networkSet.contains(connectedNetwork.getId().toString())) {
-        			networkSet.add(connectedNetwork.getId().toString());
-        			modified = true;
-        		}
-        	}
-        	if (modified) {
-        		localNetwork.setRoutedNetworks(networkSet);
-        		dbClient.updateAndReindexObject(localNetwork);
-        	}
+            boolean modified = false;
+            StringSet networkSet = localNetwork.getRoutedNetworks();
+            if (networkSet == null) {
+                networkSet = new StringSet();
+            }
+            for (Network connectedNetwork : connectedNetworks) {
+                if (!networkSet.contains(connectedNetwork.getId().toString())) {
+                    networkSet.add(connectedNetwork.getId().toString());
+                    modified = true;
+                }
+            }
+            if (modified) {
+                localNetwork.setRoutedNetworks(networkSet);
+                dumpRoutedNetworks("update network=", localNetwork);
+                dbClient.updateAndReindexObject(localNetwork);
+            }
         }
         
     }
-    
+
+    private void dumpRoutedNetworks(String prefix, Network network) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(prefix + ":");
+        sb.append("label=" + network.getLabel() + ",");
+        if (network.getRoutedNetworks() != null) {
+            for (String str : network.getRoutedNetworks()) {
+                sb.append(",routed=" + str);
+            }
+        } else {
+            sb.append(",routed=null" );
+        }
+        _log.info(sb.toString());
+    }
+
     private List<Network> getConnectedNetwork(String selfSystemId, List<Network> networks, Set<String> transitFabrics) {
-    	List<Network> connectedNetworks = new ArrayList<Network>();
-    	Set<String> connectedSystems = new HashSet<String>();
-    	for (Network network : networks) {
-    		if (transitFabrics.contains(network.getNativeId()) && network.getNetworkSystems()!=null) {
-    			for (String networkSystem : network.getNetworkSystems()) {
-    				if (!networkSystem.equals(selfSystemId)) {
-    					connectedSystems.add(networkSystem);
-    				}
-    			}
-    		}
-    	}
-    	for (Network network : networks) {
-    		String connectSystem = getConnectedSystem(selfSystemId, connectedSystems, network);
-    		if (NullColumnValueGetter.isNotNullValue(connectSystem)) {
-    			connectedNetworks.add(network);
-    		}
-    	}
-    	return connectedNetworks;
+        List<Network> connectedNetworks = new ArrayList<Network>();
+        Set<String> connectedSystems = new HashSet<String>();
+        for (Network network : networks) {
+            if (transitFabrics.contains(network.getNativeId()) && network.getNetworkSystems()!=null) {
+                for (String networkSystem : network.getNetworkSystems()) {
+                    if (!networkSystem.equals(selfSystemId)) {
+                        connectedSystems.add(networkSystem);
+                    }
+                }
+            }
+        }
+        for (Network network : networks) {
+            String connectSystem = getConnectedSystem(selfSystemId, connectedSystems, network);
+            if (NullColumnValueGetter.isNotNullValue(connectSystem)) {
+                connectedNetworks.add(network);
+            }
+        }
+        return connectedNetworks;
     }
 
     private String getConnectedSystem(String selfSystemId, Set<String> connectedSystems, Network network) {
-    	if (network.getNetworkSystems() == null) {
-    		return null;
-    	}
-    	for (String networkSystem : network.getNetworkSystems()) {
-    		if (selfSystemId!=networkSystem && connectedSystems.contains(networkSystem)) {
-    			return networkSystem;
-    		}
-    	}
-    	return null;
+        if (network.getNetworkSystems() == null) {
+            return null;
+        }
+        for (String networkSystem : network.getNetworkSystems()) {
+            if (selfSystemId!=networkSystem && connectedSystems.contains(networkSystem)) {
+                return networkSystem;
+            }
+        }
+        return null;
     }
     private List<Network> getSystemRealNetwork(NetworkSystem networkSystem, List<Network> allNetworks, Set<String> transitFabrics) {
-    	List<Network> realNetworks = new ArrayList<Network>();
-    	
-    	for (Network network : allNetworks) {
-    		if (network.getNetworkSystems()!=null && network.getNetworkSystems().contains(networkSystem.getId().toString())
-    				&& !transitFabrics.contains(network.getNativeId())) {
-    			realNetworks.add(network);
-    		}
-    	}
-    	return realNetworks;
+        List<Network> realNetworks = new ArrayList<Network>();
+        
+        for (Network network : allNetworks) {
+            if (network.getNetworkSystems()!=null && network.getNetworkSystems().contains(networkSystem.getId().toString())
+                    && !transitFabrics.contains(network.getNativeId())) {
+                realNetworks.add(network);
+            }
+        }
+        return realNetworks;
     }
     
     private Network getNetworkByNativeId(List<Network> networks, String fabricId) {
-    	for (Network network : networks) {
-    		if (network.getNativeId().equals(fabricId)) {
-    			return network;
-    		}
-    	}
-    	return null;
+        for (Network network : networks) {
+            if (network.getNativeId().equals(fabricId)) {
+                return network;
+            }
+        }
+        return null;
     }
 
     /**

@@ -51,7 +51,7 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
-        if(fs.getStorageDevice().equals(getStorageUri())) {
+        if(!fs.getStorageDevice().equals(getStorageUri())) {
             return MirrorStatus.FAILED_OVER;
         } else {
             return MirrorStatus.UNKNOWN;

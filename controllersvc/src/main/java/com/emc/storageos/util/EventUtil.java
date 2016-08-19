@@ -25,6 +25,13 @@ public class EventUtil {
 
     private static Logger log = LoggerFactory.getLogger(EventUtil.class);
 
+    public static String hostVcenterUnassign = "hostVcenterUnassign";
+    public static String hostVcenterChange = "hostVcenterChange";
+    public static String hostDatacenterChange = "hostDatacenterChange";
+    public static String hostClusterChange = "hostClusterChange";
+    public static String removeInitiator = "removeInitiator";
+    public static String addInitiator = "addInitiator";
+
     public enum EventCode {
         HOST_CLUSTER_CHANGE("101"),
         HOST_INITIATOR_ADD("102"),

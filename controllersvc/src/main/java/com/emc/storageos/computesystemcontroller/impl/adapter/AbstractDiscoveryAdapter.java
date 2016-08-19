@@ -564,7 +564,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             getMessage("ComputeSystem.hostVcenterChangeWarning"),
                             host, Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
-                            "hostVcenterChange",
+                            EventUtil.hostVcenterChange,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     currentDatacenter.getId(), isVCenter });
                 } else {
@@ -575,7 +575,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             getMessage("ComputeSystem.hostDatacenterChangeWarning"),
                             host, Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
-                            "hostDatacenterChange",
+                            EventUtil.hostDatacenterChange,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     currentDatacenter.getId(), isVCenter });
                 }
@@ -618,7 +618,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             name, description, getMessage("ComputeSystem.hostClusterChangeWarning"), host,
                             Lists.newArrayList(host.getId(), host.getCluster(),
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
-                            "hostClusterChange",
+                            EventUtil.hostClusterChange,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
                                             : change.getNewDatacenter(),
@@ -643,7 +643,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             getMessage("ComputeSystem.removeInitiatorLabel", oldInitiator.getInitiatorPort()),
                             getMessage("ComputeSystem.removeInitiatorDescription", oldInitiator.getInitiatorPort()),
                             getMessage("ComputeSystem.removeInitiatorWarning"),
-                            oldInitiator, Lists.newArrayList(host.getId(), oldInitiator.getId()), "removeInitiator",
+                            oldInitiator, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtil.removeInitiator,
                             new Object[] { oldInitiator.getId() });
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
@@ -651,7 +651,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             getMessage("ComputeSystem.addInitiatorLabel", newInitiator.getInitiatorPort()),
                             getMessage("ComputeSystem.addInitiatorDescription", newInitiator.getInitiatorPort()),
                             getMessage("ComputeSystem.addInitiatorWarning"),
-                            newInitiator, Lists.newArrayList(host.getId(), newInitiator.getId()), "addInitiator",
+                            newInitiator, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtil.addInitiator,
                             new Object[] { newInitiator.getId() });
                 }
             }
@@ -680,7 +680,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel()),
                         getMessage("ComputeSystem.hostVcenterUnassignWarning"),
                         host, Lists.newArrayList(host.getId(), host.getCluster()),
-                        "hostVcenterUnassign", new Object[] { deletedHost });
+                        EventUtil.hostVcenterUnassign, new Object[] { deletedHost });
             }
         }
 

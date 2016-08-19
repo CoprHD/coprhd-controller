@@ -102,6 +102,8 @@ public class EventService extends TaggedResource {
 
     private static final String RESOURCE_QUERY_PARAM = "resource";
 
+    private static final String DETAILS_SUFFIX = "Details";
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -189,7 +191,7 @@ public class EventService extends TaggedResource {
             return Lists.newArrayList("N/A");
         }
 
-        String eventMethodName = eventMethod.getMethodName() + "Details";
+        String eventMethodName = eventMethod.getMethodName() + DETAILS_SUFFIX;
 
         try {
             Method classMethod = getMethod(EventService.class, eventMethodName);

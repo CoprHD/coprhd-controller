@@ -2252,7 +2252,7 @@ vpool.heading.dataProtection=Data Protection/High Availability
 vpool.heading.quota=Quota
 vpool.heading.poolAssociation=Storage Pool Association
 vpool.enableDeDup=Support De-duplication
-
+vpool.enableDeDup.help=If selected, De-duplication will be enabled for HPE 3PAR arrays
 vpool.protocols=Protocols
 vpool.protocols.help=Matching storage pools will be limited to those that can support all selected protocols
 vpool.systemType=System Type

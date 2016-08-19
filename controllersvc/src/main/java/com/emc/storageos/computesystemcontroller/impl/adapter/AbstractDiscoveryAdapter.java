@@ -620,6 +620,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                     cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
                             "hostClusterChange",
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
+                                            : change.getNewDatacenter(),
                                     isVCenter });
                 } else {
                     host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());

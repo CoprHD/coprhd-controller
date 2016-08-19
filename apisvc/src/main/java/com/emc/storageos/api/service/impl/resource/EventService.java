@@ -4,20 +4,14 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -39,33 +33,17 @@ import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskList;
@@ -82,10 +60,8 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * A service that provides APIs for viewing, approving, declining and removing actionable events.
@@ -194,11 +170,13 @@ public class EventService extends TaggedResource {
         String eventMethodName = eventMethod.getMethodName() + DETAILS_SUFFIX;
 
         try {
-            Method classMethod = getMethod(EventService.class, eventMethodName);
+            Method classMethod = getMethod(ActionableEventExecutor.class, eventMethodName);
             if (classMethod == null) {
                 return Lists.newArrayList("N/A");
             } else {
-                return (List<String>) classMethod.invoke(this, eventMethod.getArgs());
+                ComputeSystemController controller = getController(ComputeSystemController.class, null);
+                ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+                return (List<String>) classMethod.invoke(executor, eventMethod.getArgs());
             }
         } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             _log.error(e.getMessage(), e.getCause());
@@ -239,8 +217,10 @@ public class EventService extends TaggedResource {
         }
 
         try {
-            Method classMethod = getMethod(EventService.class, eventMethod.getMethodName());
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(this, eventMethod.getArgs());
+            Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, eventMethod.getArgs());
             event.setEventStatus(eventStatus);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
@@ -253,390 +233,6 @@ public class EventService extends TaggedResource {
             _log.error(e.getMessage(), e.getCause());
             throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         }
-    }
-
-    /**
-     * Get details for the addInitiator method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param initiatorId the id if the initiator to add
-     * @return list of event details
-     */
-    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
-    public List<String> addInitiatorDetails(URI initiatorId) {
-        List<String> result = Lists.newArrayList();
-        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
-        if (initiator != null) {
-            List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
-
-            for (ExportGroup export : exportGroups) {
-                List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-
-                List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
-                        Lists.newArrayList(initiator));
-                if (!validInitiator.isEmpty()) {
-                    boolean update = false;
-                    for (Initiator initiatorObj : validInitiator) {
-                        // if the initiators is not already in the list add it.
-                        if (!updatedInitiators.contains(initiator.getId())) {
-                            updatedInitiators.add(initiator.getId());
-                            update = true;
-                        }
-                    }
-
-                    if (update) {
-                        result.addAll(getVolumes(initiator.getHost(), export.getVolumes(), true));
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Method to add an initiator to existing exports for a host.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param initiatorId the initiator to add
-     * @return task for adding an initiator
-     */
-    public TaskResourceRep addInitiator(URI initiatorId) {
-        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
-        Host host = queryObject(Host.class, initiator.getHost(), true);
-
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiatorId, taskId,
-                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
-
-        // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
-        } else {
-            // No updates were necessary, so we can close out the task.
-            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
-        }
-
-        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
-                initiator.auditParameters());
-        return toTask(initiator, taskId, op);
-    }
-
-    /**
-     * Get details for the removeInitiator method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param initiatorId the id if the initiator to remove
-     * @return list of event details
-     */
-    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
-    public List<String> removeInitiatorDetails(URI initiatorId) {
-        List<String> result = Lists.newArrayList();
-
-        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
-        if (initiator != null) {
-            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
-                    Lists.newArrayList(initiator));
-
-            for (ExportGroup export : exportGroups) {
-                List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-                // Only update if the list as changed
-                if (updatedInitiators.remove(initiatorId)) {
-                    result.addAll(getVolumes(initiator.getHost(), export.getVolumes(), false));
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Method to remove an initiator from existing exports for a host.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param initiatorId the initiator to remove
-     * @return task for removing an initiator
-     */
-    public TaskResourceRep removeInitiator(URI initiatorId) {
-        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
-
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
-                ResourceOperationTypeEnum.DELETE_INITIATOR);
-
-        if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiatorId.toString())) {
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
-        } else {
-            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
-            _dbClient.markForDeletion(initiator);
-        }
-
-        auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,
-                initiator.auditParameters());
-
-        return toTask(initiator, taskId, op);
-    }
-
-    /**
-     * Unassign host from a vCenter
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host to unassign
-     * @return task for updating host
-     */
-    public TaskResourceRep hostVcenterUnassign(URI hostId) {
-        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true);
-    }
-
-    /**
-     * Get details for the hostVcenterUnassign method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host id to unassign from vCenter
-     * @return list of event details
-     */
-    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
-    public List<String> hostVcenterUnassignDetails(URI hostId) {
-        List<String> result = Lists.newArrayList();
-        Host host = queryObject(Host.class, hostId, true);
-        if (host != null) {
-            result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
-        }
-        return result;
-    }
-
-    /**
-     * Get details for the hostDatacenterChange method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host that is moving datacenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return list of event details
-     */
-    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
-    public List<String> hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        List<String> result = Lists.newArrayList();
-        Host host = queryObject(Host.class, hostId, true);
-        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
-        if (host != null && datacenter != null) {
-            result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
-        }
-        return result;
-    }
-
-    /**
-     * Method to move a host to a new datacenter and update shared exports.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host that is moving datacenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return task for updating export groups
-     */
-
-    public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter);
-    }
-
-    /**
-     * Get details for the hostVcenterChange method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host that is moving vcenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return list of event details
-     */
-    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
-    public List<String> hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        List<String> result = Lists.newArrayList();
-        Host host = queryObject(Host.class, hostId, true);
-        VcenterDataCenter datacenter = queryObject(VcenterDataCenter.class, datacenterId, true);
-        if (host != null && datacenter != null) {
-            result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
-        }
-        return result;
-    }
-
-    /**
-     * Method to move a host to a new vcenter and update shared exports.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host that is moving vcenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return task for updating export groups
-     */
-
-    public TaskResourceRep hostVcenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter);
-    }
-
-    private Set<String> getHostVolumes(URI hostId) {
-        List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-        Set<String> volumeIds = Sets.newHashSet();
-        for (ExportGroup export : ComputeSystemControllerImpl.getExportGroups(_dbClient, hostId, hostInitiators)) {
-            volumeIds.addAll(export.getVolumes().keySet());
-        }
-        return volumeIds;
-    }
-
-    private List<String> getVolumes(URI hostId, StringMap volumes, boolean gainAccess) {
-        List<String> result = Lists.newArrayList();
-        Set<String> hostVolumes = Sets.newHashSet();
-
-        for (Entry<String, String> volume : volumes.entrySet()) {
-            // if host has access to volume in an exclusive export, skip it from the list of changes
-            if (hostVolumes.contains(volume.getKey())) {
-                continue;
-            }
-            URI project = null;
-            String volumeName = null;
-            URI blockURI = URI.create(volume.getKey());
-            if (URIUtil.isType(blockURI, Volume.class)) {
-                Volume block = _dbClient.queryObject(Volume.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
-                BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
-                BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            }
-
-            Project projectObj = _dbClient.queryObject(Project.class, project);
-            String projectName = null;
-            if (projectObj != null) {
-                projectName = projectObj.getLabel();
-            }
-
-            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: Project "
-                    + (projectName == null ? "N/A" : projectName) + " " + (volumeName == null ? "N/A" : volumeName)
-                    + " ID: " + blockURI);
-        }
-        return result;
-    }
-
-    /**
-     * Get details for the hostClusterChange method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host that is moving clusters
-     * @param clusterId the cluster the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @param vCenterDataCenterId the datacenter to assign the host to
-     * @return list of event details
-     */
-    @SuppressWarnings("unused")         // Invoked using reflection for the event framework
-    public List<String> hostClusterChangeDetails(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
-        List<String> result = Lists.newArrayList();
-        Host host = queryObject(Host.class, hostId, true);
-        if (host == null) {
-            return Lists.newArrayList("Host has been deleted");
-        }
-        URI oldClusterURI = host.getCluster();
-
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-
-        if (!NullColumnValueGetter.isNullURI(oldClusterURI)
-                && NullColumnValueGetter.isNullURI(clusterId)
-                && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
-            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
-            for (ExportGroup export : exportGroups) {
-                if (export != null) {
-                    result.addAll(getVolumes(hostId, export.getVolumes(), false));
-                }
-            }
-        } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
-                && !NullColumnValueGetter.isNullURI(clusterId)
-                && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
-            // Non-clustered host being added to a cluster
-            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
-            for (ExportGroup eg : exportGroups) {
-                result.addAll(getVolumes(hostId, eg.getVolumes(), true));
-            }
-
-        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
-                && !NullColumnValueGetter.isNullURI(clusterId)
-                && !oldClusterURI.equals(clusterId)
-                && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                        || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
-            // Clustered host being moved to another cluster
-            List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
-            for (ExportGroup export : exportGroups) {
-                if (export != null) {
-                    result.addAll(getVolumes(hostId, export.getVolumes(), false));
-                }
-            }
-            exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
-            for (ExportGroup eg : exportGroups) {
-                result.addAll(getVolumes(hostId, eg.getVolumes(), true));
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Method to move a host to a new cluster and update shared exports.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param hostId the host that is moving clusters
-     * @param clusterId the cluster the host is moving to
-     * @param vCenterDataCenterId the vcenter datacenter id to set
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return task for updating export groups
-     */
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
-        Host hostObj = queryObject(Host.class, hostId, true);
-        URI oldClusterURI = hostObj.getCluster();
-        String taskId = UUID.randomUUID().toString();
-
-        Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
-                ResourceOperationTypeEnum.UPDATE_HOST);
-
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-
-        if (!NullColumnValueGetter.isNullURI(oldClusterURI)
-                && NullColumnValueGetter.isNullURI(clusterId)
-                && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
-            // Remove host from shared export
-            controller.removeHostsFromExport(Arrays.asList(hostId), oldClusterURI, isVcenter, vCenterDataCenterId, taskId);
-        } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
-                && !NullColumnValueGetter.isNullURI(clusterId)
-                && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
-            // Non-clustered host being added to a cluster
-            controller.addHostsToExport(Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
-        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
-                && !NullColumnValueGetter.isNullURI(clusterId)
-                && !oldClusterURI.equals(clusterId)
-                && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                        || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
-            // Clustered host being moved to another cluster
-            controller.addHostsToExport(Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
-        } else {
-            ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
-            ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
-            _dbClient.ready(Host.class, hostId, taskId);
-        }
-
-        return toTask(hostObj, taskId, op);
     }
 
     /**

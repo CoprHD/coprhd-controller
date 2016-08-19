@@ -4758,6 +4758,7 @@ mobilityGroupResources.tenant=Tenant
 scheduler.title=Scheduler
 scheduler.enabled=Enable Scheduler
 scheduler.startDate=Start Date/Time
+scheduler.startDate.helpText= The date and time when order starts, based on local time zone.
 scheduler.cycleFrequency=Recur every
 scheduler.cycleType=Frequency
 scheduler.minutes=Minutes

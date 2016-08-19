@@ -2794,7 +2794,7 @@ test_20() {
 	return
     fi
 
-    HIJACK_MV=hijack
+    HIJACK_MV=hijack-test20-${RANDOM}
 
     # Make sure we start clean; no masking views on the array
     verify_export ${expname}1 ${HOST1} gone

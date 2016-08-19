@@ -5660,7 +5660,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (volume != null) {
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         }
-        return (virtualPool.getCompressionEnabled());
+        return ((virtualPool != null) && virtualPool.getCompressionEnabled());
     }
     /**
      * This method return true if the SMI-S provider supports compression operations.

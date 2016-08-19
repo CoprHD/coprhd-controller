@@ -4,11 +4,14 @@
  */
 package com.emc.vipr.model.catalog;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
 
 @XmlRootElement
-public class Parameter {
+public class Parameter implements Serializable {
 
     /**
      * Label or key for this parameter to an order
@@ -46,55 +49,67 @@ public class Parameter {
     }
 
     @XmlElement(name = "friendly_value", required = false)
+    @JsonProperty("friendlyValue")
     public String getFriendlyValue() {
         return friendlyValue;
     }
 
+    @JsonProperty("friendlyValue")
     public void setFriendlyValue(String friendlyValue) {
         this.friendlyValue = friendlyValue;
     }
 
     @XmlElement(name = "label")
+    @JsonProperty("label")
     public String getLabel() {
         return label;
     }
 
+    @JsonProperty("label")
     public void setLabel(String label) {
         this.label = label;
     }
 
+    @JsonProperty("value")
     @XmlElement(name = "value", required = false)
     public String getValue() {
         return value;
     }
 
+    @JsonProperty("value")
     public void setValue(String value) {
         this.value = value;
     }
 
+    @JsonProperty("friendlyLabel")
     @XmlElement(name = "friendly_label", required = false)
     public String getFriendlyLabel() {
         return friendlyLabel;
     }
 
+    @JsonProperty("friendlyLabel")
     public void setFriendlyLabel(String friendlyLabel) {
         this.friendlyLabel = friendlyLabel;
     }
 
+    @JsonProperty("userInput")
     @XmlElement(name = "user_input")
     public boolean isUserInput() {
         return userInput;
     }
 
+    @JsonProperty("userInput")
     public void setUserInput(boolean userInput) {
         this.userInput = userInput;
     }
 
     @XmlElement(name = "encrypted")
+    @JsonProperty("encrypted")
     public boolean isEncrypted() {
         return encrypted;
     }
 
+    @JsonProperty("encrypted")
     public void setEncrypted(boolean encrypted) {
         this.encrypted = encrypted;
     }

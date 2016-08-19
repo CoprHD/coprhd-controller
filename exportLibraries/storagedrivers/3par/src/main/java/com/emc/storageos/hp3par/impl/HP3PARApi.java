@@ -1163,8 +1163,8 @@ public class HP3PARApi {
 
                 // remove existing wwn/iqns in the list to be added
                 for (String portId:portIdsNew) {
-                    if (existingFc.contains(portId) == false) {
-                        portIdsNewFiltered.add(portId);
+                    if (existingFc.contains(SanUtils.cleanWWN(portId)) == false) {
+                        portIdsNewFiltered.add(SanUtils.cleanWWN(portId));
                     }
                 }
             } else {

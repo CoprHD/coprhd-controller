@@ -11,23 +11,31 @@ import com.emc.storageos.model.network.NetworkSystemCreate;
 import com.emc.storageos.model.network.NetworkSystemRestRep;
 import com.emc.storageos.model.network.NetworkSystemUpdate;
 import com.emc.vipr.client.Task;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
 import models.NetworkSystemTypes;
 import models.RegistrationStatus;
 import models.datatable.SanSwitchDataTable;
 import models.datatable.SanSwitchDataTable.SanSwitchInfo;
+
 import org.apache.commons.lang.StringUtils;
+
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -56,6 +64,7 @@ public class SanSwitches extends ViprResourceController {
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String GUIDE_VISIBLE = "guideVisible";
+    private static final String GUIDE_FABRICS = "fabrics";
     private static final String GUIDE_COMPLETED_STEP = "completedSteps";
 
     //
@@ -128,22 +137,34 @@ public class SanSwitches extends ViprResourceController {
 
         JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
 
-        if (jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
+        if (jobject != null && jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
             if (jobject.get(GUIDE_COMPLETED_STEP).getAsInt() == 4 && jobject.get(GUIDE_VISIBLE).getAsBoolean()) {
                 JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
-                JsonArray fabrics = dataObject.getAsJsonArray("fabrics");
+                JsonArray fabrics = dataObject.getAsJsonArray(GUIDE_FABRICS);
                 if (fabrics == null) {
                     fabrics = new JsonArray();
                 }
-                JsonObject fabric = new JsonObject();
-                fabric.addProperty("id", sanTask.getResourceId().toString());
-                fabric.addProperty("name", sanSwitch.name);
-                fabrics.add(fabric);
-                dataObject.add("fabrics", fabrics);
-                saveJsonAsCookie("GUIDE_DATA", dataObject);
+                boolean addToCookie = true;
+                for(Object fabricObject: fabrics) {
+                	JsonObject sanswitch = (JsonObject)fabricObject;
+                	if(sanswitch.get("id") != null) {
+                		String fabricId = sanswitch.get("id").getAsString();
+                		if(StringUtils.equals(fabricId, sanTask.getResourceId().toString())) {
+                			addToCookie = false; //update case, don't add in cookie
+                			break;
+                		}
+                	}
+                }
+				if (addToCookie) {
+					JsonObject fabric = new JsonObject();
+					fabric.addProperty("id", sanTask.getResourceId().toString());
+					fabric.addProperty("name", sanSwitch.name);
+					fabrics.add(fabric);
+					dataObject.add("fabrics", fabrics);
+					saveJsonAsCookie("GUIDE_DATA", dataObject);
+				}
             }
         }
-
 
         list();
     }

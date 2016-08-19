@@ -97,6 +97,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<URI> deletedClusters = Lists.newArrayList();
             Set<URI> discoveredHosts = Sets.newHashSet();
             processor.discover(changes, deletedHosts, deletedClusters, discoveredHosts);
+            deletedHosts.removeAll(discoveredHosts);
             processor.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             // only update registration status of hosts if the vcenter is unregistered
             // to ensure newly discovered hosts are marked as unregistered
@@ -476,8 +477,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
             URI oldDatacenterURI = target.getVcenterDataCenter();
             URI newDatacenterURI = targetDatacenter.getId();
+            info("Discovering host " + target.getLabel() + " (" + target.getId() + ")");
             if (NullColumnValueGetter.isNullURI(oldDatacenterURI) || (!NullColumnValueGetter.isNullURI(newDatacenterURI)
                     && newDatacenterURI.toString().equalsIgnoreCase(oldDatacenterURI.toString()))) {
+                info("setting vCenter datacenter to " + targetDatacenter.getLabel() + " (" + targetDatacenter.getId() + ") and tenant to "
+                        + targetDatacenter.getTenant() + " for host " + target.getLabel());
                 target.setVcenterDataCenter(targetDatacenter.getId());
                 target.setTenant(targetDatacenter.getTenant());
             }

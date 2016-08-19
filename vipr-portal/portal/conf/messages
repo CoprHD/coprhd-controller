@@ -627,9 +627,18 @@ scheduledOrders.createdDate=Date Submitted
 scheduledOrders.submittedBy=Submitted By
 scheduledOrders.executionWindow=Execution Window
 scheduledOrders.nextExecutionWindow=<Next Execution Window>
+scheduledOrders.actions=Actions
+scheduledOrders.editSchedule=Edit Schedule
 
 ScheduledOrder.nextWindow=Next Execution Window is <span style="font-weight:bold;">%s</span>, scheduled to start at <span style="font-weight:bold;">%s</span>.
 ScheduledOrder.noWindow=There are NO Execution windows currently scheduled
+
+ScheduledOrder.edit.title=Edit Order Schedule
+ScheduledOrder.save.success=Order schedule is updated successfully.
+ScheduledOrder.back=Back
+ScheduledOrder.deactivate=Deactivate
+ScheduledOrder.deactivate.confirm=WARNING: This operation will delete scheduled orders. Are you sure to continue?   
+ScheduledOrder.deactivate.success=Schedule is deactivated and all scheduled orders are cancelled.
 
 # VCenter
 vCenter=vCenter
@@ -3125,6 +3134,7 @@ order.validation.notInteger=Must be a valid integer
 order.validation.notNumber=Must be a valid number
 
 order.title.receipt=Order %s - %s
+order.number.first=First
 order.number=Order Number
 order.dateSubmitted=Date Submitted
 order.submittedBy=Submitted By
@@ -3147,6 +3157,20 @@ order.executionTaskLogs.message=Summary
 order.executionTaskLogs.detail=Detail
 order.executionTaskLogs.elapsed=Elapsed
 order.viprTasks=Tasks
+
+order.schedule=Schedule
+order.occur=Occurring on
+order.recur=Recurring every
+order.at=at
+order.MINUTELY=minute(s)
+order.HOURLY=hour(s)
+order.DAILY=day(s)
+order.MONTHLY=month(s)
+order.WEEKLY=week(s)
+order.occurrences= for %s occurrences
+order.occurrences.indefinite=indefinitely
+order.additionalScheduleInfo=Retention Policy
+order.additionalScheduleInfo.value=Max %s Copies
 
 order.host.with.cluster.decoration=%s [cluster: %s]
 
@@ -3297,6 +3321,9 @@ resources.events.total=Total
 resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event
 resources.events.declineEvent=Decline Event
+resources.events.confirm=Confirm
+resources.events.approveEvents=Approve Event(s)
+resources.events.declineEvents=Decline Event(s)
 resources.event.approved=Approved event %s
 resources.event.approved.multiple=Approved the selected events successfully.
 resources.event.declined=Declined event %s
@@ -3304,9 +3331,11 @@ resources.event.declined.multiple=Declined the selected events successfully.
 resources.event.deleted=Deleted event %s
 resources.event.deleted.multiple=Deleted the selected events successfully.
 resources.event.unknown=Unknown event %s
-resources.events.approve=Are you sure you want to approve all the selected event(s)?
-resources.events.decline=Are you sure you want to decline all the selected event(s)?
+resources.events.approve=Are you sure you want to approve all the selected event(s)? Type confirm to proceed.
+resources.events.decline=Are you sure you want to decline all the selected event(s)? Type confirm to proceed.
 resources.events.delete=Are you sure you want to delete all the selected event(s)?
+resources.events.approve.confirm.failed=Confirm text '%s' did not match expected 'confirm' text. Events were not approved.
+resources.events.decline.confirm.failed=Confirm text '%s' did not match expected 'confirm' text. Events were not declined.
 events.eventStatus=Status
 events.name=Name
 events.description=Description
@@ -3317,7 +3346,11 @@ events.event=Event
 events.id=ID
 events.resource=Resource
 events.created=Created
-
+events.warning=Warning
+events.approveDetails=Approve Details
+events.declineDetails=Decline Details
+events.tasks=Event Tasks
+events.executionTime=Execution Time
 
 resources.tasks=Tasks
 resources.task=Task Details
@@ -3845,6 +3878,7 @@ approval.approve=Approve
 approval.reject=Reject
 approval.approve.message=Approved request from user: %s
 approval.reject.message=Rejected request from user: %s
+approval.orderScheduled=This order is scheduled for multiple occurrences. Selecting Approve will result in all occurrences being approved.
 approval.orderApproved=Approved by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
 approval.orderRejected=Rejected by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
 approval.notPending.error=Order %s is not in pending approval
@@ -3860,6 +3894,7 @@ approval.noTenantAccess=Current user has no access on the target tenant %s
 service.order=Order
 service.preview=Preview
 service.cancel=Cancel
+service.schedule=Schedule Order
 
 service.assetError=Failed to retrieve options for field '%s': %s
 service.nextExecutionWindow=This service will be scheduled to run in the next available Execution Window.  Currently, <span style="font-weight:bold;">%s</span> is the next window scheduled to run at <span style="font-weight:bold;">%s</span>.
@@ -4728,6 +4763,26 @@ mobilityGroupResources.virtualPool=Virtual Pool
 mobilityGroupResources.type=Type
 mobilityGroupResources.hostname=Hostname
 mobilityGroupResources.tenant=Tenant
+
+scheduler.title=Scheduler
+scheduler.enabled=Enable Scheduler
+scheduler.startDate=Start Date/Time
+scheduler.cycleFrequency=Recur every
+scheduler.cycleType=Frequency
+scheduler.minutes=Minutes
+scheduler.hours=Hours
+scheduler.days=Days
+scheduler.months=Months
+scheduler.weeks=Weeks
+scheduler.on=on
+scheduler.onday=on day
+scheduler.recurrence=Frequency
+scheduler.onlyonce=Only Once
+scheduler.indefinitely=Indefinitely
+scheduler.endAfterRecurrences=End after recurrences
+scheduler.rangeOfRecurrence=Number of recurrences
+scheduler.retention=Retention Policy
+scheduler.retention.helpText=Maximum snapshots or copies to keep.
 
 gettingStarted.header.full=Getting Started Guide
 gettingStarted.header.side=Return To Guide

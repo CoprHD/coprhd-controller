@@ -1784,6 +1784,8 @@ test_7() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 8
@@ -2809,12 +2811,14 @@ test_23() {
 	exit
     fi
 
+    randval=${RANDOM}
+
     # Create a new CG
-    CGNAME=du-hijack-cg1
+    CGNAME=du-test23-cg-${randval}
     runcmd blockconsistencygroup create $PROJECT ${CGNAME}
 
     # Create a new vplex volume that we can migrate
-    HIJACK=du-hijack-cgvolume-${RANDOM}
+    HIJACK=du-hijack-cgvolume-${randval}
 
     # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE}_migration_src 1GB --count 2 --consistencyGroup=${CGNAME}

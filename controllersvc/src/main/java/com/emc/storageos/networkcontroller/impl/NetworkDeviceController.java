@@ -1279,6 +1279,9 @@ public class NetworkDeviceController implements NetworkController {
         boolean status = false;
         try {
             if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
+                if (completer != null) {
+                    completer.ready(_dbClient); // completer only exists if we're deleting export masks
+                }
                 return true;
             }
             volumeURIs = removeDuplicateURIs(volumeURIs);
@@ -1292,6 +1295,9 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                if (completer != null) {
+                    completer.ready(_dbClient); // completer only exists if we're deleting export masks
+                }
                 WorkflowStepCompleter.stepSucceded(token);
                 return true;
             }
@@ -1311,11 +1317,13 @@ public class NetworkDeviceController implements NetworkController {
                 _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
                 updateZoningMap(lastReferenceZoneInfo, exportGroup.getId(), exportMaskURIs);
             }
-            // Update the workflow state.
-            completeWorkflowState(token, "zoneExportMasksDelete", result);
+
             if (completer != null) {
                 completer.ready(_dbClient); // completer only exists if we're deleting export masks
             }
+
+            // Update the workflow state.
+            completeWorkflowState(token, "zoneExportMasksDelete", result);
 
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroup.toString());
         } catch (Exception ex) {
@@ -1325,10 +1333,10 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
-            WorkflowStepCompleter.stepFailed(token, svcError);
             if (completer != null) {
                 completer.error(_dbClient, svcError);
             }
+            WorkflowStepCompleter.stepFailed(token, svcError);
         }
         return status;
     }

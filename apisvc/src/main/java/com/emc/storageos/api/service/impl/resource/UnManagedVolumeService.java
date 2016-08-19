@@ -33,11 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapUnmanagedVolume;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestExportStrategy;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategy;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestExportedVolumeSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestUnexportedVolumesSchedulingThread;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVolumeCGIngestDecorator;
@@ -54,17 +52,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -72,7 +63,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
-import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -323,151 +313,6 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     *
-     * @param requestContext
-     * @param taskMap
-     */
-    private void ingestBlockObjects(BaseIngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
-
-        while (requestContext.hasNext()) {
-            UnManagedVolume unManagedVolume = requestContext.next();
-
-            if (null == unManagedVolume) {
-                _logger.info("No Unmanaged Volume with URI {} found in database. Continuing...",
-                        requestContext.getCurrentUnManagedVolumeUri());
-                continue;
-            }
-
-            _logger.info("Ingestion started for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
-            String taskId = UUID.randomUUID().toString();
-            Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class,
-                    requestContext.getCurrentUnManagedVolumeUri(),
-                    taskId, ResourceOperationTypeEnum.INGEST_EXPORTED_BLOCK_OBJECTS);
-
-            try {
-
-                URI storageSystemUri = unManagedVolume.getStorageSystemUri();
-                StorageSystem system = requestContext.getStorageSystemCache().get(storageSystemUri.toString());
-                if (null == system) {
-                    system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-                    requestContext.getStorageSystemCache().put(storageSystemUri.toString(), system);
-                }
-                // Build the Strategy , which contains reference to Block object & export orchestrators
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume,
-                        !IngestStrategyFactory.DISREGARD_PROTECTION);
-
-                @SuppressWarnings("unchecked")
-                BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext,
-                        VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
-
-                _logger.info("Ingestion ended for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
-                if (null == blockObject) {
-                    throw IngestionException.exceptions.generalVolumeException(
-                            unManagedVolume.getLabel(), "check the logs for more details");
-                }
-
-                // TODO come up with a common response object to hold snaps/mirrors/clones
-                requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
-                requestContext.getProcessedUnManagedVolumeMap().put(
-                        unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-
-            } catch (APIException ex) {
-                _logger.warn("error: " + ex.getLocalizedMessage(), ex);
-                _dbClient.error(UnManagedVolume.class,
-                        requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
-                requestContext.getVolumeContext().rollback();
-            } catch (Exception ex) {
-                _logger.warn("error: " + ex.getLocalizedMessage(), ex);
-                _dbClient.error(UnManagedVolume.class,
-                        requestContext.getCurrentUnManagedVolumeUri(),
-                        taskId, IngestionException.exceptions.generalVolumeException(
-                                unManagedVolume.getLabel(), ex.getLocalizedMessage()));
-                requestContext.getVolumeContext().rollback();
-            }
-
-            TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
-            taskMap.put(unManagedVolume.getId().toString(), task);
-        }
-    }
-
-    /**
-     *
-     * @param requestContext
-     * @param taskMap
-     * @param exportIngestParam
-     */
-    private void ingestBlockExportMasks(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
-        for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
-            BlockObject processedBlockObject = requestContext.getProcessedBlockObject(unManagedVolumeGUID);
-            VolumeIngestionContext volumeContext = requestContext.getVolumeContext(unManagedVolumeGUID);
-            UnManagedVolume processedUnManagedVolume = volumeContext.getUnmanagedVolume();
-            URI unManagedVolumeUri = processedUnManagedVolume.getId();
-            TaskResourceRep resourceRep = taskMap.get(processedUnManagedVolume.getId().toString());
-            String taskId = resourceRep != null ? resourceRep.getOpId() : null;
-            try {
-                if (processedBlockObject == null) {
-                    _logger.warn("The ingested block object is null. Skipping ingestion of export masks for unmanaged volume {}",
-                            unManagedVolumeGUID);
-                    throw IngestionException.exceptions.generalVolumeException(
-                            processedUnManagedVolume.getLabel(), "check the logs for more details");
-                }
-
-                // Build the Strategy , which contains reference to Block object & export orchestrators
-                IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
-
-                BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume,
-                        processedBlockObject, requestContext);
-                if (null == blockObject) {
-                    throw IngestionException.exceptions.generalVolumeException(
-                            processedUnManagedVolume.getLabel(), "check the logs for more details");
-                }
-
-                if (null == blockObject.getCreationTime()) {
-                    // only add objects to create if they were created this round of ingestion,
-                    // creationTime will be null unless the object has already been saved to the db
-                    requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
-                }
-
-                // If the ingested object is internal, flag an error. If it's an RP volume, it's exempt from this check.
-                if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) &&
-                        !(blockObject instanceof Volume && ((Volume) blockObject).getRpCopyName() != null)) {
-                    StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
-                    String taskMessage = "";
-                    if (taskStatus == null) {
-                        // No task status found. Put in a default message.
-                        taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
-                                processedUnManagedVolume.getLabel());
-                    } else {
-                        taskMessage = taskStatus.toString();
-                    }
-                    _dbClient
-                            .error(UnManagedVolume.class, processedUnManagedVolume.getId(), taskId,
-                                    IngestionException.exceptions.unmanagedVolumeIsNotVisible(processedUnManagedVolume.getLabel(),
-                                            taskMessage));
-                } else {
-                    _dbClient.ready(UnManagedVolume.class,
-                            processedUnManagedVolume.getId(), taskId, "Successfully ingested exported volume and its masks."); // TODO:
-                                                                                                                               // convert
-                                                                                                                               // to
-                                                                                                                               // props
-                                                                                                                               // message
-                }
-
-            } catch (APIException ex) {
-                _logger.warn(ex.getLocalizedMessage(), ex);
-                _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
-                volumeContext.rollback();
-            } catch (Exception ex) {
-                _logger.warn(ex.getLocalizedMessage(), ex);
-                _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
-                        taskId, IngestionException.exceptions.generalVolumeException(
-                                processedUnManagedVolume.getLabel(), ex.getLocalizedMessage()));
-                volumeContext.rollback();
-            }
-        }
-    }
-
-    /**
      * For each UnManaged Volume Find the list of masking views this volume
      * is exposed to.
      *
@@ -527,123 +372,35 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient, exportIngestParam.getUnManagedVolumes(), vpool,
                     varray, project, tenant, exportIngestParam.getVplexIngestionMethod());
 
-            _logger.info("Ingestion of exported unmanaged volumes started....");
+            while (requestContext.hasNext()) {
+                UnManagedVolume unManagedVolume = requestContext.next();
 
-            // First ingest the block objects
-            ingestBlockObjects(requestContext, taskMap);
-            _logger.info("Ingestion of unmanaged volumes ended... about to start ingesting their exports.");
+                if (null == unManagedVolume) {
+                    _logger.warn("No Unmanaged Volume with URI {} found in database. Continuing...",
+                            requestContext.getCurrentUnManagedVolumeUri());
+                    continue;
+                }
 
-            // find or create ExportGroup for this set of volumes being ingested
-            URI exportGroupResourceUri = null;
-            String resourceType = ExportGroupType.Host.name();
-            String computeResourcelabel = null;
-            if (null != exportIngestParam.getCluster()) {
-                resourceType = ExportGroupType.Cluster.name();
-                Cluster cluster = _dbClient.queryObject(Cluster.class, exportIngestParam.getCluster());
-                exportGroupResourceUri = cluster.getId();
-                computeResourcelabel = cluster.getLabel();
-                requestContext.setCluster(exportIngestParam.getCluster());
-            } else {
-                Host host = _dbClient.queryObject(Host.class, exportIngestParam.getHost());
-                exportGroupResourceUri = host.getId();
-                computeResourcelabel = host.getHostName();
-                requestContext.setHost(exportIngestParam.getHost());
+                String taskId = UUID.randomUUID().toString();
+                Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class,
+                        requestContext.getCurrentUnManagedVolumeUri(),
+                        taskId, ResourceOperationTypeEnum.INGEST_EXPORTED_BLOCK_OBJECTS);
+
+                TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
+                taskMap.put(unManagedVolume.getId().toString(), task);
             }
 
-            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(requestContext, project.getId(), exportGroupResourceUri,
-                    varray.getId(), resourceType, _dbClient);
-            if (null == exportGroup) {
-                _logger.info("Creating Export Group with label {}", computeResourcelabel);
-                ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
-                exportGroup = VolumeIngestionUtil.initializeExportGroup(project, resourceType, varray.getId(),
-                        computeResourcelabel, _dbClient, nameGenerator, tenant);
-                requestContext.setExportGroupCreated(true);
-            }
-
-            requestContext.setExportGroup(exportGroup);
-
-            // next ingest the export masks for the unmanaged volumes which have been fully ingested
-            _logger.info("Ingestion of unmanaged exports started....");
-            ingestBlockExportMasks(requestContext, taskMap);
-
-            _logger.info("Ingestion of unmanaged exports ended....");
             taskList.getTaskList().addAll(taskMap.values());
 
-            for (VolumeIngestionContext volumeContext : requestContext.getProcessedUnManagedVolumeMap().values()) {
-                // If there is a CG involved in the ingestion, organize, pollenate, and commit.
-                commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
+            IngestExportedVolumeSchedulingThread.executeApiTask(
+                    _asyncTaskService.getExecutorService(), requestContext, ingestStrategyFactory, this, _dbClient, taskMap, taskList);
 
-                // commit the volume itself
-                volumeContext.commit();
-            }
-
-            for (BlockObject bo : requestContext.getObjectsIngestedByExportProcessing()) {
-                _logger.info("Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
-                _dbClient.createObject(bo);
-            }
-
-            for (UnManagedVolume umv : requestContext.getUnManagedVolumesToBeDeleted()) {
-                _logger.info("Deleting UnManagedVolume {} (hash {})", umv.forDisplay(), umv.hashCode());
-                _dbClient.updateObject(umv);
-            }
-
-            // Update the related objects if any after successful export mask ingestion
-            for (Set<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
-                if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    for (DataObject dob : updatedObjects) {
-                        if (dob.getInactive()) {
-                            _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                        } else {
-                            _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                        }
-                        _dbClient.updateObject(dob);
-                    }
-                }
-            }
-
-            // Create the related objects if any after successful export mask ingestion
-            for (Set<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
-                if (createdObjects != null && !createdObjects.isEmpty()) {
-                    for (DataObject dob : createdObjects) {
-                        _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                        _dbClient.createObject(dob);
-                    }
-                }
-            }
-
-            if (requestContext.isExportGroupCreated()) {
-                _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
-                _dbClient.createObject(exportGroup);
-            } else {
-                _logger.info("Updating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
-                _dbClient.updateObject(exportGroup);
-            }
-
-            // record the events after they have been persisted
-            for (BlockObject volume : requestContext.getObjectsIngestedByExportProcessing()) {
-                recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
-                        Status.ready, volume.getId());
-            }
         } catch (InternalException e) {
-            _logger.debug("InternalException occurred due to: {}", e);
+            _logger.error("InternalException occurred due to: {}", e);
             throw e;
         } catch (Exception e) {
-            _logger.debug("Unexpected exception occurred due to: {}", e);
+            _logger.error("Unexpected exception occurred due to: {}", e);
             throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
-        } finally {
-            // if we created an ExportGroup, but no volumes were ingested into
-            // it, then we should clean it up in the database (CTRL-8520)
-            if ((null != requestContext)
-                    && requestContext.isExportGroupCreated()
-                    && requestContext.getObjectsIngestedByExportProcessing().isEmpty()) {
-                _logger.info("an export group was created, but no volumes were ingested into it");
-                if (requestContext.getExportGroup().getVolumes() == null ||
-                        requestContext.getExportGroup().getVolumes().isEmpty()) {
-                    _logger.info("since no volumes are present, marking {} for deletion",
-                            requestContext.getExportGroup().getLabel());
-                    _dbClient.markForDeletion(requestContext.getExportGroup());
-                }
-            }
         }
 
         return taskList;

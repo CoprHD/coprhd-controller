@@ -3040,11 +3040,11 @@
     {
         key : "api_ingestion_allow_cluster_volumes_for_single_hosts",
         label : "Allow single hosts in a cluster to ingest shared volumes exclusively",
-        description : "If true, the Ingest Exported Volumes service will allow single hosts in a cluster to ingest shared volumes exclusively.  This is useful if a single host Export Group is desired for a subset of the volumes shared by a cluster.  If false, shared volumes will not be listed as available for ingestion directly to a single host and must be ingested for the whole cluster, which is the default and recommended behavior.  Note that if a volume is partially ingested to a single host in a cluster, it will no longer be listed as ingestable to the entire cluster.  At that point, it should by ingested exclusively to any or all hosts.",
+        description : "If true, the Ingest Exported Volumes service will allow single hosts in a cluster to ingest shared volumes exclusively.  This is useful if a single host Export Group is desired for a subset of the volumes shared by a cluster.  If false, shared volumes will not be listed as available for ingestion directly to a single host and must be ingested for the whole cluster, which is the default and recommended behavior.",
         type : "boolean",
         userConfigurable : true, 
         userMutable : true,
-        hidden : false,
+        hidden : true,
         advanced : true,
         tag : "Controller",
         reconfigRequired : false,

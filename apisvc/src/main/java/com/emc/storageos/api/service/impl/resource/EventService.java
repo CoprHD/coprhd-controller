@@ -260,7 +260,7 @@ public class EventService extends TaggedResource {
      * @param initiatorId the id if the initiator to add
      * @return list of event details
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
     public List<String> addInitiatorDetails(URI initiatorId) {
         List<String> result = Lists.newArrayList();
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
@@ -328,7 +328,7 @@ public class EventService extends TaggedResource {
      * @param initiatorId the id if the initiator to remove
      * @return list of event details
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
     public List<String> removeInitiatorDetails(URI initiatorId) {
         List<String> result = Lists.newArrayList();
 
@@ -395,7 +395,7 @@ public class EventService extends TaggedResource {
      * @param hostId the host id to unassign from vCenter
      * @return list of event details
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
     public List<String> hostVcenterUnassignDetails(URI hostId) {
         List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
@@ -416,7 +416,7 @@ public class EventService extends TaggedResource {
      *            datastores
      * @return list of event details
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
     public List<String> hostDatacenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
@@ -454,7 +454,7 @@ public class EventService extends TaggedResource {
      *            datastores
      * @return list of event details
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
     public List<String> hostVcenterChangeDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);
@@ -539,7 +539,7 @@ public class EventService extends TaggedResource {
      *            datastores
      * @return list of event details
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused")  // Invoked using reflection for the event framework
     public List<String> hostClusterChangeDetails(URI hostId, URI clusterId, boolean isVcenter) {
         List<String> result = Lists.newArrayList();
         Host host = queryObject(Host.class, hostId, true);

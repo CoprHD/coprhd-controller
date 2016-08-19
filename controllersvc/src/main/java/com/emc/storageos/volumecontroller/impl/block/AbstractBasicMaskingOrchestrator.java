@@ -1285,7 +1285,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         boolean deleteEntireMask = removingLastExportMaskVolumes(exportMask, new ArrayList<>(volumeURIs));
                         _log.info("deleteEntireMask for {}? {}", exportMask.getId(), deleteEntireMask);
 
-                        Set<URI> initiatorsToRemove = new HashSet<>();
                         Set<URI> volumesToRemove = new HashSet<>();
                         if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
                             Set<String> egInitiators = new HashSet<String>(exportGroup.getInitiators());
@@ -1312,38 +1311,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                 .format("Found that my initiator is in %s more export groups, so we shouldn't remove it from the mask",
                                                         exportGroupList.size() - 1));
                                         deleteEntireMask = false;
-                                    } else {
-                                        _log.info(String.format("We can remove initiator %s from mask %s", initiator.getInitiatorPort(),
-                                                exportMask.getMaskName()));
-                                        initiatorsToRemove.add(initiator.getId());
                                     }
                                 }
                             }
-                        }
-
-                        // Check to see if we need to remove initiators. We may need to remove initiators even if we're going to
-                        // remove the whole mask.
-                        if (!initiatorsToRemove.isEmpty() &&              // If there are initiators to remove
-                                ((!deleteEntireMask) ||                   // And either the entire mask isn't being deleted (then go for it)
-                                        (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient)
-                                        .size()))) {
-                            // or we are deleting the entire mask and we need to delete only a subset of initiators
-                            _log.info(String.format("mask %s - going to remove the "
-                                    + "following initiators %s", exportMask.getMaskName(),
-                                    Joiner.on(',').join(initiatorsToRemove)));
-                            Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
-                            maskToInitiatorsMap.put(exportMask.getId(), new ArrayList<URI>(initiatorsToRemove));
-
-                            List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
-                            previousStep = generateDeviceSpecificRemoveInitiatorsWorkflow(
-                                    workflow, previousStep, exportGroup, exportMask,
-                                    storage, maskToInitiatorsMap,
-                                    maskVolumeURIs, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true); // see comment
-                            // below
-                            // Don't delete the target ports if we're deleting the entire mask anyway.
-                            // This is because we're removing initiators from an export mask that impacts other export masks.
-                            // The end result of removing these initiators is to remove initiators that ViPR added
-                            // to masks that it is not managing. (See vmaxexport-ingest.sh test_24)
                         }
 
                         if (deleteEntireMask) {

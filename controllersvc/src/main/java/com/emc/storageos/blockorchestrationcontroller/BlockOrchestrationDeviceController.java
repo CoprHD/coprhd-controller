@@ -757,6 +757,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
 
         try {
+            if (true) {
+                throw new Exception("Forced Exception");
+            }
             // Validate the volume identities before proceeding
             validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
             
@@ -795,10 +798,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         } catch (Exception ex) {
             s_logger.error("Could not create full copy volumes: " + volUris, ex);
             releaseWorkflowLocks(workflow);
-            String opName = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(
-                    volUris.toString(), opName, ex);
-            completer.error(s_dbClient, _locker, serviceError);
+            DeviceControllerException sc = DeviceControllerException.exceptions.createFullCopyFailed(ex);
+            completer.error(s_dbClient, _locker, sc);
+            throw sc;
         }
     }
 

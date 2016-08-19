@@ -358,12 +358,15 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 policy = isi.getReplicationPolicy(policyName);
+                policyState = policy.getLastJobState();
                 if (policy.getEnabled()) {
+                	
                     _log.info("Replication Policy - {} ENABLED successfully", policy.toString());
                 }
+                
             }
             if (!policyState.equals(JobState.running) || !policyState.equals(JobState.paused)
-                    || !policyState.equals(JobState.resumed)) {
+                    || !policyState.equals(JobState.resumed) || policyState.equals(JobState.unknown)) {
                 IsilonSyncJob job = new IsilonSyncJob();
                 job.setId(policyName);
                 isi.modifyReplicationJob(job);
@@ -381,6 +384,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                     }
                     return BiosCommandResult.createErrorResult(error);
                 }
+            }else if(policyState.equals(JobState.finished)) {
+            	return BiosCommandResult.createSuccessfulResult();
             } else {
                 _log.error("Replication Policy - {} can't be STARTED because policy is in {} state", policyName,
                         policyState);

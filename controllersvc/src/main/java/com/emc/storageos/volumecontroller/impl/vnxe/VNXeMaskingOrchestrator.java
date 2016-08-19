@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -38,6 +39,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCom
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 
 public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final Logger _log = LoggerFactory.getLogger(VNXeMaskingOrchestrator.class);
@@ -381,6 +383,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 exportGroup, exportMask, null, null, null);
                     }
 
+                } else {
+                    Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    generateExportMaskRemoveInitiatorsWorkflow(workflow, zoningStep,
+                                storage, exportGroup, exportMask, new ArrayList<URI>(volumeURIs), initiatorURIs, true);
+                    
                 }
                 _log.info(String.format("exportRemoveInitiator end - Array: %s ExportMask: %s",
                         storageURI.toString(), exportGroupURI.toString()));

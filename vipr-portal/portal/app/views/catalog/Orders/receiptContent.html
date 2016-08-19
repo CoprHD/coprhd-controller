@@ -93,6 +93,25 @@
       <dt>&{'order.number'}:</dt>
       <dd>${details.order.orderNumber}&nbsp;</dd>
       
+      #{if details.scheduledEvent != null}
+      <dt>&{'order.schedule'}:</dt>
+      <dd>
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 1}
+         &{'order.occur'}
+         ${details.scheduledEvent.scheduleInfo.startDate}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+         &{'order.recur'}
+         &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
+         &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
+         #{/if}
+         
+         &{'order.at'}
+         ${String.format("%02d:%02d", details.scheduledEvent.scheduleInfo.hourOfDay, details.scheduledEvent.scheduleInfo.minuteOfHour)}
+      </dd>
+      #{/if}
+      
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
       

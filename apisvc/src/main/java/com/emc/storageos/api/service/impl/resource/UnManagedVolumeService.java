@@ -52,7 +52,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -60,9 +63,11 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
+import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -391,6 +396,36 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             taskList.getTaskList().addAll(taskMap.values());
+
+            // find or create ExportGroup for this set of volumes being ingested
+            URI exportGroupResourceUri = null;
+            String resourceType = ExportGroupType.Host.name();
+            String computeResourcelabel = null;
+            if (null != exportIngestParam.getCluster()) {
+                resourceType = ExportGroupType.Cluster.name();
+                Cluster cluster = _dbClient.queryObject(Cluster.class, exportIngestParam.getCluster());
+                exportGroupResourceUri = cluster.getId();
+                computeResourcelabel = cluster.getLabel();
+                requestContext.setCluster(exportIngestParam.getCluster());
+            } else {
+                Host host = _dbClient.queryObject(Host.class, exportIngestParam.getHost());
+                exportGroupResourceUri = host.getId();
+                computeResourcelabel = host.getHostName();
+                requestContext.setHost(exportIngestParam.getHost());
+            }
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(requestContext, requestContext.getProject().getId(),
+                    exportGroupResourceUri,
+                    exportIngestParam.getVarray(), resourceType, _dbClient);
+            if (null == exportGroup) {
+                _logger.info("Creating Export Group with label {}", computeResourcelabel);
+                ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
+                exportGroup = VolumeIngestionUtil.initializeExportGroup(requestContext.getProject(), resourceType, 
+                        exportIngestParam.getVarray(), computeResourcelabel, _dbClient, 
+                        nameGenerator, requestContext.getTenant());
+                requestContext.setExportGroupCreated(true);
+            }
+            requestContext.setExportGroup(exportGroup);
+            _logger.info("ExportGroup {} created ", exportGroup.forDisplay());
 
             IngestExportedVolumeSchedulingThread.executeApiTask(
                     _asyncTaskService.getExecutorService(), requestContext, ingestStrategyFactory, this, _dbClient, taskMap, taskList);

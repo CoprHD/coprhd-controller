@@ -114,39 +114,10 @@ public class IngestExportedVolumeSchedulingThread implements Runnable {
                 }
             }
 
-            _logger.info("Ingestion of all the unmanaged volumes has completed... now ingesting their exports.");
-
-            // find or create ExportGroup for this set of volumes being ingested
-            URI exportGroupResourceUri = null;
-            String resourceType = ExportGroupType.Host.name();
-            String computeResourcelabel = null;
-            if (null != _requestContext.getCluster()) {
-                resourceType = ExportGroupType.Cluster.name();
-                Cluster cluster = _dbClient.queryObject(Cluster.class, _requestContext.getCluster());
-                exportGroupResourceUri = cluster.getId();
-                computeResourcelabel = cluster.getLabel();
-                _requestContext.setCluster(_requestContext.getCluster());
-            } else {
-                Host host = _dbClient.queryObject(Host.class, _requestContext.getHost());
-                exportGroupResourceUri = host.getId();
-                computeResourcelabel = host.getHostName();
-                _requestContext.setHost(_requestContext.getHost());
-            }
-            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(_requestContext, _requestContext.getProject().getId(),
-                    exportGroupResourceUri,
-                    varrayId, resourceType, _dbClient);
-            if (null == exportGroup) {
-                _logger.info("Creating Export Group with label {}", computeResourcelabel);
-                ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
-                exportGroup = VolumeIngestionUtil.initializeExportGroup(_requestContext.getProject(), resourceType, varrayId,
-                        computeResourcelabel, _dbClient, nameGenerator, _requestContext.getTenant());
-                _requestContext.setExportGroupCreated(true);
-            }
-            _requestContext.setExportGroup(exportGroup);
-            _logger.info("ExportGroup {} created ", exportGroup.forDisplay());
+            _logger.info("Ingestion of all the unmanaged volumes has completed.");
 
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
-            _logger.info("Ingestion of unmanaged export masks for all requested volumes starting....");
+            _logger.info("Ingestion of unmanaged export masks for all requested volumes starting.");
             ingestBlockExportMasks(_requestContext, _taskMap);
 
             for (VolumeIngestionContext volumeContext : _requestContext.getProcessedUnManagedVolumeMap().values()) {
@@ -191,6 +162,7 @@ public class IngestExportedVolumeSchedulingThread implements Runnable {
                 }
             }
 
+            ExportGroup exportGroup = _requestContext.getExportGroup();
             if (_requestContext.isExportGroupCreated()) {
                 _logger.info("Ingestion Wrap Up: Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
                 _dbClient.createObject(exportGroup);

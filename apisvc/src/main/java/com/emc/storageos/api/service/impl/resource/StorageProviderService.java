@@ -459,23 +459,27 @@ public class StorageProviderService extends TaskResourceService {
             }
 
             if (param.getSecondaryUsername() != null) {
+            	ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
                 storageProvider.setSecondaryUsername(param.getSecondaryUsername());
             }
             if (param.getSecondaryPassword() != null) {
-            	ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
-                storageProvider.setSecondaryPassword(param.getSecondaryPassword());
+            	ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+            	storageProvider.setSecondaryPassword(param.getSecondaryPassword());
             }
             if (param.getSecondaryURL() != null) {
-            	ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
+            	//ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
+            	verifySecondaryUrl( param.getSecondaryURL());
                 storageProvider.setSecondaryURL(param.getSecondaryURL());
             }
             if (param.getElementManagerURL() != null) {
-            	ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+            	
                 storageProvider.setElementManagerURL(param.getElementManagerURL());
             }
 
             _dbClient.persistObject(storageProvider);
         }
+        
+        
         
 
         auditOp(OperationTypeEnum.UPDATE_STORAGEPROVIDER, true, null,
@@ -625,11 +629,21 @@ public class StorageProviderService extends TaskResourceService {
     	if(param.getSecondaryURL() != null 
     			|| param.getSecondaryUsername() != null 
     			|| param.getSecondaryPassword() != null) {
-	    	ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
+	    	//ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
+    		verifySecondaryUrl( param.getSecondaryURL());
 	    	ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
 	    	ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
     	}
     	return true;
+    }
+    
+    private boolean verifySecondaryUrl( String url){
+    	ArgValidator.checkFieldNotEmpty(url, "secondary_url");
+    	String [] hsmPort = url.split("https://")[1].split(":");
+    	ArgValidator.checkFieldNotEmpty(hsmPort[0], "secondary_host");
+    	ArgValidator.checkFieldNotEmpty(hsmPort[1], "secondary_port");
+    	return true;
+    	
     }
     
 

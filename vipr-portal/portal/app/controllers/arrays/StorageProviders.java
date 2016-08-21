@@ -472,6 +472,7 @@ public class StorageProviders extends ViprResourceController {
                 this.secondaryURL = url.toString();
             }else if (StringUtils.isNotEmpty(this.hyperScaleHost)
             		|| StringUtils.isNotEmpty(this.hyperScalePort)) {
+            	this.secondaryURL = "";
             	 flash.error("Secondary Host or Port is Missing");
             	
             }

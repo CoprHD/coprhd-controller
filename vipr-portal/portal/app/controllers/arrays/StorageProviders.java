@@ -470,6 +470,10 @@ public class StorageProviders extends ViprResourceController {
                     flash.error("Unable to parse Hyper Scale Manager URL");
                 }
                 this.secondaryURL = url.toString();
+            }else if (StringUtils.isNotEmpty(this.hyperScaleHost)
+            		|| StringUtils.isNotEmpty(this.hyperScalePort)) {
+            	 flash.error("Secondary Host or Port is Missing");
+            	
             }
         }
 

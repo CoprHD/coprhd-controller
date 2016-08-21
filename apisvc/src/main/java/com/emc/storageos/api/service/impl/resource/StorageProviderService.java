@@ -639,9 +639,10 @@ public class StorageProviderService extends TaskResourceService {
     
     private boolean verifySecondaryUrl( String url){
     	ArgValidator.checkFieldNotEmpty(url, "secondary_url");
-    	String [] hsmPort = url.split("https://")[1].split(":");
-    	ArgValidator.checkFieldNotEmpty(hsmPort[0], "secondary_host");
-    	ArgValidator.checkFieldNotEmpty(hsmPort[1], "secondary_port");
+    	String [] urlParts= url.split("https://");
+    	if(urlParts.length < 2 || urlParts[1].split(":").length < 2) {
+    		throw APIException.badRequests.requiredParameterMissingOrEmpty("secondary_url");
+    	}
     	return true;
     	
     }

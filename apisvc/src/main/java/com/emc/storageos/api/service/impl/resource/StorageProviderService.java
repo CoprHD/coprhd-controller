@@ -618,18 +618,13 @@ public class StorageProviderService extends TaskResourceService {
     
     private boolean verifyHSMParams( StorageProviderCreateParam param) {
     	
-    	if(param.getSecondaryURL() == null && param.getSecondaryUsername() == null && param.getSecondaryPassword()== null )	{
-    		return true;
+    	if(param.getSecondaryURL() != null 
+    			|| param.getSecondaryUsername() != null 
+    			|| param.getSecondaryPassword() != null) {
+	    	ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
+	    	ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
+	    	ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
     	}
-    	
-    	if(param.getSecondaryURL() != null ) {
-    		String [] hsmHost = param.getSecondaryURL().split("https://")[1].split(":");
-    		ArgValidator.checkFieldEmpty(hsmHost[0], "secondary_host");
-    		ArgValidator.checkFieldEmpty(hsmHost[1], "secondary_port");
-     	}
-    	ArgValidator.checkFieldEmpty(param.getSecondaryUsername(), "secondary_username");
-    	ArgValidator.checkFieldEmpty(param.getSecondaryPassword(), "secondary_password");
-    	
     	return true;
     }
     

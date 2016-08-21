@@ -260,7 +260,7 @@ public class StorageProviders extends ViprResourceController {
         // put all "initial create only" defaults here rather than field initializers
         smisProvider.interfaceType = StorageProviderTypes.SMIS;
         smisProvider.portNumber = getDefaultPort(DefaultStorageProviderPortMap.smis_useSSL);
-        smisProvider.hyperScalePort = HYPERSCALEPORT;
+        //smisProvider.hyperScalePort = HYPERSCALEPORT;
         smisProvider.useSSL = true;
         copyRenderArgsToAngular();
         angularRenderArgs().put("smisProvider", smisProvider);

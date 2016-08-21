@@ -192,8 +192,9 @@ public class HP3PARExpUnexpHelper {
                       Hence requests coming for rest of the individual host exports should gracefully exit
                      */
 
-                    String lockName = volumes.get(0).getStorageSystemId() + vol + host;
+                    String lockName = volumes.get(0).getStorageSystemId() + vol.getNativeId() + host;
                     if (driverLockManager.acquireLock(lockName, 8, TimeUnit.MINUTES)) {
+                    	_log.info("3PARDriver: Acquired lock {} to examine vlun creation", lockName);
                         /*
                           If this is the first request key gets created with export operation. 
                           other requests will gracefully exit. key will be removed in unexport.
@@ -311,6 +312,7 @@ public class HP3PARExpUnexpHelper {
                             }
                         } // doExport
 
+                        _log.info("3PARDriver: Releasing lock {} after examining vlun creation", lockName);
                         driverLockManager.releaseLock(lockName);
                     }
                     
@@ -402,23 +404,6 @@ public class HP3PARExpUnexpHelper {
                             break; // there can be only one export combination of volume+host initiator
                         }
                         
-                        if (!found) {
-                        	// port could be inactive, remove vlun template
-                            for (VirtualLun vLun:vlunRes.getMembers()) {
-                                if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0
-                                        || vLun.getHostname() == null || host.compareToIgnoreCase(vLun.getHostname()) != 0 ||
-                                        vLun.getType() != HP3PARConstants.vLunType.MATCHED_SET.getValue()) {
-                                    continue;
-                                }
-
-                                lun = vLun.getLun();
-                                pos = vLun.getPortPos();
-                                found = true;
-                                _log.info("3PARDriver:unexportVolumesFromInitiators removing vlun template");
-                                break; // there can be only one export combination of volume+host initiator
-                            }                        	
-                        }
-
                         if (found) {
                             String message = String.format(
                                     "3PARDriver:unexportVolumesFromInitiators for "
@@ -444,6 +429,47 @@ public class HP3PARExpUnexpHelper {
                             	}
                             }
                         }
+                        
+                        if (!found) {
+                        	// port could be inactive, remove vlun template
+                            for (VirtualLun vLun:vlunRes.getMembers()) {
+                                if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0
+                                        || vLun.getHostname() == null || host.compareToIgnoreCase(vLun.getHostname()) != 0 ||
+                                        vLun.getType() != HP3PARConstants.vLunType.MATCHED_SET.getValue()) {
+                                    continue;
+                                }
+
+                                lun = vLun.getLun();
+                                pos = vLun.getPortPos();
+                                found = true;
+                                
+                                _log.info("3PARDriver:unexportVolumesFromInitiators removing vlun template");
+                                String message = String.format(
+                                        "3PARDriver:unexportVolumesFromInitiators for "
+                                                + "storage system %s, volume %s host %s hlu %s port %s",
+                                                volume.getStorageSystemId(), volume.getNativeId(), host, lun.toString(),
+                                                pos.toString());
+                                _log.info(message);
+
+                                String posStr = null;
+                                posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
+
+                                    
+                                try{
+                                	hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
+                                }
+                                catch(Exception e){
+                                	if(e.getMessage().contains(HP3PARConstants.VLUN_DOES_NOT_EXIST)){
+                                		_log.info("The VLUN(export info) does not exist on the 3PAR "
+                                				+ "array and hence this unexport will be treated as success");
+                                	}
+                                	else{
+                                		throw e;
+                                	}
+                                }
+                            } //end for all vlun templates                        	
+                        }
+
                         
                     } else if (init.getInitiatorType().equals(Type.Cluster)) {
 
@@ -591,6 +617,8 @@ public class HP3PARExpUnexpHelper {
                     	hostArray = initiators.get(0).getHostName();
                     }
                 	hp3parApi.createHost(hostArray, portIds, persona);
+                } else {
+                	hostArray = hostNameResult.getHostName();
                 }
 
                 // only one thread across all nodes should create cluster; 

@@ -1203,7 +1203,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+                _log.info("3PARDriver:updateHost 3PAR response is Location: {}", responseString);
             }
 
         } catch (Exception e) {

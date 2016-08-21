@@ -462,17 +462,21 @@ public class StorageProviderService extends TaskResourceService {
                 storageProvider.setSecondaryUsername(param.getSecondaryUsername());
             }
             if (param.getSecondaryPassword() != null) {
+            	ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
                 storageProvider.setSecondaryPassword(param.getSecondaryPassword());
             }
             if (param.getSecondaryURL() != null) {
+            	ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
                 storageProvider.setSecondaryURL(param.getSecondaryURL());
             }
             if (param.getElementManagerURL() != null) {
+            	ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
                 storageProvider.setElementManagerURL(param.getElementManagerURL());
             }
 
             _dbClient.persistObject(storageProvider);
         }
+        
 
         auditOp(OperationTypeEnum.UPDATE_STORAGEPROVIDER, true, null,
                 storageProvider.getId().toString(), storageProvider.getLabel(), storageProvider.getIPAddress(),

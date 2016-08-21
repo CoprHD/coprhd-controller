@@ -277,7 +277,7 @@ def storageprovider_create(args):
         if (args.interface =="ibmxiv") :
             if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
-		    else if(args.hyperScaleHost is not None or args.hyperScalePort is not None):
+            elif(args.hyperScaleHost is not None or args.hyperScalePort is not None):
 			    common.format_err_msg_and_raise ("create","storageprovider","Hypercale Host or Port Missing",SOSError.NOT_FOUND_ERR)
 
         res = obj.create(args.name, args.providerip, args.providerport,
@@ -378,7 +378,7 @@ def storageprovider_update(args):
         if (args.interface =="ibmxiv") :
             if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
-			else if(args.hyperScaleHost is not None or args.hyperScalePort is not None):
+            elif(args.hyperScaleHost is not None or args.hyperScalePort is not None):
 			    common.format_err_msg_and_raise ("update","storageprovider","Hypercale Host or Port Missing",SOSError.NOT_FOUND_ERR)
 			
 				

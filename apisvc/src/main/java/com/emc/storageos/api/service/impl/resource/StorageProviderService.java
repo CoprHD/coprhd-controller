@@ -257,9 +257,7 @@ public class StorageProviderService extends TaskResourceService {
         if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(provider.getInterfaceType())) {
             provider.setManufacturer("IBM");
             //For XIV, Secondary manager URL would hold HSM URL and it is expected that these values are provided during create
-            ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_name");
-            ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
-            ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
+            verifyHSMParams(param);
         }
 
         _dbClient.createObject(provider);
@@ -617,6 +615,24 @@ public class StorageProviderService extends TaskResourceService {
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
         return taskList.getTaskList().listIterator().next();
     }
+    
+    private boolean verifyHSMParams( StorageProviderCreateParam param) {
+    	
+    	if(param.getSecondaryURL() == null && param.getSecondaryUsername() == null && param.getSecondaryPassword()== null )	{
+    		return true;
+    	}
+    	
+    	if(param.getSecondaryURL() != null ) {
+    		String [] hsmHost = param.getSecondaryURL().split("https://")[1].split(":");
+    		ArgValidator.checkFieldEmpty(hsmHost[0], "secondary_host");
+    		ArgValidator.checkFieldEmpty(hsmHost[1], "secondary_port");
+     	}
+    	ArgValidator.checkFieldEmpty(param.getSecondaryUsername(), "secondary_username");
+    	ArgValidator.checkFieldEmpty(param.getSecondaryPassword(), "secondary_password");
+    	
+    	return true;
+    }
+    
 
     /**
      * Allows the user to get data for the storage system with the passed system

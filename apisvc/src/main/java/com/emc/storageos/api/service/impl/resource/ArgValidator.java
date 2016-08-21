@@ -140,7 +140,21 @@ public class ArgValidator {
             throw APIException.badRequests.requiredParameterMissingOrEmpty(fieldName);
         }
     }
-
+   
+    /**
+     * Validates that the value supplied is not an empty string.
+     * 
+     * @param value
+     *            the value to check
+     * @param fieldName
+     *            the name of the field where the value originated
+     */
+    public static void checkFieldEmpty(final String value, final String fieldName) {
+    	if (value != null && value.isEmpty()) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty(fieldName);
+        }
+    }
+    
     /**
      * Validates that the value supplied is not null, and matches one of the
      * expected values

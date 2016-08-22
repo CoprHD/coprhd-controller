@@ -207,6 +207,7 @@ public class HP3PARExpUnexpHelper {
                         _log.info(message);
 
                         String exportPath = vol.getStorageSystemId() + vol.getNativeId() + host;
+                        _log.info("3PARDriver:exportPath {} for registry entry", exportPath);
                         Map<String, List<String>> attributes = new HashMap<>();
                         List<String> expValue = new ArrayList<>();
                         List<String> lunValue = new ArrayList<>();
@@ -255,6 +256,7 @@ public class HP3PARExpUnexpHelper {
                         }
 
                         if (doExport) {
+                        	_log.info("3PARDriver: exporting volume {} as exportPath {} is not present in registry", vol.getNativeId(), exportPath);
                             /*
                              for cluster use host set method, We cannot specify port; 
                              determine the individual host ports used
@@ -622,7 +624,7 @@ public class HP3PARExpUnexpHelper {
                 }
 
                 // only one thread across all nodes should create cluster; 
-                String lockName = volumes.get(0).getStorageSystemId() + hostArray;
+                String lockName = volumes.get(0).getStorageSystemId() + clustArray;
                 if (driverLockManager.acquireLock(lockName, 6, TimeUnit.MINUTES)) {
                     // Check if cluster exists, otherwise create=>Cluster with +one host at a time
                     HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);

@@ -21,6 +21,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
@@ -123,6 +124,10 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         StringMap userAddedInitiators = exportMask.getUserAddedInitiators();
         List<URI> initURIs = Lists.newArrayList();
 
+        if (userAddedInitiators == null || userAddedInitiators.isEmpty()) {
+            return Collections.EMPTY_LIST;
+        }
+        
         for (String initURI : userAddedInitiators.values()) {
             initURIs.add(URI.create(initURI));
         }

@@ -194,6 +194,23 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
     }
 
     /**
+     * Updates a cluster by ID.
+     * <p>
+     * API Call: <tt>PUT /compute/clusters/{id}?update-exports={updateExports}</tt>
+     * 
+     * @param id
+     *            the ID of the cluster to update.
+     * @param input
+     *            the update configuration.
+     * @param updateExports
+     *            if true, will also update cluster exports.
+     */
+    public ClusterRestRep update(URI id, ClusterUpdateParam input, boolean updateExports) {
+        URI updateUri = client.uriBuilder(getIdUrl()).queryParam("update-exports", updateExports).build(id);
+        return client.putURI(ClusterRestRep.class, input, updateUri);
+    }
+
+    /**
      * Deactivates a cluster by ID if cluster hosts do not have block or file exports.
      * 
      * <p>

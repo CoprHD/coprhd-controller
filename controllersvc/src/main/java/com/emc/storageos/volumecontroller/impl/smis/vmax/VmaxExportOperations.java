@@ -1112,7 +1112,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
-            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
+            List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
+            validator.removeVolumes(storage, exportMaskURI, initiatorList, blockObjects).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
@@ -1538,7 +1539,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         taskCompleter.getOpId());
 
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                validator.removeInitiators(storage, exportMask, volumeURIList).validate();
+                validator.removeInitiators(storage, exportMask, volumeURIList, initiatorList).validate();
 
                 if (context != null) {
                     exportMaskRollback(storage, context, taskCompleter);

@@ -6,9 +6,7 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
@@ -38,14 +36,21 @@ public class OrderScheduleTimeCallback extends BaseCustomMigrationCallback {
             if (order == null)
                 continue;
             if (order.getScheduledEventId() == null) {
-                // For original orders, set schedule time to
-                // either 1) the next execution window starting time
-                // or     2) the current time if it is in current execution window
-                ExecutionWindow executionWindow = dbClient.queryObject(ExecutionWindow.class, order.getExecutionWindowId().getURI());
-                if (executionWindow == null)
-                    continue;
-                ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
-                order.setScheduledTime(helper.getScheduledTime());
+                if (order.getExecutionWindowId() == null ||
+                    order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                    Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                    scheduleTime.setTime(order.getLastUpdated());
+                    order.setScheduledTime(scheduleTime);
+                } else {
+                    // For original orders, set schedule time to
+                    // either 1) the next execution window starting time
+                    // or     2) the current time if it is in current execution window
+                    ExecutionWindow executionWindow = dbClient.queryObject(ExecutionWindow.class, order.getExecutionWindowId().getURI());
+                    if (executionWindow == null)
+                        continue;
+                    ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
+                    order.setScheduledTime(helper.getScheduledTime());
+                }
 
                 dbClient.updateObject(order);
             }

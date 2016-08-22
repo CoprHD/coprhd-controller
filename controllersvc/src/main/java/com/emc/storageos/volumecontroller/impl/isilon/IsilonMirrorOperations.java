@@ -335,6 +335,15 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             return BiosCommandResult.createErrorResult(e);
         }
     }
+    
+    IsilonSyncPolicy doStartReplicationPolicy(IsilonApi isi, String policyName) {
+    	IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+        modifiedPolicy.setName(policyName);
+        modifiedPolicy.setEnabled(true);
+
+        isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+    	return isi.getReplicationPolicy(policyName);
+    }
 
     /**
      * Call to isilon to start replication session
@@ -346,53 +355,37 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName,
             TaskCompleter taskCompleter) {
         try {
-
+        	
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
             IsilonSyncPolicy.JobState policyState = policy.getLastJobState();
-
-            if (!policy.getEnabled()) {
-                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setName(policyName);
-                modifiedPolicy.setEnabled(true);
-
-                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                policy = isi.getReplicationPolicy(policyName);
-                policyState = policy.getLastJobState();
-                if (policy.getEnabled()) {
-                	
-                    _log.info("Replication Policy - {} ENABLED successfully", policy.toString());
-                    if(policyState.equals(JobState.finished)) {
-                    	return BiosCommandResult.createSuccessfulResult();
-                    }
-                }
-                
+            
+            if(!policy.getEnabled()) {
+            	policy = doStartReplicationPolicy(isi, policyName);
+            } else {
+            	if (!policyState.equals(JobState.running) || !policyState.equals(JobState.paused)
+                        || !policyState.equals(JobState.resumed)){
+            		policy = doStartReplicationPolicy(isi, policyName);
+            	} else {
+            		 _log.error("Replication Policy - {} can't be STARTED because policy is in {} state", policyName,
+                             policyState);
+                     ServiceError error = DeviceControllerErrors.isilon
+                             .jobFailed("doStartReplicationPolicy as : Replication Policy can't be STARTED because "
+                                     + "policy is already in Active state");
+                     return BiosCommandResult.createErrorResult(error);
+            	}
             }
-            if (!policyState.equals(JobState.running) || !policyState.equals(JobState.paused)
-                    || !policyState.equals(JobState.resumed) || policyState.equals(JobState.unknown)) {
-                IsilonSyncJob job = new IsilonSyncJob();
-                job.setId(policyName);
-                isi.modifyReplicationJob(job);
-                policy = isi.getReplicationPolicy(policyName);
-
-                IsilonSyncJobStart isiSyncJobStart = new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
-                try {
-                    ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
-                    return BiosCommandResult.createPendingResult();
-                } catch (Exception ex) {
-                    _log.error("Start Replication Job Failed ", ex);
-                    ServiceError error = DeviceControllerErrors.isilon.jobFailed("Start Replication Job Failed as:" + ex.getMessage());
-                    if (taskCompleter != null) {
-                        taskCompleter.error(_dbClient, error);
-                    }
-                    return BiosCommandResult.createErrorResult(error);
+            
+            IsilonSyncJobStart isiSyncJobStart = new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
+            try {
+                ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
+                return BiosCommandResult.createPendingResult();
+            } catch (Exception ex) {
+                _log.error("Start Replication Job Failed ", ex);
+                ServiceError error = DeviceControllerErrors.isilon.jobFailed("Start Replication Job Failed as:" + ex.getMessage());
+                if (taskCompleter != null) {
+                    taskCompleter.error(_dbClient, error);
                 }
-           } else {
-                _log.error("Replication Policy - {} can't be STARTED because policy is in {} state", policyName,
-                        policyState);
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doStartReplicationPolicy as : Replication Policy can't be STARTED because "
-                                + "policy is already in Active state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {

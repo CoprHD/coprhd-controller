@@ -585,7 +585,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);
             job.setAction(Action.allow_write);
-
                                 
             isi.modifyReplicationJob(job);
 
@@ -627,10 +626,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         
         IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
         JobState policyState = policy.getLastJobState();
-        
-        IsilonList<IsilonSyncPolicyReport> test = isiPrimary.getReplicationPolicyReports(policyName);
 
-        if(policy.getEnabled() == true) {
+        if(true == policy.getEnabled()) {
         	isiPrimary.modifyReplicationJob(job);
 
 	        IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, secondarySystem.getId(), completer, policyName);

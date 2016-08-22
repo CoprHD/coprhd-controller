@@ -7,17 +7,22 @@ package com.emc.storageos.db.client.impl;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
@@ -29,7 +34,6 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.util.RangeBuilder;
 
@@ -41,6 +45,7 @@ public class DbConsistencyCheckerHelper {
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
 
     private DbClientImpl dbClient;
+    private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
 
     public DbConsistencyCheckerHelper() {
     }
@@ -58,7 +63,7 @@ public class DbConsistencyCheckerHelper {
     public int checkDataObject(DataObjectType doType, boolean toConsole) {
         int dirtyCount = 0;
         _log.info("Check CF {}", doType.getDataObjectClass().getName());
-
+        
         try {
             OperationResult<Rows<String, CompositeColumnName>> result = dbClient.getKeyspace(
                     doType.getDataObjectClass()).prepareQuery(doType.getCF())
@@ -66,25 +71,12 @@ public class DbConsistencyCheckerHelper {
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : result.getResult()) {
-                if (!row.getColumns().isEmpty()) {
-                    try {
-                        URI uri = URI.create(row.getKey());
-                        try {
-                            dbClient.queryObject(doType.getDataObjectClass(), uri);
-                        } catch (Exception ex) {
-                            dirtyCount++;
-                            logMessage(String.format(
-                                    "Inconsistency found: Fail to query object for '%s' with err %s ",
-                                    uri, ex.getMessage()), true, toConsole);
-                        }
-                    } catch (Exception ex) {
-                        dirtyCount++;
-                        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
-                                row.getKey(), doType.getDataObjectClass()
-                                        .getName(),
-                                ex.getMessage()), true, toConsole);
-                    }
-                }
+            	if (!excludeClasses.contains(doType.getDataObjectClass()) 
+            			&& !isValidDataObjectKey(URI.create(row.getKey()), doType.getDataObjectClass())) {
+            		dirtyCount++;
+    		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
+    		                row.getKey(), doType.getDataObjectClass().getName()), true, toConsole);
+            	}
             }
 
         } catch (ConnectionException e) {
@@ -193,46 +185,42 @@ public class DbConsistencyCheckerHelper {
                 .prepareQuery(indexAndCf.cf);
 
         OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
-                .setRowLimit(100)
-                .withColumnRange(new RangeBuilder().setLimit(0).build()).execute();
+                .setRowLimit(100).execute();
 
         for (Row<String, IndexColumnName> row : result.getResult()) {
-            RowQuery<String, IndexColumnName> rowQuery = query.getRow(row.getKey())
-                    .autoPaginate(true)
-                    .withColumnRange(new RangeBuilder().setLimit(100).build());
-            ColumnList<IndexColumnName> columns;
-            while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
-                for (Column<IndexColumnName> column : columns) {
-                    ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
-                            column.getName(), indexAndCf.indexType, toConsole);
-                    if (objEntry == null) {
-                        continue;
-                    }
-                    ColumnFamily<String, CompositeColumnName> objCf = objCfs
-                            .get(objEntry.getClassName());
-
-                    if (objCf == null) {
-                        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
-                        continue;
-                    }
-
-                    Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-                    if (objKeysIdxEntryMap == null) {
-                        objKeysIdxEntryMap = new HashMap<>();
-                        objsToCheck.put(objCf, objKeysIdxEntryMap);
-                    }
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
-                    if (idxEntries == null) {
-                        idxEntries = new ArrayList<>();
-                        objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
-                    }
-                    idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
+            ColumnList<IndexColumnName> columns = row.getColumns();
+            
+            for (Column<IndexColumnName> column : columns) {
+                ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
+                        column.getName(), indexAndCf.indexType, toConsole);
+                if (objEntry == null) {
+                    continue;
                 }
-                
-                if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
-                    corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+                ColumnFamily<String, CompositeColumnName> objCf = objCfs
+                        .get(objEntry.getClassName());
+
+                if (objCf == null) {
+                    logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+                    continue;
                 }
+
+                Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+                if (objKeysIdxEntryMap == null) {
+                    objKeysIdxEntryMap = new HashMap<>();
+                    objsToCheck.put(objCf, objKeysIdxEntryMap);
+                }
+                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+                if (idxEntries == null) {
+                    idxEntries = new ArrayList<>();
+                    objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+                }
+                idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
             }
+            
+            if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
+                corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+            }
+            
         }
 
         // Detect whether the DataObject CFs have the records
@@ -608,5 +596,17 @@ public class DbConsistencyCheckerHelper {
 
     public void setDbClient(DbClientImpl dbClient) {
         this.dbClient = dbClient;
+    }
+    
+    private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
+        if (uri == null) {
+        	return false;
+        }
+
+        if (!URIUtil.isValid(uri) || !URIUtil.isType(uri, type)) {
+            return false;
+        }
+
+        return true;
     }
 }

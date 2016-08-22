@@ -5,16 +5,18 @@
 
 package com.emc.storageos.dbutils;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URI;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.text.SimpleDateFormat;
-
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -22,19 +24,21 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.google.common.base.Joiner;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.model.*;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.URI;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.ColumnMap;
+import com.netflix.astyanax.model.ConsistencyLevel;
+import com.netflix.astyanax.model.OrderedColumnMap;
 
 public abstract class CommandHandler {
     public String cfName = null;
@@ -674,11 +678,17 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
+        	System.out.println("This is performance enhanced version for db check");
+        	System.out.println("Start time:" + new Date());
+        	long start = System.currentTimeMillis();
             if (specificCF) {
                 _client.checkDB(cfName);
             } else {
                 _client.checkDB();
             }
+            long total = System.currentTimeMillis() - start;
+            System.out.println("End time:" + new Date());
+            System.out.println("Total running time: " + total/1000 + " seconds");
         }
     }
 

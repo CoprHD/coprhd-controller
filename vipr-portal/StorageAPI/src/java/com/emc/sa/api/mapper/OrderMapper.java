@@ -12,6 +12,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 
@@ -80,7 +81,9 @@ public class OrderMapper {
                 to.getParameters().add(parameter);
             }
         }
-
+        if (from.getScheduledEventId() != null) {
+            to.setScheduledEventId(from.getScheduledEventId());
+        }
         return to;
     }
 
@@ -138,6 +141,12 @@ public class OrderMapper {
         newObject.setId(URIUtil.createId(Order.class));
         newObject.setTenant(tenantId.toString());
         newObject.setCatalogServiceId(param.getCatalogService());
+        if (param.getScheduledEventId() != null) {
+            newObject.setScheduledEventId(param.getScheduledEventId());
+            if (param.getScheduledTime() != null) {
+                newObject.setScheduledTime(ScheduleTimeHelper.convertStrToCalendar(param.getScheduledTime()));
+            }
+        }
 
         updateObject(newObject, param);
 

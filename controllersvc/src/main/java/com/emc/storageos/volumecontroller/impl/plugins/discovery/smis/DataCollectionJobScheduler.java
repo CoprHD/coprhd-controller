@@ -455,7 +455,7 @@ public class DataCollectionJobScheduler {
             for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
                 String taskId = UUID.randomUUID().toString();
                 List<URI> systemIds = entry.getValue();
-                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType, true);
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType);
                 DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
                 jobs.add(job);
             }
@@ -690,7 +690,6 @@ public class DataCollectionJobScheduler {
         if (!scheduler &&
                 (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
-                        Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
             _logger.info(namespace + " discovery has been requested by the user, scheduling now...");

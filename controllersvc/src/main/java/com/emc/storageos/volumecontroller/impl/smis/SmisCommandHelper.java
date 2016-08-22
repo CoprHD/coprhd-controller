@@ -5607,10 +5607,12 @@ public class SmisCommandHelper implements SmisConstants {
      */
     private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI) {
         StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
         StringBuffer policyName = new StringBuffer();
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                 || (NullColumnValueGetter.isNullURI(policyURI))) {
-            policyName = policyName.append(Constants.OPTIMIZED_SLO).append(Constants._plusDelimiter)
+            String defaultSLO = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
+            policyName = policyName.append(defaultSLO).append(Constants._plusDelimiter)
                     .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
         } else {
             AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
@@ -6008,6 +6010,31 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMObjectPath getInitiatorGroupForGivenMaskingView(String maskName, StorageSystem storage) throws Exception {
         CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskName);
         return getInitiatorGroupForGivenMaskingView(maskingViewPath, storage);
+    }
+
+    /**
+     * Gets the initiator names for initiator group.
+     *
+     * @param storage the storage
+     * @param igPath the ig path
+     * @return the initiators for initiator group
+     * @throws WBEMException the WBEM exception
+     */
+    public List<String> getInitiatorNamesForInitiatorGroup(StorageSystem storage, CIMObjectPath igPath) throws WBEMException {
+        List<String> initiatorNames = new ArrayList<String>();
+        CloseableIterator<CIMInstance> initiatorsForIg = getAssociatorInstances(storage, igPath, null,
+                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null,
+                SmisConstants.PS_STORAGE_ID);
+        if (initiatorsForIg != null) {
+            while (initiatorsForIg.hasNext()) {
+                CIMInstance initiatorInstance = initiatorsForIg.next();
+                String initiatorPort = CIMPropertyFactory.getPropertyValue(initiatorInstance,
+                        SmisConstants.CP_STORAGE_ID);
+                initiatorNames.add(Initiator.normalizePort(initiatorPort));
+            }
+            initiatorsForIg.close();
+        }
+        return initiatorNames;
     }
 
     /**

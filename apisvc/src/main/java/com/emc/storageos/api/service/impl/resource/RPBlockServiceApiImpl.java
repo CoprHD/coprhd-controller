@@ -111,6 +111,7 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ControllerOperationValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.collect.Lists;
 
@@ -2137,7 +2138,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {        
+        TaskList taskList = new TaskList();
         
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
@@ -2165,7 +2167,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
                 _dbClient, notSuppReasonBuff, validMigrations)) {
-            return rpVPlexDataMigration(volumes, vpool, taskId, validMigrations);
+            taskList = rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam);
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
@@ -2177,7 +2179,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 + "Please select one volume at a time.");
             }
         }
-        return createTasksForVolumes(vpool, volumes, taskId);
+        
+        taskList.getTaskList().addAll(
+                createTasksForVolumes(vpool, volumes, taskId).getTaskList());
+        
+        return taskList;
     }
 
     /**
@@ -2188,37 +2194,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         _log.debug("Verify if RP volume {} can be expanded", volume.getId());
 
         boolean vplex = RPHelper.isVPlexVolume(volume);
-
+        
+        //validate the source
         if (vplex) {
-            // Look at all source and target volumes and make sure they can all be expanded
-            vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeID));
-                    if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
-                        vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, URI.create(volumeID)),
-                                newSize);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
+        	vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
         } else {
-            // Look at all source and target volumes and make sure they can all be expanded
-            super.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    try {
-                        super.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, new URI(volumeID)), newSize);
-                    } catch (URISyntaxException e) {
-                        throw APIException.badRequests.invalidURI(volumeID, e);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
+           super.verifyVolumeExpansionRequest(volume, newSize);
         }
-
+        
+        //validate the targets
+        if (volume.getRpTargets() != null) {
+        	for (String volumeId : volume.getRpTargets()) {        	   
+        		Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
+	        		
+        		if (RPHelper.isVPlexVolume(targetVolume)) {
+        			if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
+        				vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
+	        		} 
+        		} else {
+                    super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
+        		}
+    		}        	
+        } else {
+        	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());        	
+        }
+        
         // Validate the source volume size is not greater than the target volume size
         RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));
     }
@@ -3943,10 +3943,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param newVpool The vpool to migrate to
      * @param taskId The task
      * @param validMigrations All valid migrations
+     * @param vpoolChangeParam VirtualPool change parameters used to determine if need to suspend on migration
      * @return List of tasks
      * @throws InternalException
      */
-    private TaskList rpVPlexDataMigration(List<Volume> volumes, VirtualPool newVpool, String taskId, List<RPVPlexMigration> validMigrations)
+    private TaskList rpVPlexDataMigration(List<Volume> volumes, VirtualPool newVpool, String taskId, 
+            List<RPVPlexMigration> validMigrations, VirtualPoolChangeParam vpoolChangeParam)
             throws InternalException {                
         // TaskList to return
         TaskList taskList = new TaskList();
@@ -4033,7 +4035,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Single migrations will be collected afterwards to be migrated explicitly in Step 4 and 6
             // below.
             rpVPlexGroupedMigrations(allSourceVolumesToMigrate, singleMigrations, 
-                    Volume.PersonalityTypes.SOURCE.name(), logMigrations, taskId);
+                    Volume.PersonalityTypes.SOURCE.name(), logMigrations, taskList, taskId, vpoolChangeParam);
             
             // Targets
             //
@@ -4045,7 +4047,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Single migrations will be collected afterwards to be migrated explicitly in Step 4 and 6
             // below.
             rpVPlexGroupedMigrations(allTargetVolumesToMigrate, singleMigrations, 
-                    Volume.PersonalityTypes.TARGET.name(), logMigrations, taskId);
+                    Volume.PersonalityTypes.TARGET.name(), logMigrations, taskList, taskId, vpoolChangeParam);
                             
             // Journals
             //
@@ -4218,10 +4220,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param singleMigrations Container to keep track of single migrations
      * @param type Personality type for logging
      * @param logMigrations Log buffer
-     * @param taskId Task id
+     * @param taskList List of tasks that will be returned to user
+     * @param taskId Task id of order
+     * @param vpoolChangeParam used to determine if we should suspend on migration commit
      */
     private void rpVPlexGroupedMigrations(HashMap<VirtualPool, List<Volume>> volumesToMigrate, 
-            Map<Volume, VirtualPool> singleMigrations, String type, StringBuffer logMigrations, String taskId) {
+            Map<Volume, VirtualPool> singleMigrations, String type, StringBuffer logMigrations, 
+            TaskList taskList, String taskId, VirtualPoolChangeParam vpoolChangeParam) {
         for (Map.Entry<VirtualPool, List<Volume>> entry : volumesToMigrate.entrySet()) {
             // List to hold volumes that are grouped by RG and migrated together
             List<Volume> volumesInRG = new ArrayList<Volume>();;
@@ -4231,8 +4236,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualPool migrateToVpool = entry.getKey();
             List<Volume> migrateVolumes = entry.getValue();
             
-            vplexBlockServiceApiImpl.migrateVolumesInReplicationGroup(migrateVolumes, migrateToVpool, 
-                    volumesNotInRG, volumesInRG, taskId);
+            ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
+            operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
+                    vpoolChangeParam.getMigrationSuspendBeforeCommit());
+            operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                    vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
+            
+            TaskList taskList2 = vplexBlockServiceApiImpl.migrateVolumesInReplicationGroup(migrateVolumes, 
+                    migrateToVpool, volumesNotInRG, volumesInRG, operationsWrapper, taskId);
+            taskList.getTaskList().addAll(taskList2.getTaskList());
             
             for (Volume volumeInRG : volumesInRG) {
                 logMigrations.append(String.format("\tRP+VPLEX migrate %s [%s](%s) to vpool [%s](%s) - GROUPED BY RG\n",                        

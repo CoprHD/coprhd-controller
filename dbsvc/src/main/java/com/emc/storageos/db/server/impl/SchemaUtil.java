@@ -922,6 +922,7 @@ public class SchemaUtil {
 
     private void insertStorageSystemTypes(DbClient dbClient) {
         int retry = 0;
+        int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         while (retry <= STORAGE_TYPE_INIT_RETRY_MAX) {
             try {
                 StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
@@ -930,6 +931,11 @@ public class SchemaUtil {
                 return;
             } catch (Exception e) {
                 _log.warn("Error happened when trying to insert storage system type info into Cassandra", e);
+            }
+            try {
+                Thread.sleep(retryIntervalSecs * 1000);
+            } catch (InterruptedException ex) {
+                _log.warn("Thread is interrupted during wait for retry", ex);
             }
             retry ++;
         }

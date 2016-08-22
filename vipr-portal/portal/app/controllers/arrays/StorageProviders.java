@@ -185,18 +185,13 @@ public class StorageProviders extends ViprResourceController {
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
                         }
-                        if (StringUtils.equals(VMAX, ss.getSystemType())) {
+                        if (StringUtils.equals(VMAX, ss.getSystemType()) || StringUtils.equals(UNITY, ss.getSystemType())) {
                             String modelType = ss.getModel();
                             if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
                                 ssMap.put("id", ss.getId().toString());
                                 ssMap.put("name", ss.getName());
                                 storagesystemslist.add(ssMap);
                             }
-                        }
-                        if (StringUtils.equals(UNITY, ss.getSystemType())) {
-                            ssMap.put("id", ss.getId().toString());
-                            ssMap.put("name", ss.getName());
-                            storagesystemslist.add(ssMap);
                         }
                     }
                 }
@@ -212,7 +207,7 @@ public class StorageProviders extends ViprResourceController {
                         ssMap.put("name", ss.getName());
                         storagesystemslist.add(ssMap);
                     }
-                    if (StringUtils.equals(VMAX, ss.getSystemType())) {
+                    if (StringUtils.equals(VMAX, ss.getSystemType()) || StringUtils.equals(UNITY, ss.getSystemType())) {
                         String modelType = ss.getModel();
                         if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
                             ssMap.put("id", ss.getId().toString());
@@ -220,11 +215,6 @@ public class StorageProviders extends ViprResourceController {
                             storagesystemslist.add(ssMap);
                         }
                     }
-					if (StringUtils.equals(UNITY, ss.getSystemType())) {
-						ssMap.put("id", ss.getId().toString());
-						ssMap.put("name", ss.getName());
-						storagesystemslist.add(ssMap);
-					}
                 }
             }
         }

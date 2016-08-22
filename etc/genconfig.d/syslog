@@ -44,7 +44,7 @@ log4j.appender.SYSLOG.SyslogHost=localhost
 log4j.appender.SYSLOG.Facility=local2
 log4j.appender.SYSLOG.Header=true
 log4j.appender.SYSLOG.layout=org.apache.log4j.PatternLayout
-log4j.appender.SYSLOG.layout.ConversionPattern=vipr $(hostname) ${svc} %d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.SYSLOG.layout.ConversionPattern=vipr $(hostname) ${svc} %d{ISO8601} %-5p %c{1}:%L - %m%n
 
 log4j.appender.AUDITSYSLOG=org.apache.log4j.net.SyslogAppender
 log4j.appender.AUDITSYSLOG.Threshold=${logLevel}
@@ -52,7 +52,7 @@ log4j.appender.AUDITSYSLOG.SyslogHost=localhost
 log4j.appender.AUDITSYSLOG.Facility=local2
 log4j.appender.AUDITSYSLOG.Header=true
 log4j.appender.AUDITSYSLOG.layout=org.apache.log4j.PatternLayout
-log4j.appender.AUDITSYSLOG.layout.ConversionPattern=vipr $(hostname) AuditLog %d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+log4j.appender.AUDITSYSLOG.layout.ConversionPattern=vipr $(hostname) AuditLog %d{ISO8601} %-5p %c{1}:%L - %m%n
 log4j.logger.AuditLog=${logLevel},AUDITSYSLOG
 log4j.additivity.AuditLog=false
 EOF
@@ -203,7 +203,8 @@ if [ "$syslog_enable" == "True" ]; then
     fi
     # delete the ip port line generated last time
     sed -i '/^*.*/d' ${remote_conf}
-    if [ "${_GENCONFIG_system_syslog_enabletls}" == "no" ];then
+    sed -i '/^\$/d' ${remote_conf}
+    if [ "${syslog_transport_protocol}" != "TLS" ];then
     # Forward the messages to the remote syslog servers through UDP or TCP
         for server_port in $(echo ${syslog_remote_servers_ports} |sed 's/,/ /g')
         do

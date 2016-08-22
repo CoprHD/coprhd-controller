@@ -585,6 +585,12 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             job.setId(policyName);
             job.setAction(Action.allow_write);
 
+            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+            JobState policyState = policy.getLastJobState();
+            
+            IsilonSyncPolicy policytarget = isi.getTargetReplicationPolicy(policyName);
+            JobState policyState1 = policy.getLastJobState();
+            
             isi.modifyReplicationJob(job);
 
             IsilonSyncJobFailover isiSyncJobFailover = new IsilonSyncJobFailover(policyName, system.getId(), taskCompleter, policyName);
@@ -622,21 +628,31 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         IsilonSyncJob job = new IsilonSyncJob();
         job.setId(policyName);
         job.setAction(Action.resync_prep);
+        
+        IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
+        JobState policyState = policy.getLastJobState();
+        
+        IsilonSyncPolicy policytarget = isiPrimary.getTargetReplicationPolicy(policyName);
+        JobState policyState1 = policy.getLastJobState();
 
-        isiPrimary.modifyReplicationJob(job);
+        if(policy.getEnabled() == true) {
+        	isiPrimary.modifyReplicationJob(job);
 
-        IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, secondarySystem.getId(), completer, policyName);
-
-        try {
-            ControllerServiceImpl.enqueueJob(new QueueJob(isilonSyncJobResync));
-            return BiosCommandResult.createPendingResult();
-        } catch (Exception ex) {
-            _log.error("Resync-Prep to Secondary Cluster Failed", ex);
-            ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + ex.getMessage());
-            if (completer != null) {
-                completer.error(_dbClient, error);
-            }
-            return BiosCommandResult.createErrorResult(error);
+	        IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, secondarySystem.getId(), completer, policyName);
+	
+	        try {
+	            ControllerServiceImpl.enqueueJob(new QueueJob(isilonSyncJobResync));
+	            return BiosCommandResult.createPendingResult();
+	        } catch (Exception ex) {
+	            _log.error("Resync-Prep to Secondary Cluster Failed", ex);
+	            ServiceError error = DeviceControllerErrors.isilon.jobFailed("Resync-Prep FAILED  as : " + ex.getMessage());
+	            if (completer != null) {
+	                completer.error(_dbClient, error);
+	            }
+	            return BiosCommandResult.createErrorResult(error);
+	        }
+        } else {
+        	return BiosCommandResult.createSuccessfulResult();
         }
     }
 

@@ -558,6 +558,7 @@ public class DbServiceImpl implements DbService {
         if (_log.isInfoEnabled()) {
             _log.info("Starting DB service...");
         }
+        _log.info("this is a test");
 
         // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
         // start() method will be only called one time when startup dbsvc, so it's safe to ignore sonar violation

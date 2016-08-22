@@ -647,7 +647,7 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
 	    
 	    return expunexpHelper.unexportVolumesFromInitiators(initiators, volumes,
-	            task, this.driverRegistry);
+	            task, this.driverRegistry, this.lockManager);
 	}
 
 	/**

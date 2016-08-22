@@ -14,12 +14,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.ISODateTimeFormat;
 
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
 import util.ServiceDescriptorUtils;
+import util.TimeUtils;
 import util.descriptor.ServiceFieldValidator;
 
 import com.emc.sa.descriptor.ServiceField;
@@ -285,12 +289,18 @@ public class OrderExecution extends Controller {
             scheduleInfo.setCycleType(ScheduleCycleType.DAILY);
         }
 
+        String currentTimezoneOffsetInMins = params.get("scheduler.currentTimezoneOffsetInMins");
+        Integer timezoneOffset = Integer.parseInt(currentTimezoneOffsetInMins);
+        
         String startDate = params.get("scheduler.startDate");
-        scheduleInfo.setStartDate(startDate);
         String startTime = params.get("scheduler.startTime");
-        String pair[] = startTime.split(":");
-        scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
-        scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
+        
+        String isoDateTimeStr = String.format("%sT%s", startDate, startTime);
+        DateTime startDateTime = DateTime.parse(isoDateTimeStr, ISODateTimeFormat.localDateOptionalTimeParser().withZone(TimeUtils.getLocalTimeZone(timezoneOffset)));
+        startDateTime = startDateTime.withZone(DateTimeZone.UTC);
+        scheduleInfo.setHourOfDay(startDateTime.getHourOfDay());
+        scheduleInfo.setMinuteOfHour(startDateTime.getMinuteOfHour());
+        scheduleInfo.setStartDate(String.format("%d-%02d-%02d", startDateTime.getYear(), startDateTime.getMonthOfYear(), startDateTime.getDayOfMonth()));
         
         String recurrence = params.get("scheduler.recurrence");
         if (recurrence != null) {

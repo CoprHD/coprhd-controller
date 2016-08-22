@@ -38,6 +38,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExportGroupCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -363,8 +364,10 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     }
                 }
                 exportMaskURIs.add(exportMask.getId());
-                _networkDeviceController.zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, UUID.randomUUID().toString());
                 getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
+                ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskURIs, UUID.randomUUID().toString());
+                _networkDeviceController.zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, zoneTaskCompleter,
+                        UUID.randomUUID().toString());
             } else {
                 _log.info("export_delete: no export mask, task completed");
                 taskCompleter.ready(_dbClient);

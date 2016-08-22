@@ -71,9 +71,9 @@ def cos_create(args):
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
                             args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
-                            args.long_term_retention, args.system_type, args.srdf, autotierPolicy, 
-                            args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.compressionEnabled)
-
+                            args.long_term_retention, args.system_type, args.srdf, args.auto_tiering_policy_name, 
+                            args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
+                            args.compressionEnabled)
     
     print cos
 
@@ -163,7 +163,7 @@ def cos_update(args):
             return
 
     if (args.name):
-        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops)
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops,args.placement_policy)
         if 'code' in cos:
             print "FAILED: ", str(cos)
         else:
@@ -381,6 +381,7 @@ create.add_argument('--auto_tiering_policy_name', help = 'AutoTiering Policy Nam
 create.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second')
 create.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs')
 create.add_argument('--auto_cross_connect', help='Enable auto cross connect export')
+create.add_argument('--placement_policy', help='Resource placement policy')
 create.add_argument('--compressionEnabled', help='Enable compression on VMAX All Flash array')
 create.set_defaults(multiVolumeConsistency=False)
 create.set_defaults(max_snapshots=-1)
@@ -436,6 +437,7 @@ update.add_argument('--expandable', help = 'Expandable')
 update.add_argument('--use_matched', help = 'Use matched pools')
 update.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second.  To reset, use value of 0')
 update.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs.  To reset, use value of 0')
+update.add_argument('--placement_policy', help='Resource placement policy')
 update.add_argument('--compressionEnabled', help='Enable Compression on VMAX All Flash array')
 
 # cos to pool assignment for any pools

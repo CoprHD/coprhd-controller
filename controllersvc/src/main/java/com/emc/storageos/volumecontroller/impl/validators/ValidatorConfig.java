@@ -4,10 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Configuration class for the Validation framework.
@@ -21,6 +22,10 @@ public class ValidatorConfig {
     // situation and they need to disable the feature.
     private static final String VALIDATION_CHECK_PROPERTY = "validation_check";
     private static final String VALIDATION_REFRESH_CHECK_PROPERTY = "refresh_provider_on_validation";
+
+    // Different types of Volumes
+    public static final String VOLUME_TYPE = "Volume";
+    public static final String EXPORT_MASK_TYPE = "Export Mask";
 
     private CoordinatorClient coordinator;
 

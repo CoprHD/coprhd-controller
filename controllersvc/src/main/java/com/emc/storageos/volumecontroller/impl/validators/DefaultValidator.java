@@ -42,10 +42,33 @@ public class DefaultValidator implements Validator {
         }
 
         if (logger.hasErrors() && config.validationEnabled()) {
-            throw DeviceControllerException.exceptions.validationError(type, logger.getMsgs().toString(),
-                    ValidatorLogger.CONTACT_EMC_SUPPORT);
+            generateException(validator, type, logger);
         }
 
         return true;
+    }
+
+    /**
+     * Generate an appropriate exception for the type of object validate.
+     * 
+     * @param type
+     *            type of object validated
+     * @param logger
+     *            log object with details of failure
+     */
+    public static void generateException(Validator validator, String type, ValidatorLogger logger) {
+        if (type.equalsIgnoreCase(ValidatorConfig.EXPORT_MASK_TYPE)) {
+            throw DeviceControllerException.exceptions.validationExportMaskError(logger.getValidatedObjectName(),
+                    logger.getStorageSystemName(), logger.getMsgs().toString());
+        }
+
+        if (type.equalsIgnoreCase(ValidatorConfig.VOLUME_TYPE)) {
+            throw DeviceControllerException.exceptions.validationVolumeError(logger.getValidatedObjectName(),
+                    logger.getStorageSystemName(), logger.getMsgs().toString());
+        }
+
+        // Generic validation exception
+        throw DeviceControllerException.exceptions.validationError(type, logger.getMsgs().toString(),
+                ValidatorLogger.CONTACT_EMC_SUPPORT);
     }
 }

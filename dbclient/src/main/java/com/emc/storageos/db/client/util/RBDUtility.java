@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.db.client.util;
 
-public class RBDUtility {
+public final class RBDUtility {
 
     private RBDUtility() {
     }

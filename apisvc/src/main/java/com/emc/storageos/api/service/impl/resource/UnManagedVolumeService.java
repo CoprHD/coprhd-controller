@@ -33,9 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapUnmanagedVolume;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestExportedVolumeSchedulingThread;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestVolumesExportedSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestUnexportedVolumesSchedulingThread;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestVolumesUnexportedSchedulingThread;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVolumeCGIngestDecorator;
@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -63,7 +64,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
@@ -256,7 +256,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient, param.getUnManagedVolumes(), vpool,
                     varray, project, tenant, param.getVplexIngestionMethod());
 
-            // create tasks for each i
             while (requestContext.hasNext()) {
                 UnManagedVolume unManagedVolume = requestContext.next();
                 if (null == unManagedVolume) {
@@ -273,7 +272,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 taskMap.put(unManagedVolume.getId().toString(), taskId);
             }
 
-            IngestUnexportedVolumesSchedulingThread.executeApiTask(
+            IngestVolumesUnexportedSchedulingThread.executeApiTask(
                     _asyncTaskService.getExecutorService(), requestContext, ingestStrategyFactory, this, _dbClient, taskMap, taskList);
 
         } catch (InternalException e) {
@@ -427,7 +426,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             requestContext.setExportGroup(exportGroup);
             _logger.info("ExportGroup {} created ", exportGroup.forDisplay());
 
-            IngestExportedVolumeSchedulingThread.executeApiTask(
+            IngestVolumesExportedSchedulingThread.executeApiTask(
                     _asyncTaskService.getExecutorService(), requestContext, ingestStrategyFactory, this, _dbClient, taskMap, taskList);
 
         } catch (InternalException e) {

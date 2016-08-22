@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
@@ -24,16 +28,27 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-public class IngestUnexportedVolumesSchedulingThread implements Runnable {
+public class IngestVolumesUnexportedSchedulingThread implements Runnable {
 
-    private static final Logger _logger = LoggerFactory.getLogger(IngestUnexportedVolumesSchedulingThread.class);
+    private static final Logger _logger = LoggerFactory.getLogger(IngestVolumesUnexportedSchedulingThread.class);
     private BaseIngestionRequestContext _requestContext;
     private IngestStrategyFactory _ingestStrategyFactory;
     private UnManagedVolumeService _unManagedVolumeService;
     private DbClient _dbClient;
     private Map<String, String> _taskMap;
 
-    public IngestUnexportedVolumesSchedulingThread(BaseIngestionRequestContext requestContext,
+    private static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
+
+    /**
+     * Constructor. 
+     * 
+     * @param requestContext the BaseIngestionRequestContext
+     * @param ingestStrategyFactory the IngestStrategyFactory
+     * @param unManagedVolumeService the UnManagedVolumeService
+     * @param dbClient the database client
+     * @param taskMap a Map of UnManagedVolume ids to task ids
+     */
+    public IngestVolumesUnexportedSchedulingThread(BaseIngestionRequestContext requestContext,
             IngestStrategyFactory ingestStrategyFactory, UnManagedVolumeService unManagedVolumeService, DbClient dbClient,
             Map<String, String> taskMap) {
         this._requestContext = requestContext;
@@ -42,8 +57,6 @@ public class IngestUnexportedVolumesSchedulingThread implements Runnable {
         this._dbClient = dbClient;
         this._taskMap = taskMap;
     }
-
-    private static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
 
     @Override
     public void run() {
@@ -176,11 +189,22 @@ public class IngestUnexportedVolumesSchedulingThread implements Runnable {
         }
     }
 
+    /**
+     * Executes API Tasks on a separate thread by instantiating a IngestVolumesUnexportedSchedulingThread.
+     * 
+     * @param executorService the ExecutorService
+     * @param requestContext the BaseIngestionRequestContext
+     * @param ingestStrategyFactory the IngestStrategyFactory
+     * @param unManagedVolumeService the UnManagedVolumeService
+     * @param dbClient the database client
+     * @param taskMap a Map of UnManagedVolume ids to task ids
+     * @param taskList a list of Tasks
+     */
     public static void executeApiTask(ExecutorService executorService, BaseIngestionRequestContext requestContext,
             IngestStrategyFactory ingestStrategyFactory, UnManagedVolumeService unManagedVolumeService, DbClient dbClient,
             Map<String, String> taskMap, TaskList taskList) {
 
-        IngestUnexportedVolumesSchedulingThread schedulingThread = new IngestUnexportedVolumesSchedulingThread(requestContext,
+        IngestVolumesUnexportedSchedulingThread schedulingThread = new IngestVolumesUnexportedSchedulingThread(requestContext,
                 ingestStrategyFactory, unManagedVolumeService, dbClient, taskMap);
 
         try {

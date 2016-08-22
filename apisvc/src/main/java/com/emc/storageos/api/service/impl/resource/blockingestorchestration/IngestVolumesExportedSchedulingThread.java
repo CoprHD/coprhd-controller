@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
@@ -32,9 +36,9 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
-public class IngestExportedVolumeSchedulingThread implements Runnable {
+public class IngestVolumesExportedSchedulingThread implements Runnable {
 
-    private static final Logger _logger = LoggerFactory.getLogger(IngestExportedVolumeSchedulingThread.class);
+    private static final Logger _logger = LoggerFactory.getLogger(IngestVolumesExportedSchedulingThread.class);
     private BaseIngestionRequestContext _requestContext;
     private IngestStrategyFactory _ingestStrategyFactory;
     private UnManagedVolumeService _unManagedVolumeService;
@@ -43,7 +47,16 @@ public class IngestExportedVolumeSchedulingThread implements Runnable {
 
     private static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested exported volume and its masks.";
 
-    public IngestExportedVolumeSchedulingThread(BaseIngestionRequestContext requestContext,
+    /**
+     * Constructor.
+     * 
+     * @param requestContext the BaseIngestionRequestContext
+     * @param ingestStrategyFactory the IngestStrategyFactory
+     * @param unManagedVolumeService the UnManagedVolumeService
+     * @param dbClient the database client
+     * @param taskMap a Map of UnManagedVolume ids to TaskResourceReps
+     */
+    public IngestVolumesExportedSchedulingThread(BaseIngestionRequestContext requestContext,
             IngestStrategyFactory ingestStrategyFactory, UnManagedVolumeService unManagedVolumeService, DbClient dbClient,
             Map<String, TaskResourceRep> taskMap) {
         this._requestContext = requestContext;
@@ -203,9 +216,8 @@ public class IngestExportedVolumeSchedulingThread implements Runnable {
     /**
      * Ingest block export masks for the already-ingested Volumes.
      *
-     * @param requestContext
-     * @param taskMap
-     * @param exportIngestParam
+     * @param requestContext the IngestionRequestContext
+     * @param taskMap a Map of UnManagedVolume ids to TaskResourceReps
      */
     private void ingestBlockExportMasks(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
         for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
@@ -274,11 +286,22 @@ public class IngestExportedVolumeSchedulingThread implements Runnable {
         }
     }
 
+    /**
+     * Executes API Tasks on a separate thread by instantiating a IngestVolumesExportedSchedulingThread.
+     * 
+     * @param executorService the ExecutorService
+     * @param requestContext the BaseIngestionRequestContext
+     * @param ingestStrategyFactory the IngestStrategyFactory
+     * @param unManagedVolumeService the UnManagedVolumeService
+     * @param dbClient the database client
+     * @param taskMap a Map of UnManagedVolume ids to TaskResourceReps
+     * @param taskList a list of Tasks
+     */
     public static void executeApiTask(ExecutorService executorService, BaseIngestionRequestContext requestContext,
             IngestStrategyFactory ingestStrategyFactory, UnManagedVolumeService unManagedVolumeService, DbClient dbClient,
             Map<String, TaskResourceRep> taskMap, TaskList taskList) {
 
-        IngestExportedVolumeSchedulingThread schedulingThread = new IngestExportedVolumeSchedulingThread(requestContext,
+        IngestVolumesExportedSchedulingThread schedulingThread = new IngestVolumesExportedSchedulingThread(requestContext,
                 ingestStrategyFactory, unManagedVolumeService, dbClient, taskMap);
 
         try {

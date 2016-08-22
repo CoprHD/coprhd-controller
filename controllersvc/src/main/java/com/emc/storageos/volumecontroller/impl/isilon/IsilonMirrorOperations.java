@@ -29,6 +29,7 @@ import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -586,11 +587,10 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             job.setAction(Action.allow_write);
 
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
-            
-            IsilonSyncPolicy policytarget = isi.getTargetReplicationPolicy(policyName);
             JobState policyState1 = policy.getLastJobState();
             
+            IsilonList<IsilonSyncPolicyReport> test = isi.getReplicationPolicyReports(policyName);
+                       
             isi.modifyReplicationJob(job);
 
             IsilonSyncJobFailover isiSyncJobFailover = new IsilonSyncJobFailover(policyName, system.getId(), taskCompleter, policyName);
@@ -632,8 +632,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
         JobState policyState = policy.getLastJobState();
         
-        IsilonSyncPolicy policytarget = isiPrimary.getTargetReplicationPolicy(policyName);
-        JobState policyState1 = policy.getLastJobState();
+        IsilonList<IsilonSyncPolicyReport> test = isiPrimary.getReplicationPolicyReports(policyName);
 
         if(policy.getEnabled() == true) {
         	isiPrimary.modifyReplicationJob(job);

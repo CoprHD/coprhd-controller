@@ -586,11 +586,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             job.setId(policyName);
             job.setAction(Action.allow_write);
 
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState1 = policy.getLastJobState();
-            
-            IsilonList<IsilonSyncPolicyReport> test = isi.getReplicationPolicyReports(policyName);
-                       
+                                
             isi.modifyReplicationJob(job);
 
             IsilonSyncJobFailover isiSyncJobFailover = new IsilonSyncJobFailover(policyName, system.getId(), taskCompleter, policyName);

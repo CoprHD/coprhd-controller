@@ -2262,13 +2262,7 @@ public class NetworkDeviceController implements NetworkController {
                         exportMask.getMaskName());
                 return;
             }
-            // Do no refresh the zones of backend masking views for performance reasons
             List<Initiator> initiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
-            if (ExportMaskUtils.areBackendInitiators(initiators)) {
-                _log.info("Mask {} is a backend mask and its zones will not be refreshed",
-                        exportMask.getMaskName());
-                return;
-            }
             _log.info("Refreshing zones for export mask {}. \n\tCurrent initiators " +
                     "in this mask are:  {}. \n\tStorage ports in the mask are : {}. \n\tZoningMap is : {}. " +
                     "\n\tRemoved initiators: {}. \n\tRemoved ports: {}",

@@ -1061,8 +1061,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         boolean exportGroupHasMoreVolumes = !exportGroupVolumeURIs.isEmpty();
                         boolean exportMaskIsShared = ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null);
                         @SuppressWarnings("unchecked")
-                        List<URI> initiatorsToRemove = (exportMask.getUserAddedInitiators() != null)
-                        ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
                         List<URI> allExportMaskInitiators = ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient);
 
                         _log.info(String.format("ExportMask %s(%s) - exportGroupHasMoreVolumes=%s exportMaskIsShared=%s " +
@@ -1117,9 +1115,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             _log.info(String
                                     .format("ExportMask %s(%s) - canRemoveVolumes=%s "
                                             +
-                                            "initiatorsToRemove.size=%d allExportMaskInitiators=%d removingLastVolumeFromMask=%s removingAllUserAddedVolumes=%s",
+                                            "allExportMaskInitiators=%d removingLastVolumeFromMask=%s removingAllUserAddedVolumes=%s",
                                             exportMask.getMaskName(), exportMask.getId(),
-                                            canRemoveVolumes, initiatorsToRemove.size(), allExportMaskInitiators.size(),
+                                            canRemoveVolumes, allExportMaskInitiators.size(),
                                             removingLastVolumeFromMask, removingAllUserAddedVolumes));
 
                             if (canRemoveVolumes) {

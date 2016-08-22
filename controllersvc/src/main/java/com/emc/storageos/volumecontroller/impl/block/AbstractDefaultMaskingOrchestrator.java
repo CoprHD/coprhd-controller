@@ -66,6 +66,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
@@ -797,8 +798,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         String zoningStep = workflow.createStepId();
 
+        ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskURIs, zoningStep);
+
         Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportMasksDeleteMethod(exportGroupURI, exportMaskURIs, volumeURIs);
+                .zoneExportMasksDeleteMethod(exportGroupURI, exportMaskURIs, volumeURIs, zoneTaskCompleter);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -1098,10 +1101,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      */
     public String generateDeviceSpecificDeleteWorkflow(Workflow workflow, String previousStep,
             ExportGroup exportGroup, ExportMask mask, List<URI> volumes, List<URI> initiators, StorageSystem storage) throws Exception {
-        String unZoneStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
-                Arrays.asList(mask));
-        return generateExportMaskDeleteWorkflow(workflow, unZoneStep, storage,
+        String unMaskStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                 exportGroup, mask, volumes, initiators, null);
+        return generateZoningDeleteWorkflow(workflow, unMaskStep, exportGroup,
+                Arrays.asList(mask));
     }
 
     /**
@@ -1130,12 +1133,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             String previousStep, ExportGroup exportGroup, ExportMask mask,
             StorageSystem storage, Map<URI, List<URI>> maskToInitiatorsMap,
             List<URI> volumes, List<URI> initiatorsToRemove, boolean removeTargets) throws Exception {
-
-        String unZoneStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep, exportGroup,
-                maskToInitiatorsMap);
-
-        return generateExportMaskRemoveInitiatorsWorkflow(workflow, unZoneStep, storage,
+        String unMaskStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
                 exportGroup, mask, volumes, initiatorsToRemove, removeTargets);
+
+        return generateZoningRemoveInitiatorsWorkflow(workflow, unMaskStep, exportGroup,
+                maskToInitiatorsMap);
     }
 
     /**
@@ -1162,11 +1164,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     public String generateDeviceSpecificRemoveVolumesWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask mask, StorageSystem storage,
             List<URI> volumesToRemove, List<URI> initiatorURIs, ExportTaskCompleter completer) throws Exception {
-        String zoningStep = generateZoningRemoveVolumesWorkflow(workflow, previousStep,
-                exportGroup, Arrays.asList(mask), volumesToRemove);
-
-        return generateExportMaskRemoveVolumesWorkflow(workflow, zoningStep, storage, exportGroup,
+        String unMaskStep = generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage, exportGroup,
                 mask, volumesToRemove, initiatorURIs, completer);
+
+        return generateZoningRemoveVolumesWorkflow(workflow, unMaskStep,
+                exportGroup, Arrays.asList(mask), volumesToRemove);
     }
 
     /**

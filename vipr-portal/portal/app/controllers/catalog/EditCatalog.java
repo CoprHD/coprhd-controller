@@ -582,8 +582,6 @@ public class EditCatalog extends ServiceCatalog {
 
         public List<AclEntryForm> aclEntries = Lists.newArrayList();
         
-        public Boolean recurringAllowed;
-
         @CheckWith(ServiceFieldsCheck.class)
         public List<ServiceFieldForm> serviceFields = Lists.newArrayList();
 
@@ -613,7 +611,6 @@ public class EditCatalog extends ServiceCatalog {
             if (service.getDefaultExecutionWindow() != null) {
                 this.defaultExecutionWindowId = service.getDefaultExecutionWindow().getId().toString();
             }
-            this.recurringAllowed = service.isRecurringAllowed();
             this.serviceFields.clear();
 
             List<CatalogServiceFieldRestRep> catalogServiceFields = service.getCatalogServiceFields();
@@ -710,7 +707,6 @@ public class EditCatalog extends ServiceCatalog {
             else {
                 commonParam.setDefaultExecutionWindow(null);
             }
-            commonParam.setRecurringAllowed(recurringAllowed);
             for (ServiceFieldForm serviceFieldForm : this.serviceFields) {
                 CatalogServiceFieldParam fieldParam = new CatalogServiceFieldParam();
                 serviceFieldForm.writeTo(fieldParam);
@@ -736,7 +732,6 @@ public class EditCatalog extends ServiceCatalog {
             service.setApprovalRequired(this.approvalRequired);
             service.setExecutionWindowRequired(this.executionWindowRequired);
             service.setMaxSize(this.maxSize != null ? this.maxSize : 0);
-            service.setRecurringAllowed(this.recurringAllowed);
             // if (this.defaultExecutionWindowId != null) {
             // ExecutionWindowRestRep executionWindow = ExecutionWindowUtils.getExecutionWindow(uri(this.defaultExecutionWindowId));
             // if (executionWindow != null) {

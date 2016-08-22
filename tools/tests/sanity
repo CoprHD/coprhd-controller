@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile '
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -176,7 +176,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|custvolname)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|custvolname|arrayaffinity)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -410,6 +410,12 @@ COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
 COS_ECS=ecs_vpool
 COS_UNITYBLOCK_CG=cosunity_cg
+COS_ARRAYAFFINITY=cos_arrayaffinity
+COS_ARRAYAFFINITY_VMAX=cos_arrayaffinity_vmax
+COS_ARRAYAFFINITY_VNX=cos_arrayaffinity_vnx
+HOST_ARRAYAFFINITY=arrayaffinity
+HOST_ARRAYAFFINITY_FQDN=${HOST_ARRAYAFFINITY}.lss.emc.com
+HOST_ARRAYAFFINITY_URI=""
 
 #
 # Isilon configuration
@@ -5004,6 +5010,7 @@ recoverpoint_direct_access_test()
 
         secho 'Swap/swap-back while single target volume is in direct access mode'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp       
+        sleep 10
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
 
         # Failover to each of the remaining target copies and set access mode to direct access.  Test swap/swap-back.
@@ -5021,12 +5028,14 @@ recoverpoint_direct_access_test()
 
                     secho 'Swap/swap-back while each target copies are in direct access mode'
                     run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${target_vol} rp
+                    sleep 10
                     run volume change_link ${PROJECT}/${target_vol} swap ${PROJECT}/${src_volume} rp
                 fi
             done
         fi
        
         secho 'Failover'
+        sleep 10
         run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
@@ -12462,6 +12471,245 @@ custvolname_vplex_tests()
     customconfig delete systemType.vplex.VolumeNamingProvisionWithExport systemType vplex False
 
     echo "Completed custom volume name tests"
+}
+
+arrayaffinity_vmaxblock_setup_once()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    sleep 15
+
+    secho "VMAX storage pool update"
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+}
+
+arrayaffinity_vnxblock_setup_once()
+{
+    # do this only once
+    smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
+
+    run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    sleep 15
+
+    secho "VNX Block storage pool update"
+    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
+}
+
+arrayaffinity_cos_setup()
+{
+    secho "setting up array affinity block virtual pool"
+
+    run cos create block $COS_ARRAYAFFINITY \
+        --description 'Virtual-Pool-for-arrayaffinity' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency \
+                         --placement_policy default_policy
+
+    run cos update block $COS_ARRAYAFFINITY --storage $VMAX_NATIVEGUID
+    run cos update block $COS_ARRAYAFFINITY --storage $VNXB_NATIVEGUID
+
+    run cos create block $COS_ARRAYAFFINITY_VMAX \
+	    --description 'Virtual-Pool-for-arrayaffinity-vmax' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vmax \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency \
+                         --placement_policy array_affinity
+
+    run cos update block $COS_ARRAYAFFINITY_VMAX --storage $VMAX_NATIVEGUID
+
+    run cos create block $COS_ARRAYAFFINITY_VNX \
+	    --description 'Virtual-Pool-for-arrayaffinity-vnx' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vnxblock \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency \
+                         --placement_policy array_affinity
+
+    run cos update block $COS_ARRAYAFFINITY_VNX --storage $VNXB_NATIVEGUID
+}
+
+arrayaffinity_host_setup()
+{
+    portwwn=10:a0:b0:c0:d0:e0:f0:01
+    nodewwn=20:a0:b0:c0:d0:e0:f0:01
+	fctz=${NH}/FABRIC_losam082-fabric
+
+    echo "Creating host with name $HOST_ARRAYAFFINITY"
+    run hosts create ${HOST_ARRAYAFFINITY} $TENANT Windows ${HOST_ARRAYAFFINITY_FQDN} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${HOST_ARRAYAFFINITY} FC $portwwn --node $nodewwn
+	echo "Adding WWNs to Network"
+	run transportzone add $fctz $portwwn
+
+    echo "Getting host URI"
+    HOST_ARRAYAFFINITY_URI=`hosts list ${TENANT} | grep ${HOST_ARRAYAFFINITY_FQDN} | awk '{print $4}'`
+    echo "Host URI is ${HOST_ARRAYAFFINITY_URI}"
+}
+
+arrayaffinity_setup()
+{
+    secho "Run array affinity setup"
+    arrayaffinity_vmaxblock_setup_once
+    arrayaffinity_vnxblock_setup_once
+
+    arrayaffinity_cos_setup
+    arrayaffinity_host_setup
+    secho "Completed array affinity setup"
+}
+
+arrayaffinity_cos_tests()
+{
+    echo "Executing array affinity update cos tests"
+
+    run cos update block $COS_ARRAYAFFINITY_VMAX --placement_policy default_policy
+    run cos update block $COS_ARRAYAFFINITY_VNX --placement_policy default_policy
+
+    echo "**** Done array affinity update cos tests"
+}
+
+# Test array affinity placement
+#
+# Precondition
+#    1. VPool with default policy (with both VMAX3 and VNX arrays)
+#       VPool with only VMAX3, and VPool with only VNX (used to create pre-existing volume for host)
+#    2. Host to be used for provision
+#
+# Steps
+#    1. Create vol1 from the VPool VMAX3-VNX (with default policy)
+#    2. Get system type of vol1
+#    3. If system type is vmax3, provison vol2 from VNX VPool for the host
+#       Otherwise, provision vol2 from VMAX3 VPool for the host
+#    4. Export vol2 to the host
+#    5. Delete vol2 in ViPR
+#    6. Run ARRAY_AFFINITY namespace discovery on vol2 array
+#    7. Verify the host's preferredPools
+#    8. Change the VPool VMAX3-VNX to use array affinity policy
+#    9. Provision vol3 to the host from the VPool VMAX3-VNX
+#    10. Verify vol3 is placed to preferred array
+#
+# Cleanup
+#    1. Delete vol1 and vol3
+#    2. Run umanaged volume discovery on vol2 array
+#    3. Ingest vol2
+#    4. Delete export group
+#    5. Delete vol2
+#    6. Delete VPools
+#    7. Delete host
+#
+arrayaffinity_placement_tests()
+{
+    echo "Executing array affinity placement tests"
+    vol1=arrayaffinity-${RANDOM}
+
+    echo "Creating volume with name $vol1 with default policy"
+    run volume create $vol1 $PROJECT $NH $COS_ARRAYAFFINITY $BLK_SIZE
+
+    echo "Finding volume's system type"
+    system_type=`volume show $PROJECT/$vol1 | grep system_type | awk -F\" '{print $4}'`
+
+    preferred_cos=$COS_ARRAYAFFINITY_VMAX
+    preferred_system=$VMAX_NATIVEGUID
+    preferred_system_type=vmax3
+    if [ "$system_type" = "vmax3" ] ; then
+        preferred_cos=$COS_ARRAYAFFINITY_VNX
+        preferred_system=$VNXB_NATIVEGUID
+        preferred_system_type=vnxblock
+    fi
+
+    vol2=arrayaffinity-${RANDOM}
+    echo "Creating volume $vol2 using virtual pool $preferred_cos"
+    run volume create $vol2 $PROJECT $NH $preferred_cos $BLK_SIZE
+
+    eg=arrayaffinity-${RANDOM}
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol2 --hosts $HOST_ARRAYAFFINITY
+
+    echo "Delete volume $vol2 from ViPR"
+    run_noundo volume delete ${PROJECT}/${vol2} --vipronly
+
+    run storagedevice discover_namespace $preferred_system ARRAY_AFFINITY
+	# verify host's preferredPools is populated
+	echo "Verifying host's preferredPools"
+	preferred_pools=`hosts show ${HOST_ARRAYAFFINITY} | grep preferred_pools`
+	if [[ -z $preferred_pools ]] ; then
+	    echo "Fail: no preferred pool discovered"
+	    exit 1
+	fi
+
+    run cos update block $COS_ARRAYAFFINITY --placement_policy array_affinity
+
+    vol3=arrayaffinity-${RANDOM}
+    echo "Creating volume $vol3 for host ${HOST_ARRAYAFFINITY}"
+    run volume create $vol3 $PROJECT $NH $COS_ARRAYAFFINITY $BLK_SIZE --computeResource ${HOST_ARRAYAFFINITY_URI}
+
+    # verify the system type of the volume is same as the preferred one
+    echo "Verifying array affinity placement"
+    system_type_vol3=`volume show $PROJECT/$vol3 | grep system_type | awk -F\" '{print $4}'`
+    if [ "$preferred_system_type" != "$system_type_vol3" ] ; then
+        echo -e "Fail: system type \"$system_type_vol3\" isn't equal to preferred array's system type \"$preferred_system_type\""
+        exit 1
+    fi
+
+    echo "Clean up"
+    echo "Deleting volume $vol1 and $vol3"
+    run volume delete ${PROJECT}/${vol1} --wait
+    run volume delete ${PROJECT}/${vol3} --wait
+
+    # ingest vol2 so that it can be deleted
+    run storagedevice discover_namespace $preferred_system 'UNMANAGED_VOLUMES'
+    run unmanagedvolume ingest_export ${NH} ${preferred_cos} $PROJECT --volspec "${vol2}" --host ${HOST_ARRAYAFFINITY}
+    run export_group list $PROJECT
+
+    echo "Deleting volume $vol2"
+    run export_group delete ${PROJECT}/${eg}
+    run volume delete ${PROJECT}/${vol2} --wait
+
+    echo "**** Done array affinity placement tests"
+}
+
+arrayaffinity_cleanup()
+{
+    echo "Deleting VPools"
+
+    # delete cos so that test can be executed again
+    run cos delete $COS_ARRAYAFFINITY block
+    run cos delete $COS_ARRAYAFFINITY_VMAX block
+    run cos delete $COS_ARRAYAFFINITY_VNX block
+
+	echo "Deleting host ${HOST_ARRAYAFFINITY}"
+	run hosts delete ${HOST_ARRAYAFFINITY}
+}
+
+# Array affinity tests command: "sanity sanity.conf viprIP arrayaffinity"
+arrayaffinity_tests()
+{
+    secho "Executing array affinity tests"
+
+    arrayaffinity_cos_tests
+    arrayaffinity_placement_tests
+    arrayaffinity_cleanup
+
+    secho "Completed array affinity tests"
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

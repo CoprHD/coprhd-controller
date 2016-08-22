@@ -193,7 +193,7 @@ public class HP3PARExpUnexpHelper {
                      */
 
                     String lockName = volumes.get(0).getStorageSystemId() + vol.getNativeId() + host;
-                    if (driverLockManager.acquireLock(lockName, 8, TimeUnit.MINUTES)) {
+                    if (driverLockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
                     	_log.info("3PARDriver: Acquired lock {} to examine vlun creation", lockName);
                         /*
                           If this is the first request key gets created with export operation. 
@@ -316,6 +316,10 @@ public class HP3PARExpUnexpHelper {
 
                         _log.info("3PARDriver: Releasing lock {} after examining vlun creation", lockName);
                         driverLockManager.releaseLock(lockName);
+                    } else {
+                   	 _log.error("3PARDriver:exportVolumesToInitiators error: could not acquire thread lock");
+                     throw new HP3PARException(
+                             "3PARDriver:exportVolumesToInitiators error: could not acquire thread lock");	
                     }
                     
                 } // end cluster export
@@ -335,7 +339,7 @@ public class HP3PARExpUnexpHelper {
     }
 
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes, 
-            DriverTask task, Registry driverRegistry) {
+            DriverTask task, Registry driverRegistry, LockManager driverLockManager) {
 
         _log.info("3PARDriver:unexportVolumesFromInitiators enter");
 
@@ -478,35 +482,41 @@ public class HP3PARExpUnexpHelper {
                         // cluster unexport
                         String clusterName = "set:" + initiators.get(0).getClusterName();
                         String exportPath = volume.getStorageSystemId() + volume.getNativeId() + clusterName;
-                        Map<String, List<String>> attributes = new HashMap<>();
-                        List<String> expValue = new ArrayList<>();
-                        List<String> lunValue = new ArrayList<>();
-                        boolean regPresent = false;
+                        if (driverLockManager.acquireLock(exportPath, 10, TimeUnit.MINUTES)) {
+                        	Map<String, List<String>> attributes = new HashMap<>();
+                        	List<String> expValue = new ArrayList<>();
+                        	List<String> lunValue = new ArrayList<>();
+                        	boolean regPresent = false;
 
-                        String message = String.format(
-                                "3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s Cluster %s",
-                                volume.getStorageSystemId(), volume.getNativeId(), clusterName);
+                        	String message = String.format(
+                        			"3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s Cluster %s",
+                        			volume.getStorageSystemId(), volume.getNativeId(), clusterName);
 
-                        attributes = driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
+                        	attributes = driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
 
-                        if (attributes != null) {
-                            expValue = attributes.get("EXPORT_PATH");
-                            if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
-                                lunValue = attributes.get(volume.getNativeId());
-                                regPresent = true;
+                        	if (attributes != null) {
+                        		expValue = attributes.get("EXPORT_PATH");
+                        		if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
+                        			lunValue = attributes.get(volume.getNativeId());
+                        			regPresent = true;
 
-                                _log.info(message);
-                                /*
-                                 * below operations are assumed to autonomic
-                                 */
-                                hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), clusterName, null);
-                                driverRegistry.clearDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
-                            }
-                        }
+                        			_log.info(message);
+                        			/*
+                        			 * below operations are assumed to autonomic
+                        			 */
+                        			hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), clusterName, null);
+                        			driverRegistry.clearDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
+                        		}
+                        	}
 
-                        if (!regPresent) {
-                            // gracefully exit, nothing to be done
-                            _log.info("3PARDriver: Already unexported, exiting gracefully" + message);
+                        	if (!regPresent) {
+                        		// gracefully exit, nothing to be done
+                        		_log.info("3PARDriver: Already unexported, exiting gracefully" + message);
+                        	}
+                        } else {// lock
+                        	 _log.error("3PARDriver:unexportVolumesFromInitiators error: could not acquire thread lock");
+                             throw new HP3PARException(
+                                     "3PARDriver:unexportVolumesFromInitiators error: could not acquire thread lock");
                         }
                     } // if cluster
                 } // for each initiator
@@ -625,7 +635,7 @@ public class HP3PARExpUnexpHelper {
 
                 // only one thread across all nodes should create cluster; 
                 String lockName = volumes.get(0).getStorageSystemId() + clustArray;
-                if (driverLockManager.acquireLock(lockName, 6, TimeUnit.MINUTES)) {
+                if (driverLockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
                     // Check if cluster exists, otherwise create=>Cluster with +one host at a time
                     HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
                     if (hostsetRes == null) {

@@ -69,7 +69,11 @@ angular.module("portalApp").controller({
             vpoolHAJournalVirtualPool: {
                 path: routes.BlockVirtualPools_listHaRpJournalVPoolsJson(),
                 depend: ['vpool.haJournalVArray']
-            }            
+            },
+            placementPolicy: {
+            	path: routes.BlockVirtualPools_listPlacementPolicy(),
+            	depend: ['vpool.systemType']
+            }
         };
 
         angular.forEach(track, function(options, key) {

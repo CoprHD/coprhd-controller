@@ -72,6 +72,7 @@ var routes = {
   BlockVirtualPools_listSourceRpJournalVPoolsJson:#{jsAction @arrays.BlockVirtualPools.listSourceRpJournalVPoolsJson() /},
   BlockVirtualPools_listHaRpJournalVPoolsJson:#{jsAction @arrays.BlockVirtualPools.listHaRpJournalVPoolsJson() /},
   BlockVirtualPools_validateRecoverPointCopy: #{jsAction @arrays.BlockVirtualPools.validateRecoverPointCopy() /},
+  BlockVirtualPools_listPlacementPolicy: #{jsAction @arrays.BlockVirtualPools.listPlacementPolicy() /},
 
   SystemHealth_renderNodeDetailsJson: #{jsAction @SystemHealth.renderNodeDetailsJson() /},
   SystemHealth_listDiagnosticsJson: #{jsAction @SystemHealth.listDiagnosticsJson() /},

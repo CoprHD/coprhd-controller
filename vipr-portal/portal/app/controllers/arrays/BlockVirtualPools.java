@@ -574,6 +574,20 @@ public class BlockVirtualPools extends ViprResourceController {
         }
         renderJSON(DataTablesSupport.createJSON(items, params));
     }
+    
+    public static void listPlacementPolicy(BlockVirtualPoolForm vpool) {
+        String systemType = vpool.systemType;
+        List<StringOption> options = Lists.newArrayList();
+        if (systemType.equals(StorageSystemTypes.NONE) || systemType.equals(StorageSystemTypes.VMAX) || systemType.equals(StorageSystemTypes.XTREMIO)) {
+            options = VirtualPoolPlacementPolicy.options(
+                    VirtualPoolPlacementPolicy.DEFAULT,
+                    VirtualPoolPlacementPolicy.ARRAY_AFFINITY
+                    );
+        } else {
+            options = VirtualPoolPlacementPolicy.options(VirtualPoolPlacementPolicy.DEFAULT);
+        }
+        renderJSON(options);
+    }
 
     private static List<StoragePoolRestRep> getMatchingStoragePools(BlockVirtualPoolForm vpool) {
         try {

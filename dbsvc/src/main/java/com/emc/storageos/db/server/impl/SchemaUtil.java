@@ -42,6 +42,7 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,7 @@ public class SchemaUtil {
     private static final int DBINIT_RETRY_INTERVAL = 5;
     // waiting 5 mins to init schema
     private static final int DBINIT_RETRY_MAX = 60;
+    private static final int STORAGE_TYPE_INIT_RETRY_MAX = 10;
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -904,9 +906,7 @@ public class SchemaUtil {
             lock = _coordinator.getLock(STORAGE_SYSTEM_TYPE_INIT_LOCK);
             _log.info("StorageSystemType check - waiting for StorageSystemType CF init lock");
             lock.acquire();
-
-            StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
-            utils.initializeStorageSystemTypes();
+            insertStorageSystemTypes(dbClient);
         } catch (Exception e) {
            _log.warn("Exception happend when trying to acquire lock", e);
         } finally {
@@ -920,6 +920,21 @@ public class SchemaUtil {
         }
     }
 
+    private void insertStorageSystemTypes(DbClient dbClient) {
+        int retry = 0;
+        while (retry <= STORAGE_TYPE_INIT_RETRY_MAX) {
+            try {
+                StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
+                utils.initializeStorageSystemTypes();
+                _log.info("Storage system types info have been successfully inserted into Cassandra");
+                return;
+            } catch (Exception e) {
+                _log.warn("Error happened when trying to insert storage system type info into Cassandra", e);
+            }
+            retry ++;
+        }
+        _log.error("Max retry times({}) exceeded, fail to insert storage system types into Cassandra", STORAGE_TYPE_INIT_RETRY_MAX);
+    }
     /**
      * Init the bootstrap info, including:
      * check and setup root tenant or my vdc info, if it doesn't exist

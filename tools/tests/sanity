@@ -6377,7 +6377,9 @@ vmaxblock_setup_once()
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storagepool update $VMAX3_AFA_NATIVEGUID --nhadd $NH --type block --volume_type THIN_ONLY
+    if [ $VMAX3_COMPRESSION -eq 1 ]; then
+        run storagepool update $VMAX3_AFA_NATIVEGUID --nhadd $NH --type block --volume_type THIN_ONLY
+    fi
     
     if [ $QUICK -eq 0 ]; then
         echo "VMAX Block storageports update"

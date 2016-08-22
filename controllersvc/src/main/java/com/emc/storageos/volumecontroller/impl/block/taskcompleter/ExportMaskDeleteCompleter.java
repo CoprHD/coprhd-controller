@@ -33,8 +33,13 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
             if (exportMask != null && status == Operation.Status.ready) {
                 exportGroup.removeExportMask(exportMask.getId());
-                dbClient.markForDeletion(exportMask);
                 dbClient.updateObject(exportGroup);
+                // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
+                // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that
+                // when the zone step is complete.
+                _log.info(
+                        String.format("ExportMask %s will not be deleted by this step completer; unzoning step will delete the ExportMask",
+                        getId().toString()));
             }
             _log.info(String.format("Done ExportMaskDelete - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

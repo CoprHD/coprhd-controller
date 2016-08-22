@@ -187,9 +187,10 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 tenant = tenant_input.getId();
             }
 
+            Set<ComputeVirtualPool> vpoolSet = new HashSet<ComputeVirtualPool>();
             for (ComputeVirtualPool virtualPool : vpoolObjects) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
-                    list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
+                    vpoolSet.add(virtualPool);
 
                 }
             }
@@ -199,9 +200,13 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
                 for (ComputeVirtualPool virtualPool : vpoolObjects) {
                     if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
-                        list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
+                        vpoolSet.add(virtualPool);
                     }
                 }
+            }
+
+            for (ComputeVirtualPool virtualPool : vpoolSet) {
+                list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
             }
         }
 

@@ -828,8 +828,9 @@ public class StorageScheduler implements Scheduler {
         Host host = _dbClient.queryObject(Host.class, hostURI);
         if (host != null && !host.getInactive()) {
             // add preferred pool Ids from array affinity discovery
-            _log.info("ArrayAffinity - host {} - preferredPoolIds {}", hostURI.toString(), host.getPreferredPoolIds());
-            for (Map.Entry<String, String> entry : host.getPreferredPoolIds().entrySet()) {
+            _log.info("ArrayAffinity - host {} - preferredPools {}", hostURI.toString(),
+                    CommonTransformerFunctions.collectionString(host.getPreferredPools()));
+            for (Map.Entry<String, String> entry : host.getPreferredPools().entrySet()) {
                 poolToTypeMap.put(URI.create(entry.getKey()), entry.getValue());
             }
 

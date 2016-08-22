@@ -2,8 +2,12 @@
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.api.service.impl.resource.utils;
+package com.emc.storageos.security.authentication;
 
+import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.model.project.ProjectElement;
+import com.emc.storageos.model.project.ProjectParam;
+import com.emc.storageos.model.tenant.TenantCreateParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.TenantNamespaceInfo;
 
@@ -22,6 +26,10 @@ import java.net.URI;
 public class InternalTenantServiceClient extends BaseServiceClient {
 
     private static final String INTERNAL_TENANT_ROOT = "/internal/tenants";
+    private static final String INTERNAL_CREATE_TENANT = INTERNAL_TENANT_ROOT;
+    private static final String INTERNAL_CREATE_PROJECT = INTERNAL_TENANT_ROOT + "/%s/projects";
+    private static final String INTERNAL_API_PORT = "8443";
+
     private static final String INTERNAL_TENANT_SET_NAMESPACE = INTERNAL_TENANT_ROOT + "/%s/namespace?name=%s";
     private static final String INTERNAL_TENANT_GET_NAMESPACE = INTERNAL_TENANT_ROOT + "/%s/namespace";
     private static final String INTERNAL_TENANT_UNSET_NAMESPACE = INTERNAL_TENANT_ROOT + "/%s/namespace";
@@ -51,7 +59,7 @@ public class InternalTenantServiceClient extends BaseServiceClient {
      */
     @Override
     public void setServer(String server) {
-        setServiceURI(URI.create("https://" + server + ":8443"));
+        setServiceURI(URI.create(CinderConstants.HTTPS_URL + server + CinderConstants.COLON + INTERNAL_API_PORT));
     }
 
     /**
@@ -110,6 +118,33 @@ public class InternalTenantServiceClient extends BaseServiceClient {
                     .delete(ClientResponse.class);
         } catch (UniformInterfaceException e) {
             _log.warn("could not detach namespace from tenant {}. Err:{}", tenantId, e);
+        }
+        return resp;
+    }
+
+    public TenantOrgRestRep createTenant(TenantCreateParam param) {
+
+        WebResource rRoot = createRequest(INTERNAL_CREATE_TENANT);
+        TenantOrgRestRep resp = null;
+        try {
+            resp = addSignature(rRoot)
+                    .post(TenantOrgRestRep.class, param);
+        } catch (Exception e) {
+            _log.error("Could not create tenant. Err:{}", e.getStackTrace());
+        }
+        return resp;
+    }
+
+    public ProjectElement createProject(URI id, ProjectParam param) {
+
+        String path = String.format(INTERNAL_CREATE_PROJECT, id.toString());
+        WebResource rRoot = createRequest(path);
+        ProjectElement resp = null;
+        try {
+            resp = addSignature(rRoot)
+                    .post(ProjectElement.class, param);
+        } catch (Exception e) {
+            _log.error("Could not create project. Err:{}", e.getStackTrace());
         }
         return resp;
     }

@@ -172,7 +172,7 @@ delete_storage_group() {
 delete_volume() {
     VNX_SP_IP=$1
     device_id=$(echo $2 | sed 's/^0*//')
-    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP lun -destroy -l ${device_id} > /tmp/navisechelper.out
+    printf 'y\ny\n' | /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP lun -destroy -l ${device_id} > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to delete the LUN"
     fi

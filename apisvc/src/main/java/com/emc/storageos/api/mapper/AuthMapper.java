@@ -46,6 +46,7 @@ public class AuthMapper {
         to.setGroupWhitelistValues(from.getGroupWhitelistValues());
         to.setDisable(from.getDisable());
         to.setAutoRegCoprHDNImportOSProjects(from.getAutoRegCoprHDNImportOSProjects());
+        to.setTenantsSynchronizationOptions(from.getTenantsSynchronizationOptions());
         to.setDescription(from.getDescription());
         to.setMaxPageSize(from.getMaxPageSize());
         to.setGroupObjectClasses(from.getGroupObjectClassNames());
@@ -69,6 +70,14 @@ public class AuthMapper {
         } else {
             authn.setAutoRegCoprHDNImportOSProjects(false);
         }
+
+        StringSet tenantsSynchronizationOptions = null;
+        if (from.getTenantsSynchronizationOptions() != null && !from.getTenantsSynchronizationOptions().isEmpty()) {
+            tenantsSynchronizationOptions = new StringSet();
+            tenantsSynchronizationOptions.addAll(from.getTenantsSynchronizationOptions());
+            authn.setTenantsSynchronizationOptions(tenantsSynchronizationOptions);
+        }
+
         StringSet urlStringSet = null;
         if (from.getServerUrls() != null && !from.getServerUrls().isEmpty()) {
         	urlStringSet = new StringSet();

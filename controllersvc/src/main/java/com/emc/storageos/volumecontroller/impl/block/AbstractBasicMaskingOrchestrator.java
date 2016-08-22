@@ -1062,7 +1062,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         boolean exportMaskIsShared = ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null);
                         @SuppressWarnings("unchecked")
                         List<URI> initiatorsToRemove = (exportMask.getUserAddedInitiators() != null)
-                                ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
+                        ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values()) : Collections.EMPTY_LIST;
                         List<URI> allExportMaskInitiators = ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient);
                         // We should remove initiators from the ExportMask IF:
                         // 1). ExportMask is not Shared
@@ -1139,7 +1139,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             // should remove initiators or volumes
                             @SuppressWarnings("unchecked")
                             List<URI> userAddedVolumes = (exportMask.getUserAddedVolumes() != null)
-                                    ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()) : Collections.EMPTY_LIST;
+                            ? StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()) : Collections.EMPTY_LIST;
                             userAddedVolumes.removeAll(volumesToRemove);
                             boolean removingAllUserAddedVolumes = userAddedVolumes.isEmpty();
                             boolean canRemoveVolumes = (!volumesToRemove.isEmpty() && !removingLastVolumeFromMask);
@@ -1198,6 +1198,18 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         }
                     }
                 }
+                if (!exportMasksToDelete.isEmpty()) {
+                    for (ExportMask exportMaskToDelete : exportMasksToDelete) {
+                        _log.info("generating workflow to remove exportmask {}", exportMaskToDelete.getMaskName());
+                        List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMaskToDelete);
+                        List<URI> maskInitiatorURIs = Lists.newArrayList(
+                                Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMaskToDelete, null),
+                                        CommonTransformerFunctions.fctnDataObjectToID()));
+                        previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
+                                exportMaskToDelete, maskVolumeURIs, maskInitiatorURIs, storage);
+                    }
+                }
+
                 if (!exportMasksToZoneRemoveVolumes.isEmpty()) {
                     _log.info("generating workflow for exportmask to zoneRemoveVolumes.");
                     // Remove all the indicated volumes from the indicated export masks.
@@ -1211,19 +1223,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     // Add the zone ExportMask delete operations
                     previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep,
                             exportGroup, exportMasksToZoneDelete);
-                }
-
-                if (!exportMasksToDelete.isEmpty()) {
-                    for (ExportMask exportMaskToDelete : exportMasksToDelete) {
-                        _log.info("generating workflow to remove exportmask {}", exportMaskToDelete.getMaskName());
-                        List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMaskToDelete);
-                        List<URI> maskInitiatorURIs = Lists.newArrayList(
-                                Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMaskToDelete, null),
-                                        CommonTransformerFunctions.fctnDataObjectToID()));
-                        generateDeviceSpecificExportMaskDeleteWorkflow(workflow,                                // here first
-                                previousStep, exportGroup, exportMaskToDelete, maskVolumeURIs, maskInitiatorURIs,
-                                storage);
-                    }
                 }
 
                 if (generatedWorkFlowSteps) {
@@ -1327,7 +1326,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         if (!initiatorsToRemove.isEmpty() &&              // If there are initiators to remove
                                 ((!deleteEntireMask) ||                   // And either the entire mask isn't being deleted (then go for it)
                                         (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient)
-                                                .size()))) {
+                                        .size()))) {
                             // or we are deleting the entire mask and we need to delete only a subset of initiators
                             _log.info(String.format("mask %s - going to remove the "
                                     + "following initiators %s", exportMask.getMaskName(),
@@ -1411,15 +1410,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     }
                 }
                 if (!exportMasksToZoneDelete.isEmpty()) {
-                    // CTRL-8506 - VNX StorageGroup cannot be deleted because of a race condition with
-                    // the zoning. This is a live host test case. So, some initiators are still logged
-                    // in by the time ViPR tries to delete the StorageGroup.
-                    // General Solution:
-                    // When we have to delete ExportMask, we'll un-zone first so that any initiators
-                    // that are possibly logged into the array get a chance to log out. That way, there
-                    // should not be any problems with removing the ExportMask off the array.
-                    previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep, exportGroup,
-                            exportMasksToZoneDelete);
                     for (ExportMask exportMask : exportMasksToZoneDelete) {
                         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
                         List<URI> maskInitiatorURIs = Lists.newArrayList(
@@ -1428,11 +1418,22 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
                                 exportMask, volumeURIs, maskInitiatorURIs, storage);
                     }
+                    // CTRL-8506 - VNX StorageGroup cannot be deleted because of a race condition with
+                    // the zoning. This is a live host test case. So, some initiators are still logged
+                    // in by the time ViPR tries to delete the StorageGroup.
+                    // General Solution:
+                    // When we have to delete ExportMask, we'll un-zone first so that any initiators
+                    // that are possibly logged into the array get a chance to log out. That way, there
+                    // should not be any problems with removing the ExportMask off the array.
+                    //
+                    // COP-24183: Reversing the order with serialization to prevent DU if mask validation fails.
+                    previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep, exportGroup,
+                            exportMasksToZoneDelete);
                 }
                 if (!exportMasksToZoneRemoveVolumes.isEmpty()) {
                     // Remove all the indicated volumes from the indicated
                     // export masks.
-                    generateDeviceSpecificZoningRemoveVolumesWorkflow(workflow, null,
+                    generateDeviceSpecificZoningRemoveVolumesWorkflow(workflow, previousStep,
                             exportGroup, exportMasksToZoneRemoveVolumes,
                             new ArrayList<URI>(volumesToZoneRemoveVolumes));
                 }

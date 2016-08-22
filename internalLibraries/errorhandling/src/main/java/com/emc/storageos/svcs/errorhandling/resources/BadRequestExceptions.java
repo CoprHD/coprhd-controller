@@ -3085,5 +3085,5 @@ public interface BadRequestExceptions {
     public BadRequestException cantExportSnapshotExposedAsVPLEXVolume(final String snapshotId);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateXIVVolumes(final String volumeName);
+    public BadRequestException invalidVolumeName(final String volumeName);
 }

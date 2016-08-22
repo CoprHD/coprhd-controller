@@ -68,7 +68,8 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
  */
 public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<StorageScheduler> {
     private static final Logger _log = LoggerFactory.getLogger(DefaultBlockServiceApiImpl.class);
-
+    private static final String REGEX_XIV = "^[-\\w._~]+";
+    
     public DefaultBlockServiceApiImpl() {
         super(null);
     }
@@ -99,8 +100,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
         
-        //A check for XIV array volume name. XIV volume name supports only four special character .~-_
-        checkVolumeNamesForXIV(preparedVolumes.get(0));
+        //Check for special characters in volume names
+        checkVolumeNames(preparedVolumes.get(0));
 
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -121,16 +122,20 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         return taskList;
     }
     
-    //Internal method to validate XIV volume name
-    private void checkVolumeNamesForXIV(Volume volume) {
+    /**
+     * Method to validate volume names.
+     * @param volume Volume Name
+     */
+    private void checkVolumeNames(Volume volume) {
 		URI storageSystemUri = volume.getStorageController();
 		if(null != storageSystemUri){
 			StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+			//A check for XIV array volume name. XIV volume name supports only four special character .~-_
 			if(storageSystem.deviceIsType(Type.ibmxiv)){
-				if(volume.getLabel().matches("^[-\\w._~]+")){
+				if(volume.getLabel().matches(REGEX_XIV)){
 					return;
 				}else{
-					throw APIException.badRequests.cantCreateXIVVolumes(volume.getLabel());
+					throw APIException.badRequests.invalidVolumeName(volume.getLabel());
 				}
 			}
 		}

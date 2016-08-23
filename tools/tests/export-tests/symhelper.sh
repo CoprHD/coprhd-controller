@@ -322,7 +322,7 @@ create_export_mask() {
     echo "Hijacking port group ${PG}"
 
     # Test if we were passed devIds or a CSG/SG name
-    if [[ $CSG =~ ^[A-Za-z]*$ ]]; then
+    if [[ $CSG =~ [A-Za-z] ]]; then
         echo "Hijacking existing CSG/SG ${CSG}"
     else
         echo "Creating an SG with specified devs not yet supported"

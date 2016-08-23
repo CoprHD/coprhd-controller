@@ -1812,6 +1812,8 @@ test_7() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 8
@@ -2785,7 +2787,14 @@ test_19() {
 test_20() {
     echot "Test 20: (VMAX) Remove volume removes volume when SG is shared by out-of-management masking view"
     expname=${EXPORT_GROUP_NAME}t20
-    HIJACK_MV=hijack
+
+    # Check to make sure we're running VMAX only
+    if [ "${SS: 0:-1}" != "vmax" ]; then
+	echo "test_20 only runs on VMAX.  Bypassing for ${SS}."
+	return
+    fi
+
+    HIJACK_MV=hijack-test20-${RANDOM}
 
     # Make sure we start clean; no masking views on the array
     verify_export ${expname}1 ${HOST1} gone

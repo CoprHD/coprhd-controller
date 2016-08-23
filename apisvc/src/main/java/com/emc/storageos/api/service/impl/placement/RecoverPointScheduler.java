@@ -423,7 +423,7 @@ public class RecoverPointScheduler implements Scheduler {
             URI existingStoragePoolId = null;
             // If this is a change vpool operation, the source has already been placed and there is only 1
             // valid source pool, the existing one. Get that pool and add it to the list.
-            if (RPHelper.isVPlexVolume(vpoolChangeVolume)) {
+            if (RPHelper.isVPlexVolume(vpoolChangeVolume, dbClient)) {
                 if (null == vpoolChangeVolume.getAssociatedVolumes()) {
                     _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
                             vpoolChangeVolume.forDisplay());
@@ -2277,7 +2277,7 @@ public class RecoverPointScheduler implements Scheduler {
             // TODO: need to update code below to look like the stuff Bharath added for multiple resources
             long sourceVolumesRequiredCapacity = getSizeInKB(capabilities.getSize() * capabilities.getResourceCount());
             
-            if (RPHelper.isVPlexVolume(sourceVolume)) {
+            if (RPHelper.isVPlexVolume(sourceVolume, dbClient)) {
                 if (null == sourceVolume.getAssociatedVolumes()) {
                     _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
                             sourceVolume.forDisplay());
@@ -2312,7 +2312,7 @@ public class RecoverPointScheduler implements Scheduler {
                     vpool.getJournalSize(), capabilities.getResourceCount());
             long sourceJournalVolumesRequiredCapacity = getSizeInKB(sourceJournalSizePerPolicy);
                         
-            if (RPHelper.isVPlexVolume(sourceJournal)) {
+            if (RPHelper.isVPlexVolume(sourceJournal, dbClient)) {
                 for (String backingVolumeId : sourceJournal.getAssociatedVolumes()) {
                     Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                     StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2349,7 +2349,7 @@ public class RecoverPointScheduler implements Scheduler {
                     // Target volumes will be the same size as the source
                     long targetVolumeRequiredCapacity = getSizeInKB(capabilities.getSize());
                     
-                    if (RPHelper.isVPlexVolume(targetVolume)) {
+                    if (RPHelper.isVPlexVolume(targetVolume, dbClient)) {
                         for (String backingVolumeId : targetVolume.getAssociatedVolumes()) {
                             Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                             StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2382,7 +2382,7 @@ public class RecoverPointScheduler implements Scheduler {
                                     capabilities.getResourceCount());
                     long targetJournalVolumeRequiredCapacity = getSizeInKB(targetJournalSizePerPolicy);
                     
-                    if (RPHelper.isVPlexVolume(targetJournalVolume)) {
+                    if (RPHelper.isVPlexVolume(targetJournalVolume, dbClient)) {
                         for (String backingVolumeId : targetJournalVolume.getAssociatedVolumes()) {
                             Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                             StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2558,7 +2558,7 @@ public class RecoverPointScheduler implements Scheduler {
                 throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
             }
             
-            if (RPHelper.isVPlexVolume(existingJournalVolume)) {
+            if (RPHelper.isVPlexVolume(existingJournalVolume, dbClient)) {
                 if (null == existingJournalVolume.getAssociatedVolumes()) {
                     _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
                             existingJournalVolume.forDisplay());

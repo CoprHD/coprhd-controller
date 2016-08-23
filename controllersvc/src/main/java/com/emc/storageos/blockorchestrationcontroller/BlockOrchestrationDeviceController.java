@@ -517,7 +517,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Check to see if the existing is not already protected by RP and that
             // there are associated volumes (meaning it's a VPLEX volume)
-            if (RPHelper.isVPlexVolume(rpExistingSource)) {
+            if (RPHelper.isVPlexVolume(rpExistingSource, s_dbClient)) {
                 s_logger.info(String.format("Adding post RP Change Vpool steps for existing VPLEX source volume [%s].",
                         rpExistingSource.getLabel()));
                 // VPLEX, use associated backing volumes

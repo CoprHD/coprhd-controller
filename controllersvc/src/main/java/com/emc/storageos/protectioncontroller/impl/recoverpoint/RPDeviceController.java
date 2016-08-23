@@ -6412,7 +6412,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (RPHelper.isVPlexVolume(volume) && (null != volume.getAssociatedVolumes())) {
+        if (RPHelper.isVPlexVolume(volume, _dbClient) && (null != volume.getAssociatedVolumes())) {
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", volume.getLabel(),
                     volume.getId()));
             VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
@@ -6804,7 +6804,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (URI volumeURI : volumeURIs) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
 
-                if (RPHelper.isVPlexVolume(volume)) {
+                if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                     // We might need to update the vpools of the backing volumes after the
                     // change vpool operation to remove protection
                     VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolURI, _dbClient);
@@ -7000,7 +7000,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            output all vplex volumes whose backend volumes are not in RG
      */
     private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
-        if (RPHelper.isVPlexVolume(volume)) {
+        if (RPHelper.isVPlexVolume(volume, _dbClient)) {
             StringSet backends = volume.getAssociatedVolumes();
             if (null == backends) {
                 _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 

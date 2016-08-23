@@ -4218,7 +4218,7 @@ public class VolumeIngestionUtil {
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, dbClient);
-        clearReplicaFlagsInIngestionContext(requestContext, volumes);
+        clearReplicaFlagsInIngestionContext(requestContext, volumes, dbClient);
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
@@ -4402,15 +4402,17 @@ public class VolumeIngestionUtil {
      *
      * @param requestContext current unManagedVolume Ingestion context.
      * @param volumes RP volumes
+     * @param dbClient database client
      */
-    public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes) {
+    public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes,
+            DbClient dbClient) {
         // We need to look for all snapshots and snapshot session in the contexts related to the rp volumes and its backend volumes and
         // clear their flags.
         _logger.info("Clearing flags of replicas in the context");
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            if (RPHelper.isVPlexVolume(volume) && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+            if (RPHelper.isVPlexVolume(volume, dbClient) && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                 StringSet associatedVolumes = volume.getAssociatedVolumes();
                 rpVolumes.addAll(associatedVolumes);
             }

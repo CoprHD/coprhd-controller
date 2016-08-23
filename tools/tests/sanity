@@ -4004,6 +4004,16 @@ recoverpoint_auto_snapshot_cleanup_test()
         secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
         # Use "fail" instead of run because we expect this bookmark to fail.
         fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+
+        secho 'Creating RP bookmark'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
+
+        secho 'Performing swap operation to verify auto snapshot cleanup'
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+
+        secho 'Verifying that RP bookmark was removed after swap'
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
     else
         secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
     fi

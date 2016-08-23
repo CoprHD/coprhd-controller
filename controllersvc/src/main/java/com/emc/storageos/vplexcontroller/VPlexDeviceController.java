@@ -146,6 +146,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCom
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDeactivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
@@ -2991,7 +2992,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Add a steps to remove exports on the VPlex.
             List<URI> exportMaskUris = new ArrayList<URI>();
             List<URI> volumeUris = new ArrayList<URI>();
-            String storageViewStepId = ZONING_STEP;
+            String storageViewStepId = null;
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
@@ -3105,11 +3106,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (!exportMaskUris.isEmpty()) {
                 _log.info("exportGroupDelete export mask URIs: " + exportMaskUris);
                 _log.info("exportGroupDelete volume URIs: " + volumeUris);
+                String zoningStep = workflow.createStepId();
+                ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskUris, zoningStep);
                 Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportMasksDeleteMethod(
-                        export, exportMaskUris, volumeUris);
-                String zoningStepId = workflow.createStep(ZONING_STEP,
+                        export, exportMaskUris, volumeUris, zoneTaskCompleter);
+                workflow.createStep(ZONING_STEP,
                         String.format("Delete ExportMasks %s for VPlex %s", export, vplex),
-                        null, nullURI, "network-system",
+                        storageViewStepId, nullURI, "network-system",
                         _networkDeviceController.getClass(), zoningExecuteMethod, null, null);
             }
 
@@ -3225,8 +3228,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
 
-                _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
-                _dbClient.markForDeletion(exportMask);
+                // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
+                // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that
+                // when the zone step is complete.
+                _log.info(
+                        String.format("ExportMask %s will not be deleted by this step; unzoning step will delete the ExportMask",
+                                exportMask.getId().toString()));
 
                 _log.info("updating ExportGroups containing this ExportMask");
                 List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
@@ -3524,8 +3531,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
-            for (ExportMask exportMask : exportMasks) {
+            // For safety, run remove volumes serially
+            String previousStep = null;
 
+            for (ExportMask exportMask : exportMasks) {
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -3565,13 +3574,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 List<URI> exportMaskURIs = new ArrayList<URI>();
                 exportMaskURIs.add(exportMask.getId());
-                // zoningStepId is passed instead of opId as we don't want to invoke
-                // the completer on opId until we are done with everything in this method
-                String zoningStepId = UUID.randomUUID().toString();
-                // Even though we filter the list of volumeURIs to be removed from storage view
-                // We still need to remove zone reference for all volumes
-                _networkDeviceController.zoneExportRemoveVolumes(exportURI, exportMaskURIs,
-                        volumeURIs, zoningStepId);
 
                 // Fetch exportMask again as exportMask zoning Map might have changed in zoneExportRemoveVolumes
                 exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
@@ -3579,7 +3581,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 boolean existingVolumes = exportMask.hasAnyExistingVolumes();
                 boolean existingInitiators = exportMask.hasAnyExistingInitiators();
 
-                String storageViewStepId = null;
                 if (!remainingVolumesInMask.isEmpty()) {
                     _log.info("this mask is not empty, so just updating: "
                             + exportMask.getMaskName());
@@ -3596,11 +3597,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             Workflow.Method removePortsFromViewMethod = storageViewRemoveStoragePortsMethod(vplexURI, exportURI,
                                     exportMask.getId(), storagePortURIs);
                             Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                            storageViewStepId = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
+                            previousStep = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
                                     String.format("Updating VPLEX Storage View to remove StoragePorts for ExportGroup %s Mask %s",
                                             exportURI,
                                             exportMask.getMaskName()),
-                                    null, vplex.getId(), vplex.getSystemType(),
+                                    previousStep, vplex.getId(), vplex.getSystemType(),
                                     this.getClass(), removePortsFromViewMethod, rollbackMethod, null);
                         }
                     }
@@ -3645,7 +3646,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                     if (!existingVolumes) {
-                        // create workflow and steps to remove zones and inititaors
+                        // create workflow and steps to remove zones and initiators
                         String completerStepId = workflow.createStepId();
                         ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
                                 exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
@@ -3656,13 +3657,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
                                 exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
                         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                        storageViewStepId = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
+                        previousStep = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
                                 null, vplexURI, vplex.getSystemType(), this.getClass(),
                                 removeInitiatorMethod, removeInitiatorRollbackMethod, null);
 
+                        // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
+                        previousStep = workflow.createStep(
+                                ZONING_STEP,
+                                "Zoning subtask for export-group: " + exportURI,
+                                previousStep, NullColumnValueGetter.getNullURI(),
+                                "network-system", _networkDeviceController.getClass(),
+                                _networkDeviceController.zoneExportRemoveVolumesMethod(exportURI,
+                                        exportMaskURIs, volumeURIs), 
+                                null, workflow.createStepId());
+
                         // Create a step to fire the completer removing initiators.
                         Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
-                        workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", storageViewStepId, vplexURI,
+                        workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", previousStep, vplexURI,
                                 vplex.getSystemType(),
                                 this.getClass(), fireCompleter, null, completerStepId);
                     }
@@ -3671,9 +3682,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + exportMask.getMaskName());
                     hasSteps = true;
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
-                    workflow.createStep(DELETE_STORAGE_VIEW,
+                    previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
-                            null, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
+                            previousStep, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
+
+                    // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
+                    previousStep = workflow.createStep(
+                            ZONING_STEP,
+                            "Zoning subtask for export-group: " + exportURI,
+                            previousStep, NullColumnValueGetter.getNullURI(),
+                            "network-system", _networkDeviceController.getClass(),
+                            _networkDeviceController.zoneExportRemoveVolumesMethod(exportURI,
+                                    exportMaskURIs, volumeURIs),
+                            null, workflow.createStepId());
 
                 }
             }
@@ -4657,12 +4678,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private String addStepsForRemoveInitiators(StorageSystem vplex, Workflow workflow,
             ExportGroup exportGroup, ExportMask exportMask, List<Initiator> initiators,
             URI hostURI, List<URI> initiatorsAlreadyRemovedFromExportGroup, String previousStep) throws Exception {
-        String lastStep = null;
+        String lastStep = previousStep;
 
         // assemble a list of other ExportGroups that reference this ExportMask
         List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
-
-        String viewStep = REMOVE_INITIATOR_STEP;
 
         _log.info(String.format("will be removing initiators %s for host %s mask %s (%s)",
                 getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
@@ -4683,11 +4702,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Create s Step to remove the SAN Zones for this Initiator.
         Workflow.Method removeZoneMethod = zoneRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
                 hostInitiatorURIs);
-
-        String zoneStep = workflow.createStep(ZONING_STEP,
-                "Remove zones for Initiators: " + hostInitiatorURIs.toString(),
-                previousStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
-                removeZoneMethod, removeZoneMethod, null);
 
         // What is about to happen...
         //
@@ -4722,10 +4736,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
             Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
-            viewStep = workflow.createStep(DELETE_STORAGE_VIEW,
+            lastStep = workflow.createStep(DELETE_STORAGE_VIEW,
                     String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                             exportMask.getMaskName(), exportGroup.getId()),
-                    zoneStep, vplex.getId(), vplex.getSystemType(),
+                    lastStep, vplex.getId(), vplex.getSystemType(),
                     this.getClass(), storageViewExecuteMethod, null, null);
         } else if (otherExportGroupsPresent) {
 
@@ -4833,15 +4847,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             if (!initiatorsToRemove.isEmpty()) {
-                viewStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
-                        exportMask, initiatorsToRemove, targetURIs, zoneStep,
+                lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
+                        exportMask, initiatorsToRemove, targetURIs, lastStep,
                         removeAllInits);
 
                 doFireCompleter = true;
             } else {
-                // no other steps are necessary, so just do the zone step
-                viewStep = zoneStep;
-
                 // we are not going to fire the completer because the steps are taken above
                 // and too many custom VPLEX changes would have been required
                 // in the ExportMaskRemoveInitCompleter
@@ -4850,11 +4861,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         } else {
             // this is just a simple initiator removal, so just do it...
-            viewStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
-                    exportMask, hostInitiatorURIs, targetURIs, zoneStep,
+            lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
+                    exportMask, hostInitiatorURIs, targetURIs, lastStep,
                     removeAllInits);
         }
-        lastStep = viewStep;
 
         if (doFireCompleter) {
             // We make a separate step to fire this completer.
@@ -4869,7 +4879,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
             lastStep = workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter",
-                    viewStep, vplex.getId(), vplex.getSystemType(),
+                    lastStep, vplex.getId(), vplex.getSystemType(),
                     this.getClass(), fireCompleter, null, completerStepId);
         }
         return lastStep;

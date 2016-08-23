@@ -162,6 +162,11 @@
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
           </control-group>
         </div>
+        <div ng-if="['${models.StorageSystemTypes.VMAX}'].indexOf(vpool.systemType) > -1">
+          <control-group v-field='vpool.enableCompression'>
+            <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+          </control-group>
+        </div>
         <div ng-if="['${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
           <control-group v-field='vpool.multiVolumeConsistency'>
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>

@@ -1457,7 +1457,7 @@ class Bourne:
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect):
+		   auto_cross_connect, placement_policy, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1483,6 +1483,8 @@ class Bourne:
             parms['paths_per_initiator'] = pathsperinitiator
         if (systemtype):
             parms['system_type'] = systemtype
+	if (compressionEnabled):
+	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1510,6 +1512,9 @@ class Bourne:
             
         if (long_term_retention):
             parms['long_term_retention'] = long_term_retention;
+
+        if (type == 'block' and placement_policy):
+            parms['placement_policy'] = placement_policy;
 
         if (max_snapshots or max_mirrors or protectionCoS or srdf):
             cos_protection_params = dict()
@@ -1616,7 +1621,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   system_type, srdf):
+                   system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1632,6 +1637,9 @@ class Bourne:
 
         if (numpaths):
             parms['num_paths'] = numpaths
+
+	if (compressionEnabled):
+   	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1736,7 +1744,7 @@ class Bourne:
     # Assign pools to CoS or change the max snapshots/mirrors values
     # Note that you can either do pool assignments or snapshot/mirror changes at a time
     #
-    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops):
+    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy):
         params = dict()
         if (pooladds or poolrems):
             poolassignments = dict();
@@ -1777,6 +1785,9 @@ class Bourne:
             
         if (host_io_limit_iops):
             params['host_io_limit_iops'] = host_io_limit_iops
+
+        if (type == 'block' and placement_policy):
+            params['placement_policy'] = placement_policy;
             
         return self.api('PUT', URI_VPOOL_INSTANCE.format(type, cosuri), params)
 

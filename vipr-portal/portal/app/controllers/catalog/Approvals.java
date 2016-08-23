@@ -11,8 +11,11 @@ import static util.CatalogServiceUtils.getCatalogService;
 import static util.OrderUtils.getOrder;
 
 import java.net.URI;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import org.joda.time.DateTime;
 
 import controllers.security.Security;
 import models.datatable.ApprovalsDataTable;
@@ -103,6 +106,7 @@ public class Approvals extends Controller {
 
         OrderRestRep order = null;
         ScheduledEventRestRep scheduledEvent = null;
+        Date scheduleStartDateTime = null;
         CatalogServiceRestRep service = null;
         if (approval != null) {
             order = getOrder(approval.getOrder());
@@ -111,10 +115,16 @@ public class Approvals extends Controller {
                 URI scheduledEventId = order.getScheduledEventId();
                 if (scheduledEventId != null) {
                     scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                    String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
+                            scheduledEvent.getScheduleInfo().getStartDate(), 
+                            scheduledEvent.getScheduleInfo().getHourOfDay(), 
+                            scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                    DateTime startDateTime = DateTime.parse(isoDateTimeStr);
+                    scheduleStartDateTime = startDateTime.toDate();
                 }
             }
         }
-        render(approval, order, service, scheduledEvent);
+        render(approval, order, service, scheduledEvent, scheduleStartDateTime);
     }
 
     public static void submit(String id, ApprovalsForm approval) {

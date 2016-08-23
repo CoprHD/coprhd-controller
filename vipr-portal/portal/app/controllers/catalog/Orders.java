@@ -13,11 +13,15 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.ISODateTimeFormat;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -73,6 +77,7 @@ import util.ModelExtensions;
 import util.OrderUtils;
 import util.StringOption;
 import util.TagUtils;
+import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
@@ -429,6 +434,7 @@ public class Orders extends OrderExecution {
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
         public ScheduledEventRestRep scheduledEvent;
+        public Date scheduleStartDateTime; 
         
         public Map<URI, String> viprTaskStepMessages;
 
@@ -476,6 +482,12 @@ public class Orders extends OrderExecution {
             URI scheduledEventId = order.getScheduledEventId();
             if (scheduledEventId != null) {
                 scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
+                                        scheduledEvent.getScheduleInfo().getStartDate(), 
+                                        scheduledEvent.getScheduleInfo().getHourOfDay(), 
+                                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                DateTime startDateTime = DateTime.parse(isoDateTimeStr);
+                scheduleStartDateTime = startDateTime.toDate();
             }
         }
 

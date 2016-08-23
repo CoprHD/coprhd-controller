@@ -53,6 +53,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED = "isThinVolumePreAllocationEnabled";
     private static final String THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE = "thinVolumePreAllocationPercentage";
     private static final String AUTO_TIER_POLICY_NAME = "autoTierPolicyName";
+    private static final String VMAX_COMPRESSION_ENABLED = "compressionEnabled";
     private static final String UNIQUE_AUTO_TIERING_POLICY_NAMES = "uniquePolicyNames";
     private static final String DRIVE_TYPE = "driveType";
     private static final String ARRAY_INFO = "arrayInfo";
@@ -93,15 +94,16 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String STANDBY_JOURNAL_VARRAY = "standbyJournalVarray";
     private static final String STANDBY_JOURNAL_VPOOL = "standbyJournalVpool";
 
-    private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
-            HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
+    private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_COMPRESSION_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
+            HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_COMPRESSION_ENABLED };
 
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
-            AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, ARRAY_INFO,
+            AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, 
+            VMAX_COMPRESSION_ENABLED, ARRAY_INFO,
             UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
             USE_MATCHED_POOLS, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE };
 
-    private static final String[] generallyExcluded = { ACLS, DESCRIPTION,
+    private static final String[] GENERALLY_EXCLUDED = { ACLS, DESCRIPTION,
             LABEL, STATUS, TAGS, CREATION_TIME, INVALID_MATCHED_POOLS, MATCHED_POOLS, NON_DISRUPTIVE_EXPANSION };
 
     private static final Logger s_logger = LoggerFactory
@@ -307,7 +309,9 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     + ", " + HOST_IO_LIMIT_IOPS
                     + ", " + HOST_IO_LIMIT_BANDWIDTH
                     + ", " + IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED
-                    + ", " + ASSIGNED_STORAGE_POOLS);
+                    + ", " + ASSIGNED_STORAGE_POOLS
+                    + ", " + VMAX_COMPRESSION_ENABLED);
+                                  
             if (!isRPVPlex) {
                 // For VPLEX, return null because the migrate operation is not valid.
                 // For RP+VPLEX, all this means is that there is no migration required
@@ -444,9 +448,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // provisioningType, useMatchedPools, arrayInfo, driveType,
         // autoTierPolicyName, host io limits, host io bandwidth,
         // thin volume allocation, assigned storage pools.
+                
         String[] include = new String[] { PROTOCOLS, PROVISIONING_TYPE,
                 USE_MATCHED_POOLS, ARRAY_INFO,
-                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH,
+                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED,
                 IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED,
                 ASSIGNED_STORAGE_POOLS };
 
@@ -628,7 +633,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // protocols, provisioningType, and arrayInfo. However,
         // there will be other benign changes that can occur.
         String[] exclude = new String[] { PROTOCOLS, PROVISIONING_TYPE, ARRAY_INFO,
-                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, MATCHED_POOLS, INVALID_MATCHED_POOLS,
+                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED, MATCHED_POOLS, INVALID_MATCHED_POOLS,
                 ASSIGNED_STORAGE_POOLS, LABEL, DESCRIPTION, STATUS, TAGS,
                 CREATION_TIME, NON_DISRUPTIVE_EXPANSION };
 
@@ -751,7 +756,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 REF_VPOOL, MIRROR_VPOOL, HIGH_AVAILABILITY, PROTECTION_VARRAY_SETTINGS,
                 FAST_EXPANSION, ACLS, INACTIVE,
                 NUM_PATHS, PATHS_PER_INITIATOR, MIN_PATHS,
-                AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
+                AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_COMPRESSION_ENABLED };
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
@@ -920,7 +925,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] exclude = new String[] { NUM_PATHS, PATHS_PER_INITIATOR, MIN_PATHS,
                 THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE };
         excluded.addAll(Arrays.asList(exclude));
-        excluded.addAll(Arrays.asList(generallyExcluded));
+        excluded.addAll(Arrays.asList(GENERALLY_EXCLUDED));
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
@@ -999,7 +1004,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         List<String> excluded = new ArrayList<String>();
         String[] exclude = new String[] { RP_COPY_MODE, RP_RPO_VALUE, RP_RPO_TYPE, PROTECTION_VARRAY_SETTINGS };
         excluded.addAll(Arrays.asList(exclude));
-        excluded.addAll(Arrays.asList(generallyExcluded));
+        excluded.addAll(Arrays.asList(GENERALLY_EXCLUDED));
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append(String.format("These target virtual pool differences are invalid: "));
@@ -1044,9 +1049,9 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         }
 
         // First, check that AUTO_TIER_POLICY_NAME changed.
-        String[] included = INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
+        String[] included = INCLUDED_AUTO_TIERING_POLICY_LIMITS_COMPRESSION_CHANGE;
         if (analyzeChanges(currentVpool, newVpool, included, null, null).isEmpty()) {
-            notSuppReasonBuff.append("Did not change AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, nor HOST_IO_LIMIT_IOPS");
+            notSuppReasonBuff.append("Did not change AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS or VMAX_AF_COMPRESSION");
             return false;
         }
 
@@ -1096,7 +1101,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         List<String> excluded = new ArrayList<String>();
         String[] exclude = EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
         excluded.addAll(Arrays.asList(exclude));
-        excluded.addAll(Arrays.asList(generallyExcluded));
+        excluded.addAll(Arrays.asList(GENERALLY_EXCLUDED));
         // PROTECTION_VARRAY_SETTINGS changes every time a vpool is duplicated so we will ignore it, otherwise
         // this change vpool operation is blocked.
         // RP_RPO_VALUE will be updated from null to 0 if any vpool update is performed so we will ignore it,
@@ -1442,7 +1447,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL,
                     MULTI_VOLUME_CONSISTENCY, METROPOINT, STANDBY_JOURNAL_VARRAY, STANDBY_JOURNAL_VPOOL };
             excluded.addAll(Arrays.asList(exclude));
-            excluded.addAll(Arrays.asList(generallyExcluded));
+            excluded.addAll(Arrays.asList(GENERALLY_EXCLUDED));
             Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
             if (!changes.isEmpty()) {
                 notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
@@ -1510,7 +1515,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] exclude = new String[] { FILE_REPLICATION_TYPE, FILE_REPLICATION_COPY_MODE,
                 FILE_REPLICATION_RPO_TYPE, FILE_REPLICATION_RPO_VALUE, FILE_REPLICATION_COPIES, VARRAYS };
         excluded.addAll(Arrays.asList(exclude));
-        excluded.addAll(Arrays.asList(generallyExcluded));
+        excluded.addAll(Arrays.asList(GENERALLY_EXCLUDED));
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append(String.format("These target virtual pool [%s] differences are invalid: ", newVpool.getLabel()));

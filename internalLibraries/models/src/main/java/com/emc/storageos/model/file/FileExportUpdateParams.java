@@ -112,7 +112,7 @@ public class FileExportUpdateParams implements Serializable {
     }
 
     /**
-     * Non payload models - for internal use only: use Query Parameter subDir instead
+     * Non payload models - for internal use only: use query parameter subDir instead
      * @param subDir
      */
     public void setSubDir(String subDir) {

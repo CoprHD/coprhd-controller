@@ -206,11 +206,10 @@ public class VirtualArrayService extends TaggedResource {
                 tenant = tenant_input.getId();
             }
 
+            Set<VirtualArray> varraySet = new HashSet<VirtualArray>();
             for (VirtualArray virtualArray : nhObjList) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, virtualArray)) {
-                    list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                            virtualArray.getId(), virtualArray.getLabel()));
-
+                    varraySet.add(virtualArray);
                 }
             }
 
@@ -219,10 +218,14 @@ public class VirtualArrayService extends TaggedResource {
                 List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
                 for (VirtualArray virtualArray : nhObjList) {
                     if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualArray)) {
-                        list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                                virtualArray.getId(), virtualArray.getLabel()));
+                        varraySet.add(virtualArray);
                     }
                 }
+            }
+
+            for (VirtualArray virtualArray : varraySet) {
+                list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
+                        virtualArray.getId(), virtualArray.getLabel()));
             }
         }
         return list;

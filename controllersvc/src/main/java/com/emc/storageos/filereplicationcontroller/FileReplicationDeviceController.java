@@ -512,7 +512,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             // Generate the Workflow.
             Workflow workflow = workflowService.getNewWorkflow(this,
-                    FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);
+                    FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId, taskCompleter);
             String waitFor = null;
 
             for (String target : targetfileUris) {
@@ -525,6 +525,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     combined.add(sourceFileShare.getId());
                     combined.add(targetFileShare.getId());
                     taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId, systemURI);
+
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();

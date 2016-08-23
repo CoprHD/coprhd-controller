@@ -156,7 +156,6 @@ devkit:
 	bash $(WORKSPACE)/configure.sh installPackages
 	bash $(WORKSPACE)/configure.sh installDockerStorage
 	bash $(WORKSPACE)/configure.sh installJava
-	bash $(WORKSPACE)/configure.sh installNginx
 	bash $(WORKSPACE)/configure.sh installStorageOS
 	bash $(WORKSPACE)/configure.sh installNetworkConfigurationFile
 	bash $(WORKSPACE)/configure.sh installXorg

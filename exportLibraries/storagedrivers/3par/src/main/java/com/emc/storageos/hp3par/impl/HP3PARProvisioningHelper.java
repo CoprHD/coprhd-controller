@@ -114,6 +114,7 @@ public class HP3PARProvisioningHelper {
 
         if (volumes.size() != 0) {
             if (volumesCreated == volumes.size()) {
+            	task.setMessage("Successful");
                 task.setStatus(DriverTask.TaskStatus.READY);            
             } else if (volumesCreated == 0) {
                 task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -195,8 +196,8 @@ public class HP3PARProvisioningHelper {
                         volume.getStorageSystemId(), volume.getDisplayName());
             } catch (Exception e) {
                 String msg = String.format(
-                        "3PARDriver: Unable to delete volume name %s with pool id %s for storage system native id %s; Error: %s.\n",
-                        volume.getDisplayName(), volume.getStoragePoolId(), volume.getStorageSystemId(), e);
+                        "3PARDriver: Unable to delete volume name %s for storage system native id %s; Error: %s.\n",
+                        volume.getNativeId(), volume.getStorageSystemId(), e);
                 _log.error(msg);
                 _log.error(CompleteError.getStackTrace(e));
                 task.setMessage(msg);

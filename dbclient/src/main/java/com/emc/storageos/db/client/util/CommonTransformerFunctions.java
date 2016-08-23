@@ -35,11 +35,11 @@ public class CommonTransformerFunctions {
                 }
             };
 
-    public static final Function<Volume, String> FCTN_VOLUME_URI_TO_STR =
-            new Function<Volume,
+    public static final Function<DataObject, String> FCTN_VOLUME_URI_TO_STR =
+            new Function<DataObject,
             String>() {
                 @Override
-                public String apply(Volume volume) {
+                public String apply(DataObject volume) {
                     String val = "";
                     if (volume != null) {
                         val = volume.getId().toString();

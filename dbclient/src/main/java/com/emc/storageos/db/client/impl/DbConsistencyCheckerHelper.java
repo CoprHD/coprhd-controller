@@ -64,6 +64,11 @@ public class DbConsistencyCheckerHelper {
         int dirtyCount = 0;
         _log.info("Check CF {}", doType.getDataObjectClass().getName());
         
+        if (excludeClasses.contains(doType.getDataObjectClass())) {
+        	_log.info("Skip CF {} since its URI is special", doType.getDataObjectClass());
+        	return 0;
+        }
+        
         try {
             OperationResult<Rows<String, CompositeColumnName>> result = dbClient.getKeyspace(
                     doType.getDataObjectClass()).prepareQuery(doType.getCF())
@@ -71,8 +76,7 @@ public class DbConsistencyCheckerHelper {
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : result.getResult()) {
-            	if (!excludeClasses.contains(doType.getDataObjectClass()) 
-            			&& !isValidDataObjectKey(URI.create(row.getKey()), doType.getDataObjectClass())) {
+            	if (!isValidDataObjectKey(URI.create(row.getKey()), doType.getDataObjectClass())) {
             		dirtyCount++;
     		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
     		                row.getKey(), doType.getDataObjectClass().getName()), true, toConsole);

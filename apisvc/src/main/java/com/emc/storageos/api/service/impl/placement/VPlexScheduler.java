@@ -402,6 +402,7 @@ public class VPlexScheduler implements Scheduler {
                     haVpool, capabilities, project, vpoolUse, currentRecommendations);
         }
     }
+    
 
     /**
      * Get recommendations for resource placement for local VPLEX volumes.

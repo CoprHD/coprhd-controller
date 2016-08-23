@@ -112,6 +112,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -728,7 +729,43 @@ public class BlockService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
-	if (param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()){
+    	
+    	//Direct-VPLEX
+    	if(param.getPassThroughParams().equals(VPLEX) && param.getPassThroughParams() != null 
+    			&& !param.getPassThroughParams().isEmpty()){
+    		
+    		Map<String, String> passThroughParam = param.getPassThroughParams();
+    		
+    		String SourceStorageSystemId = passThroughParam.get("source-storage-system");
+    		String SourceStoragePortId = passThroughParam.get("source-storage-pool");
+    		String vplexId=passThroughParam.get("vplex-URI");
+    		
+    		if (SourceStorageSystemId ==null  || SourceStoragePortId == null || vplexId == null){
+                throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
+    		}
+    		
+    		String task = UUID.randomUUID().toString();
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
+    		
+            ArrayList<String> requestedTypes = new ArrayList<String>();
+            // call thread that does the work.
+            CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
+
+            return taskList;
+            
+            // VPLEX - Distributed
+    		//if(param.getPassThroughParams().isDistributed()){
+    		//	String TargetStorageSystemId = passThroughParam.get("target-storage-system");
+    		//	String TargetStoragePoolId = passThroughParam.get("target-storage-pool");
+    		//	if (SourceStorageSystemId ==null  || SourceStoragePortId == null){
+    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
+    		//	}
+    		//}
+    		
+    	}
+    	
+    	//Direct-Volume
+    	if (param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()){
 
                 Map<String, String> passThroughParam = param.getPassThroughParams();
 

@@ -313,34 +313,61 @@ create_export_mask() {
     CSG=$2
     PWWN=$3
     NAME="${4}_${SID: -3}"
+    # Test if we were passed pwwn's or an existing IG name (is first character a number or letter)
+    if [[ $PWWN =~ ^[A-Za-z] ]]; then
+        IG="${NAME}_CIG"
+        echo "=== symaccess -sid ${SID} create -type initiator -name ${IG}"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG}
+        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on
+        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}
 
-    IG=`echo "${NAME}_IG"`
-    echo "Creating initiator group ${IG}"
-    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}
-
-    PG=`echo "${CSG: 0:-4}_PG"`
-    echo "Hijacking port group ${PG}"
+        PG="${PWWN: 0:-3}_PG"
+        echo "Generated PG name ${PG}"
+    else
+        IG="${NAME}_IG"
+        echo "=== symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}
+    fi
 
     # Test if we were passed devIds or a CSG/SG name
     if [[ $CSG =~ [A-Za-z] ]]; then
         echo "Hijacking existing CSG/SG ${CSG}"
+
+        PG="${CSG: 0:-4}_PG"
+        echo "Generated PG name ${PG}"
     else
-        echo "Creating an SG with specified devs not yet supported"
+        dev_id=$CSG
+        CSG="${NAME}_SG"
+        echo "=== symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id
     fi
 
-    echo "Creating masking view ${NAME}"
+    echo "Hijacking port group ${PG}"
+
+    echo "=== symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}
 }
 
 delete_export_mask() {
     SID=$1
     NAME="${2}_${SID: -3}"
-    IG=$3
+    SG=$3
+    IG=$4
 
-    echo "Deleting masking view ${NAME}"
+    echo "=== symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt
 
-    echo "Deleting initiator group ${IG}"
+    echo "Deleting storage group ${SG}"
+    if [[ "$SG" != "noop" ]]; then
+        echo "=== symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt
+    else
+        echo "=== Skipping storage group deletion because 'noop' was passed"
+    fi
+
+    echo "=== symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt
 }
 

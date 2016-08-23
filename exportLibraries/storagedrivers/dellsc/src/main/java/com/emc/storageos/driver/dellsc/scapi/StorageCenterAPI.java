@@ -78,7 +78,7 @@ public class StorageCenterAPI implements AutoCloseable {
 
         Parameters params = new Parameters();
         params.add("Application", "CoprHD Driver");
-        params.add("ApplicationVersion", "2.0");
+        params.add("ApplicationVersion", "1.0");
 
         RestResult result = restClient.post("/ApiConnection/Login", params.toJson());
         if (result.getResponseCode() != 200) {

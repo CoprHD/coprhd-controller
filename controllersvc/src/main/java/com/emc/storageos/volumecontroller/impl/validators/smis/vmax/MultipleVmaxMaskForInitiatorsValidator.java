@@ -59,9 +59,7 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         if (mask.equals(assocMask)) {
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
-        /*
-         * FIXME COP-24841 - Stop making dangerous assumptions about impacted masking views.
-         */
+        
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         log.warn("MV {} is sharing an initiator with MV {}", name, assocName);

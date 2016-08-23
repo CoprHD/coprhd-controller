@@ -30,6 +30,7 @@ import static com.google.common.collect.Collections2.transform;
 class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
 
     private static final Logger log = LoggerFactory.getLogger(MultipleVmaxMaskForInitiatorsValidator.class);
+    private static final String INSTANCE_ID_PREFIX = "W-+-";
 
     /**
      * Default constructor.
@@ -75,7 +76,9 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
     @Override
     protected CIMObjectPath getCIMObjectPath(Initiator obj) throws Exception {
         try {
-            CIMObjectPath[] initiatorPaths = getCimPath().getInitiatorPaths(storage, new String[]{});
+            String port = Initiator.normalizePort(obj.getInitiatorPort());
+            String instanceID = String.format("%s%s", INSTANCE_ID_PREFIX, port);
+            CIMObjectPath[] initiatorPaths = getCimPath().getInitiatorPaths(storage, new String[]{ instanceID });
             if (initiatorPaths != null && initiatorPaths.length > 0) {
                 return initiatorPaths[0];
             }

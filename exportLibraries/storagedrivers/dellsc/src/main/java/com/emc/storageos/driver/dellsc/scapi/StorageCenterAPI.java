@@ -886,6 +886,56 @@ public class StorageCenterAPI implements AutoCloseable {
     }
 
     /**
+     * Create a view volume of a replay.
+     *
+     * @param instanceId The replay instance ID.
+     * @param name The name to give the volume.
+     * @return The created volume.
+     * @throws StorageCenterAPIException
+     */
+    public ScVolume createReplayView(String instanceId, String name) throws StorageCenterAPIException {
+        Parameters params = new Parameters();
+        params.add("Name", name);
+        params.add("Notes", instanceId);
+
+        RestResult rr = restClient.post(
+                String.format("StorageCenter/ScReplay/%s/CreateView", instanceId), params.toJson());
+        if (!checkResults(rr)) {
+            LOG.warn("Error creating view volume of replay {}: {}", instanceId, rr.getErrorMsg());
+            throw new StorageCenterAPIException(rr.getErrorMsg());
+        }
+
+        return gson.fromJson(rr.getResult(), ScVolume.class);
+    }
+
+    /**
+     * Finds a view volume for a given replay.
+     *
+     * @param instanceId The replay instance ID.
+     * @return The volume or null if not found.
+     */
+    public ScVolume findReplayView(String instanceId) {
+        PayloadFilter filter = new PayloadFilter();
+        filter.append("notes", instanceId);
+
+        RestResult rr = restClient.post("StorageCenter/ScVolumeConfiguration/GetList", filter.toJson());
+        if (checkResults(rr)) {
+            ScVolumeConfiguration[] config = gson.fromJson(rr.getResult(), ScVolumeConfiguration[].class);
+            rr = restClient.get(
+                    String.format("StorageCenter/ScVolume/%s", config[0].volume.instanceId));
+            if (checkResults(rr)) {
+                return gson.fromJson(rr.getResult(), ScVolume.class);
+            } else {
+                LOG.warn(rr.getErrorMsg());
+            }
+        } else {
+            LOG.warn(rr.getErrorMsg());
+        }
+
+        return null;
+    }
+
+    /**
      * Expire a replay.
      *
      * @param instanceId The replay instance ID.

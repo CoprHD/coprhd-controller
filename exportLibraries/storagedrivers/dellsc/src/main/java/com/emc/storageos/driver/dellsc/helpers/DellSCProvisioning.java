@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,7 +241,17 @@ public class DellSCProvisioning {
                 StorageCenterAPI api = connectionManager.getConnection(ssn);
 
                 // Find our actual volume
-                ScVolume scVol = api.getVolume(volume.getNativeId());
+                ScVolume scVol = null;
+
+                int dotCount = StringUtils.countMatches(volume.getNativeId(), ".");
+                if (dotCount == 2) {
+                    // Not actually a volume
+                    scVol = api.createReplayView(
+                            volume.getNativeId(), String.format("View of %s", volume.getNativeId()));
+                } else {
+                    // Normal volume instance ID
+                    scVol = api.getVolume(volume.getNativeId());
+                }
                 if (scVol == null) {
                     throw new DellSCDriverException(
                             String.format("Unable to find volume %s", volume.getNativeId()));
@@ -563,11 +574,26 @@ public class DellSCProvisioning {
 
         for (StorageVolume volume : volumes) {
             String ssn = volume.getStorageSystemId();
+            boolean isSnapshot = StringUtils.countMatches(volume.getNativeId(), ".") == 2;
             try {
                 StorageCenterAPI api = connectionManager.getConnection(ssn);
 
                 // Find our actual volume
-                ScVolume scVol = api.getVolume(volume.getNativeId());
+                ScVolume scVol = null;
+
+                if (isSnapshot) {
+                    scVol = api.findReplayView(volume.getNativeId());
+
+                    // For snapshot views we can just delete the view
+                    if (scVol != null) {
+                        api.deleteVolume(scVol.instanceId);
+                        volumesUnmapped++;
+                        continue;
+                    }
+                } else {
+                    scVol = api.getVolume(volume.getNativeId());
+                }
+
                 if (scVol == null) {
                     throw new DellSCDriverException(
                             String.format("Unable to find volume %s", volume.getNativeId()));

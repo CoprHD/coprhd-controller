@@ -50,9 +50,12 @@ public class MirrorFileStartTaskCompleter extends MirrorFileTaskCompleter {
     @Override
     protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
         if(fs.getStorageDevice().equals(getStorageUri())) {
+        	_log.info("start op is success - fs name {} and mirror state {}", fs.getName(), MirrorStatus.SYNCHRONIZED.name());
             return MirrorStatus.SYNCHRONIZED;
         } else {
-            return MirrorStatus.valueOf(fs.getMirrorStatus());
+        	MirrorStatus mirrorStatus = MirrorStatus.valueOf(fs.getMirrorStatus());
+        	_log.info("start op is success - fs name {} and mirror state {}", fs.getName(), mirrorStatus.name());
+            return mirrorStatus;
         }
     }
 }

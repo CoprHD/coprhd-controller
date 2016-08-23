@@ -53,9 +53,12 @@ public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
     @Override
     protected MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
         if(fs.getStorageDevice().equals(getStorageUri())) {
+        	 _log.info("resync op is success - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
             return MirrorStatus.UNKNOWN;
         } else {
-            return MirrorStatus.valueOf(fs.getMirrorStatus());
+        	MirrorStatus mirrorStatus = MirrorStatus.valueOf(fs.getMirrorStatus());
+        	_log.info("resync op is success - fs name {} and mirror state {}", fs.getName(), mirrorStatus.name());
+            return mirrorStatus;
         }
     }
 

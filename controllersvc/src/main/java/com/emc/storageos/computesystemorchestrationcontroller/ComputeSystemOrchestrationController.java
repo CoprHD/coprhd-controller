@@ -43,9 +43,10 @@ public interface ComputeSystemOrchestrationController extends Controller {
      *            resource id, file system or snapshot
      * @param mountPath
      *            mount path
+     * @param inventoryOnly
      * @param taskId
      *            task id created by the API
      * @throws ControllerException
      */
-    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException;
+    public void unmountDevice(URI hostId, URI resId, String mountPath, boolean inventoryOnly, String opId) throws ControllerException;
 }

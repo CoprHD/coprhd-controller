@@ -25,7 +25,7 @@ public class ComputeSystemOrchestrationControllerImpl implements ComputeSystemOr
     }
 
     @Override
-    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException {
+    public void unmountDevice(URI hostId, URI resId, String mountPath, boolean inventoryOnly, String opId) throws ControllerException {
         execOrchestration("unmountDevice", hostId, resId, mountPath, opId);
     }
 

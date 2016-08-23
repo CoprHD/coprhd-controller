@@ -4054,7 +4054,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             _log.info("Unmounting mount dependency:", mountPath);
-            computeSystemOrchestrationDeviceController.unmountDevice(hostId, resId, mountPath, opId);
+            computeSystemOrchestrationDeviceController.unmountDevice(hostId, resId, mountPath, false, opId);
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (ControllerException ex) {
             WorkflowStepCompleter.stepFailed(opId, ex);

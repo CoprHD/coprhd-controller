@@ -762,4 +762,41 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 new String[] { "provisionedCapacity" }, volFromPools.iterator());
         Assert.assertTrue((long) aggregator.getAggregate("provisionedCapacity") == 17500L);
     }
+    
+    @Test
+    public void testQueryByFieldThenDelete() throws Exception {
+        Volume volume = new Volume();
+        URI id = URIUtil.createId(Volume.class);
+        URI pool = URIUtil.createId(StoragePool.class);
+        volume.setId(id);
+        volume.setLabel("volume");
+        volume.setPool(pool);
+        volume.setNativeGuid("native_guid");
+        volume.setNativeId("native_id");
+        volume.setCompositionType("compositionType");
+        volume.setInactive(false);
+        volume.setAllocatedCapacity(1000L);
+        volume.setProvisionedCapacity(2000L);
+        
+        dbClient.updateObject(volume);
+        
+        List<Volume> volumes = dbClient.queryObjectField(Volume.class, "compositionType", Arrays.asList(id));
+        Assert.assertTrue(volumes.size() == 1);
+        Assert.assertEquals(volumes.get(0).getCompositionType(), "compositionType");
+        
+        dbClient.markForDeletion(volumes.get(0));
+        
+        URIQueryResultList result1 = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeNativeGuidConstraint(volume.getNativeGuid()), result1);
+        Assert.assertFalse(result1.iterator().hasNext());
+        
+        URIQueryResultList result2 = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+        		.getVolumeNativeIdConstraint(volume.getNativeId()), result2);
+        Assert.assertFalse(result2.iterator().hasNext());
+        
+        Volume queryVolumeResult = (Volume) dbClient.queryObject(id);
+        Assert.assertTrue(queryVolumeResult == null || queryVolumeResult.getInactive());
+    }
 }

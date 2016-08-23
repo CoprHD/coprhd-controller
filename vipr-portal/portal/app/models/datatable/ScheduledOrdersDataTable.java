@@ -26,6 +26,8 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
         alterColumn("submittedBy").setVisible(true);
         addColumn("executionWindowId").hidden().setSearchable(false);
         addColumn("executionWindow");
+        addColumn("actions").setRenderFunction("renderButtonBar");
+        sortAllExcept("actions");
     }
 
     public int getMaxOrders() {

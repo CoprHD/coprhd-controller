@@ -121,7 +121,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UPDATE_EXPORT_GROUP_STEP = "UpdateExportGroupStep";
     private static final String UPDATE_FILESHARE_EXPORT_STEP = "UpdateFileshareExportStep";
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
-    private static final String UPDATE_INITIATOR_CLUSTER_NAMES_STEP = "UpdateInitiatorClusterNamesStep";
+    private static final String UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP = "UpdateHostAndInitiatorClusterNamesStep";
 
     private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
     private static final String MOUNT_AND_ATTACH_STEP = "MountAndAttachStep";
@@ -271,23 +271,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Gets all export groups that contain references to the provided host or initiators
      * Export groups that don't contain initiators for a host may stil reference the host
      * 
+     * @param _dbClient2
+     * 
      * @param hostId
      *            the host id
      * @param initiators
      *            list of initiators for the given host
      * @return list of export groups containing references to the host or initiators
      */
-    protected List<ExportGroup> getExportGroups(URI hostId, List<Initiator> initiators) {
+    public static List<ExportGroup> getExportGroups(DbClient dbClient, URI hostId, List<Initiator> initiators) {
         HashMap<URI, ExportGroup> exports = new HashMap<URI, ExportGroup>();
         // Get all exports that use the host's initiators
         for (Initiator item : initiators) {
-            List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(_dbClient, item.getId().toString());
+            List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(dbClient, item.getId().toString());
             for (ExportGroup export : list) {
                 exports.put(export.getId(), export);
             }
         }
         // Get all exports that reference the host (may not contain host initiators)
-        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(dbClient, hostId.toString());
         for (ExportGroup export : hostExports) {
             exports.put(export.getId(), export);
         }
@@ -432,7 +434,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // cluster
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
+                for (ExportGroup exportGroup : getExportGroups(_dbClient, hostId, hostInitiators)) {
                     if (exportGroup.forCluster() && !exportGroup.hasCluster(clusterId)) {
                         _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
                                 + ". Will remove this host from the export");
@@ -464,11 +466,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            if (!NullColumnValueGetter.isNullURI(oldCluster)) {
-                waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, isVcenter);
+            URI vCenterDataCenterId = NullColumnValueGetter.getNullURI();
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+            if (cluster != null && !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+                vCenterDataCenterId = cluster.getVcenterDataCenter();
             }
 
-            waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
+            if (!NullColumnValueGetter.isNullURI(oldCluster)) {
+                waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
+            }
+
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
 
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
@@ -482,16 +490,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, String taskId) throws ControllerException {
+    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, isVcenter);
+            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
 
-            waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
+                    vCenterDataCenterId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -559,7 +569,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForRemoveInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> initiatorsURI) {
 
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorsURI);
-        List<ExportGroup> exportGroups = getExportGroups(hostId, initiators);
+        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
         for (ExportGroup export : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
@@ -585,8 +595,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
-        List<ExportGroup> exportGroups = getSharedExports(clusterId);
+    public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, URI vcenterDataCenter,
+            boolean isVcenter) {
+        List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
         String newWaitFor = waitFor;
         if (isVcenter) {
             Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
@@ -594,7 +605,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
             }
-            newWaitFor = this.unmountAndDetachVolumes(hostExports, newWaitFor, workflow);
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
         }
         for (ExportGroup export : exportGroups) {
             newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
@@ -649,7 +660,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds,
             URI clusterId) {
 
-        for (ExportGroup export : getSharedExports(clusterId)) {
+        for (ExportGroup export : getSharedExports(_dbClient, clusterId)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
@@ -695,7 +706,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
-        List<ExportGroup> exportGroups = getSharedExports(clusterId);
+        List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
 
         for (ExportGroup eg : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
@@ -742,13 +753,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepForUpdatingInitiatorClusterName(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
+    public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId,
+            URI vCenterDataCenterId) {
         for (URI hostId : hostIds) {
-            waitFor = workflow.createStep(UPDATE_INITIATOR_CLUSTER_NAMES_STEP,
-                    String.format("Updating initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
+            waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
+                    String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
                     hostId, hostId.toString(),
                     this.getClass(),
-                    updateInitiatorClusterNameMethod(hostId, clusterId),
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId, vCenterDataCenterId),
                     null, null);
         }
         return waitFor;
@@ -806,7 +818,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 
-    protected List<ExportGroup> getSharedExports(URI clusterId) {
+    public static List<ExportGroup> getSharedExports(DbClient _dbClient, URI clusterId) {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         return CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, ExportGroup.class,
@@ -834,7 +846,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
-        for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
+        for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
@@ -1278,13 +1290,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public Workflow.Method updateInitiatorClusterNameMethod(URI hostId, URI clusterId) {
-        return new Workflow.Method("updateInitiatorClusterName", hostId, clusterId);
+    public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId, URI vCenterDataCenterId) {
+        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId, vCenterDataCenterId);
     }
 
-    public void updateInitiatorClusterName(URI hostId, URI clusterId, String stepId) {
+    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
-        ComputeSystemHelper.updateInitiatorClusterName(_dbClient, clusterId, hostId);
+        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
+        ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
@@ -1329,207 +1342,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     @Override
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
-            String taskId)
-                    throws ControllerException {
-        TaskCompleter completer = null;
-        try {
-
-            // Check all deleted hosts and remove them from the list if auto export is disabled for the cluster
-            Iterator<URI> it = deletedHosts.iterator();
-            while (it.hasNext()) {
-                URI deletedHost = it.next();
-                Host host = _dbClient.queryObject(Host.class, deletedHost);
-                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-                    if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.getAutoExportEnabled()) {
-                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
-                                host.getId(),
-                                cluster.getId()));
-                        it.remove();
-                    }
-                }
-            }
-
-            completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
-            String waitFor = null;
-
-            // Map of host -> export groups for capturing removals from the export groups
-            Map<URI, Collection<URI>> detachvCenterHostExportMap = Maps.newHashMap();
-            // Map of host -> export groups for capturing additions to the export groups
-            Map<URI, Collection<URI>> attachvCenterHostExportMap = Maps.newHashMap();
-
-            Map<URI, ExportGroupState> exportGroups = Maps.newHashMap();
-            _log.info("There are " + changes.size() + " changes");
-
-            // Iterate through all host state changes and create states for all of the affected export groups
-            for (HostStateChange change : changes) {
-
-                _log.info("HostChange: " + change);
-
-                URI hostId = change.getHost().getId();
-                URI currentCluster = change.getHost().getCluster();
-                URI oldCluster = change.getOldCluster();
-
-                Cluster oldClusterRef = !NullColumnValueGetter.isNullURI(oldCluster) ? _dbClient.queryObject(Cluster.class, oldCluster)
-                        : null;
-                Cluster currentClusterRef = !NullColumnValueGetter.isNullURI(currentCluster) ? _dbClient.queryObject(Cluster.class,
-                        currentCluster) : null;
-
-                // For every host change (added/removed initiator, cluster change), get all exports that this host
-                // currently belongs to
-                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
-                List<Initiator> newInitiatorObjects = _dbClient.queryObject(Initiator.class, change.getNewInitiators());
-
-                // only update initiators if any of them have changed for this host
-                if (!change.getNewInitiators().isEmpty() || !change.getOldInitiators().isEmpty()) {
-                    for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        _log.info("Detected new/removed initiators for export " + export.getId() + " Change: " + change);
-                        List<Initiator> validInitiators = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
-                                newInitiatorObjects);
-                        Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
-                                CommonTransformerFunctions.fctnDataObjectToID());
-                        if (currentClusterRef == null || currentClusterRef.getAutoExportEnabled()) {
-                            egh.addInitiators(validInitiatorIds);
-                            egh.removeInitiators(change.getOldInitiators());
-                        } else {
-                            // prevent old initiators from being deleted by completer
-                            change.getOldInitiators().clear();
-                        }
-                    }
-                }
-
-                // check for any cluster changes
-                boolean isRemovedFromCluster = !NullColumnValueGetter.isNullURI(oldCluster)
-                        && NullColumnValueGetter.isNullURI(currentCluster)
-                        && ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster);
-
-                // being removed from a cluster and no longer in a cluster
-                if (isRemovedFromCluster) {
-                    for (ExportGroup export : getSharedExports(oldCluster)) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        _log.info("Host removed from cluster and no longer in a cluster. Export: " + export.getId() + " Remove Host: "
-                                + hostId + " Remove initiators: " + hostInitiatorIds);
-                        egh.removeHost(hostId);
-                        egh.removeInitiators(hostInitiatorIds);
-                        addVcenterHost(detachvCenterHostExportMap, hostId, export.getId());
-                    }
-                } else {
-
-                    boolean isAddedToCluster = NullColumnValueGetter.isNullURI(oldCluster)
-                            && !NullColumnValueGetter.isNullURI(currentCluster)
-                            && ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster);
-
-                    boolean isMovedToDifferentCluster = !NullColumnValueGetter.isNullURI(oldCluster)
-                            && !NullColumnValueGetter.isNullURI(currentCluster)
-                            && !oldCluster.equals(currentCluster)
-                            && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
-                                    || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
-
-                    if (isAddedToCluster || isMovedToDifferentCluster) {
-                        for (ExportGroup export : getSharedExports(currentCluster)) {
-                            ExportGroupState egh = getExportGroupState(exportGroups, export);
-                            _log.info("Non-clustered being added to a cluster. Export: " + export.getId() + " Add Host: " + hostId
-                                    + " Add initiators: " + hostInitiatorIds);
-                            List<Initiator> validInitiators = ComputeSystemHelper.validatePortConnectivity(_dbClient, export,
-                                    hostInitiators);
-                            Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
-                                    CommonTransformerFunctions.fctnDataObjectToID());
-                            egh.addHost(hostId);
-                            egh.addInitiators(validInitiatorIds);
-                            addVcenterHost(attachvCenterHostExportMap, hostId, export.getId());
-                        }
-                    }
-
-                    if (isMovedToDifferentCluster) {
-                        for (ExportGroup export : getSharedExports(oldCluster)) {
-                            ExportGroupState egh = getExportGroupState(exportGroups, export);
-                            _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId
-                                    + " Remove initiators: " + hostInitiatorIds);
-                            egh.removeHost(hostId);
-                            egh.removeInitiators(hostInitiatorIds);
-                            addVcenterHost(detachvCenterHostExportMap, hostId, export.getId());
-                        }
-                    }
-                }
-            }
-
-            _log.info("Number of deleted hosts: " + deletedHosts.size());
-
-            // For all deleted hosts, remove their references and their initiator references from all export groups
-            for (URI hostId : deletedHosts) {
-
-                Host host = _dbClient.queryObject(Host.class, hostId);
-                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
-                Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
-
-                // Iterate over all export groups that contain reference to the host or its initiators. Update the
-                // affected export groups
-                // state.
-                for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                    // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
-                    boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
-                            && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
-                            && export.hasBlockObject(host.getBootVolumeId());
-                    if (!isBootVolumeExport) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        egh.removeHost(host.getId());
-                        egh.removeInitiators(hostInitiatorIds);
-                    }
-                }
-
-            }
-
-            _log.info("Number of deleted clusters: " + deletedClusters.size());
-
-            // For all deleted clusters, remove their references from the cluster export groups
-            for (URI clusterId : deletedClusters) {
-                // the cluster's hosts will already be processed as deletedHosts
-                List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
-                for (ExportGroup export : clusterExportGroups) {
-                    ExportGroupState egh = getExportGroupState(exportGroups, export);
-                    egh.removeCluster(clusterId);
-                }
-            }
-
-            _log.info("Number of ExportGroupStates: " + exportGroups.size());
-
-            // If vCenter discovery is processing host changes, add steps for unmounting datastores and detaching disks
-            if (isVCenter) {
-                waitFor = unmountAndDetachVolumes(detachvCenterHostExportMap, waitFor, workflow);
-            }
-
-            // Generate export removes first and then export adds
-            for (ExportGroupState export : exportGroups.values()) {
-                if (export.hasRemoves()) {
-                    waitFor = generateSteps(export, waitFor, workflow, false);
-                }
-            }
-            // Generate export add steps
-            for (ExportGroupState export : exportGroups.values()) {
-                if (export.hasAdds()) {
-                    waitFor = generateSteps(export, waitFor, workflow, true);
-                }
-            }
-
-            // If vCenter discovery is processing host changes, add steps for attaching disks and mounting datastores
-            if (isVCenter) {
-                waitFor = attachAndMountVolumes(attachvCenterHostExportMap, waitFor, workflow);
-            }
-
-            if (workflow.getAllStepStatus() != null && !workflow.getAllStepStatus().isEmpty()) {
-                workflow.executePlan(completer, "Success", null, null, null, null);
-            } else {
-                completer.ready(_dbClient);
-            }
-        } catch (Exception ex) {
-            String message = "processHostChanges caught an exception.";
-            _log.error(message, ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            completer.error(_dbClient, serviceError);
-        }
+            String taskId) {
+        // Host changes are processed using AbstractDiscoveryAdapter
     }
 
     /**
@@ -1543,14 +1357,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      *            the workflow to create the step
      * @return the step id
      */
-    private String unmountAndDetachVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
+    private String unmountAndDetachVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
         if (vCenterHostExportMap == null) {
             return waitFor;
         }
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
-                URI virtualDataCenter = esxHost.getVcenterDataCenter();
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
                 URI vCenterId = vcenterDataCenter.getVcenter();
 

@@ -516,7 +516,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private boolean quotaDirectoryIngestionSupported(String storageType) {
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
         boolean qDIngestionSupported = false;
-        if (storageSystemType.equals(StorageSystem.Type.unity)) {
+        if (storageSystemType.equals(StorageSystem.Type.unity) || storageSystemType.equals(StorageSystem.Type.netapp)
+                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile)) {
             qDIngestionSupported = true;
         }
         return qDIngestionSupported;

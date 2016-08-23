@@ -13,11 +13,15 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.ISODateTimeFormat;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -34,6 +38,9 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleInfo;
+import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
+import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
@@ -70,6 +77,7 @@ import util.ModelExtensions;
 import util.OrderUtils;
 import util.StringOption;
 import util.TagUtils;
+import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
@@ -225,16 +233,26 @@ public class Orders extends OrderExecution {
         checkAuthenticity();
 
         OrderCreateParam order = createAndValidateOrder(serviceId);
-        OrderRestRep submittedOrder = null;
+        String status = null;
+        String orderId = null;
         try {
-            submittedOrder = getCatalogClient().orders().submit(order);
+            if (isSchedulerEnabled()) {
+                ScheduledEventCreateParam event = createScheduledOrder(order);
+                ScheduledEventRestRep submittedEvent = getCatalogClient().orders().submitScheduledEvent(event);
+                status = submittedEvent.getEventStatus();
+                orderId = submittedEvent.getLatestOrderId().toString();
+            } else {
+                OrderRestRep submittedOrder = getCatalogClient().orders().submit(order);
+                status = submittedOrder.getOrderStatus();
+                orderId = submittedOrder.getId().toString();
+            }
         } catch (Exception e) {
             Logger.error(e, MessagesUtils.get("order.submitFailed"));
             flash.error(MessagesUtils.get("order.submitFailed"));
             Common.handleError();
         }
 
-        if (OrderRestRep.ERROR.equalsIgnoreCase(submittedOrder.getOrderStatus())) {
+        if (OrderRestRep.ERROR.equalsIgnoreCase(status)) {
             flash.error(MessagesUtils.get("order.submitFailed"));
         }
         else {
@@ -243,8 +261,7 @@ public class Orders extends OrderExecution {
 
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-
-        String orderId = submittedOrder.getId().toString();
+        
         receipt(orderId);
     }
 
@@ -416,6 +433,9 @@ public class Orders extends OrderExecution {
         public List<ResourceDetails> affectedResources;
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
+        public ScheduledEventRestRep scheduledEvent;
+        public Date scheduleStartDateTime; 
+        
         public Map<URI, String> viprTaskStepMessages;
 
         public OrderDetails(String orderId) {
@@ -458,6 +478,16 @@ public class Orders extends OrderExecution {
                     }
                     checkLastUpdated(log);
                 }
+            }
+            URI scheduledEventId = order.getScheduledEventId();
+            if (scheduledEventId != null) {
+                scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
+                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
+                                        scheduledEvent.getScheduleInfo().getStartDate(), 
+                                        scheduledEvent.getScheduleInfo().getHourOfDay(), 
+                                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                DateTime startDateTime = DateTime.parse(isoDateTimeStr);
+                scheduleStartDateTime = startDateTime.toDate();
             }
         }
 
@@ -564,6 +594,10 @@ public class Orders extends OrderExecution {
             } catch (RuntimeException e) {
                 return false;
             }
+        }
+
+        public ScheduledEventRestRep getScheduledEvent() {
+            return scheduledEvent;
         }
     }
 

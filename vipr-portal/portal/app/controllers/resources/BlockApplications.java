@@ -37,8 +37,6 @@ import util.datatable.DataTablesSupport;
 import controllers.Common;
 import controllers.resources.BlockApplications.VolumeApplicationDataTable.VolumeApplication;
 
-
-
 @With(Common.class)
 public class BlockApplications extends ResourceController {
 

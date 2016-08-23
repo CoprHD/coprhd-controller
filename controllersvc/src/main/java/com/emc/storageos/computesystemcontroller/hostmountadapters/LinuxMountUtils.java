@@ -76,7 +76,7 @@ public class LinuxMountUtils {
                 throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
             }
         } catch (Exception ex) {
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.unableToMount(host.getType(), ex);
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
             throw exception;
         }
     }
@@ -139,7 +139,7 @@ public class LinuxMountUtils {
                 throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
             }
         } catch (Exception ex) {
-            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.unableToMount(host.getType(), ex);
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
             throw exception;
         }
     }

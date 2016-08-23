@@ -119,7 +119,7 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
         } catch (Exception ex) {
             _log.error("Could not unmount device: " + args, ex);
             ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
-                    .unableToMount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
+                    .unableToUnmount(_dbClient.queryObject(Host.class, args.getHostId()).getType(), ex);
             completer.error(_dbClient, exception);
             _workflowService.releaseAllWorkflowLocks(workflow);
             throw ex;

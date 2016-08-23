@@ -1330,6 +1330,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // if consistency group is not created yet, then get the storage system from the block object to be added
         // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
+        
+        if (consistencyGroup.isRPProtectedCG()) {
+        	throw APIException.badRequests.operationNotAllowedOnRPVolumes();    
+        }
+        
         if ((!consistencyGroup.created() || NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController()))
                 && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
             BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));

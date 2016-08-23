@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.StringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -548,19 +549,26 @@ public class NetworkDiscoveryWorker {
         for (Network network : allNetworks.values()) {
             NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
         }
-        
-        /*
-         * COP-23266: we can't create IVR zone between vsans routed by transit vsan,
-         * the routedNetwork should be updated based on transit vsan:
-         * */
+        // Update routed networks according to transit vsan if there is.
+        this.updateTransitRoutedNetworks(networkSystem);
+    }
+
+    /**
+     * COP-23266, COP-20698: we can't create IVR zone between VSANs routed by transit VSAN,
+     * the routedNetwork should be updated based on transit VSAN.
+     *
+     * @param networkSystem
+     * @throws Exception
+     */
+    private void updateTransitRoutedNetworks(NetworkSystem networkSystem) throws Exception {
+        // 1. Get transit VSAN.
         Map<String, String> fabricIdsMap = getDevice().getFabricIdsMap(networkSystem);
         _log.info("fabricIdsMap = {}", fabricIdsMap);
-
         Set<String> transitFabrics = new HashSet<String>();
         List<Network> networks = getCurrentTransportZones();
         for (Entry<String, String> entry : fabricIdsMap.entrySet()) {
             Network opNetwork = getNetworkByNativeId(networks, entry.getValue());
-            Set<String> endpoints = getDevice().getRoutedEndpoints(networkSystem, entry.getValue(), entry.getKey());
+            StringMap endpoints = opNetwork.getEndpointsMap();
             _log.info("Endpoints of given VSAN {}/{} in network {}: {}", entry.getValue(), entry.getKey(),
                 networkSystem.getLabel(), endpoints);
             // we determine transit VSAN: 1. more than one network system has the network, 2. network has no endpoints.
@@ -571,35 +579,48 @@ public class NetworkDiscoveryWorker {
                 _log.info("fabric id={} is NOT a transit vsan", entry.getValue());
             }
         }
-
+        // 2. Check if there is transit VSAN. Continue only when there is.
+        if (transitFabrics.isEmpty()) {
+            return;
+        }
+        // 3. Get localNetworks, remoteRoutedNetworks and routedNetworks. If there is transit VSAN, all the local
+        // VSANs and remote routed VSANs are routed.
         List<Network> localNetworks = getSystemRealNetwork(networkSystem, networks, transitFabrics);
-        List<Network> connectedNetworks = this.getConnectedNetwork(networkSystem.getId().toString(), networks, transitFabrics);
-        for (Network nw : localNetworks) {
-            dumpRoutedNetworks("localNetwork = ", nw);
+        for (Network network : localNetworks) {
+            dumpRoutedNetworks("localNetwork = ", network);
         }
-        for (Network nw : connectedNetworks) {
-            dumpRoutedNetworks("connectedNetwork = ", nw);
+        List<Network> remoteRoutedNetworks = this.getRemoteRoutedNetwork(networkSystem.getId().toString(),
+            networks, transitFabrics);
+        for (Network network : remoteRoutedNetworks) {
+            dumpRoutedNetworks("remoteRoutedNetworks = ", network);
         }
-
+        List<Network> routedNetworks = new ArrayList<Network>(localNetworks);
+        routedNetworks.addAll(remoteRoutedNetworks);
+        for (Network network : routedNetworks) {
+            dumpRoutedNetworks("routedNetworks = ", network);
+        }
+        // 4. Update each local network by setting the routed networks.
         for (Network localNetwork : localNetworks) {
             boolean modified = false;
             StringSet networkSet = localNetwork.getRoutedNetworks();
+            _log.info("NetworkDiscoveryWorker handling routed network, existing: {}", networkSet);
             if (networkSet == null) {
                 networkSet = new StringSet();
             }
-            for (Network connectedNetwork : connectedNetworks) {
-                if (!networkSet.contains(connectedNetwork.getId().toString())) {
-                    networkSet.add(connectedNetwork.getId().toString());
+            for (Network routedNetwork : routedNetworks) {
+                if (!networkSet.contains(routedNetwork.getId().toString()) &&
+                    !routedNetwork.getId().equals(localNetwork.getId())) {
+                    networkSet.add(routedNetwork.getId().toString());
                     modified = true;
                 }
             }
+            _log.info("NetworkDiscoveryWorker handling routed network, updated: {}", networkSet);
             if (modified) {
                 localNetwork.setRoutedNetworks(networkSet);
                 dumpRoutedNetworks("update network=", localNetwork);
                 dbClient.updateAndReindexObject(localNetwork);
             }
         }
-        
     }
 
     private void dumpRoutedNetworks(String prefix, Network network) {
@@ -616,8 +637,8 @@ public class NetworkDiscoveryWorker {
         _log.info(sb.toString());
     }
 
-    private List<Network> getConnectedNetwork(String selfSystemId, List<Network> networks, Set<String> transitFabrics) {
-        List<Network> connectedNetworks = new ArrayList<Network>();
+    private List<Network> getRemoteRoutedNetwork(String selfSystemId, List<Network> networks, Set<String> transitFabrics) {
+        List<Network> remoteRoutedNetworks = new ArrayList<Network>();
         Set<String> connectedSystems = new HashSet<String>();
         for (Network network : networks) {
             if (transitFabrics.contains(network.getNativeId()) && network.getNetworkSystems()!=null) {
@@ -631,10 +652,10 @@ public class NetworkDiscoveryWorker {
         for (Network network : networks) {
             String connectSystem = getConnectedSystem(selfSystemId, connectedSystems, network);
             if (NullColumnValueGetter.isNotNullValue(connectSystem)) {
-                connectedNetworks.add(network);
+                remoteRoutedNetworks.add(network);
             }
         }
-        return connectedNetworks;
+        return remoteRoutedNetworks;
     }
 
     private String getConnectedSystem(String selfSystemId, Set<String> connectedSystems, Network network) {

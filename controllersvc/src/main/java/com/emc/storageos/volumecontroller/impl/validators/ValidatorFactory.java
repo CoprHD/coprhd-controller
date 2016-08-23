@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -105,8 +106,19 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
+    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
+                                   Collection<? extends BlockObject> volumes) {
+        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators, volumes);
+    }
+
+    @Override
     public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
         return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList);
+    }
+
+    @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiators) {
+        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList, initiators);
     }
 
     @Override

@@ -6665,6 +6665,15 @@ blocksnapshot_single_vmax()
     run blocksnapshot restore $PROJECT/${snaptest_vol}/${vmx_snap2_label}
     run blocksnapshot delete $PROJECT/${snaptest_vol}/${vmx_snap1_label}
     run blocksnapshot delete $PROJECT/${snaptest_vol}/${vmx_snap2_label}
+
+    system_type=`volume show $PROJECT/${snaptest_vol} | grep system_type | awk -F\" '{print $4}'`
+    # delete VMAX3 snapshot session
+    if [ "$system_type" = "vmax3" ] ; then
+        echo "Delete snapshot sessions for volume ${snaptest_vol}"
+        run snapshotsession delete $PROJECT/${snaptest_vol}/${vmx_snap1_label}
+        run snapshotsession delete $PROJECT/${snaptest_vol}/${vmx_snap2_label}
+    fi
+
     run volume delete $PROJECT/${snaptest_vol} --wait
 
     # ----------------------------------
@@ -6700,6 +6709,13 @@ blocksnapshot_single_vmax()
     run blocksnapshot delete ${PROJECT}/${activate_vol}/${active_snap_label}
 
     # Cleanup
+    system_type=`volume show $PROJECT/${activate_vol} | grep system_type | awk -F\" '{print $4}'`
+    if [ "$system_type" = "vmax3" ] ; then
+        echo "Delete snapshot sessions for volume ${activate_vol}"
+        run snapshotsession delete $PROJECT/${activate_vol}/${snap1_label}
+        run snapshotsession delete $PROJECT/${activate_vol}/${active_snap_label}
+    fi
+
     run volume delete ${PROJECT}/${activate_vol} --wait
 }
 

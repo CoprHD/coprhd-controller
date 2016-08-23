@@ -340,6 +340,12 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
     
+    /**
+     * Enable the Isilon syncIQ policy
+     * @param isi
+     * @param policyName
+     * @return
+     */
     IsilonSyncPolicy doEnableReplicationPolicy(IsilonApi isi, String policyName) {
     	IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
         modifiedPolicy.setName(policyName);
@@ -349,22 +355,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     	return isi.getReplicationPolicy(policyName);
     }
     
-    /**
-     * Call to isilon to start replication session
-     * 
-     * @param system
-     * @param policyName
-     * @return
-     */
-    public BiosCommandResult doStartReplicationPolicy(StorageSystem sourceSystem, StorageSystem targetSystem, String policyName,
-            TaskCompleter taskCompleter) {
-    	IsilonApi isiSource = getIsilonDevice(sourceSystem);
-        IsilonSyncPolicy policySource = isiSource.getReplicationPolicy(policyName);
-        
-    	IsilonApi isiTarget = getIsilonDevice(sourceSystem);
-        IsilonSyncPolicy policyTarget = isiSource.getTargetReplicationPolicy(policyName);
-    	return BiosCommandResult.createSuccessfulResult();
-    }
+    
 
     /**
      * Call to isilon to start replication session
@@ -375,7 +366,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      */
     public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName,
             TaskCompleter taskCompleter) {
-    	 _log.info("IsilonMirrorOperations -  doStartReplicationPolicy started ");
+    	 _log.info("IsilonMirrorOperations -  doStartReplicationPolicy started on storagesystem {}", system.getLabel());
     	try {
 
             IsilonApi isi = getIsilonDevice(system);

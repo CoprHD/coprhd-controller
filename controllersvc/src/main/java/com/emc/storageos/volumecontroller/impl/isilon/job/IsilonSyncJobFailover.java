@@ -66,6 +66,8 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
                 String errorMessage = "No Isilon REST API client found for: " + _storageSystemUri;
                 processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
             } else {
+            	_pollResult.setJobName(_jobName);
+                _pollResult.setJobId(_taskCompleter.getOpId());
             	IsilonSyncTargetPolicy policy = null;
                 IsilonSyncPolicy.JobState policyState = null;
                 policy = isiApiClient.getTargetReplicationPolicy(currentJob);

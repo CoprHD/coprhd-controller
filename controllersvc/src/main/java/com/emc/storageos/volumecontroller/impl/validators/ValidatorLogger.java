@@ -20,6 +20,8 @@ public class ValidatorLogger {
     public static final String CONTACT_EMC_SUPPORT = "Contact EMC Support";
     public static final String INVENTORY_DELETE_VOLUME = "Inventory delete the affected volume(s)";
 
+    public static final String NO_MATCHING_ENTRY = "<no matching entry>";
+
     public ValidatorLogger() {
     }
 
@@ -36,10 +38,25 @@ public class ValidatorLogger {
      *            -- Hardware value
      */
     public void logDiff(String id, String field, String db, String hw) {
-        String msg = String.format("id: %s field: %s database: %s hardware: %s", id, field, db, hw);
-        msgs.append(msg + "\n");
+        StringBuffer msg = new StringBuffer(String.format("Controller database object ID %s, field %s: ", id, field));
+
+        // Craft a message depending on whether the db field is non-existent, or if the hw field wasn't found
+        if (db.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
+            msg.append(String.format(
+                    "The hardware reported entry %s, whereas the controller is not managing or does not have a reference to the same resource",
+                    hw, db));
+        } else if (hw.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
+            msg.append(String.format(
+                    "The controller is managing resource %s, whereas the hardware reported did not report that resource",
+                    db, hw));
+        } else {
+            msg.append(String.format(
+                    "The controller references resource: %s, whereas the hardware reported the actual resource as: %s",
+                    db, hw));
+        }
+        msg.append(msg + "\n");
         if (log != null) {
-            log.info(msg);
+            log.info(msg.toString());
         }
     }
 

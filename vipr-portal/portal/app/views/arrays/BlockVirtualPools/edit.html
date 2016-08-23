@@ -158,6 +158,11 @@
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
           </control-group>
         </div>
+        <div ng-if="['${models.StorageSystemTypes.VMAX}'].indexOf(vpool.systemType) > -1">
+          <control-group v-field='vpool.enableCompression'>
+            <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+          </control-group>
+        </div>
         <div ng-if="['${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
           <control-group v-field='vpool.multiVolumeConsistency'>
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
@@ -195,7 +200,7 @@
 
 	  <collapse title-key='vpool.group.placementPolicy' icon='vipricon-hand'>
 		<control-group v-field='vpool.placementPolicy' required>
-			<select-one options="placementPolicyOptions" auto-default ng-disabled="vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}'"></select-one>
+			<select-one options="placementPolicyOptions" auto-default ng-disabled="(vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}') || (vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}' || vpool.highAvailability == '${models.HighAvailability.VPLEX_LOCAL}') || (vpool.remoteProtection == '${models.ProtectionSystemTypes.RECOVERPOINT}' || vpool.remoteProtection == '${models.ProtectionSystemTypes.SRDF}')"></select-one>
 		</control-group>
 	  </collapse>
       

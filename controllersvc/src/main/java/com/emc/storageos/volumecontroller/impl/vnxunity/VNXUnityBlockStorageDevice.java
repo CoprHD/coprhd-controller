@@ -44,8 +44,13 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.HostTypeEnum;
+import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
+import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -287,13 +292,44 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     apiClient.deleteLunSync(volume.getNativeId(), false);
                 }
             }
-
+            
             for (Map.Entry<String, List<String>> entry : cgNameMap.entrySet()) {
                 String cgName = entry.getKey();
                 List<String> lunIDs = entry.getValue();
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
-                getCGLock(storageSystem, cgName, opId);
-                apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
+                boolean isRP = false;
+                if (cgId != null && !cgId.isEmpty()) {
+                    // Check if the CG has blockHostAccess to a RP host. if the CG is exported to a RP, we could not delete the lun
+                    // directly, we have to remove the volume from the CG first, then delete it.
+                    StorageResource cg = apiClient.getStorageResource(cgId);
+                    List<BlockHostAccess> hosts = cg.getBlockHostAccess();
+                    if (hosts != null && !hosts.isEmpty()) {
+                        for (BlockHostAccess hostAccess : hosts) {
+                            VNXeBase hostId = hostAccess.getHost();
+                            if (hostId != null) {
+                                VNXeHost host = apiClient.getHostById(hostId.getId());
+                                if (host != null) {
+                                    if (host.getType() == HostTypeEnum.RPA.getValue()) {
+                                        // Remove the luns from the CG
+                                        isRP = true;
+                                        logger.info(String.format("Removing volumes from CG because the CG %sis exported to RP", cgName));
+                                        getCGLock(storageSystem, cgName, opId);
+                                        apiClient.removeLunsFromConsistencyGroup(cgId, lunIDs);
+                                        for (String lunId : lunIDs) {
+                                            logger.info(String.format("Deleting the volume %s", lunId));
+                                            apiClient.deleteLunSync(lunId, false);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!isRP) {
+                    getCGLock(storageSystem, cgName, opId);
+                    apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
+                }
             }
 
             for (Volume vol : volumes) {

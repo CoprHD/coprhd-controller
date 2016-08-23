@@ -220,7 +220,7 @@ public class ArrayAffinityExportProcessor extends Processor {
     }
 
     /**
-     * Update preferredPoolIds for hosts
+     * Update preferredPools for hosts
      */
     protected void wrapUp() {
 
@@ -230,7 +230,7 @@ public class ArrayAffinityExportProcessor extends Processor {
         _logger.info("ArrayAffinityExportProcessor maskingViews size is " + maskingViews.size());
         if ((maskingViews != null) && (maskingViews.size() == (currentCommandIndex + 1))) {
             _logger.info("this is the last time ArrayAffinityExportProcessor will be called, cleaning up...");
-            updatePreferredPoolIds();
+            updatePreferredPools();
         } else {
             _logger.info("no need to wrap up yet...");
         }
@@ -351,7 +351,7 @@ public class ArrayAffinityExportProcessor extends Processor {
         this._args = inputArgs;
     }
 
-    private void updatePreferredPoolIds() {
+    private void updatePreferredPools() {
         Map<URI, Set<String>> hostToExportMasks = getHostToExportMasksMap();
         Map<String, Set<URI>> exportToMaskHostCount = getExportMaskToHostsMap();
         Map<String, Set<String>> maskToVolumes = getExportMaskToVolumesMap();
@@ -445,7 +445,7 @@ public class ArrayAffinityExportProcessor extends Processor {
                 _partitionManager.updateInBatches(hostsToUpdate, BATCH_SIZE, _dbClient, HOST);
             }
         } catch (Exception e) {
-            _logger.warn("Exception on updatePreferredSystems", e);
+            _logger.warn("Exception on updatePreferredPools", e);
         }
     }
 }

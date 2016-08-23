@@ -5,6 +5,8 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -12,12 +14,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.ISODateTimeFormat;
 
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
 import util.ServiceDescriptorUtils;
+import util.TimeUtils;
 import util.descriptor.ServiceFieldValidator;
 
 import com.emc.sa.descriptor.ServiceField;
@@ -26,6 +32,9 @@ import com.emc.vipr.model.catalog.CatalogServiceFieldRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleCycleType;
+import com.emc.vipr.model.catalog.ScheduleInfo;
+import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
@@ -250,4 +259,80 @@ public class OrderExecution extends Controller {
         }
         return parameter;
     }
+    
+    protected static ScheduledEventCreateParam createScheduledOrder(OrderCreateParam orderParam) {
+        if (!isSchedulerEnabled()) {
+            return null;
+        }
+        ScheduleInfo scheduleInfo = new ScheduleInfo();
+        String cycleFrequency = params.get("scheduler.cycleFrequency");
+        if (cycleFrequency != null) {
+            scheduleInfo.setCycleFrequency(Integer.parseInt(cycleFrequency));
+        } else {
+            scheduleInfo.setCycleFrequency(1);
+        }
+
+        String cycleType = params.get("scheduler.cycleType");
+        if (cycleType != null) {
+            ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
+            scheduleInfo.setCycleType(cycleTypeEnum);
+            List<String> sectionsInCycleList = Lists.newArrayList();
+            if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
+                String sectionsInCycle = params.get("scheduler.dayOfWeek");
+                sectionsInCycleList.add(sectionsInCycle);
+            } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
+                String sectionsInCycle = params.get("scheduler.dayOfMonth");
+                sectionsInCycleList.add(sectionsInCycle);
+            }
+            scheduleInfo.setSectionsInCycle(sectionsInCycleList);
+        } else {
+            scheduleInfo.setCycleType(ScheduleCycleType.DAILY);
+        }
+
+        String currentTimezoneOffsetInMins = params.get("scheduler.currentTimezoneOffsetInMins");
+        Integer timezoneOffset = Integer.parseInt(currentTimezoneOffsetInMins);
+        
+        String startDate = params.get("scheduler.startDate");
+        String startTime = params.get("scheduler.startTime");
+        
+        String isoDateTimeStr = String.format("%sT%s", startDate, startTime);
+        DateTime startDateTime = DateTime.parse(isoDateTimeStr, ISODateTimeFormat.localDateOptionalTimeParser().withZone(TimeUtils.getLocalTimeZone(timezoneOffset)));
+        startDateTime = startDateTime.withZone(DateTimeZone.UTC);
+        scheduleInfo.setHourOfDay(startDateTime.getHourOfDay());
+        scheduleInfo.setMinuteOfHour(startDateTime.getMinuteOfHour());
+        scheduleInfo.setStartDate(String.format("%d-%02d-%02d", startDateTime.getYear(), startDateTime.getMonthOfYear(), startDateTime.getDayOfMonth()));
+        
+        String recurrence = params.get("scheduler.recurrence");
+        if (recurrence != null) {
+            int recurrenceNum = Integer.parseInt(recurrence);
+            if (recurrenceNum == -1) {
+                String range = params.get("scheduler.rangeOfRecurrence");
+                recurrenceNum = Integer.parseInt(range);
+            }
+            scheduleInfo.setReoccurrence(recurrenceNum);
+        } else {
+           scheduleInfo.setReoccurrence(1);
+        }
+        
+        String maxNumOfCopies = params.get("scheduler.maxNumOfCopies");
+        if (maxNumOfCopies != null) {
+        	orderParam.setAdditionalScheduleInfo(maxNumOfCopies);
+        }
+        
+        scheduleInfo.setDurationLength(3600);
+        ScheduledEventCreateParam eventParam = new ScheduledEventCreateParam();
+        eventParam.setOrderCreateParam(orderParam);
+        eventParam.setScheduleInfo(scheduleInfo);
+        
+        
+        return eventParam;
+    }
+    
+    protected static boolean isSchedulerEnabled() {
+        if (params._contains("schedulerEnabled")) {
+             return Boolean.valueOf(params.get("schedulerEnabled"));
+        }
+        return false;
+    }
+
 }

@@ -58,6 +58,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
             putAttributeInMap(Attributes.protocols.toString(), _vpool.getProtocols());
         }
         putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), _vpool.getAutoTierPolicyName());
+        putAttributeInMap(Attributes.compression_enabled.toString(), _vpool.getCompressionEnabled());
         putAttributeInMap(Attributes.unique_policy_names.toString(), _vpool.getUniquePolicyNames());
         putAttributeInMap(Attributes.drive_type.toString(), _vpool.getDriveType());
         if (null != _vpool.getArrayInfo() && !_vpool.getArrayInfo().isEmpty()) {

@@ -4,14 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import java.net.URI;
-import java.util.Collection;
-
-import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
-import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -21,6 +14,13 @@ import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
+import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.Collection;
 
 /**
  * Factory class for creating Vmax-specific validators. The theme for each factory method is
@@ -43,6 +43,20 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     public AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
             Collection<Initiator> initiatorList) {
         return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+    }
+
+    @Override
+    public AbstractSMISValidator createMultipleExportMasksForBlockObjectsValidator(StorageSystem storage,
+                                                                                   ExportMask exportMask,
+                                                                                   Collection<? extends BlockObject> blockObjects) {
+        return new MultipleVmaxMaskForVolumesValidator(storage, exportMask, blockObjects);
+    }
+
+    @Override
+    public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(StorageSystem storage,
+                                                                                 ExportMask exportMask,
+                                                                                 Collection<Initiator> initiators) {
+        return new MultipleVmaxMaskForInitiatorsValidator(storage, exportMask, initiators);
     }
 
     @Override

@@ -72,7 +72,7 @@ public class DbConsistencyCheckerHelper {
         try {
             OperationResult<Rows<String, CompositeColumnName>> result = dbClient.getKeyspace(
                     doType.getDataObjectClass()).prepareQuery(doType.getCF())
-                    .getAllRows().setRowLimit(100)
+                    .getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : result.getResult()) {
@@ -189,7 +189,7 @@ public class DbConsistencyCheckerHelper {
                 .prepareQuery(indexAndCf.cf);
 
         OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
-                .setRowLimit(100).execute();
+                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
 
         for (Row<String, IndexColumnName> row : result.getResult()) {
             ColumnList<IndexColumnName> columns = row.getColumns();

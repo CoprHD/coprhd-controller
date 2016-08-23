@@ -1568,6 +1568,8 @@ public class VPlexUtil {
         // Check to see if this is a VPLEX virtual volume
         if (isVplexVolume(volume, dbClient)) {
             if (null == volume.getAssociatedVolumes()) {
+                // this is a change vpool operation, so we don't want to throw an exception,
+                // in case it's a change from non-supported backend array(s) to supported
                 _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'. "
                         + "Backend volume virtual pools will not be updated.", 
                         volume.forDisplay());

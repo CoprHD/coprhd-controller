@@ -101,6 +101,7 @@ import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopy
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.VPlexUtil;
@@ -1616,31 +1617,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Only need to set the replicationGroupInstance for an existing VPlex volume
                 // if the CG has array consistency enabled and the CG supports LOCAL type.
                 if (consistencyGroup.getArrayConsistency()) {
-                    if (null == changeVpoolVolume.getAssociatedVolumes()) {
-                        _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                                sourceVolume.forDisplay());
-                    } else {
-                        for (String backendVolumeId : changeVpoolVolume.getAssociatedVolumes()) {
-                            Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backendVolumeId));
+                    if (null == changeVpoolVolume.getAssociatedVolumes() || changeVpoolVolume.getAssociatedVolumes().isEmpty()) {
+                        _log.error("VPLEX volume {} has no backend volumes.", changeVpoolVolume.forDisplay());
+                        throw InternalServerErrorException.
+                            internalServerErrors.noAssociatedVolumesForVPLEXVolume(changeVpoolVolume.forDisplay());
+                    }
+                    for (String backendVolumeId : changeVpoolVolume.getAssociatedVolumes()) {
+                        Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backendVolumeId));
 
-                            String rgName = consistencyGroup.getCgNameOnStorageSystem(backingVolume.getStorageController());
-                            if (rgName == null) {
-                                rgName = consistencyGroup.getLabel(); // for new CG
-                            } else {
-                                // if other volumes in the same CG are in an application, add this volume to the same application
-                                VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(_dbClient, consistencyGroup, rgName);
-                                if (volumeGroup != null) {
-                                    backingVolume.getVolumeGroupIds().add(volumeGroup.getId().toString());
-                                }
+                        String rgName = consistencyGroup.getCgNameOnStorageSystem(backingVolume.getStorageController());
+                        if (rgName == null) {
+                            rgName = consistencyGroup.getLabel(); // for new CG
+                        } else {
+                            // if other volumes in the same CG are in an application, add this volume to the same application
+                            VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(_dbClient, consistencyGroup, rgName);
+                            if (volumeGroup != null) {
+                                backingVolume.getVolumeGroupIds().add(volumeGroup.getId().toString());
                             }
-                            _log.info(String.format(
-                                    "Preparing VPLEX volume [%s](%s) for RP Protection, "
-                                            + "backend end volume [%s](%s) updated with replication group name: %s",
-                                    volume.getLabel(), volume.getId(), backingVolume.getLabel(), backingVolume.getId(), rgName));
-
-                            backingVolume.setReplicationGroupInstance(rgName);
-                            _dbClient.updateObject(backingVolume);
                         }
+                        _log.info(String.format(
+                                "Preparing VPLEX volume [%s](%s) for RP Protection, "
+                                        + "backend end volume [%s](%s) updated with replication group name: %s",
+                                volume.getLabel(), volume.getId(), backingVolume.getLabel(), backingVolume.getId(), rgName));
+
+                        backingVolume.setReplicationGroupInstance(rgName);
+                        _dbClient.updateObject(backingVolume);
                     }
                 }
             }
@@ -3381,10 +3382,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private void setInternalSitesForSourceBackingVolumes(RPRecommendation primaryRecommendation, RPRecommendation secondaryRecommendation,
             Volume sourceVolume, boolean exportForMetroPoint, boolean exportToHASideOnly, String haVarrayConnectedToRp,
             String activeSourceCopyName, String standbySourceCopyName) {
-        if (null == sourceVolume.getAssociatedVolumes()) {
-            _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                    sourceVolume.forDisplay());
-            return;
+        if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
+            _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
+            throw InternalServerErrorException.
+                internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
         }
 
         if (exportForMetroPoint) {

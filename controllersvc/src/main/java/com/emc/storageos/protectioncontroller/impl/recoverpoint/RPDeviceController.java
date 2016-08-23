@@ -119,6 +119,7 @@ import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -856,20 +857,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // we need to fetch the correct internal site names and other site related parameters from the
                     // backing volume.
                     StringSet backingVolumes = volume.getAssociatedVolumes();
-                    if (null == backingVolumes) {
-                        _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                                volume.forDisplay());
-                    } else {
-                        for (String backingVolumeStr : backingVolumes) {
-                            Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backingVolumeStr));
-                            CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
-                                    backingVolume.getVirtualArray(), backingVolume.getInternalSiteName(), true, backingVolume.getRpCopyName(),
-                                    RPHelper.getRPWWn(volume.getId(), _dbClient), maxNumberOfSnapShots);
-                            _log.info(String.format("Creating RSet Param for MetroPoint RP PROD - VOLUME: [%s] Name: [%s]",
-                                    backingVolume.getLabel(), volume.getRSetName()));
-                            populateRsetsMap(rsetParamsMap, volumeParams, volume);
-                            productionCopies.add(backingVolume.getRpCopyName());
-                        }
+                    if (null == backingVolumes || backingVolumes.isEmpty()) {
+                        _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                        throw InternalServerErrorException.
+                            internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                    }
+                    for (String backingVolumeStr : backingVolumes) {
+                        Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backingVolumeStr));
+                        CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
+                                backingVolume.getVirtualArray(), backingVolume.getInternalSiteName(), true, backingVolume.getRpCopyName(),
+                                RPHelper.getRPWWn(volume.getId(), _dbClient), maxNumberOfSnapShots);
+                        _log.info(String.format("Creating RSet Param for MetroPoint RP PROD - VOLUME: [%s] Name: [%s]",
+                                backingVolume.getLabel(), volume.getRSetName()));
+                        populateRsetsMap(rsetParamsMap, volumeParams, volume);
+                        productionCopies.add(backingVolume.getRpCopyName());
                     }
                 } else {
                     CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
@@ -2020,21 +2021,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // Get the associated volumes and add them to the list so we can create RPExports
                         // for each one.
                         StringSet backingVolumes = volume.getAssociatedVolumes();
-                        if (null == backingVolumes) {
-                            _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                                    volume.forDisplay());
-                        } else {
-                            for (String volumeId : backingVolumes) {
-                                Volume vol = _dbClient.queryObject(Volume.class, URI.create(volumeId));
-    
-                                // Check to see if we only want to export to the HA side of the RP+VPLEX setup
-                                if (exportToHASideOnly) {
-                                    if (!vol.getVirtualArray().toString().equals(vpool.getHaVarrayConnectedToRp())) {
-                                        continue;
-                                    }
+                        if (null == backingVolumes || backingVolumes.isEmpty()) {
+                            _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                            throw InternalServerErrorException.
+                                internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                        }
+                        for (String volumeId : backingVolumes) {
+                            Volume vol = _dbClient.queryObject(Volume.class, URI.create(volumeId));
+
+                            // Check to see if we only want to export to the HA side of the RP+VPLEX setup
+                            if (exportToHASideOnly) {
+                                if (!vol.getVirtualArray().toString().equals(vpool.getHaVarrayConnectedToRp())) {
+                                    continue;
                                 }
-                                volumes.add(vol);
                             }
+                            volumes.add(vol);
                         }
                     } else {
                         // Not RP+VPLEX distributed or MetroPoint, add the volume and continue on.
@@ -6412,7 +6413,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (RPHelper.isVPlexVolume(volume, _dbClient) && (null != volume.getAssociatedVolumes())) {
+        if (RPHelper.isVPlexVolume(volume, _dbClient) 
+                && (null != volume.getAssociatedVolumes())
+                && (!volume.getAssociatedVolumes().isEmpty())) {
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", volume.getLabel(),
                     volume.getId()));
             VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
@@ -7002,19 +7005,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
         if (RPHelper.isVPlexVolume(volume, _dbClient)) {
             StringSet backends = volume.getAssociatedVolumes();
-            if (null == backends) {
-                _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                        volume.forDisplay());
-            } else {
-                for (String backendId : backends) {
-                    URI backendUri = URI.create(backendId);
-                    allVolumes.add(backendUri);
-                    if (isAdd && !vplexVolumes.contains(volume.getId())) {
-                        Volume backVol = _dbClient.queryObject(Volume.class, backendUri);
-                        if (backVol != null && !backVol.getInactive()
-                                && NullColumnValueGetter.isNullValue(backVol.getReplicationGroupInstance())) {
-                            vplexVolumes.add(volume.getId());
-                        }
+            if (null == backends || backends.isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
+            for (String backendId : backends) {
+                URI backendUri = URI.create(backendId);
+                allVolumes.add(backendUri);
+                if (isAdd && !vplexVolumes.contains(volume.getId())) {
+                    Volume backVol = _dbClient.queryObject(Volume.class, backendUri);
+                    if (backVol != null && !backVol.getInactive()
+                            && NullColumnValueGetter.isNullValue(backVol.getReplicationGroupInstance())) {
+                        vplexVolumes.add(volume.getId());
                     }
                 }
             }

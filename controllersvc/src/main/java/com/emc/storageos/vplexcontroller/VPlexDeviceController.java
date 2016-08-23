@@ -731,16 +731,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             volume.getStorageController().toString()
                                     .equals(vplexSystem.getId().toString())) {
                         StringSet backingVolumes = volume.getAssociatedVolumes();
-                        if (null == backingVolumes) {
-                            _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                                    volume.forDisplay());
-                        } else {
-                            // Add all backing volumes found to the volumeMap
-                            for (String backingVolumeId : backingVolumes) {
-                                URI backingVolumeURI = URI.create(backingVolumeId);
-                                Volume backingVolume = getDataObject(Volume.class, backingVolumeURI, _dbClient);
-                                volumeMap.put(backingVolumeURI, backingVolume);
-                            }
+                        if (null == backingVolumes || backingVolumes.isEmpty()) {
+                            _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                            throw InternalServerErrorException.
+                                internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                        }
+                        // Add all backing volumes found to the volumeMap
+                        for (String backingVolumeId : backingVolumes) {
+                            URI backingVolumeURI = URI.create(backingVolumeId);
+                            Volume backingVolume = getDataObject(Volume.class, backingVolumeURI, _dbClient);
+                            volumeMap.put(backingVolumeURI, backingVolume);
                         }
                     }
                 }
@@ -1272,7 +1272,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
                 if (null == vplexVolume.getAssociatedVolumes()) {
-                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                    _log.warn("VPLEX volume {} has no backend volumes. It was possibly ingested 'Virtual Volume Only'.", 
                             vplexVolume.forDisplay());
                 } else {
                     for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
@@ -1378,7 +1378,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
                 if (null == vplexVolume.getAssociatedVolumes()) {
-                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                    _log.warn("VPLEX volume {} has no backend volumes. It was possibly ingested 'Virtual Volume Only'.", 
                             vplexVolume.forDisplay());
                 } else {
                     for (String forgetVolumeId : vplexVolume.getAssociatedVolumes()) {
@@ -7571,8 +7571,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
             List<URI> assocVolumeURIs = new ArrayList<URI>();
             StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
-            if (null == assocVolumeIds) {
-                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            if (null == vplexVolume.getAssociatedVolumes() || vplexVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
             }
             for (String assocVolumeId : assocVolumeIds) {
                 assocVolumeURIs.add(URI.create(assocVolumeId));
@@ -8364,24 +8366,24 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
         _log.info("Got VPLEX volume");
         StringSet assocVolumeURIs = vplexVolume.getAssociatedVolumes();
-        if (null == assocVolumeURIs) {
-            _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                    vplexVolume.forDisplay());
-        } else {
-            Iterator<String> assocVolumeURIsIter = assocVolumeURIs.iterator();
-            while (assocVolumeURIsIter.hasNext()) {
-                URI assocVolumeURI = URI.create(assocVolumeURIsIter.next());
-                _log.info("Associated volume is {}", assocVolumeURI);
-                Iterator<VolumeDescriptor> descriptorIter = descriptors.iterator();
-                while (descriptorIter.hasNext()) {
-                    VolumeDescriptor descriptor = descriptorIter.next();
-                    URI volumeURI = descriptor.getVolumeURI();
-                    _log.info("Descriptor volume is {}", volumeURI);
-                    if (volumeURI.equals(assocVolumeURI)) {
-                        _log.info("Found descriptor for associated volume");
-                        assocVolumeDescriptors.add(descriptor);
-                        break;
-                    }
+        if (null == assocVolumeURIs || assocVolumeURIs.isEmpty()) {
+            _log.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+            throw InternalServerErrorException.
+                internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+        }
+        Iterator<String> assocVolumeURIsIter = assocVolumeURIs.iterator();
+        while (assocVolumeURIsIter.hasNext()) {
+            URI assocVolumeURI = URI.create(assocVolumeURIsIter.next());
+            _log.info("Associated volume is {}", assocVolumeURI);
+            Iterator<VolumeDescriptor> descriptorIter = descriptors.iterator();
+            while (descriptorIter.hasNext()) {
+                VolumeDescriptor descriptor = descriptorIter.next();
+                URI volumeURI = descriptor.getVolumeURI();
+                _log.info("Descriptor volume is {}", volumeURI);
+                if (volumeURI.equals(assocVolumeURI)) {
+                    _log.info("Found descriptor for associated volume");
+                    assocVolumeDescriptors.add(descriptor);
+                    break;
                 }
             }
         }
@@ -9523,8 +9525,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // or distributed.
             String waitFor = null;
             Volume firstVplexVolume = getDataObject(Volume.class, vplexVolumeURIs.get(0), _dbClient);
-            if (null == firstVplexVolume.getAssociatedVolumes()) {
-                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(firstVplexVolume.forDisplay());
+            if (null == firstVplexVolume.getAssociatedVolumes() || firstVplexVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", firstVplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(firstVplexVolume.forDisplay());
             }
             boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
             if (isLocal) {
@@ -10574,9 +10578,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 VPlexVirtualVolumeInfo vplexVolumeInfo = new VPlexVirtualVolumeInfo();
                 vplexVolumeInfo.setName(sourceVplexVolume.getDeviceLabel());
                 vplexVolumeInfo.setPath(sourceVplexVolume.getNativeId());
-                if (null == sourceVplexVolume.getAssociatedVolumes()) {
-                    throw InternalServerErrorException.internalServerErrors
-                        .noAssociatedVolumesForVPLEXVolume(sourceVplexVolume.forDisplay());
+                if (null == sourceVplexVolume.getAssociatedVolumes() || sourceVplexVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", sourceVplexVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVplexVolume.forDisplay());
                 }
                 if (sourceVplexVolume.getAssociatedVolumes().size() > 1) {
                     vplexVolumeInfo.setLocality(VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME);
@@ -10860,9 +10865,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Volume sourceVplexVolume = getDataObject(Volume.class, vplexMirror.getSource().getURI(), _dbClient);
 
             if (vplexMirror.getDeviceLabel() != null) {
-                if (null == sourceVplexVolume.getAssociatedVolumes()) {
-                    throw InternalServerErrorException.internalServerErrors
-                        .noAssociatedVolumesForVPLEXVolume(sourceVplexVolume.forDisplay());
+                if (null == sourceVplexVolume.getAssociatedVolumes() || sourceVplexVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", sourceVplexVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVplexVolume.forDisplay());
                 }
                 if (sourceVplexVolume.getAssociatedVolumes().size() > 1) {
                     // Call to detach mirror device from Distributed Virtual Volume
@@ -12289,8 +12295,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             Map<URI, String> vplexVolumeIdToDetachStep = new HashMap<URI, String>();
             boolean isRP = firstVplexVolume.checkForRp();
-            if (null == firstVplexVolume.getAssociatedVolumes()) {
-                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(firstVplexVolume.forDisplay());
+            if (null == firstVplexVolume.getAssociatedVolumes() || firstVplexVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", firstVplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(firstVplexVolume.forDisplay());
             }
             boolean isDistributed = firstVplexVolume.getAssociatedVolumes().size() > 1;
 
@@ -12764,8 +12772,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<Volume> volumesToFlush = new ArrayList<Volume>();
             List<Volume> distributedVolumes = new ArrayList<Volume>();
             for (Volume vplexVolume : entry.getValue()) {
-                if (null == vplexVolume.getAssociatedVolumes()) {
-                    throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+                if (null == vplexVolume.getAssociatedVolumes() || vplexVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
                 }
                 if (vplexVolume.getAssociatedVolumes().size() > 1) {
                     distributedVolumes.add(vplexVolume);
@@ -12853,8 +12863,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Determine the distributed volumes. No action is required on local volumes.
             List<Volume> distributedVolumes = new ArrayList<Volume>();
             for (Volume vplexVolume : entry.getValue()) {
-                if (null == vplexVolume.getAssociatedVolumes()) {
-                    throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+                if (null == vplexVolume.getAssociatedVolumes() || vplexVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
                 }
                 if (vplexVolume.getAssociatedVolumes().size() > 1) {
                     distributedVolumes.add(vplexVolume);

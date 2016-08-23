@@ -1513,7 +1513,9 @@ public class RPHelper {
         String standbyInternalSite = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume) && (null != sourceVolume.getAssociatedVolumes())) {
+            if (isMetroPointVolume(dbClient, sourceVolume) 
+                    && (null != sourceVolume.getAssociatedVolumes()
+                    && (!sourceVolume.getAssociatedVolumes().isEmpty()))) {
                 // Check the associated volumes to find the non-matching internal site and return that one.
                 for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
@@ -1676,7 +1678,9 @@ public class RPHelper {
             // the backing volumes if they were set to the new vpool.
             if (RPHelper.isVPlexVolume(volume, dbClient)) {
                 if (null == volume.getAssociatedVolumes()) {
-                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                    // this is a rollback situation, so we probably don't want to
+                    // throw another exception...
+                    _log.warn("VPLEX volume {} has no backend volumes.", 
                             volume.forDisplay());
                 } else {
                     for (String associatedVolId : volume.getAssociatedVolumes()) {

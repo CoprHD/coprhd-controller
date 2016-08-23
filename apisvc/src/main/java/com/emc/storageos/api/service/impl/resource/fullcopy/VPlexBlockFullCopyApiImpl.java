@@ -343,9 +343,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // a volume to hold the HA volume of the VPLEX volume copy.
                 vplexSrcVolume = (Volume) fcSourceObj;
                 StringSet assocVolumeURIs = vplexSrcVolume.getAssociatedVolumes();
-                if (null == assocVolumeURIs) {
-                    throw InternalServerErrorException.internalServerErrors
-                        .noAssociatedVolumesForVPLEXVolume(vplexSrcVolume.forDisplay());
+                if (null == assocVolumeURIs || assocVolumeURIs.isEmpty()) {
+                    s_logger.error("VPLEX volume {} has no backend volumes.", vplexSrcVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexSrcVolume.forDisplay());
                 }
                 Iterator<String> assocVolumeURIsIter = assocVolumeURIs.iterator();
                 while (assocVolumeURIsIter.hasNext()) {

@@ -424,17 +424,17 @@ public class RecoverPointScheduler implements Scheduler {
             // If this is a change vpool operation, the source has already been placed and there is only 1
             // valid source pool, the existing one. Get that pool and add it to the list.
             if (RPHelper.isVPlexVolume(vpoolChangeVolume, dbClient)) {
-                if (null == vpoolChangeVolume.getAssociatedVolumes()) {
-                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                            vpoolChangeVolume.forDisplay());
-                } else {
-                    for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
-                        Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
-                        if (assocVol.getVirtualArray().equals(varray.getId())) {
-                            existingStoragePoolId = assocVol.getPool();
-                            break;
-                        } 
-                    }
+                if (null == vpoolChangeVolume.getAssociatedVolumes() || vpoolChangeVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", vpoolChangeVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(vpoolChangeVolume.forDisplay());
+                }
+                for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
+                    Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+                    if (assocVol.getVirtualArray().equals(varray.getId())) {
+                        existingStoragePoolId = assocVol.getPool();
+                        break;
+                    } 
                 }
             } else {
                 existingStoragePoolId = vpoolChangeVolume.getPool();
@@ -1225,32 +1225,32 @@ public class RecoverPointScheduler implements Scheduler {
         if (isChangeVpool) {
             // If this is a change vpool operation, the source has already been placed and there is only 1
             // valid pool, the existing ones for active and standby. This is just to used to pass through the placement code.
-            if (null == vpoolChangeVolume.getAssociatedVolumes()) {
-                _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                        vpoolChangeVolume.forDisplay());
-            } else {
-                for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
-                    Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
-                    if (assocVol.getVirtualArray().equals(varray.getId())) {
-                        // This is the existing active source backing volume
-                        changeVpoolSourceRecommendation.setSourceStoragePool(assocVol.getPool());
-                        StoragePool pool = dbClient.queryObject(StoragePool.class, assocVol.getPool());
-                        changeVpoolSourceRecommendation.setSourceStorageSystem(pool.getStorageDevice());
-                        changeVpoolSourceRecommendation.setResourceCount(1);
-                        sourcePoolRecommendations.add(changeVpoolSourceRecommendation);
-                        _log.info(String.format(
-                                "RP Placement : Change Virtual Pool - Active source pool already exists, reuse pool: [%s] [%s].", pool
-                                        .getLabel().toString(), pool.getId().toString()));
-                    } else if (assocVol.getVirtualArray().equals(haVarray.getId())) {
-                        // This is the existing standby source backing volume
-                        changeVpoolStandbyRecommendation.setSourceStoragePool(assocVol.getPool());
-                        StoragePool pool = dbClient.queryObject(StoragePool.class, assocVol.getPool());
-                        changeVpoolStandbyRecommendation.setSourceStorageSystem(pool.getStorageDevice());
-                        changeVpoolStandbyRecommendation.setResourceCount(1);
-                        _log.info(String.format(
-                                "RP Placement : Change Virtual Pool - Standby source pool already exists, reuse pool: [%s] [%s].",
-                                pool.getLabel().toString(), pool.getId().toString()));
-                    }
+            if (null == vpoolChangeVolume.getAssociatedVolumes() || vpoolChangeVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", vpoolChangeVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vpoolChangeVolume.forDisplay());
+            }
+            for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
+                Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+                if (assocVol.getVirtualArray().equals(varray.getId())) {
+                    // This is the existing active source backing volume
+                    changeVpoolSourceRecommendation.setSourceStoragePool(assocVol.getPool());
+                    StoragePool pool = dbClient.queryObject(StoragePool.class, assocVol.getPool());
+                    changeVpoolSourceRecommendation.setSourceStorageSystem(pool.getStorageDevice());
+                    changeVpoolSourceRecommendation.setResourceCount(1);
+                    sourcePoolRecommendations.add(changeVpoolSourceRecommendation);
+                    _log.info(String.format(
+                            "RP Placement : Change Virtual Pool - Active source pool already exists, reuse pool: [%s] [%s].", pool
+                                    .getLabel().toString(), pool.getId().toString()));
+                } else if (assocVol.getVirtualArray().equals(haVarray.getId())) {
+                    // This is the existing standby source backing volume
+                    changeVpoolStandbyRecommendation.setSourceStoragePool(assocVol.getPool());
+                    StoragePool pool = dbClient.queryObject(StoragePool.class, assocVol.getPool());
+                    changeVpoolStandbyRecommendation.setSourceStorageSystem(pool.getStorageDevice());
+                    changeVpoolStandbyRecommendation.setResourceCount(1);
+                    _log.info(String.format(
+                            "RP Placement : Change Virtual Pool - Standby source pool already exists, reuse pool: [%s] [%s].",
+                            pool.getLabel().toString(), pool.getId().toString()));
                 }
             }
             satisfiedSourceVolCount = 1;
@@ -1823,10 +1823,11 @@ public class RecoverPointScheduler implements Scheduler {
             // existing storage pools to pass to the RP Scheduler.
             Volume sourceBackingVolume = null;
             Volume haBackingVolume = null;
-            if (null == volume.getAssociatedVolumes()) {
-                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
             }
-
             for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                 URI associatedVolumeURI = URI.create(associatedVolumeId);
                 Volume backingVolume = dbClient.queryObject(Volume.class, associatedVolumeURI);
@@ -1867,10 +1868,10 @@ public class RecoverPointScheduler implements Scheduler {
     private boolean verifyStoragePoolAvailability(VirtualPool vpool, Volume existingVolume) {
         if (existingVolume.isVPlexVolume(dbClient)) { 
             // Have to check the backing volumes for VPLEX
-            if (null == existingVolume.getAssociatedVolumes()) {
-                _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                        existingVolume.forDisplay());
-                return false;
+            if (null == existingVolume.getAssociatedVolumes() || existingVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", existingVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(existingVolume.forDisplay());
             }
             int matchedPools = 0;
             for (String backingVolumeId : existingVolume.getAssociatedVolumes()) {
@@ -2204,51 +2205,51 @@ public class RecoverPointScheduler implements Scheduler {
             // in a multi-volume request.
             vplexRec.setResourceCount(1);
 
-            if (null == volume.getAssociatedVolumes()) {
-                _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                        volume.forDisplay());
-            } else {
-                for (String backingVolumeId : volume.getAssociatedVolumes()) {
-                    Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
-                    if (backingVolume.getVirtualArray().equals(volume.getVirtualArray())) {
-                        rec.setSourceStoragePool(backingVolume.getPool());
-                        rec.setSourceStorageSystem(backingVolume.getStorageController());
-                        vplexRec.setSourceStoragePool(backingVolume.getPool());
-                        vplexRec.setSourceStorageSystem(backingVolume.getStorageController());
-                    } else {
-                        if (journalSize == null) {
-                            // Build HA recommendation if specified and this is not a VPLEX Journal.
-                            // VPLEX Journals are always forced to VPLEX Local so we would not
-                            // build a HA rec for it.
-                            RPRecommendation haRec = new RPRecommendation();
-                            VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
-                            haRec.setVirtualPool(haVpool);
-                            haRec.setVirtualArray(backingVolume.getVirtualArray());                                        
-                            haRec.setSourceStoragePool(backingVolume.getPool());
-                            haRec.setSourceStorageSystem(backingVolume.getStorageController());                    
-                            haRec.setResourceCount(capabilities.getResourceCount());
-                            haRec.setSize(capabilities.getSize());
-                            haRec.setInternalSiteName(backingVolume.getInternalSiteName());                    
-                            haRec.setRpCopyName(backingVolume.getRpCopyName());
-                            
-                            VPlexRecommendation haVPlexRec = new VPlexRecommendation();
-                            haVPlexRec.setVirtualPool(haRec.getVirtualPool());
-                            haVPlexRec.setVirtualArray(haRec.getVirtualArray());
-                            haVPlexRec.setVPlexStorageSystem(volume.getStorageController());
-                            haVPlexRec.setSourceStoragePool(haRec.getSourceStoragePool());
-                            haVPlexRec.setSourceStorageSystem(haRec.getSourceStorageSystem());                                            
-                            // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-                            // these recs and they are invoked one at a time even
-                            // in a multi-volume request.
-                            haVPlexRec.setResourceCount(1);
-                            haRec.setVirtualVolumeRecommendation(haVPlexRec);
-                            
-                            rec.setHaRecommendation(haRec);
-                        }
+            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
+            for (String backingVolumeId : volume.getAssociatedVolumes()) {
+                Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
+                if (backingVolume.getVirtualArray().equals(volume.getVirtualArray())) {
+                    rec.setSourceStoragePool(backingVolume.getPool());
+                    rec.setSourceStorageSystem(backingVolume.getStorageController());
+                    vplexRec.setSourceStoragePool(backingVolume.getPool());
+                    vplexRec.setSourceStorageSystem(backingVolume.getStorageController());
+                } else {
+                    if (journalSize == null) {
+                        // Build HA recommendation if specified and this is not a VPLEX Journal.
+                        // VPLEX Journals are always forced to VPLEX Local so we would not
+                        // build a HA rec for it.
+                        RPRecommendation haRec = new RPRecommendation();
+                        VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
+                        haRec.setVirtualPool(haVpool);
+                        haRec.setVirtualArray(backingVolume.getVirtualArray());                                        
+                        haRec.setSourceStoragePool(backingVolume.getPool());
+                        haRec.setSourceStorageSystem(backingVolume.getStorageController());                    
+                        haRec.setResourceCount(capabilities.getResourceCount());
+                        haRec.setSize(capabilities.getSize());
+                        haRec.setInternalSiteName(backingVolume.getInternalSiteName());                    
+                        haRec.setRpCopyName(backingVolume.getRpCopyName());
+                        
+                        VPlexRecommendation haVPlexRec = new VPlexRecommendation();
+                        haVPlexRec.setVirtualPool(haRec.getVirtualPool());
+                        haVPlexRec.setVirtualArray(haRec.getVirtualArray());
+                        haVPlexRec.setVPlexStorageSystem(volume.getStorageController());
+                        haVPlexRec.setSourceStoragePool(haRec.getSourceStoragePool());
+                        haVPlexRec.setSourceStorageSystem(haRec.getSourceStorageSystem());                                            
+                        // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+                        // these recs and they are invoked one at a time even
+                        // in a multi-volume request.
+                        haVPlexRec.setResourceCount(1);
+                        haRec.setVirtualVolumeRecommendation(haVPlexRec);
+                        
+                        rec.setHaRecommendation(haRec);
                     }
                 }
-                rec.setVirtualVolumeRecommendation(vplexRec);
             }
+            rec.setVirtualVolumeRecommendation(vplexRec);
         }
 
         return rec;
@@ -2278,18 +2279,18 @@ public class RecoverPointScheduler implements Scheduler {
             long sourceVolumesRequiredCapacity = getSizeInKB(capabilities.getSize() * capabilities.getResourceCount());
             
             if (RPHelper.isVPlexVolume(sourceVolume, dbClient)) {
-                if (null == sourceVolume.getAssociatedVolumes()) {
-                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                            sourceVolume.forDisplay());
-                } else {
-                    for (String backingVolumeId : sourceVolume.getAssociatedVolumes()) {
-                        Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
-                        StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
-                        storagePoolCache.put(backingVolumePool.getId(), backingVolumePool);
-                        updateStoragePoolRequiredCapacityMap(storagePoolRequiredCapacity, backingVolumePool.getId(), 
-                                sourceVolumesRequiredCapacity);
-                        storagePoolErrorDetail.put(backingVolumePool.getId(), sourceVolume.getPersonality());
-                    }
+                if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
+                }
+                for (String backingVolumeId : sourceVolume.getAssociatedVolumes()) {
+                    Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
+                    StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
+                    storagePoolCache.put(backingVolumePool.getId(), backingVolumePool);
+                    updateStoragePoolRequiredCapacityMap(storagePoolRequiredCapacity, backingVolumePool.getId(), 
+                            sourceVolumesRequiredCapacity);
+                    storagePoolErrorDetail.put(backingVolumePool.getId(), sourceVolume.getPersonality());
                 }
             } else {            
                 StoragePool sourcePool = dbClient.queryObject(StoragePool.class, sourceVolume.getPool());
@@ -2559,14 +2560,14 @@ public class RecoverPointScheduler implements Scheduler {
             }
             
             if (RPHelper.isVPlexVolume(existingJournalVolume, dbClient)) {
-                if (null == existingJournalVolume.getAssociatedVolumes()) {
-                    _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
-                            existingJournalVolume.forDisplay());
-                } else {
-                    URI backingVolumeURI = URI.create(existingJournalVolume.getAssociatedVolumes().iterator().next());
-                    Volume backingVolume = dbClient.queryObject(Volume.class, backingVolumeURI);
-                    journalStoragePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
+                if (null == existingJournalVolume.getAssociatedVolumes() || existingJournalVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", existingJournalVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(existingJournalVolume.forDisplay());
                 }
+                URI backingVolumeURI = URI.create(existingJournalVolume.getAssociatedVolumes().iterator().next());
+                Volume backingVolume = dbClient.queryObject(Volume.class, backingVolumeURI);
+                journalStoragePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
             } else {
                 journalStoragePool = dbClient.queryObject(StoragePool.class, existingJournalVolume.getPool());
             }

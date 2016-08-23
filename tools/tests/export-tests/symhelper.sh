@@ -307,7 +307,43 @@ verify_export_via_provider() {
       fi
     done
 }
-    
+
+create_export_mask() {
+    SID=$1
+    CSG=$2
+    PWWN=$3
+    NAME="${4}_${SID: -3}"
+
+    IG=`echo "${NAME}_IG"`
+    echo "Creating initiator group ${IG}"
+    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}
+
+    PG=`echo "${CSG: 0:-4}_PG"`
+    echo "Hijacking port group ${PG}"
+
+    # Test if we were passed devIds or a CSG/SG name
+    if [[ $CSG =~ [A-Za-z] ]]; then
+        echo "Hijacking existing CSG/SG ${CSG}"
+    else
+        echo "Creating an SG with specified devs not yet supported"
+    fi
+
+    echo "Creating masking view ${NAME}"
+    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}
+}
+
+delete_export_mask() {
+    SID=$1
+    NAME="${2}_${SID: -3}"
+    IG=$3
+
+    echo "Deleting masking view ${NAME}"
+    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt
+
+    echo "Deleting initiator group ${IG}"
+    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt
+}
+
 # Check to see if this is an operational request or a verification of export request
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
@@ -333,6 +369,12 @@ elif [ "$1" = "verify_export" ]; then
 elif [ "$1" = "verify_export_via_provider" ]; then
     shift
     verify_export_via_provider $*
+elif [ "$1" = "create_export_mask" ]; then
+    shift
+    create_export_mask $*
+elif [ "$1" = "delete_export_mask" ]; then
+    shift
+    delete_export_mask $*
 else
     # Backward compatibility with vmaxexport scripts
     verify_export $*

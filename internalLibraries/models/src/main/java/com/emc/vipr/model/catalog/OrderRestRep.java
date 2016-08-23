@@ -4,6 +4,7 @@
  */
 package com.emc.vipr.model.catalog;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -80,6 +81,8 @@ public class OrderRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
 
     private Date lastUpdated;
+    
+    private URI scheduledEventId;
 
     @XmlElement(name = "order_number")
     public String getOrderNumber() {
@@ -182,6 +185,15 @@ public class OrderRestRep extends DataObjectRestRep {
 
     public void setParameters(List<Parameter> parameters) {
         this.parameters = parameters;
+    }
+
+    @XmlElement(name = "scheduled_event_id")
+    public URI getScheduledEventId() {
+        return scheduledEventId;
+    }
+
+    public void setScheduledEventId(URI scheduledEventId) {
+        this.scheduledEventId = scheduledEventId;
     }
 
     @Override

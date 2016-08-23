@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
@@ -17,6 +18,10 @@ public abstract class AbstractZoneCompleter extends TaskCompleter {
 
     public AbstractZoneCompleter(Class clazz, URI uri, String opId) {
         super(clazz, uri, opId);
+    }
+
+    public AbstractZoneCompleter(Class clazz, List<URI> uris, String opId) {
+        super(clazz, uris, opId);
     }
 
     @Override

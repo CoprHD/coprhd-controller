@@ -163,6 +163,11 @@ arrayhelper() {
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
 	;;
+	delete_export_mask)
+    masking_view_name=$3
+    ig_name=$4
+	arrayhelper_delete_export_mask $operation $serial_number $masking_view_name $ig_name
+	;;
     delete_mask)
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
@@ -193,6 +198,9 @@ arrayhelper_create_export_mask_operation() {
     case $SS in
     vnx)
          runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pwwn $maskname
+	 ;;
+	vmax2|vmax3)
+	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -279,6 +287,26 @@ arrayhelper_delete_volume() {
 	 ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform delete mask
+# outside of the controller.
+#
+arrayhelper_delete_export_mask() {
+    operation=$1
+    serial_number=$2
+    masking_view_name=$3
+    ig_name=$4
+
+    case $SS in
+    vmax2|vmax3)
+         runcmd symhelper.sh $operation $serial_number $masking_view_name $ig_name
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -958,6 +986,38 @@ vplex_setup() {
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
+            run cos create block ${VPOOL_BASE}_migration_src false                            \
+                             --description 'vpool-for-vplex-local-volumes-src'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VNX1_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (target)"
+            run cos create block ${VPOOL_BASE}_migration_tgt false                           \
+                             --description 'vpool-for-vplex-local-volumes-tgt'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VNX2_NATIVEGUID
         ;;
         distributed)
             secho "Setting up the virtual pool for distributed VPLEX provisioning"
@@ -975,6 +1035,42 @@ vplex_setup() {
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (source)"
+            run cos create block ${VPOOL_BASE}_migration_src false                            \
+                             --description 'vpool-for-vplex-distributed-volumes-src'    \
+                             --protocols FC                                         \
+                             --numpaths 2                                           \
+                             --provisionType 'Thin'                                 \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable true
+
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VMAX_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (target)"
+            run cos create block ${VPOOL_BASE}_migration_tgt false                            \
+                             --description 'vpool-for-vplex-distributed-volumes-tgt'    \
+                             --protocols FC                                         \
+                             --numpaths 2                                           \
+                             --provisionType 'Thin'                                 \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable true
+
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VNX2_NATIVEGUID
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VMAX_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
@@ -1716,6 +1812,8 @@ test_7() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 8
@@ -2672,6 +2770,216 @@ test_19() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 20
+#
+# Summary: (VMAX) Remove Volume: Tests to make sure a volume shared by an out-of-management MV is not removed.
+#
+# Basic Use Case for single host, two volumes
+# 1. ViPR creates 2 volumes, 1 host export
+# 2. ViPR asked to remove vol-1 from the export group, but is paused after orchestration
+# 3. Customer creates a new MV outside of ViPR and adds both volumes to the mask
+# 4. Remove volume workflow is resumed
+# 5. Verify the operation fails
+# 6. Delete the mask from outside of ViPR
+# 7. Attempt operation again, succeeds
+test_20() {
+    echot "Test 20: (VMAX) Remove volume removes volume when SG is shared by out-of-management masking view"
+    expname=${EXPORT_GROUP_NAME}t20
+
+    # Check to make sure we're running VMAX only
+    if [ "${SS: 0:-1}" != "vmax" ]; then
+	echo "test_20 only runs on VMAX.  Bypassing for ${SS}."
+	return
+    fi
+
+    HIJACK_MV=hijack-test20-${RANDOM}
+
+    # Make sure we start clean; no masking views on the array
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HIJACK_MV} gone
+
+    # Create the mask with 2 volumes
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+    if [ $? -ne 0 ]; then
+	    echo "export group command failed outright"
+	    exit;
+	fi
+
+	# Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Create another mask and add the volumes
+    HOST1_CSG="${HOST1}_${SERIAL_NUMBER: -3}_CSG"
+    PWWN=`echo ${H2PI1} | sed 's/://g'`
+    arrayhelper create_export_mask ${SERIAL_NUMBER} ${HOST1_CSG} ${PWWN} ${HIJACK_MV}
+
+    # Verify the new mask has both volumes in it
+    verify_export ${expname}1 ${HIJACK_MV} 1 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail
+    echo "*** Following the export_group update task to verify it fails"
+    fail task follow $task
+
+    # Verify the masks are unchanged
+    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HIJACK_MV} 1 2
+
+    # Delete the masking view
+    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${HIJACK_MV} "${HIJACK_MV}_${SERIAL_NUMBER: -3}_IG"
+
+    # Verify the out-of-management mask
+    run verify_export ${expname}1 ${HIJACK_MV} gone
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Run the export group command to remove the volume from the mask again
+    runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+
+    # Verify the volume was removed
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# Suspend/Resume of Migration test volumes
+#
+# This tests top-level workflow suspension for the migration workflow with volumes
+#
+test_22() {
+    echot "Test 22 suspend resume migration with volume"
+    expname=${EXPORT_GROUP_NAME}t22
+
+    # Bailing out for non-VPLEX
+    if [ "${SS}" != "vplex" ]; then
+	echo "This test is testing migration, so it is only valid for VPLEX."
+	exit
+    fi
+
+    # Create a new vplex volume that we can migrate
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE}_migration_src 1GB --count 1
+
+    # Run change vpool, but suspend will happen
+
+    # Run the export group command
+    echo === volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend
+    resultcmd=`volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend`
+
+    if [ $? -ne 0 ]; then
+	echo "volume change_cos command failed outright"
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${HIJACK} --wait
+}
+
+# Suspend/Resume of Migration test CG
+#
+# This tests top-level workflow suspension for the migration workflow with CGs
+#
+test_23() {
+    echot "Test 23 suspend resume migration with CGs"
+    expname=${EXPORT_GROUP_NAME}t23
+
+    # Bailing out for non-VPLEX
+    if [ "${SS}" != "vplex" ]; then
+	echo "This test is testing migration, so it is only valid for VPLEX."
+	exit
+    fi
+
+    randval=${RANDOM}
+
+    # Create a new CG
+    CGNAME=du-test23-cg-${randval}
+    runcmd blockconsistencygroup create $PROJECT ${CGNAME}
+
+    # Create a new vplex volume that we can migrate
+    HIJACK=du-hijack-cgvolume-${randval}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE}_migration_src 1GB --count 2 --consistencyGroup=${CGNAME}
+
+    # Run change vpool, but suspend will happen
+
+    # Run the export group command
+    echo === volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend
+    resultcmd=`volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend`
+
+    if [ $? -ne 0 ]; then
+	echo "volume change_cos_multi command failed outright"
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
+    runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
+    runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
 }
 
 cleanup() {

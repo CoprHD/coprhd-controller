@@ -286,7 +286,8 @@ public class HostService extends TaskResourceService {
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
-                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, taskId);
+                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
+                        taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
@@ -300,7 +301,7 @@ public class HostService extends TaskResourceService {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
-                ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
             }
         }
         /*
@@ -618,7 +619,9 @@ public class HostService extends TaskResourceService {
                     ResourceOperationTypeEnum.DELETE_HOST);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
-            host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+            }
             _dbClient.persistObject(host);
             auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                     host.auditParameters());

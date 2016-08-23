@@ -127,7 +127,7 @@ set_undo()
                 done
                 # If cnt = -1, then this is an ordinary volume create.
                 # If cnt is not -1, then this a multi-volume create
-                if [ "$cnt" -eq "-1" ]; then
+                if [ "$cnt" -eq "-1" ] || [ "$cnt" -eq "1" ]; then
                     put_on_undo_stack $first delete $fourth/$third --wait
                 else
                     index=1;

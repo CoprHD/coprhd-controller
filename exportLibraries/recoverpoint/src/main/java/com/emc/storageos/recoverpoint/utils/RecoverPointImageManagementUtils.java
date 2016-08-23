@@ -1010,8 +1010,8 @@ public class RecoverPointImageManagementUtils {
 
         logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
         if (accessMode != null) {
-            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessMode);
             accessModes = Arrays.asList(accessMode);
+            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessModes.toString());
         } else {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: DIRECT_ACCESS or NO_ACCESS");
         }

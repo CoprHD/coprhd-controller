@@ -42,8 +42,17 @@ import controllers.resources.BlockApplications.VolumeApplicationDataTable.Volume
 public class BlockApplications extends ResourceController {
 
     private static ApplicationSupportDataTable blockApplicationsDataTable = new ApplicationSupportDataTable();
-    private static Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
-    private static Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
+    private static Map<URI, String> virtualArrays = null;
+    private static Map<URI, String> virtualPools = null;
+
+    /**
+     * refreshes to include any new virtual pools or virtual arrays since the static variables were initialized
+     */
+    private static void refreshVpoolAndVarray() {
+        virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
+        virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
+    }
+
 
     public static void blockApplications() {
         renderArgs.put("dataTable", blockApplicationsDataTable);
@@ -103,6 +112,7 @@ public class BlockApplications extends ResourceController {
     public static void applicationVolumeJson(String id) {
         List<VolumeApplication> volumeDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> volumes = AppSupportUtil.getVolumesByApplication(id);
+        refreshVpoolAndVarray();
         for (NamedRelatedResourceRep volume : volumes) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get((volume.getId()));
             volumeDetails.add(new VolumeApplication(blockVolume));
@@ -121,6 +131,7 @@ public class BlockApplications extends ResourceController {
         List<VolumeApplication> volumeDetails = Lists.newArrayList();
         String[] copySets = copyLabel.split("~~~");
         List<NamedRelatedResourceRep> volumeDetailClone = AppSupportUtil.getVolumeGroupFullCopiesForSet(copySets[0], copySets[1]);
+        refreshVpoolAndVarray();
         for (NamedRelatedResourceRep volume : volumeDetailClone) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get(volume.getId());
             volumeDetails.add(new VolumeApplication(blockVolume));

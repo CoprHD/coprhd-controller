@@ -83,6 +83,7 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
                     }
 
                     if (!validate(mvInstance, assocMask)) {
+                        // This will cause DefaultValidator or ChainValidator to throw an exception.
                         getLogger().logDiff(friendlyId, "<associated masks>", exportMask.getMaskName(), name);
                     }
                 }

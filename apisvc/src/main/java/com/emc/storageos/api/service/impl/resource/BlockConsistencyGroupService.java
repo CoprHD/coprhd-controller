@@ -701,7 +701,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));
         
-        
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(consistencyGroupId, _dbClient);
         
         // if any of the source volumes are in an application, replica management must be done via the application
@@ -711,8 +710,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        List<URI> snapshotsURIs = new ArrayList<URI>();
         SnapshotList list = new SnapshotList();
+        List<URI> snapshotsURIs = new ArrayList<URI>();
         // Find all volumes assigned to the group
         final URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
         _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(consistencyGroupId),

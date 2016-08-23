@@ -361,7 +361,7 @@ delete_export_mask() {
 
     echo "Deleting storage group ${SG}"
     if [[ "$SG" != "noop" ]]; then
-        echo "=== symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt"
+        echo "=== symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt"
         /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt
     else
         echo "=== Skipping storage group deletion because 'noop' was passed"

@@ -244,10 +244,24 @@ public class FileService extends TaskResourceService {
     public enum FileTechnologyType {
         LOCAL_MIRROR, REMOTE_MIRROR,
     };
+    
+    public enum FileSystemMountType{
+        AUTO, NFS, NFS4;
+        
+        public static boolean contains(String fsType) {
+            for (FileSystemMountType type : FileSystemMountType.values()) {
+                if (type.name().equalsIgnoreCase(fsType)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
         START("start",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
@@ -4173,7 +4187,7 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // validations
-        if (param.getSubDir() == null || !(param.getSubDir().length() > 0)) {
+        if (param.getSubDir() == null || param.getSubDir().isEmpty()) {
             param.setSubDir("!nodir");
         }
 
@@ -4360,13 +4374,13 @@ public class FileService extends TaskResourceService {
         }
         if (param.getSubDir().equalsIgnoreCase("!nodir")) {
             for (FileExport export : fileExports) {
-                if (export.getSubDirectory().isEmpty()) {
+                if (export.getSubDirectory() == null || export.getSubDirectory().isEmpty()) {
                     allowedSecurities.add(export.getSecurityType());
                 }
             }
         } else {
             for (FileExport export : fileExports) {
-                if (export.getSubDirectory().equalsIgnoreCase(param.getSubDir())) {
+                if (export.getSubDirectory() != null && export.getSubDirectory().equalsIgnoreCase(param.getSubDir())) {
                     allowedSecurities.add(export.getSecurityType());
                 }
             }
@@ -4377,11 +4391,7 @@ public class FileService extends TaskResourceService {
     }
 
     private void validateFSType(FileSystemMountParam param) {
-        List<String> allowedFSType = new ArrayList<String>();
-        allowedFSType.add("auto");
-        allowedFSType.add("nfs");
-        allowedFSType.add("nfs4");
-        if (!allowedFSType.contains(param.getFsType())) {
+        if (!FileSystemMountType.contains(param.getFsType())) {
             throw APIException.badRequests.invalidParameter("fs_type", param.getFsType());
         }
     }

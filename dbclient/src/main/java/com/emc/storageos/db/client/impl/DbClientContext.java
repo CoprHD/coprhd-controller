@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -499,7 +500,7 @@ public class DbClientContext {
      * @param targetSchemaVersion version we are waiting for
      * @throws InterruptedException
      */
-    public void waitForSchemaAgreement(String targetSchemaVersion) {
+    public void waitForSchemaAgreement(String targetSchemaVersion, int nodeCount) {
         long start = System.currentTimeMillis();
         Map<String, List<String>> versions = null;
         while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
@@ -512,8 +513,15 @@ public class DbClientContext {
                             versions, targetSchemaVersion);
                     return;
                 }
-                log.info("schema versions converged to target version {}", targetSchemaVersion);
-                return;
+                List<String> hosts = null;
+                for (Entry<String, List<String>> entry : versions.entrySet()) {
+                    hosts = entry.getValue();
+                }
+                // return only when all nodes's schemas converged to target version
+                if (hosts != null && hosts.size() == nodeCount) {
+                    log.info("schema versions converged to target version {}", targetSchemaVersion);
+                    return;
+                }
             }
 
             log.info("waiting for schema change ...");

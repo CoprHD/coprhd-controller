@@ -1163,8 +1163,8 @@ public class HP3PARApi {
 
                 // remove existing wwn/iqns in the list to be added
                 for (String portId:portIdsNew) {
-                    if (existingFc.contains(portId) == false) {
-                        portIdsNewFiltered.add(portId);
+                    if (existingFc.contains(SanUtils.cleanWWN(portId)) == false) {
+                        portIdsNewFiltered.add(SanUtils.cleanWWN(portId));
                     }
                 }
             } else {
@@ -1203,7 +1203,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+                _log.info("3PARDriver:updateHost 3PAR response is Location: {}", responseString);
             }
 
         } catch (Exception e) {

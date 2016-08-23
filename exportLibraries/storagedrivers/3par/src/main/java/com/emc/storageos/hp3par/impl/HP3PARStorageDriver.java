@@ -32,6 +32,7 @@ import com.emc.storageos.hp3par.utils.HP3PARConstants;
 import com.emc.storageos.hp3par.utils.HP3PARUtil;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -65,7 +66,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
  * You can refer super class for method details
  *
  */
-public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
+public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final String HP3PAR_CONF_FILE = "hp3par-conf.xml";
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
@@ -646,7 +647,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
 	    
 	    return expunexpHelper.unexportVolumesFromInitiators(initiators, volumes,
-	            task, this.driverRegistry);
+	            task, this.driverRegistry, this.lockManager);
 	}
 
 	/**

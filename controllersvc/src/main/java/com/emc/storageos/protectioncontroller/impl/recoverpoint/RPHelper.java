@@ -1252,11 +1252,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1694,7 +1694,13 @@ public class RPHelper {
                                     associatedVolume.getLabel(),
                                     oldVpool.getLabel()));
                         }
-                        associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        // If the old vpool did not specify multi volume consistency,
+                        // remove the CG reference of the volume since we are rolling back
+                        // in the case of VPLEX and Array rollback those steps will be fired
+                        // before we get here anyway.
+                        if (!oldVpool.getMultivolumeConsistency()) {
+                            associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        }
                         dbClient.updateObject(associatedVolume);
                     }
                 }
@@ -1990,9 +1996,6 @@ public class RPHelper {
         // If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
         if (isJournalExport) {
             exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
-            String egName = exportGroup.getGeneratedName() + "_JOURNAL";
-            exportGroup.setGeneratedName(egName);
-            exportGroup.setLabel(egName);
         }
 
         return exportGroup;
@@ -2006,16 +2009,20 @@ public class RPHelper {
      * @param storageSystem the StorageSystem for the ExportGroup
      * @param internalSiteName the RecoverPoint internal site name
      * @param virtualArray the VirtualArray for the ExportGroup
+     * @param isJournalExport flag indicating if this is an ExportGroup intended only for journal volumes
      * @return a RecoverPoint ExportGroup name String
      */
     public static String generateExportGroupName(ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
+            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray, boolean isJournalExport) {
         // This name generation needs to match ingestion code found in RPDeviceController until
         // we come up with better export group matching criteria.
         String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
         String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
                 + "_"
                 + virtualArray.getLabel();
+        if (isJournalExport) {
+            exportGroupGeneratedName = exportGroupGeneratedName + "_JOURNAL";
+        }
         // Remove all non alpha-numeric characters, excluding "_".
         exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
         _log.info("ExportGroup generated name is " + exportGroupGeneratedName);

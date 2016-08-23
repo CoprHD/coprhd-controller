@@ -533,7 +533,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
     public void doFailBackMirrorSessionWF(URI systemURI, URI fsURI, String taskId) {
         log.info("start doFailBackMirrorSession operation");
-        TaskCompleter taskCompleter = null;
+        TaskCompleter taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, fsURI, taskId);
         FileShare sourceFileShare = dbClient.queryObject(FileShare.class, fsURI);
         StorageSystem primarysystem = dbClient.queryObject(StorageSystem.class, systemURI);
         try {
@@ -542,7 +542,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             // Generate the Workflow.
             Workflow workflow = workflowService.getNewWorkflow(this,
-                    FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);
+                    FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId, taskCompleter);
             String waitFor = null;
 
             for (String target : targetfileUris) {
@@ -554,7 +554,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 if (primarysystem.getSystemType().equalsIgnoreCase("isilon")) {
                     combined.add(sourceFileShare.getId());
                     combined.add(targetFileShare.getId());
-                    taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();

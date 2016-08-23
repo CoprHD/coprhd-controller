@@ -752,7 +752,7 @@
 		<property name="creator" ref="argscreator" />
 		<property name="method" value="getStringArrayValue" />
 		<property name="value"
-			value="EMCIsComposite,EMCSpaceConsumed,Usage,BlockSize,ConsumableBlocks" />
+			value="EMCIsComposite,EMCSpaceConsumed,Usage,BlockSize,ConsumableBlocks,EMCCompressionRatio" />
 		<property name="name" value="prvcList" />
 	</bean>
 
@@ -1033,7 +1033,7 @@
 		<property name="creator" ref="argscreator" />
 		<property name="method" value="getStringArrayValue" />
 		<property name="value"
-			value="OperationalStatus,ElementName,EMCPoolID,PoolID,InstanceID,EMCSubscribedCapacity,TotalManagedSpace,RemainingManagedSpace,EMCIsBound,EMCTotalRawCapacity,EMCRemainingRawCapacity,EMCDiskDriveType,EMCMaxSubscriptionPercent" />
+			value="OperationalStatus,ElementName,EMCPoolID,PoolID,InstanceID,EMCSubscribedCapacity,TotalManagedSpace,RemainingManagedSpace,EMCIsBound,EMCTotalRawCapacity,EMCRemainingRawCapacity,EMCDiskDriveType,EMCMaxSubscriptionPercent,EMCVPCompressionState" />
 		<property name="name" value="prvcList" />
 	</bean>
 

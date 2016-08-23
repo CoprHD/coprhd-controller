@@ -69,6 +69,7 @@ public class OrderDataTable extends DataTable {
         public String summary;
         public Long createdDate;
         public String submittedBy;
+        public String scheduledEventId;
 
         public OrderInfo(OrderRestRep o) {
             this.id = o.getId().toString();
@@ -81,6 +82,9 @@ public class OrderDataTable extends DataTable {
             }
             if (o.getSubmittedBy() != null) {
                 this.submittedBy = o.getSubmittedBy().toString();
+            }
+            if (o.getScheduledEventId() != null) {
+                this.scheduledEventId = o.getScheduledEventId().toString();
             }
         }
     }

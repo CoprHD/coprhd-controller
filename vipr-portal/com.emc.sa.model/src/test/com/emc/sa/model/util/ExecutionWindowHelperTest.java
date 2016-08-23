@@ -13,6 +13,7 @@ import org.junit.Test;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowLengthType;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowType;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 
 public class ExecutionWindowHelperTest {
 

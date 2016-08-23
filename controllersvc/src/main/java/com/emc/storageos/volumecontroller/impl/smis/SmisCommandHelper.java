@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -1581,7 +1582,7 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateVolumeGroupInputArguments(StorageSystem storageDevice, String groupName, String slo, String srp,
-            String workload, String[] volumeNames) {
+            String workload, String[] volumeNames, boolean disableCompression) {
         CIMObjectPath[] volumePaths;
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {
@@ -1598,6 +1599,9 @@ public class SmisCommandHelper implements SmisConstants {
         list.add(_cimArgument.string(CP_EMC_SLO, slo));
         list.add(_cimArgument.string(CP_EMC_SRP, srp));
         list.add(_cimArgument.string(CP_EMC_WORKLOAD, workload));
+        if (disableCompression) {
+            list.add(_cimArgument.bool(CP_EMC_DISABLE_COMPRESSION, Boolean.TRUE));
+        }
 
         CIMArgument[] result = {};
         result = list.toArray(result);
@@ -1607,6 +1611,12 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMProperty[] getV3FastSettingProperties(String fastSetting) {
         return new CIMProperty[] {
                 _cimProperty.string(CP_FAST_SETTING, fastSetting)
+        };
+    }
+
+    public CIMProperty[] getV3CompressionProperties(boolean compression) {
+        return new CIMProperty[] {
+                _cimProperty.bool(CP_EMC_COMPRESSION, compression)
         };
     }
 
@@ -3945,15 +3955,15 @@ public class SmisCommandHelper implements SmisConstants {
                 // Count the number of volumes in this group. Lowest number of volumes in the storage
                 // group for that child storage group wins.
                 Integer numVolumes = getVMAXStorageGroupVolumeCount(storage, groupName);
-                String policyName = storageGroupPolicyLimitsParam.getAutoTierPolicyName();
+                String policyLimitAttribute = storageGroupPolicyLimitsParam.toString();
 
                 // This will identify the storage group with the lowest number of volumes and store the group name and
                 // policy limit params
                 // for that group name.
-                if ((preferedChildGroupMap.get(policyName) == null) ||
-                        ((preferedChildGroupMap.get(policyName) != null) &&
-                                (numVolumes < preferedChildGroupMap.get(policyName)))) {
-                    preferedChildGroupMap.put(policyName, numVolumes);
+                if ((preferedChildGroupMap.get(policyLimitAttribute) == null) ||
+                        ((preferedChildGroupMap.get(policyLimitAttribute) != null) &&
+                                (numVolumes < preferedChildGroupMap.get(policyLimitAttribute)))) {
+                    preferedChildGroupMap.put(policyLimitAttribute, numVolumes);
                     preferedPolicyLimitsParamToChildGroup.put(storageGroupPolicyLimitsParam, groupName);
                 }
             }
@@ -5474,7 +5484,7 @@ public class SmisCommandHelper implements SmisConstants {
                 CIMInstance instance = checkExists(storageSystem, volumeGroupObjectPath, false, false);
                 if (instance == null) {
                     // Nothing created yet and we have the lock, so let's create it ...
-                    CIMArgument[] inArgs = getCreateVolumeGroupInputArguments(storageSystem, groupName, slo, srp, workload, null);
+                    CIMArgument[] inArgs = getCreateVolumeGroupInputArguments(storageSystem, groupName, slo, srp, workload, null, false);
                     CIMArgument[] outArgs = new CIMArgument[5];
                     invokeMethod(storageSystem, _cimPath.getControllerConfigSvcPath(storageSystem),
                             "CreateGroup", inArgs, outArgs);
@@ -5598,6 +5608,90 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * This method is will check if the Storage Pool associated with the Volume supports compression.
+     * If it does support compression, it will check if the associated virtual Pool has compression enabled.
+     * It will recommend the user to disable compression if the virtual pool has compression disabled and
+     * the storage pool enables compression by default.
+     * 
+     * @param blockObjectURI BlockObjectURI
+     * @param storage - StorageSystem object
+     * @return boolean to report if compression needs to be disabled.
+     */
+    public boolean disableVMAX3Compression(URI blockObjectURI, StorageSystem storageSystem) {
+        VirtualPool virtualPool = null;
+        StoragePool storagePool = null;
+        Volume volume = null;
+        if (URIUtil.isType(blockObjectURI, Volume.class)) {
+            volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+        } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+            volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
+            storagePool = _dbClient.queryObject(StoragePool.class, mirror.getPool());
+        }
+        if (volume != null) {
+            virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
+        }
+        return (checkIfProviderSupportsCompressionOperations(storageSystem) &&
+                !virtualPool.getCompressionEnabled() && storagePool.getCompressionEnabled());
+    }
+
+    /**
+     * This method is will check if the volume associated with virtual Pool has compression enabled.
+     * 
+     * @param blockObjectURI BlockObjectURI
+     * @return boolean to report if compression is enabled on the vpool.
+     */
+    public boolean isVMAX3VolumeCompressionEnabled(URI blockObjectURI) {
+        VirtualPool virtualPool = null;
+        Volume volume = null;
+        if (URIUtil.isType(blockObjectURI, Volume.class)) {
+            volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+        } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+            volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
+        }
+        if (volume != null) {
+            virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        }
+        return ((virtualPool != null) && virtualPool.getCompressionEnabled());
+    }
+    /**
+     * This method return true if the SMI-S provider supports compression operations.
+     * If not, it will throw an exception
+     * 
+     * @param storage - StorageSystem object
+     * @param boolean to report if SMI-S provider supports compression
+     */
+    public Boolean checkIfProviderSupportsCompressionOperations(StorageSystem storageSystem) {
+        String versionSubstring = null;
+        if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
+            try {
+                StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
+                String providerVersion = storageProvider.getVersionString();
+                versionSubstring = providerVersion.split("\\.")[1];
+            } catch (Exception e) {
+                _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
+                        storageSystem.getId());
+                return false;
+            }
+        }
+        if (NullColumnValueGetter.isNullValue(versionSubstring) || !(Integer.parseInt(versionSubstring) > 2)) {
+            String errMsg = String.format(
+                    "SMI-S Provider associated with Storage System %s does not support compression operations",
+                    storageSystem.getSerialNumber());
+            _log.error(errMsg);
+            return false;
+        }
+        return true;
+    }
+    /**
      * Get the policy by BlockObject autoTieringPolicy URI.
      *
      * @param pool
@@ -5607,10 +5701,12 @@ public class SmisCommandHelper implements SmisConstants {
      */
     private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI) {
         StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
         StringBuffer policyName = new StringBuffer();
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                 || (NullColumnValueGetter.isNullURI(policyURI))) {
-            policyName = policyName.append(Constants.OPTIMIZED_SLO).append(Constants._plusDelimiter)
+            String defaultSLO = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
+            policyName = policyName.append(defaultSLO).append(Constants._plusDelimiter)
                     .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
         } else {
             AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
@@ -6011,6 +6107,31 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Gets the initiator names for initiator group.
+     *
+     * @param storage the storage
+     * @param igPath the ig path
+     * @return the initiators for initiator group
+     * @throws WBEMException the WBEM exception
+     */
+    public List<String> getInitiatorNamesForInitiatorGroup(StorageSystem storage, CIMObjectPath igPath) throws WBEMException {
+        List<String> initiatorNames = new ArrayList<String>();
+        CloseableIterator<CIMInstance> initiatorsForIg = getAssociatorInstances(storage, igPath, null,
+                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null,
+                SmisConstants.PS_STORAGE_ID);
+        if (initiatorsForIg != null) {
+            while (initiatorsForIg.hasNext()) {
+                CIMInstance initiatorInstance = initiatorsForIg.next();
+                String initiatorPort = CIMPropertyFactory.getPropertyValue(initiatorInstance,
+                        SmisConstants.CP_STORAGE_ID);
+                initiatorNames.add(Initiator.normalizePort(initiatorPort));
+            }
+            initiatorsForIg.close();
+        }
+        return initiatorNames;
+    }
+
+    /**
      * Find a phantom (not belonging to any masking view) with matches the FAST (auto-tiering) policy name and limits
      * setting
      *
@@ -6334,7 +6455,8 @@ public class SmisCommandHelper implements SmisConstants {
                     CP_FAST_SETTING),
                     hostIOLimitBandwidth,
                     hostIOLimitIOPs, storage);
-
+            storageGroupPolicyLimitsParam
+                    .setCompression(SmisUtils.getEMCCompressionForStorageGroup(groupInstance));
         } else {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage,
                     groupInstance.getObjectPath()),

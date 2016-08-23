@@ -558,14 +558,17 @@ public class NetworkDiscoveryWorker {
 
         Set<String> transitFabrics = new HashSet<String>();
         List<Network> networks = getCurrentTransportZones();
-        Network opNetwork = null;
         for (Entry<String, String> entry : fabricIdsMap.entrySet()) {
-            opNetwork = getNetworkByNativeId(networks, entry.getValue());
+            Network opNetwork = getNetworkByNativeId(networks, entry.getValue());
             Set<String> endpoints = getDevice().getRoutedEndpoints(networkSystem, entry.getValue(), entry.getKey());
+            _log.info("Endpoints of given VSAN {}/{} in network {}: {}", entry.getValue(), entry.getKey(),
+                networkSystem.getLabel(), endpoints);
             // we determine transit VSAN: 1. more than one network system has the network, 2. network has no endpoints.
             if (opNetwork!=null && opNetwork.getNetworkSystems().size()>1 && endpoints.isEmpty()) {
                 _log.info("fabric id={} is a transit vsan", entry.getValue());
                 transitFabrics.add(entry.getValue());
+            } else {
+                _log.info("fabric id={} is NOT a transit vsan", entry.getValue());
             }
         }
 

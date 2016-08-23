@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 import java.net.URI;
 import java.util.*;
 
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
@@ -40,6 +41,7 @@ public class OrderScheduleTimeCallback extends BaseCustomMigrationCallback {
                     order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
                     Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                     scheduleTime.setTime(order.getLastUpdated());
+                    order.setExecutionWindowId(new NamedURI(ExecutionWindow.NEXT, "NEXT"));
                     order.setScheduledTime(scheduleTime);
                 } else {
                     // For original orders, set schedule time to

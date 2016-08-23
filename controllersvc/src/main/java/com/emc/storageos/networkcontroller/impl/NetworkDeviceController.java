@@ -31,7 +31,6 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -1581,6 +1580,7 @@ public class NetworkDeviceController implements NetworkController {
 
             return result.isCommandSuccess();
         } catch (Exception ex) {
+            _log.error("Exception occurred while doing zone rollback", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneRollbackFailedExc(
                     exportGroupURI.toString(), ex);
             WorkflowStepCompleter.stepFailed(taskId, svcError);

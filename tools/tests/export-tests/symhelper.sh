@@ -313,8 +313,8 @@ create_export_mask() {
     CSG=$2
     PWWN=$3
     NAME="${4}_${SID: -3}"
-    # Test if we were passed pwwn's or an existing IG name (is first character a number or letter)
-    if [[ $PWWN =~ ^[A-Za-z] ]]; then
+    # Test if we were passed pwwn's or an existing IG name (starting with "host")
+    if [[ $PWWN =~ ^host ]]; then
         IG="${NAME}_CIG"
         echo "=== symaccess -sid ${SID} create -type initiator -name ${IG}"
         /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG}
@@ -332,7 +332,7 @@ create_export_mask() {
     fi
 
     # Test if we were passed devIds or a CSG/SG name
-    if [[ $CSG =~ [A-Za-z] ]]; then
+    if [[ $CSG =~ ^host ]]; then
         echo "Hijacking existing CSG/SG ${CSG}"
 
         PG="${CSG: 0:-4}_PG"

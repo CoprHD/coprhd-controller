@@ -1092,11 +1092,12 @@ public class IsilonApi {
             boolean bIncludeSnapshots, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
-        if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
+        if (thresholds != null && thresholds.length > 0) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", fsSize, bThresholdsIncludeOverhead, bIncludeSnapshots,
                     thresholds);
-            quota.setContainer(true); // set to true, so user see hard limit not
-                                      // cluster size.
+            if (thresholds[0] > 0) {
+                quota.setContainer(true); // set to true, so user see hard limit not cluster size.
+            }
         } else {
             quota = new IsilonSmartQuota(path, bThresholdsIncludeOverhead, bIncludeSnapshots);
         }
@@ -1110,7 +1111,7 @@ public class IsilonApi {
     public IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, String type, Long fsSize,
             Boolean bThresholdsIncludeOverhead, Boolean bIncludeSnapshots, Long... thresholds) {
         IsilonSmartQuota quota;
-        Long size = 0L;
+        Long size = thresholds[0];
         if (thresholds[0] == 0) {
             size = fsSize;
         }

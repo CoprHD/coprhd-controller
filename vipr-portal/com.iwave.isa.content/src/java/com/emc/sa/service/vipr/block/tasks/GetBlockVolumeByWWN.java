@@ -7,8 +7,8 @@ package com.emc.sa.service.vipr.block.tasks;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class GetBlockVolumeByWWN extends ViPRExecutionTask<VolumeRestRep> {
     private String wwn;

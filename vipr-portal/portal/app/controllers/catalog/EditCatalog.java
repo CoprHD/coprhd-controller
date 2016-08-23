@@ -581,7 +581,7 @@ public class EditCatalog extends ServiceCatalog {
         public String defaultExecutionWindowId;
 
         public List<AclEntryForm> aclEntries = Lists.newArrayList();
-
+        
         @CheckWith(ServiceFieldsCheck.class)
         public List<ServiceFieldForm> serviceFields = Lists.newArrayList();
 
@@ -611,7 +611,6 @@ public class EditCatalog extends ServiceCatalog {
             if (service.getDefaultExecutionWindow() != null) {
                 this.defaultExecutionWindowId = service.getDefaultExecutionWindow().getId().toString();
             }
-
             this.serviceFields.clear();
 
             List<CatalogServiceFieldRestRep> catalogServiceFields = service.getCatalogServiceFields();
@@ -708,7 +707,6 @@ public class EditCatalog extends ServiceCatalog {
             else {
                 commonParam.setDefaultExecutionWindow(null);
             }
-
             for (ServiceFieldForm serviceFieldForm : this.serviceFields) {
                 CatalogServiceFieldParam fieldParam = new CatalogServiceFieldParam();
                 serviceFieldForm.writeTo(fieldParam);

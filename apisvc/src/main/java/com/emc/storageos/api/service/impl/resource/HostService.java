@@ -74,6 +74,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -81,6 +82,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
@@ -113,6 +115,7 @@ import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
@@ -137,7 +140,9 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 /**
@@ -275,35 +280,28 @@ public class HostService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
-        Cluster oldCluster = NullColumnValueGetter.isNullURI(oldClusterURI) ? null : _dbClient.queryObject(Cluster.class, oldClusterURI);
-        Cluster newCluster = NullColumnValueGetter.isNullURI(host.getCluster()) ? null : _dbClient.queryObject(Cluster.class,
-                host.getCluster());
-
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
             if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    && (oldCluster != null && oldCluster.getAutoExportEnabled())) {
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
-                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
+                        taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())
-                    && (newCluster != null && newCluster.getAutoExportEnabled())) {
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 // Non-clustered host being added to a cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))
-                    && ((oldCluster != null && oldCluster.getAutoExportEnabled())
-                    || (newCluster != null && newCluster.getAutoExportEnabled()))) {
+                            || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
-                ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
             }
         }
         /*
@@ -378,6 +376,96 @@ public class HostService extends TaskResourceService {
             _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
             return toTask(host, taskId, op);
         }
+    }
+
+    /**
+     * Discovers the array affinity information on all supported storage systems for the given hosts.
+     * This is an asynchronous call.
+     *
+     * @param param ArrayAffinityHostParam
+     * @return the task list
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/discover-array-affinity")
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskList discoverArrayAffinityForHosts(ArrayAffinityHostParam param) {
+        List<URI> hostIds = param.getHosts();
+        ArgValidator.checkFieldNotEmpty(hostIds, "hosts");
+        // validate host URIs
+        for (URI hostId : hostIds) {
+            ArgValidator.checkFieldUriType(hostId, Host.class, "host");
+            queryObject(Host.class, hostId, true);
+        }
+
+        return createHostArrayAffinityTasks(hostIds);
+    }
+
+    /**
+     * Create array affinity tasks for hosts.
+     *
+     * @param hostIds the hosts whose preferred systems need to be discovered
+     */
+    public TaskList createHostArrayAffinityTasks(List<URI> hostIds) {
+        TaskList taskList = new TaskList();
+        String taskId = UUID.randomUUID().toString();
+        String jobType = "";
+        Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> providerToSystemTypeMap = new HashMap<URI, String>();
+        List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
+        Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
+        while (storageSystems.hasNext()) {
+            StorageSystem systemObj = storageSystems.next();
+            if (systemObj == null) {
+                _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
+                continue;
+            }
+
+            if (systemObj.deviceIsType(Type.vmax) || systemObj.deviceIsType(Type.vnxblock) || systemObj.deviceIsType(Type.xtremio)) {
+                if (systemObj.getActiveProviderURI() == null
+                        || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        systemObj.getActiveProviderURI());
+                if (provider == null || provider.getInactive()) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                if (systemIds == null) {
+                    systemIds = new ArrayList<URI>();
+                    providerToSystemsMap.put(provider.getId(), systemIds);
+                    providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
+                }
+                systemIds.add(systemObj.getId());
+            } else if (systemObj.deviceIsType(Type.unity)) {
+                List<URI> systemIds = new ArrayList<URI>();
+                systemIds.add(systemObj.getId());
+                providerToSystemsMap.put(systemObj.getId(), systemIds);
+                providerToSystemTypeMap.put(systemObj.getId(), systemObj.getSystemType());
+            } else {
+                _log.info("Skip unsupported system {}, system type {}", systemObj.getLabel(), systemObj.getSystemType());
+                continue;
+            }
+        }
+
+        for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
+            List<URI> systemIds = entry.getValue();
+            BlockController controller = getController(BlockController.class, providerToSystemTypeMap.get(entry.getKey()));
+            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,
+                    new StorageSystemService.ArrayAffinityJobExec(controller));
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, hostIds, taskId));
+            taskList.getTaskList().addAll(scheduler.scheduleAsyncTasks(tasks).getTaskList());
+        }
+        return taskList;
     }
 
     /**
@@ -521,15 +609,9 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
-        Cluster cluster = null;
-        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-        }
         boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
 
-        if (isHostInUse && cluster != null && !cluster.getAutoExportEnabled()) {
-            throw APIException.badRequests.resourceInClusterWithAutoExportDisabled(Host.class.getSimpleName(), id);
-        } else if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
+        if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         } else {
             String taskId = UUID.randomUUID().toString();
@@ -537,7 +619,9 @@ public class HostService extends TaskResourceService {
                     ResourceOperationTypeEnum.DELETE_HOST);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
-            host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+            }
             _dbClient.persistObject(host);
             auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                     host.auditParameters());
@@ -709,8 +793,7 @@ public class HostService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
 
         // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())
-                && (cluster == null || cluster.getAutoExportEnabled())) {
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {
@@ -834,7 +917,7 @@ public class HostService extends TaskResourceService {
         initiator.setProtocol(param.getProtocol());
 
         // Set label to the initiator port if not specified on create.
-        if (initiator.getLabel() == null && param.getName() == null) {
+        if (StringUtils.isEmpty(initiator.getLabel()) && StringUtils.isEmpty(param.getName())) {
             initiator.setLabel(initiator.getInitiatorPort());
         } else if (param.getName() != null) {
             initiator.setLabel(param.getName());
@@ -855,10 +938,10 @@ public class HostService extends TaskResourceService {
         populateHostData(host, param);
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
             Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()) && cluster.getAutoExportEnabled()) {
+            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null, false);
             } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
             }
@@ -1422,6 +1505,9 @@ public class HostService extends TaskResourceService {
             for (URI uri : usedComputeSystems) {
                 _log.debug("Looking in used compute system:" + uri);
                 availableCEList = computeSystemToComputeElementsMap.get(uri);
+                if (availableCEList == null) {
+                    continue;
+                }
                 if (availableCEList.size() <= numRequiredCEs) {
                     selectedCEsList.addAll(availableCEList);
                     numRequiredCEs = numRequiredCEs - availableCEList.size();
@@ -1462,6 +1548,9 @@ public class HostService extends TaskResourceService {
             else if (numHosts < count) {
                 _log.debug("Taking " + numHosts + " blades from compute system: " + key + " . Need no more.");
                 // pick n blades from m available blades.
+                if (availableCEList == null){
+                     availableCEList = new ArrayList<URI>();
+                }
                 availableCEList.addAll(computeElements);
                 selectedCEsList.addAll(pickBladesByStrafingAlgorithm(availableCEList, numRequiredCEs,
                         usedComputeElementsMap.get(key)));
@@ -1487,6 +1576,9 @@ public class HostService extends TaskResourceService {
                     }
                 }
                 else {
+                    if (availableCEList == null) {
+                        availableCEList = new ArrayList<URI>();
+                    }
                     availableCEList.addAll(computeElements);
                     _log.debug("Pick " + numRequiredCEs + " blades from " + count + " blades on compute system: " + key);
                     // pick n blades from m available blades.

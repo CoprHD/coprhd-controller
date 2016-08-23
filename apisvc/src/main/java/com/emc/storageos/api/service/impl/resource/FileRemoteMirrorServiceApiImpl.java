@@ -11,7 +11,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.placement.FileMirrorSchedular;
+import com.emc.storageos.api.service.impl.placement.FileMirrorScheduler;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -30,7 +30,7 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Strings;
 
-public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorSchedular> {
+public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorScheduler> {
 
     private static final Logger _log = LoggerFactory.getLogger(FileRemoteMirrorServiceApiImpl.class);
 

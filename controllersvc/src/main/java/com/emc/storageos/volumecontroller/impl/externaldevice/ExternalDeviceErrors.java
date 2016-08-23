@@ -72,4 +72,6 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR)
     public ServiceError removeInitiatorsFromExportMaskFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DRIVERTASK_ERROR)
+    public ServiceError driverTaskFailed(String taskId, String systemId, String errorMsg);
 }

@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.net.ssl.SSLException;
@@ -21,23 +22,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.ComputeSystemDialogProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryVersionValidator;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.EventUtil;
+import com.emc.storageos.util.EventUtil.EventCode;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscoveryAdapter {
     private Logger log;
@@ -58,6 +67,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return modelClient;
     }
 
+    @Override
     public void setModelClient(ModelClient modelClient) {
         this.modelClient = modelClient;
     }
@@ -66,14 +76,17 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return dbClient;
     }
 
+    @Override
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
 
+    @Override
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
 
+    @Override
     public ComputeSystemDiscoveryVersionValidator getVersionValidator() {
         return versionValidator;
     }
@@ -121,11 +134,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Removes discovered IP interfaces from its host and ignores manually created IP interfaces
      * 
-     * @param ipInterfaces list of IP interfaces
+     * @param ipInterfaces
+     *            list of IP interfaces
      */
     protected void removeDiscoveredInterfaces(Iterable<IpInterface> ipInterfaces) {
         updateManuallyCreatedInterfaces(ipInterfaces);
         Iterable<IpInterface> discoveredInterfaces = Iterables.filter(ipInterfaces, new Predicate<IpInterface>() {
+            @Override
             public boolean apply(IpInterface ipInterface) {
                 return ipInterface.getIsManualCreation() != null
                         && !ipInterface.getIsManualCreation();
@@ -140,7 +155,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
      * are true. During next discovery, any discovered interfaces will have isManualCreation
      * value set to false.
      * 
-     * @param ipInterfaces list of IP interfaces
+     * @param ipInterfaces
+     *            list of IP interfaces
      */
     protected void updateManuallyCreatedInterfaces(Iterable<IpInterface> ipInterfaces) {
         for (IpInterface ipInterface : ipInterfaces) {
@@ -194,7 +210,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI);
+            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI, false);
         }
     }
 
@@ -207,17 +223,19 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.removeHostsFromExport(hostIds, clusterURI, taskId);
+            controller.removeHostsFromExport(hostIds, clusterURI, false, NullColumnValueGetter.getNullURI(), taskId);
         }
     }
 
     /**
      * Removes discovered initiators from its host and ignores manually created initiators
      * 
-     * @param initiators list of initiators
+     * @param initiators
+     *            list of initiators
      */
     protected void removeDiscoveredInitiators(Iterable<Initiator> initiators) {
         Iterable<Initiator> discoveredInitiators = Iterables.filter(initiators, new Predicate<Initiator>() {
+            @Override
             public boolean apply(Initiator initiator) {
                 return !initiator.getIsManualCreation();
             }
@@ -255,8 +273,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             initiator = new Initiator();
             initiator.setInitiatorPort(port);
             initiator.setLabel(EndpointUtility.changeCase(port));
-        }
-        else {
+        } else {
             initiators.remove(initiator);
         }
         initiator.setIsManualCreation(false);
@@ -286,15 +303,15 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
-        }
-        else {
+        } else {
             models.remove(model);
         }
         return model;
     }
 
     /**
-     * Finds a matching value in the list of IpInterfaces by ipAddress, or creates one if none is found. If a match is found in
+     * Finds a matching value in the list of IpInterfaces by ipAddress, or creates one if none is found. If a match is
+     * found in
      * the list, it will be removed from the list before returning.
      * 
      * @param models
@@ -319,8 +336,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void save(DataObject model) {
         if (model.getCreationTime() == null) {
             debug("Creating %s: %s", model.getClass().getSimpleName(), toString(model));
-        }
-        else {
+        } else {
             debug("Updating %s: %s", model.getClass().getSimpleName(), toString(model));
         }
         modelClient.save(model);
@@ -348,8 +364,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void error(String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().error(String.format(message, args));
-        }
-        else {
+        } else {
             getLog().error(message);
         }
     }
@@ -357,8 +372,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void warn(Throwable t, String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().warn(String.format(message, args), t);
-        }
-        else {
+        } else {
             getLog().warn(message, t);
         }
     }
@@ -366,8 +380,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void warn(String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().warn(String.format(message, args));
-        }
-        else {
+        } else {
             getLog().warn(message);
         }
     }
@@ -376,8 +389,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (getLog().isInfoEnabled()) {
             if (args != null && args.length > 0) {
                 getLog().info(String.format(message, args));
-            }
-            else {
+            } else {
                 getLog().info(message);
             }
         }
@@ -387,8 +399,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (getLog().isDebugEnabled()) {
             if (args != null && args.length > 0) {
                 getLog().debug(String.format(message, args));
-            }
-            else {
+            } else {
                 getLog().debug(message);
             }
         }
@@ -422,8 +433,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (StringUtils.isNotBlank(initiator.getInitiatorNode())) {
             return String.format("%s:%s [%s]", initiator.getInitiatorNode(), initiator.getInitiatorPort(),
                     initiator.getProtocol());
-        }
-        else {
+        } else {
             return String.format("%s [%s]", initiator.getInitiatorPort(), initiator.getProtocol());
         }
     }
@@ -433,14 +443,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         Throwable rootCause = getRootCause(t);
         if (rootCause instanceof UnknownHostException) {
             return "Unknown host: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof ConnectException) {
+        } else if (rootCause instanceof ConnectException) {
             return "Error connecting: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof NoRouteToHostException) {
+        } else if (rootCause instanceof NoRouteToHostException) {
             return "No route to host: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof SSLException) {
+        } else if (rootCause instanceof SSLException) {
             return "SSL error: " + rootCause.getMessage();
         }
         return getClosestErrorMessage(t);
@@ -478,8 +485,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Looks up controller dependency for given hardware
      * 
-     * @param clazz controller interface
-     * @param hw hardware name
+     * @param clazz
+     *            controller interface
+     * @param hw
+     *            hardware name
      * @param <T>
      * @return
      */
@@ -489,17 +498,212 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     public void processHostChanges(HostStateChange changes) {
-        processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList());
+        processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts) {
-        processHostChanges(changes, deletedHosts, Collections.<URI> emptyList());
-    }
+    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
 
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
-        String taskId = UUID.randomUUID().toString();
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.processHostChanges(changes, deletedHosts, deletedClusters, taskId);
+        log.info("There are " + changes.size() + " changes");
+
+        // Iterate through all host state changes and create states for all of the affected export groups
+        for (HostStateChange change : changes) {
+
+            log.info("HostChange: " + change);
+
+            Host host = dbClient.queryObject(Host.class, change.getHost().getId());
+
+            // For every host change (added/removed initiator, cluster change), get all exports that this host
+            // currently belongs to
+            List<Initiator> newInitiatorObjects = dbClient.queryObject(Initiator.class, change.getNewInitiators());
+            List<Initiator> oldInitiatorObjects = dbClient.queryObject(Initiator.class, change.getOldInitiators());
+
+            if (newInitiatorObjects.isEmpty() && !oldInitiatorObjects.isEmpty()) {
+                List<URI> hostInitiators = ComputeSystemHelper.getChildrenUris(dbClient, host.getId(), Initiator.class, "host");
+                if (hostInitiators.size() == oldInitiatorObjects.size()) {
+                    log.info("No initiators were re-discovered for host " + host.getId() + " so we will not delete its initiators");
+                    DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "No initiators were discovered", null);
+                    continue;
+                }
+            }
+
+            // check for changes as the following
+            // 1) Detect vCenterDatacenter change
+            // 2) If no datacenter change, detect cluster change
+            // 3) If no datacenter or cluster change, make sure we have updated atleast the new datacenter for the host
+            if (!NullColumnValueGetter.isNullURI(change.getOldDatacenter()) && !NullColumnValueGetter.isNullURI(change.getNewDatacenter())
+                    && !change.getOldDatacenter().toString().equalsIgnoreCase(change.getNewDatacenter().toString())) {
+                VcenterDataCenter oldDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getOldDatacenter());
+
+                VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
+
+                Cluster cluster = null;
+                if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {
+                    cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
+                }
+
+                URI oldClusterURI = change.getOldCluster();
+                Cluster oldCluster = null;
+                if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+                    oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
+                }
+
+                if (!oldDatacenter.getVcenter().toString().equals(currentDatacenter.getVcenter().toString())) {
+                    Vcenter oldVcenter = dbClient.queryObject(Vcenter.class, oldDatacenter.getVcenter());
+                    Vcenter currentVcenter = dbClient.queryObject(Vcenter.class, currentDatacenter.getVcenter());
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_VCENTER_CHANGE, host.getTenant(),
+
+                    ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeLabel", oldVcenter.getLabel(),
+                            currentVcenter.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDescription", host.getLabel(),
+                                    oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeWarning"),
+                            host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            EventUtil.hostVcenterChange,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter },
+                            EventUtil.hostVcenterChangeDecline,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter });
+                } else {
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeLabel", oldDatacenter.getLabel(),
+                                    currentDatacenter.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDescription", host.getLabel(),
+                                    oldCluster == null ? "N/A" : oldCluster.getLabel(), cluster == null ? " N/A " : cluster.getLabel()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeWarning"),
+                            host, Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            EventUtil.hostDatacenterChange,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter },
+                            EventUtil.hostDatacenterChangeDecline,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    currentDatacenter.getId(), isVCenter });
+                }
+            } else if ((change.getOldCluster() == null && change.getNewCluster() != null)
+                    || (change.getOldCluster() != null && change.getNewCluster() == null)
+                    || (change.getOldCluster() != null && change.getNewCluster() != null
+                            && !change.getOldCluster().toString().equals(change.getNewCluster().toString()))) {
+
+                Cluster cluster = null;
+                if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {
+                    cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
+                }
+
+                URI oldClusterURI = change.getOldCluster();
+                Cluster oldCluster = null;
+                if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+                    oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
+                }
+
+                boolean oldClusterInUse = oldCluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, oldCluster.getId());
+                boolean newClusterInUse = cluster == null ? false : ComputeSystemHelper.isClusterInExport(dbClient, cluster.getId());
+
+                if ((cluster != null || oldCluster != null) && (oldClusterInUse || newClusterInUse)) {
+                    String name = null;
+                    String description = null;
+
+                    if (cluster != null && oldCluster == null) {
+                        name = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeAddedLabel", cluster.getLabel());
+                        description = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeAddedDescription",
+                                host.getLabel(), cluster.getLabel());
+                    } else if (cluster == null && oldCluster != null) {
+                        name = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeRemovedLabel",
+                                oldCluster.getLabel());
+                        description = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeRemovedDescription",
+                                host.getLabel(),
+                                oldCluster.getLabel());
+                    } else {
+                        name = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeMovedLabel", oldCluster.getLabel(),
+                                cluster.getLabel());
+                        description = ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeMovedDescription",
+                                host.getLabel(), oldCluster.getLabel(),
+                                cluster.getLabel());
+                    }
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_CLUSTER_CHANGE, host.getTenant(),
+                            name, description, ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeWarning"), host,
+                            Lists.newArrayList(host.getId(), host.getCluster(),
+                                    cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId()),
+                            EventUtil.hostClusterChange,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
+                                            : change.getNewDatacenter(),
+                                    isVCenter },
+                            EventUtil.hostClusterChangeDecline,
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
+                                            : change.getNewDatacenter(),
+                                    isVCenter });
+                } else {
+                    host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
+                    dbClient.updateObject(host);
+                    ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, host.getCluster(), host.getId());
+                    ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
+                            cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
+                }
+            } else if (!NullColumnValueGetter.isNullURI(change.getNewDatacenter())) {
+                VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());
+                host.setTenant(currentDatacenter.getTenant());
+                host.setVcenterDataCenter(currentDatacenter.getId());
+                dbClient.updateObject(host);
+            }
+
+            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+                for (Initiator oldInitiator : oldInitiatorObjects) {
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorLabel", oldInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDescription",
+                                    oldInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorWarning"),
+                            oldInitiator, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtil.removeInitiator,
+                            new Object[] { oldInitiator.getId() }, EventUtil.removeInitiatorDecline,
+                            new Object[] { oldInitiator.getId() });
+                }
+                for (Initiator newInitiator : newInitiatorObjects) {
+                    EventUtil.createActionableEvent(dbClient, EventCode.HOST_INITIATOR_ADD, host.getTenant(),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorLabel", newInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDescription",
+                                    newInitiator.getInitiatorPort()),
+                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorWarning"),
+                            newInitiator, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtil.addInitiator,
+                            new Object[] { newInitiator.getId() }, EventUtil.addInitiatorDecline,
+                            new Object[] { newInitiator.getId() });
+                }
+            }
+        }
+
+        log.info("Number of undiscovered hosts: " + deletedHosts.size());
+
+        Set<URI> incorrectDeletedHosts = Sets.newHashSet();
+        for (URI deletedHost : deletedHosts) {
+            Host host = dbClient.queryObject(Host.class, deletedHost);
+            URI clusterId = host.getCluster();
+            List<URI> clusterHosts = Lists.newArrayList();
+            if (!NullColumnValueGetter.isNullURI(clusterId)) {
+                clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+            }
+            if (clusterHosts.contains(deletedHost)
+                    && deletedHosts.containsAll(clusterHosts)) {
+                incorrectDeletedHosts.add(deletedHost);
+                DiscoveryStatusUtils.markAsFailed(getModelClient(), host, "Error discovering host cluster", null);
+                log.info("Host " + host.getId()
+                        + " is part of a cluster that was not re-discovered. Fail discovery and keep the host in our database");
+
+            } else {
+                EventUtil.createActionableEvent(dbClient, EventCode.UNASSIGN_HOST_FROM_VCENTER, host.getTenant(),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignLabel"),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDescription", host.getLabel()),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignWarning"),
+                        host, Lists.newArrayList(host.getId(), host.getCluster()),
+                        EventUtil.hostVcenterUnassign, new Object[] { deletedHost },
+                        EventUtil.hostVcenterUnassignDecline, new Object[] { deletedHost });
+            }
+        }
+
+        log.info("Number of deleted clusters: " + deletedClusters.size()
+                + ". These clusters will remain in our database and must be deleted manually.");
+
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it

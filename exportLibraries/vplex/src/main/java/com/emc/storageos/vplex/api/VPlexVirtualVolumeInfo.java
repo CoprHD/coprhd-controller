@@ -72,6 +72,8 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         EXPANSION_STATUS("expansion-status"),
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
+        THIN_CAPABLE("thin-capable"),
+        THIN_ENABLED("thin-enabled"),
         LOCALITY("locality"),
         VPD_ID("vpd-id"),
         EXPANDABLE_CAPACITY("expandable-capacity");
@@ -138,6 +140,12 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     // The service status
     private String serviceStatus;
 
+    // The thin-capable status
+    private String thinCapable;
+
+    // The thin-enabled status
+    private String thinEnabled;
+
     // The locality of the virtual volume.
     private String locality;
 
@@ -146,10 +154,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // The volume id containing the WWN.
     private String vpdId;
-    
+
     // The expandable capacity for the volume.
     private String expandableCapacity;
-
 
     /**
      * Getter for the volume block count.
@@ -260,6 +267,42 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     }
 
     /**
+     * Getter for the volume thin-capable status.
+     * 
+     * @return The volume thin-capable status.
+     */
+    public String getThinCapable() {
+        return thinCapable;
+    }
+
+    /**
+     * Setter for the volume thin-capable status.
+     * 
+     * @param strVal The volume thin-capable status.
+     */
+    public void setThinCapable(String strVal) {
+        thinCapable = strVal;
+    }
+
+    /**
+     * Getter for the volume thin-enabled status.
+     * 
+     * @return The volume thin-enabled status.
+     */
+    public String getThinEnabled() {
+        return thinEnabled;
+    }
+
+    /**
+     * Setter for the volume thin-enabled status.
+     * 
+     * @param strVal The volume thin-enabled status.
+     */
+    public void setThinEnabled(String strVal) {
+        thinEnabled = strVal;
+    }
+
+    /**
      * Getter for the volume locality.
      * 
      * @return The volume locality.
@@ -296,7 +339,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             clusters.add(clusterId);
         }
     }
-    
+
     /**
      * Getter for the volume vpd-id.
      * 
@@ -305,7 +348,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getVpdId() {
         return vpdId;
     }
-    
+
     /**
      * Setter for the volume vpd-id.
      * 
@@ -314,7 +357,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public void setVpdId(String strVal) {
         vpdId = strVal;
     }
-    
+
     /**
      * Getter for the volume expandable-capacity.
      * 
@@ -323,7 +366,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getExpandableCapacity() {
         return expandableCapacity;
     }
-    
+
     /**
      * Setter for the volume expandable-capacity.
      * 
@@ -343,12 +386,14 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         if (null != vpdId) {
             if (vpdId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX)) {
                 return vpdId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX.length());
+            } else if (vpdId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX_T2)) {
+                return vpdId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX_T2.length());
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Return the virtual volume capacity in bytes.
      * 
@@ -394,13 +439,25 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         setName(updatedName);
     }
 
-    /*
+    /**
      * Returns whether or not the volume is exported.
      * 
      * @return true if the volume is exported, false otherwise.
      */
     public boolean isExported() {
         return (!ServiceStatus.unexported.name().equals(serviceStatus));
+    }
+
+    /**
+     * Returns whether or not the volume is thin-enabled.
+     * 
+     * @return true if the volume is thin enabled, false otherwise.
+     */
+    public boolean isThinEnabled() {
+        // need to check both thin-capable=true && thin-enabled=true|enabled
+        return VPlexApiConstants.TRUE.equalsIgnoreCase(getThinCapable()) &&
+                (VPlexApiConstants.TRUE.equalsIgnoreCase(getThinEnabled())
+                        || VPlexApiConstants.ENABLED.equalsIgnoreCase(getThinEnabled()));
     }
 
     /**
@@ -431,6 +488,8 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             str.append(", supportingDeviceInfo: ").append(supportingDeviceInfo.toString());
         }
         str.append(", serviceStatus: ").append(serviceStatus);
+        str.append(", thinCapable: ").append(thinCapable);
+        str.append(", thinEnabled: ").append(thinEnabled);
         str.append(", locality: ").append(locality);
         str.append(", clusters: ").append(clusters);
         str.append(", vpdId: ").append(vpdId);

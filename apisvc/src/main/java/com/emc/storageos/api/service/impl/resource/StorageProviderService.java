@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,9 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";
+
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
     private static class ScanJobExec implements AsyncTaskExecutorIntf {
 
@@ -213,8 +217,11 @@ public class StorageProviderService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getUserName(), "user_name");
         ArgValidator.checkFieldNotEmpty(param.getPassword(), "password");
         ArgValidator.checkFieldRange(param.getPortNumber(), 1, 65535, "port_number");
-        ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type",
-                StorageProvider.InterfaceType.class);
+        if (storageDriverManager == null || !storageDriverManager.isDriverManaged(param.getInterfaceType())) {
+            // check this only for providers which are not managed by drivers
+            ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type",
+                    StorageProvider.InterfaceType.class);
+        }
         String providerKey = param.getIpAddress() + "-" + param.getPortNumber();
         List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
         if (providers != null && !providers.isEmpty()) {
@@ -240,6 +247,7 @@ public class StorageProviderService extends TaskResourceService {
         provider.setConnectionStatus(ConnectionStatus.INITIALIZING.name());
         provider.setSecondaryUsername(param.getSecondaryUsername());
         provider.setSecondaryPassword(param.getSecondaryPassword());
+        provider.setSecondaryURL(param.getSecondaryURL());
         provider.setElementManagerURL(param.getElementManagerURL());
         if (param.getSioCLI() != null) {
             // TODO: Validate the input?
@@ -248,6 +256,10 @@ public class StorageProviderService extends TaskResourceService {
 
         if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(provider.getInterfaceType())) {
             provider.setManufacturer("IBM");
+            //For XIV, Secondary manager URL would hold HSM URL and it is expected that these values are provided during create
+            ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_name");
+            ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+            ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
         }
 
         _dbClient.createObject(provider);
@@ -453,6 +465,9 @@ public class StorageProviderService extends TaskResourceService {
             }
             if (param.getSecondaryPassword() != null) {
                 storageProvider.setSecondaryPassword(param.getSecondaryPassword());
+            }
+            if (param.getSecondaryURL() != null) {
+                storageProvider.setSecondaryURL(param.getSecondaryURL());
             }
             if (param.getElementManagerURL() != null) {
                 storageProvider.setElementManagerURL(param.getElementManagerURL());

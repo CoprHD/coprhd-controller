@@ -78,6 +78,7 @@
         
         updateReceipt('${orderId}');
     });
+    
   </script>
 #{/set}
 <div>
@@ -91,6 +92,32 @@
     <dl class="dl-horizontal nomargin">
       <dt>&{'order.number'}:</dt>
       <dd>${details.order.orderNumber}&nbsp;</dd>
+      
+      #{if details.scheduledEvent != null}
+      <dt>&{'order.schedule'}:</dt>
+      <dd>
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 1}
+         &{'order.occur'}
+         #{localDateTime details.scheduleStartDateTime/}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+         &{'order.recur'}
+         &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
+         &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
+         &{'order.at'}
+         #{localDateTime details.scheduleStartDateTime, format: "HH:mm"/}
+         #{/if}
+         
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence > 1}
+            &{'order.occurrences', details.scheduledEvent.scheduleInfo.reoccurrence}
+         #{/if}
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
+            &{'order.occurrences.indefinite'}
+         #{/if}
+                
+      </dd>
+      #{/if}
       
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>

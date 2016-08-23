@@ -291,7 +291,9 @@ public class ExportMaskPlacementDescriptor {
         // Remove the entry from maskToVolumes, then get the volume map entry for the export
         // we removed. Use that as a tentative list of volumes that are unplaced. We will
         // determine below, if indeed the volumes are not placed elsewhere.
-        Map<URI, Volume> tentativelyUnplacedVolumes = new HashMap<>(maskToVolumes.remove(uri));
+        Map<URI, Volume> leftoverMaskToVolumes = maskToVolumes.remove(uri);
+        Map<URI, Volume> tentativelyUnplacedVolumes = 
+                (null != leftoverMaskToVolumes) ? leftoverMaskToVolumes : new HashMap<URI, Volume>();
         // Search through the mask to volumes mapping to see if any of the
         // tentatively unplaced volumes show up there.
         for (URI exportURI : maskToVolumes.keySet()) {

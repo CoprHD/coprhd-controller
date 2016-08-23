@@ -118,4 +118,10 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerTimeoutException timeoutWaitingForMOTerminalState(final String moDn, final String currentState,
             final int timeOutIntervalInMS);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToMount(final String systemType, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToUnmount(final String systemType, final Throwable cause);
+
 }

@@ -150,6 +150,55 @@ public class HostStorageAPI {
     }
 
     /**
+     * Attaches the lun.
+     */
+    public void attachScsiLun(HostScsiDisk disk) {
+        try {
+            HostStorageSystem storageSystem = getStorageSystem();
+            storageSystem.attachScsiLun(disk.getUuid());
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
+     * Detaches the lun.
+     */
+    public void detachScsiLun(HostScsiDisk disk) {
+        try {
+            HostStorageSystem storageSystem = getStorageSystem();
+            storageSystem.detachScsiLun(disk.getUuid());
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
+     * Attaches the datastore.
+     */
+    public void mountDatastore(Datastore datastore) {
+        try {
+            HostStorageSystem storageSystem = getStorageSystem();
+            String vmfsUuid = getVmfsVolumeUuid(datastore);
+            storageSystem.mountVmfsVolume(vmfsUuid);
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
      * Rescans the HBAs on the host.
      */
     public void rescanHBAs() {

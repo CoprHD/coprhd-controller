@@ -57,4 +57,6 @@ public interface IBMSmisConstants extends SmisConstants {
     static final String CP_SYNCHRONIZATION = "Synchronization";
     static final String CP_SNAPSHOT_GROUP_TO_ORDERED_MEMBERS = "IBMTSDS_SnapshotGroupToOrderedMembers";
     static final String MODIFY_LIST_SYNCHRONIZATION = "ModifyListSynchronization";
+    static final String CP_PROTOCOLCONTROLLER_FOR_SEUNIT = "IBMTSDS_ProtocolControllerForSEUnit";
+    static final String DEVICE_NUMBER = "DeviceNumber";
 }

@@ -556,6 +556,16 @@ public class WorkflowService implements WorkflowController {
                 // Update the StepState structure
                 StepStatus status = workflow.getStepStatus(stepId);
 
+                // If we're already in a terminal state for this step, we should not reset the state to
+                // something else. There is an exception as WorkflowService calls this for SUSPENDED_NO_ERROR.
+                if (status.isTerminalState() && !(status.state == StepState.SUSPENDED_NO_ERROR)) {
+                    WorkflowException ex = WorkflowException.exceptions.workflowStepInTerminalState(stepId, status.state.name(), state.name());
+                    _log.error(String.format(
+                        "Step %s is already in terminal state %s, trying to change to %s which will be ignored", 
+                        stepId, status.state.toString(), state.toString()),ex);
+                    return;
+                }
+                
                 // If an error is reported, and we're supposed to suspend on error, suspend
                 // Do not suspend rollback steps.
                 Step step = workflow.getStepMap().get(stepId);
@@ -573,7 +583,7 @@ public class WorkflowService implements WorkflowController {
                             StepStatus foundingStatus = workflow.getStepStatus(step.foundingStepId);
                             if (StepState.SUSPENDED_ERROR.equals(foundingStatus.state)) {
                                 foundingStatus.updateState(StepState.ERROR, code, message);
-                                persistWorkflowStepUpdate(workflow, foundingStep);
+                                persistWorkflowStep(workflow, foundingStep);
                             }
                         }
                     }
@@ -582,7 +592,7 @@ public class WorkflowService implements WorkflowController {
                 _log.info(String.format("Updating workflow step: %s state %s : %s", stepId, state, message));
                 status.updateState(state, code, message);
                 // Persist the updated step state
-                persistWorkflowStepUpdate(workflow, step);
+                persistWorkflowStep(workflow, step);
                 if (status.isTerminalState()) {
                     // release any step level locks held.
                     boolean releasedLocks = _ownerLocker.releaseLocks(stepId);
@@ -604,7 +614,7 @@ public class WorkflowService implements WorkflowController {
             }
         } catch (Exception ex) {
             String exMsg = "Exception processing updateStepStatus stepId: " + stepId + ": " + ex.getMessage();
-            _log.error(exMsg);
+            _log.error(exMsg, ex);
             throw new WorkflowException(exMsg, ex);
         } finally {
             unlockWorkflow(workflow, lock);
@@ -893,27 +903,27 @@ public class WorkflowService implements WorkflowController {
         }
     }
 
-    /**
-     * Update the Step State in ZK. No more updates are done after the path is deleted.
-     * 
-     * @param workflow
-     * @param step
-     * @throws WorkflowException
-     */
-    private void persistWorkflowStepUpdate(Workflow workflow, Step step)
-            throws WorkflowException {
-        try {
-            logStep(workflow, step);
-            String path = getZKStepPath(workflow, step);
-            Stat stat = _dataManager.checkExists(path);
-            if (stat != null) {
-                _dataManager.putData(path, step);
-                _log.debug("Updated step status: " + step.stepId);
-            }
-        } catch (Exception ex) {
-            throw new WorkflowException("Cannot update step: " + step.stepId, ex);
-        }
-    }
+//    /**
+//     * Update the Step State in ZK. No more updates are done after the path is deleted.
+//     * 
+//     * @param workflow
+//     * @param step
+//     * @throws WorkflowException
+//     */
+//    private void persistWorkflowStepUpdate(Workflow workflow, Step step)
+//            throws WorkflowException {
+//        try {
+//            logStep(workflow, step);
+//            String path = getZKStepPath(workflow, step);
+//            Stat stat = _dataManager.checkExists(path);
+//            if (stat != null) {
+//                _dataManager.putData(path, step);
+//                _log.debug("Updated step status: " + step.stepId);
+//            }
+//        } catch (Exception ex) {
+//            throw new WorkflowException("Cannot update step: " + step.stepId, ex);
+//        }
+//    }
 
     /**
      * Save a Workflow Step for the first time in Zookeeper. This happens when queueStep()
@@ -974,32 +984,44 @@ public class WorkflowService implements WorkflowController {
             return false;
         }
     }
+    
+    /**
+     * Loads the workflow from ZK and DB state using a Workflow template from which
+     * the ZK path of the workflow is constructed.
+     * @param workflow
+     * @return Workflow
+     */
+    private Workflow loadWorkflow(Workflow workflow) {
+        if (!isExistingWorkflow(workflow)) {
+            return workflow;
+        }
+        // Load the workflow object from ZK.
+        String zkWorkflowPath = getZKWorkflowPath(workflow);
+        return loadWorkflow(zkWorkflowPath);
+    }
 
     /**
-     * This method sets up the workflow from ZK data if the workflow already exists.
+     * This method sets up the workflow from ZK and DB data using the supplied ZK workflow path.
      * The state for each of the Steps is loaded from ZK.
      * This is called from updateStepStatus().
      * 
-     * @param workflow
-     *            , or null if nothing could be loaded from ZK
+     * @param zkWorkflowPath -- zookeeper path of the Workflow
+     * @return Workflow -- returns fully reconstructed workflow
+     * @throws WorkflowNotFound exception if cannot load workflow
      */
-    private Workflow loadWorkflow(Workflow workflow) throws WorkflowException {
+    private Workflow loadWorkflow(String zkWorkflowPath) throws WorkflowException {
         try {
-            if (!isExistingWorkflow(workflow)) {
-                return workflow;
-            }
-            // Load the workflow object from ZK.
-            String path = getZKWorkflowPath(workflow);
-            workflow = (Workflow) _dataManager.getData(path, false);
+            
+            Workflow workflow = (Workflow) _dataManager.getData(zkWorkflowPath, false);
             // The stepMap and stepStatusMap can be large; they are saved
             // separately in ZK and reconstructed from the database.
             workflow._stepMap = new HashMap<String, Step>();
             workflow._stepStatusMap = new HashMap<String, StepStatus>();
             workflow._service = this;
             // Load all the step states.
-            List<String> children = _dataManager.getChildren(path);
+            List<String> children = _dataManager.getChildren(zkWorkflowPath);
             for (String child : children) {
-                String childPath = path + "/" + child;
+                String childPath = zkWorkflowPath + "/" + child;
                 Object stepObj = _dataManager.getData(childPath, false);
                 if (stepObj == null || false == (stepObj instanceof Step)) {
                     continue;
@@ -1022,9 +1044,8 @@ public class WorkflowService implements WorkflowController {
             }
             return workflow;
         } catch (Exception ex) {
-            _log.error("Unable to load workflow: " + workflow._orchTaskId);
-            throw new WorkflowException("Unable to restart workflow: "
-                    + workflow._orchTaskId, ex);
+            _log.error("Unable to load workflow: " + zkWorkflowPath);
+            throw WorkflowException.exceptions.workflowNotFound(zkWorkflowPath);
         }
     }
 
@@ -1276,7 +1297,7 @@ public class WorkflowService implements WorkflowController {
                                 changeStepToSuspendedNoErrorState(workflow, suspendedSteps, step);
                             } else {
                                 step.status.updateState(StepState.QUEUED, null, "Unblocked by step: " + fromStepId);
-                                persistWorkflowStepUpdate(workflow, step);
+                                persistWorkflowStep(workflow, step);
                                 _log.info(String.format("Step %s has been unblocked by step %s", step.stepId, fromStepId));
                                 dispatchStep(step, workflow._nested);
                             }
@@ -1286,7 +1307,7 @@ public class WorkflowService implements WorkflowController {
                         // If we got a CancelledException, this step needs to be cancelled.
                         step.status.updateState(StepState.CANCELLED, null, "Cancelled by step: " + fromStepId);
                         _log.info(String.format("Step %s has been cancelled by step %s", step.stepId, fromStepId));
-                        persistWorkflowStepUpdate(workflow, step);
+                        persistWorkflowStep(workflow, step);
                     }
                 } catch (Exception ex) {
                     _log.error("Exception" + ex.getMessage());
@@ -1326,7 +1347,7 @@ public class WorkflowService implements WorkflowController {
                         // If we got a CancelledException, this step needs to be cancelled.
                         step.status.updateState(StepState.CANCELLED, null, "Cancelled by step: " + fromStepId);
                         _log.info(String.format("Step %s has been cancelled by step %s", step.stepId, fromStepId));
-                        persistWorkflowStepUpdate(workflow, step);
+                        persistWorkflowStep(workflow, step);
                     }
                 } catch (Exception ex) {
                     _log.error("Exception" + ex.getMessage());
@@ -1368,7 +1389,7 @@ public class WorkflowService implements WorkflowController {
                 "The user may choose to rollback the operation if manual validation failed.");
         step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, message);
         // Persist the workflow information to ZK
-        persistWorkflowStepUpdate(workflow, step);
+        persistWorkflowStep(workflow, step);
         // Add the step to the list of steps that are to be suspended
         suspendedSteps.add(step.stepId);
     }
@@ -1753,7 +1774,7 @@ public class WorkflowService implements WorkflowController {
      */
     private void restoreStepDataFromDB(Step step) {
         com.emc.storageos.db.client.model.WorkflowStep logStep =
-           _dbClient.queryObject(WorkflowStep.class, step.workflowStepURI);
+           _dbClient.queryObject( com.emc.storageos.db.client.model.WorkflowStep.class, step.workflowStepURI);
         if (logStep.getExecuteMethodData() != null) {
             Workflow.Method executeMethod = (Workflow.Method) 
                     GenericSerializer.deserialize(logStep.getExecuteMethodData());
@@ -2545,8 +2566,8 @@ public class WorkflowService implements WorkflowController {
             if (workflowPath == null) {
                 throw WorkflowException.exceptions.workflowNotFound(stepId);
             }
-            // Load the Workflow state from ZK
-            workflow = loadWorkflow(workflow);
+            // Load the entire workflow, including the step state persisted in Cassandra
+            workflow = loadWorkflow(workflowPath);
             if (workflow == null) {
                 throw WorkflowException.exceptions.workflowNotFound(workflowPath);
             }

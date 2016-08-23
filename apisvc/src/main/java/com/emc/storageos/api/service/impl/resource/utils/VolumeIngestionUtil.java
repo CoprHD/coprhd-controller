@@ -3212,8 +3212,9 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Checks if a volume was ingested. An exception will be
-     * thrown if the given operation is not supported on ingested volumes.
+     * Checks if a volume was ingested virtual-volume-only. An exception will be
+     * thrown if the given operation is not supported on volumes ingested without
+     * backend volumes.
      *
      * @param volume the Volume in question
      * @param operation a text description of the operation
@@ -3222,7 +3223,7 @@ public class VolumeIngestionUtil {
      */
     public static void checkOperationSupportedOnIngestedVolume(Volume volume,
             ResourceOperationTypeEnum operation, DbClient dbClient) {
-        if (volume.isIngestedVolume(dbClient)) {
+        if (volume.isIngestedVolumeWithoutBackend(dbClient)) {
             switch (operation) {
                 case CREATE_VOLUME_FULL_COPY:
                 case CREATE_VOLUME_SNAPSHOT:

@@ -607,7 +607,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // the source backend volume.
         if (object instanceof Volume) {
             Volume vplexVolume = (Volume) object;
-            if (!vplexVolume.isIngestedVolume(_dbClient)) {
+            if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
                 Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient, false);
                 if (snapshotSourceVolume != null) {
                     List<BlockSnapshot> snapshots = CustomQueryUtility.queryActiveResourcesByConstraint(
@@ -3385,7 +3385,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
-        if (!vplexVolume.isIngestedVolume(_dbClient)) {
+        if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
             Volume snapshotSourceVolume = null;
             try {
                 snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
@@ -3508,7 +3508,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     systemURI, volumeURI, null, null);
             volumeDescriptors.add(descriptor);
             // Add a descriptor for each of the associated volumes.
-            if (!volume.isIngestedVolume(_dbClient) && (null != volume.getAssociatedVolumes())) {
+            if (!volume.isIngestedVolumeWithoutBackend(_dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String assocVolId : volume.getAssociatedVolumes()) {
                     Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
@@ -3691,7 +3691,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Can't add a volume into a CG with ingested volumes.
         for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.isIngestedVolume(_dbClient)) {
+            if (cgVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
                 throw APIException.badRequests.notAllowedAddVolumeToCGWithIngestedVolumes();
             }
         }

@@ -2935,7 +2935,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (URI sourceVolumeURI : VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors)) {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
             if (sourceVolume != null && !sourceVolume.getInactive() &&
-                    !sourceVolume.isIngestedVolume(_dbClient)) { // Keeping this in here for when we do RP ingest.
+                    !sourceVolume.isIngestedVolumeWithoutBackend(_dbClient)) { // Keeping this in here for when we do RP ingest.
                 sourceVolumeURIs.add(sourceVolumeURI);
             }
         }

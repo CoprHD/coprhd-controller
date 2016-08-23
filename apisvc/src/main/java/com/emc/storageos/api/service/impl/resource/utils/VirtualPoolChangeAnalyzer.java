@@ -189,7 +189,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (!analyzeChanges(currentVpool, newVpool, include, null, null).isEmpty()) {
             // An ingested local VPLEX volume can't be converted to distributed.
             // The backend volumes would need to be migrated first.
-            if (volume.isIngestedVolume(dbClient)) {
+            if (volume.isIngestedVolumeWithoutBackend(dbClient)) {
                 notSuppReasonBuff.append("The high availability of an ingested VPLEX volume cannot be modified.");
                 return null;
             }

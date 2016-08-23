@@ -1267,7 +1267,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
                 if ((vplexVolume == null)
                         || (vplexVolume.getInactive())
-                        || (vplexVolume.isIngestedVolume(_dbClient))
+                        || (vplexVolume.isIngestedVolumeWithoutBackend(_dbClient))
                         || doNotFullyDeleteVolumeList.contains(vplexVolumeURI)) {
                     continue;
                 }
@@ -1711,8 +1711,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             // VPLEX artifacts related to the volume being deleted.
                             _log.info(String.format("Deleting VPlex virtual volume %s (%s)",
                                     volume.getDeviceLabel(), volume.getNativeId()));
-                            boolean isIngested = volume.isIngestedVolume(_dbClient);
-                            client.deleteVirtualVolume(volume.getDeviceLabel(), !isIngested, !isIngested);
+                            boolean isIngestedWithoutBackend = volume.isIngestedVolumeWithoutBackend(_dbClient);
+                            client.deleteVirtualVolume(volume.getDeviceLabel(), !isIngestedWithoutBackend, !isIngestedWithoutBackend);
                         }
 
                         // Record VPLEX volume deleted event.
@@ -9861,7 +9861,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public static boolean migrationSupportedForVolume(Volume volume, URI varrayURI, DbClient dbClient) {
         boolean supported = true;
         // Migration is supported for all volumes that were not ingested.
-        if (volume.isIngestedVolume(dbClient)) {
+        if (volume.isIngestedVolumeWithoutBackend(dbClient)) {
             VirtualPool vpool = dbClient.queryObject(VirtualPool.class,
                     volume.getVirtualPool());
             // Migration is supported for all local volumes.

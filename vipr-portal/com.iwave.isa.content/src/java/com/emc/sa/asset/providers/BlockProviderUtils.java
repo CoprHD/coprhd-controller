@@ -154,9 +154,10 @@ public class BlockProviderUtils {
 
     public static List<ExportGroupRestRep> getExportsForHostOrCluster(ViPRCoreClient client, URI tenantId, URI hostOrClusterId) {
         if (BlockStorageUtils.isHost(hostOrClusterId)) {
-            return client.blockExports().findContainingHost(hostOrClusterId, null, null);
-        }
-        else {
+            // Limit results to host exports for this host (there may be cluster exports as well)
+            List<ExportGroupRestRep> exports = client.blockExports().findContainingHost(hostOrClusterId, null, null);
+            return new ArrayList<ExportGroupRestRep>(BlockStorageUtils.filterExportsByType(exports, hostOrClusterId));
+        } else {
             return client.blockExports().findByCluster(hostOrClusterId, null, null);
         }
     }

@@ -3067,28 +3067,9 @@ then
 fi
 
 setup=0;
-SS=${2}
-if [ "$1" = "setuphw" -o "$1" = "setup" ]
-then
-    echo "Setting up testing based on real hardware"
-    setup=1;
-    shift 1;
-elif [ "$1" = "setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-	echo "Setting up testing based on simulators"
-	SIM=1;
-	setup=1;
-	shift 1;
-    else
-	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	exit 1
-    fi
-fi
 
 SS=${1}
 shift
-
-login
 
 case $SS in
     vmax2|vmax3|vnx|xio|unity)
@@ -3106,6 +3087,25 @@ case $SS in
     Usage
     ;;
 esac
+
+if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
+then
+    echo "Setting up testing based on real hardware"
+    setup=1;
+    shift 1;
+elif [ "$1" = "setupsim" ]; then
+    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+	echo "Setting up testing based on simulators"
+	SIM=1;
+	setup=1;
+	shift 1;
+    else
+	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	exit 1
+    fi
+fi
+
+login
 
 if [ "$1" = "regression" ]
 then

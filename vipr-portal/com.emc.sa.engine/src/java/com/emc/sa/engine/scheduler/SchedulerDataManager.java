@@ -238,7 +238,7 @@ public class SchedulerDataManager {
                     break;
                 }
 
-                if (order.getExecutionWindowId() == null || !order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                if (order.getExecutionWindowId() == null) {
                     // order is not subjected to normal execution window but the special INFINITE window.
 
                     // check if the order is expired
@@ -260,12 +260,14 @@ public class SchedulerDataManager {
                         continue;
                     }
 
-                    // check if the order is expired
-                    ExecutionWindow window = models.findById(order.getExecutionWindowId().getURI());
-                    if (isExpiredOrder(order, window)) {
-                        order.setOrderStatus(OrderStatus.ERROR.name());
-                        models.save(order);
-                        continue;
+                    if (!order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                        // check if the order is expired
+                        ExecutionWindow window = models.findById(order.getExecutionWindowId().getURI());
+                        if (isExpiredOrder(order, window)) {
+                            order.setOrderStatus(OrderStatus.ERROR.name());
+                            models.save(order);
+                            continue;
+                        }
                     }
 
                     // lock a order if tenant is active and window is matched.

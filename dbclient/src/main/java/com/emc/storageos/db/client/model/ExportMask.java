@@ -972,4 +972,13 @@ public class ExportMask extends DataObject {
                 collectionString(_existingInitiators),
                 _zoningMap);
     }
+
+    @Override
+    public String forDisplay() {
+        if (_maskName != null && !_maskName.isEmpty()) {
+            return String.format("%s (%s)", _maskName, _id);
+        } else {
+            return super.forDisplay();
+        }
+    }
 }

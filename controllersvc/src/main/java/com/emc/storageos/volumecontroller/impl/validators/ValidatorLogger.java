@@ -38,30 +38,34 @@ public class ValidatorLogger {
      *            -- Hardware value
      */
     public void logDiff(String id, String field, String db, String hw) {
-        StringBuffer msg = new StringBuffer(String.format("Controller database object ID %s, field %s: ", id, field));
+        StringBuffer diffBuffer = new StringBuffer(String.format("Controller database object ID %s, field \"%s\": ", id, field));
 
         // Craft a message depending on whether the db field is non-existent, or if the hw field wasn't found
-        if (db.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
-            msg.append(String.format(
+        if (db == null || db.isEmpty() || db.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
+            diffBuffer.append(String.format(
                     "The hardware reported entry %s, whereas the controller is not managing or does not have a reference to the same resource",
                     hw, db));
-        } else if (hw.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
-            msg.append(String.format(
+        } else if (hw == null || hw.isEmpty() || hw.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
+            diffBuffer.append(String.format(
                     "The controller is managing resource %s, whereas the hardware reported did not report that resource",
                     db, hw));
         } else {
-            msg.append(String.format(
+            diffBuffer.append(String.format(
                     "The controller references resource: %s, whereas the hardware reported the actual resource as: %s",
-                    db, hw));
+                    db != null ? db : "null",
+                    hw != null ? hw : "null"));
         }
-        msg.append(msg + "\n");
+        // Add to the logger object to track that differences were found.
+        msgs.append(diffBuffer.toString() + "\n");
         if (log != null) {
-            log.info(msg.toString());
+            log.info(diffBuffer.toString());
         }
     }
 
     public ValidatorLogger(Logger log, String validatedObjectName, String storageSystemName) {
         this.log = log;
+        this.validatedObjectName = validatedObjectName;
+        this.storageSystemName = storageSystemName;
     }
 
     public void setLog(Logger log) {

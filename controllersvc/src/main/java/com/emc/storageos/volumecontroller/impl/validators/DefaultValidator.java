@@ -42,7 +42,7 @@ public class DefaultValidator implements Validator {
         }
 
         if (logger.hasErrors() && config.validationEnabled()) {
-            generateException(validator, type, logger);
+            generateException(type, logger);
         }
 
         return true;
@@ -50,13 +50,12 @@ public class DefaultValidator implements Validator {
 
     /**
      * Generate an appropriate exception for the type of object validate.
-     * 
      * @param type
      *            type of object validated
      * @param logger
      *            log object with details of failure
      */
-    public static void generateException(Validator validator, String type, ValidatorLogger logger) {
+    public static void generateException(String type, ValidatorLogger logger) {
         if (type.equalsIgnoreCase(ValidatorConfig.EXPORT_MASK_TYPE)) {
             throw DeviceControllerException.exceptions.validationExportMaskError(logger.getValidatedObjectName(),
                     logger.getStorageSystemName(), logger.getMsgs().toString());

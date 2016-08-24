@@ -4015,13 +4015,13 @@ recoverpoint_auto_snapshot_cleanup_test()
         blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
 
         secho 'Performing swap operation to verify auto snapshot cleanup'
-        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
         secho 'Verifying that RP bookmark was removed after swap'
         fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
 
         secho 'Performing swap back'
-        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
 
         sleep 10
 

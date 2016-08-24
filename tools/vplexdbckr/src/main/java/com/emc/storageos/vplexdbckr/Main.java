@@ -41,12 +41,19 @@ public class Main {
         System.out.println("logs available at /opt/storageos/logs/vplexdbckr.log");
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/vplexdbckr-conf.xml"); // NOSONAR ("squid:S2444")
         boolean deleteInvalidVolumes = false;
+		boolean checkStorageViews = false;
 		
-		if (args.length > 0) {
-		if (args[0].equals("DELETE-INVALID-VOLUMES")) {
+		for(int i=0;i<args.length;i++) {
+		if (args[i].equals("DELETE-INVALID-VOLUMES")) {
 		  deleteInvalidVolumes = true;
 		  System.out.println("DELETE-INVALID-VOLUMES from viprdb set to true");
 		}
+		
+		if (args[i].equals("CHECK-STORAGEVIEWS")) {
+		  checkStorageViews = true;
+		  System.out.println("CHECK-STORAGEVIEWS from viprdb set to true");
+		}
+		
 		}
 		
 		VplexDBCkr vplexDBCkr = VplexDBCkr.getBean();
@@ -54,8 +61,7 @@ public class Main {
         List<StorageSystem> vplexSystems = vplexDBCkr.getVPlexSystems();
         for (StorageSystem vplexSystem : vplexSystems) {
             for(int i=0;i<args.length;i++) {
-             //System.out.println("arg value" + args[i] +i);
-			 if (args[i].equals(vplexSystem.getLabel())) {
+             if (args[i].equals(vplexSystem.getLabel())) {
 			   System.out.println("************Processing vplex: " + vplexSystem.getLabel());
                vplexDBCkr.checkVolumesOnVplex(vplexSystem.getId(),deleteInvalidVolumes);
 			 }

@@ -242,7 +242,7 @@ public class VplexDBCkr {
         }
     }
 	
-	public void checkVolumesOnVplex(URI vplexSystemURI, boolean deleteInvalidVolumes) {
+	public void checkVolumesOnVplex(URI vplexSystemURI, boolean deleteInvalidVolumes, boolean checkStorageViews) {
         URIQueryResultList result = new URIQueryResultList();
 		List<URI> deletevirtualvolumeURIs = new ArrayList<URI>();
 		int nerrors = 0;
@@ -265,7 +265,9 @@ public class VplexDBCkr {
             if (volume == null || volume.getInactive()) {
                 continue;
             }
-            writeLog(String.format("Checking volume %s (%s)", volume.getLabel(), volume.getDeviceLabel()));
+			
+            if (!checkStorageViews) {
+			writeLog(String.format("Checking volume %s (%s)", volume.getLabel(), volume.getDeviceLabel()));
             if (volume.getAssociatedVolumes() == null || volume.getAssociatedVolumes().isEmpty()) {
                 writeLog(String.format("Volume %s (%s) has no associated volumes... skipping", 
                         volume.getLabel(), volume.getDeviceLabel()));
@@ -324,7 +326,8 @@ public class VplexDBCkr {
                     nerrors++;
                 }
             }
-		    
+		    }
+			
 			List<ExportMask> exportMaskListInDB = isVolumeExported(volume.getId());
 			if (null != exportMaskListInDB) {
 			for (ExportMask exportMaskInDB : exportMaskListInDB) {
@@ -343,13 +346,15 @@ public class VplexDBCkr {
 			   }
 			    if(!found) {
 			     writeLog(String.format("ERROR: volume %s is in exportmask %s in viprdb  but not in vplex storageview %s",volume.getDeviceLabel(),exportMaskInDB.getMaskName(),storageView.getName()));
-			     nerrors++;
+			     deletevirtualvolumeURIs.add(volume.getId());
+				 nerrors++;
 				}
 			   break; 
 			  }
 		   	 }
 			 if (!storageviewfound) {
 			  writeLog(String.format("ERROR: volume %s is in exportmask %s in viprdb  but storageview not found in vplex",volume.getDeviceLabel(),exportMaskInDB.getMaskName()));
+			  deletevirtualvolumeURIs.add(volume.getId());
 			  nerrors++;
 			 }
 			}
@@ -371,6 +376,7 @@ public class VplexDBCkr {
 				}
 				}
 				if (!storageviewfound) {
+				 deletevirtualvolumeURIs.add(volume.getId());
 				 writeLog(String.format("ERROR: volume %s is in vplex storageview %s but not in viprdb exportmask",volumeName,storageView.getName()));
 				 nerrors++;
 		        }
@@ -410,29 +416,6 @@ public class VplexDBCkr {
 		  } catch (Exception e) {
                     writeLog(String.format("Exception: while verifying virtual volumes", e));
          }
-		  
-		  //List<URI> maskUrislist = new ArrayList<URI>();;
-		  //maskUrislist.add(URI.create("urn:storageos:ExportMask:3742e612-cc93-422b-a1a5-43490e0fe8ea:vdc1"));
-		  //for (URI mskUri : maskUrislist) {
-		    //boolean found = false;
-			//ExportMask exportMaskUri = dbClient.queryObject(ExportMask.class, mskUri);
-            //if (exportMaskUri == null || exportMaskUri.getInactive()) {
-            //    continue;
-            //}
-            //writeLog(String.format("exportMaskUri in ViPR DB is %s", exportMaskUri.getMaskName()));
-			//for (VPlexStorageViewInfo storageView : storageViews) {
-			  //if (storageView.getName().equals(exportMaskUri.getMaskName())) {
-			   //found = true;
-			  //} 
-			//}
-			
-			//if(!found) {
-				// writeLog(String.format("ERROR: exportMask not found in vplex %s",exportMaskUri.getMaskName()));
-				 //nerrors++;
-			//}
-			
-		 // }
-			  
 		writeLog("Total errors for this VPLEX: " + nerrors);
     }
     

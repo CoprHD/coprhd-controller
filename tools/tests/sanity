@@ -5076,6 +5076,8 @@ recoverpoint_direct_access_test()
         secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
         run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
+        sleep 10
+
         secho 'Verify the current state of the source and target vols'
         run volume verify ${PROJECT}/${src_volume} personality SOURCE
         run volume verify ${PROJECT}/${src_volume} access_state READWRITE

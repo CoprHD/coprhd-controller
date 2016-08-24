@@ -14,11 +14,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import sun.net.util.IPAddressUtil;
 
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -62,6 +62,8 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+
+import sun.net.util.IPAddressUtil;
 
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
@@ -475,7 +477,7 @@ public class ExportMaskUtils {
             return null;
         }
         // Create a set of unique host and cluster names
-        Set<String> hosts = new HashSet<String>();
+        SortedSet<String> hosts = new TreeSet<String>();
         Set<String> clusters = new HashSet<String>();
         boolean rp = false;
         for (Initiator initiator : initiators) {
@@ -502,10 +504,10 @@ public class ExportMaskUtils {
         }
 
         String host = null;
-        // If there is a unique host name, append to the name
-        if (hosts.size() == 1) {
+        // Get the first host name
+        if (!hosts.isEmpty()) {
             host = hosts.iterator().next();
-        }
+        } 
 
         // In the case of RP, we want the naming defaults to use the cluster name as the hostname.
         // This assumes:
@@ -574,7 +576,7 @@ public class ExportMaskUtils {
 
     // don't want to disturb the existing method, hence overloaded
     static public <T extends BlockObject> ExportMask initializeExportMaskWithVolumes(
-            StorageSystem storage, ExportGroup exportGroup, String maskName, String maskLabel,
+            URI storage, ExportGroup exportGroup, String maskName, String maskLabel,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
@@ -585,7 +587,7 @@ public class ExportMaskUtils {
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
         exportMask.setMaskName(maskName);
-        exportMask.setStorageDevice(storage.getId());
+        exportMask.setStorageDevice(storage);
 
         String resourceRef;
         if (exportGroup.getType() != null) {
@@ -1177,7 +1179,7 @@ public class ExportMaskUtils {
     /**
      * Compare the ExportMask's volumes with a map containing the latest discovered volumes. Return a map of volumes
      * that are new.
-     * 
+     *
      * @param mask [IN] - ExportMask to check
      * @param discoveredVolumes [IN] - Map of Volume WWN to Integer HLU representing discovered volumes.
      * @return Map of Volume WWN (normalized) to Integer HLU representing new volumes, which do not exist in the ExportMask.
@@ -1243,7 +1245,8 @@ public class ExportMaskUtils {
      * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
      *         'exportMask'.
      */
-    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators, DbClient dbClient) {
+    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators,
+            DbClient dbClient) {
         List<Initiator> userAddedInitiators = new ArrayList<>();
 
         // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator

@@ -333,6 +333,9 @@ AuthSourceType.keystone=Keystone
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
 
+TenantsSynchronizationOptions.ADDITION=Automatic addition of Tenants
+TenantsSynchronizationOptions.DELETION=Automatic deletion of Tenants
+
 TransportProtocol.FC=FC
 TransportProtocol.IP=IP
 TransportProtocol.Ethernet=Ethernet
@@ -624,9 +627,18 @@ scheduledOrders.createdDate=Date Submitted
 scheduledOrders.submittedBy=Submitted By
 scheduledOrders.executionWindow=Execution Window
 scheduledOrders.nextExecutionWindow=<Next Execution Window>
+scheduledOrders.actions=Actions
+scheduledOrders.editSchedule=Edit Schedule
 
 ScheduledOrder.nextWindow=Next Execution Window is <span style="font-weight:bold;">%s</span>, scheduled to start at <span style="font-weight:bold;">%s</span>.
 ScheduledOrder.noWindow=There are NO Execution windows currently scheduled
+
+ScheduledOrder.edit.title=Edit Order Schedule
+ScheduledOrder.save.success=Order schedule is updated successfully.
+ScheduledOrder.back=Back
+ScheduledOrder.deactivate=Deactivate
+ScheduledOrder.deactivate.confirm=WARNING: This operation will delete scheduled orders. Are you sure to continue?   
+ScheduledOrder.deactivate.success=Schedule is deactivated and all scheduled orders are cancelled.
 
 # VCenter
 vCenter=vCenter
@@ -702,7 +714,7 @@ CustomConfigs.category.XtremIO=XtremIO
 CustomConfigs.category.HDS=HDS
 CustomConfigs.category.VPlex=VPLEX
 CustomConfigs.category.Nas=NAS
-CustomConfigs.category.HostResource=Host Resource Placement
+CustomConfigs.category.HostResource=Host/Array Affinity Resource Placement
 CustomConfigs.category.Isilon=Isilon
 CustomConfigs.category.VolumeNaming=Volume Naming
 CustomConfigs.category.Other=Other
@@ -1467,6 +1479,7 @@ tenants.saved=Tenant '%s' saved successfully.
 tenants.unknown=Unknown Tenant ID '%s'
 tenants.quota=Quota
 tenants.mappedDomains=Mapped Domains
+tenants.source=Source
 tenant.group.help=One group per line
 tenant.attribute.help=One Value per line
 tenant.removeDomain=Remove Domain
@@ -1633,6 +1646,19 @@ approvalConfig.approverEmail.help=The email addresses for approvers (comma separ
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
 
+keystoneProvider.title=OpenStack Synchronization Options
+keystoneProvider.addRemoveTenants=Add/Remove OpenStack Tenants to/from CoprHD
+keystoneProvider.addTenants=Add OpenStack Tenants to CoprHD
+keystoneProvider.removeTenants=Remove OpenStack Tenants from CoprHD
+keystoneProvider.synchronizationInterval=Synchronization interval
+keystoneProvider.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 s
+keystoneProvider.tenantsSynchronizationOptions =Tenants synchronization options
+keystoneProvider.updated=Tenants successfully updated
+osTenantsToAdd.name=Name
+osTenantsToAdd.description=Description
+osTenantsToRemove.name=Name
+osTenantsToRemove.description=Description
+
 Introspection.Started=%s assets added to the discovery queue.
 
 #### Infrastructure management
@@ -1653,6 +1679,12 @@ ldapSources.disable=Disabled
 ldapSources.disable.help=Disabled providers will not have their connectivity validated or be available for processing login requests
 ldapSources.autoRegCoprHDNImportOSProjects=Automatic Registration and Tenant Mapping
 ldapSources.autoRegCoprHDNImportOSProjects.help=This SDS controller will be added as Block Storage Service in Keystone. Tenants and Projects from Keystone will be imported automatically.
+ldapSources.tenantsSynchronizationOptions =Tenants synchronization options
+ldapSources.addTenants=Add Tenants
+ldapSources.addTenants.description=Check which OpenStack Tenants to add.
+ldapSources.synchronizationInterval=Synchronization interval
+ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 seconds.
+ldapSources.synchronizationInterval.integerRequired=Integer value greater than 10 required.
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute
@@ -2041,6 +2073,7 @@ storageArrayPools.status=Status
 storageArrayPools.driveTypes=Drive Types
 storageArrayPools.volumeTypes=Resource Types
 storageArrayPools.freeCapacity=Free
+storageArrayPools.compressionEnabled=Compression Enabled
 storageArrayPools.subscribedCapacity=Subscribed
 storageArrayPools.totalCapacity=Total
 storageArrayPools.protocols=Protocols
@@ -2228,8 +2261,8 @@ vpool.heading.fileCriteria=File Storage Criteria
 vpool.heading.dataProtection=Data Protection/High Availability
 vpool.heading.quota=Quota
 vpool.heading.poolAssociation=Storage Pool Association
-vpool.enableDeDup=DeDup Capable
-
+vpool.enableDeDup=Support De-duplication
+vpool.enableDeDup.help=Matching storage pools will be limited to those that can support De-duplication
 vpool.protocols=Protocols
 vpool.protocols.help=Matching storage pools will be limited to those that can support all selected protocols
 vpool.systemType=System Type
@@ -2260,6 +2293,8 @@ vpool.fastExpansion=Fast Expansion
 vpool.fastExpansion.help=If selected, expansion will be performed more quickly but potentially decreases performance.
 vpool.multiVolumeConsistency=Multi-Volume Consistency
 vpool.multiVolumeConsistency.help=If selected, resources provisioned from this pool will support the use of consistency groups
+vpool.enableCompression=Enable Compression
+vpool.enableCompression.help=If selected, compression will be enabled for VMAX all flash arrays
 vpool.raidLevels=RAID Level(s)
 vpool.uniqueAutoTierPolicyNames=Unique Auto-tiering Policy Names
 vpool.uniqueAutoTierPolicyNames.help=Check to show unique policy names in Auto-tiering Policy.
@@ -2367,6 +2402,7 @@ storagePools.name=Name
 storagePools.storageSystem=Storage System
 storagePools.driveTypes=Drive Types
 storagePools.volumeTypes=Provisioning
+storagePools.compressionEnabled=Compression Enabled
 storagePools.freeCapacity=Free
 storagePools.subscribedCapacity=Subscribed
 storagePools.totalCapacity=Total
@@ -3102,6 +3138,7 @@ order.validation.notInteger=Must be a valid integer
 order.validation.notNumber=Must be a valid number
 
 order.title.receipt=Order %s - %s
+order.number.first=First
 order.number=Order Number
 order.dateSubmitted=Date Submitted
 order.submittedBy=Submitted By
@@ -3124,6 +3161,20 @@ order.executionTaskLogs.message=Summary
 order.executionTaskLogs.detail=Detail
 order.executionTaskLogs.elapsed=Elapsed
 order.viprTasks=Tasks
+
+order.schedule=Schedule
+order.occur=Occurring on
+order.recur=Recurring every
+order.at=at
+order.MINUTELY=minute(s)
+order.HOURLY=hour(s)
+order.DAILY=day(s)
+order.MONTHLY=month(s)
+order.WEEKLY=week(s)
+order.occurrences= for %s occurrences
+order.occurrences.indefinite=indefinitely
+order.additionalScheduleInfo=Retention Policy
+order.additionalScheduleInfo.value=Max %s Copies
 
 order.host.with.cluster.decoration=%s [cluster: %s]
 
@@ -3274,6 +3325,9 @@ resources.events.total=Total
 resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event
 resources.events.declineEvent=Decline Event
+resources.events.confirm=Confirm
+resources.events.approveEvents=Approve Event(s)
+resources.events.declineEvents=Decline Event(s)
 resources.event.approved=Approved event %s
 resources.event.approved.multiple=Approved the selected events successfully.
 resources.event.declined=Declined event %s
@@ -3281,9 +3335,11 @@ resources.event.declined.multiple=Declined the selected events successfully.
 resources.event.deleted=Deleted event %s
 resources.event.deleted.multiple=Deleted the selected events successfully.
 resources.event.unknown=Unknown event %s
-resources.events.approve=Are you sure you want to approve all the selected event(s)?
-resources.events.decline=Are you sure you want to decline all the selected event(s)?
+resources.events.approve=Are you sure you want to approve all the selected event(s)? Type confirm to proceed.
+resources.events.decline=Are you sure you want to decline all the selected event(s)? Type confirm to proceed.
 resources.events.delete=Are you sure you want to delete all the selected event(s)?
+resources.events.approve.confirm.failed=Confirm text '%s' did not match expected 'confirm' text. Events were not approved.
+resources.events.decline.confirm.failed=Confirm text '%s' did not match expected 'confirm' text. Events were not declined.
 events.eventStatus=Status
 events.name=Name
 events.description=Description
@@ -3294,7 +3350,11 @@ events.event=Event
 events.id=ID
 events.resource=Resource
 events.created=Created
-
+events.warning=Warning
+events.approveDetails=Approve Details
+events.declineDetails=Decline Details
+events.tasks=Event Tasks
+events.executionTime=Execution Time
 
 resources.tasks=Tasks
 resources.task=Task Details
@@ -3415,6 +3475,7 @@ resources.volume.lun=LUN
 resources.volume.devicelabel=Device Label
 resources.volume.nativeid=Native ID
 resources.volume.storagesystem=Storage System
+resources.volume.compressionratio=Compression Ratio
 resources.volume.accessstate=Access State
 resources.volume.deleteLink=Delete Volume
 resources.volume.deleteLink.FULL=Full
@@ -3822,6 +3883,7 @@ approval.approve=Approve
 approval.reject=Reject
 approval.approve.message=Approved request from user: %s
 approval.reject.message=Rejected request from user: %s
+approval.orderScheduled=This order is scheduled for multiple occurrences. Selecting Approve will result in all occurrences being approved.
 approval.orderApproved=Approved by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
 approval.orderRejected=Rejected by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
 approval.notPending.error=Order %s is not in pending approval
@@ -3832,10 +3894,12 @@ approvalsTable.orderUserName=Submitted By
 approvalsTable.createdDate=Submit Date
 approvalsTable.approvedBy=Approver
 approval.message=Message
+approval.noTenantAccess=Current user has no access on the target tenant %s
 
 service.order=Order
 service.preview=Preview
 service.cancel=Cancel
+service.schedule=Schedule Order
 
 service.assetError=Failed to retrieve options for field '%s': %s
 service.nextExecutionWindow=This service will be scheduled to run in the next available Execution Window.  Currently, <span style="font-weight:bold;">%s</span> is the next window scheduled to run at <span style="font-weight:bold;">%s</span>.
@@ -4004,6 +4068,8 @@ button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
+button.synchronize=Synchronize
+button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
 
 button.mirroring.start=Start
@@ -4703,6 +4769,27 @@ mobilityGroupResources.type=Type
 mobilityGroupResources.hostname=Hostname
 mobilityGroupResources.tenant=Tenant
 
+scheduler.title=Scheduler
+scheduler.enabled=Enable Scheduler
+scheduler.startDate=Start Date/Time
+scheduler.startDate.helpText= The date and time when order starts, based on local time zone.
+scheduler.cycleFrequency=Recur every
+scheduler.cycleType=Frequency
+scheduler.minutes=Minutes
+scheduler.hours=Hours
+scheduler.days=Days
+scheduler.months=Months
+scheduler.weeks=Weeks
+scheduler.on=on
+scheduler.onday=on day
+scheduler.recurrence=Frequency
+scheduler.onlyonce=Only Once
+scheduler.indefinitely=Indefinitely
+scheduler.endAfterRecurrences=End after recurrences
+scheduler.rangeOfRecurrence=Number of recurrences
+scheduler.retention=Retention Policy
+scheduler.retention.helpText=Maximum snapshots or copies to keep.
+
 gettingStarted.header.full=Getting Started Guide
 gettingStarted.header.side=Return To Guide
 gettingStarted.header.side.next=Next Step
@@ -4744,7 +4831,7 @@ gettingStarted.project.button=Create Project
 gettingStarted.project.title=Project
 gettingStarted.project.text=To use ViPR you will need to create a Project.<br><br> All resources provisioned using ViPR must be associated with a project. Projects are tenant resources and are created and managed by the Tenant Administrator of the tenant (or delegated to a Project Administrator).<br><br>Projects enable storage resources provisioned using ViPR to be grouped logically, and for authorization to perform operations on resources to be based on project membership. All provisioned resources are owned by a project.
 gettingStarted.provision.button=Start Provisioning
-gettingStarted.provision.title=Summary
+gettingStarted.provision.title=Start Provisioning
 gettingStarted.provision.text=Here is a summary of what you have created.
 gettingStarted.provision.text2=You can now start provisioning from the ViPR catalog.
 gettingStarted.incompletesteps.text=You must complete all prerequisite steps to start this step

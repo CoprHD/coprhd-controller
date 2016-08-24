@@ -213,6 +213,46 @@ angular.module("portalApp").controller({
           $scope[value.name] = value;
         });
         
+        // Set default values for scheduler
+        $scope.scheduler = []
+        $scope.scheduler.cycleFrequency = 1;
+        $scope.scheduler.cycleType = "DAILY";
+        $scope.scheduler.rangeOfRecurrence = 10;
+        $scope.scheduler.recurrence = 1;
+        $scope.scheduler.dayOfWeek = 1
+        $scope.scheduler.dayOfMonth = 1
+        current = new Date().getTime();                
+        $scope.scheduler.startDate = formatDate(current, "YYYY-MM-DD");
+        $scope.scheduler.startTime = formatDate(current, "HH:mm");;
+        $scope.scheduler.maxNumOfCopies = 5;
+        $scope.scheduler.currentTimezoneOffsetInMins = new Date().getTimezoneOffset();
+        
+        $scope.isSchedulerEnabled = function() {
+           return $scope.schedulerEnabled;
+        };
+        
+        $scope.isRecurring = function() {
+           return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
+        };
+        
+        $scope.isRecurringAllowed = function() {
+           return $scope.service.recurringAllowed;
+        };
+        
+        $scope.isRentionAllowed = function() {
+           var isSnapshotService = ['CreateBlockSnapshot', 'CreateFileSnapshot', 'CreateFullCopy', 
+                 'CreateSnapshotOfApplication', 'CreateCloneOfApplication'].indexOf($scope.service.baseService) > -1;
+           return $scope.scheduler.recurrence != 1 && isSnapshotService;	
+        }
+        
+        $scope.enableScheduler = function() {
+           // intialize data time picker if necessary
+           setTimeout(function() {
+              $('div.bfh-datepicker').each(function () {
+                 var $datepicker = $(this)
+                 $datepicker.bfhdatepicker($datepicker.data())
+               })}, 0);
+        };
         $scope.disableSubmitButton = function() {
                 // find all the required fields, and all the password verify fields
         	var passwordVerifyFields = [];
@@ -1467,6 +1507,34 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
             return !isNaN(value) ? Number(value) : 0;
         }
         return 0;
+    }
+});
+
+angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
+    $scope.pad = function(number) {
+       return (number < 10 ? '0' : '') + number
+    }
+    
+    $scope.scheduler.currentTimezoneOffsetInMins = new Date().getTimezoneOffset();
+    dateStr = $scope.scheduler.startDate + "T" + $scope.scheduler.startTime + ":00Z"
+    startDateTime = new Date(dateStr);
+    $scope.scheduler.startDate = startDateTime.getFullYear() + "-" + $scope.pad(startDateTime.getMonth() + 1) + "-" + $scope.pad(startDateTime.getDate());
+    $scope.scheduler.startTime = $scope.pad(startDateTime.getHours()) + ":" + $scope.pad(startDateTime.getMinutes());
+    
+    $scope.isSchedulerEnabled = function() {
+       return true;
+    };
+    
+    $scope.isRecurring = function() {
+       return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
+    };
+    
+    $scope.isRecurringAllowed = function() {
+       return $scope.scheduler.recurringAllowed;
+    };
+    
+    $scope.isRentionAllowed = function() {
+        return $scope.isRecurring() && $scope.scheduler.maxNumOfCopies > 0;	
     }
 });
 

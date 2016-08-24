@@ -1032,7 +1032,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         List<String> newSteps = new ArrayList<>();
         if (!initiatorURIs.isEmpty()) {
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-            if (_restHelper.isClusteredHost(storage, initiators)) {
+            if (_restHelper.isClusteredHost(storage, initiators, exportGroup.getType())) {
                 _log.info(String.format("New export masks for %s", exportGroup.getLabel()));
                 GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep, storage,
                         exportGroup, initiatorURIs, volumeMap, token);

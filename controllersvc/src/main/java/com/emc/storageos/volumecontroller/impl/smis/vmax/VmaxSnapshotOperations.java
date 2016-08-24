@@ -304,8 +304,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("createSingleVolumeSnapshot operation START");
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
 
-            validator.createSnapshot(storage, snapshotObj, volume).validate();
-
             // Need to terminate an restore sessions, so that we can
             // restore from the same snapshot multiple times
             terminateAnyRestoreSessionsForVolume(storage, volume, taskCompleter);

@@ -1146,7 +1146,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                     Collections.EMPTY_LIST;
                             userAddedVolumes.removeAll(volumesToRemove);
                             boolean removingAllUserAddedVolumes = userAddedVolumes.isEmpty();
-                            boolean canRemoveVolumes = (!volumesToRemove.isEmpty() && !removingLastVolumeFromMask);
+                            boolean canRemoveVolumes = !volumesToRemove.isEmpty();
 
                             _log.info(String
                                     .format("ExportMask %s(%s) - canRemoveInitiators=%s canRemoveVolumes=%s "

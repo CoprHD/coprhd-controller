@@ -230,7 +230,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 // All the volumes will be in the same consistency group
                 final URI consistencyGroupId = firstVolume.getConsistencyGroup();
                 if (consistencyGroupId != null) {
-                    addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs), true);
+                    addVolumesToCG(storageSystem, consistencyGroupId, new ArrayList<URI>(volumeURIs));
                 }
             }
 
@@ -835,7 +835,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
         try {
-            addVolumesToCG(storage, consistencyGroupId, blockObjects, false);
+            addVolumesToCG(storage, consistencyGroupId, blockObjects);
             List<BlockObject> objectsToSave = new ArrayList<BlockObject>();
             for (URI blockObjectURI : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient,
@@ -1040,8 +1040,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private void addVolumesToCG(StorageSystem storageSystem,
-            URI consistencyGroupId, List<URI> volumeURIs, boolean isVolumeCreation) throws Exception {
+    private void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
 
         if (null != consistencyGroup) {

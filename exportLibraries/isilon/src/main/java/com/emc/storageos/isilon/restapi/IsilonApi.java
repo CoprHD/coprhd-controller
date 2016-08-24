@@ -1092,7 +1092,7 @@ public class IsilonApi {
             boolean bIncludeSnapshots, Long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
-        if (thresholds != null && thresholds.length > 0) {
+        if (thresholds != null && thresholds.length > 0 && (thresholds[0] > 0 || thresholds[1] > 0 || thresholds[2] > 0)) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", fsSize, bThresholdsIncludeOverhead, bIncludeSnapshots,
                     thresholds);
             if (thresholds[0] > 0) {

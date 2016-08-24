@@ -377,6 +377,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             } else {
                 _log.info("Masking View {} doesn't have any SGs associated, probably removed manually from Array",
                         maskingViewName);
+                taskCompleter.ready(_dbClient);
+                return;
             }
 
             /*

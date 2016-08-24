@@ -129,27 +129,26 @@ public class CreateBlockSnapshotService extends ViPRService {
             return;
         }
         RetainedReplica replica = findObsoleteReplica(volumeOrCgId);
-        if (replica == null) {
-            return;
-        }
-    	for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
-    	    info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
-
-        	if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-        	    if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
-        	        execute(new DeactivateBlockSnapshotSession(uri(obsoleteSnapshotId)));
-        	    } else {
-        	        execute(new DeactivateBlockSnapshot(uri(obsoleteSnapshotId), VolumeDeleteTypeEnum.FULL));
-        	    }
-        	} else {
-        	    if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
-        	        ConsistencyUtils.removeSnapshotSession(uri(volumeOrCgId), uri(obsoleteSnapshotId));
-        	    } else {
-        	        ConsistencyUtils.removeSnapshot(uri(volumeOrCgId), uri(obsoleteSnapshotId));
-        	    }
-        	}
-    	}
-    	getModelClient().delete(replica);
+        while (replica != null) {
+            for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
+                info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
+                
+                if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+                    if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+                        execute(new DeactivateBlockSnapshotSession(uri(obsoleteSnapshotId)));
+                    } else {
+                        execute(new DeactivateBlockSnapshot(uri(obsoleteSnapshotId), VolumeDeleteTypeEnum.FULL));
+                    }
+                } else {
+                    if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+                        ConsistencyUtils.removeSnapshotSession(uri(volumeOrCgId), uri(obsoleteSnapshotId));
+                    } else {
+                        ConsistencyUtils.removeSnapshot(uri(volumeOrCgId), uri(obsoleteSnapshotId));
+                    }
+                }
+            }
+            getModelClient().delete(replica);
+            replica = findObsoleteReplica(volumeOrCgId);
+        } 
     }
-    
 }

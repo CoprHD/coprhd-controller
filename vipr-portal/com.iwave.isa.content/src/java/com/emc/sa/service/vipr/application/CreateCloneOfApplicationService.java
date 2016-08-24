@@ -58,15 +58,15 @@ public class CreateCloneOfApplicationService extends ViPRService {
             return;
         }
         RetainedReplica replica = findObsoleteReplica(applicationId.toString());
-        if (replica == null) {
-            return;
+        while (replica != null) {
+            List<URI> cloneIds = new ArrayList<URI>();
+            for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
+                info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
+                cloneIds.add(uri(obsoleteCloneId));
+            }
+            execute(new DeleteSnapshotForApplication(applicationId, cloneIds));
+            getModelClient().delete(replica);
+            replica = findObsoleteReplica(applicationId.toString());
         }
-        List<URI> cloneIds = new ArrayList<URI>();
-        for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
-            info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
-            cloneIds.add(uri(obsoleteCloneId));
-        }
-        execute(new DeleteSnapshotForApplication(applicationId, cloneIds));
-        getModelClient().delete(replica);
     }
 }

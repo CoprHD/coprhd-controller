@@ -73,18 +73,18 @@ public class CreateFullCopyService extends ViPRService {
             return;
         }
         RetainedReplica replica = findObsoleteReplica(volumeOrCgId);
-        if (replica == null) {
-            return;
-        }
-        for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
-            info("Delete full copy %s since it exceeds max number of copies allowed", obsoleteCopyId);
-
-            if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-                BlockStorageUtils.removeFullCopy(uri(obsoleteCopyId), VolumeDeleteTypeEnum.FULL);
-            } else {
-                ConsistencyUtils.removeFullCopy(uri(volumeOrCgId), uri(obsoleteCopyId));
+        while (replica != null) {
+            for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
+                info("Delete full copy %s since it exceeds max number of copies allowed", obsoleteCopyId);
+    
+                if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+                    BlockStorageUtils.removeFullCopy(uri(obsoleteCopyId), VolumeDeleteTypeEnum.FULL);
+                } else {
+                    ConsistencyUtils.removeFullCopy(uri(volumeOrCgId), uri(obsoleteCopyId));
+                }
             }
+            getModelClient().delete(replica);
+            replica = findObsoleteReplica(volumeOrCgId);
         }
-        getModelClient().delete(replica);
     }
 }

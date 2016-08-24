@@ -270,7 +270,6 @@ public abstract class ViPRService extends AbstractExecutionService {
             return null;
         }
         
-        ModelClient modelClient = getModelClient();
         List<NamedElement> replicaIdList = modelClient.findBy(RetainedReplica.class, "scheduledEventId", event.getId());
         List<RetainedReplica> replicas = new ArrayList<RetainedReplica>();
         for (NamedElement uri : replicaIdList) {

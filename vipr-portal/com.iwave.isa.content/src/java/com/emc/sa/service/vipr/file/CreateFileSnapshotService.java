@@ -62,13 +62,13 @@ public class CreateFileSnapshotService extends ViPRService {
             return;
         }
         RetainedReplica replica = findObsoleteReplica(fileSystemId);
-        if (replica == null) {
-            return;
+        while (replica != null) {
+            for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
+                info("Delete snapshot %s since it exceeds max number of copies allowed", obsoleteCopyId);
+                FileStorageUtils.deleteFileSnapshot(uri(obsoleteCopyId));
+            }
+            getModelClient().delete(replica);
+            replica = findObsoleteReplica(fileSystemId);
         }
-        for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
-            info("Delete snapshot %s since it exceeds max number of copies allowed", obsoleteCopyId);
-            FileStorageUtils.deleteFileSnapshot(uri(obsoleteCopyId));
-        }
-        getModelClient().delete(replica);
     }
 }

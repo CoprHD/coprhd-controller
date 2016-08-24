@@ -495,7 +495,16 @@ public class DbClientContext {
     }
 
     /**
-     * Waits for schema change to propagate through cluster
+     * Return if there's only one version which is specified target version across the cluster
+     * Don't check if all nodes are of this version
+     */
+    public void waitForSchemaAgreement(String targetSchemaVersion) {
+        waitForSchemaAgreement(targetSchemaVersion, -1);
+    }
+
+    /**
+     * Waits for schema change to propagate through all nodes of cluster
+     * It doesn't check if all nodes are of this version when nodeCount == -1
      *
      * @param targetSchemaVersion version we are waiting for
      * @throws InterruptedException
@@ -513,12 +522,16 @@ public class DbClientContext {
                             versions, targetSchemaVersion);
                     return;
                 }
-                List<String> hosts = null;
-                for (Entry<String, List<String>> entry : versions.entrySet()) {
-                    hosts = entry.getValue();
-                }
-                // return only when all nodes's schemas converged to target version
-                if (hosts != null && hosts.size() == nodeCount) {
+                if (nodeCount != -1) { // need to check if all nodes converged to target version
+                    List<String> hosts = null;
+                    for (Entry<String, List<String>> entry : versions.entrySet()) {
+                        hosts = entry.getValue();
+                    }
+                    if (hosts != null && hosts.size() == nodeCount) {
+                        log.info("schema versions converged to target version {}", targetSchemaVersion);
+                        return;
+                    }
+                } else {
                     log.info("schema versions converged to target version {}", targetSchemaVersion);
                     return;
                 }

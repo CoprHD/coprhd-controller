@@ -1366,6 +1366,21 @@ public class BlockStorageUtils {
     }
     
     /**
+     * returns true if the passed in volume is a RP target volume
+     * 
+     * @param vol
+     * @return
+     */
+    public static boolean isRPTargetVolume(VolumeRestRep volume) {
+        if (isRPVolume(volume)
+                && volume.getProtection().getRpRep().getPersonality() != null
+                && volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("TARGET")) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
      * gets the vplex primary/source backing volume for a vplex virtual volume
      * 
      * @param client
@@ -1404,7 +1419,7 @@ public class BlockStorageUtils {
                 volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
             }
             if (isTarget) {
-                if (volume.getVirtualArray().getId().equals(virtualArray)) {
+                if (isRPTargetVolume(volume) && volume.getVirtualArray().getId().equals(virtualArray)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {

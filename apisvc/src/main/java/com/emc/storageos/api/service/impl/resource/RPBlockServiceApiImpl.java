@@ -2200,37 +2200,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         _log.debug("Verify if RP volume {} can be expanded", volume.getId());
 
         boolean vplex = RPHelper.isVPlexVolume(volume);
-
+        
+        //validate the source
         if (vplex) {
-            // Look at all source and target volumes and make sure they can all be expanded
-            vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeID));
-                    if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
-                        vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, URI.create(volumeID)),
-                                newSize);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
+        	vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
         } else {
-            // Look at all source and target volumes and make sure they can all be expanded
-            super.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    try {
-                        super.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, new URI(volumeID)), newSize);
-                    } catch (URISyntaxException e) {
-                        throw APIException.badRequests.invalidURI(volumeID, e);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
+           super.verifyVolumeExpansionRequest(volume, newSize);
         }
-
+        
+        //validate the targets
+        if (volume.getRpTargets() != null) {
+        	for (String volumeId : volume.getRpTargets()) {        	   
+        		Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
+	        		
+        		if (RPHelper.isVPlexVolume(targetVolume)) {
+        			if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
+        				vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
+	        		} 
+        		} else {
+                    super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
+        		}
+    		}        	
+        } else {
+        	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());        	
+        }
+        
         // Validate the source volume size is not greater than the target volume size
         RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));
     }

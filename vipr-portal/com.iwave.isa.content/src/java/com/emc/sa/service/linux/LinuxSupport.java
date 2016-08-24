@@ -391,6 +391,17 @@ public class LinuxSupport {
         execute(new CheckForFileSystemCompatibility(fsType));
     }
 
+    /**
+     * Method to setup rollbacks for mounting a Linux volume
+     * @param volume to be mounted
+     * @param mountPoint of the original mount
+     */
+    public void addMountExpandRollback(BlockObjectRestRep volume, MountPoint mountPoint) {
+        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), mountPoint.getPath()));
+        addRollback(new MountPath(mountPoint.getPath()));
+        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), mountPoint.getFsType(), mountPoint.getOptions()));
+    }
+
     public void resizeVolume(BlockObjectRestRep volume, Double newSizeInGB) {
         BlockStorageUtils.expandVolume(volume.getId(), newSizeInGB);
     }

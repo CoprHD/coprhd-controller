@@ -2,18 +2,24 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.sa.model.util;
+package com.emc.storageos.db.client.util;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowLengthType;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowType;
 
 public class ExecutionWindowHelper {
+    private static final Logger log = LoggerFactory.getLogger(ExecutionWindowHelper.class);
     private ExecutionWindow window;
+
+    static final int INFINITE_WINDOW_ORDER_EXECUTION_TIMEOUT = 1; // 1 hour
 
     public ExecutionWindowHelper(ExecutionWindow window) {
         this.window = window;
@@ -32,6 +38,24 @@ public class ExecutionWindowHelper {
         Calendar endTime = getWindowEndTime(startTime);
         boolean duringWindow = (fromDate.compareTo(startTime) >= 0) && (fromDate.compareTo(endTime) < 0);
         return duringWindow;
+    }
+
+    /**
+     * Check if order's scheduled time + schedule window already expire.
+     * @param fromDate
+     * @return
+     */
+    public boolean isExpired(Calendar fromDate) {
+        Calendar endTime = (Calendar) fromDate.clone();
+        if (window == null) {
+            endTime.add(Calendar.HOUR_OF_DAY, INFINITE_WINDOW_ORDER_EXECUTION_TIMEOUT);
+        } else {
+            endTime.add(getWindowLengthCalendarField(), window.getExecutionWindowLength());
+        }
+
+        Calendar currTime = Calendar.getInstance();
+        log.debug("currTime:{}, endTime: {}", currTime, endTime);
+        return currTime.compareTo(endTime) > 0;
     }
 
     public Calendar calculateCurrentOrNext() {
@@ -133,6 +157,66 @@ public class ExecutionWindowHelper {
         Calendar endTime = (Calendar) startTime.clone();
         endTime.add(getWindowLengthCalendarField(), window.getExecutionWindowLength());
         return endTime;
+    }
+
+    /**
+     * 48 hours time representation
+     * @return
+     */
+    private int getHourMin(int hour, int min) {
+        return Integer.valueOf(String.format("%02d%02d", hour, min));
+    }
+
+     private int getWindowStartHourMin() {
+         int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+         int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+         return getHourMin(hour, min);
+     }
+
+    private int getWindowEndHourMin() {
+        int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+        int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+
+        switch (ExecutionWindowLengthType.valueOf(window.getExecutionWindowLengthType())) {
+            case DAYS:
+                // maximum execution window is 24hours
+                hour += 24;
+                break;
+            case HOURS:
+                hour += window.getExecutionWindowLength();
+                break;
+            case MINUTES:
+                hour += window.getExecutionWindowLength()/60;
+                min += window.getExecutionWindowLength()%60;
+                if (min>=60) {
+                    hour ++;
+                    min -= 60;
+                }
+                break;
+        }
+
+        return getHourMin(hour, min);
+    }
+
+    public boolean inHourMinWindow(int hour, int min) {
+        int targetTime = getHourMin(hour, min);
+        log.debug("target HourMin:{}", targetTime);
+
+        int startTime, endTime;
+        startTime = getWindowStartHourMin();
+        log.debug("window start HourMin:{}", startTime);
+        endTime = getWindowEndHourMin();
+        log.debug("window end HourMin:{}", endTime);
+
+        if (targetTime >= startTime && targetTime <= endTime) {
+            return true;
+        }
+        // might in the 2nd day.
+        targetTime += 2400;
+        if (targetTime >= startTime && targetTime <= endTime) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -276,4 +360,59 @@ public class ExecutionWindowHelper {
     private int getDayOfMonth() {
         return window.getDayOfMonth();
     }
+
+    /**
+     * Get expected schedule time based on execution window
+     * @return
+     */
+    public Calendar getScheduledTime() {
+        Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        log.debug("currTime: {}", currTime.toString());
+        if (isActive(currTime)) {
+            log.debug("currTime {} is in active window, set it as scheduled time.", currTime.toString());
+            return currTime;
+        }
+
+        int year = currTime.get(Calendar.YEAR);
+        int month = currTime.get(Calendar.MONTH);
+        int day = currTime.get(Calendar.DAY_OF_MONTH);
+        int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+        int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+
+        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        scheduledTime.set(year, month, day, hour, min, 0);
+
+        if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
+            scheduledTime.set(Calendar.DAY_OF_MONTH, window.getDayOfMonth());
+        } else if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
+            int daysDiff = (window.getDayOfWeek()%7 + 1) - scheduledTime.get(Calendar.DAY_OF_WEEK); // java dayOfWeek starts from Sun.
+            scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
+        }
+
+        while (scheduledTime.before(currTime)) {
+            scheduledTime = getNextScheduledTime(scheduledTime, window);
+            log.debug("scheduledTime in loop: {}", scheduledTime.toString());
+        }
+
+        log.debug("scheduledTime: {}", scheduledTime.toString());
+        return scheduledTime;
+    }
+
+    /**
+     * Get next desired schedule time based on the previous one and execution window
+     * @param scheduledTime     previous schedule time
+     * @param window             execution window
+     * @return
+     */
+    private Calendar getNextScheduledTime(Calendar scheduledTime, ExecutionWindow window) {
+        if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
+            scheduledTime.add(Calendar.MONTH, 1);
+        } else if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
+            scheduledTime.add(Calendar.WEEK_OF_MONTH, 1);
+        } else if (window.getExecutionWindowType().equals(ExecutionWindowType.DAILY.name())) {
+            scheduledTime.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        return scheduledTime;
+    }
+
 }

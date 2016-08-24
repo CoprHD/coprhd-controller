@@ -87,6 +87,7 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMaskingViewJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisMaskingViewAddVolumeJob;
@@ -376,6 +377,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             } else {
                 _log.info("Masking View {} doesn't have any SGs associated, probably removed manually from Array",
                         maskingViewName);
+                taskCompleter.ready(_dbClient);
+                return;
             }
 
             /*
@@ -836,6 +839,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 // Even though policy and limits info are already in volumURIHLU, let's still extract to a holder for
                 // easy access
+                // Is it safe to not touch the below variable as it seems to be used by non VMAX3 cases only?
                 StorageGroupPolicyLimitsParam volumePolicyLimitsParam = new StorageGroupPolicyLimitsParam(Constants.NONE);
                 if (null != volumesByStorageGroupEntry.getValue()) {
                     volumeURIHLUArray = volumesByStorageGroupEntry.getValue().toArray(new VolumeURIHLU[0]);
@@ -1112,7 +1116,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
-            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
+            List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
+            validator.removeVolumes(storage, exportMaskURI, initiatorList, blockObjects).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
@@ -1538,7 +1543,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         taskCompleter.getOpId());
 
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                validator.removeInitiators(storage, exportMask, volumeURIList).validate();
+                validator.removeInitiators(storage, exportMask, volumeURIList, initiatorList).validate();
 
                 if (context != null) {
                     exportMaskRollback(storage, context, taskCompleter);
@@ -1855,19 +1860,25 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         masksNotContainingAllInitiators.add(exportMaskURI);
                     }
                 }
-                // Adjust the matchingMap if there are any masksNotContainingAllInitiators
-                if (!masksNotContainingAllInitiators.isEmpty()) {
-                    _log.info("ExportMasks not containing all initiators requested: {}", masksNotContainingAllInitiators);
-                    // Remove references to the ExportMask URIs from the matchingMasks map entries
-                    Iterator<Entry<String, Set<URI>>> matchingMapEntryIterator = matchingMasks.entrySet().iterator();
-                    while (matchingMapEntryIterator.hasNext()) {
-                        Entry<String, Set<URI>> matchingMapEntry = matchingMapEntryIterator.next();
-                        Set<URI> maskURIs = matchingMapEntry.getValue();
-                        maskURIs.removeAll(masksNotContainingAllInitiators);
-                        // If all the ExportMask keys are cleared out, then we need to remove the whole entry
-                        if (maskURIs.isEmpty()) {
-                            matchingMapEntryIterator.remove();
-                        }
+            }
+
+            // Skip the masking views whose IGs can be reused to create a new Masking view instead.
+            Set<URI> masksWithReusableIGs = getMasksWhoseIGsCanBeReused(storage, maskMap, initiatorNames);
+
+            // Adjust the matchingMap if there are any masksNotContainingAllInitiators / singleIGContainedMasks
+            if (!masksNotContainingAllInitiators.isEmpty() || !masksWithReusableIGs.isEmpty()) {
+                _log.info("ExportMasks not containing all initiators requested: {}", masksNotContainingAllInitiators);
+                _log.info("ExportMasks whose IGs can be reused to create new masking view: {}", masksWithReusableIGs);
+                // Remove references to the ExportMask URIs from the matchingMasks map entries
+                Iterator<Entry<String, Set<URI>>> matchingMapEntryIterator = matchingMasks.entrySet().iterator();
+                while (matchingMapEntryIterator.hasNext()) {
+                    Entry<String, Set<URI>> matchingMapEntry = matchingMapEntryIterator.next();
+                    Set<URI> maskURIs = matchingMapEntry.getValue();
+                    maskURIs.removeAll(masksNotContainingAllInitiators);
+                    maskURIs.removeAll(masksWithReusableIGs);
+                    // If all the ExportMask keys are cleared out, then we need to remove the whole entry
+                    if (maskURIs.isEmpty()) {
+                        matchingMapEntryIterator.remove();
                     }
                 }
             }
@@ -1876,14 +1887,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
             for (URI exportMaskURI : maskMap.keySet()) {
                 ExportMask exportMask = maskMap.get(exportMaskURI);
                 String qualifier = (masksNotContainingAllInitiators.contains(exportMaskURI))
-                        ? ", but not containing all initiators we're looking for" : SmisConstants.EMPTY_STRING;
+                        ? ", but not containing all initiators we're looking for"
+                        : (masksWithReusableIGs.contains(exportMaskURI) ? ", but it's IGs can be reused to create new masking view"
+                                : SmisConstants.EMPTY_STRING);
                 builder.append(String.format("\nXM:%s is matching%s: ", exportMask.getMaskName(), qualifier)).append('\n')
                         .append(exportMask.toString());
             }
             /**
              * Needs to clean up stale EM from ViPR DB.
              */
-            cleanStaleExportMasks(maskNamesFromArray, initiatorNames);
+            cleanStaleExportMasks(storage, maskNamesFromArray, initiatorNames);
             _log.info(builder.toString());
         } catch (Exception e) {
             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
@@ -1901,15 +1914,75 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     /**
-     * Method to clean ExportMask stale instances from ViPR db if any stale EM available
-     * 
+     * Gets the masks whose IGs can be reused i.e masks that can be skipped from being reused.
+     */
+    private Set<URI> getMasksWhoseIGsCanBeReused(StorageSystem storage, Map<URI, ExportMask> maskMap,
+            List<String> initiatorNames) throws Exception {
+        /**
+         * When a masking view can be skipped and a new masking view can be created instead?
+         *
+         * If Mask has other initiators in addition with requested initiators:
+         * And if it has cascaded IG with child IGs
+         * wherein each child IG has some or all of requested initiators, without additional initiators
+         * or completely different set of initiators.
+         */
+        Set<URI> masksWithReusableIGs = new HashSet<>();
+        _log.info("Initiators in Request : {} ", Joiner.on(", ").join(initiatorNames));
+        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        for (URI exportMaskURI : maskMap.keySet()) {
+            ExportMask mask = maskMap.get(exportMaskURI);
+            String maskName = mask.getMaskName();
+            _log.info("Checking if mask {} can be skipped from getting reused", maskName);
+            // Find all the initiators associated with the MaskingView
+            CIMInstance instance = _helper.getSymmLunMaskingView(storage, mask);
+            List<String> maskInitiatorNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+            maskInitiatorNames.removeAll(initiatorNames);
+            if (!maskInitiatorNames.isEmpty()) {
+                CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskName);
+                CIMObjectPath parentIG = _helper.getInitiatorGroupForGivenMaskingView(maskingViewPath, storage);
+                if (_helper.isCascadedIG(storage, parentIG)) {
+                    // get all the child IGs
+                    List<CIMObjectPath> childInitiatorGroupPaths = new ArrayList<CIMObjectPath>();
+                    getInitiatorGroupsFromMvOrIg(storage, parentIG, childInitiatorGroupPaths);
+                    boolean allIGsSatisfy = false;
+                    for (CIMObjectPath igPath : childInitiatorGroupPaths) {
+                        List<String> initiatorNamesFromIG = _helper.getInitiatorNamesForInitiatorGroup(storage, igPath);
+                        _log.info("Initiators in IG {}: {}", igPath.toString(), Joiner.on(", ").join(initiatorNamesFromIG));
+                        int initialSize = initiatorNamesFromIG.size();
+                        initiatorNamesFromIG.removeAll(initiatorNames);
+                        if (initiatorNamesFromIG.isEmpty() || (initialSize == initiatorNamesFromIG.size())) {
+                            // If IG has some or all of requested initiators, it should not have other initiators
+                            // or completely different set of initiators
+                            allIGsSatisfy = true;
+                        } else {
+                            allIGsSatisfy = false;
+                            break; // stop processing other child groups
+                        }
+                    }
+                    if (allIGsSatisfy) {
+                        // IGs which are having requested initiators, doesn't contain other initiators.
+                        // (all required initiators are present in single IG or split into multiple child IGs)
+                        // Creating a new masking view is the right thing to do, as we can reuse IGs.
+                        _log.info("Skipping mask {} from getting reused", maskName);
+                        masksWithReusableIGs.add(exportMaskURI);
+                    }
+                } // else - Single Non-Cascaded IG has other initiators, MV can be reused
+            }
+            // else - MV with same set (or) few initiators can be reused
+        }
+        return masksWithReusableIGs;
+    }
+
+    /**
+     * Method to clean ExportMask stale instances from ViPR db if any stale EM available.
+     *
+     * @param storage the storage
      * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
      * @param initiatorNames initiator names
      */
-    private void cleanStaleExportMasks(Set<String> maskNamesFromArray, List<String> initiatorNames) {
+    private void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames) {
         
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, _dbClient);
-        Set<ExportMask> exportMasks = new HashSet<>();
         Set<ExportMask> staleExportMasks = new HashSet<>();
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
@@ -1920,8 +1993,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             for (URI emUri : emUris) {
                 _log.debug("Export Mask URI :{}", emUri);
                 exportMask = _dbClient.queryObject(ExportMask.class, emUri);
-                if (exportMask != null && !exportMask.getInactive()) {
-                    exportMasks.add(exportMask);
+                if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
                     if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
                         _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
                         List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), _dbClient);
@@ -1942,7 +2014,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
 
         _log.info("Export Mask cleanup activity done");
-
     }
 
     @Override
@@ -2134,15 +2205,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
         // operation on these volumes would fail otherwise.
+        boolean setOnce = false;
         boolean forceFlag = false;
+        boolean disableCompression = false;
         for (VolumeURIHLU volURIHlu : volumeURIHLUs) {
             volumeNames[index++] = _helper.getBlockObjectNativeId(volURIHlu.getVolumeURI());
             if (null == policyName && storage.checkIfVmax3()) {
                 policyName = _helper.getVMAX3FastSettingForVolume(volURIHlu.getVolumeURI(), volURIHlu.getAutoTierPolicyName());
             }
             // The force flag only needs to be set once
-            if (!forceFlag) {
+            if (!setOnce) {
+                setOnce = true;
                 forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volURIHlu.getVolumeURI());
+                disableCompression = _helper.disableVMAX3Compression(volURIHlu.getVolumeURI(), storage);
             }
         }
         CIMArgument[] inArgs = null;
@@ -2155,7 +2230,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
             inArgs = _helper.getCreateVolumeGroupInputArguments(storage, truncatedGroupName, tokens[0], tokens[2], tokens[1],
-                    addVolumes ? volumeNames : null);
+                    addVolumes ? volumeNames : null, disableCompression);
         } else {
             inArgs = _helper.getCreateVolumeGroupInputArguments(storage, truncatedGroupName, addVolumes ? volumeNames : null);
         }
@@ -4307,9 +4382,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
         if (isVmax3) {
             newPolicyName = _helper.getVMAX3FastSettingForVolume(volumeURIs.get(0), newPolicyName);
         }
-        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = new StorageGroupPolicyLimitsParam(newPolicyName,
-                newVirtualPool.getHostIOLimitBandwidth(),
-                newVirtualPool.getHostIOLimitIOPs(), storage);
+        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits =
+                new StorageGroupPolicyLimitsParam(newPolicyName,
+                        newVirtualPool.getHostIOLimitBandwidth(),
+                newVirtualPool.getHostIOLimitIOPs(),
+                newVirtualPool.getCompressionEnabled(), storage);
 
         CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
                 childGroupName,
@@ -4492,6 +4569,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // we need to set policyUpdated = true else rollback kicks in
                 policyUpdated = true;
 
+                // Update the compression attributes if it needs to be
+                boolean newCompressionSetting = newVirtualPoolPolicyLimits.getCompression();
+                if (currentStorageGroupPolicyLimits.getCompression() != newCompressionSetting) {
+                    // If we are here, we are pretty up dealing with a VMAX3 and SMI-S 8.3 version or greater provider.
+                    CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
+                            _helper.getV3CompressionProperties(newCompressionSetting));
+                    _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                    _log.info("Modified Storage Group {} Compression setting to {}",
+                            childGroupName, newCompressionSetting);
+                } else {
+                    _log.info("Current and new compression values are same '{}'." +
+                            " No need to update it on Storage Group.", newCompressionSetting);
+                }
+
                 // update host io limits if need be
                 if (!HostIOLimitsParam.isEqualsLimit(currentStorageGroupPolicyLimits.getHostIOLimitBandwidth(),
                         newVirtualPoolPolicyLimits.getHostIOLimitBandwidth())) {
@@ -4532,8 +4623,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     List<String> newChildGroups = childGroupsByFast.get(newVirtualPoolPolicyLimits);
                     CIMObjectPath newChildGroupPath = null;
                     boolean newGroup = false;
+                    String newChildGroupName = null;
                     if (newChildGroups != null && !newChildGroups.isEmpty()) {
-                        String newChildGroupName = newChildGroups.iterator().next();
+                        newChildGroupName = newChildGroups.iterator().next();
                         newChildGroupPath = _cimPath.getMaskingGroupPath(storage, newChildGroupName,
                                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                     } else {
@@ -4552,12 +4644,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         }
                         addGroupsToCascadedVolumeGroup(storage, parentGroupName, newChildGroupPath, null, null, forceFlag);
                     }
+                    
+                    // We need a no-op if old child group is same as new child group
+                    //COP 24436: ViPR was upgraded post SMI-S upgrade to AFA due to which ViPR was not aware that 
+                    //the SG characteristics were matching the current Virtual Pool characteristics relating to compression.
+                    //We could enter the same situation if any of the SG characteristics were modified without ViPR knowledge.
+                    if (childGroupName.equalsIgnoreCase(newChildGroupName)) {
+                        _log.info("Current Storage Group {} has the required charcteristics" +
+                                "No need to invoke SMI-S moveMembers method. Performing NO-OP", newChildGroupName);
+                    }
+                    else {
+                        SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
+                                SmisConstants.MOVE_MEMBERS);
+                        _helper.moveVolumesFromOneStorageGroupToAnother(storage,
+                                childGroupPath, newChildGroupPath, volumeURIs,
+                                moveVolumesToSGJob);
+                    }
 
-                    SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
-                            SmisConstants.MOVE_MEMBERS);
-                    _helper.moveVolumesFromOneStorageGroupToAnother(storage,
-                            childGroupPath, newChildGroupPath, volumeURIs,
-                            moveVolumesToSGJob);
 
                     if (newGroup) {
                         // update host IO limits if need be
@@ -4568,6 +4671,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         if (newVirtualPoolPolicyLimits.isHostIOLimitIOPsSet()) {
                             _helper.updateHostIOLimitIOPs(client, newChildGroupPath, newVirtualPoolPolicyLimits.getHostIOLimitIOPs());
+                        }
+
+                        // Honor the compression settings if needed..
+                        if (!newVirtualPoolPolicyLimits.getCompression()) {
+                            // If the user opted out of compression, and the created SG has compression enabled by default,
+                            // we need to opt out..
+                            CIMInstance newChildGroupInstance = _helper.getInstance(storage, newChildGroupPath, false,
+                                    false, SmisConstants.PS_EMC_COMPRESSION);
+                            if (SmisUtils.getEMCCompressionForStorageGroup(newChildGroupInstance)) {
+                                CIMInstance toUpdate = new CIMInstance(newChildGroupInstance.getObjectPath(),
+                                        _helper.getV3CompressionProperties(false));
+                                _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                            }
                         }
 
                         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);

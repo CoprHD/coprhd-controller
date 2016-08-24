@@ -4,6 +4,7 @@
  */
 package models.datatable;
 
+import java.net.URI;
 import java.util.List;
 
 import util.ExecutionWindowUtils;
@@ -39,7 +40,7 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
     }
 
     public List<ScheduledOrderInfo> fetchData(DataTableParams params) {
-        List<OrderRestRep> orders = OrderUtils.getScheduledOrders();
+        List<OrderRestRep> orders = OrderUtils.getScheduledOrders(URI.create(Models.currentAdminTenant()));
         if (maxOrders > 0) {
             while (orders.size() > maxOrders) {
                 orders.remove(orders.size() - 1);

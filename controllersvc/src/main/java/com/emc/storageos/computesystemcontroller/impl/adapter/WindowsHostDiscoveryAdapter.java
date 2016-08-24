@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
@@ -104,6 +105,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 // Find the cluster by address
                 URI cluster = findClusterByAddresses(host, host.getTenant(), HostType.Windows, clusterIpAddresses);
                 if (cluster != null) {
+                    updateClusterName(cluster, clusterName);
                     return cluster;
                 }
 
@@ -114,6 +116,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                     if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))
                             || (!NullColumnValueGetter.isNullURI(host.getCluster())
                                     && host.getCluster().toString().equals(cluster.toString()))) {
+                        updateClusterName(cluster, clusterName);
                         return cluster;
                     }
                     // Log a warning
@@ -131,6 +134,14 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             return NullColumnValueGetter.getNullURI();
         } catch (WinRMException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void updateClusterName(URI clusterId, String name) {
+        Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
+        if (cluster != null) {
+            cluster.setLabel(name);
+            dbClient.updateObject(cluster);
         }
     }
 

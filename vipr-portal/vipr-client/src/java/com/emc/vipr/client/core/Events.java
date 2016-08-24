@@ -16,9 +16,11 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.event.EventBulkRep;
+import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -61,6 +63,10 @@ public class Events extends AbstractCoreBulkResources<EventRestRep>implements Te
 
     public void decline(URI id) {
         client.post(String.class, this.getIdUrl() + "/decline", id);
+    }
+
+    public EventDetailsRestRep getDetails(URI id) {
+        return client.get(EventDetailsRestRep.class, this.getIdUrl() + "/details", id);
     }
 
     /**
@@ -116,5 +122,10 @@ public class Events extends AbstractCoreBulkResources<EventRestRep>implements Te
     public List<EventRestRep> getByTenant(URI tenantId, ResourceFilter<EventRestRep> filter) {
         List<NamedRelatedResourceRep> refs = listByTenant(tenantId);
         return getByRefs(refs, filter);
+    }
+
+    public List<EventRestRep> findByResource(URI resourceId) {
+        List<SearchResultResourceRep> results = performSearchBy("resource", resourceId);
+        return getByRefs(results);
     }
 }

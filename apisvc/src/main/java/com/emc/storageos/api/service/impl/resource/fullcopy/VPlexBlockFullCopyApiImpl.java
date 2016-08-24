@@ -204,7 +204,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         if (!fcSourceObjList.isEmpty()) {
 
-            URI fcSourceObjURI = fcSourceObjList.get(0).getId();
+            BlockObject fcsourceObj = fcSourceObjList.get(0);
+            URI fcSourceObjURI = fcsourceObj.getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class) &&
                     !BlockServiceUtils.isSnapshotFullCopySupported(fcSourceObjURI, _dbClient)) {
                 // Snapshot full copy is supported only for OpenStack, VNXBlock, VMAX and IBMXIV
@@ -212,7 +213,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             }
 
             // Group clone for IBM XIV storage system type is not supported
-            if (VPlexUtil.isIBMXIVBackend(fcSourceObjList.get(0), _dbClient)) {
+            if (null != fcsourceObj.getConsistencyGroup()
+                    && VPlexUtil.isIBMXIVBackend(fcsourceObj, _dbClient)) {
                 throw APIException.methodNotAllowed.notSupportedWithReason(
                         "Consistency Group Full Copy is not supported on backend IBM XIV storage systems");
             }

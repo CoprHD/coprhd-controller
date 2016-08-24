@@ -12,7 +12,6 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.iwave.ext.command.CommandException;
 
 /**
@@ -34,36 +33,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     public LinuxHostMountAdapter() {
 
-    }
-
-    @Override
-    public void doMount(HostDeviceInputOutput args) throws InternalException {
-        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, args.getHostId()));
-        FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
-        FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
-        String fsType = args.getFsType() == null ? "auto" : args.getFsType();
-        String subDirectory = args.getSubDirectory() == null ? "!nodir" : args.getSubDirectory();
-        // verify mount point
-        mountUtils.verifyMountPoint(args.getMountPath());
-        // Create directory
-        mountUtils.createDirectory(args.getMountPath());
-        // Add to the /etc/fstab to allow the os to mount on restart
-        mountUtils.addToFSTab(args.getMountPath(), export.getMountPoint(), fsType, "nolock,sec=" + args.getSecurity());
-        // Mount the device
-        mountUtils.mountPath(args.getMountPath());
-    }
-
-    @Override
-    public void doUnmount(HostDeviceInputOutput args) throws InternalException {
-        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, args.getHostId()));
-        // unmount the Export
-        mountUtils.unmountPath(args.getMountPath());
-        // remove from fstab
-        mountUtils.removeFromFSTab(args.getMountPath());
-        // delete the directory entry if it's empty
-        if (mountUtils.isDirectoryEmpty(args.getMountPath())) {
-            mountUtils.deleteDirectory(args.getMountPath());
-        }
     }
 
     public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
@@ -154,7 +123,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         try {
             mountUtils.unmountPath(mountPath);
         } catch (CommandException ex) {
-            if (!ex.getMessage().contains("not mounted")) {
+            if (!ex.getMessage().contains("not mounted") && !ex.getMessage().contains("mountpoint not found")) {
                 throw ex;
             }
         }

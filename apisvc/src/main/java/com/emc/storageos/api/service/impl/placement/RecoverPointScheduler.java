@@ -1648,7 +1648,8 @@ public class RecoverPointScheduler implements Scheduler {
      * @return a map of VPLEX to StoragePool
      */
     private Map<String, List<StoragePool>> getRPConnectedVPlexStoragePools(Map<String, List<StoragePool>> vplexStoragePoolMap) {
-        Map<String, List<StoragePool>> poolsToReturn = vplexStoragePoolMap;
+        Map<String, List<StoragePool>> poolsToReturn = new HashMap<String, List<StoragePool>>(); 
+        poolsToReturn.putAll(vplexStoragePoolMap);
         if (vplexStoragePoolMap != null) {
             // Narrow down the list of candidate VPLEX storage systems/pools to those
             // that are RP connected.

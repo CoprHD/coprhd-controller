@@ -670,7 +670,7 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaAgreement(latestSchemaVersion);
+            clientContext.waitForSchemaAgreement(latestSchemaVersion, _statusChecker.getClusterNodeCount());
         }
     }
 

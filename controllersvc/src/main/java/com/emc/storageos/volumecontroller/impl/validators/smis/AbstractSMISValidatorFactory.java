@@ -3,11 +3,9 @@
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis;
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -20,10 +18,14 @@ import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.smis.vmax.ValidateVolumeIdentity;
 import com.google.common.collect.Lists;
+
+import java.net.URI;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Abstract factory class for creating SMI-S related validators. The sub-classes should create the {@link ValidatorLogger} and
@@ -40,6 +42,13 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
+
+    public static final AbstractSMISValidator truthyValidator = new AbstractSMISValidator() {
+        @Override
+        public boolean validate() throws Exception {
+            return true;
+        }
+    };
 
     public ValidatorConfig getConfig() {
         return config;
@@ -93,6 +102,16 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     public abstract AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
             Collection<Initiator> initiatorList);
 
+    public AbstractSMISValidator createMultipleExportMasksForBlockObjectsValidator(StorageSystem storage, ExportMask exportMask,
+                                                                             Collection<? extends BlockObject> blockObjects) {
+        return truthyValidator;
+    }
+
+    public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(StorageSystem storage, ExportMask exportMask,
+                                                                                   Collection<Initiator> initiators) {
+        return truthyValidator;
+    }
+
     /**
      *
      * @return
@@ -106,33 +125,67 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         ValidatorLogger sharedLogger = createValidatorLogger();
         AbstractSMISValidator volumes = createExportMaskVolumesValidator(storage, exportMask, volumeURIList);
         AbstractSMISValidator initiators = createExportMaskInitiatorValidator(storage, exportMask, initiatorList);
-        configureValidators(sharedLogger, volumes, initiators);
+        AbstractSMISValidator multiMaskBlockObjects =
+                createMultipleExportMasksForBlockObjectsValidator(storage, exportMask, null);
+        AbstractSMISValidator multiMaskInitiators =
+                createMultipleExportMasksForInitiatorsValidator(storage, exportMask, null);
+
+        configureValidators(sharedLogger, volumes, initiators, multiMaskBlockObjects, multiMaskInitiators);
 
         ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
         chain.addValidator(volumes);
         chain.addValidator(initiators);
+        chain.addValidator(multiMaskBlockObjects);
+        chain.addValidator(multiMaskInitiators);
+
         return chain;
     }
 
     @Override
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
             Collection<Initiator> initiators) {
+        return removeVolumes(storage, exportMaskURI, initiators, null);
+    }
+
+    @Override
+    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
+                                   Collection<? extends BlockObject> volumes) {
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);  // FIXME
 
         ValidatorLogger sharedLogger = createValidatorLogger();
-        AbstractSMISValidator validator = createExportMaskInitiatorValidator(storage, exportMask, initiators);
-        configureValidators(sharedLogger, validator);
+        AbstractSMISValidator initiatorValidator = createExportMaskInitiatorValidator(storage, exportMask, initiators);
+        AbstractSMISValidator maskValidator = createMultipleExportMasksForBlockObjectsValidator(storage, exportMask, volumes);
 
-        return new DefaultValidator(validator, config, sharedLogger, "Export Mask");
+        configureValidators(sharedLogger, initiatorValidator, maskValidator);
+
+        ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
+        chain.addValidator(initiatorValidator);
+        chain.addValidator(maskValidator);
+
+        return chain;
     }
 
     @Override
     public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
-        ValidatorLogger sharedLogger = createValidatorLogger();
-        AbstractSMISValidator validator = createExportMaskVolumesValidator(storage, exportMask, volumeURIList);
-        configureValidators(sharedLogger, validator);
+        return removeInitiators(storage, exportMask, volumeURIList, null);
+    }
 
-        return new DefaultValidator(validator, config, sharedLogger, "Export Mask");
+    @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
+                                      Collection<Initiator> initiators) {
+
+        ValidatorLogger sharedLogger = createValidatorLogger();
+        AbstractSMISValidator volValidator = createExportMaskVolumesValidator(storage, exportMask, volumeURIList);
+        AbstractSMISValidator initsValidator =
+                createMultipleExportMasksForInitiatorsValidator(storage, exportMask, initiators);
+
+        configureValidators(sharedLogger, volValidator, initsValidator);
+
+        ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
+        chain.addValidator(volValidator);
+        chain.addValidator(initsValidator);
+
+        return chain;
     }
 
     @Override

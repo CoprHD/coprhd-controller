@@ -57,6 +57,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -1217,7 +1218,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // corresponding to that.
                     // For RP we will try and use as many Storage ports as possible.
                     Map<URI, List<StoragePort>> initiatorPortMap = getInitiatorPortsForArray(rpNetworkToInitiatorsMap, storageSystemURI,
-                            varrayURI);
+                            varrayURI, rpSiteName);
 
                     for (URI networkURI : initiatorPortMap.keySet()) {
                         for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
@@ -6291,7 +6292,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return Map<URI, List<StoragePort>> A map of Network URI to a List<StoragePort>
      */
     private Map<URI, List<StoragePort>> getInitiatorPortsForArray(Map<URI, Set<Initiator>> rpNetworkToInitiatorMap, URI arrayURI,
-            URI varray) throws ControllerException {
+            URI varray, String internalSiteName) throws ControllerException {
 
         Map<URI, List<StoragePort>> initiatorMap = new HashMap<URI, List<StoragePort>>();
 
@@ -6325,16 +6326,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // Get all the ports corresponding to the network that the RP initiators are in.
         // we will use all available ports
         for (URI rpInitiatorNetworkURI : rpNetworkToInitiatorMap.keySet()) {
-            if (arrayTargetMap.keySet().contains(rpInitiatorNetworkURI)) {
-                initiatorMap.put(rpInitiatorNetworkURI, arrayTargetMap.get(rpInitiatorNetworkURI));
-            }
+    		if (arrayTargetMap.keySet().contains(rpInitiatorNetworkURI)) {            	
+    			initiatorMap.put(rpInitiatorNetworkURI, arrayTargetMap.get(rpInitiatorNetworkURI));
+    		}        	
         }
 
         // If there are no initiator ports, fail the operation, because we cannot zone.
-        if (initiatorMap.isEmpty()) {
-            Set<Initiator> rpInitiatorSet = rpNetworkToInitiatorMap.get(rpNetworkToInitiatorMap.keySet().iterator().next());
-            String rpSiteName = rpInitiatorSet.iterator().next().getHostName();
-            throw RecoverPointException.exceptions.getInitiatorPortsForArrayFailed(rpSiteName, arrayURI.toString());
+        if (initiatorMap.isEmpty()) {        
+            throw RecoverPointException.exceptions.getInitiatorPortsForArrayFailed(internalSiteName, 
+            		_dbClient.queryObject(StorageSystem.class, arrayURI).getLabel());
         }
 
         return initiatorMap;

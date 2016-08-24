@@ -759,4 +759,23 @@ public class VPlexControllerUtils {
             throw VPlexApiException.exceptions.failedToRefreshVplexStorageView(storageViewName, ex.getLocalizedMessage());
         }
     }
+
+    /**
+     * Returns all VPLEX storage systems in ViPR.
+     * 
+     * @param dbClient a database client reference 
+     * @return a List of StorageSystems that are "vplex" type
+     */
+    public static List<StorageSystem> getAllVplexStorageSystems(DbClient dbClient) {
+        List<StorageSystem> vplexStorageSystems = new ArrayList<StorageSystem>();
+        List<URI> allStorageSystemUris = dbClient.queryByType(StorageSystem.class, true);
+        List<StorageSystem> allStorageSystems = dbClient.queryObject(StorageSystem.class, allStorageSystemUris);
+        for (StorageSystem storageSystem : allStorageSystems) {
+            if ((storageSystem != null)
+                    && (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType()))) {
+                vplexStorageSystems.add(storageSystem);
+            }
+        }
+        return vplexStorageSystems;
+    }
 }

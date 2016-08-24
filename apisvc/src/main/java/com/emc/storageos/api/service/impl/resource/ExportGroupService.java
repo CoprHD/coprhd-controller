@@ -1370,7 +1370,7 @@ public class ExportGroupService extends TaskResourceService {
                 } else {
                     _log.error("Stale initiator URI {} is in ExportGroup and can be removed from ExportGroup{}", initiatorURI,
                             exportGroup.getId());
-                    exportGroup.removeInitiator(initiatorURI);
+                    existingInitiatorsIterator.remove();
                     isModified = true;
                 }
             }

@@ -38,8 +38,8 @@ public class MirrorFileCancelTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
-        return FileShare.MirrorStatus.UNKNOWN;
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        return FileShare.MirrorStatus.UNKNOWN.name();
     }
 
 

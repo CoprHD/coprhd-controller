@@ -50,8 +50,8 @@ public class MirrorFileCreateTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
-        return this.mirrorSyncStatus = FileShare.MirrorStatus.UNKNOWN;
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        return FileShare.MirrorStatus.UNKNOWN.name();
     }
 
 }

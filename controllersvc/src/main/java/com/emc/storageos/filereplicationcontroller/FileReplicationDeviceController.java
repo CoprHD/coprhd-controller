@@ -408,14 +408,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         TaskCompleter completer = null;
         try {
             if (opType.equalsIgnoreCase("pause")) {
-                completer = new MirrorFilePauseTaskCompleter(FileShare.class, combined, opId, storage);
+                completer = new MirrorFilePauseTaskCompleter(FileShare.class, copyId, opId, storage);
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     getRemoteMirrorDevice(system).doSuspendLink(system, targetFileShare, completer);
                 }
 
             } else if (opType.equalsIgnoreCase("resume")) {
-                completer = new MirrorFileResumeTaskCompleter(FileShare.class, combined, opId, storage);
+                completer = new MirrorFileResumeTaskCompleter(FileShare.class, copyId, opId, storage);
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
                     getRemoteMirrorDevice(system).doResumeLink(system, targetFileShare, completer);
@@ -425,7 +425,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 for (String target : targetfileUris) {
 
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                    completer = new MirrorFileStartTaskCompleter(FileShare.class, asList(copyId), opId, storage);
+                    completer = new MirrorFileStartTaskCompleter(FileShare.class, copyId, opId, storage);
                     completer.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStartMirrorLink(system, targetFileShare, completer, null);
                 }
@@ -645,7 +645,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             if (targetFileShare.getParentFileShare() != null) {
                 combined.add(targetFileShare.getParentFileShare().getURI());
             }
-            completer = new MirrorFileResyncTaskCompleter(FileShare.class, combined, opId, targetSystemURI);
+            completer = new MirrorFileResyncTaskCompleter(FileShare.class, combined, opId, primarysystemURI);
 
             WorkflowStepCompleter.stepExecuting(opId);
             completer.setNotifyWorkflow(true);
@@ -687,7 +687,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 combined.add(fileShare.getParentFileShare().getURI());
             }
 
-            completer = new MirrorFileStartTaskCompleter(FileShare.class, combined, opId, storage);
+            completer = new MirrorFileStartTaskCompleter(FileShare.class, fileshareURI, opId, storage);
             WorkflowStepCompleter.stepExecuting(opId);
             getRemoteMirrorDevice(system).doStartMirrorLink(system, fileShare, completer, policyName);
         } catch (Exception e) {

@@ -27,8 +27,8 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
         super(clazz, ids, opId, storageUri);
     }
 
-    public MirrorFileResumeTaskCompleter(Class clazz, URI id, String opId) {
-        super(clazz, id, opId);
+    public MirrorFileResumeTaskCompleter(Class clazz, URI id, String opId, URI storageUri) {
+        super(clazz, id, opId, storageUri);
     }
 
     public MirrorFileResumeTaskCompleter(URI sourceURI, URI targetURI, String opId) {
@@ -50,11 +50,11 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
         if(fs.getStorageDevice().equals(getStorageUri())) {
-            return MirrorStatus.SYNCHRONIZED;
+            return MirrorStatus.SYNCHRONIZED.name();
         } else {
-            return MirrorStatus.valueOf(fs.getMirrorStatus());
+            return fs.getMirrorStatus();
         }
     }
 

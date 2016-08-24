@@ -50,13 +50,13 @@ public class MirrorFileFailoverTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess(FileShare fs) {
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
         if(!fs.getStorageDevice().equals(getStorageUri())) {
         	_log.info("failover op is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.FAILED_OVER.name());
-            return MirrorStatus.FAILED_OVER;
+            return MirrorStatus.FAILED_OVER.name();
         } else {
-        	_log.info("failover op is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
-            return MirrorStatus.UNKNOWN;
+        	_log.info("failover op on device is successful - fs name {} and mirror state {}", fs.getName(), MirrorStatus.UNKNOWN.name());
+            return MirrorStatus.UNKNOWN.name();
         }
     }
 

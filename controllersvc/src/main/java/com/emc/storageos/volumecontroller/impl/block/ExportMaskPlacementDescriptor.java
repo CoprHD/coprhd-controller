@@ -320,6 +320,14 @@ public class ExportMaskPlacementDescriptor {
                 altMaskURIs.remove(uri);
             }
         }
+        
+        // Also update the equivalent masks map.
+        for (String key : equivalentMasks.keySet()) {
+            Set<URI> eqMaskURIs = equivalentMasks.get(key);
+            if (eqMaskURIs != null) {
+                eqMaskURIs.remove(uri);
+            }
+        }
     }
 
     /**

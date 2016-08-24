@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
@@ -818,7 +819,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         URI id = URIUtil.createId(Volume.class);
         URI pool = URIUtil.createId(StoragePool.class);
         volume1.setId(id);
-        volume1.setLabel("test1");
+        volume1.setLabel("origin");
         volume1.setPool(pool);
         volume1.setNativeGuid("native_guid");
         volume1.setNativeId("native_id");
@@ -829,8 +830,8 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         dbClient.updateObject(volume1);
 
-        //find the label index directly
-        Keyspace keyspace = DbsvcTestBase.getDbClientBase().getLocalContext().getKeyspace();
+        // find the label index directly
+        Keyspace keyspace = ((DbClientTest.DbClientImplUnitTester) dbClient).getLocalContext().getKeyspace();
         DataObjectType doType = TypeMap.getDoType(Volume.class);
         ColumnField field = doType.getColumnField("label");
         ColumnFamilyQuery<String, IndexColumnName> query = keyspace.prepareQuery(field.getIndexCF());
@@ -839,9 +840,44 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 .withColumnRange(new RangeBuilder().setLimit(0).build()).execute();
         int count = 1;
         for (Row<String, IndexColumnName> row : result.getResult()) {
-            System.out.println(count+"\t"+row.getKey()+"\t"+row.getColumns());
+            System.out.println(count++ + "\t" + row.getKey());
+            for (Column<IndexColumnName> column : row.getColumns()) {
+                System.out.println("\t" + column.getName() + "\t" + column.getStringValue());
+            }
         }
 
+        List<URI> volumes = dbClient.queryByType(Volume.class, true);
+        for (URI uri : volumes) {
+            Volume volume = dbClient.queryObject(Volume.class, uri);
+            System.out.println("URI: " + uri + "\tlabel: " + volume.getLabel());
+        }
+
+        // mockito cleanup soft reference here
+        Volume volume2 = new Volume();
+        volume2.setId(id);
+        volume2.setLabel("new");
+
+        dbClient.updateObject(volume2);
+        dbClient.updateObject(volume1);
+
+        // find the label index directly
+        query = keyspace.prepareQuery(field.getIndexCF());
+        result = query.getAllRows()
+                .setRowLimit(100)
+                .withColumnRange(new RangeBuilder().setLimit(0).build()).execute();
+        int count2 = 1;
+        for (Row<String, IndexColumnName> row : result.getResult()) {
+            System.out.println(count2++ + "\t" + row.getKey());
+            for (Column<IndexColumnName> column : row.getColumns()) {
+                System.out.println("\t" + column.getName() + "\t" + column.getStringValue());
+            }
+        }
+
+        volumes = dbClient.queryByType(Volume.class, true);
+        for (URI uri : volumes) {
+            Volume volume = dbClient.queryObject(Volume.class, uri);
+            System.out.println("URI: " + uri + "\tlabel: " + volume.getLabel());
+        }
 
     }
 }

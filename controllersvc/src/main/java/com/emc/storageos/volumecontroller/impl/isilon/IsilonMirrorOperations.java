@@ -643,7 +643,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         IsilonSyncJob job = new IsilonSyncJob();
         job.setId(policyName);
         job.setAction(Action.resync_prep);
+        
         IsilonSyncTargetPolicy targetPolicy = null;
+        JobState targetPolicyState = null;
         
         IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
         JobState policyState = policy.getLastJobState();
@@ -654,15 +656,15 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         	//already resync is created then we can start policy
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
         	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
-        		BiosCommandResult.createSuccessfulResult();
+        		return BiosCommandResult.createSuccessfulResult();
         	} 
         } else {
         	IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
         	//already resync is created then we can start policy
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        	JobState targetPolicyState = policy.getLastJobState();
+        	targetPolicyState = policy.getLastJobState();
         	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && targetPolicyState.equals(JobState.finished)) {
-        		BiosCommandResult.createSuccessfulResult();
+        		return BiosCommandResult.createSuccessfulResult();
         	} 
         }
 

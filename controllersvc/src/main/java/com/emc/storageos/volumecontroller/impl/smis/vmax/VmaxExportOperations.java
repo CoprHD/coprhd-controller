@@ -2050,7 +2050,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         initiatorsToAdd.add(normalizedPort);
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         // Don't add additional initiator to initiators list if it belongs to different host/cluster
-                        if (existingInitiator != null && !checkIfDifferentResource(mask, existingInitiator)) {
+                        if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
                             initiatorIdsToAdd.add(existingInitiator);
                         }
                         addInitiators = true;
@@ -2189,22 +2189,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info(String.format("refreshExportMask took %f seconds", (double) totalTime / (double) 1000));
         }
         return mask;
-    }
-
-    /**
-     * Check if the initiator and the mask belong to different resource.
-     */
-    private boolean checkIfDifferentResource(ExportMask mask, Initiator existingInitiator) {
-        boolean differentResource = false;
-        String maskResource = mask.getResource();
-        if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (maskResource.contains("urn:storageos:Host")) {
-                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
-            } else {
-                differentResource = !maskResource.equals(existingInitiator.getClusterName());
-            }
-        }
-        return differentResource;
     }
 
     // //////////// VMAX specific export helpers ////////////////

@@ -787,7 +787,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                     if (addInitiators) {
                         for (String port : initiatorsToAdd) {
                             Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                            if (existingInitiator != null) {
+                            // Don't add additional initiator to initiators list if it belongs to different host/cluster
+                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
                                 mask.addInitiator(existingInitiator);
                             }
                         }

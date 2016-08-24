@@ -287,17 +287,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
                 : _dbClient.queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
         
-        //Check for potential inconsistencies between existing CG parameters and the new request.
-        //Currently we are checking only for RPO policy, but this can  be expanded.
-        List<Volume> cgVolumes = RPHelper.getAllCgVolumes(consistencyGroup.getId(), _dbClient);
-        for (Volume cgVolume : cgVolumes) {
-        	if (cgVolume.checkPersonality(PersonalityTypes.SOURCE)) {
-        		VirtualPool cgVolumeVpool = _dbClient.queryObject(VirtualPool.class ,cgVolume.getVirtualPool());
-        		if (originalVpool.getRpRpoValue() != cgVolumeVpool.getRpRpoValue()) {
-        			throw APIException.badRequests.rpBlockApiImplPrepareVolumeException("RPO Policy does not match");
-        		}        		
-        	}
-        }
+        //-Bharath-
+        
         // Total volumes to be created
         int totalVolumeCount = 0;
 

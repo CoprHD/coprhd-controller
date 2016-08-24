@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -275,7 +276,9 @@ public class RecoverPointScheduler implements Scheduler {
             _log.info(String.format("Schedule new storage for [%s] resource(s) of size [%s].",
                     capabilities.getResourceCount(), capabilities.getSize()));
         }
-
+        
+        checkForRPCGInconsistencies(vpool, capabilities);
+        
         List<VirtualArray> protectionVarrays = getProtectionVirtualArraysForVirtualPool(project, vpool, dbClient, _permissionsHelper);
 
         VirtualArray haVarray = null;
@@ -331,6 +334,27 @@ public class RecoverPointScheduler implements Scheduler {
         _log.info(String.format("%s %n", ((RPProtectionRecommendation) recommendations.get(0)).toString(dbClient)));
         return recommendations;
     }
+
+    
+    /*
+     * Check for potential inconsistencies between existing CG parameters and the new request.
+     * Currently we are checking only for RPO policy, but this can be expanded.
+     */
+	/**
+	 * @param vpool - Virtual Pool used for provisioning
+	 * @param capabilities - capabilities value
+	 */
+	private void checkForRPCGInconsistencies(VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities) throws APIException {		
+        List<Volume> cgVolumes = RPHelper.getAllCgVolumes(capabilities.getBlockConsistencyGroup(), dbClient);
+        for (Volume cgVolume : cgVolumes) {
+        	if (cgVolume.checkPersonality(PersonalityTypes.SOURCE)) {
+        		VirtualPool cgVolumeVpool = dbClient.queryObject(VirtualPool.class ,cgVolume.getVirtualPool());
+        		if (vpool.getRpRpoValue() != cgVolumeVpool.getRpRpoValue()) {
+        			throw APIException.badRequests.rpBlockApiImplPrepareVolumeException("Existing CGs RPO policy does not match with the RPO policy requested for the new volumes.");
+        		}        		
+        	}
+        }
+	}
 
     /**
      * Schedule storage based on the incoming storage pools for source volumes. (New version)

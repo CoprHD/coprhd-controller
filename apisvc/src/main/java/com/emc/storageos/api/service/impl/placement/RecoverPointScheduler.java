@@ -336,11 +336,11 @@ public class RecoverPointScheduler implements Scheduler {
     }
 
     
-    /*
+    /**
      * Check for potential inconsistencies between existing CG parameters and the new request.
      * Currently we are checking only for RPO policy, but this can be expanded.
-     */
-	/**
+     * Throws exception if inconsistencies are found.
+     *     
 	 * @param vpool - Virtual Pool used for provisioning
 	 * @param capabilities - capabilities value
 	 */

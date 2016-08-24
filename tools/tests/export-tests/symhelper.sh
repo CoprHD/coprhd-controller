@@ -262,6 +262,9 @@ verify_export_via_provider() {
     NUM_LUNS=$3
     TMPFILE1=/tmp/verify-${RANDOM}
 
+    # Clean up on exit
+    trap "{ rm -f $TMPFILE1 ; }" EXIT
+
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_jar="${DIR}/preExistingConfig.jar"
 
@@ -270,41 +273,56 @@ verify_export_via_provider() {
 	exit 1
     fi
 
-    if [ "none" != "${NUM_INITIATORS}" -a "none" != "${NUM_LUNS}" ]; then
-	echo "Invalid parameters sent to verify_export_via_provider...."
-	exit 1
+    if [ "${NUM_INITIATORS}" = "none" ]; then
+	  numinits="0"
+    fi
+    if [ "${NUM_LUNS}" = "none" ]; then
+	  numluns="0"
     fi
 
-    numinits="none"
-    numluns="none"
     waited=0
-
-    while [ "${numinits}" != "${NUM_INITIATORS}" -o "${numluns}" != "${NUM_LUNS}" ]
+    while :
     do
-      if [ "${numinits}" != "none" -o "${numluns}" != "none" ]; then
-	  sleep ${SLEEP_INTERVAL_SECONDS}
+      # Gather results from the external tool
+      java -Dlogback.configurationFile=./logback.xml -jar ${tools_jar} show-view $SID $SG_PATTERN $NUM_INITIATORS $NUM_LUNS > ${TMPFILE1}
+
+      numviews=`grep -i "Total Found  Views Count" ${TMPFILE1} | awk '{print $NF}'`
+      numinits=`grep -i "Total Number of Initiators for View" ${TMPFILE1} | awk '{print $NF}'`
+      numluns=`grep -i "Total Number of Volumes For View" ${TMPFILE1} | awk '{print $NF}'`
+
+      # Fix empty values
+      if [ -z ${numinits// } ]; then
+        numinits="0"
+      fi
+      if [ -z ${numluns// } ]; then
+        numluns="0"
+      fi
+
+      echo "Found views ${numviews}"
+      echo "Found ${numinits} initiators and ${numluns} volumes in mask ${SG_PATTERN}"
+
+      if [ "${NUM_INITIATORS}" = "gone" -a "$numviews" = "0" ]; then
+      # Verified that the mask is gone
+      exit 0
+      fi
+
+      if [ "${NUM_INITIATORS}" = "exists" -a "$numviews" = "1" ]; then
+      # Verified that the mask exists, disregarding number of inits/luns
+      exit 0
+      fi
+
+      if [ "${NUM_INITIATORS}" = "$numinits" -a "${NUM_LUNS}" = "$numluns" ]; then
+      # Verified the expected number of initiators and luns
+      exit 0
+      fi
+
+      sleep ${SLEEP_INTERVAL_SECONDS}
 	  waited=`expr ${waited} + ${SLEEP_INTERVAL_SECONDS}`
 
 	  if [ ${waited} -ge ${MAX_WAIT_SECONDS} ]; then
 	      echo "Waited, but never found provider to have the right number of luns and volumes"
 	      exit 1;
 	  fi
-      fi
-
-      # Gather results from the external tool
-      java -Dlogback.configurationFile=./logback.xml -jar ${tools_jar} show-view $SID $SG_PATTERN $NUM_INITIATORS $NUM_LUNS > ${TMPFILE1}
-
-      numinits=`grep -i "Total Number of Initiators for View" ${TMPFILE1} | awk '{print $NF}'`
-      numluns=`grep -i "Total Number of Volumes For View" ${TMPFILE1} | awk '{print $NF}'`
-      echo "Found ${numinits} initiators and ${numluns} volumes in mask ${SG_PATTERN}"
-
-      if [ "${NUM_INITIATORS}" = "none" ]; then
-	  numinits="none"
-      fi
-
-      if [ "${NUM_LUNS}" = "none" ]; then
-	  numluns="none"
-      fi
     done
 }
 
@@ -361,6 +379,9 @@ create_export_mask() {
 
     echo "=== symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}
+
+    # Verify that the mask has been created on the provider
+    verify_export_via_provider $SID $NAME exists
 }
 
 delete_export_mask() {
@@ -394,6 +415,9 @@ delete_export_mask() {
     else
         echo "=== Skipping initiator group deletion because 'noop' was passed"
     fi
+
+    # Verify that the mask has been deleted on the provider
+    verify_export_via_provider $SID $NAME gone
 }
 
 # Check to see if this is an operational request or a verification of export request

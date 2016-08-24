@@ -513,7 +513,7 @@ public class DbClientContext {
         long start = System.currentTimeMillis();
         Map<String, List<String>> versions = null;
         while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            log.info("schema version to sync to: {}", targetSchemaVersion);
+            log.info("schema version to sync to: {}, required node count: {}", targetSchemaVersion, nodeCount);
             versions = getSchemaVersions();
 
             if (versions.size() == 1) {

@@ -11,6 +11,18 @@ import java.beans.PropertyDescriptor;
 import java.net.URI;
 import java.util.*;
 
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.PrefixDbIndex;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.query.ColumnFamilyQuery;
+import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 import org.junit.After;
@@ -798,5 +810,38 @@ public class PersistingChangesTest extends DbsvcTestBase {
         
         Volume queryVolumeResult = (Volume) dbClient.queryObject(id);
         Assert.assertTrue(queryVolumeResult == null || queryVolumeResult.getInactive());
+    }
+
+    @Test
+    public void testCleanupSoftReference() throws ConnectionException {
+        Volume volume1 = new Volume();
+        URI id = URIUtil.createId(Volume.class);
+        URI pool = URIUtil.createId(StoragePool.class);
+        volume1.setId(id);
+        volume1.setLabel("test1");
+        volume1.setPool(pool);
+        volume1.setNativeGuid("native_guid");
+        volume1.setNativeId("native_id");
+        volume1.setCompositionType("compositionType");
+        volume1.setInactive(false);
+        volume1.setAllocatedCapacity(1000L);
+        volume1.setProvisionedCapacity(2000L);
+
+        dbClient.updateObject(volume1);
+
+        //find the label index directly
+        Keyspace keyspace = DbsvcTestBase.getDbClientBase().getLocalContext().getKeyspace();
+        DataObjectType doType = TypeMap.getDoType(Volume.class);
+        ColumnField field = doType.getColumnField("label");
+        ColumnFamilyQuery<String, IndexColumnName> query = keyspace.prepareQuery(field.getIndexCF());
+        OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
+                .setRowLimit(100)
+                .withColumnRange(new RangeBuilder().setLimit(0).build()).execute();
+        int count = 1;
+        for (Row<String, IndexColumnName> row : result.getResult()) {
+            System.out.println(count+"\t"+row.getKey()+"\t"+row.getColumns());
+        }
+
+
     }
 }

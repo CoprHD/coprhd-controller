@@ -278,22 +278,28 @@ class CreateVolumeSchedulingThread implements Runnable {
 	        int volumeCounter = 0;
 	        String volumeLabel = param.getName();
 	        List<Volume> preparedVolumes = new ArrayList<Volume>();
+	        List<VolumeDescriptor> descriptors = null;
 
+	        if (recommendations==null || recommendations.isEmpty()){
+	        	return taskList;
+	        }else if (recommendations.get(0) instanceof VPlexRecommendation){
+        		descriptors = this.prepareRecommendedVolumesForVPlex(param, task, taskList,  recommendations,
+	   	                 volumeCounter, volumeLabel, preparedVolumes);
+	        } else {
+	        	descriptors = this.prepareRecommendedVolumes(param, task, taskList,  recommendations,
+	   	                 volumeCounter, volumeLabel, preparedVolumes);
+	        }
 	        // Prepare the volumes
-	        this.prepareRecommendedVolumes(param, task, taskList,  recommendations,
-	                 volumeCounter, volumeLabel, preparedVolumes);
-
-	        // Prepare the volume descriptors based on the recommendations
-	        final List<VolumeDescriptor> volumeDescriptors = prepareVolumeDescriptors(preparedVolumes);
-	        
-
+	        final List<VolumeDescriptor> volumeDescriptors = descriptors;
 
 	        final BlockOrchestrationController controller = blockService.getController(BlockOrchestrationController.class, BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
 
 
 	        try {
 	            // Execute the volume creations requests
+	        	
 	            controller.createVolumes(volumeDescriptors, task);
+	            
 	        } catch (InternalException e) {
 	            _log.error("Controller error when creating volumes", e);
 
@@ -362,8 +368,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 	    	List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
 	    	//build a map of array to recommendations
 	    	URI vplexId = null;
-	    	Map<String,List<VPlexRecommendation>> arrayRecommendationsMap = new HashMap<String,List<VPlexRecommendation>>();
-	    	//TODO: add a method to build this map.
+	    	Map<String,List<VPlexRecommendation>> arrayRecommendationsMap = sortRecommendations(recommendations);
 	    	
 	    	URI[][] arrayVolumeURIs = new URI[2][param.getCount()];
 	    	int arrayCounter = 0;
@@ -455,7 +460,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 	    	
 	    }
 	  
-	    public void prepareRecommendedVolumes(VolumeCreate param, String task, TaskList taskList,
+	    public List<VolumeDescriptor> prepareRecommendedVolumes(VolumeCreate param, String task, TaskList taskList,
 	            List<Recommendation> recommendations,  int volumeCounter,
 	            String volumeLabel, List<Volume> preparedVolumes) {
 	        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
@@ -533,6 +538,8 @@ class CreateVolumeSchedulingThread implements Runnable {
 	           }
 	            
 	        }
+	        List<VolumeDescriptor> descriptors = prepareVolumeDescriptors(preparedVolumes);
+	        return descriptors;
 	    }
 	    
 	    public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label) {
@@ -646,17 +653,17 @@ class CreateVolumeSchedulingThread implements Runnable {
         // Call out placementManager to get the recommendation for placement.
         try {
         	List recommendations = null;
-        	if (param.getPassThroughParams().containsKey("isVplexVolume") 
-        			&& param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty() ){
+        	if ( param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("isVplexVolume")  ){
         		recommendations = this.bypassRecommendationsForVplexResources(param);
         		this.createVolumes(param,  recommendations, taskList, task, capabilities);  
         		//this.preparedVolumes(param, recommendations, taskList, task, capabilities);
+        		return;
         	}
         	
         	else if (param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()){
         		recommendations = this.bypassRecommendationsForResources(param);
         		this.createVolumes(param,  recommendations, taskList, task, capabilities);                        
-        	
+        		return;
         	} else {
             recommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
                     varray, project, vpool, capabilities);

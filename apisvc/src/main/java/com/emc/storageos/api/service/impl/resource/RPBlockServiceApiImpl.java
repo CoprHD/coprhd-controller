@@ -286,9 +286,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Save a reference to the CG, we'll need this later
         BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
                 : _dbClient.queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
-        
-        //-Bharath-
-        
+       
         // Total volumes to be created
         int totalVolumeCount = 0;
 

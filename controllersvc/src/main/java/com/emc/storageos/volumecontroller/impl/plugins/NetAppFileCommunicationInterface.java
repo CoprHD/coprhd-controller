@@ -23,6 +23,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -942,13 +943,23 @@ public class NetAppFileCommunicationInterface extends
                         String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
                                 storageSystem.getSystemType(),
                                 storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                         
+                        UnManagedFileQuotaDirectory tempUnManagedFileQuotaDirectory = checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID);
+                        boolean unManagedFileQuotaDirectoryExists = tempUnManagedFileQuotaDirectory == null ? false : true;
+                        
+                        
                         if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                             continue;
                         }
+                        UnManagedFileQuotaDirectory unManagedFileQuotaDirectory ; 
+                        
+                        if(unManagedFileQuotaDirectoryExists){
+                            unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                            unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));                            
+                        }else {
+                            unManagedFileQuotaDirectory = tempUnManagedFileQuotaDirectory;
+                        }
 
-                        UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-
-                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                         unManagedFileQuotaDirectory.setLabel(quota.getQtree());
                         unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                         unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
@@ -966,7 +977,7 @@ public class NetAppFileCommunicationInterface extends
                         }
                         unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
 
-                        if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        if (!unManagedFileQuotaDirectoryExists) {
                              unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                         } else {
                             existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -1496,15 +1507,23 @@ public class NetAppFileCommunicationInterface extends
 
     }
 
-    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+    
+    
+    private UnManagedFileQuotaDirectory checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
             throws IOException {
+        UnManagedFileQuotaDirectory umfsQd = null;
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
-        if (result.iterator().hasNext()) {
-            return true;
+
+        Iterator<URI> iter = result.iterator();
+        while (iter.hasNext()) {
+            URI unManagedFSQDUri = iter.next();
+            umfsQd = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, unManagedFSQDUri);
+
+            return umfsQd;
         }
-        return false;
+        return umfsQd;  
     }
 
     public void discoverAll(AccessProfile accessProfile)

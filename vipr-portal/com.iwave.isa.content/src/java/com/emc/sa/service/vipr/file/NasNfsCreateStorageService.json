@@ -52,8 +52,8 @@
         
         security:{
           type:"assetType.vipr.fileNFSSecurity",
-          select: "many",
-          lockable: true
+          initialValue:"sys",
+          select: "many"
         },
         
         permission:{

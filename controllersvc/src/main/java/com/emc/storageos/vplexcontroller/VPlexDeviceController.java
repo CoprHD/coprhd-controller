@@ -732,15 +732,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     .equals(vplexSystem.getId().toString())) {
                         StringSet backingVolumes = volume.getAssociatedVolumes();
                         if (null == backingVolumes || backingVolumes.isEmpty()) {
-                            _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
-                            throw InternalServerErrorException.
-                                internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
-                        }
-                        // Add all backing volumes found to the volumeMap
-                        for (String backingVolumeId : backingVolumes) {
-                            URI backingVolumeURI = URI.create(backingVolumeId);
-                            Volume backingVolume = getDataObject(Volume.class, backingVolumeURI, _dbClient);
-                            volumeMap.put(backingVolumeURI, backingVolume);
+                            _log.warn("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                        } else {
+                            // Add all backing volumes found to the volumeMap
+                            for (String backingVolumeId : backingVolumes) {
+                                URI backingVolumeURI = URI.create(backingVolumeId);
+                                Volume backingVolume = getDataObject(Volume.class, backingVolumeURI, _dbClient);
+                                volumeMap.put(backingVolumeURI, backingVolume);
+                            }
                         }
                     }
                 }

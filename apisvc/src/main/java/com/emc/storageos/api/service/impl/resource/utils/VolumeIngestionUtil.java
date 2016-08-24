@@ -3232,7 +3232,7 @@ public class VolumeIngestionUtil {
                 case CHANGE_BLOCK_VOLUME_VARRAY:
                 case UPDATE_CONSISTENCY_GROUP:
                 case CREATE_SNAPSHOT_SESSION:
-                    _logger.error("Operation {} is not permitted on ingested volumes.", operation.getName());
+                    _logger.error("Operation {} is not permitted on ingested VPLEX volumes without backend volumes.", operation.getName());
                     throw APIException.badRequests.operationNotPermittedOnIngestedVolume(
                             operation.getName(), volume.getLabel());
                 default:

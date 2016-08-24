@@ -17,6 +17,8 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionUpdateParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
+import com.emc.storageos.model.vpool.VirtualPoolProtectionRPChanges;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -156,8 +158,21 @@ public class PlacementPolicyValidator extends VirtualPoolValidator<BlockVirtualP
      */
     private void validateProtection(BlockVirtualPoolProtectionUpdateParam protectionParam, VirtualPool vPool) {
         if (protectionParam != null) {
-            if (protectionParam.getRecoverPoint() != null || protectionParam.getRemoteCopies() != null) {
-                throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+            VirtualPoolProtectionRPChanges rpChanges = protectionParam.getRecoverPoint();
+            if (rpChanges != null) {
+                if ((rpChanges.getAdd() != null && !rpChanges.getAdd().isEmpty()) ||
+                        (rpChanges.getRemove() != null && !rpChanges.getRemove().isEmpty())
+                        || rpChanges.getSourcePolicy() != null) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
+            }
+
+            VirtualPoolRemoteProtectionUpdateParam remoteCopies = protectionParam.getRemoteCopies() ;
+            if (remoteCopies != null) {
+                if ((remoteCopies.getAdd() != null && !remoteCopies.getAdd().isEmpty()) ||
+                        (remoteCopies.getRemove() != null && !remoteCopies.getRemove().isEmpty())) {
+                    throw APIException.badRequests.arrayAffinityPlacementPolicyNotAllowedForRPOrRemoteCopies();
+                }
             }
         } else if (vPool != null) {
             if (VirtualPool.vPoolSpecifiesProtection(vPool) || VirtualPool.vPoolSpecifiesSRDF(vPool)) {

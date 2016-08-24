@@ -31,7 +31,6 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -83,6 +82,7 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -1237,9 +1237,9 @@ public class NetworkDeviceController implements NetworkController {
      * @return
      */
     public Workflow.Method zoneExportMasksDeleteMethod(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs) {
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer) {
         return new Workflow.Method("zoneExportMasksDelete",
-                exportGroupURI, exportMaskURIs, volumeURIs);
+                exportGroupURI, exportMaskURIs, volumeURIs, completer);
     }
 
     /**
@@ -1256,12 +1256,12 @@ public class NetworkDeviceController implements NetworkController {
      * @return true if successful
      */
     public boolean zoneExportMasksDelete(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer, String token) {
         ExportGroup exportGroup = _dbClient
                 .queryObject(ExportGroup.class, exportGroupURI);
         _log.info(String.format("Entering zoneExportMasksDelete for ExportGroup: %s (%s)",
                 exportGroup.getLabel(), exportGroup.getId()));
-        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, completer, token);
     }
 
     /**
@@ -1274,11 +1274,14 @@ public class NetworkDeviceController implements NetworkController {
      * @return
      */
     private boolean doZoneExportMasksDelete(ExportGroup exportGroup,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer, String token) {
         NetworkFCContext context = new NetworkFCContext();
         boolean status = false;
         try {
             if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
+                if (completer != null) {
+                    completer.ready(_dbClient); // completer only exists if we're deleting export masks
+                }
                 return true;
             }
             volumeURIs = removeDuplicateURIs(volumeURIs);
@@ -1292,6 +1295,9 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                if (completer != null) {
+                    completer.ready(_dbClient); // completer only exists if we're deleting export masks
+                }
                 WorkflowStepCompleter.stepSucceded(token);
                 return true;
             }
@@ -1311,6 +1317,11 @@ public class NetworkDeviceController implements NetworkController {
                 _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
                 updateZoningMap(lastReferenceZoneInfo, exportGroup.getId(), exportMaskURIs);
             }
+
+            if (completer != null) {
+                completer.ready(_dbClient); // completer only exists if we're deleting export masks
+            }
+
             // Update the workflow state.
             completeWorkflowState(token, "zoneExportMasksDelete", result);
 
@@ -1322,6 +1333,9 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
+            if (completer != null) {
+                completer.error(_dbClient, svcError);
+            }
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
         return status;
@@ -1440,7 +1454,7 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format(
                 "Entering zoneExportRemoveVolumes for ExportGroup: %s (%s) Volumes: %s",
                 exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, null, token);
     }
 
     /**
@@ -2248,13 +2262,7 @@ public class NetworkDeviceController implements NetworkController {
                         exportMask.getMaskName());
                 return;
             }
-            // Do no refresh the zones of backend masking views for performance reasons
             List<Initiator> initiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
-            if (ExportMaskUtils.areBackendInitiators(initiators)) {
-                _log.info("Mask {} is a backend mask and its zones will not be refreshed",
-                        exportMask.getMaskName());
-                return;
-            }
             _log.info("Refreshing zones for export mask {}. \n\tCurrent initiators " +
                     "in this mask are:  {}. \n\tStorage ports in the mask are : {}. \n\tZoningMap is : {}. " +
                     "\n\tRemoved initiators: {}. \n\tRemoved ports: {}",

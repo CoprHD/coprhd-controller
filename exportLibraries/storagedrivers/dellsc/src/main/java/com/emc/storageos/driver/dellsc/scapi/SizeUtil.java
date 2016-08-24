@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Utility functions for dealing with size.
  */
@@ -57,6 +56,16 @@ public class SizeUtil {
      */
     public static int byteToGig(long bytes) {
         return (int) (bytes / GB);
+    }
+
+    /**
+     * Converts bytes to megabytes.
+     * 
+     * @param bytes The byte size.
+     * @return The size in megabytes.
+     */
+    public static int byteToMeg(long bytes) {
+        return (int) (bytes / MB);
     }
 
     /**
@@ -98,24 +107,24 @@ public class SizeUtil {
      * @return The speed in gigabits.
      */
     public static Long speedStrToGigabits(String speedStr) {
-      Long gbits = 0L;
-      try{
-        if ("Unknown".equals(speedStr) || EMPTY_STR.equals(speedStr)) {
-            return gbits;
-        }
-
-        String[] parts = speedStr.split(" ");
-        gbits = new BigDecimal(parts[0]).longValue();
-        if (parts.length > 1) {
-            if ("Mbps".equals(parts[1])) {
-                gbits = gbits / KB;
+        Long gbits = 0L;
+        try {
+            if ("Unknown".equals(speedStr) || EMPTY_STR.equals(speedStr)) {
+                return gbits;
             }
-        }
-      }catch(Exception e) {
-        String failureMsg = String.format("Error converting speed value (%s) to Giagabits", speedStr);
-        LOG.warn(failureMsg, e);
-      }
 
-      return gbits;
+            String[] parts = speedStr.split(" ");
+            gbits = new BigDecimal(parts[0]).longValue();
+            if (parts.length > 1) {
+                if ("Mbps".equals(parts[1])) {
+                    gbits = gbits / KB;
+                }
+            }
+        } catch (Exception e) {
+            String failureMsg = String.format("Error converting speed value (%s) to Giagabits", speedStr);
+            LOG.warn(failureMsg, e);
+        }
+
+        return gbits;
     }
 }

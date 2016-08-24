@@ -100,7 +100,7 @@ public class DellSCProvisioning {
                         ssn,
                         volume.getDisplayName(),
                         volume.getStoragePoolId(),
-                        SizeUtil.byteToGig(volume.getRequestedCapacity()),
+                        SizeUtil.byteToMeg(volume.getRequestedCapacity()),
                         volume.getConsistencyGroup());
 
                 volume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
@@ -145,7 +145,7 @@ public class DellSCProvisioning {
         DriverTask task = new DellSCDriverTask("expandVolume");
         try {
             StorageCenterAPI api = connectionManager.getConnection(storageVolume.getStorageSystemId());
-            ScVolume scVol = api.expandVolume(storageVolume.getNativeId(), SizeUtil.byteToGig(newCapacity));
+            ScVolume scVol = api.expandVolume(storageVolume.getNativeId(), SizeUtil.byteToMeg(newCapacity));
             storageVolume.setProvisionedCapacity(SizeUtil.sizeStrToBytes(scVol.configuredSize));
 
             task.setStatus(TaskStatus.READY);
@@ -294,11 +294,11 @@ public class DellSCProvisioning {
                 ScMapping[] maps = api.getMappingProfileMaps(profile.instanceId);
                 for (ScMapping map : maps) {
                     volumeToHLUMap.put(volume.getNativeId(), String.valueOf(map.lun));
+                    ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
+                    StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
+                    usedPorts.add(port);
                     if (!discoveredPorts.contains(map.controllerPort.instanceId)) {
-                        ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
-                        StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
                         discoveredPorts.add(scPort.instanceId);
-                        usedPorts.add(port);
                     }
                 }
 

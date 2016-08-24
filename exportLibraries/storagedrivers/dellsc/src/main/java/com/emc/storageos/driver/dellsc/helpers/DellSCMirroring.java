@@ -72,7 +72,7 @@ public class DellSCMirroring {
                         ssn,
                         mirror.getDisplayName(),
                         srcVol.storageType.instanceId,
-                        SizeUtil.byteToGig(
+                        SizeUtil.byteToMeg(
                                 SizeUtil.sizeStrToBytes(srcVol.configuredSize)),
                         null);
 

@@ -39,7 +39,7 @@ public class DellSCConnectionManager {
 
     private static final String DRIVER_NAME = "dellscsystem";
     private static final String HOST_KEY = "HOST";
-    private static final String PORT_KEY = "KEY";
+    private static final String PORT_KEY = "PORT";
     private static final String USER_KEY = "USER";
     private static final String PASS_KEY = "PASS";
     private static final Object lockObj = new Object();

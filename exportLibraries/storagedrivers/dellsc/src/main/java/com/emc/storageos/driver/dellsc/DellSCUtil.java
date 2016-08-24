@@ -91,7 +91,7 @@ public class DellSCUtil {
      */
     public String findCG(StorageCenterAPI api, String ssn, String cgName, Map<String, List<ScReplayProfile>> consistencyGroups) {
         if (cgName != null && !cgName.isEmpty()) {
-            // Find CG and add volume to it
+            // Find all CGs for the specific array
             if (!consistencyGroups.containsKey(ssn)) {
                 consistencyGroups.put(ssn, new ArrayList<>());
                 ScReplayProfile[] cgs = api.getConsistencyGroups(ssn);

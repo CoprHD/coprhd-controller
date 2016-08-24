@@ -201,7 +201,7 @@ public class StorageCenterAPI implements AutoCloseable {
         Parameters params = new Parameters();
         params.add("Name", name);
         params.add("Notes", NOTES_STRING);
-        params.add("Size", String.format("%d GB", sizeInGB));
+        params.add("Size", String.format("%d MB", sizeInGB));
         params.add("StorageCenter", ssn);
         if (cgID != null && !cgID.isEmpty()) {
             String[] ids = { cgID };
@@ -586,7 +586,7 @@ public class StorageCenterAPI implements AutoCloseable {
         LOG.debug("Expanding volume '{}' to {}GB", instanceId, newSize);
 
         Parameters params = new Parameters();
-        params.add("NewSize", String.format("%d GB", newSize));
+        params.add("NewSize", String.format("%d MB", newSize));
 
         try {
             RestResult result = restClient.post(

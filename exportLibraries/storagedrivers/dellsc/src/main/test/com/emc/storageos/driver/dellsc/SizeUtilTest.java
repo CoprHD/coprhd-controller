@@ -22,7 +22,7 @@ import org.junit.Test;
 import com.emc.storageos.driver.dellsc.scapi.SizeUtil;
 
 /**
- * Tests fir the SizeUtil class.
+ * Tests for the SizeUtil class.
  */
 public class SizeUtilTest {
 
@@ -42,6 +42,24 @@ public class SizeUtilTest {
     public void testByteToGigLarger() {
         int result = SizeUtil.byteToGig(107374182400L);
         Assert.assertTrue(result == 100);
+    }
+
+    /**
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToMeg(long)}.
+     */
+    @Test
+    public void testByteToMeg() {
+        int result = SizeUtil.byteToMeg(1073741824L);
+        Assert.assertTrue(result == 1024);
+    }
+
+    /**
+     * Test method for {@link com.emc.storageos.driver.dellsc.scapi.SizeUtil#byteToMeg(long)}.
+     */
+    @Test
+    public void testByteToMegLarger() {
+        int result = SizeUtil.byteToMeg(107374182400L);
+        Assert.assertTrue(result == 102400);
     }
 
     /**

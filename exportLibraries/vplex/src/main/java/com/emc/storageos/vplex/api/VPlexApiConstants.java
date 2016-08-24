@@ -309,6 +309,8 @@ public class VPlexApiConstants {
     // Cluster ids
     public static final String CLUSTER_1_ID = "1";
     public static final String CLUSTER_2_ID = "2";
+    public static final Integer VPLEX_LOCAL_ASSEMBLY_COUNT = 1;
+    public static final Integer VPLEX_METRO_ASSEMBLY_COUNT = 2;
 
     // Rule set names
     public static final String CLUSTER_1_DETACHES = "cluster-1-detaches";

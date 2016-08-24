@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -377,6 +378,56 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             String systemNativeGUID = NativeGUIDGenerator.generateNativeGuid(
                     mgmntServer.getInterfaceType(), systemSerialNumber.toString());
             s_logger.info("Scanned VPLEX system {}", systemNativeGUID);
+
+            // we need to ensure the discovered storage system is not a result
+            // of a hardware reconfiguration from local to metro, or vice versa
+            if (VPlexApiConstants.VPLEX_METRO_ASSEMBLY_COUNT == clusterAssembyIds.size()) {
+                // check if this system could have been upgraded from local to metro
+                List<StorageSystem> vplexLocalStorageSystems = 
+                        VPlexControllerUtils.getAllVplexLocalStorageSystems(_dbClient);
+                for (StorageSystem vplex : vplexLocalStorageSystems) {
+                    if (vplex.getNativeGuid().contains(systemNativeGUID)) {
+                        // THIS IS VERY BAD
+                        String message = 
+                                String.format("Existing VPLEX local native GUID %s is a substring of the newly-discoverd system GUID %s, "
+                                + "which indicates a change in VPLEX hardware configuration from local to metro. "
+                                + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
+                                + "to contact EMC Customer Support.", vplex.getNativeGuid(), systemNativeGUID);
+                        s_logger.error(message);
+                        vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
+                        vplex.setLastDiscoveryStatusMessage(message);
+                        vplex.setLastDiscoveryRunTime(System.currentTimeMillis());
+                        _dbClient.updateObject(vplex);
+                        throw new Exception(message);
+                    }
+                }
+            } else if (VPlexApiConstants.VPLEX_LOCAL_ASSEMBLY_COUNT == clusterAssembyIds.size()) {
+                // check if this system could have been downgraded from metro to local
+                List<StorageSystem> vplexMetroStorageSystems = 
+                        VPlexControllerUtils.getAllVplexMetroStorageSystems(_dbClient);
+                for (StorageSystem vplex : vplexMetroStorageSystems) {
+                    if (null != vplex && null != vplex.getVplexAssemblyIdtoClusterId()) {
+                        for (String assemblyId : vplex.getVplexAssemblyIdtoClusterId().keySet()) {
+                            if (systemNativeGUID.contains(assemblyId)) {
+                                // THIS IS VERY BAD
+                                String message = 
+                                        String.format("Existing VPLEX metro native GUID %s contains the newly-discoverd system GUID %s, "
+                                        + "which indicates a change in VPLEX hardware configuration from metro to local. "
+                                        + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
+                                        + "to contact EMC Customer Support.", vplex.getNativeGuid(), systemNativeGUID);
+                                s_logger.error(message);
+                                vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
+                                vplex.setLastDiscoveryStatusMessage(message);
+                                vplex.setLastDiscoveryRunTime(System.currentTimeMillis());
+                                _dbClient.updateObject(vplex);
+                                throw new Exception(message);
+                            }
+                        }
+                    }
+                }
+            } else {
+                s_logger.warn("Unexpected assembly id count {}", clusterAssembyIds.size());
+            }
 
             // Determine if the VPLEX system was already scanned by another
             // VPLEX management server by checking the scan cache. If not,

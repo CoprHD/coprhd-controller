@@ -76,7 +76,7 @@ public class ComputeSystemOrchestrationDeviceController implements ComputeSystem
     }
 
     @Override
-    public void unmountDevice(URI hostId, URI resId, String mountPath, boolean inventoryOnly, String opId) throws ControllerException {
+    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException {
         HostDeviceInputOutput args = new HostDeviceInputOutput();
         args.setHostId(hostId);
         args.setResId(resId);

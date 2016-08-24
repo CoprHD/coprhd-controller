@@ -4274,8 +4274,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/unmount")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep unmountExport(@PathParam("id") URI id, FileSystemUnmountParam param,
-            @QueryParam("inventoryOnly") boolean inventoryOnly) throws InternalException {
+    public TaskResourceRep unmountExport(@PathParam("id") URI id, FileSystemUnmountParam param) throws InternalException {
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
@@ -4294,7 +4293,7 @@ public class FileService extends TaskResourceService {
 
         ComputeSystemOrchestrationController controller = getController(ComputeSystemOrchestrationController.class, null);
         try {
-            controller.unmountDevice(param.getHostId(), id, param.getMountPath(), inventoryOnly, task);
+            controller.unmountDevice(param.getHostId(), id, param.getMountPath(), task);
 
         } catch (InternalException e) {
             // treating all controller exceptions as internal error for now. controller

@@ -273,6 +273,11 @@ verify_export_via_provider() {
 	exit 1
     fi
 
+    if [ "${NUM_INITIATORS}" = "none" -a "${NUM_LUNS}" = "none" ]; then
+        echo "Invalid parameters passed to verify_export_via_provider"
+        exit 1
+    fi
+
     if [ "${NUM_INITIATORS}" = "none" ]; then
 	  numinits="0"
     fi
@@ -309,6 +314,14 @@ verify_export_via_provider() {
       if [ "${NUM_INITIATORS}" = "exists" -a "$numviews" = "1" ]; then
       # Verified that the mask exists, disregarding number of inits/luns
       exit 0
+      fi
+
+      # Check if caller does not care about inits or luns
+      if [ "${NUM_INITIATORS}" = "none" ]; then
+        numinits="${NUM_INITIATORS}"
+      fi
+      if [ "${NUM_LUNS}" = "none" ]; then
+        numluns="${NUM_LUNS}"
       fi
 
       if [ "${NUM_INITIATORS}" = "$numinits" -a "${NUM_LUNS}" = "$numluns" ]; then

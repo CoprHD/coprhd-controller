@@ -42,6 +42,7 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 
 import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -131,6 +132,7 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
         renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
         renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
+        renderArgs.put("xivStorageSystemType", StorageSystemTypes.IBMXIV);
     }
 
     private static void addReferenceDataAllFlash() {
@@ -897,6 +899,21 @@ public class StorageSystems extends ViprResourceController {
         public String referrerUrl;
 
         public boolean unregistered;
+        
+        @MaxSize(2048)
+        public String hyperScaleUsername;
+
+        @MaxSize(2048)
+        public String hyperScalePassword = "";
+
+        @MaxSize(2048)
+        public String hyperScalePasswordConfirm = "";
+
+        public String hyperScaleHost;
+
+        public String hyperScalePort;
+        
+        public URL url;
 
         public StorageSystemForm() {
             this.userPassword = "";

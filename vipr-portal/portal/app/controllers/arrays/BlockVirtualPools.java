@@ -850,10 +850,21 @@ public class BlockVirtualPools extends ViprResourceController {
 					break;
 				}
 			}
-
 			if(!isAutoTier) { //This means we did not find the pattern, set random
 				for(String policy: autoPolicyList) {
 					vpool.autoTierPolicy = policy;
+					break;
+				}
+			}
+			for(String virtualArrayId: virtualarrayIds) {
+				List<StoragePoolRestRep> spList = StoragePoolUtils.getStoragePoolsAssignedToVirtualArray(virtualArrayId);
+				for(StoragePoolRestRep sp: spList) {
+					if(sp.getCompressionEnabled() != null && sp.getCompressionEnabled()) {
+						vpool.enableCompression = true;
+						break;
+					}
+				}
+				if(vpool.enableCompression) {
 					break;
 				}
 			}

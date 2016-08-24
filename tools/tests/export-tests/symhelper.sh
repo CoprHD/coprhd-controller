@@ -4,7 +4,7 @@
 # All Rights Reserved
 #
 
-# 
+#
 # Script to help manage storage system outside of ViPR.
 # Used to perform various operations.
 #
@@ -36,7 +36,7 @@ delete_mask() {
         # Remove the volume from the storage group it is in
 	dev_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage show ${sg_long_id} | grep Devices | awk -F: '{print $2}'`
 	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -force -name ${sg_long_id} remove dev ${dev_id}
-	
+
 	# Put it back into the optimized SG?
 
 	# Delete storage group
@@ -269,7 +269,7 @@ verify_export_via_provider() {
 	echo "Missing preExistingConfg.properties.  dutests should generate this for you"
 	exit 1
     fi
-    
+
     if [ "none" != "${NUM_INITIATORS}" -a "none" != "${NUM_LUNS}" ]; then
 	echo "Invalid parameters sent to verify_export_via_provider...."
 	exit 1
@@ -323,7 +323,8 @@ create_export_mask() {
         echo "=== symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}"
         /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}
 
-        PG="${PWWN: 0:-3}_PG"
+        # Replace CIG or IG with PG
+        PG=`echo ${PWWN} | sed -E "s/[CIG]+$/PG/"`
         echo "Generated PG name ${PG}"
     else
         IG="${NAME}_IG"
@@ -335,11 +336,23 @@ create_export_mask() {
     if [[ $CSG =~ ^host ]]; then
         echo "Hijacking existing CSG/SG ${CSG}"
 
-        PG="${CSG: 0:-4}_PG"
+        # Replace CSG or SG with PG
+        PG=`echo ${CSG} | sed -E "s/[CSG]+$/PG/"`
         echo "Generated PG name ${PG}"
     else
         dev_id=$CSG
         CSG="${NAME}_SG"
+
+        echo "Creating new ${CSG}"
+
+        # Remove from any existing group, i.e. Optimized
+        optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
+        if [[ ! -z "${optimized// }" ]]; then
+            current_sg=`symaccess -sid ${SID} list -type storage -dev $dev_id -v | grep "Storage Group Name" | tail -n1 | awk '{ print $5 }'`
+            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id
+        fi
+
         echo "=== symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id"
         /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id
     fi
@@ -359,16 +372,28 @@ delete_export_mask() {
     echo "=== symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt
 
-    echo "Deleting storage group ${SG}"
     if [[ "$SG" != "noop" ]]; then
+        echo "Deleting storage group ${SG}"
+        dev_id=`symaccess -sid ${SID} show ${SG} -type storage | grep Devices | awk '{ print $3 }'`
         echo "=== symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt"
         /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt
+
+        optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
+        if [[ ! -z "${optimized// }" ]]; then
+            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id
+        fi
     else
         echo "=== Skipping storage group deletion because 'noop' was passed"
     fi
 
-    echo "=== symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt"
-    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt
+    if [[ "$IG" != "noop" ]]; then
+        echo "Deleting initiator group ${IG}"
+        echo "=== symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt
+    else
+        echo "=== Skipping initiator group deletion because 'noop' was passed"
+    fi
 }
 
 # Check to see if this is an operational request or a verification of export request

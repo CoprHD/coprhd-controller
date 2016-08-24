@@ -948,6 +948,7 @@ public class NetAppFileCommunicationInterface extends
 
                         UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
 
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                         unManagedFileQuotaDirectory.setLabel(quota.getQtree());
                         unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                         unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
@@ -966,9 +967,7 @@ public class NetAppFileCommunicationInterface extends
                         unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
 
                         if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
-                            // Set ID only for new UnManagedQuota Directory
-                            unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
-                            unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                             unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                         } else {
                             existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                         }

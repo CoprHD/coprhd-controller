@@ -528,11 +528,11 @@ public class DbClientContext {
                         hosts = entry.getValue();
                     }
                     if (hosts != null && hosts.size() == nodeCount) {
-                        log.info("schema versions converged to target version {}", targetSchemaVersion);
+                        log.info("schema versions converged to target version {}, required node count achieved: {}", targetSchemaVersion, nodeCount);
                         return;
                     }
                 } else {
-                    log.info("schema versions converged to target version {}", targetSchemaVersion);
+                    log.info("schema versions converged to target version {}, no check for node count", targetSchemaVersion);
                     return;
                 }
             }

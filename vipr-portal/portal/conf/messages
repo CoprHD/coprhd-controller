@@ -4103,7 +4103,7 @@ dataTable.loading=Loading ...
 dataTable.noResults=No results
 dataTable.actions=Edit
 dataTable.selectedItems=%s entries selected
-dataTable.confirmSelected=(Note: %s entries selected.)
+dataTable.confirmSelected=Note: %s entries selected.
 
 # Date time picker control
 dateTimePicker.currentTime=Current Time

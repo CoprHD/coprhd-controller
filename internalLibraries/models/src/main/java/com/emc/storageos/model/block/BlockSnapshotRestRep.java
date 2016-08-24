@@ -25,6 +25,7 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     private String snapsetLabel;
     private String provisionedCapacity;
     private String allocatedCapacity;
+    private String technologyType;
 
     /**
      * URI and reference link to the volume that is the
@@ -151,5 +152,18 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
 
     public void setAllocatedCapacity(String allocatedCapacity) {
         this.allocatedCapacity = allocatedCapacity;
+    }
+    
+    /**
+     * The technology type of this snapshot 
+     * 
+     */
+    @XmlElement(name = "technology_type")
+    public String getTechnologyType() {
+        return technologyType;
+    }
+
+    public void setTechnologyType(String technologyType) {
+        this.technologyType = technologyType;
     }
 }

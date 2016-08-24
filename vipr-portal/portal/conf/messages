@@ -2261,8 +2261,8 @@ vpool.heading.fileCriteria=File Storage Criteria
 vpool.heading.dataProtection=Data Protection/High Availability
 vpool.heading.quota=Quota
 vpool.heading.poolAssociation=Storage Pool Association
-vpool.enableDeDup=DeDup Capable
-
+vpool.enableDeDup=Support De-duplication
+vpool.enableDeDup.help=Matching storage pools will be limited to those that can support De-duplication
 vpool.protocols=Protocols
 vpool.protocols.help=Matching storage pools will be limited to those that can support all selected protocols
 vpool.systemType=System Type
@@ -4103,6 +4103,7 @@ dataTable.loading=Loading ...
 dataTable.noResults=No results
 dataTable.actions=Edit
 dataTable.selectedItems=%s entries selected
+dataTable.confirmSelected=Note: %s entries selected.
 
 # Date time picker control
 dateTimePicker.currentTime=Current Time

@@ -1908,7 +1908,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                 $scope.guideError = "Error: Storage Provider failed to discover:\n"+failedArray;
                                 finishChecking();
                             } else {
-                                $scope.guideError = "Error: Storage System failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Storage System(s) failed to discover:\n"+failedArray;
                                 finishChecking();
                             }
                         } else {
@@ -1945,7 +1945,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Storage System not attached to Network:\n"+data.data;
+                        $scope.guideError = "Error: Storage System(s) not attached to Network:\n"+data.data;
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -1968,7 +1968,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Storage System not attached to Virtual Array:\n"+data.data;
+                        $scope.guideError = "Error: Storage System(s) not attached to Virtual Array:\n"+data.data;
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -1991,7 +1991,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideError = "Error: Storage System not attached to Virtual Pool:\n"+data.data;
+                            $scope.guideError = "Error: Storage System(s) not attached to Virtual Pool:\n"+data.data;
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;

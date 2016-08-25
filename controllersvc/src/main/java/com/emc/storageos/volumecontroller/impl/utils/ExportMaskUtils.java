@@ -1277,4 +1277,20 @@ public class ExportMaskUtils {
         }
         return userAddedInitiators;
     }
+
+    /**
+     * Check if the mask and the initiator belong to different resource.
+     */
+    public static boolean checkIfDifferentResource(ExportMask mask, Initiator existingInitiator) {
+        boolean differentResource = false;
+        String maskResource = mask.getResource();
+        if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
+            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
+                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+            } else {
+                differentResource = !maskResource.equals(existingInitiator.getClusterName());
+            }
+        }
+        return differentResource;
+    }
 }

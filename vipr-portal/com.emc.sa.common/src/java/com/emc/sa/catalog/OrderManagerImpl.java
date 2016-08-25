@@ -7,12 +7,7 @@ package com.emc.sa.catalog;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -110,12 +105,19 @@ public class OrderManagerImpl implements OrderManager {
         if (catalogService.getExecutionWindowRequired()) {
             order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
             if (order.getScheduledEventId() == null) {
-                // Not created via new scheduler, so set schedule time to
-                // either 1) the next execution window starting time
-                // or     2) the current time if it is in current execution window
-                ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-                ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
-                order.setScheduledTime(helper.getScheduledTime());
+                if (order.getExecutionWindowId() == null ||
+                        order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                    Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                    scheduleTime.setTime(order.getLastUpdated());
+                    order.setScheduledTime(scheduleTime);
+                } else {
+                    // Not created via new scheduler, so set schedule time to
+                    // either 1) the next execution window starting time
+                    // or     2) the current time if it is in current execution window
+                    ExecutionWindow executionWindow = client.findById(order.getExecutionWindowId().getURI());
+                    ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
+                    order.setScheduledTime(helper.getScheduledTime());
+                }
             }
         }
         order.setMessage("");

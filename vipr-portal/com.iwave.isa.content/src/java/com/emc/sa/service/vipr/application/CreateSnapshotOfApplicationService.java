@@ -63,8 +63,8 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         if (!isRetentionRequired()) {
             return;
         }
-        RetainedReplica replica = findObsoleteReplica(applicationId.toString());
-        while (replica != null) {
+        List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
+        for (RetainedReplica replica : replicas) {
             List<URI> snapshotIds = new ArrayList<URI>();
             for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
                 info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
@@ -72,7 +72,6 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
             }
             execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
             getModelClient().delete(replica);
-            replica = findObsoleteReplica(applicationId.toString());
         }
     }
     

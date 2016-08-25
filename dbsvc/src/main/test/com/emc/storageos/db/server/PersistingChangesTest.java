@@ -830,7 +830,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         dbClient.updateObject(volume1);
 
-        // find the label index directly
+        // search the label index directly
         Keyspace keyspace = ((DbClientTest.DbClientImplUnitTester) dbClient).getLocalContext().getKeyspace();
         DataObjectType doType = TypeMap.getDoType(Volume.class);
         ColumnField field = doType.getColumnField("label");
@@ -853,14 +853,13 @@ public class PersistingChangesTest extends DbsvcTestBase {
         }
 
         // mockito cleanup soft reference here
-        Volume volume2 = new Volume();
-        volume2.setId(id);
-        volume2.setLabel("new");
 
-        dbClient.updateObject(volume2);
-        dbClient.updateObject(volume1);
+        Volume originVolume = dbClient.queryObject(Volume.class, id);
+        originVolume.setLabel("new");
 
-        // find the label index directly
+        dbClient.updateObject(originVolume);
+
+        // search the label index directly
         query = keyspace.prepareQuery(field.getIndexCF());
         result = query.getAllRows()
                 .setRowLimit(100)

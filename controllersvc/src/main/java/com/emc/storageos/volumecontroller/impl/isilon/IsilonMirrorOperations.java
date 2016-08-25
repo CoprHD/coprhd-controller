@@ -655,6 +655,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         	IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
         	//already resync is created then we can start policy
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+        	targetPolicyState = policy.getLastJobState();
         	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
         		return BiosCommandResult.createSuccessfulResult();
         	} 

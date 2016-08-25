@@ -1820,6 +1820,7 @@ public class VPlexApiVirtualVolumeManager {
                         throw VPlexApiException.exceptions.renameResourceFailureStatus(
                                 String.valueOf(response.getStatus()), cause);
                     } else {
+                        s_logger.info("Update name failed, retying...");
                         VPlexApiUtils.pauseThread(VPlexApiConstants.RENAME_RESOURCE_SLEEP_TIME_MS);
                         continue;
                     } 

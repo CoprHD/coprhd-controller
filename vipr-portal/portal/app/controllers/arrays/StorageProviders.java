@@ -79,6 +79,9 @@ public class StorageProviders extends ViprResourceController {
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String GUIDE_COMPLETED_STEP = "completedSteps";
+    private static final String UNREGESTERD = "UNREGISTERED";
+    private static final String PROVIDER_TYPE = "StorageProvider";
+
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
@@ -132,7 +135,7 @@ public class StorageProviders extends ViprResourceController {
         for (String id:ids) {
             StorageProviderRestRep storageProvider = StorageProviderUtils
                     .getStorageProvider(uri(id));
-            if (storageProvider == null || storageProvider.getRegistrationStatus().equals("UNREGISTERED")) {
+            if (storageProvider == null || storageProvider.getRegistrationStatus().equals(UNREGESTERD)) {
                 //ignore for now
                 continue;
             }
@@ -168,7 +171,7 @@ public class StorageProviders extends ViprResourceController {
     public static void getAllFlashStorageSystemsList(@As(",") String[] ids) {
         List<Map<String,String>> storagesystemslist = new ArrayList<Map<String,String>>();
         for (String id:ids) {
-            if(id.contains("StorageProvider")) {
+            if(id.contains(PROVIDER_TYPE)) {
                 StorageProviderRestRep storageProvider = StorageProviderUtils.getStorageProvider(uri(id));
                 if (storageProvider == null) {
                     continue;
@@ -177,7 +180,7 @@ public class StorageProviders extends ViprResourceController {
 
                 for (NamedRelatedResourceRep storageSystem : storageSystems) {
                     StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
-                    if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                    if (ss != null && !ss.getRegistrationStatus().equals(UNREGESTERD)) {
                         Map<String, String> ssMap = new HashMap<String, String>();
                         // Check if storage system is of type UNITY, VMAX or XtremIO
                         if (StringUtils.equals(XTREMIO, ss.getSystemType())) {
@@ -185,7 +188,7 @@ public class StorageProviders extends ViprResourceController {
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);
                         }
-                        if (StringUtils.equals(VMAX, ss.getSystemType()) || StringUtils.equals(UNITY, ss.getSystemType())) {
+                        if (StringUtils.equals(VMAX, ss.getSystemType())) {
                             String modelType = ss.getModel();
                             if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
                                 ssMap.put("id", ss.getId().toString());
@@ -197,8 +200,7 @@ public class StorageProviders extends ViprResourceController {
                 }
             } else {
                 StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(id);
-                Logger.info("Occurred");
-                if (ss != null && !ss.getRegistrationStatus().equals("UNREGISTERED")) {
+                if (ss != null && !ss.getRegistrationStatus().equals(UNREGESTERD)) {
                     Logger.info(ss.getId()+"-----"+ss.getSystemType());
                     Map<String, String> ssMap = new HashMap<String, String>();
                     // Check if storage system is of type UNITY, VMAX or XtremIO

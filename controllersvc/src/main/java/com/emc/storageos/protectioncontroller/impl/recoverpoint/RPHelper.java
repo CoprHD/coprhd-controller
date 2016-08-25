@@ -27,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -1824,7 +1825,24 @@ public class RPHelper {
         // calculate the largest index
         int largest = 0;
         for (Volume journalVol : newStyleJournals) {
-            String[] parts = StringUtils.split(journalVol.getLabel(), VOL_DELIMITER);
+            String journalVolName = journalVol.getLabel();
+            // For journal volumes that are VPLEX volumes, if custom naming was enabled,
+            // then the journal volume may have an unexpected name. However, the backend
+            // volume is not custom named and will have the expected label, but with a 
+            // well-known suffix. We simply remove the suffix and compare against the backend
+            // volume name. If we use the VPLEX volume name and its name was customized, then
+            // we could end up with a duplicate name error when we go to prepare the backend
+            // volume for a new journal volume, such as when journal capacity is added to
+            // an RP protected volume. See Jira COP-24930.
+            if (journalVol.isVPlexVolume(_dbClient)) {
+                Volume journalBackendVol = VPlexUtil.getVPLEXBackendVolume(journalVol, true, _dbClient);
+                if (journalBackendVol != null) {
+                    journalVolName = journalBackendVol.getLabel();
+                    journalVolName = journalVolName.substring(0, journalVolName.lastIndexOf(
+                            VPlexBlockServiceApiImpl.SRC_BACKEND_VOL_LABEL_SUFFIX));
+                }
+            }
+            String[] parts = StringUtils.split(journalVolName, VOL_DELIMITER);
             try {
                 int idx = Integer.parseInt(parts[parts.length - 1]);
                 if (idx > largest) {

@@ -149,7 +149,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     private static final int MAX_VOLUMES_IN_CG = 1000;
-    private static final String SRC_BACKEND_VOL_LABEL_SUFFIX = "-0";
+    public static final String SRC_BACKEND_VOL_LABEL_SUFFIX = "-0";
     private static final String HA_BACKEND_VOL_LABEL_SUFFIX = "-1";
     private static final String MIGRATION_LABEL_SUFFIX = "m";
 

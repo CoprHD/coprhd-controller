@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1339,7 +1338,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, isi);
+                    IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }
 
@@ -1361,7 +1360,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, IsilonApi isi) {
+    private IsilonSmartQuota getQuotaDirectoryExpandedSmartQuota(QuotaDirectory quotaDir, Long qDirSize, Long fsSize, IsilonApi isi) {
         Long notificationLimit = 0L;
         Long softlimit = 0L;
         Long softGrace = 0L;
@@ -1378,7 +1377,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, null, false, null, qDirSize,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, fsSize, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
 
@@ -2555,8 +2554,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Gets the file system custom path value from controller configuration
      * 
-     * @param storage Isilon storage system
-     * @param args FileDeviceInputOutput object
+     * @param storage
+     *            Isilon storage system
+     * @param args
+     *            FileDeviceInputOutput object
      * @return evaluated custom path
      */
     private String getCustomPath(StorageSystem storage, FileDeviceInputOutput args) {

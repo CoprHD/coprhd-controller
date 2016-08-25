@@ -870,7 +870,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, null, false, null, capacity,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, capacity, false, null, capacity,
                 notificationLimit, softLimit, softGracePeriod);
     }
 

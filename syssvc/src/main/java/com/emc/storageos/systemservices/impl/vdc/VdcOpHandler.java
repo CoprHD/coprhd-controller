@@ -117,10 +117,6 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() {
-            if (isGeoConfigChange()) {
-                log.info("Geo config change detected. set rolling reboot to true");
-                setRollingRebootNeeded(true);
-            }
         }
     }
     
@@ -143,11 +139,7 @@ public abstract class VdcOpHandler {
                 targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
                 setRollingRebootNeeded(true);
             }
-            
-            if (isGeoConfigChange()) {
-                log.info("Geo config change detected. set concurrent reboot to true");
-                setConcurrentRebootNeeded(true);
-            }
+
             String ipsecKeyZk = targetVdcPropInfo.getProperty(Constants.IPSEC_KEY);
             String ipsecKeyLocal = localVdcPropInfo.getProperty(Constants.IPSEC_KEY);
             if (ipsecKeyLocal == null || !ipsecKeyLocal.equals(ipsecKeyZk)) {
@@ -1355,13 +1347,7 @@ public abstract class VdcOpHandler {
             coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
         }
     }
-    
-    protected boolean isGeoConfigChange() {
-        boolean isGeo =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                    || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
-        return isGeo && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
-    }
-    
+
     /**
      * Util class to make sure no one node applies configuration until all nodes get synced to local bootfs.
      */

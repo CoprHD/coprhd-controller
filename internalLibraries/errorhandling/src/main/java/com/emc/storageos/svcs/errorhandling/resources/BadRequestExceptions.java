@@ -2577,6 +2577,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotAllowedOnRPVolumes();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationOnlyAllowedOnActiveSite();

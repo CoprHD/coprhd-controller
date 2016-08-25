@@ -2571,7 +2571,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnRPVolumes();
 
@@ -2961,6 +2961,9 @@ public interface BadRequestExceptions {
     public BadRequestException bucketACLAlreadyExists(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException associateInitiatorMismatch(URI in, URI pIn);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3080,13 +3083,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidGroupOfInitiators(URI exportGroupURI, String nameList);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantExposeExportedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantExportSnapshotExposedAsVPLEXVolume(final String snapshotId);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVolumeName(final String volumeName);
 }

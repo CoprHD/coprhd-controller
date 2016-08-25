@@ -38,7 +38,6 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -71,8 +70,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
-import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
-import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Service providing APIs for host initiators.
@@ -162,6 +159,39 @@ public class InitiatorService extends TaskResourceService {
         _dbClient.persistObject(initiator);
         auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
+        return map(queryObject(Initiator.class, id, false));
+    }
+
+    /**
+     * associate a Host initiator to another.
+     * 
+     * @param id the URN of a ViPR initiator
+     * @param updateParam the parameter containing the new attributes
+     * @prereq none
+     * @brief Update initiator.
+     * @return the details of the updated host initiator.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @PUT
+    @Path("/{id}/associate/{associatedId}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public InitiatorRestRep associateInitiator(@PathParam("id") URI id,
+            @PathParam("associatedId") URI associatedId) throws DatabaseException {
+
+        if (id.compareTo(associatedId) == 0) {
+            APIException.badRequests.associateInitiatorMismatch(id, associatedId);
+        }
+        Initiator initiator = queryObject(Initiator.class, id, true);
+        Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
+        if (pairInitiator != null && initiator != null) {
+            initiator.setAssociatedInitiator(associatedId);
+            pairInitiator.setAssociatedInitiator(id);
+            _dbClient.updateObject(initiator);
+            _dbClient.updateObject(pairInitiator);
+            auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
+                    initiator.auditParameters());
+        }
         return map(queryObject(Initiator.class, id, false));
     }
 
@@ -329,7 +359,7 @@ public class InitiatorService extends TaskResourceService {
         String initiatorAlias = null;
         if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
-            //Actual Control
+            // Actual Control
             try {
                 initiatorAlias = controller.getInitiatorAlias(systemURI, id);
             } catch (Exception e) {
@@ -365,7 +395,7 @@ public class InitiatorService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias")
     public InitiatorAliasRestRep setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
-        //Basic Checks
+        // Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
 
@@ -393,7 +423,7 @@ public class InitiatorService extends TaskResourceService {
         if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
             try {
-                //Actual Control
+                // Actual Control
                 controller.setInitiatorAlias(systemURI, id, initiatorAlias);
             } catch (Exception e) {
                 _log.error("Unexpected error: Setting alias failed.", e);
@@ -402,7 +432,7 @@ public class InitiatorService extends TaskResourceService {
         } else {
             throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
         }
-        //Update the Initiator here..
+        // Update the Initiator here..
         if (initiatorAlias.contains(EMPTY_INITIATOR_ALIAS)) {// If the Initiator Alias contains the "/" character, the user has supplied
                                                              // different node and port names.
             initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
@@ -413,7 +443,7 @@ public class InitiatorService extends TaskResourceService {
         _dbClient.updateObject(initiator);
         return new InitiatorAliasRestRep(system.getSerialNumber(), initiatorAlias);
     }
-    
+
     @Override
     protected Initiator queryResource(URI id) {
         return queryObject(Initiator.class, id, false);

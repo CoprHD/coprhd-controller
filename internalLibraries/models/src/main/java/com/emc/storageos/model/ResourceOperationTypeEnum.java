@@ -205,6 +205,7 @@ public enum ResourceOperationTypeEnum {
     DELETE_SWIFT_CONTAINER("DELETE SWIFT CONTAINER", "delete swift container"),
     CREATE_INITIATOR("CREATE INITIATOR", "create initiator"),
     ADD_HOST_INITIATOR("ADD HOST INITIATOR", "add an initiator associated with a host"),
+    ADD_HOST_PAIRED_INITIATOR("ADD HOST PAIRED INITIATOR", "add an paired initiator associated with a host"),
     DELETE_INITIATOR("DELETE INITIATOR", "delete initiator"),
     CREATE_NETWORK_SYSTEM("CREATE NETWORKSYSTEM", "create a network system"),
     UPDATE_NETWORK_SYSTEM("UPDATE NETWORKSYSTEM", "update a network system"),
@@ -349,7 +350,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
     DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
     WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
-    WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow"),
+    WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");

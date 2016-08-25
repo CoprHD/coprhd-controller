@@ -791,7 +791,6 @@ public class ExportUtils {
         _log.info(String.format("Performing swap validation to ensure no RP bookmarks have been exported for consistency group %s.",
                 consistencyGroupUri));
 
-        // Do not allow a swap if there any bookmarks exported for the consistency group.
         URIQueryResultList snapshotUris = new URIQueryResultList();
         ContainmentConstraint constraint = ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup(consistencyGroupUri);
         dbClient.queryByConstraint(constraint, snapshotUris);
@@ -803,8 +802,15 @@ public class ExportUtils {
                 _log.info(String.format("Examining RP bookmark %s to see if it has been exported.", snapshot.getId()));
                 // We have found an RP bookmark. Now lets see if that bookmark has been exported. Using the same
                 // call that BlockSnapshotService uses to get snapshot exports.
-                ITLRestRepList exportList = ExportUtils.getBlockObjectInitiatorTargets(snapshot.getId(), dbClient, false);
-                if (exportList != null && exportList.getExportList() != null && !exportList.getExportList().isEmpty()) {
+                ContainmentConstraint exportGroupConstraint = ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(snapshot
+                        .getId());
+
+                URIQueryResultList exportGroupIdsForSnapshot = new URIQueryResultList();
+                dbClient.queryByConstraint(exportGroupConstraint, exportGroupIdsForSnapshot);
+
+                Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
+
+                if (exportGroupIdsForSnapshotIter != null && exportGroupIdsForSnapshotIter.hasNext()) {
                     // The consistency group has a bookmark that is already exported so fail the swap operation.
                     throw APIException.badRequests.cannotSwapWithExportedBookmarks(snapshot.getId(), consistencyGroupUri);
                 }

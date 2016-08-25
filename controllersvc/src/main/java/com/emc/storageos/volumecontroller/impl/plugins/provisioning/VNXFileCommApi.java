@@ -1345,7 +1345,7 @@ public class VNXFileCommApi {
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
     	// get the data mover
-    	boolean isMounted = isMountRequired;
+    	boolean isMounted = false;
         StorageHADomain dataMover = this.getDataMover(fileShare);
         if (null != dataMover) {
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());

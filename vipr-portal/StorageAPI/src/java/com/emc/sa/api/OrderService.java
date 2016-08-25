@@ -95,7 +95,9 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
-    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 60; // TODO: change to 5m
+
+    private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 60; // TODO: change default to 5m
+    private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
 
     private static final String LOCK_NAME = "orderscheduler";
 
@@ -158,6 +160,14 @@ public class OrderService extends CatalogTaggedResourceService {
         return new OrderResRepFilter(user, permissionsHelper);
     }
 
+    public void setScheduleInterval(int scheduleInterval) {
+        this.scheduleInterval = scheduleInterval;
+    }
+
+    public int getScheduleInterval() {
+        return scheduleInterval;
+    }
+
     /**
      * init method, this will be called by Spring framework after create bean successfully
      */
@@ -174,7 +184,7 @@ public class OrderService extends CatalogTaggedResourceService {
                         }
                     }
                 },
-                0, SCHEDULED_EVENTS_SCAN_INTERVAL, TimeUnit.SECONDS);
+                0, scheduleInterval, TimeUnit.SECONDS);
 
     }
 

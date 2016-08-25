@@ -113,6 +113,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
     private Map<String, FileStorageDevice> _devices;
 
+    private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
+
     private WorkflowService _workflowService;
 
     private RecordableEventManager _eventManager;
@@ -3663,6 +3665,24 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<URI> fileshareURIs = FileDescriptor.getFileSystemURIs(filesystems);
             for (URI uriFile : fileshareURIs) {
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
+                // unmount exports only if FULL delete
+                if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(filesystems.get(0).getDeleteType())) {
+                    // get all the mounts and generate steps for unmounting them
+                    List<MountInfo> mountList = getAllMountedExports(uriFile, null, true);
+                    for (MountInfo mount : mountList) {
+                        Object[] args = new Object[] { mount.getHostId(), mount.getFsId(), mount.getMountPath() };
+                        waitFor = createMethod(workflow, waitFor, UNMOUNT_FILESYSTEM_EXPORT_METHOD, null,
+                                "Unmounting path:" + mount.getMountPath(), fsObj.getStorageDevice(), args);
+                    }
+                } else {// Only remove the mounts from CoPRHD database if Inventory Only delete
+                    ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(uriFile);
+                    List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                            containmentConstraint);
+                    for (FileMountInfo fsMount : fsDBMounts) {
+                        fsMount.setInactive(true);
+                    }
+                    _dbClient.updateObject(fsDBMounts);
+                }
                 if (fsObj != null && fsObj.getMirrorfsTargets() != null) {
                     for (String mirrorTarget : fsObj.getMirrorfsTargets()) {
                         URI targetURI = URI.create(mirrorTarget);
@@ -4147,8 +4167,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
         for (MountInfo mount : mountList) {
             String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            if ((subDir == null || subDir.isEmpty()) && mount.getSubDirectory().equals(subDir)
-                    || "!nodir".equalsIgnoreCase(mount.getSubDirectory())) {
+            if ((subDir == null || subDir.isEmpty()) && "!nodir".equalsIgnoreCase(mount.getSubDirectory())
+                    || mount.getSubDirectory().equals(subDir)) {
                 for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
                     if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                         unmountList.add(mount);

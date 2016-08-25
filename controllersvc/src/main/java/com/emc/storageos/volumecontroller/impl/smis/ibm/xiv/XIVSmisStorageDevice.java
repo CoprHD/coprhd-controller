@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -190,6 +191,9 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         Volume firstVolume = volumes.get(0);
         Long capacity = firstVolume.getCapacity();
         boolean isThinlyProvisioned = firstVolume.getThinlyProvisioned();
+        
+        // check if volume size exceeds pool size
+        checkIfVolumeSizeExceedsPoolSize(firstVolume.getLabel(), capacity, volumes.size(), isThinlyProvisioned, storagePool, taskCompleter);
 
         String tenantName = "";
         try {
@@ -277,7 +281,39 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info(logMsgBuilder.toString());
     }
 
-    /*
+    /**
+     * Method to check whether volume size is exceeding pool size or not
+     * @param volumeName Volume Name
+     * @param capacity capacity of one volume
+     * @param size total no of volumes
+     * @param isThinlyProvisioned thin or thick provisioned
+     * @param storagePool Pool allocated to volume
+     * @param taskCompleter
+     */
+    private void checkIfVolumeSizeExceedsPoolSize(String volumeName, Long capacity, int size,
+            boolean isThinlyProvisioned, StoragePool storagePool, TaskCompleter taskCompleter) {
+        Long totalCapacity = capacity * size;
+        Long maximumAllowedSize = 0L;
+        if (isThinlyProvisioned) {
+            maximumAllowedSize = storagePool.getMaximumThinVolumeSize();
+        } else {
+            maximumAllowedSize = storagePool.getMaximumThickVolumeSize();
+        }
+
+        Long maximumAllowedSizeInBytes = maximumAllowedSize * 1024;
+        if (maximumAllowedSizeInBytes < totalCapacity) {
+            String errorMessage = MessageFormat.format(
+                    "Problem in creating volume {0} : Supplied Size {1} is higher than the maximum allowed size {2}",
+                    volumeName, totalCapacity, maximumAllowedSizeInBytes);
+            _log.error(errorMessage);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errorMessage, null);
+            taskCompleter.error(_dbClient, serviceError);
+            throw DeviceControllerException.exceptions.volumeSizeExceedingPoolSize(volumeName, totalCapacity, maximumAllowedSizeInBytes);
+        }
+
+    }
+
+	/*
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExpandVolume

@@ -27,7 +27,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -1838,8 +1837,7 @@ public class RPHelper {
                 Volume journalBackendVol = VPlexUtil.getVPLEXBackendVolume(journalVol, true, _dbClient);
                 if (journalBackendVol != null) {
                     journalVolName = journalBackendVol.getLabel();
-                    journalVolName = journalVolName.substring(0, journalVolName.lastIndexOf(
-                            VPlexBlockServiceApiImpl.SRC_BACKEND_VOL_LABEL_SUFFIX));
+                    journalVolName = journalVolName.substring(0, journalVolName.lastIndexOf("-0"));
                 }
             }
             String[] parts = StringUtils.split(journalVolName, VOL_DELIMITER);

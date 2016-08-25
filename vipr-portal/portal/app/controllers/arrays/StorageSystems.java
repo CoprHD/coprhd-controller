@@ -111,6 +111,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
     protected static final String SCALEIO = "scaleio";
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
+    private static final String HTTPS = "https";
 
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
@@ -915,6 +916,8 @@ public class StorageSystems extends ViprResourceController {
         
         public URL url;
 
+        public String secondaryURL;
+
         public StorageSystemForm() {
             this.userPassword = "";
             this.confirmPassword = "";
@@ -1042,11 +1045,33 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;
             storageProviderForm.secretKey = this.secretKey;
+            storageProviderForm.secondaryURL = this.secondaryURL;
 
             return storageProviderForm.create();
         }
 
+        public void setXIVParameters() {
+            if (StringUtils.isNotEmpty(this.hyperScaleUsername)) {
+                this.secondaryUsername = this.hyperScaleUsername;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScalePassword)) {
+                this.secondaryPassword = this.hyperScalePassword;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScalePasswordConfirm)) {
+                this.secondaryPasswordConfirm = this.hyperScalePasswordConfirm;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+                try {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
+                }catch(Exception e) {
+                    flash.error("Unable to parse Hyper Scale Manager URL");
+                }
+                this.secondaryURL = url.toString();
+            }
+        }
+
         public Task<?> save() {
+            setXIVParameters();
             if (isNew()) {
                 if (isStorageProviderManaged()) {
                     return createStorageProvider();

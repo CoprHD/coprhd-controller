@@ -27,6 +27,7 @@ public class Host extends AbstractComputeSystem {
     }
 
     private String _type;
+    private Boolean isVirtualMachine;
     private String _hostName;
     private Integer _portNumber;
     private String _userName;
@@ -75,6 +76,27 @@ public class Host extends AbstractComputeSystem {
     public void setType(String type) {
         this._type = type;
         setChanged("type");
+    }
+
+    /**
+     * Gets the isVirtualMachine flag. isVirtualMachine indicates if host is a physical or virtual
+     * 
+     * 
+     * @return true if host is virtual, else false
+     */
+    @Name("isVirtualMachine")
+    public Boolean getIsVirtualMachine() {
+        return isVirtualMachine;
+    }
+
+    /**
+     * Sets the isVirtualMachine flag. isVirtualMachine indicates if host is a physical or virtual
+     * 
+     * @param isVirtualMachine is true if host is virtual.
+     */
+    public void setIsVirtualMachine(Boolean isVirtualMachine) {
+        this.isVirtualMachine = isVirtualMachine;
+        setChanged("isVirtualMachine");
     }
 
     /**

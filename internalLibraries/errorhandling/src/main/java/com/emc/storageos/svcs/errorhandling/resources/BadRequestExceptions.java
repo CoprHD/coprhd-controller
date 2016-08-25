@@ -2964,6 +2964,9 @@ public interface BadRequestExceptions {
     public BadRequestException bucketACLAlreadyExists(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException associateInitiatorMismatch(URI in, URI pIn);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

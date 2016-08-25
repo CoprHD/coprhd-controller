@@ -133,6 +133,7 @@ import com.emc.storageos.model.host.IpInterfaceCreateParam;
 import com.emc.storageos.model.host.IpInterfaceList;
 import com.emc.storageos.model.host.IpInterfaceParam;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
+import com.emc.storageos.model.host.PairedInitiatorCreateParam;
 import com.emc.storageos.model.host.ProvisionBareMetalHostsParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -309,7 +310,7 @@ public class HostService extends TaskResourceService {
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
@@ -857,6 +858,87 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
         return toTask(initiator, taskId, op);
+    }
+
+    /**
+     * Creates a new paired initiator for a host.
+     *
+     * @param id the URN of a ViPR Virtual Machine
+     * @param createParam the details of the initiator
+     * @brief Create VM Initiator
+     * @return the details of the host initiator when creation
+     *         is successfully.
+     * @throws DatabaseException when a database error occurs.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/paired-initiators")
+    public TaskResourceRep createPairedInitiator(@PathParam("id") URI id,
+            PairedInitiatorCreateParam createParam) throws DatabaseException {
+        Host host = queryObject(Host.class, id, true);
+        Cluster cluster = null;
+        validatePairedInitiatorData(createParam);
+        // create and populate the initiator
+        Initiator firstInitiator = new Initiator();
+        Initiator secondInitiator = new Initiator();
+        firstInitiator.setHost(id);
+
+        firstInitiator.setHost(URIUtil.NULL_URI);
+        firstInitiator.setHostName(host.getHostName());
+        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            cluster = queryObject(Cluster.class, host.getCluster(), false);
+            firstInitiator.setClusterName(cluster.getLabel());
+        }
+        firstInitiator.setId(URIUtil.createId(Initiator.class));
+        populateInitiator(firstInitiator, createParam.getFirstInitiator());
+
+        secondInitiator.setHost(id);
+        secondInitiator.setHost(URIUtil.NULL_URI);
+        secondInitiator.setHostName(host.getHostName());
+        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            cluster = queryObject(Cluster.class, host.getCluster(), false);
+            secondInitiator.setClusterName(cluster.getLabel());
+        }
+        secondInitiator.setId(URIUtil.createId(Initiator.class));
+        populateInitiator(secondInitiator, createParam.getSecondInitiator());
+        firstInitiator.setAssociatedInitiator(secondInitiator.getId());
+        secondInitiator.setAssociatedInitiator(firstInitiator.getId());
+        _dbClient.createObject(firstInitiator);
+        _dbClient.createObject(secondInitiator);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, firstInitiator.getId(), taskId,
+                ResourceOperationTypeEnum.ADD_HOST_PAIRED_INITIATOR);
+
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())
+                && (cluster == null || cluster.getAutoExportEnabled())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.addInitiatorsToExport(firstInitiator.getHost(),
+                    Arrays.asList(firstInitiator.getId(), secondInitiator.getId()), taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, firstInitiator.getId(), taskId);
+        }
+
+        auditOp(OperationTypeEnum.CREATE_HOST_PAIRED_INITIATOR, true, null,
+                firstInitiator.auditParameters());
+        return toTask(firstInitiator, taskId, op);
+    }
+
+    private void validatePairedInitiatorData(PairedInitiatorCreateParam createParam) {
+        validateInitiatorData(createParam.getFirstInitiator(), null);
+        validateInitiatorData(createParam.getSecondInitiator(), null);
+
+        if (createParam.getFirstInitiator().getPort().equalsIgnoreCase(createParam.getSecondInitiator().getPort())) {
+            throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getPort(), "initiator_port");
+        }
+        if (createParam.getFirstInitiator().getName().equalsIgnoreCase(createParam.getSecondInitiator().getName())) {
+            throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getName(), "name");
+        }
+
     }
 
     /**
@@ -1893,7 +1975,7 @@ public class HostService extends TaskResourceService {
                          * slotIdSet.add(slotId);
                          * slotIdAvailabilityMap.put(availabilityCount,slotIdSet);
                          * }
-                         *
+                         * 
                          * Iterator<Integer> iterator = slotIdAvailabilityMap.keySet().iterator();
                          * while(iterator.hasNext()){
                          * Integer availabilityCount = iterator.next();
@@ -2166,10 +2248,8 @@ public class HostService extends TaskResourceService {
      * Method to check if the selected image is present on the
      * ComputeImageServer which is associated with the CoputeSystem
      *
-     * @param cs
-     *            {@link ComputeSystem}
-     * @param img
-     *            {@link ComputeImage} instance selected
+     * @param cs {@link ComputeSystem}
+     * @param img {@link ComputeImage} instance selected
      * @throws APIException
      */
     private void verifyImagePresentOnImageServer(ComputeSystem cs,

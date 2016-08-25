@@ -475,9 +475,12 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
             impl.enableDirectAccess(cgCopyUID);
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
+
+            // Wait for the CG copy state to change to DIRECT_ACCESS
+            logger.info(String.format("Waiting for copy %s in consistency group %s to change access state to DIRECT_ACCESS.", cgCopyName,
+                    cgName));
+            waitForCGCopyState(impl, cgCopyUID, false);
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
             throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         }
     }
@@ -1003,11 +1006,13 @@ public class RecoverPointImageManagementUtils {
         final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
 
         List<ImageAccessMode> accessModes = new ArrayList<ImageAccessMode>();
+        if (accessMode != null) {
+            accessModes = Arrays.asList(accessMode);
+        }
 
         logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
-        if (accessMode != null) {
-            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessMode);
-            accessModes = Arrays.asList(accessMode);
+        if (!accessModes.isEmpty()) {
+            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessModes.toString());
         } else {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: DIRECT_ACCESS or NO_ACCESS");
         }

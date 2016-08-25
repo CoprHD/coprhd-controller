@@ -140,6 +140,9 @@ public class HostMapper {
         HostRestRep to = new HostRestRep();
         mapDiscoveredSystemObjectFields(from, to);
         to.setHostName(from.getHostName());
+        if (from.getIsVirtualMachine() != null) {
+            to.setIsVirtualMachine(from.getIsVirtualMachine());
+        }
         to.setType(from.getType());
         to.setUsername(from.getUsername());
         to.setPortNumber(from.getPortNumber());

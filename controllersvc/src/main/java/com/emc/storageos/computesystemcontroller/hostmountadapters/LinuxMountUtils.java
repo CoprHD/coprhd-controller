@@ -35,6 +35,8 @@ import com.iwave.ext.linux.model.MountPoint;
 public class LinuxMountUtils {
     private static final Log _log = LogFactory.getLog(LinuxMountUtils.class);
 
+    private static final int STD_TIMEOUT = 300;
+
     private LinuxSystemCLI cli;
     private Host host;
 
@@ -64,7 +66,7 @@ public class LinuxMountUtils {
     }
 
     public void mountPath(String path) throws InternalException {
-        MountCommand command = new MountCommand(300);
+        MountCommand command = new MountCommand(STD_TIMEOUT);
         command.addArgument("-v");
         command.setPath(path);
         command.addArgument("; if [ $? -eq 124 ] ; then >&2 echo TIMEOUT ; else >&2 echo SUCCESSFUL ; fi");
@@ -128,7 +130,7 @@ public class LinuxMountUtils {
     }
 
     public void unmountPath(String path) throws InternalException {
-        UnmountCommand command = new UnmountCommand(300);
+        UnmountCommand command = new UnmountCommand(STD_TIMEOUT);
         command.setPath(path);
         command.addArgument("; if [ $? -eq 124 ] ; then >&2 echo TIMEOUT ; else >&2 echo SUCCESSFUL ; fi");
         _log.info("unmount command:" + command.getResolvedCommandLine());

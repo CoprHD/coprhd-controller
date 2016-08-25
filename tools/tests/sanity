@@ -4986,8 +4986,6 @@ recoverpoint_direct_access_test()
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
 
-        sleep 20
-
         secho 'Setting access mode to direct access a second time'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
 
@@ -5088,8 +5086,6 @@ recoverpoint_direct_access_test()
                     secho 'Setting access mode to direct access for target virtual array '${tgt_varray}
                     run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${target_vol} rp --am DIRECT_ACCESS
                     
-                    sleep 10
-
                     secho 'Swap/swap-back while each target copies are in direct access mode'
                     run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${target_vol} rp
                     sleep 10
@@ -5104,8 +5100,6 @@ recoverpoint_direct_access_test()
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
  
-        sleep 20
-
         secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
         run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
@@ -5121,8 +5115,6 @@ recoverpoint_direct_access_test()
         run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
         secho 'Setting access mode to direct access using consistency group API'
         run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]} --am DIRECT_ACCESS
-
-        sleep 20
 
         secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
         run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}

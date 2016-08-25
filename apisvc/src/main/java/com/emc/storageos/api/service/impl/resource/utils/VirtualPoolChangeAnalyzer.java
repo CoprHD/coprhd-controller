@@ -447,8 +447,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // require a migration of the data: protocols,
         // provisioningType, useMatchedPools, arrayInfo, driveType,
         // autoTierPolicyName, host io limits, host io bandwidth,
-        // thin volume allocation, assigned storage pools.
-                
+        // thin volume allocation, assigned storage pools.                
         String[] include = new String[] { PROTOCOLS, PROVISIONING_TYPE,
                 USE_MATCHED_POOLS, ARRAY_INFO,
                 DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED,
@@ -690,7 +689,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] include = new String[] { TYPE, VARRAYS,
                 REF_VPOOL, MIRROR_VPOOL,
                 FAST_EXPANSION, ACLS,
-                INACTIVE };
+                INACTIVE, PROTOCOLS, PROVISIONING_TYPE,
+                USE_MATCHED_POOLS, ARRAY_INFO,
+                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, 
+                HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED,
+                IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED,
+                ASSIGNED_STORAGE_POOLS };
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append("These target virtual pool differences are invalid: ");

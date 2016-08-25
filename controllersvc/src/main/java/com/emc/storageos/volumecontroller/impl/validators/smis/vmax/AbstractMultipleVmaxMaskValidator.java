@@ -58,7 +58,7 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
         for (T dataObject : getDataObjects()) {
             CIMObjectPath path = getCIMObjectPath(dataObject);
 
-            if (path == null) {
+            if (path == null || getHelper().checkExists(storage, path, false, false) == null) {
                 log.warn("No CIM object path exists for {}", dataObject.getId());
                 continue;
             }
@@ -75,13 +75,12 @@ abstract class AbstractMultipleVmaxMaskValidator<T extends DataObject> extends A
                 while (assocMasks.hasNext()) {
                     CIMInstance assocMask = assocMasks.next();
                     String name = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
-
-                    log.info("{} has associated mask {}", friendlyId, name);
-
-                    if (exportMask.getMaskName().equals(name)) {
+                    String systemName = (String) assocMask.getPropertyValue(SmisConstants.CP_SYSTEM_NAME);
+                    if (exportMask.getMaskName().equals(name) || !systemName.contains(storage.getSerialNumber())) {
                         continue;
                     }
 
+                    log.info("{} has associated mask {}", friendlyId, name);
                     if (!validate(mvInstance, assocMask)) {
                         // This will cause DefaultValidator or ChainValidator to throw an exception.
                         getLogger().logDiff(friendlyId, "<associated masks>", exportMask.getMaskName(), name);

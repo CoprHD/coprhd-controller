@@ -629,7 +629,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Restoring file system : %s from snapshot: %s failed.", fs, snapshot), ex);
             String opName = ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(fs.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.restoreFSFromSnapshotFailed(fs.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }
@@ -653,7 +653,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Deleting file System : %s snapshot: %s failed.", snap.getParent(), uri), ex);
             String opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(uri.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteFSSnapshotFailed(uri.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }
@@ -687,7 +687,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("Deleting file system snapshot : %s share: %s  ACLs: %s failed.", uri, shareName), ex);
-            ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(uri.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteShareACLFailed(uri.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }

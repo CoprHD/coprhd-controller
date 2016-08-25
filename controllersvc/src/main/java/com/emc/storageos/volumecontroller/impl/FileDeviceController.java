@@ -2947,7 +2947,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             while (shareAclIter.hasNext()) {
 
                 CifsShareACL shareAcl = shareAclIter.next();
-                if (args.getShareName().equals(shareAcl.getShareName())) {
+                if (shareAcl != null && args.getShareName().equals(shareAcl.getShareName())) {
                     acls.add(shareAcl);
                 }
             }

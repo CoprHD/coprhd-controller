@@ -2098,66 +2098,46 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         return false;
     }
 
-    $scope.$watch('guideVisible', function(newValue, oldValue) {
-        if (newValue != oldValue){
-            if(newValue){
-                openMenu();
-                $(colWiz).popover('hide');
-            }
-            else {
-                closeMenus();
-                $(colWiz).popover('show');
-            }
-        }
-        if(newValue) {
-            $('.rootNav , .navMenu a').on('click', function(event) {
-                $('.wizard-side-next').popover('show');
-                return false;
-            });
-        } else {
-             $('.rootNav , .navMenu a').off('click');
-        }
-    });
     var PINNED_COOKIE = 'isMenuPinned';
-        var MAIN_MENU = '#mainMenu';
-        var NAV = '.rootNav';
-        var MAIN_MENU_NAV = MAIN_MENU + ' ' + NAV;
-        var MENU = '.navMenu';
-        var MENU_NAME = 'subnav';
-        var MENU_PIN = '.menuPin';
-        var CONTENT_AREA = '#contentArea';
+    var MAIN_MENU = '#mainMenu';
+    var NAV = '.rootNav';
+    var MAIN_MENU_NAV = MAIN_MENU + ' ' + NAV;
+    var MENU = '.navMenu';
+    var MENU_NAME = 'subnav';
+    var MENU_PIN = '.menuPin';
+    var CONTENT_AREA = '#contentArea';
 
-        // --- CSS Classes ---
-        var MAIN_MENU_OPEN = 'selected';
-        var MENU_OPEN = 'menu-open';
-        var MENU_PINNED = 'menu-pinned';
-        var ACTIVE_INDICATOR = 'blueArrow';
+    // --- CSS Classes ---
+    var MAIN_MENU_OPEN = 'selected';
+    var MENU_OPEN = 'menu-open';
+    var MENU_PINNED = 'menu-pinned';
+    var ACTIVE_INDICATOR = 'blueArrow';
 
-        function openMenu() {
-            $menu = $('a.rootNav.active');
-            closeMenus();
-            var name = $menu.data(MENU_NAME);
-            if (name) {
-                var $subMenu = $('#' + name);
-                if ($subMenu) {
-                    $menu.addClass(MAIN_MENU_OPEN);
-                    $subMenu.addClass(MENU_OPEN);
-                    $(CONTENT_AREA).addClass(MENU_OPEN);
-                    $(CONTENT_AREA).addClass(MENU_PINNED);
-                    $("#wizard").addClass('guide-menuopen');
-                    createCookie(PINNED_COOKIE, 'true', 'session');
-                }
+    function openMenu() {
+        $menu = $('a.rootNav.active');
+        closeMenus();
+        var name = $menu.data(MENU_NAME);
+        if (name) {
+            var $subMenu = $('#' + name);
+            if ($subMenu) {
+                $menu.addClass(MAIN_MENU_OPEN);
+                $subMenu.addClass(MENU_OPEN);
+                $(CONTENT_AREA).addClass(MENU_OPEN);
+                $(CONTENT_AREA).addClass(MENU_PINNED);
+                $("#wizard").addClass('guide-menuopen');
+                createCookie(PINNED_COOKIE, 'true', 'session');
             }
-            //updateActiveIndicator();
         }
-            function closeMenus() {
-                createCookie(PINNED_COOKIE, 'false', 'session');
-                $(MAIN_MENU_NAV).removeClass(MAIN_MENU_OPEN);
-                $(MENU).removeClass(MENU_OPEN);
-                $(CONTENT_AREA).removeClass(MENU_OPEN);
-                $("#wizard").removeClass('guide-menuopen');
-                //updateActiveIndicator();
-            }
+        //updateActiveIndicator();
+    }
+    function closeMenus() {
+        createCookie(PINNED_COOKIE, 'false', 'session');
+        $(MAIN_MENU_NAV).removeClass(MAIN_MENU_OPEN);
+        $(MENU).removeClass(MENU_OPEN);
+        $(CONTENT_AREA).removeClass(MENU_OPEN);
+        $("#wizard").removeClass('guide-menuopen');
+        //updateActiveIndicator();
+    }
     function isMenuOpened() {
         var elements = $('div.'+MENU_OPEN);
         if (elements.length > 0) {
@@ -2200,9 +2180,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
 
     });
-
-
-
 
     function setActiveMenu(name,parent) {
         $(".navMenu .active , #mainMenu .active").removeClass("active");
@@ -2247,5 +2224,51 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         content : translate("gettingStarted.step.popover"),
         selector : '.wizard-side-next'
 
+    });
+
+    var guideMonitor;
+
+    var checkCookieChanged = function() {
+
+        return function() {
+
+            var currentCookie = readCookie(cookieKey);
+            console.log("running");
+
+            if (currentCookie !== angular.toJson(cookieObject)) {
+
+            alert("Cookie Changed!\nPage will be refreshed.");
+            window.clearInterval(guideMonitor);
+            $window.location.reload(true);
+
+
+            }
+        };
+    }();
+
+
+
+
+    $scope.$watch('guideVisible', function(newValue, oldValue) {
+        if (newValue != oldValue){
+            if(newValue){
+                openMenu();
+                $(colWiz).popover('hide');
+            }
+            else {
+                closeMenus();
+                $(colWiz).popover('show');
+            }
+        }
+        if(newValue) {
+            $('.rootNav , .navMenu a').on('click', function(event) {
+                $('.wizard-side-next').popover('show');
+                return false;
+            });
+            guideMonitor = window.setInterval(checkCookieChanged, 1000);
+        } else {
+            window.clearInterval(guideMonitor);
+            $('.rootNav , .navMenu a').off('click');
+        }
     });
 });

@@ -3088,7 +3088,7 @@ public interface BadRequestExceptions {
     public BadRequestException cantExportSnapshotExposedAsVPLEXVolume(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotSwapWithExportedBookmarks(final URI snapshotId, final URI consistencyGroupId);
+    public BadRequestException cannotPerformOperationWithExportedBookmarks(final URI snapshotId, final URI consistencyGroupId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidConsistencyGroup();

@@ -788,7 +788,7 @@ public class ExportUtils {
             throw APIException.badRequests.invalidConsistencyGroup();
         }
 
-        _log.info(String.format("Performing swap validation to ensure no RP bookmarks have been exported for consistency group %s.",
+        _log.info(String.format("Performing validation to ensure no RP bookmarks have been exported for consistency group %s.",
                 consistencyGroupUri));
 
         URIQueryResultList snapshotUris = new URIQueryResultList();
@@ -811,13 +811,13 @@ public class ExportUtils {
                 Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
 
                 if (exportGroupIdsForSnapshotIter != null && exportGroupIdsForSnapshotIter.hasNext()) {
-                    // The consistency group has a bookmark that is already exported so fail the swap operation.
-                    throw APIException.badRequests.cannotSwapWithExportedBookmarks(snapshot.getId(), consistencyGroupUri);
+                    // The consistency group has a bookmark that is already exported so fail the operation.
+                    throw APIException.badRequests.cannotPerformOperationWithExportedBookmarks(snapshot.getId(), consistencyGroupUri);
                 }
             }
         }
 
-        _log.info(String.format("No RP bookmarks have been exported for consistency group %s.  Swap operation may proceed.",
+        _log.info(String.format("No RP bookmarks have been exported for consistency group %s.",
                 consistencyGroupUri));
     }
 }

@@ -219,8 +219,9 @@ angular.module("portalApp").controller({
         $scope.scheduler.dayOfMonth = 1
         current = new Date().getTime();                
         $scope.scheduler.startDate = formatDate(current, "YYYY-MM-DD");
-        $scope.scheduler.startTime = '00:00';
+        $scope.scheduler.startTime = formatDate(current, "HH:mm");;
         $scope.scheduler.maxNumOfCopies = 5;
+        $scope.scheduler.currentTimezoneOffsetInMins = new Date().getTimezoneOffset();
         
         $scope.isSchedulerEnabled = function() {
            return $scope.schedulerEnabled;
@@ -1506,6 +1507,16 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
 });
 
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
+    $scope.pad = function(number) {
+       return (number < 10 ? '0' : '') + number
+    }
+    
+    $scope.scheduler.currentTimezoneOffsetInMins = new Date().getTimezoneOffset();
+    dateStr = $scope.scheduler.startDate + "T" + $scope.scheduler.startTime + ":00Z"
+    startDateTime = new Date(dateStr);
+    $scope.scheduler.startDate = startDateTime.getFullYear() + "-" + $scope.pad(startDateTime.getMonth() + 1) + "-" + $scope.pad(startDateTime.getDate());
+    $scope.scheduler.startTime = $scope.pad(startDateTime.getHours()) + ":" + $scope.pad(startDateTime.getMinutes());
+    
     $scope.isSchedulerEnabled = function() {
        return true;
     };

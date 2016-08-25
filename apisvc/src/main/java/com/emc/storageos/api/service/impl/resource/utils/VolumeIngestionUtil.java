@@ -3218,8 +3218,9 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Checks if a volume was ingested. An exception will be
-     * thrown if the given operation is not supported on ingested volumes.
+     * Checks if a volume was ingested virtual-volume-only. An exception will be
+     * thrown if the given operation is not supported on volumes ingested without
+     * backend volumes.
      *
      * @param volume the Volume in question
      * @param operation a text description of the operation
@@ -3228,7 +3229,7 @@ public class VolumeIngestionUtil {
      */
     public static void checkOperationSupportedOnIngestedVolume(Volume volume,
             ResourceOperationTypeEnum operation, DbClient dbClient) {
-        if (volume.isIngestedVolume(dbClient)) {
+        if (volume.isIngestedVolumeWithoutBackend(dbClient)) {
             switch (operation) {
                 case CREATE_VOLUME_FULL_COPY:
                 case CREATE_VOLUME_SNAPSHOT:
@@ -3237,7 +3238,7 @@ public class VolumeIngestionUtil {
                 case CHANGE_BLOCK_VOLUME_VARRAY:
                 case UPDATE_CONSISTENCY_GROUP:
                 case CREATE_SNAPSHOT_SESSION:
-                    _logger.error("Operation {} is not permitted on ingested volumes.", operation.getName());
+                    _logger.error("Operation {} is not permitted on ingested VPLEX volumes without backend volumes.", operation.getName());
                     throw APIException.badRequests.operationNotPermittedOnIngestedVolume(
                             operation.getName(), volume.getLabel());
                 default:
@@ -4223,7 +4224,7 @@ public class VolumeIngestionUtil {
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, dbClient);
-        clearReplicaFlagsInIngestionContext(requestContext, volumes);
+        clearReplicaFlagsInIngestionContext(requestContext, volumes, dbClient);
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
@@ -4407,15 +4408,17 @@ public class VolumeIngestionUtil {
      *
      * @param requestContext current unManagedVolume Ingestion context.
      * @param volumes RP volumes
+     * @param dbClient database client
      */
-    public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes) {
+    public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes,
+            DbClient dbClient) {
         // We need to look for all snapshots and snapshot session in the contexts related to the rp volumes and its backend volumes and
         // clear their flags.
         _logger.info("Clearing flags of replicas in the context");
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            if (RPHelper.isVPlexVolume(volume) && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+            if (RPHelper.isVPlexVolume(volume, dbClient) && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                 StringSet associatedVolumes = volume.getAssociatedVolumes();
                 rpVolumes.addAll(associatedVolumes);
             }

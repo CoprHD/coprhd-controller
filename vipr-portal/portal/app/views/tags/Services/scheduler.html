@@ -1,3 +1,5 @@
+   <input type="hidden" name="scheduler.currentTimezoneOffsetInMins" value="{{scheduler.currentTimezoneOffsetInMins}}"/>
+	   	      
    <div class="form-group" ng-if="isSchedulerEnabled()">
      <label class="control-label col-sm-3">&{"scheduler.startDate"}:</label>
      <div class="col-sm-6 controls">
@@ -11,6 +13,9 @@
 	     	   <input type="hidden" name="scheduler.startTime" value="{{scheduler.startTime}}"/>
 	     	</div>
          </div>
+         <div class="row col-gap-sm">
+	        <span class="help-block">&{"scheduler.startDate.helpText"}</span>
+	    </div>
      </div>
    </div>
    

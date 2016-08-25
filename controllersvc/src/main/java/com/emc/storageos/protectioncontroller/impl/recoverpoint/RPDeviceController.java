@@ -57,6 +57,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -118,6 +119,7 @@ import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -855,6 +857,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // we need to fetch the correct internal site names and other site related parameters from the
                     // backing volume.
                     StringSet backingVolumes = volume.getAssociatedVolumes();
+                    if (null == backingVolumes || backingVolumes.isEmpty()) {
+                        _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                        throw InternalServerErrorException.
+                            internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                    }
                     for (String backingVolumeStr : backingVolumes) {
                         Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backingVolumeStr));
                         CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
@@ -1217,7 +1224,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // corresponding to that.
                     // For RP we will try and use as many Storage ports as possible.
                     Map<URI, List<StoragePort>> initiatorPortMap = getInitiatorPortsForArray(rpNetworkToInitiatorsMap, storageSystemURI,
-                            varrayURI);
+                            varrayURI, rpSiteName);
 
                     for (URI networkURI : initiatorPortMap.keySet()) {
                         for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
@@ -2013,7 +2020,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // If MetroPoint is enabled we need to create exports for each leg of the VPLEX.
                         // Get the associated volumes and add them to the list so we can create RPExports
                         // for each one.
-                        for (String volumeId : volume.getAssociatedVolumes()) {
+                        StringSet backingVolumes = volume.getAssociatedVolumes();
+                        if (null == backingVolumes || backingVolumes.isEmpty()) {
+                            _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                            throw InternalServerErrorException.
+                                internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                        }
+                        for (String volumeId : backingVolumes) {
                             Volume vol = _dbClient.queryObject(Volume.class, URI.create(volumeId));
 
                             // Check to see if we only want to export to the HA side of the RP+VPLEX setup
@@ -6284,7 +6297,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return Map<URI, List<StoragePort>> A map of Network URI to a List<StoragePort>
      */
     private Map<URI, List<StoragePort>> getInitiatorPortsForArray(Map<URI, Set<Initiator>> rpNetworkToInitiatorMap, URI arrayURI,
-            URI varray) throws ControllerException {
+            URI varray, String internalSiteName) throws ControllerException {
 
         Map<URI, List<StoragePort>> initiatorMap = new HashMap<URI, List<StoragePort>>();
 
@@ -6318,16 +6331,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // Get all the ports corresponding to the network that the RP initiators are in.
         // we will use all available ports
         for (URI rpInitiatorNetworkURI : rpNetworkToInitiatorMap.keySet()) {
-            if (arrayTargetMap.keySet().contains(rpInitiatorNetworkURI)) {
-                initiatorMap.put(rpInitiatorNetworkURI, arrayTargetMap.get(rpInitiatorNetworkURI));
-            }
+    		if (arrayTargetMap.keySet().contains(rpInitiatorNetworkURI)) {            	
+    			initiatorMap.put(rpInitiatorNetworkURI, arrayTargetMap.get(rpInitiatorNetworkURI));
+    		}        	
         }
 
         // If there are no initiator ports, fail the operation, because we cannot zone.
-        if (initiatorMap.isEmpty()) {
-            Set<Initiator> rpInitiatorSet = rpNetworkToInitiatorMap.get(rpNetworkToInitiatorMap.keySet().iterator().next());
-            String rpSiteName = rpInitiatorSet.iterator().next().getHostName();
-            throw RecoverPointException.exceptions.getInitiatorPortsForArrayFailed(rpSiteName, arrayURI.toString());
+        if (initiatorMap.isEmpty()) {        
+            throw RecoverPointException.exceptions.getInitiatorPortsForArrayFailed(internalSiteName, 
+            		_dbClient.queryObject(StorageSystem.class, arrayURI).getLabel());
         }
 
         return initiatorMap;
@@ -6401,7 +6413,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (RPHelper.isVPlexVolume(volume)) {
+        if (RPHelper.isVPlexVolume(volume, _dbClient) 
+                && (null != volume.getAssociatedVolumes())
+                && (!volume.getAssociatedVolumes().isEmpty())) {
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", volume.getLabel(),
                     volume.getId()));
             VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
@@ -6793,7 +6807,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (URI volumeURI : volumeURIs) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
 
-                if (RPHelper.isVPlexVolume(volume)) {
+                if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                     // We might need to update the vpools of the backing volumes after the
                     // change vpool operation to remove protection
                     VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolURI, _dbClient);
@@ -6989,8 +7003,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            output all vplex volumes whose backend volumes are not in RG
      */
     private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
-        if (RPHelper.isVPlexVolume(volume)) {
+        if (RPHelper.isVPlexVolume(volume, _dbClient)) {
             StringSet backends = volume.getAssociatedVolumes();
+            if (null == backends || backends.isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
             for (String backendId : backends) {
                 URI backendUri = URI.create(backendId);
                 allVolumes.add(backendUri);

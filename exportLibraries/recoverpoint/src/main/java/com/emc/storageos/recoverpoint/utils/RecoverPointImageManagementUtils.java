@@ -9,9 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,18 +335,16 @@ public class RecoverPointImageManagementUtils {
         String cgCopyName = null;
 
         try {
-
-            Map<String, String> disabledWWNs = new HashMap<String, String>();
             cgCopyName = impl.getGroupCopyName(cgCopy);
             cgName = impl.getGroupName(cgCopy.getGroupUID());
 
             boolean startTransfer = true;
-            logger.info("Disable the image on copy name: " + cgCopyName + " for CG Name: " + cgName);
+            logger.info(String.format("Attempting to disable the image for copy %s in consistency group %s", cgCopyName, cgName));
             try {
                 impl.disableImageAccess(cgCopy, startTransfer);
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 // Try again
-                logger.info("Disable the image failed for copy name: " + cgCopyName + " for CG Name: " + cgName + ". Try again");
+                logger.info(String.format("Disable the image failed for copy %s in consistency group %s. Try again", cgCopyName, cgName));
                 try {
                     Thread.sleep(Long.valueOf(disableRetrySleepTimeSeconds * numMillisInSecond));
                 } catch (InterruptedException e1) {
@@ -358,7 +354,7 @@ public class RecoverPointImageManagementUtils {
             }
 
             waitForDisableToComplete(impl, cgCopyName, cgName, cgCopy);
-            logger.info("Successful disable of " + disabledWWNs.size() + " target LUNs.");
+            logger.info(String.format("Successfully disabled image for copy %s in consistency group %s", cgCopyName, cgName));
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDisableCopy(cgCopyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {

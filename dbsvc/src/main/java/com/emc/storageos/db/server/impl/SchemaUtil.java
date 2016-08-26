@@ -575,9 +575,18 @@ public class SchemaUtil {
     /**
      * Checks all required CF's against keyspace definition. Any missing
      * CF's are created on the fly.
-     *
+     * Note: this method does not require all nodes converge to the same schema version
+     * It only require there's only one schema version in cluster
      */
     public void checkCf() throws InterruptedException, ConnectionException {
+        checkCf(false);
+    }
+    /**
+     * Checks all required CF's against keyspace definition. Any missing
+     * CF's are created on the fly.
+     *
+     */
+    public void checkCf(boolean waitAllNodesSchemaConverge) throws InterruptedException, ConnectionException {
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Cluster cluster = clientContext.getCluster();
 
@@ -670,7 +679,11 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaAgreement(latestSchemaVersion, _statusChecker.getClusterNodeCount());
+            if (waitAllNodesSchemaConverge) {
+                clientContext.waitForSchemaAgreement(latestSchemaVersion, _statusChecker.getClusterNodeCount());
+            } else {
+                clientContext.waitForSchemaAgreement(latestSchemaVersion, -1);
+            }
         }
     }
 

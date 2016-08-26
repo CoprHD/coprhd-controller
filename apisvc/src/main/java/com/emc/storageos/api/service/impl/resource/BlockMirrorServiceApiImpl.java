@@ -726,10 +726,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             return createTasksForVolumes(vpool, volumes, taskId);
         }
 
+        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         for (Volume volume : volumes) {
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
         }
-        return createTasksForVolumes(vpool, volumes, taskId);
+        return taskList;
     }
 
     private Predicate<URI> isMirrorInactivePredicate() {

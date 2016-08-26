@@ -4445,7 +4445,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
 
-                // Wait for RP to remove copy snapshots
+                // Wait for RP to remove copy snapshots. There is a sleep here because we do not 'wait' for the RP failover
+                // component of the swap operation to complete. There were issues with this which are documented in the
+                // RecoverPointClient. So we sleep here in order to give RP the time it needs to remove the swap target
+                // copy bookmarks before we cleanup the corresponding BlockSnapshot objects from ViPR.
                 Thread.sleep(5000);
                 // When we perform a swap, the target swap copy will become the production copy and lose all
                 // its bookmarks so we need to sync with RP.

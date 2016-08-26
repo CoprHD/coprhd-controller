@@ -33,6 +33,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -400,7 +401,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
-                validator.exportMaskDelete(storage, exportMask, volumeURIList, initiatorList).validate();
+                ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                ctx.setStorage(storage);
+                ctx.setExportMask(exportMask);
+                ctx.setBlockObjects(volumeURIList, _dbClient);
+                ctx.setInitiators(initiatorList);
+                validator.exportMaskDelete(ctx).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
                     // Could not delete the MaskingView. Error should be stuffed by the
@@ -1543,7 +1549,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         taskCompleter.getOpId());
 
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                validator.removeInitiators(storage, exportMask, volumeURIList, initiatorList).validate();
+
+                ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                ctx.setStorage(storage);
+                ctx.setExportMask(exportMask);
+                ctx.setBlockObjects(volumeURIList, _dbClient);
+                ctx.setInitiators(initiatorList);
+                // Allow exceptions to be thrown when not rolling back, i.e. when context is null
+                ctx.setAllowExceptions(context == null);
+                validator.removeInitiators(ctx).validate();
 
                 if (context != null) {
                     exportMaskRollback(storage, context, taskCompleter);

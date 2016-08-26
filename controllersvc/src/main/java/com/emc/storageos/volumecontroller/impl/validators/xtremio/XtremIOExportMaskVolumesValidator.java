@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -18,7 +17,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -30,13 +28,13 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
 
     private static final Logger log = LoggerFactory.getLogger(XtremIOExportMaskVolumesValidator.class);
 
-    private final Collection<URI> volumeURIs;
+    private final Collection<? extends BlockObject> blockObjects;
     private Collection<String> igNames;
 
     public XtremIOExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
-            Collection<URI> volumeURIList) {
+            Collection<? extends BlockObject> blockObjects) {
         super(storage, exportMask);
-        this.volumeURIs = volumeURIList;
+        this.blockObjects = blockObjects;
     }
 
     public void setIgNames(Collection<String> igNames) {
@@ -52,8 +50,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             Set<String> knownVolumes = new HashSet<String>();
             Set<String> igVols = new HashSet<String>();
             // get the volumes in the IGs and validate against passed impacted block objects
-            for (URI maskVolumeURI : volumeURIs) {
-                BlockObject maskVolume = BlockObject.fetch(getDbClient(), maskVolumeURI);
+            for (BlockObject maskVolume : blockObjects) {
                 knownVolumes.add(maskVolume.getDeviceLabel());
             }
 

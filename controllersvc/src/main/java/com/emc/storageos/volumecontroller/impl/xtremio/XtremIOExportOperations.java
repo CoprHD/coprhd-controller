@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -388,8 +389,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("List of  IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()), groupInitiatorsByIG.size());
 
-            XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(storage,
-                    exportMask, volumeURIList);
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, dbClient);
+            XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
             volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
             volumeValidator.validate();
 
@@ -755,9 +759,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     if (removeInitiator) {
                         _log.info("Removing requested intiators from IG instead of deleting LunMap"
                                 + " as the IG contains other Host's initiators belonging to same Cluster.");
+                        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                        ctx.setStorage(storage);
+                        ctx.setExportMask(exportMask);
+                        ctx.setBlockObjects(volumes, dbClient);
                         // DU validation when removing initiators
-                        XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(
-                                storage, exportMask, volumes);
+                        XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
                         volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
                         volumeValidator.validate();
                         List<Initiator> initiatorsToBeRemoved = new ArrayList<Initiator>();

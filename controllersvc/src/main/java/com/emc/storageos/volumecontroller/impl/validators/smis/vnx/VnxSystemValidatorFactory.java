@@ -4,17 +4,12 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vnx;
 
-import java.net.URI;
-import java.util.Collection;
-
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidatorFactory;
@@ -29,15 +24,13 @@ public class VnxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     }
 
     @Override
-    public AbstractSMISValidator createExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
-            Collection<URI> volumeURIList) {
-        return new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
+    public AbstractSMISValidator createExportMaskVolumesValidator(ExportMaskValidationContext ctx) {
+        return new ExportMaskVolumesValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getBlockObjects());
     }
 
     @Override
-    public AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
-            Collection<Initiator> initiatorList) {
-        return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+    public AbstractSMISValidator createExportMaskInitiatorValidator(ExportMaskValidationContext ctx) {
+        return new ExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getInitiators());
     }
 
 }

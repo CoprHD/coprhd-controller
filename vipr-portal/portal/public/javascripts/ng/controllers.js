@@ -1552,6 +1552,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     requiredSteps = 2;
     landingStep = 3;
     maxSteps = 9;
+    $scope.staleData = false;
     initialNav = $(".navMenu .active").text();
     initialNavParent = $(".rootNav.active").text();
 
@@ -1574,6 +1575,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         //we need to check that the guide only appears on the license and initial setup nonav pages
         if (nonav) {
             if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
+                //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
+                eraseCookie(cookieKey);
                 return;
             }
         }
@@ -1698,9 +1701,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 2:
                 if ($scope.completedSteps>2) {
-                     loadPage('/config');
+                    loadPage('/config');
                 } else {
-                loadPage('/setup/index');
+                    loadPage('/setup/index');
                 }
                 break;
             case landingStep:
@@ -1828,10 +1831,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         })(1);
     }
 
-    checkStep = function(step,callback,callback2) {
+    checkStep = function(step,callback,finishCheckingCallback) {
 
         finishChecking = function(){
-            callback2();
+            finishCheckingCallback();
         }
 
         switch (step) {
@@ -2090,9 +2093,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     checkCookie = function(cookie) {
-        cookieObject = readCookie(cookie);
+        var guideCookie = readCookie(cookie);
 
-        if (cookieObject) {
+        if (guideCookie) {
             return true;
         }
         return false;
@@ -2232,21 +2235,19 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
         return function() {
 
-            var currentCookie = readCookie(cookieKey);
-            console.log("running");
+            var currentCookie = angular.fromJson(readCookie(cookieKey));
 
-            if (currentCookie !== angular.toJson(cookieObject)) {
-
-            alert("Cookie Changed!\nPage will be refreshed.");
-            window.clearInterval(guideMonitor);
-            $window.location.reload(true);
-
-
+            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
+                window.clearInterval(guideMonitor);
+                $scope.currentStep = 3;
+                $scope.staleData = true;
             }
         };
     }();
 
-
+    $scope.refreshPage = function() {
+        $window.location.reload(true);
+    }
 
 
     $scope.$watch('guideVisible', function(newValue, oldValue) {
@@ -2265,7 +2266,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $('.wizard-side-next').popover('show');
                 return false;
             });
-            guideMonitor = window.setInterval(checkCookieChanged, 1000);
+            guideMonitor = window.setInterval(checkCookieChanged, 500);
         } else {
             window.clearInterval(guideMonitor);
             $('.rootNav , .navMenu a').off('click');

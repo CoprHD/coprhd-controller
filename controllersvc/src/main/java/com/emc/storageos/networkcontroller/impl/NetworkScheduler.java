@@ -248,15 +248,8 @@ public class NetworkScheduler {
             Initiator initiator = ExportUtils.getInitiator(initiatorPort, _dbClient);
 
             if (initiator != null) {
-                URI pairedInitiatorURI = initiator.getAssociatedInitiator();
-                if (pairedInitiatorURI == null) {
-                    _log.debug(String.format(
-                            "Paiered initiator %s could not be paired with port %s",
-                            initiatorPort, storagePortWwn));
-                    return null;
-                }
-                Initiator pairedInitiator = _dbClient.queryObject(Initiator.class, pairedInitiatorURI);
-                if (pairedInitiator == null || pairedInitiator.getInactive()) {
+                Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+                if (pairedInitiator == null) {
                     _log.debug(String.format(
                             "Paired initiator %s could not be paired with port %s",
                             initiatorPort, storagePortWwn));

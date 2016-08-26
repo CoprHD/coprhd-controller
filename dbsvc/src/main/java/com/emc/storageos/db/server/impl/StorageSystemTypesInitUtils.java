@@ -219,7 +219,7 @@ public class StorageSystemTypesInitUtils {
             List<String> systems = entry.getValue();
             for (String system : systems) {
                 if (!PlatformUtils.isOssBuild() && system.equals(CEPH)) {
-                    log.info("Don't need to insert ceph meda data for Ceph in ViPR build");
+                    log.info("Skip inserting ceph meta data in ViPR build");
                     continue;
                 }
                 StorageSystemType type = new StorageSystemType();

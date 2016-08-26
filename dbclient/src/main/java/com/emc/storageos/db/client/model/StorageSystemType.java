@@ -42,7 +42,7 @@ public class StorageSystemType extends DataObject {
 
     // Type of Storage System Types
     public static enum META_TYPE {
-        BLOCK, FILE, OBJECT, BLOCK_AND_FILE, BLOCK_PROVIDER, FILE_PROVIDER;
+        BLOCK, FILE, OBJECT, BLOCK_AND_FILE, BLOCK_PROVIDER, FILE_PROVIDER, ALL;
 
         public boolean isProvider() {
             return this == BLOCK_PROVIDER || this == FILE_PROVIDER;

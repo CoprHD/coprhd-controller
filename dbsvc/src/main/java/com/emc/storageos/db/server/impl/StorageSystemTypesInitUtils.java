@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
+import com.emc.storageos.services.util.PlatformUtils;
 
 public class StorageSystemTypesInitUtils {
 
@@ -217,6 +218,10 @@ public class StorageSystemTypesInitUtils {
             META_TYPE metaType = entry.getKey();
             List<String> systems = entry.getValue();
             for (String system : systems) {
+                if (!PlatformUtils.isOssBuild() && system.equals(CEPH)) {
+                    log.info("Don't need to insert ceph meda data for Ceph in ViPR build");
+                    continue;
+                }
                 StorageSystemType type = new StorageSystemType();
                 URI uri = URIUtil.createId(StorageSystemType.class);
                 type.setId(uri);

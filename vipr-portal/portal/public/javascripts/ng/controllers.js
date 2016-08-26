@@ -277,6 +277,9 @@ angular.module("portalApp").controller({
                                 result = true;
                         }
                 });
+
+                // if any field in serviceForm is invalid like max number of copies
+		result = ! $scope.serviceForm.$valid;
                 
                 // if we make it out, enable the order button
                 return result;

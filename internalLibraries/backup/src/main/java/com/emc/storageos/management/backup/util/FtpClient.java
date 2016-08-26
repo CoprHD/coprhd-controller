@@ -209,6 +209,6 @@ public class FtpClient implements BackupClient {
     // just show the first letter of password
     private String hidePassword(List<String> command) {
         String credential = command.get(3);
-        return command.toString().replace(credential, credential.substring(0, (credential.indexOf(":") + 2)) + "***");
+        return command.toString().replace(credential, credential.substring(0, (credential.indexOf(":") + 1)) + "***");
     }
 }

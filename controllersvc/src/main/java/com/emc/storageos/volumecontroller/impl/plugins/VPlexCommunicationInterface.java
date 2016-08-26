@@ -119,10 +119,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     // Logger reference.
     private static Logger s_logger = LoggerFactory.getLogger(VPlexCommunicationInterface.class);
 
-    // Reference to the VPlex API factory allows us to get a VPlex API client
-    // and execute requests to the VPlex storage system.
-    private VPlexApiFactory _apiFactory;
-
     // PartitionManager used for batch database persistence.
     private PartitionManager _partitionManager;
 
@@ -133,15 +129,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * Public constructor for Spring bean creation.
      */
     public VPlexCommunicationInterface() {
-    }
-
-    /**
-     * Setter for the VPlex API factory for Spring bean configuration.
-     *
-     * @param apiFactory A reference to the VPlex API factory.
-     */
-    public void setVPlexApiFactory(VPlexApiFactory apiFactory) {
-        _apiFactory = apiFactory;
     }
 
     /**
@@ -179,8 +166,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Get the Http client for getting information about the VPLEX
             // cluster(s) managed by the VPLEX management server.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
-            s_logger.debug("Got handle to VPlex API client");
+            StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+            VPlexApiClient client = getVPlexAPIClient(vplex);
 
             // Verify the connectivity to the VPLEX management server.
             verifyConnectivity(client, mgmntServer);
@@ -421,7 +408,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 .toString()))) {
 
             try {
-                VPlexApiClient client = getVPlexAPIClient(accessProfile);
+                StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+                VPlexApiClient client = getVPlexAPIClient(vplex);
 
                 long timer = System.currentTimeMillis();
                 UnmanagedDiscoveryPerformanceTracker tracker = new UnmanagedDiscoveryPerformanceTracker();
@@ -912,7 +900,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(volumeNativeGuid), result);
         if (result.iterator().hasNext()) {
-            return _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            if (null != unManagedVolume && !unManagedVolume.getInactive()) {
+                return unManagedVolume;
+            }
         }
 
         return null;
@@ -1733,7 +1724,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Get the Http client for getting information about the VPlex
             // storage system.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            VPlexApiClient client = getVPlexAPIClient(vplexStorageSystem);
             s_logger.debug("Got handle to VPlex API client");
 
             // The version for the storage system is the version of its active provider
@@ -1997,22 +1988,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
-     * Get the HTTP client for making requests to the VPlex at the
-     * endpoint specified in the passed profile.
+     * Get the HTTP client for making requests to the VPLEX API for
+     * the given StorageSystem object.
      *
-     * @param accessProfile A reference to the access profile.
+     * @param vplex the VPLEX storage system to get an API client for
      *
      * @return A reference to the VPlex API HTTP client.
      * @throws URISyntaxException
      */
-    private VPlexApiClient getVPlexAPIClient(AccessProfile accessProfile) throws URISyntaxException {
-        // Create the URI to access the VPlex Management Station based
-        // on the IP and port in the passed access profile.
-        URI vplexEndpointURI = new URI("https", null, accessProfile.getIpAddress(), accessProfile.getPortNumber(), "/", null, null);
-        s_logger.debug("VPlex base URI is {}", vplexEndpointURI.toString());
-        VPlexApiClient client = _apiFactory.getClient(vplexEndpointURI,
-                accessProfile.getUserName(), accessProfile.getPassword());
-        return client;
+    private VPlexApiClient getVPlexAPIClient(StorageSystem vplex) throws URISyntaxException {
+        return VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, _dbClient); 
     }
 
     /**

@@ -1147,7 +1147,7 @@ public class HostService extends TaskResourceService {
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
 
         // get the unmanaged volumes
-        List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient);
+        List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient, _coordinator);
 
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {

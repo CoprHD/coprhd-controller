@@ -96,12 +96,12 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
         if (vvinfo == null) {
             try {
                 // Didn't find the virtual volume. Look at the storage volume, and from that determine
-                // the deviceName. Then lookup the Deivce or DistributedDevice and check to see if
+                // the deviceName. Then lookup the Device or DistributedDevice and check to see if
                 // the device has been reassigned to a different virtual volume.
                 Volume storageVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, true, getDbClient(), false);
                 if (storageVolume != null) {
                     StorageSystem system = getDbClient().queryObject(StorageSystem.class, storageVolume.getStorageController());
-                    // Look up the corresponding device name to our Storage Volumej
+                    // Look up the corresponding device name to our Storage Volume
                     String deviceName = client.getDeviceForStorageVolume(storageVolume.getNativeId(),
                             storageVolume.getWWN(), system.getSerialNumber());
                     if (deviceName == null) {
@@ -161,9 +161,15 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
             if (!NullColumnValueGetter.isNullValue(virtualVolume.getWWN()) && vvinfo.getWwn() != null
                     && !virtualVolume.getWWN().equalsIgnoreCase(vvinfo.getWwn())) {
                 getValidatorLogger().logDiff(volumeId, "wwn", virtualVolume.getWWN(), vvinfo.getWwn());
-            }
-            if (!virtualVolume.getProvisionedCapacity().equals(vvinfo.getCapacityBytes())) {
-                getValidatorLogger().logDiff(volumeId, "capacity", virtualVolume.getAllocatedCapacity().toString(),
+            }            
+            // The vvinfo capacity is not as accurate as the provisioned capacity on the ViPR volume. 
+            // Ex: ViPR provisionedCapacity = 3.01 GB, vvinfo on VPLEX Virtual Volume = 3 GB.
+            // So this check will fail only if the provisioned capacity is less than the virtual volume capacity 
+            // which will hold in all cases.
+            Long provisionedCapacity = new Long(virtualVolume.getProvisionedCapacity());
+            Long virtualVolumeCapacity = new Long(vvinfo.getCapacityBytes());
+            if (provisionedCapacity.longValue() < virtualVolumeCapacity.longValue()) {
+                getValidatorLogger().logDiff(volumeId, "capacity (database should be >= hardware)", virtualVolume.getProvisionedCapacity().toString(),
                         vvinfo.getCapacityBytes().toString());
             }
             if (virtualVolume.getAssociatedVolumes() != null && !virtualVolume.getAssociatedVolumes().isEmpty()) {

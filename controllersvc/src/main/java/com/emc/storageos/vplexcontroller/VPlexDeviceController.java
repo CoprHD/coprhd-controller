@@ -815,7 +815,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Do the creation of a VPlex Virtual Volume. This is called as a Workflow Step.
-     * NOTE NOTE: The parameters here must match createVirtualVolumesMethod above (except stepId).
+     * NOTE: The parameters here must match createVirtualVolumesMethod above (except stepId).
      *
      * @param vplexURI
      *            -- URI of the VPlex StorageSystem

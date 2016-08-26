@@ -2102,7 +2102,7 @@ test_11() {
 test_12() {
     echot "Test 12: Volume gets reclaimed outside of ViPR"
     expname=${EXPORT_GROUP_NAME}t12
-    volname="${HOST1}-dutest-oktodelete-t12"
+    volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1

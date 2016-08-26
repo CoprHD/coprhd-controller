@@ -6,16 +6,12 @@ package com.emc.vipr.model.catalog;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.net.URI;
 
 @XmlRootElement(name = "scheduled_event_create")
 public class ScheduledEventCreateParam {
 
     private ScheduleInfo scheduleInfo;
     private OrderCreateParam orderCreateParam;
-
-    public ScheduledEventCreateParam() {
-    }
 
     @XmlElement(name = "scheduleInfo")
     public ScheduleInfo getScheduleInfo() {
@@ -34,6 +30,4 @@ public class ScheduledEventCreateParam {
     public void setOrderCreateParam(OrderCreateParam orderCreateParam) {
         this.orderCreateParam = orderCreateParam;
     }
-
-
 }

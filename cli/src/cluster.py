@@ -236,7 +236,7 @@ class Cluster(object):
 
         return
 
-    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=True):
+    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=False):
         '''
         update cluster with datacenter, label
         Parameters:

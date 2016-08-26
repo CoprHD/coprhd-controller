@@ -27,7 +27,6 @@ public class Host extends AbstractComputeSystem {
     }
 
     private String _type;
-    private Boolean isVirtualMachine;
     private String _hostName;
     private Integer _portNumber;
     private String _userName;
@@ -43,6 +42,7 @@ public class Host extends AbstractComputeSystem {
     private String provisioningStatus;
     private StringSet volumeGroupIds;
     private StringMap preferredPools;
+    private Boolean virtualMachine;
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
@@ -81,12 +81,11 @@ public class Host extends AbstractComputeSystem {
     /**
      * Gets the isVirtualMachine flag. isVirtualMachine indicates if host is a physical or virtual
      * 
-     * 
      * @return true if host is virtual, else false
      */
-    @Name("isVirtualMachine")
-    public Boolean getIsVirtualMachine() {
-        return isVirtualMachine;
+    @Name("virtualMachine")
+    public Boolean getVirtualMachine() {
+        return virtualMachine;
     }
 
     /**
@@ -94,9 +93,9 @@ public class Host extends AbstractComputeSystem {
      * 
      * @param isVirtualMachine is true if host is virtual.
      */
-    public void setIsVirtualMachine(Boolean isVirtualMachine) {
-        this.isVirtualMachine = isVirtualMachine;
-        setChanged("isVirtualMachine");
+    public void setVirtualMachine(Boolean isVirtualMachine) {
+        this.virtualMachine = isVirtualMachine;
+        setChanged("virtualMachine");
     }
 
     /**

@@ -1095,6 +1095,10 @@ public class HostService extends TaskResourceService {
                     .getNullURI() : param.getBootVolume());
         }
 
+        if (param.getVirtualMachine() != null) {
+            host.setVirtualMachine(param.getVirtualMachine());
+        }
+
     }
 
     /**

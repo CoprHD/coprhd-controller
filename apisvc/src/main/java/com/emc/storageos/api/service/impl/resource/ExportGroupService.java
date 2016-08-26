@@ -1988,6 +1988,9 @@ public class ExportGroupService extends TaskResourceService {
                             throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
                                     storageSystem.getNativeGuid());
                         }
+                    } else {
+                        throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
+                                storageSystem.getNativeGuid());
                     }
                 }
             }

@@ -1341,8 +1341,8 @@ public class ExportGroupService extends TaskResourceService {
              */
             Map<String, Set<URI>> initiatorMap = new HashMap<>();
             Iterator<String> existingInitiatorsIterator = exportGroup.getInitiators().iterator();
+            List<URI> staleInitiatorList = new ArrayList<>();
             URI initiatorURI = null;
-            boolean isModified = false;
             while (existingInitiatorsIterator.hasNext()) {
                 initiatorURI = URI.create(existingInitiatorsIterator.next());
                 initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
@@ -1370,12 +1370,13 @@ public class ExportGroupService extends TaskResourceService {
                 } else {
                     _log.error("Stale initiator URI {} is in ExportGroup and can be removed from ExportGroup{}", initiatorURI,
                             exportGroup.getId());
-                    exportGroup.removeInitiator(initiatorURI);
-                    isModified = true;
+                    staleInitiatorList.add(initiatorURI);
                 }
             }
-            if (isModified) {
+            if (!staleInitiatorList.isEmpty()) {
+                exportGroup.removeInitiators(staleInitiatorList);
                 _dbClient.updateObject(exportGroup);
+                _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
             }
             _log.info("{}", initiatorMap);
             if (initiatorMap.size() > 1) {

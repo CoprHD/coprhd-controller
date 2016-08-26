@@ -1595,6 +1595,7 @@ public class NetworkDeviceController implements NetworkController {
 
             return result.isCommandSuccess();
         } catch (Exception ex) {
+            _log.error("Exception occurred while doing zone rollback", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneRollbackFailedExc(
                     exportGroupURI.toString(), ex);
             WorkflowStepCompleter.stepFailed(taskId, svcError);

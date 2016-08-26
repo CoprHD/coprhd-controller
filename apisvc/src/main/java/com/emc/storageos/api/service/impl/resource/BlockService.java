@@ -4409,7 +4409,7 @@ public class BlockService extends TaskResourceService {
     private static void verifyVPlexVolumeStructureForDataMigration(Volume volume,
             VirtualPool currentVpool, boolean migrateSourceVolume, boolean migrateHAVolume, DbClient _dbClient) {
         boolean structureOK = true;
-        if (volume.isIngestedVolume(_dbClient)) {
+        if (volume.isIngestedVolumeWithoutBackend(_dbClient)) {
             if (migrateSourceVolume && migrateHAVolume) {
                 structureOK = VPlexDeviceController.migrationSupportedForVolume(volume,
                         null, _dbClient);

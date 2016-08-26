@@ -4,14 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -34,6 +30,7 @@ import static com.google.common.collect.Collections2.transform;
 class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
 
     private static final Logger log = LoggerFactory.getLogger(MultipleVmaxMaskForInitiatorsValidator.class);
+    private static final String INSTANCE_ID_PREFIX = "W-+-";
 
     /**
      * Default constructor.
@@ -49,50 +46,24 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
     }
 
     /**
-     * Returns true if:
-     * 1. ViPR is managing the associated mask
-     * AND
-     * 2. The associated mask has an export group
+     * Initiators are not to be shared across multiple masks, so this should simply
+     * return false.
      *
      * @param mask      The export mask in the ViPR request
-     * @param assocMask An export mask found to be associated with {@code mask}.
-     * @return
+     * @param assocMask An export mask found to be associated with {@code mask}
+     * @return          false, always
+     * @throws IllegalArgumentException if {@code mask} and {@code assocMask} are equal
      */
     @Override
     protected boolean validate(CIMInstance mask, CIMInstance assocMask) {
-        boolean assocMaskHasExportGroup = false;
-        String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
-
-        // Does ViPR know about this other mask?
-        List<ExportMask> exportMasks = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
-                ExportMask.class, AlternateIdConstraint.Factory.getExportMaskByNameConstraint(assocName));
-
-        if (!exportMasks.isEmpty()) {
-            for (ExportMask em : exportMasks) {
-                log.info("MV {} is tracked by {}", assocName, em.getId());
-                // Check if it's part of an ExportGroup
-                List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
-                        ExportGroup.class, ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(em.getId()));
-
-                if (!exportGroups.isEmpty()) {
-                    assocMaskHasExportGroup = true;
-                    log.info("MV {} has {} export group(s)", assocName, exportGroups.size());
-                    break;
-                }
-            }
-        } else {
-            log.info("MV {} is not tracked by any ExportMask", assocName);
+        if (mask.equals(assocMask)) {
+            throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
-
-        /*
-         * FIXME COP-24841 - Stop making dangerous assumptions about impacted masking views.
-         *
-         * Here, we allow validation to pass based simply on the associated ExportMask being part of
-         * an ExportGroup.  We assume that the orchestration layer has also generated a step to be run
-         * in parallel for removing the initiator from this other mask.  Instead, we should acquire
-         * an explicit list of impacted masking views and consider it when determining a pass/fail result.
-         */
-        return assocMaskHasExportGroup;
+        
+        String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
+        String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
+        log.warn("MV {} is sharing an initiator with MV {}", name, assocName);
+        return false;
     }
 
     @Override
@@ -103,7 +74,9 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
     @Override
     protected CIMObjectPath getCIMObjectPath(Initiator obj) throws Exception {
         try {
-            CIMObjectPath[] initiatorPaths = getCimPath().getInitiatorPaths(storage, new String[]{});
+            String port = Initiator.normalizePort(obj.getInitiatorPort());
+            String instanceID = String.format("%s%s", INSTANCE_ID_PREFIX, port);
+            CIMObjectPath[] initiatorPaths = getCimPath().getInitiatorPaths(storage, new String[]{ instanceID });
             if (initiatorPaths != null && initiatorPaths.length > 0) {
                 return initiatorPaths[0];
             }
@@ -125,7 +98,7 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         List<URI> initURIs = Lists.newArrayList();
 
         if (userAddedInitiators == null || userAddedInitiators.isEmpty()) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
         
         for (String initURI : userAddedInitiators.values()) {

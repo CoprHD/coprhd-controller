@@ -287,8 +287,6 @@ public class ExportGroupService extends TaskResourceService {
             validateBlockObjectNativeId(addVolumeURIs);
         }
 
-
-
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
         StorageOSUser user = getUserFromContext();
@@ -496,7 +494,7 @@ public class ExportGroupService extends TaskResourceService {
 
             // validate the RP BlockSnapshots for ExportGroup create
             validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
-            
+
             // Validate VPLEX backend snapshots for export.
             validateVPLEXBlockSnapshotsForExport(blockObjURIs);
         }
@@ -523,7 +521,7 @@ public class ExportGroupService extends TaskResourceService {
                     blockObjToAdd.add(volParam.getId());
                     blockObjURIs.add(volParam.getId());
                 }
-                
+
                 // Validate VPLEX backend snapshots for export.
                 validateVPLEXBlockSnapshotsForExport(blockObjURIs);
 
@@ -548,7 +546,7 @@ public class ExportGroupService extends TaskResourceService {
             validateSnapshotTargetNotExported(blockObjToAdd, blockObjExisting);
         }
     }
-    
+
     /**
      * Validate VPLEX backend snapshots for export.
      * 
@@ -557,7 +555,7 @@ public class ExportGroupService extends TaskResourceService {
     private void validateVPLEXBlockSnapshotsForExport(List<URI> blockObjURIs) {
         // We do not allow a VPLEX backend snapshot that is exposed as a VPLEX
         // volume to be exported to a host/cluster. If the user was to write
-        // to the snapshot, this would invalidate the VPLEX volume as the 
+        // to the snapshot, this would invalidate the VPLEX volume as the
         // VPLEX would not be aware of these writes. Further, we know this will
         // fail for VMAX3 backend snapshots with the error "A device cannot belong
         // to more than one storage group in use by FAST".
@@ -1983,6 +1981,7 @@ public class ExportGroupService extends TaskResourceService {
             List<Initiator> initiators) {
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(
                 exportGroup, false, _dbClient);
+        boolean hasConnectivity = false;
         // we want to make sure the initiator can access each storage
         for (URI storage : storageMap.keySet()) {
             StorageSystem storageSystem = _dbClient.queryObject(
@@ -1990,8 +1989,16 @@ public class ExportGroupService extends TaskResourceService {
             List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup, storage, _dbClient);
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
-                if (!hasConnectivityToSystem(storageSystem, varrays, initiator)) {
-                    throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(), storageSystem.getNativeGuid());
+                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator);
+                if (!hasConnectivity) {
+                    Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+                    if (pairedInitiator != null) {
+                        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
+                        if (!hasConnectivity) {
+                            throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
+                                    storageSystem.getNativeGuid());
+                        }
+                    }
                 }
             }
         }

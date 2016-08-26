@@ -59,6 +59,7 @@ import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerExc
 import com.emc.storageos.networkcontroller.impl.mds.Zone;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneMember;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
@@ -163,12 +164,12 @@ public class NetworkScheduler {
      */
     private void validateZoneNameLength(String zoneName, boolean isIvrZone, String systemType) {
         // Checks for a different length for IVR zones as it should start with "LSAN" for brocade which is appended to zone name later
-        if(isIvrZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
-            if(zoneName.length() > BROCADE_ZONE_NAME_IVR_LENGTH) {
+        if (isIvrZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
+            if (zoneName.length() > BROCADE_ZONE_NAME_IVR_LENGTH) {
                 throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, BROCADE_ZONE_NAME_IVR_LENGTH);
             }
         } else {
-            if(zoneName.length() > ZONE_NAME_LENGTH) {
+            if (zoneName.length() > ZONE_NAME_LENGTH) {
                 throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, ZONE_NAME_LENGTH);
             }
         }
@@ -236,12 +237,39 @@ public class NetworkScheduler {
         // do some validation
         NetworkLite iniNet = NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient);
         NetworkLite portNet = getStoragePortNetwork(storagePort);
-        if (iniNet == null || portNet == null ||
-                !NetworkUtil.checkInitiatorAndPortConnected(iniNet, portNet)) {
+        if (iniNet == null || portNet == null) {
             _log.debug(String.format(
                     "Initiator %s could not be paired with port %s",
                     initiatorPort, storagePortWwn));
             return null;
+        }
+
+        if (!NetworkUtil.checkInitiatorAndPortConnected(iniNet, portNet)) {
+            Initiator initiator = ExportUtils.getInitiator(initiatorPort, _dbClient);
+
+            if (initiator != null) {
+                URI pairedInitiatorURI = initiator.getAssociatedInitiator();
+                if (pairedInitiatorURI == null) {
+                    _log.debug(String.format(
+                            "Paiered initiator %s could not be paired with port %s",
+                            initiatorPort, storagePortWwn));
+                    return null;
+                }
+                Initiator pairedInitiator = _dbClient.queryObject(Initiator.class, pairedInitiatorURI);
+                if (pairedInitiator == null || pairedInitiator.getInactive()) {
+                    _log.debug(String.format(
+                            "Paired initiator %s could not be paired with port %s",
+                            initiatorPort, storagePortWwn));
+                    return null;
+                }
+                NetworkLite pairedIniNet = NetworkUtil.getEndpointNetworkLite(pairedInitiator.getInitiatorPort(), _dbClient);
+                if (pairedIniNet == null || portNet == null || !NetworkUtil.checkInitiatorAndPortConnected(pairedIniNet, portNet)) {
+                    _log.debug(String.format(
+                            "Paired initiator %s could not be paired with port %s",
+                            initiatorPort, storagePortWwn));
+                    return null;
+                }
+            }
         }
 
         // Check whether to check zoning on the Network System
@@ -311,7 +339,7 @@ public class NetworkScheduler {
                 networkFabricInfo.getEndPoints().addAll(endPoints);
                 networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
                 nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
-            } 
+            }
             return networkFabricInfo;
         }
     }
@@ -428,11 +456,11 @@ public class NetworkScheduler {
         itFCZoneReference = _dbClient.queryIterativeObjects(FCZoneReference.class,
                 DataObjectUtils.iteratorToList(uris), true);
         if (itFCZoneReference.hasNext()) {
-        	while (itFCZoneReference.hasNext()) {
-        		list.add(itFCZoneReference.next());        		
-        	}	
+            while (itFCZoneReference.hasNext()) {
+                list.add(itFCZoneReference.next());
+            }
         } else {
-        	_log.info("No FC Zone References for key found");
+            _log.info("No FC Zone References for key found");
         }
         return list;
     }
@@ -863,9 +891,9 @@ public class NetworkScheduler {
      */
     private List<Initiator> getInitiators(List<URI> initiatorURIs) {
         List<Initiator> initiators = new ArrayList<Initiator>();
-        Iterator<Initiator> queryIterativeInitiators = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);    
+        Iterator<Initiator> queryIterativeInitiators = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
         while (queryIterativeInitiators.hasNext()) {
-        	Initiator initiator = queryIterativeInitiators.next();
+            Initiator initiator = queryIterativeInitiators.next();
             if (initiator == null || initiator.getInactive() == true) {
                 continue;
             }

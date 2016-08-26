@@ -375,7 +375,7 @@ def to_pretty_json(orig_json):
     Returns:
         a string of formatted JSON object
     '''
-    return format_json_object(json.load(orig_json))
+    return format_json_object(json.loads(orig_json))
 
 def pyc_cleanup(directory, path):
     '''

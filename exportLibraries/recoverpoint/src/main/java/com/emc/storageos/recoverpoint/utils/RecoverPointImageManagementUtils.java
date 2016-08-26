@@ -1329,7 +1329,7 @@ public class RecoverPointImageManagementUtils {
                     }
 
                     PipeState pipeState = linkstate.getPipeState();
-                    logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+                    logger.info("Copy link state is " + pipeState.toString() + "; desired states are: " + desiredPipeStates.toString());
 
                     if (desiredPipeStates.contains(pipeState.name())) {
                         logger.info("Copy link state matches the desired state.");

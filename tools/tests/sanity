@@ -3909,6 +3909,10 @@ recoverpoint_export_bookmark_tests()
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
         fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
         export_group show ${rpexport}
+
+        secho 'Attempting to perform a swap of a consistency group when a bookmark is exported - expected failure'
+        fail volume change_link ${PROJECT}/${volume}${volume_name_modifier} swap ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} rp 
+
         run export_group delete ${rpexport}
     
         secho 'Finished running export RP bookmark failure tests'
@@ -4045,7 +4049,8 @@ recoverpoint_auto_snapshot_cleanup_test()
         src_volume=${1}
         tgt_volume=${2}
         tgt_varray=${3}
-        tgt2_volume=${4}
+        cg_name=${4}
+        tgt2_volume=${5}
 
         # Create RP/Block snapshot
         secho 'Create snapshot'
@@ -4076,6 +4081,34 @@ recoverpoint_auto_snapshot_cleanup_test()
         secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
         # Use "fail" instead of run because we expect this bookmark to fail.
         fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+
+        secho 'Creating RP bookmark'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
+
+        secho 'Performing swap operation to verify auto snapshot cleanup'
+        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
+
+        secho 'Verifying that RP bookmark was removed after swap'
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+
+        secho 'Performing swap back'
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+
+        sleep 10
+
+        secho 'Creating RP bookmark'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+
+        secho 'Performing consistency group swap operation to verify auto snapshot cleanup'
+        run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+
+        secho 'Verifying that RP bookmark was removed after consistency group swap'
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+ 
+        secho 'Performing consistency group swap back'
+        run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $RECOVERPOINT_VARRAY1
     else
         secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
     fi
@@ -4461,7 +4494,7 @@ recoverpoint_ingest_test()
         # Verify the CG got created; fail script if this fails.
         run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
         if [ "${shorttest}" -eq "0" ]; then
-            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} ${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}
+            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} ${RECOVERPOINT_INGEST_VOL1_CG} ${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}
         fi
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
@@ -4482,7 +4515,7 @@ recoverpoint_ingest_test()
         # Verify the CG got created; fail script if this fails.
         run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
         if [ "${shorttest}" -eq "0" ]; then
-            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
+            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} ${RECOVERPOINT_INGEST_VOL1_CG}
         fi
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
@@ -4506,7 +4539,7 @@ recoverpoint_ingest_test()
         # Verify the CG got created; fail script if this fails.
         run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
         if [ "${shorttest}" -eq "0" ]; then
-            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
+            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} ${RECOVERPOINT_INGEST_VOL1_CG} "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
         fi
     fi
 
@@ -5603,9 +5636,9 @@ recoverpoint_tests()
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
-                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]} ${rp_tgt_volumes[1]}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]} ${RP_CONSISTENCY_GROUP} ${rp_tgt_volumes[1]}
                 else
-                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]} ${RP_CONSISTENCY_GROUP}
                 fi
 
                 # Failover Test
@@ -5641,7 +5674,7 @@ recoverpoint_tests()
                 recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]}
+                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
@@ -5672,7 +5705,7 @@ recoverpoint_tests()
                 recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]}
+                recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
@@ -5704,9 +5737,9 @@ recoverpoint_tests()
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
-                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray} ${rpxiovolume}-target-${RECOVERPOINT_VARRAY1}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray} ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}-target-${RECOVERPOINT_VARRAY1}
                 else
-                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray} ${RP_XIO_CONSISTENCY_GROUP}
                 fi
 
                 # Failover Test

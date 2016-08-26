@@ -563,9 +563,11 @@ public class WorkflowService implements WorkflowController {
                     _log.error(String.format(
                         "Step %s is already in terminal state %s, trying to change to %s which will be ignored", 
                         stepId, status.state.toString(), state.toString()),ex);
+                    // We do not want to throw an error and cause the caller to fail, as often we
+                    // are called out of a completer called from the WorkflowService.doWorkflowEndProcessing
                     return;
-                }
-                
+                } 
+
                 // If an error is reported, and we're supposed to suspend on error, suspend
                 // Do not suspend rollback steps.
                 Step step = workflow.getStepMap().get(stepId);

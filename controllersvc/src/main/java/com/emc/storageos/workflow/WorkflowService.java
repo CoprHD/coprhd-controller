@@ -421,6 +421,18 @@ public class WorkflowService implements WorkflowController {
                 // Update the StepState structure
                 StepStatus status = workflow.getStepStatus(stepId);
 
+                // If we're already in a terminal state for this step, we should not reset the state to
+                // something else. There is an exception as WorkflowService calls this for SUSPENDED_NO_ERROR.
+                if (status.isTerminalState() && !(status.state == StepState.SUSPENDED_NO_ERROR)) {
+                    WorkflowException ex = WorkflowException.exceptions.workflowStepInTerminalState(stepId, status.state.name(), state.name());
+                    _log.error(String.format(
+                        "Step %s is already in terminal state %s, trying to change to %s which will be ignored", 
+                        stepId, status.state.toString(), state.toString()),ex);
+                    // We do not want to throw an error and cause the caller to fail, as often we
+                    // are called out of a completer called from the WorkflowService.doWorkflowEndProcessing
+                    return;
+                } 
+
                 // If an error is reported, and we're supposed to suspend on error, suspend
                 // Do not suspend rollback steps.
                 Step step = workflow.getStepMap().get(stepId);

@@ -260,7 +260,6 @@ public class StorageProviders extends ViprResourceController {
         // put all "initial create only" defaults here rather than field initializers
         smisProvider.interfaceType = StorageProviderTypes.SMIS;
         smisProvider.portNumber = getDefaultPort(DefaultStorageProviderPortMap.smis_useSSL);
-        //smisProvider.hyperScalePort = HYPERSCALEPORT;
         smisProvider.useSSL = true;
         copyRenderArgsToAngular();
         angularRenderArgs().put("smisProvider", smisProvider);
@@ -463,18 +462,20 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+            if (StringUtils.isNotEmpty(this.hyperScaleHost) && StringUtils.isNotEmpty(this.hyperScalePort)) {
                 try {
-                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
-                }catch(Exception e) {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort), "");
+                } catch (Exception e) {
                     flash.error("Unable to parse Hyper Scale Manager URL");
                 }
                 this.secondaryURL = url.toString();
-            }else if (StringUtils.isNotEmpty(this.hyperScaleHost)
-            		|| StringUtils.isNotEmpty(this.hyperScalePort)) {
-            	this.secondaryURL = "";
-            	 flash.error("Secondary Host or Port is Missing");
-            	
+                //remove the if condition 
+            } else if (StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort)) {
+                //this.secondaryURL = "";
+                flash.error("Secondary Host or Port is Missing");
+                edit(id);
+
+
             }
         }
 
@@ -563,6 +564,7 @@ public class StorageProviders extends ViprResourceController {
                         MessagesUtils
                                 .get("smisProvider.confirmPassword.not.match"));
             }
+            
 
             if (!StringUtils.equals(StringUtils.trim(secondaryPassword),
                     StringUtils.trim(secondaryPasswordConfirm))) {

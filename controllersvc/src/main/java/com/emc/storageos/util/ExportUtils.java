@@ -598,7 +598,8 @@ public class ExportUtils {
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
-                    !exportMaskURIs.contains(exportMask.getId())) {
+                    !exportMaskURIs.contains(exportMask.getId())
+                    && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
                 _log.info(String.format("Initiator %s is shared with mask %s.", 
                         initiatorUri, exportMask.getMaskName()));
                 return true;

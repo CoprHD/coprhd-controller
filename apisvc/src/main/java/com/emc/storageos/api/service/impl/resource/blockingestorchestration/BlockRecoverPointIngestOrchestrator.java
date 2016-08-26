@@ -639,7 +639,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            if (RPHelper.isVPlexVolume(volume) && volumeContext instanceof RpVplexVolumeIngestionContext) {
+            if (RPHelper.isVPlexVolume(volume, _dbClient) && volumeContext instanceof RpVplexVolumeIngestionContext) {
                 VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                         .getVplexVolumeIngestionContext();
                 StringSet associatedVolumes = vplexVolumeContext.getAssociatedVolumeIds(volume);

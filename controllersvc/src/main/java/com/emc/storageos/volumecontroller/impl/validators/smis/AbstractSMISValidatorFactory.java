@@ -84,30 +84,45 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     }
 
     /**
-     * TODO
-     * @param ctx
-     * @return
+     * Allow subclasses to provide a Validator for export mask volumes.
+     *
+     * @param ctx   ExportMaskValidationContext
+     * @return      AbstractSMISValidator
      */
     public abstract AbstractSMISValidator createExportMaskVolumesValidator(ExportMaskValidationContext ctx);
 
     /**
-     * TODO
-     * @param ctx
-     * @return
+     * Allow subclasses to provide a Validator for export mask initiators.
+     *
+     * @param ctx   ExportMaskValidationContext
+     * @return      AbstractSMISValidator
      */
     public abstract AbstractSMISValidator createExportMaskInitiatorValidator(ExportMaskValidationContext ctx);
 
+    /**
+     * Default implementation returns a validator that always passes.
+     *
+     * @param ctx   ExportMaskValidationContext
+     * @return      AbstractSMISValidator
+     */
     public AbstractSMISValidator createMultipleExportMasksForBlockObjectsValidator(ExportMaskValidationContext ctx) {
         return truthyValidator;
     }
 
+    /**
+     * Default implementation returns a validator that always passes.
+     *
+     * @param ctx   ExportMaskValidationContext
+     * @return      AbstractSMISValidator
+     */
     public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(ExportMaskValidationContext ctx) {
         return truthyValidator;
     }
 
     /**
-     * TODO
-     * @return
+     * Allow subclasses to return a {@link ValidatorLogger}
+     *
+     * @return  ValidatorLogger
      */
     public abstract ValidatorLogger createValidatorLogger();
 

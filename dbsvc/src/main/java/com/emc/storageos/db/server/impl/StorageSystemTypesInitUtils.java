@@ -223,7 +223,7 @@ public class StorageSystemTypesInitUtils {
                 type.setStorageTypeId(uri.toString());
                 type.setStorageTypeName(system);
                 type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(system));
-                type.setMetaType(metaType.toString().toLowerCase());
+                type.setMetaType(metaType.getRawType().toString().toLowerCase());
                 type.setDriverClassName(metaType.toString().toLowerCase());
                 type.setIsSmiProvider(metaType.isProvider());
                 type.setIsDefaultSsl(SSL_ENABLE_TYPE_LIST.contains(system));

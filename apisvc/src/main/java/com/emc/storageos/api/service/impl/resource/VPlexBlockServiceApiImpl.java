@@ -1238,7 +1238,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
-        TaskList taskList = new TaskList();
+        TaskList taskList = createTasksForVolumes(vpool, Arrays.asList(volume), taskId);
 
         String transferSpeed = null;
         ArrayList<Volume> volumes = new ArrayList<Volume>();
@@ -1332,10 +1332,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
-        
-        taskList.getTaskList().addAll(
-                createTasksForVolumes(vpool, Arrays.asList(volume), taskId).getTaskList());
-        
+
         return taskList;
     }
 
@@ -1348,8 +1345,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         TaskList taskList = new TaskList();
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
+        TaskList taskListForVolumes = createTasksForVolumes(vpool, volumes, taskId);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+            return taskListForVolumes;
+        }
+
+        // Set volume tasks to ready as the tasks are not needed if volumes are in CG
+        // Ideally tasks should be created in checkCommonVpoolUpdate to avoid creating tasks unnecessarily
+        // Note in case of individual volume VPool change is performed, task for volume need to be recreated
+        for (TaskResourceRep volumeTask : taskListForVolumes.getTaskList()) {
+            _dbClient.ready(Volume.class, volumeTask.getResource().getId(), taskId);
         }
 
         // Check if any of the volumes passed is a VPLEX volume

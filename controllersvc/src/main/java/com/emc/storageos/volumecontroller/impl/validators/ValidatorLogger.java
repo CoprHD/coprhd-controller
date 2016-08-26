@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl.validators;
 
 import org.slf4j.Logger;
 
+import com.emc.storageos.exceptions.DeviceControllerException;
+
 /**
  * Logger for validations.
  */
@@ -16,6 +18,9 @@ public class ValidatorLogger {
     // For logging: the name of the object we validated, along with the storage system
     private String validatedObjectName = null;
     private String storageSystemName = null;
+
+    public static final String EXPORT_MASK_TYPE = "Export Mask";
+    public static final String VOLUME_TYPE = "Volume";
 
     public static final String CONTACT_EMC_SUPPORT = "Contact EMC Support";
     public static final String INVENTORY_DELETE_VOLUME = "Inventory delete the affected volume(s)";
@@ -94,5 +99,28 @@ public class ValidatorLogger {
 
     public boolean hasErrors() {
         return msgs.length() > 0;
+    }
+
+    /**
+     * Generate an appropriate exception for the type of object validate.
+     * @param type
+     *            type of object validated
+     * @param logger
+     *            log object with details of failure
+     */
+    public void generateException(String type) {
+        if (type.equalsIgnoreCase(ValidatorLogger.EXPORT_MASK_TYPE)) {
+            throw DeviceControllerException.exceptions.validationExportMaskError(getValidatedObjectName(),
+                    getStorageSystemName(), getMsgs().toString());
+        }
+    
+        if (type.equalsIgnoreCase(ValidatorLogger.VOLUME_TYPE)) {
+            throw DeviceControllerException.exceptions.validationVolumeError(getValidatedObjectName(),
+                    getStorageSystemName(), getMsgs().toString());
+        }
+    
+        // Generic validation exception
+        throw DeviceControllerException.exceptions.validationError(type, getMsgs().toString(),
+                ValidatorLogger.CONTACT_EMC_SUPPORT);
     }
 }

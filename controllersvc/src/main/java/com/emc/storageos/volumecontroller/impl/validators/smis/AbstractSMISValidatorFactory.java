@@ -3,12 +3,12 @@
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToForDisplay;
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collection;
-import java.util.List;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
@@ -195,15 +195,12 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     @Override
     public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
         // Generate a friendly volume list for volume validation
-        List<String> volNames = new ArrayList<>();
-        for (Volume volume : volumes) {
-            volNames.add(volume.forDisplay());
-        }
+        Collection<String> volNames = transform(volumes, fctnDataObjectToForDisplay());
         ValidatorLogger sharedLogger = createValidatorLogger(Joiner.on(",").join(volNames), storage.forDisplay());
         AbstractSMISValidator identity = new ValidateVolumeIdentity(storage, volumes);
         configureValidators(sharedLogger, identity);
 
-        return new DefaultValidator(identity, config, sharedLogger, ValidatorConfig.VOLUME_TYPE);
+        return new DefaultValidator(identity, config, sharedLogger, ValidatorLogger.VOLUME_TYPE);
     }
 
     @Override
@@ -218,7 +215,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         AbstractSMISValidator identity = new ValidateVolumeIdentity(storage, Lists.newArrayList(volume));
         configureValidators(sharedLogger, identity);
 
-        return new DefaultValidator(identity, config, sharedLogger, ValidatorConfig.VOLUME_TYPE);
+        return new DefaultValidator(identity, config, sharedLogger, ValidatorLogger.VOLUME_TYPE);
     }
 
     @Override
@@ -227,7 +224,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         AbstractSMISValidator identity = new ValidateVolumeIdentity(storage, Lists.newArrayList(volume));
         configureValidators(sharedLogger, identity);
 
-        return new DefaultValidator(identity, config, sharedLogger, ValidatorConfig.VOLUME_TYPE);
+        return new DefaultValidator(identity, config, sharedLogger, ValidatorLogger.VOLUME_TYPE);
     }
 
     /**

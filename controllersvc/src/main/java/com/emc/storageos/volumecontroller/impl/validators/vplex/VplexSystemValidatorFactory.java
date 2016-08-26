@@ -4,17 +4,19 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToForDisplay;
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -131,10 +133,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         checkVplexConnectivity(storageSystem);
         try {
             // Generate a friendly volume list for volume validation
-            List<String> volNames = new ArrayList<>();
-            for (Volume volume : volumes) {
-                volNames.add(volume.forDisplay());
-            }
+            Collection<String> volNames = transform(volumes, fctnDataObjectToForDisplay());
             logger = new ValidatorLogger(log, Joiner.on(",").join(volNames), storageSystem.forDisplay());
             VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, config, logger);
             vplexVolumeValidator.validateVolumes(storageSystem, volumes, delete, remediate, checks);

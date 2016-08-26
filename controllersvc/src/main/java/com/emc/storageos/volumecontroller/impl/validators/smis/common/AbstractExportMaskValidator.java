@@ -35,7 +35,7 @@ import com.google.common.collect.Sets;
 public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
-    private static final String NO_MATCHING_ENTRY = "<no match>";
+
 
     private final StorageSystem storage;
     private final ExportMask exportMask;

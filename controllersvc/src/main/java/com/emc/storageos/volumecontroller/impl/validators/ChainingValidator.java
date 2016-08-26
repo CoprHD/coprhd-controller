@@ -52,7 +52,7 @@ public class ChainingValidator implements Validator {
 
         if (logger.hasErrors()) {
             if (config.validationEnabled()) {
-                DefaultValidator.generateException(type, logger);
+                logger.generateException(type);
             }
         }
 

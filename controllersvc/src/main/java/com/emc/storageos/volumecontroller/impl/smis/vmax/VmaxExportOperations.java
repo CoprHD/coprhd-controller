@@ -2145,6 +2145,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.removeFromExistingInitiators(initiatorsToRemove);
                     if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                         mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
+                        mask.removeFromUserAddedInitiatorsByURI(initiatorIdsToRemove);
                     }
                     // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared
                     // by

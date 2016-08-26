@@ -636,14 +636,15 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter completer)
                     throws IsilonException {
-    	
         _log.info("IsilonMirrorOperations -  isiResyncPrep source system {} and dest system {} - start ",
         		primarySystem.getLabel(), secondarySystem.getLabel());
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
         IsilonSyncJob job = new IsilonSyncJob();
         job.setId(policyName);
         job.setAction(Action.resync_prep);
+        
         IsilonSyncTargetPolicy targetPolicy = null;
+        JobState targetPolicyState = null;
         
         IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
         JobState policyState = policy.getLastJobState();
@@ -651,18 +652,19 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         if(!policy.getEnabled()){
         	policy = doEnableReplicationPolicy(isiPrimary, policyName);
         	IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
-        	//already resync is created then we can start policy
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+        	targetPolicyState = targetPolicy.getLastJobState();
+        	//already resync is created then we can start policy
         	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
-        		BiosCommandResult.createSuccessfulResult();
+        		return BiosCommandResult.createSuccessfulResult();
         	} 
-        } else {
+        } else {//if it resync enabled
         	IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
         	//already resync is created then we can start policy
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        	JobState targetPolicyState = policy.getLastJobState();
+        	targetPolicyState = targetPolicy.getLastJobState();
         	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && targetPolicyState.equals(JobState.finished)) {
-        		BiosCommandResult.createSuccessfulResult();
+        		return BiosCommandResult.createSuccessfulResult();
         	} 
         }
 
@@ -686,7 +688,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         } 
         	
         return BiosCommandResult.createSuccessfulResult();
-
     }
 
     /**

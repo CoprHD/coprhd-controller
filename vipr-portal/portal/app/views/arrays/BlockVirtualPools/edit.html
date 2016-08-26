@@ -453,3 +453,14 @@
 #{/Modal.dialog}
 #{get 'forms'/}
 </div>
+<script>
+$(document).ready(function () {
+	$('#vpool_systemType').on('change', systemTypeChanged);
+	function systemTypeChanged() {
+		var type = '${vpool.systemType}';
+		if(type=="ibmxiv") {
+			$("#vpool_placementPolicy option:first").attr('selected','selected'); 
+		}
+	}
+});
+</script>

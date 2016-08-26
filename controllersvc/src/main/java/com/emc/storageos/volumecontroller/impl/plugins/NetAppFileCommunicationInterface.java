@@ -953,7 +953,7 @@ public class NetAppFileCommunicationInterface extends
                         }
                         UnManagedFileQuotaDirectory unManagedFileQuotaDirectory ; 
                         
-                        if(!unManagedFileQuotaDirectoryExists){
+                        if (!unManagedFileQuotaDirectoryExists) {
                             unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                             unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));                            
                         }else {

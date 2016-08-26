@@ -386,7 +386,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 List<StorageSystem> vplexLocalStorageSystems = 
                         VPlexControllerUtils.getAllVplexLocalStorageSystems(_dbClient);
                 for (StorageSystem vplex : vplexLocalStorageSystems) {
-                    if (vplex.getNativeGuid().contains(systemNativeGUID)) {
+                    if (null != vplex && systemNativeGUID.contains(vplex.getNativeGuid())) {
                         // THIS IS VERY BAD
                         String message = 
                                 String.format("Existing VPLEX local native GUID %s is a substring of the newly-discoverd system GUID %s, "

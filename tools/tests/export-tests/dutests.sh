@@ -1278,8 +1278,8 @@ test_1() {
     echot "Test 1 DU Check Begins"
     expname=${EXPORT_GROUP_NAME}t1
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportCreateDeviceStep}
+    # Turn on suspend of export before orchestration
+    set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
     verify_export ${expname}1 ${HOST1} gone
@@ -1307,8 +1307,8 @@ test_1() {
     
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportDeleteDeviceStep}
+    # Turn on suspend of export before orchestration
+    set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1

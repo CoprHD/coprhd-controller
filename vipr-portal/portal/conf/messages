@@ -2470,9 +2470,9 @@ virtualArray.systemTypes=System Types
 virtualArray.storageSystems=List of Storage Systems associated with the Virtual Array through Networks, Storage Ports or Storage Pools
 virtualArray.virtualPools=List of Virtual Pools associated with the Virtual Array. This is configured on the individual Virtual Pools
 defaultVarrayType=Create Virtual Arrays
-virtualArray.defaultvarray.simple=SIMPLE: All Storage Systems in one Virtual Array
-virtualArray.defaultvarray.1x1mapping=1X1 MAPPING: Every Storage System in its own virtual Array
-virtualArray.defaultvarray.custom= CUSTOM: Manually assign Storage Systems to Virtual Arrays
+virtualArray.defaultvarray.simple=Simple: Create a default virtual array during initial discovery and continue adding subsequent storage systems added from the guide to it.
+virtualArray.defaultvarray.1x1mapping=1X1 Mapping: Create a virtual array for each storage system discovered in the guide.
+virtualArray.defaultvarray.custom= Custom: Manually assign Storage Systems to Virtual Arrays
 
 # Virtual Array Commodity Nodes
 VirtualArray.nodes.title=Commodity Nodes
@@ -4804,7 +4804,7 @@ gettingStarted.loader.recheck=Add more Storage
 gettingStarted.loader.close=Close Guide
 gettingStarted.loader.dismiss=No thanks, I\'ll get started on my own
 gettingStarted.landing.header=Welcome to EMC ViPR Controller
-gettingStarted.landing.text=We've made it easy to set up your All Flash Arrays with our Getting Started Guide
+gettingStarted.landing.text=ViPR Controller Getting Started Guide, brings easy and quick steps to create a virtual data center with EMC VMAX All Flash, EMC Unity All Flash, and XtremIO arrays.<br><br>If you are not configuring ViPR Controller with all flash arrays, or prefer a custom deployment, exit guide, and continue with ViPR Controller UI.
 gettingStarted.landing.systemNew=You can now use our Getting Started Guide to help you configure ViPR
 gettingStarted.landing.systemPartial=Welcome back! You\'re almost done with the Getting Started Guide.
 gettingStarted.landing.systemReady=Welcome back! You\'re done with the Getting Started Guide.

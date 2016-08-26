@@ -1068,6 +1068,9 @@ public class StorageSystems extends ViprResourceController {
                 }
                 this.secondaryURL = url.toString();
             }
+            if (StringUtils.isEmpty(this.hyperScaleHost) || StringUtils.isEmpty(this.hyperScalePort)) {
+                flash.error("Secondary Host or Port is missing for XIV");
+            }
         }
 
         public Task<?> save() {

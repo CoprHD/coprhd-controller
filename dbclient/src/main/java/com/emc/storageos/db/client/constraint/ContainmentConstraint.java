@@ -80,6 +80,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.Order;
 
 /**
  * Containment constraint. For example, relationship between StorageDevice and
@@ -822,6 +823,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Migration.class);
             ColumnField field = doType.getColumnField("volume");
             return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
+        }
+
+        public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            ColumnField field = doType.getColumnField("scheduledEventId");
+            return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
     }
 }

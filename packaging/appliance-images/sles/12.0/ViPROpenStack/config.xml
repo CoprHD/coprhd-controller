@@ -53,6 +53,9 @@
   <repository type="rpm-md" priority="1">
     <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/Mitaka-master"/>
   </repository>
+  <repository type="rpm-md" priority="1">
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/packages-master/"/>
+  </repository>
   <packages type="image" profiles="base,appliance">
     <package name="audit"/>
     <package name="curl"/>
@@ -93,6 +96,7 @@
     <package name="python-openstackclient"/>
     <package name="python-swiftclient"/>
     <package name="rabbitmq-server"/>
+    <package name="ViPROpenStack-cc-conf"/>
   </packages>
   <packages type="bootstrap">
     <package name="ca-certificates"/>

@@ -80,6 +80,7 @@ com.emc.sa.api.CatalogPreferenceService
 com.emc.sa.api.CatalogServiceService
 com.emc.sa.api.ExecutionWindowService
 com.emc.sa.api.OrderService
+com.emc.sa.api.ScheduledEventService
 com.emc.sa.api.ServiceDescriptorService
 com.emc.sa.api.UserPreferenceService
 
@@ -116,6 +117,7 @@ com.emc.storageos.api.service.impl.resource.cinder.ExtensionService
 com.emc.storageos.api.service.impl.resource.cinder.QosService
 com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService
 com.emc.storageos.api.service.impl.resource.cinder.MiscService
+com.emc.storageos.api.service.impl.resource.KeystoneService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService

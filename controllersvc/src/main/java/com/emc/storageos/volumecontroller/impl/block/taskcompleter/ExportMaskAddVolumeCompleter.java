@@ -61,6 +61,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                     exportMask.addToUserCreatedVolumes(volume);
                 }
 
+                exportMask.setCreatedBySystem(true);
                 exportMask.addVolumes(_volumeMap);
                 exportGroup.addExportMask(exportMask.getId());
                 ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);

@@ -101,6 +101,7 @@ import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopy
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.VPlexUtil;
@@ -1104,7 +1105,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // Package up the Volume descriptors
         for (Volume volume : preparedVolumes) {
-            boolean vplex = RPHelper.isVPlexVolume(volume);
+            boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
 
             VolumeDescriptor.Type volumeType = VolumeDescriptor.Type.RP_SOURCE;
             if (vplex) {
@@ -1611,11 +1612,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // If we have a new RP+VPLEX/MP change vpool volume we may need
             // to do some extra work depending on whether we need the volume's
             // backend volumes added to backend CGs.
-            if (changeVpoolVolume != null && !changeVpoolVolume.checkForRp() && RPHelper.isVPlexVolume(changeVpoolVolume)) {
+            if (changeVpoolVolume != null && !changeVpoolVolume.checkForRp() && RPHelper.isVPlexVolume(changeVpoolVolume, _dbClient)) {
 
                 // Only need to set the replicationGroupInstance for an existing VPlex volume
                 // if the CG has array consistency enabled and the CG supports LOCAL type.
                 if (consistencyGroup.getArrayConsistency()) {
+                    if (null == changeVpoolVolume.getAssociatedVolumes() || changeVpoolVolume.getAssociatedVolumes().isEmpty()) {
+                        _log.error("VPLEX volume {} has no backend volumes.", changeVpoolVolume.forDisplay());
+                        throw InternalServerErrorException.
+                            internalServerErrors.noAssociatedVolumesForVPLEXVolume(changeVpoolVolume.forDisplay());
+                    }
                     for (String backendVolumeId : changeVpoolVolume.getAssociatedVolumes()) {
                         Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backendVolumeId));
 
@@ -2133,7 +2139,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {        
+        TaskList taskList = new TaskList();
         
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
@@ -2148,7 +2155,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<RPVPlexMigration> validMigrations = new ArrayList<RPVPlexMigration>();
         
         if (firstVolume.checkForRp() && firstVolume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
-            boolean vplex = RPHelper.isVPlexVolume(firstVolume);
+            boolean vplex = RPHelper.isVPlexVolume(firstVolume, _dbClient);
             if (vplex) {
                 if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, vpool)) {
                     // Allow the VPLEX Data Migration operation for the RP+VPLEX Journal 
@@ -2161,7 +2168,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
                 _dbClient, notSuppReasonBuff, validMigrations)) {
-            return rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam);
+            taskList = rpVPlexDataMigration(volumes, vpool, taskId, validMigrations, vpoolChangeParam);
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
@@ -2173,7 +2180,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 + "Please select one volume at a time.");
             }
         }
-        return createTasksForVolumes(vpool, volumes, taskId);
+        
+        taskList.getTaskList().addAll(
+                createTasksForVolumes(vpool, volumes, taskId).getTaskList());
+        
+        return taskList;
     }
 
     /**
@@ -2183,38 +2194,32 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     public void verifyVolumeExpansionRequest(Volume volume, long newSize) {
         _log.debug("Verify if RP volume {} can be expanded", volume.getId());
 
-        boolean vplex = RPHelper.isVPlexVolume(volume);
-
+        boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
+        
+        //validate the source
         if (vplex) {
-            // Look at all source and target volumes and make sure they can all be expanded
-            vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeID));
-                    if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
-                        vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, URI.create(volumeID)),
-                                newSize);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
+        	vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(volume, newSize);
         } else {
-            // Look at all source and target volumes and make sure they can all be expanded
-            super.verifyVolumeExpansionRequest(volume, newSize);
-            if (volume.getRpTargets() != null) {
-                for (String volumeID : volume.getRpTargets()) {
-                    try {
-                        super.verifyVolumeExpansionRequest(_dbClient.queryObject(Volume.class, new URI(volumeID)), newSize);
-                    } catch (URISyntaxException e) {
-                        throw APIException.badRequests.invalidURI(volumeID, e);
-                    }
-                }
-            } else {
-                throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
-            }
+           super.verifyVolumeExpansionRequest(volume, newSize);
         }
-
+        
+        //validate the targets
+        if (volume.getRpTargets() != null) {
+        	for (String volumeId : volume.getRpTargets()) {        	   
+        		Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
+	        		
+        		if (RPHelper.isVPlexVolume(targetVolume, _dbClient)) {
+        			if (targetVolume.getAssociatedVolumes() != null && !targetVolume.getAssociatedVolumes().isEmpty()) {
+        				vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
+	        		} 
+        		} else {
+                    super.verifyVolumeExpansionRequest(targetVolume, newSize); 	                     
+        		}
+    		}        	
+        } else {
+        	throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());        	
+        }
+        
         // Validate the source volume size is not greater than the target volume size
         RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));
     }
@@ -2377,7 +2382,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap, String snapshotType, String snapshotName,
             BlockFullCopyManager fcManager) {
-        boolean vplex = RPHelper.isVPlexVolume(reqVolume);
+        boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
 
         // For RP snapshots, validate that the volume type is not a target,
         // metadata, or null - must be source.
@@ -2533,7 +2538,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     }
                 }
             } else {
-                boolean vplex = RPHelper.isVPlexVolume(volume);
+                boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
                 Volume volumeToSnap = volume;
                 if (vplex) {
                     volumeToSnap = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(volume);
@@ -2686,7 +2691,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public List<Volume> getVolumesToSnap(Volume reqVolume, String snapshotType) {
         List<Volume> volumesToSnap = new ArrayList<Volume>();
-        boolean vplex = RPHelper.isVPlexVolume(reqVolume);
+        boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
 
         // If the requested volume is a regular RP protected volume (either RP source or RP target),
         // then just pass in that volume. RP protected (non-VPlex) volumes are not in any
@@ -2752,7 +2757,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
             String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
-        boolean vplex = RPHelper.isVPlexVolume(reqVolume);
+        boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());
         URI storageControllerURI = null;
         if (vplex) {
@@ -2840,7 +2845,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
         // we need to call out to VPLEX Api to get this information as the parent of these
         // snaps will be the backing volume.
-        boolean vplex = RPHelper.isVPlexVolume(volume);
+        boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
         if (vplex) {
             snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(volume));
         }
@@ -2881,7 +2886,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
         // we need to call out to VPLEX Api to get this information as the parent of these
         // snaps will be the backing volume.
-        boolean vplex = RPHelper.isVPlexVolume(volume);
+        boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
         if (vplex) {
             snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(volume));
         }
@@ -2931,7 +2936,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (URI sourceVolumeURI : VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors)) {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
             if (sourceVolume != null && !sourceVolume.getInactive() &&
-                    !sourceVolume.isIngestedVolume(_dbClient)) { // Keeping this in here for when we do RP ingest.
+                    !sourceVolume.isIngestedVolumeWithoutBackend(_dbClient)) { // Keeping this in here for when we do RP ingest.
                 sourceVolumeURIs.add(sourceVolumeURI);
             }
         }
@@ -2985,7 +2990,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // RP+VPLEX Journals are normally hidden in the UI since they are internal volumes, however they 
         // can been exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
         if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
-            boolean vplex = RPHelper.isVPlexVolume(volume);
+            boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
             if (vplex) {
                 if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
                     // Allow the VPLEX Data Migration operation
@@ -3010,7 +3015,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // All other operations depend on the new vpool at the minimum
         // specifying RP Protection.
         if (VirtualPool.vPoolSpecifiesProtection(newVpool)) {
-            boolean vplex = RPHelper.isVPlexVolume(volume);
+            boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
             // Check to see if this is a VPLEX volume
             if (vplex) {
                 // Get the varray for the volume.
@@ -3192,7 +3197,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             buf.append(String.format("\t Name : [%s] (%s)%n", volume.getLabel(), volume.getId()));
             buf.append(String.format("\t Personality : [%s]%n", volume.getPersonality()));
 
-            if (RPHelper.isVPlexVolume(volume)) {
+            if (RPHelper.isVPlexVolume(volume, _dbClient) && (null != volume.getAssociatedVolumes())) {
                 buf.append(String.format("\t VPLEX : [%s] %n", ((volume.getAssociatedVolumes().size() > 1) ? "Distributed" : "Local")));
                 buf.append(String.format("\t\t====="));
                 for (String uriString : volume.getAssociatedVolumes()) {
@@ -3377,6 +3382,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private void setInternalSitesForSourceBackingVolumes(RPRecommendation primaryRecommendation, RPRecommendation secondaryRecommendation,
             Volume sourceVolume, boolean exportForMetroPoint, boolean exportToHASideOnly, String haVarrayConnectedToRp,
             String activeSourceCopyName, String standbySourceCopyName) {
+        if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
+            _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
+            throw InternalServerErrorException.
+                internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
+        }
+
         if (exportForMetroPoint) {
             // If this is MetroPoint request and we're looking at the SOURCE volume we need to ensure the
             // backing volumes are aware of which internal site they have been assigned (needed for exporting in
@@ -3647,7 +3658,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 } else {
                     // This is a block snapshot.
                     // Check to see if the source volume is a RP+VPLEX/MetroPoint volume.
-                    if (RPHelper.isVPlexVolume(volume)) {
+                    if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                         // There are block snapshots on the RP+VPLEX/MetroPoint Source, throw an exception to inform the
                         // user. We can not remove protection from a RP+VPLEX Source when there are active block snapshots.
                         // RP+VPLEX/MetroPoint block snapshots are actually replica group snapshots (in a CG). Since we need to
@@ -3777,7 +3788,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             BlockServiceUtils.validateVolumeNoReplica(volume, application, _dbClient);
 
-            boolean vplex = RPHelper.isVPlexVolume(volume);
+            boolean vplex = RPHelper.isVPlexVolume(volume, _dbClient);
             if (vplex) {
                 // get the backend volume
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
@@ -3825,7 +3836,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     List<URI> getValidVolumesToRemoveFromCG(List<Volume> removeVolumes) {
         List<URI> result = new ArrayList<URI>();
         for (Volume vol : removeVolumes) {
-            boolean vplex = RPHelper.isVPlexVolume(vol);
+            boolean vplex = RPHelper.isVPlexVolume(vol, _dbClient);
             if (vplex) {
              // get the backend volume
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(vol, true, _dbClient);

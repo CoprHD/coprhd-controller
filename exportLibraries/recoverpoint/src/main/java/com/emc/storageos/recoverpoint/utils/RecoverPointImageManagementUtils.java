@@ -9,9 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,18 +335,16 @@ public class RecoverPointImageManagementUtils {
         String cgCopyName = null;
 
         try {
-
-            Map<String, String> disabledWWNs = new HashMap<String, String>();
             cgCopyName = impl.getGroupCopyName(cgCopy);
             cgName = impl.getGroupName(cgCopy.getGroupUID());
 
             boolean startTransfer = true;
-            logger.info("Disable the image on copy name: " + cgCopyName + " for CG Name: " + cgName);
+            logger.info(String.format("Attempting to disable the image for copy %s in consistency group %s", cgCopyName, cgName));
             try {
                 impl.disableImageAccess(cgCopy, startTransfer);
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 // Try again
-                logger.info("Disable the image failed for copy name: " + cgCopyName + " for CG Name: " + cgName + ". Try again");
+                logger.info(String.format("Disable the image failed for copy %s in consistency group %s. Try again", cgCopyName, cgName));
                 try {
                     Thread.sleep(Long.valueOf(disableRetrySleepTimeSeconds * numMillisInSecond));
                 } catch (InterruptedException e1) {
@@ -358,7 +354,7 @@ public class RecoverPointImageManagementUtils {
             }
 
             waitForDisableToComplete(impl, cgCopyName, cgName, cgCopy);
-            logger.info("Successful disable of " + disabledWWNs.size() + " target LUNs.");
+            logger.info(String.format("Successfully disabled image for copy %s in consistency group %s", cgCopyName, cgName));
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDisableCopy(cgCopyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -424,30 +420,35 @@ public class RecoverPointImageManagementUtils {
         try {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
-
-            // Wait for the RP failover to complete before obtaining the list of production copies
-            waitForCGCopyState(impl, cgCopyUID, false);
-
-            ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgCopyUID.getGroupUID());
-            List<ConsistencyGroupCopyUID> prodCopiesUIDs = groupSettings.getProductionCopiesUIDs();
-
-            // Check if the copy we want to make production is already the production copy. In some cases
-            // such as MetroPoint swap or CLR swap when the non-swap target is in direct access mode,
-            // our copy will not be set as production.
-            boolean isCopySetAsProduction = RecoverPointUtils.containsCopy(prodCopiesUIDs, cgCopyUID);
-
-            if (!isCopySetAsProduction) {
+            try {
+                // Wait for the RP failover to complete before obtaining the list of production copies.
+                // This wait looks for the ACTIVE CG copy state. If the failover copy was initially
+                // in direct access mode, it will already be ACTIVE. When a swap is performed and the failover
+                // copy is in direct access mode, a wait/sleep will be required before any other CG operation
+                // is performed. This is to ensure the swap/RP failover has time to complete.
+                waitForCGCopyState(impl, cgCopyUID, false);
                 logger.info(String.format("Setting copy %s as the new production copy.", cgCopyName));
                 impl.setProductionCopy(cgCopyUID, true);
-            } else {
-                logger.info(String.format("Copy %s is already set as a production copy. Skipping step to set as production copy.",
-                        cgCopyName));
+            } catch (FunctionalAPIActionFailedException_Exception e) {
+                // Isolating a very specific exception message to determine if the production copy we are trying to set
+                // as production is already set as production. Reason for this type of logic is there is no way of
+                // knowing when or if the swap copy is even set as the new production copy. In cases such as MetroPoint
+                // or CLR, the swap copy is NOT set as the production copy after the swap. But other cases
+                // such as CDP, the swap copy is automatically set as the production copy after swap. So why
+                // not check the swap copy to see if it has the ACTIVE role (production copies always have the ACTIVE role)?
+                // Because if we failover to a target copy in direct access mode prior to a swap, the target copy will
+                // already be in ACTIVE mode. So instead of writing a bunch of error prone complicated logic to see if the
+                // copy has completed the swap (RP failover), we just try to set the copy as production and see what happens.
+                // If the copy can't be set as production because it already is, oh well, we just move on.
+                if (e.getMessage().contains("Cannot perform action on production copy")) {
+                    logger.warn(String
+                            .format("Encountered exception [%s] while setting copy %s as production. It appears the copy is already set as the production copy.  Ignoring the exception and continuing.",
+                                    e.getMessage(), cgCopyName));
+                } else {
+                    throw e;
+                }
             }
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToSetCopyAsProduction(cgCopyName, cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.failedToSetCopyAsProduction(cgCopyName, cgName, e);
-        } catch (InterruptedException e) {
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
             throw RecoverPointException.exceptions.failedToSetCopyAsProduction(cgCopyName, cgName, e);
         }
     }
@@ -474,9 +475,12 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
             impl.enableDirectAccess(cgCopyUID);
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
+
+            // Wait for the CG copy state to change to DIRECT_ACCESS
+            logger.info(String.format("Waiting for copy %s in consistency group %s to change access state to DIRECT_ACCESS.", cgCopyName,
+                    cgName));
+            waitForCGCopyState(impl, cgCopyUID, false);
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
             throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         }
     }
@@ -1002,11 +1006,13 @@ public class RecoverPointImageManagementUtils {
         final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
 
         List<ImageAccessMode> accessModes = new ArrayList<ImageAccessMode>();
+        if (accessMode != null) {
+            accessModes = Arrays.asList(accessMode);
+        }
 
         logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
-        if (accessMode != null) {
-            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessMode);
-            accessModes = Arrays.asList(accessMode);
+        if (!accessModes.isEmpty()) {
+            logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessModes.toString());
         } else {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: DIRECT_ACCESS or NO_ACCESS");
         }
@@ -1198,7 +1204,7 @@ public class RecoverPointImageManagementUtils {
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState desiredPipeState)
+    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState... desiredPipeState)
             throws RecoverPointException {
 
         int numRetries = 0;
@@ -1209,6 +1215,15 @@ public class RecoverPointImageManagementUtils {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        }
+
+        List<String> desiredPipeStates = new ArrayList<String>();
+
+        if (desiredPipeState != null) {
+            // build the list of desired pipe states
+            for (PipeState pipeState : desiredPipeState) {
+                desiredPipeStates.add(pipeState.name());
+            }
         }
 
         while (numRetries++ < MAX_RETRIES) {
@@ -1253,7 +1268,7 @@ public class RecoverPointImageManagementUtils {
                         continue;
                     }
 
-                    if (desiredPipeState.equals(PipeState.ACTIVE)) {
+                    if (desiredPipeStates.contains(PipeState.ACTIVE.name())) {
                         // Treat SNAP_IDLE as ACTIVE
                         if (linkstate.getPipeState().equals(PipeState.SNAP_IDLE)) {
                             linkstate.setPipeState(PipeState.ACTIVE);
@@ -1261,9 +1276,9 @@ public class RecoverPointImageManagementUtils {
                     }
 
                     PipeState pipeState = linkstate.getPipeState();
-                    logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+                    logger.info("Copy link state is " + pipeState.toString() + "; desired states are: " + desiredPipeStates.toString());
 
-                    if (pipeState.equals(desiredPipeState)) {
+                    if (desiredPipeStates.contains(pipeState.name())) {
                         logger.info("Copy link state matches the desired state.");
                         return;
                     } else {

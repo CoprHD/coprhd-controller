@@ -607,7 +607,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // the source backend volume.
         if (object instanceof Volume) {
             Volume vplexVolume = (Volume) object;
-            if (!vplexVolume.isIngestedVolume(_dbClient)) {
+            if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
                 Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient, false);
                 if (snapshotSourceVolume != null) {
                     List<BlockSnapshot> snapshots = CustomQueryUtility.queryActiveResourcesByConstraint(
@@ -1058,7 +1058,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.importVolume(vplexURI, descriptors, vplexProject.getId(),
                     vplexProject.getTenantOrg().getURI(), vpool.getId(),
-                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, taskId);
+                    importVolume.getLabel() + SRC_BACKEND_VOL_LABEL_SUFFIX, null, Boolean.TRUE, taskId);
         } catch (InternalException ex) {
             s_logger.error("ControllerException on importVolume", ex);
             String errMsg = String.format("ControllerException: %s", ex.getMessage());
@@ -1088,6 +1088,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vplexVolume.getVirtualArray());
             Set<URI> vplexes = new HashSet<URI>();
             vplexes.add(vplexURI);
+            if (null == vplexVolume.getAssociatedVolumes() || vplexVolume.getAssociatedVolumes().isEmpty()) {
+                s_logger.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            }
             Iterator<String> assocIter = vplexVolume.getAssociatedVolumes().iterator();
             URI existingVolumeURI = new URI(assocIter.next());
             Volume existingVolume = _dbClient.queryObject(Volume.class, existingVolumeURI);
@@ -1160,7 +1165,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             try {
                 s_logger.info("Calling VPlex controller.");
                 VPlexController controller = getController();
-                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, taskId);
+                controller.importVolume(vplexURI, descriptors, null, null, vpool.getId(), null, transferSpeed, Boolean.TRUE, taskId);
                 // controller.importVolume(vplexURI, vpool.getId(),
                 // null, null, /* no need to pass System Project/Tenant */
                 // null, /* no import volume */
@@ -1327,6 +1332,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
+        
+        taskList.getTaskList().addAll(
+                createTasksForVolumes(vpool, Arrays.asList(volume), taskId).getTaskList());
+        
         return taskList;
     }
 
@@ -2393,14 +2402,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // We'll need to prepare a target volume and create a
             // descriptor for each backend volume being migrated.
             StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-            String assocVolumeId = assocVolumes.iterator().next();
-            URI assocVolumeURI = URI.create(assocVolumeId);
-            Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
-            VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                    assocVolume.getVirtualPool());
-            descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
-                    vplexVolume, assocVolume, newVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume), taskId, null, false, null));
+            if (null == assocVolumes) {
+                s_logger.warn("VPLEX volume {} has no backend volumes. It was possibly ingested 'Virtual Volume Only'.", 
+                        vplexVolume.forDisplay());
+            } else {
+                String assocVolumeId = assocVolumes.iterator().next();
+                URI assocVolumeURI = URI.create(assocVolumeId);
+                Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
+                VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
+                        assocVolume.getVirtualPool());
+                descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem,
+                        vplexVolume, assocVolume, newVarray, assocVolumeVPool,
+                        getVolumeCapacity(assocVolume), taskId, null, false, null));
+            }
         }
 
         return descriptors;
@@ -2464,6 +2478,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // Prepare the backend volume(s) for migration.
             StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
+            if (null == assocVolumeIds || assocVolumeIds.isEmpty()) {
+                s_logger.error("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
+            }
             for (String assocVolumeId : assocVolumeIds) {
                 Volume assocVolume = _permissionsHelper.getObjectById(
                         URI.create(assocVolumeId), Volume.class);
@@ -2499,16 +2518,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // migration to a larger target volume(s).
         boolean useNativeVolumeExpansion = true;
         StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
-        for (String assocVolumeId : assocVolumeIds) {
-            Volume assocVolume = _permissionsHelper.getObjectById(
-                    URI.create(assocVolumeId), Volume.class);
-            // If any backend volume does not support native expansion, then
-            // we use migration to expand the VPlex volume.
-            try {
-                super.verifyVolumeExpansionRequest(assocVolume, newSize);
-            } catch (Exception e) {
-                useNativeVolumeExpansion = false;
-                break;
+        if (null == assocVolumeIds) {
+            s_logger.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'.", 
+                    vplexVolume.forDisplay());
+            useNativeVolumeExpansion = false;
+        } else {
+            for (String assocVolumeId : assocVolumeIds) {
+                Volume assocVolume = _permissionsHelper.getObjectById(
+                        URI.create(assocVolumeId), Volume.class);
+                // If any backend volume does not support native expansion, then
+                // we use migration to expand the VPlex volume.
+                try {
+                    super.verifyVolumeExpansionRequest(assocVolume, newSize);
+                } catch (Exception e) {
+                    useNativeVolumeExpansion = false;
+                    break;
+                }
             }
         }
 
@@ -2687,7 +2712,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.getId().toString());
+                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
         VirtualPool sourceMirrorVPool = null;
@@ -3254,11 +3279,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *         source.
      */
     public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume) {
-        String vplexVolumeId = vplexVolume.getId().toString();
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+                    .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
         // Get the backend volume that will serve as the source volume
@@ -3266,7 +3290,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
         if (snapshotSourceVolume == null) {
             throw InternalServerErrorException.internalServerErrors
-                    .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolumeId);
+                    .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolume.forDisplay());
         }
 
         return snapshotSourceVolume;
@@ -3365,7 +3389,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
-        if (!vplexVolume.isIngestedVolume(_dbClient)) {
+        if (!vplexVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
             Volume snapshotSourceVolume = null;
             try {
                 snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
@@ -3488,7 +3512,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     systemURI, volumeURI, null, null);
             volumeDescriptors.add(descriptor);
             // Add a descriptor for each of the associated volumes.
-            if (!volume.isIngestedVolume(_dbClient)) {
+            if (!volume.isIngestedVolumeWithoutBackend(_dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String assocVolId : volume.getAssociatedVolumes()) {
                     Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
@@ -3590,6 +3614,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Package up the Volume descriptors
         for (Volume volume : preparedVolumes) {
+            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
+                s_logger.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
             for (String associatedVolumeStr : volume.getAssociatedVolumes()) {
                 Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeStr));
 
@@ -3668,7 +3697,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Can't add a volume into a CG with ingested volumes.
         for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.isIngestedVolume(_dbClient)) {
+            if (cgVolume.isIngestedVolumeWithoutBackend(_dbClient)) {
                 throw APIException.badRequests.notAllowedAddVolumeToCGWithIngestedVolumes();
             }
         }

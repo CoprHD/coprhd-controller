@@ -32,7 +32,7 @@ public class ValidatorLogger {
      *            -- Hardware value
      */
     public void logDiff(String id, String field, String db, String hw) {
-        String msg = String.format("id: %s field: %s database: %s hardware: %s", id, field, db, hw);
+        String msg = String.format("id: [%s] field: [%s] database: [%s] hardware: [%s]", id, field, db, hw);
         msgs.append(msg + "\n");
         if (log != null) {
             log.info(msg);

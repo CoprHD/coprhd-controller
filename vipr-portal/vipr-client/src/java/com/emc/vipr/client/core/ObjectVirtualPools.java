@@ -257,7 +257,7 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
 
     public List<ObjectVirtualPoolRestRep> getByVirtualArray(URI varrayId, URI tenantId, ResourceFilter<ObjectVirtualPoolRestRep> filter) {
         List<NamedRelatedVirtualPoolRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
-        return getByRefs(blockVpools(refs), filter);
+        return getByRefs(objectVpools(refs), filter);
     }
 
     /**

@@ -12,13 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.URIUtil;
-import org.apache.commons.lang.ObjectUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
@@ -44,6 +42,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.EventUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.collect.Lists;
@@ -96,17 +95,20 @@ public class ComputeSystemHelper {
         for (IpInterface hostInterface : hostInterfaces) {
             hostInterface.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             dbClient.markForDeletion(hostInterface);
+            EventUtil.deleteResourceEvents(dbClient, hostInterface.getId());
         }
         List<Initiator> initiators = queryInitiators(dbClient, host.getId());
         for (Initiator initiator : initiators) {
             initiator.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             dbClient.markForDeletion(initiator);
+            EventUtil.deleteResourceEvents(dbClient, initiator.getId());
         }
         host.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
         host.setProvisioningStatus(Host.ProvisioningJobStatus.COMPLETE.toString());
         dbClient.persistObject(host);
         _log.info("marking host for deletion: {} {}", host.getLabel(), host.getId());
         dbClient.markForDeletion(host);
+        EventUtil.deleteResourceEvents(dbClient, host.getId());
     }
 
     /**
@@ -171,11 +173,13 @@ public class ComputeSystemHelper {
                 }
                 else {
                     dbClient.markForDeletion(cluster);
+                    EventUtil.deleteResourceEvents(dbClient, cluster.getId());
                 }
             }
         }
         _log.info("marking DC for deletion: {} {}", dataCenter.getLabel(), dataCenter.getId());
         dbClient.markForDeletion(dataCenter);
+        EventUtil.deleteResourceEvents(dbClient, dataCenter.getId());
     }
 
     /**
@@ -211,6 +215,7 @@ public class ComputeSystemHelper {
         }
         _log.info("marking cluster for deletion: {} {}", cluster.getLabel(), cluster.getId());
         dbClient.markForDeletion(cluster);
+        EventUtil.deleteResourceEvents(dbClient, cluster.getId());
     }
 
     /**
@@ -535,6 +540,33 @@ public class ComputeSystemHelper {
         List<URI> uris = dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         return uris;
+    }
+
+    /**
+     * Update the cluster references for the host and its initiators
+     * 
+     * @param dbClient dbclient
+     * @param clusterURI the cluster that the host is being assigned to
+     * @param hostURI the host id
+     */
+    public static void updateHostAndInitiatorClusterReferences(DbClient dbClient, URI clusterURI, URI hostURI) {
+        Host host = dbClient.queryObject(Host.class, hostURI);
+        host.setCluster(clusterURI);
+        dbClient.updateObject(host);
+        updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+    }
+
+    /**
+     * Update the hosts vcenter datacenter reference
+     * 
+     * @param dbClient dbclient
+     * @param hostURI the host id to update
+     * @param vCenterDataCenterId the id of the vcenter datacenter to set on the host
+     */
+    public static void updateHostVcenterDatacenterReference(DbClient dbClient, URI hostURI, URI vCenterDataCenterId) {
+        Host host = dbClient.queryObject(Host.class, hostURI);
+        host.setVcenterDataCenter(vCenterDataCenterId);
+        dbClient.updateObject(host);
     }
 
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {

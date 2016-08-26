@@ -1254,43 +1254,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         return BiosCommandResult.createErrorResult(error);
                     }
                 }
-                FileShareExport fsExport = null;
-                if (args.getFileObjExports() != null) {
-                    Collection<FileExport> expList = args.getFileObjExports().values();
-                    Iterator<FileExport> it = expList.iterator();
-                    FileExport exp = null;
-                    while (it.hasNext()) {
-                        exp = it.next();
-                        fsExport = new FileShareExport(exp);
-                        if (fsExport != null) {
-                            String vnxeShareId = fsExport.getIsilonId();
-                            _logger.info("Delete UnityExport id {} for path {}",
-                                    vnxeShareId, fsExport.getPath());
-                            if (isFile) {
-                                String fsId = args.getFs().getNativeId();
-                                job = apiClient.removeNfsShare(vnxeShareId, fsId);
-                            } else {
-                                job = apiClient.deleteNfsShareForSnapshot(vnxeShareId);
-                            }
-                            if (job != null) {
-                                if (isFile) {
-                                    completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
-                                } else {
-                                    completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
-                                }
-
-                                VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
-                                        completer, fsExport, fsExport.getPath(), isFile);
-                                ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
-                            } else {
-                                _logger.error("No job returned from exportFileSystem");
-                                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
-                                        "No Job returned from deleteFileSystem");
-                                return BiosCommandResult.createErrorResult(error);
-                            }
-                        }
-                    }
-                }
+                
             } else if (subDir != null && !subDir.isEmpty()) {
                 // Filter for a specific Sub Directory export
                 _logger.info("Deleting all subdir exports rules at ViPR and  sub directory export at device {}", subDir);

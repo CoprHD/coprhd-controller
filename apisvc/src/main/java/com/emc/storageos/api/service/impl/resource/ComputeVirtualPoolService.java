@@ -187,9 +187,10 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 tenant = tenant_input.getId();
             }
 
+            Set<ComputeVirtualPool> vpoolSet = new HashSet<ComputeVirtualPool>();
             for (ComputeVirtualPool virtualPool : vpoolObjects) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
-                    list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
+                    vpoolSet.add(virtualPool);
 
                 }
             }
@@ -199,9 +200,13 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
                 for (ComputeVirtualPool virtualPool : vpoolObjects) {
                     if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
-                        list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
+                        vpoolSet.add(virtualPool);
                     }
                 }
+            }
+
+            for (ComputeVirtualPool virtualPool : vpoolSet) {
+                list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
             }
         }
 
@@ -1447,7 +1452,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
         Iterator<ComputeVirtualPool> _dbIterator =
                 _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        BulkList.ResourceFilter filter = new BulkList.ComputeVirtualPoolFilter(getUserFromContext(), _permissionsHelper);
+        BulkList.ResourceFilter filter = new BulkList.ComputeVirtualPoolFilter();
         return new ComputeVirtualPoolBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_VPOOL_MAPPER, filter));
     }
 
@@ -1463,7 +1468,14 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
     @Override
     protected ComputeVirtualPoolBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        return queryBulkResourceReps(ids);
+        if (isSystemOrRestrictedSystemAdmin()){
+            return queryBulkResourceReps(ids);
+        } else {
+            Iterator<ComputeVirtualPool> _dbIterator = 
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+             BulkList.ResourceFilter filter = new BulkList.ComputeVirtualPoolFilter(getUserFromContext(), _permissionsHelper);
+             return new ComputeVirtualPoolBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_VPOOL_MAPPER, filter));
+        }
     }
 
     private void validateMinMaxIntValues(Integer minVal, Integer maxVal, String minField, String maxField) {

@@ -311,6 +311,10 @@ public enum OperationTypeEnum {
     UPDATE_CATALOG_PREFERENCES("UPDATE CATALOG PREFERENCES", "", "operation to update catalog preferences"),
     UPDATE_USER_PREFERENCES("UPDATE USER PREFERENCES", "", "operation to update user preferences"),
 
+    CREATE_SCHEDULED_EVENT("CRAETE SCHEDULED_EVENT", "", "operation to create a scheduled event"),
+    UPDATE_SCHEDULED_EVENT("UPDATE SCHEDULED_EVENT", "", "operation to update a scheduled event"),
+    DELETE_SCHEDULED_EVENT("DELETE SCHEDULED_EVENT", "", "operation to delete a scheduled event"),
+
     CREATE_ORDER("CRAETE ORDER", "", "operation to create a order"),
     UPDATE_ORDER("UPDATE ORDER", "", "operation to update a order"),
     DELETE_ORDER("DELETE ORDER", "", "operation to delete a order"),
@@ -509,7 +513,13 @@ public enum OperationTypeEnum {
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
-    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
+    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
+    
+    /* Filesystem Mount Operations*/
+    
+    MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
+    UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation");
 
     private final String _evType;
     private final String _fail_evType;

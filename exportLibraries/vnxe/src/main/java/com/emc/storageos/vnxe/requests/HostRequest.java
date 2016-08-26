@@ -11,7 +11,7 @@ import com.emc.storageos.vnxe.models.VNXeHost;
 
 public class HostRequest extends KHRequests<VNXeHost> {
     private static final String URL = "/api/instances/host/";
-    private static final String FIELDS = "name,fcHostInitiators,iscsiHostInitiators"; 
+    private static final String FIELDS = "name,fcHostInitiators,iscsiHostInitiators,hostLUNs,type";
     private static final String URL_MODIFY ="/action/modifyHostLUNs";
     
     public HostRequest(KHClient client, String id) {

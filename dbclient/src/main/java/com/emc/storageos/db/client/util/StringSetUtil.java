@@ -18,13 +18,13 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * A utility class for changing between {@link StringMap} and {@link List}
- * 
+ *
  */
 public class StringSetUtil {
 
     /**
      * Creates and return a {@link List} from the values of a {@link StringSet}
-     * 
+     *
      * @param curSet the {@link java.util.Collection<String>} containing the values
      * @return the {@link List}
      */
@@ -40,7 +40,7 @@ public class StringSetUtil {
 
     /**
      * Returns a set of strings from a list of URIs
-     * 
+     *
      * @param uris the list of URIs
      * @return a set of strings
      */
@@ -56,7 +56,7 @@ public class StringSetUtil {
 
     /**
      * Returns a set of strings from a list of URIs
-     * 
+     *
      * @param uris the list of URIs
      * @return a set of strings
      */
@@ -72,7 +72,7 @@ public class StringSetUtil {
 
     /**
      * Returns a StringSet from the keySet of a StringMap
-     * 
+     *
      * @param map StringMap
      * @return Returns an empty set if the map is null, otherwise the keySet.
      */
@@ -87,7 +87,7 @@ public class StringSetUtil {
 
     /**
      * Return true if there is any intersection in the StringSets a and b.
-     * 
+     *
      * @param a StringSet
      * @param b StringSet
      * @return true if they have a common member, false otherwise
@@ -110,7 +110,7 @@ public class StringSetUtil {
     /**
      * If set1 and set2 are before and after respectively, return the items
      * that existed before and no longer exist.
-     * 
+     *
      * @param set1
      * @param set2
      * @return
@@ -134,7 +134,7 @@ public class StringSetUtil {
     /**
      * If set1 and set2 are before and after respectively, return the items
      * that exists now that did not exist before.
-     * 
+     *
      * @param set1
      * @param set2
      * @return
@@ -157,7 +157,7 @@ public class StringSetUtil {
 
     /**
      * Compares that two sets do not have the same entries
-     * 
+     *
      * @param set1
      * @param set2
      * @return
@@ -166,21 +166,22 @@ public class StringSetUtil {
         return !getRemoved(set1, set2).isEmpty() ||
                 !getRemoved(set2, set1).isEmpty();
     }
-    
+
     /**
      * Compares that two sets have the same entries
+     * 
      * @param set1
      * @param set2
      * @return
      */
-    public static boolean areEqual (StringSet set1, StringSet set2) {
+    public static boolean areEqual(StringSet set1, StringSet set2) {
         return getRemoved(set1, set2).isEmpty() &&
                 getRemoved(set2, set1).isEmpty();
     }
 
     /**
      * Returns a set of strings from a collection of dataObject
-     * 
+     *
      * @param dataObjects the list of dataObjects
      * @return a set of strings
      */
@@ -199,7 +200,7 @@ public class StringSetUtil {
     /**
      * This function can be used to prevent NPEs. It will either return the EMPTY_STRING_SET
      * or the set.
-     * 
+     *
      * @param set - StringSet
      * @return Returns a StringSet
      */
@@ -209,7 +210,7 @@ public class StringSetUtil {
 
     /**
      * Takes the inputList and removes any duplicates
-     * 
+     *
      * @param inputList<T> [in/out] - List to process and update
      */
     public static <T> void removeDuplicates(List<T> inputList) {

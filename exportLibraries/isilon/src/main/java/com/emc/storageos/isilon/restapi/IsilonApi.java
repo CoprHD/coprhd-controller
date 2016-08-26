@@ -5,9 +5,11 @@
 
 package com.emc.storageos.isilon.restapi;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -231,6 +233,7 @@ public class IsilonApi {
         ClientResponse clientResp = null;
 
         try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             IsilonList<String> ret = new IsilonList<String>();
             String query = (resumeToken == null) ? "?type=container" : "?type=container&resume=" + resumeToken;
             clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath + query)));
@@ -276,6 +279,7 @@ public class IsilonApi {
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             sLogger.debug("IsilonApi existsDir {} - start", fspath);
             resp = _client.head(_baseUrl.resolve(URI_IFS.resolve(fspath)));
             sLogger.debug("IsilonApi existsDir {} - complete", fspath);
@@ -327,7 +331,7 @@ public class IsilonApi {
             if (existsDir(fspath)) {
                 return;
             }
-
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             MultivaluedMap<String, String> queryParams = null;
             if (recursive) {
                 queryParams = new MultivaluedMapImpl();
@@ -379,6 +383,7 @@ public class IsilonApi {
         fspath = scrubPath(fspath);
         ClientResponse resp = null;
         try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
             resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath
                     + (recursive ? "?recursive=1" : ""))));
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
@@ -643,6 +648,11 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifySnapshotSchedule(String id, IsilonSnapshotSchedule s) throws IsilonException {
+        try {
+            id = URLEncoder.encode(id, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
     }
 
@@ -653,6 +663,11 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteSnapshotSchedule(String id) throws IsilonException {
+        try {
+            id = URLEncoder.encode(id, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
     }
 
@@ -1405,8 +1420,14 @@ public class IsilonApi {
      *            object with the modified values set
      * @throws IsilonException
      */
-    public void modifyNFSACL(String path, IsilonNFSACL acl) throws IsilonException {
-        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+    public void modifyNFSACL(String fspath, IsilonNFSACL acl) throws IsilonException {
+        try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String aclUrl = fspath.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
         put(_baseUrl.resolve(URI_IFS), aclUrl, "ACL", acl);
     }
 
@@ -1418,8 +1439,14 @@ public class IsilonApi {
      * @return IsilonNFSACL object
      * @throws IsilonException
      */
-    public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+    public IsilonNFSACL getNFSACL(String fspath) throws IsilonException {
+        try {
+            fspath = URLEncoder.encode(fspath, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String aclUrl = fspath.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
         return getObj(_baseUrl.resolve(URI_IFS), aclUrl, IsilonNFSACL.class);
     }
 

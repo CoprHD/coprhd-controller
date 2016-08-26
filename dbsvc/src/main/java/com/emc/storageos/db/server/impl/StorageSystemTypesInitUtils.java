@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
 
 public class StorageSystemTypesInitUtils {
 
@@ -47,54 +48,37 @@ public class StorageSystemTypesInitUtils {
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
     private static final String VNXFILE_SMIS = "vnxfile_smis";
+    private static final String HP3PAR = "hp3par";
+    private static final String DELLSCSYSTEM = "dellscsystem";
+    private static final String DELLSCPROVIDER = "dellscprovider";
 
-    private static final List<String> FILE_TYPE_SYSTEMS = asList(VNX_FILE, ISILON, NETAPP, NETAPPC);
-    private static final List<String> BLOCK_TYPE_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
-    private static final List<String> OBJECT_TYPE_SYSTEMS = asList(ECS);
-    private static final List<String> FILE_TYPE_SYSTEM_PROVIDERS = asList(SCALEIOAPI);
-    private static final List<String> BLOCK_TYPE_SYSTEM_PROVIDERS = asList(SMIS, HITACHI_PROVIDER, CINDER,
-            DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH);
+    private static final Map<META_TYPE, List<String>> SYSTEMS_AND_PROVIDERS;
 
-    private static final Map<String, Boolean> DEFAULT_SSL_ENABLE_MAP;
-    private static final Map<String, Boolean> DEFAULT_MDM_ENABLE_MAP;
-    private static final Map<String, Boolean> ONLY_MDM_MAP;
-    private static final Map<String, Boolean> ELEMENT_MANAGER;
-    private static final Map<String, Boolean> SECREAT_KEY_ENABLE_MAP;
+    private static final List<String> SSL_ENABLE_TYPE_LIST = asList(VNX_BLOCK, VMAX, SMIS, SCALEIOAPI, VPLEX,
+            VNX_FILE, UNITY, VNXe, IBMXIV, DELLSCSYSTEM, DELLSCPROVIDER);
+    private static final List<String> MDM_ENABLE_LIST = asList(SCALEIO, SCALEIOAPI);
+    private static final List<String> ONLY_MDM_LIST = asList(SCALEIOAPI);
+    private static final List<String> ELEMENT_MANAGER_LIST = asList(SCALEIO);
+    private static final List<String> SECREAT_KEY_ENABLE_LIST = asList(CEPH);
     private static final Map<String, String> DISPLAY_NAME_MAP;
     private static final Map<String, String> SSL_PORT_MAP;
     private static final Map<String, String> NON_SSL_PORT_MAP;
     private static final Map<String, String> STORAGE_PROVIDER_MAP;
 
     static {
-        // Initialize default SSL enable map
-        DEFAULT_SSL_ENABLE_MAP = new HashMap<String, Boolean>();
-        DEFAULT_SSL_ENABLE_MAP.put(VNX_BLOCK, true);
-        DEFAULT_SSL_ENABLE_MAP.put(VMAX, true);
-        DEFAULT_SSL_ENABLE_MAP.put(SMIS, true);
-        DEFAULT_SSL_ENABLE_MAP.put(SCALEIOAPI, true);
-        DEFAULT_SSL_ENABLE_MAP.put(VPLEX, true);
-        DEFAULT_SSL_ENABLE_MAP.put(VNX_FILE, true);
-        DEFAULT_SSL_ENABLE_MAP.put(VNXe, true);
-        DEFAULT_SSL_ENABLE_MAP.put(IBMXIV, true);
-
-        // Initialize secret key map
-        SECREAT_KEY_ENABLE_MAP = new HashMap<String, Boolean>();
-        SECREAT_KEY_ENABLE_MAP.put(CEPH, true);
-
-        // Initialize default MDM enable map
-        DEFAULT_MDM_ENABLE_MAP = new HashMap<String, Boolean>();
-        DEFAULT_MDM_ENABLE_MAP.put(SCALEIO, true);
-        DEFAULT_MDM_ENABLE_MAP.put(SCALEIOAPI, true);
-
-        ONLY_MDM_MAP = new HashMap<String, Boolean>();
-        ONLY_MDM_MAP.put(SCALEIOAPI, true);
-
-        ELEMENT_MANAGER = new HashMap<String, Boolean>();
-        ELEMENT_MANAGER.put(SCALEIO, true);
+        SYSTEMS_AND_PROVIDERS = new HashMap<META_TYPE, List<String>>();
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN,
+                HP3PAR, DELLSCSYSTEM));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE, asList(VNX_FILE, ISILON, NETAPP, NETAPPC));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_PROVIDER, asList(SMIS, HITACHI_PROVIDER, CINDER,
+                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, SCALEIOAPI, DELLSCPROVIDER));
 
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
         DISPLAY_NAME_MAP.put(VNX_BLOCK, "EMC VNX Block");
+        DISPLAY_NAME_MAP.put(HP3PAR, "HPE 3PAR");
         DISPLAY_NAME_MAP.put(VNX_FILE, "EMC VNX File");
         DISPLAY_NAME_MAP.put(ISILON, "EMC Isilon");
         DISPLAY_NAME_MAP.put(NETAPP, "NetApp 7-mode");
@@ -111,17 +95,20 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP.put(ECS, "EMC Elastic Cloud Storage");
         DISPLAY_NAME_MAP.put(UNITY, "EMC Unity");
         DISPLAY_NAME_MAP.put(CEPH, "Block Storage powered by Ceph");
+        DISPLAY_NAME_MAP.put(DELLSCSYSTEM, "Dell SC Storage");
 
         DISPLAY_NAME_MAP.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
         DISPLAY_NAME_MAP.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
         DISPLAY_NAME_MAP.put(CINDER, "Storage Provider for Third-party block storage systems");
         DISPLAY_NAME_MAP.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
+        DISPLAY_NAME_MAP.put(DELLSCPROVIDER, "Storage Provider for Dell SC Storage");
 
         SSL_PORT_MAP = new HashMap<String, String>();
         SSL_PORT_MAP.put(VNX_FILE, "5989");
         SSL_PORT_MAP.put(SCALEIOAPI, "443");
         SSL_PORT_MAP.put(VNX_BLOCK, "5989");
         SSL_PORT_MAP.put(VMAX, "5989");
+        SSL_PORT_MAP.put(HP3PAR, "8080");
         SSL_PORT_MAP.put(SMIS, "5989");
         SSL_PORT_MAP.put(HITACHI, "2001");
         SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -137,6 +124,9 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(VNXe, "443");
         SSL_PORT_MAP.put(VNXFILE_SMIS, "5989");
         SSL_PORT_MAP.put(UNITY, "443");
+        SSL_PORT_MAP.put(DELLSCSYSTEM, "3033");
+        SSL_PORT_MAP.put(DELLSCPROVIDER, "3033");
+        SSL_PORT_MAP.put(CEPH, "6789");
 
         NON_SSL_PORT_MAP = new HashMap<String, String>();
         NON_SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -152,6 +142,7 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(XTREMIO, "443");
         NON_SSL_PORT_MAP.put(VNX_BLOCK, "5988");
         NON_SSL_PORT_MAP.put(VMAX, "5988");
+        NON_SSL_PORT_MAP.put(HP3PAR, "8008");
         NON_SSL_PORT_MAP.put(ISILON, "8080");
         NON_SSL_PORT_MAP.put(NETAPP, "443");
         NON_SSL_PORT_MAP.put(NETAPPC, "443");
@@ -161,6 +152,8 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(VNXe, "443");
         NON_SSL_PORT_MAP.put(VNXFILE_SMIS, "5988");
         NON_SSL_PORT_MAP.put(HITACHI, "2001");
+        NON_SSL_PORT_MAP.put(UNITY, "443");
+        NON_SSL_PORT_MAP.put(CEPH, "6789");
 
         STORAGE_PROVIDER_MAP = new HashMap<String, String>();
         STORAGE_PROVIDER_MAP.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");
@@ -173,6 +166,7 @@ public class StorageSystemTypesInitUtils {
         STORAGE_PROVIDER_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
         STORAGE_PROVIDER_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
         STORAGE_PROVIDER_MAP.put(CEPH, "Block Storage powered by Ceph");
+        STORAGE_PROVIDER_MAP.put(DELLSCPROVIDER, "Storage Provider for Dell SC Storage");
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {
@@ -210,232 +204,6 @@ public class StorageSystemTypesInitUtils {
         return false;
     }
 
-    private void insertFileArrays() {
-        for (String file : FILE_TYPE_SYSTEMS) {
-            StorageSystemType type = new StorageSystemType();
-            URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-            type.setId(ssTyeUri);
-            type.setStorageTypeId(ssTyeUri.toString());
-            type.setStorageTypeName(file);
-            type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(file));
-            type.setMetaType(StorageSystemType.META_TYPE.FILE.toString().toLowerCase());
-            type.setDriverClassName("file");
-            type.setIsSmiProvider(false);
-
-            if (DEFAULT_SSL_ENABLE_MAP.get(file) != null) {
-                type.setIsDefaultSsl(true);
-            }
-
-            if (DEFAULT_MDM_ENABLE_MAP.get(file) != null) {
-                type.setIsDefaultMDM(true);
-            }
-            if (ONLY_MDM_MAP.get(file) != null) {
-                type.setIsOnlyMDM(true);
-            }
-            if (ELEMENT_MANAGER.get(file) != null) {
-                type.setIsElementMgr(true);
-            }
-            if (SSL_PORT_MAP.get(file) != null) {
-                type.setSslPort(SSL_PORT_MAP.get(file));
-            }
-            if (NON_SSL_PORT_MAP.get(file) != null) {
-                type.setNonSslPort(NON_SSL_PORT_MAP.get(file));
-            }
-
-            if (alreadyExists(type)) {
-                log.info("Meta data for {} already exist", type.getStorageTypeName());
-                continue;
-            }
-            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
-            dbClient.createObject(type);
-        }
-    }
-
-    private void insertFileProviders() {
-        for (String provider : FILE_TYPE_SYSTEM_PROVIDERS) {
-            StorageSystemType type = new StorageSystemType();
-            URI ssTypeUri = URIUtil.createId(StorageSystemType.class);
-            type.setId(ssTypeUri);
-            type.setStorageTypeId(ssTypeUri.toString());
-            type.setStorageTypeName(provider);
-            type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(provider));
-            type.setMetaType(StorageSystemType.META_TYPE.FILE.toString().toLowerCase());
-            type.setDriverClassName("file");
-            type.setIsSmiProvider(true);
-            if (DEFAULT_SSL_ENABLE_MAP.get(provider) != null) {
-                type.setIsDefaultSsl(true);
-            }
-            if (DEFAULT_MDM_ENABLE_MAP.get(provider) != null) {
-                type.setIsDefaultMDM(true);
-            }
-            if (ONLY_MDM_MAP.get(provider) != null) {
-                type.setIsOnlyMDM(true);
-            }
-            if (ELEMENT_MANAGER.get(provider) != null) {
-                type.setIsElementMgr(true);
-            }
-            if (SSL_PORT_MAP.get(provider) != null) {
-                type.setSslPort(SSL_PORT_MAP.get(provider));
-            }
-            if (NON_SSL_PORT_MAP.get(provider) != null) {
-                type.setNonSslPort(NON_SSL_PORT_MAP.get(provider));
-            }
-
-            if (alreadyExists(type)) {
-                log.info("Meta data for {} already exist", type.getStorageTypeName());
-                continue;
-            }
-            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
-            dbClient.createObject(type);
-        }
-    }
-
-    private void insertBlockArrays() {
-        for (String block : BLOCK_TYPE_SYSTEMS) {
-            StorageSystemType type = new StorageSystemType();
-            URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-            type.setId(ssTyeUri);
-            type.setStorageTypeId(ssTyeUri.toString());
-            type.setStorageTypeName(block);
-            type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(block));
-            type.setMetaType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
-            type.setDriverClassName("block");
-            type.setIsSmiProvider(false);
-            if (DEFAULT_SSL_ENABLE_MAP.get(block) != null) {
-                type.setIsDefaultSsl(true);
-            }
-            if (DEFAULT_MDM_ENABLE_MAP.get(block) != null) {
-                type.setIsDefaultMDM(true);
-            }
-            if (ONLY_MDM_MAP.get(block) != null) {
-                type.setIsOnlyMDM(true);
-            }
-            if (ELEMENT_MANAGER.get(block) != null) {
-                type.setIsElementMgr(true);
-            }
-            if (SSL_PORT_MAP.get(block) != null) {
-                type.setSslPort(SSL_PORT_MAP.get(block));
-            }
-            if (NON_SSL_PORT_MAP.get(block) != null) {
-                type.setNonSslPort(NON_SSL_PORT_MAP.get(block));
-            }
-            if (SECREAT_KEY_ENABLE_MAP.get(block) != null) {
-                type.setIsSecretKey(SECREAT_KEY_ENABLE_MAP.get(block));
-            }
-
-            if (alreadyExists(type)) {
-                log.info("Meta data for {} already exist", type.getStorageTypeName());
-                continue;
-            }
-            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
-            dbClient.createObject(type);
-        }
-    }
-
-    private void insertBlockProviders() {
-        for (String provider : BLOCK_TYPE_SYSTEM_PROVIDERS) {
-            StorageSystemType type = new StorageSystemType();
-            URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-            type.setId(ssTyeUri);
-            type.setStorageTypeId(ssTyeUri.toString());
-            type.setStorageTypeName(provider);
-            type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(provider));
-            type.setMetaType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
-            type.setDriverClassName("block");
-            type.setIsSmiProvider(true);
-            if (DEFAULT_SSL_ENABLE_MAP.get(provider) != null) {
-                type.setIsDefaultSsl(true);
-            }
-            if (DEFAULT_MDM_ENABLE_MAP.get(provider) != null) {
-                type.setIsDefaultMDM(true);
-            }
-            if (ONLY_MDM_MAP.get(provider) != null) {
-                type.setIsOnlyMDM(true);
-            }
-            if (ELEMENT_MANAGER.get(provider) != null) {
-                type.setIsElementMgr(true);
-            }
-            if (SSL_PORT_MAP.get(provider) != null) {
-                type.setSslPort(SSL_PORT_MAP.get(provider));
-            }
-            if (NON_SSL_PORT_MAP.get(provider) != null) {
-                type.setNonSslPort(NON_SSL_PORT_MAP.get(provider));
-            }
-            if (SECREAT_KEY_ENABLE_MAP.get(provider) != null) {
-                type.setIsSecretKey(SECREAT_KEY_ENABLE_MAP.get(provider));
-            }
-
-            if (alreadyExists(type)) {
-                log.info("Meta data for {} already exist", type.getStorageTypeName());
-                continue;
-            }
-            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
-            dbClient.createObject(type);
-        }
-    }
-
-    private void insertUnity() {
-        StorageSystemType unity = new StorageSystemType();
-        URI unityUri = URIUtil.createId(StorageSystemType.class);
-        unity.setId(unityUri);
-        unity.setStorageTypeId(unityUri.toString());
-        unity.setStorageTypeName(UNITY);
-        unity.setStorageTypeDispName(DISPLAY_NAME_MAP.get(UNITY));
-        unity.setMetaType(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
-        unity.setIsSmiProvider(false);
-        unity.setIsDefaultSsl(true);
-        if (SSL_PORT_MAP.get(UNITY) != null) {
-            unity.setSslPort(SSL_PORT_MAP.get(UNITY));
-        }
-        unity.setDriverClassName(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
-
-        if (alreadyExists(unity)) {
-            log.info("Meta data for {} already exist", unity.getStorageTypeName());
-            return;
-        }
-        log.info("Meta data for {} don't exist or have changed, update", unity.getStorageTypeName());
-        dbClient.createObject(unity);
-    }
-
-    private void insertObjectArrays() {
-        for (String object : OBJECT_TYPE_SYSTEMS) {
-            StorageSystemType type = new StorageSystemType();
-            URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-            type.setId(ssTyeUri);
-            type.setStorageTypeId(ssTyeUri.toString());
-            type.setStorageTypeName(object);
-            type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(object));
-            type.setMetaType(StorageSystemType.META_TYPE.OBJECT.toString().toLowerCase());
-            type.setDriverClassName("object");
-            type.setIsSmiProvider(false);
-            if (DEFAULT_SSL_ENABLE_MAP.get(object) != null) {
-                type.setIsDefaultSsl(true);
-            }
-            if (DEFAULT_MDM_ENABLE_MAP.get(object) != null) {
-                type.setIsDefaultMDM(true);
-            }
-            if (ONLY_MDM_MAP.get(object) != null) {
-                type.setIsOnlyMDM(true);
-            }
-            if (ELEMENT_MANAGER.get(object) != null) {
-                type.setIsElementMgr(true);
-            }
-            if (SSL_PORT_MAP.get(object) != null) {
-                type.setSslPort(SSL_PORT_MAP.get(object));
-            }
-            if (NON_SSL_PORT_MAP.get(object) != null) {
-                type.setNonSslPort(NON_SSL_PORT_MAP.get(object));
-            }
-
-            if (alreadyExists(type)) {
-                log.info("Meta data for {} already exist", type.getStorageTypeName());
-                continue;
-            }
-            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
-            dbClient.createObject(type);
-        }
-    }
-
     public static Map<String, String> getDisplayNames() {
         return DISPLAY_NAME_MAP;
     }
@@ -444,15 +212,42 @@ public class StorageSystemTypesInitUtils {
         return STORAGE_PROVIDER_MAP;
     }
 
+    private void insertStorageSystemTypes() {
+        for (Map.Entry<META_TYPE, List<String>> entry : SYSTEMS_AND_PROVIDERS.entrySet()) {
+            META_TYPE metaType = entry.getKey();
+            List<String> systems = entry.getValue();
+            for (String system : systems) {
+                StorageSystemType type = new StorageSystemType();
+                URI uri = URIUtil.createId(StorageSystemType.class);
+                type.setId(uri);
+                type.setStorageTypeId(uri.toString());
+                type.setStorageTypeName(system);
+                type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(system));
+                type.setMetaType(metaType.toString().toLowerCase());
+                type.setDriverClassName(metaType.toString().toLowerCase());
+                type.setIsSmiProvider(metaType.isProvider());
+                type.setIsDefaultSsl(SSL_ENABLE_TYPE_LIST.contains(system));
+                type.setIsDefaultMDM(MDM_ENABLE_LIST.contains(system));
+                type.setIsOnlyMDM(ONLY_MDM_LIST.contains(system));
+                type.setIsElementMgr(ELEMENT_MANAGER_LIST.contains(system));
+                type.setIsSecretKey(SECREAT_KEY_ENABLE_LIST.contains(system));
+                type.setSslPort(SSL_PORT_MAP.get(system));
+                type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
+
+                if (alreadyExists(type)) {
+                    log.info("Meta data for {} already exist", type.getStorageTypeName());
+                    continue;
+                }
+                log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
+                dbClient.createObject(type);
+            }
+        }
+    }
+
     public void initializeStorageSystemTypes() {
         log.info("Intializing storage system type Column Family for default storage drivers");
         loadTypeMapFromDb();
-        insertFileArrays();
-        insertFileProviders();
-        insertBlockArrays();
-        insertBlockProviders();
-        insertObjectArrays();
-        insertUnity();
+        insertStorageSystemTypes();
         log.info("Default drivers initialization done.");
     }
 }

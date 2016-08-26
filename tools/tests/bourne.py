@@ -137,6 +137,10 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
+URI_TASK                    = URI_VDC    + "/tasks"
+URI_TASK_GET                = URI_TASK   + '/{0}'
+URI_TASK_LIST               = URI_TASK
+
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
 URI_IPSEC_KEY               = '/ipsec/key'
@@ -179,7 +183,7 @@ URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
 URI_BLOCK_SNAPSHOTS_EXPOSE      = URI_BLOCK_SNAPSHOTS + '/expose'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
-URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
+URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME_LIST   + '/vpool-change'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
 URI_VOLUMES_SEARCH              = URI_VOLUME_LIST     + '/search'
 URI_VOLUMES_SEARCH_PROJECT      = URI_VOLUMES_SEARCH  + '?project={0}'
@@ -416,6 +420,9 @@ URI_WORKFLOW_LIST               = URI_SERVICES_BASE + '/vdc/workflows'
 URI_WORKFLOW_RECENT             = URI_WORKFLOW_LIST + '/recent'
 URI_WORKFLOW_INSTANCE           = URI_WORKFLOW_LIST + '/{0}'
 URI_WORKFLOW_STEPS              = URI_WORKFLOW_INSTANCE + '/steps'
+URI_WORKFLOW_RESUME             = URI_WORKFLOW_LIST + '/{0}/resume'
+URI_WORKFLOW_ROLLBACK           = URI_WORKFLOW_LIST + '/{0}/rollback'
+URI_WORKFLOW_SUSPEND		= URI_WORKFLOW_LIST + '/{0}/suspend/{1}'
 
 URI_AUDIT_QUERY = URI_SERVICES_BASE + '/audit/logs/?time_bucket={0}&language={1}'
 URI_MONITOR_QUERY = URI_SERVICES_BASE + '/monitoring/events/?time_bucket={0}'
@@ -1147,6 +1154,10 @@ class Bourne:
                 self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
+	    if (obj_op['state'] == 'suspended_no_error'):
+		# Important to not change this format as sanity and other scripts rely on it in this order with commas
+		print 'Operation suspended, ' + obj_op['id'] + ", " + obj_op['workflow']['id']
+
         return obj_op
 
     #
@@ -1162,6 +1173,33 @@ class Bourne:
             time.sleep(3)
             obj_op = show_opfn(pid, sid, op)
             tmo += 3
+            if (tmo > API_SYNC_TIMEOUT):
+                break
+
+        if (type(obj_op) is dict):
+            print str(obj_op)
+            if (obj_op['state'] == 'pending'):
+                raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'error' and not ignore_error):
+                raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
+
+        return obj_op
+
+    def api_sync_4(self, id, showfn, ignore_error=False):
+        obj_op = showfn(id)
+        tmo = 0
+	seen_pending = 0
+
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+            time.sleep(1)
+	    if (obj_op['state'] == 'pending'):
+		seen_pending = 1;
+	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
+		break
+		
+            obj_op = showfn(id)
+            tmo += 1
             if (tmo > API_SYNC_TIMEOUT):
                 break
 
@@ -1419,7 +1457,7 @@ class Bourne:
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect):
+		   auto_cross_connect, placement_policy, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1445,6 +1483,8 @@ class Bourne:
             parms['paths_per_initiator'] = pathsperinitiator
         if (systemtype):
             parms['system_type'] = systemtype
+	if (compressionEnabled):
+	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1472,6 +1512,9 @@ class Bourne:
             
         if (long_term_retention):
             parms['long_term_retention'] = long_term_retention;
+
+        if (type == 'block' and placement_policy):
+            parms['placement_policy'] = placement_policy;
 
         if (max_snapshots or max_mirrors or protectionCoS or srdf):
             cos_protection_params = dict()
@@ -1578,7 +1621,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   system_type, srdf):
+                   system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1594,6 +1637,9 @@ class Bourne:
 
         if (numpaths):
             parms['num_paths'] = numpaths
+
+	if (compressionEnabled):
+   	    parms['compression_enabled'] = compressionEnabled
 
         if (highavailability):
             if (highavailability == 'vplex_local'):
@@ -1698,7 +1744,7 @@ class Bourne:
     # Assign pools to CoS or change the max snapshots/mirrors values
     # Note that you can either do pool assignments or snapshot/mirror changes at a time
     #
-    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops):
+    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy):
         params = dict()
         if (pooladds or poolrems):
             poolassignments = dict();
@@ -1739,6 +1785,9 @@ class Bourne:
             
         if (host_io_limit_iops):
             params['host_io_limit_iops'] = host_io_limit_iops
+
+        if (type == 'block' and placement_policy):
+            params['placement_policy'] = placement_policy;
             
         return self.api('PUT', URI_VPOOL_INSTANCE.format(type, cosuri), params)
 
@@ -3569,6 +3618,15 @@ class Bourne:
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
 
+    def task_list(self):
+        return self.api('GET', URI_TASK_LIST)
+
+    def task_show(self, uri):
+        return self.api('GET', URI_TASK_GET.format(uri))
+
+    def task_follow(self, uri):
+        return self.api_sync_4(uri, self.task_show)
+
     def volume_list(self, project):
         puri = self.project_query(project)
         puri = puri.strip()
@@ -3651,7 +3709,7 @@ class Bourne:
             'vpool' :  cos,
             'size' : size,
             'count' : count,
-	    'consistency_group' : consistencyGroup,
+            'consistency_group' : consistencyGroup,
         }        
 
         print "ADD JOURNAL Params = ", parms
@@ -3729,15 +3787,33 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uri, cos_uri, cg_uri):
-        parms = {
-            'vpool' : cos_uri,
-            'consistency_group' : cg_uri
-        }
-        tr = self.api('PUT', URI_VOLUME_CHANGE_VPOOL.format(uri), parms, {})
+    def volume_change_cos(self, uris, cos_uri, cg_uri, suspend):
+        dosuspend='false'
+        if (suspend):
+            dosuspend=suspend
 
-        self.assert_is_dict(tr)
-        result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+        ids = []
+        if (type(uris) is list):
+            for u in uris:
+                ids.append(u)
+        else:
+            ids.append(uris)
+        
+        params = {}
+        params['volumes'] = ids
+        params['vpool'] = cos_uri
+        params['consistency_group'] = cg_uri
+        params['migration_suspend_before_commit'] = dosuspend
+        params['migration_suspend_before_delete_source'] = dosuspend
+        
+        posturi = URI_VOLUME_CHANGE_VPOOL
+        resp = self.api('POST', posturi, params, {})
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
         return result
 
     def volume_change_cos_matches(self, uri):
@@ -4875,6 +4951,7 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
+
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -4926,7 +5003,7 @@ class Bourne:
         try:
 	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o
+	    print o
         return (o, s)
 
     def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
@@ -5007,10 +5084,12 @@ class Bourne:
            clusterChanges['remove'] = clusterEntry
         parms['cluster_changes'] = clusterChanges
 
-        print str(parms)
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
         o = self.api('PUT', URI_EXPORTGROUP_INSTANCE.format(groupId), parms)
         self.assert_is_dict(o)
-        print 'OOO: ' + str(o) + ' :OOO'
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         return (o, s)
 
@@ -8068,6 +8147,23 @@ class Bourne:
     def workflow_get(self, uri):
         return self.api('GET', URI_WORKFLOW_INSTANCE.format(uri))
 
+    def workflow_show_task(self, uri, task):
+        workflow_task_uri = URI_WORKFLOW_INSTANCE + '/tasks/{1}'
+        return self.api('GET', workflow_task_uri.format(uri, task))
+
+    def workflow_resume(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_rollback(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_suspend(self, uri, step):
+        return self.api('PUT', URI_WORKFLOW_SUSPEND.format(uri, step), null)
+
     def workflow_recent(self):
         return self.api('GET', URI_WORKFLOW_RECENT)
 
@@ -8250,7 +8346,8 @@ class Bourne:
         # since we are using sysadmin as user, check on all subtenants for now
         # go in reverse order, most likely, we are in the latest subtenant
         for tenant in reversed(tenants):
-            print tenant
+	    if(BOURNE_DEBUG == '1'):
+		print tenant
             hosts = self.host_list(tenant['id'])
             for host in hosts:
 	        host_detail = self.host_show(host['id'])
@@ -8718,8 +8815,12 @@ class Bourne:
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
 
-    def block_snapshot_session_delete(self, session_uri):
-        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+    def block_snapshot_session_delete(self, session_uri, vipronly):
+        posturi = URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri)
+	if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+        
+        tasklist = self.api('POST', posturi)
 
         self.assert_is_dict(tasklist)
         tasks = tasklist['task']

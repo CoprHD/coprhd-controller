@@ -13,7 +13,8 @@ purge_data() {
     for corrupted_host in ${CORRUPTED_HOST[@]}; do
         echo "Purging data of $corrupted_host"
         ssh_execute ${corrupted_host} "/etc/storageos/storageos stop"
-        ssh_execute ${corrupted_host} "rm -rf /data/db/1 /data/geodb/1"
+        ssh_execute ${corrupted_host} "find /data/db -maxdepth 1 -mindepth 1 -print0 | xargs -0 rm -rf"
+        ssh_execute ${corrupted_host} "find /data/geodb -maxdepth 1 -mindepth 1 -print0 | xargs -0 rm -rf"
     done
 }
 

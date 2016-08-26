@@ -4,10 +4,13 @@
  */
 package com.emc.storageos.db.client.util;
 
+import java.net.URI;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.TimeZone;
 
+import com.emc.storageos.db.client.model.NamedURI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -414,5 +417,6 @@ public class ExecutionWindowHelper {
         }
         return scheduledTime;
     }
+
 
 }

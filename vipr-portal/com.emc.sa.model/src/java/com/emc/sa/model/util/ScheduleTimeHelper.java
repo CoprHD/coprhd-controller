@@ -20,6 +20,11 @@ import org.slf4j.LoggerFactory;
 public class ScheduleTimeHelper {
     private static final Logger log = LoggerFactory.getLogger(ScheduleTimeHelper.class);
 
+    // During schedule event creation, we make sure schedule time match with execution window except
+    // in the case of HOURLY scheduler which would not completely match with any execution window.
+    // In this case, we need to retry during schedule concrete orders.
+    public static final int SCHEDULE_TIME_RETRY_THRESHOLD = 24;
+
     /**
      * Get the first desired scheduled time which consists of start day and start hour/min of that day.
      * @param scheduleInfo

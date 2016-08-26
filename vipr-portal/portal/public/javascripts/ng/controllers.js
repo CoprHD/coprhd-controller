@@ -1905,10 +1905,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
                             if(failedType=="PROVIDER"){
-                                $scope.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Storage Provider failed to discover:\n"+failedArray;
                                 finishChecking();
                             } else {
-                                $scope.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Storage System(s) failed to discover:\n"+failedArray;
                                 finishChecking();
                             }
                         } else {
@@ -1921,7 +1921,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                     $scope.completedSteps = 4;
                                     callback();
                                 } else {
-                                    $scope.guideError = "Error: No All Flash storage systems Discovered or Registered";
+                                    $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
                                     finishChecking();
                                 }
                             });
@@ -1945,7 +1945,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
+                        $scope.guideError = "Error: Storage System(s) not attached to Network:\n"+data.data;
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -1968,7 +1968,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
+                        $scope.guideError = "Error: Storage System(s) not attached to Virtual Array:\n"+data.data;
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -1991,7 +1991,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
+                            $scope.guideError = "Error: Storage System(s) not attached to Virtual Pool:\n"+data.data;
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;

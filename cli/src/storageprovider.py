@@ -275,6 +275,9 @@ def storageprovider_create(args):
             args.usessl = False
 
         if (args.interface =="ibmxiv") :
+            if(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is None ):
+                common.format_err_msg_and_raise ("create","storageprovider","Secondary Username missing",SOSError.NOT_FOUND_ERR)			
+                		    
             if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
             elif(args.hyperScaleHost is not None or args.hyperScalePort is not None):
@@ -376,6 +379,8 @@ def storageprovider_update(args):
             
         secondary_password = None
         if (args.interface =="ibmxiv") :
+            if(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is None ):
+                common.format_err_msg_and_raise ("update","storageprovider","Secondary Username missing",None)
             if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
             elif(args.hyperScaleHost is not None or args.hyperScalePort is not None):

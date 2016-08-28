@@ -905,28 +905,6 @@ public class WorkflowService implements WorkflowController {
         }
     }
 
-//    /**
-//     * Update the Step State in ZK. No more updates are done after the path is deleted.
-//     * 
-//     * @param workflow
-//     * @param step
-//     * @throws WorkflowException
-//     */
-//    private void persistWorkflowStepUpdate(Workflow workflow, Step step)
-//            throws WorkflowException {
-//        try {
-//            logStep(workflow, step);
-//            String path = getZKStepPath(workflow, step);
-//            Stat stat = _dataManager.checkExists(path);
-//            if (stat != null) {
-//                _dataManager.putData(path, step);
-//                _log.debug("Updated step status: " + step.stepId);
-//            }
-//        } catch (Exception ex) {
-//            throw new WorkflowException("Cannot update step: " + step.stepId, ex);
-//        }
-//    }
-
     /**
      * Save a Workflow Step for the first time in Zookeeper. This happens when queueStep()
      * is called.

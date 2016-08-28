@@ -333,7 +333,7 @@ public class WorkflowService implements WorkflowController {
     }
     
     /**
-     * Simplified method that will load step data using either a workflow id or a step id
+     * Simplified method that will store step data using either a workflow id or a step id
      * to locate the workflow. The key will be the text of stepOrWorkflowId.
      * @param stepOrWorkflowId
      * @param data
@@ -343,8 +343,8 @@ public class WorkflowService implements WorkflowController {
     }
     
     /**
-     * Simplified method that will load step data using either a workflow id or a step id
-     * to locate the workflow. The key will be the text of stepOrWorkflowId.
+     * Simplified method that will store step data using either a workflow id or a step id
+     * to locate the workflow. 
      * @param stepOrWorkflowId -- either a stepId or a Workflow Id used to identify the workflow (required)
      * @param key -- 
      * a string key that can be used to differentiate different sets of data for a single step (optional, can be null)
@@ -410,7 +410,7 @@ public class WorkflowService implements WorkflowController {
     
     /**
      * Simplified method that will load step data using either a workflow id or a step id
-     * to locate the workflow. The key will be the text of stepOrWorkflowId.
+     * to locate the workflow. 
      * @param stepOrWorkflowId -- required URI of workflow, or stepId of step in workflow
      * @param key -- optional key to differentiate multiple data in same step, may be null
      * return data stored against the step or workflow key (serialized Object) or null if no data found.

@@ -108,7 +108,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
-    private static int BATCH_SIZE = 40;
+    private static int BATCH_SIZE = 10;
 
     // WWN for offline ports
     public static final String OFFLINE_PORT_WWN = "00:00:00:00:00:00:00:00";
@@ -912,7 +912,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(volumeNativeGuid), result);
         if (result.iterator().hasNext()) {
-            return _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            if (null != unManagedVolume && !unManagedVolume.getInactive()) {
+                return unManagedVolume;
+            }
         }
 
         return null;

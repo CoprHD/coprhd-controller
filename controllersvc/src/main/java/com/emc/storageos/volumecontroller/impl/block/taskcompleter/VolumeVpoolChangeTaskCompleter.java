@@ -80,7 +80,6 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                 case error:
                     _log.error("An error occurred during virtual pool change " + "- restore the old virtual pool to the volume(s): {}",
                             serviceCoded.getMessage());                    
-                    boolean isReplicationModeChange = false;
                     // We either are using a single old Vpool URI or a map of Volume URI to old Vpool URI
                     for (URI id : getIds()) {
                         URI oldVpoolURI = oldVpool;
@@ -89,44 +88,50 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         } else if (useOldVpoolMap) {
                             oldVpoolURI = oldVpools.get(id);
                         }
-
+                                                
                         Volume volume = dbClient.queryObject(Volume.class, id);
                         _log.info("Rolling back virtual pool on volume {}({})", id, volume.getLabel());
-
-                        VirtualPool currentVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                        VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
-
-                        // Is this a replication mode change vpool operation?
-                        if (VirtualPool.vPoolSpecifiesProtection(currentVpool) && VirtualPool.vPoolSpecifiesProtection(oldVpool) &&
-                                !StringUtils.equalsIgnoreCase(currentVpool.getRpCopyMode(), oldVpool.getRpCopyMode())) {
-                            // If one volume applies to a replication mode change then they all do.
-                            isReplicationModeChange = true;
+                        
+                        URI newVpoolURI = volume.getVirtualPool();
+                        if (newVpools != null && !newVpools.isEmpty()) {
+                            newVpoolURI = newVpools.get(id);
+                            if (newVpoolURI != null) {     
+                                newVpoolURI = volume.getVirtualPool();
+                            }
                         }
-
+                                                                        
+                        VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
+                        VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
+                       
                         volume.setVirtualPool(oldVpoolURI);
                         _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
+                        
+                        // Only rollback protection on the volume if the volume specifies RP and the 
+                        // old vpool did not have protection and the new one does (so we were trying to add
+                        // RP protection but it failed for some reason so we need to rollback).
+                        boolean rollbackProtection = volume.checkForRp() 
+                                && !VirtualPool.vPoolSpecifiesProtection(oldVpool)
+                                && VirtualPool.vPoolSpecifiesProtection(newVpool);
 
-                        if (volume.checkForRp() && !isReplicationModeChange) {
-                            // Special rollback for RP, RP+VPLEX, and MetroPoint. We do not want to rollback
-                            // protection for a replication mode change.
+                        if (rollbackProtection) {
+                            // Special rollback for RP, RP+VPLEX, and MetroPoint in the case
+                            // where the operation tried to apply RP Protection to the volume 
+                            // and now it needs to be reverted.
                             RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
-                        } else {
-                            if (RPHelper.isVPlexVolume(volume)) {
-                                // Special rollback for just VPLEX
-                                rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
-                            }
-
-                            // Add the volume to the list of volumes to be updated in the DB so that the
-                            // old vpool reference can be restored.
-                            volumesToUpdate.add(volume);
+                        } 
+                        
+                        if (RPHelper.isVPlexVolume(volume, dbClient)) {
+                            // Special rollback for VPLEX to update the backend vpools to the old vpools
+                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
                         }
+
+                        // Add the volume to the list of volumes to be updated in the DB so that the
+                        // old vpool reference can be restored.
+                        volumesToUpdate.add(volume);                        
                     }
                     dbClient.updateObject(volumesToUpdate);
 
-                    if (!isReplicationModeChange) {
-                        // Handle any VPlex errors if the case this is not a replication mode change.
-                        handleVplexVolumeErrors(dbClient);
-                    }
+                    handleVplexVolumeErrors(dbClient);
 
                     // If there's a task associated with the CG, update that as well
                     if (this.getConsistencyGroupIds() != null) {

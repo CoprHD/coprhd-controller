@@ -669,7 +669,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            result = vnxComm.expandFS(storage, args.getFsName(), newFsExpandSize, isMountRequired, args.getThinProvision());
+            result = vnxComm.expandFS(storage, args.getFs(), newFsExpandSize, isMountRequired, args.getThinProvision());
         } catch (VNXException e) {
             throw new DeviceControllerException(e);
         } finally {

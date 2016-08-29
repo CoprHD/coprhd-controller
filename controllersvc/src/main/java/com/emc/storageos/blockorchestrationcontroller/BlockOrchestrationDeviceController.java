@@ -171,10 +171,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
 
-            // Call the RPDeviceController to add its post-delete methods.
-            waitFor = _rpDeviceController.addStepsForPostDeleteVolumes(
-                    workflow, waitFor, volumes, taskId, completer, _blockDeviceController);
-
             // Call the ReplicaDeviceController to add its methods if volumes are removed from,
             // and the CG associated with replication group(s)
             waitFor = _replicaDeviceController.addStepsForDeleteVolumes(
@@ -183,6 +179,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
             waitFor = _vplexDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
+            
+            // Call the RPDeviceController to add its post-delete methods.
+            waitFor = _rpDeviceController.addStepsForPostDeleteVolumes(
+                    workflow, waitFor, volumes, taskId, completer, _blockDeviceController);
 
             // Call the SRDFDeviceController to add its methods if there are SRDF volumes.
             waitFor = _srdfDeviceController.addStepsForDeleteVolumes(
@@ -517,45 +517,47 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Check to see if the existing is not already protected by RP and that
             // there are associated volumes (meaning it's a VPLEX volume)
-            if (RPHelper.isVPlexVolume(rpExistingSource)) {
+            if (RPHelper.isVPlexVolume(rpExistingSource, s_dbClient)) {
                 s_logger.info(String.format("Adding post RP Change Vpool steps for existing VPLEX source volume [%s].",
                         rpExistingSource.getLabel()));
                 // VPLEX, use associated backing volumes
                 // NOTE: If migrations exist for this volume the VPLEX Device Controller will clean these up
                 // newly added CGs because we won't need them as the migration volumes will create their own CGs.
                 // This is OK.
-                for (String assocVolumeId : rpExistingSource.getAssociatedVolumes()) {
-                    Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+                if (null != rpExistingSource.getAssociatedVolumes()) {
+                    for (String assocVolumeId : rpExistingSource.getAssociatedVolumes()) {
+                        Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
 
-                    // If there is a migration for this backing volume, we don't have to
-                    // do any extra steps for ensuring that this volume gets gets added to the backing array CG
-                    // because the migration volume will trump this volume. This volume will eventually be
-                    // deleted so let's skip it.
-                    if (volumesWithMigration.contains(assocVolume.getId())) {
-                        s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
-                                assocVolume.getLabel()));
-                        continue;
-                    }
+                        // If there is a migration for this backing volume, we don't have to
+                        // do any extra steps for ensuring that this volume gets gets added to the backing array CG
+                        // because the migration volume will trump this volume. This volume will eventually be
+                        // deleted so let's skip it.
+                        if (volumesWithMigration.contains(assocVolume.getId())) {
+                            s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
+                                    assocVolume.getLabel()));
+                            continue;
+                        }
 
-                    // Only add the change vpool volume's backend volumes to the backend CGs if the
-                    // getReplicationGroupInstance
-                    // field has been populated during the API prepare volume steps.
-                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
-                        // Create the BLOCK_DATA descriptor with the correct info
-                        // for creating the CG and adding the backing volume to it.
-                        VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                assocVolume.getStorageController(), assocVolume.getId(), null,
-                                rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
-                        blockDataDescriptors.add(blockDataDesc);
+                        // Only add the change vpool volume's backend volumes to the backend CGs if the
+                        // getReplicationGroupInstance
+                        // field has been populated during the API prepare volume steps.
+                        if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
+                            // Create the BLOCK_DATA descriptor with the correct info
+                            // for creating the CG and adding the backing volume to it.
+                            VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                    assocVolume.getStorageController(), assocVolume.getId(), null,
+                                    rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
+                            blockDataDescriptors.add(blockDataDesc);
 
-                        // Good time to update the backing volume with its new CG
-                        assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
-                        s_dbClient.updateObject(assocVolume);
+                            // Good time to update the backing volume with its new CG
+                            assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
+                            s_dbClient.updateObject(assocVolume);
 
-                        s_logger.info(
-                                String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
-                                        assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
-                                        assocVolume.getStorageController()));
+                            s_logger.info(
+                                    String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
+                                            assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
+                                            assocVolume.getStorageController()));
+                        }
                     }
                 }
             }
@@ -721,10 +723,22 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
      */
     @Override
     public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        // The volume descriptors include the VPLEX source volume, which we do not want
+        // to pass to the completer. In case of error constructing the WF, the completer
+        // must mark all volumes prepared for this request inactive. However, we must not
+        // mark the VPLEX source volume inactive!
+        List<URI> volUris = new ArrayList<>();
+        URI vplexSourceURI = null;
+        for (VolumeDescriptor descriptor : volumeDescriptors) {
+            if (descriptor.getParameters().get(VolumeDescriptor.PARAM_IS_COPY_SOURCE_ID) == null) {
+                volUris.add(descriptor.getVolumeURI());
+            } else {
+                vplexSourceURI = descriptor.getVolumeURI();
+            }
+        }
         TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
+        
         Workflow workflow = null;
-
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
@@ -757,8 +771,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
 
         try {
-            // Validate the volume identities before proceeding
-            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            // For VPLEX full copies, validate the VPLEX source volume.
+            if (vplexSourceURI != null) {
+                validator.volumeURIs(Arrays.asList(vplexSourceURI), true, true, ValCk.ID, ValCk.VPLEX);
+            }
             
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,

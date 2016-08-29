@@ -164,7 +164,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             for (String init : inits) {
                 _logger.info("Initiator: {}", init);
                 Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(init));
-                initiatorList.add(initiator);
+                if (initiator != null) {
+                    initiatorList.add(initiator);
+                }
             }
 
             List<VNXeHostInitiator> initiators = prepareInitiators(initiatorList);
@@ -379,19 +381,37 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void removeInitiators(StorageSystem storage, URI exportMask,
             List<URI> volumeURIList, List<Initiator> initiators,
             List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
+        _logger.info("{} removeInitiators START...", storage.getSerialNumber());
+        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMask);
+        if (mask == null || mask.getInactive()) {
+            _logger.error(String.format("The exportMask %s is invalid.", exportMask));
+            throw DeviceControllerException.exceptions.invalidObjectNull();
+        }
+        try {
+            for (Initiator initiator : initiators) {   
+                mask.removeFromExistingInitiators(initiator);
+                mask.removeFromUserCreatedInitiators(initiator);
+            }
+            _dbClient.updateObject(mask);
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _logger.error("Problem in removeInitiators: ", e);
+            ServiceError serviceError = DeviceControllerErrors.vnxe.jobFailed("removeInitiator", e.getMessage());
+            taskCompleter.error(_dbClient, serviceError);
+        }
+        _logger.info("{} removeInitiators END...", storage.getSerialNumber());
 
     }
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;
     }

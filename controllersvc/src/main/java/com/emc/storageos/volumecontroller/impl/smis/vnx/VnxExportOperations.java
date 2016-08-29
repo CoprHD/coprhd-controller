@@ -405,8 +405,21 @@ public class VnxExportOperations implements ExportMaskOperations {
                         storage.getSerialNumber());
                 return;
             }
-            deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
-            taskCompleter.ready(_dbClient);
+            String[] volumeNames = null;
+
+            volumeNames = _helper.getBlockObjectAlternateNames(volumeURIList);
+            /**
+             * This extra condition makes sure ViPR do not pass null as volume name while invoking HidePaths.
+             * If we pass null into HidePaths call, SMI will remove the entire storage group and that will give DU.
+             */
+            if (volumeNames == null || volumeNames.length == 0) {
+                _log.error("Volume's {} alternate name can not be null", volumeURIList);
+                ServiceError error = DeviceControllerException.errors.removeVolumeFromMaskFailed(volumeURIList.toString());
+                taskCompleter.error(_dbClient, error);
+            } else {
+                deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
+                taskCompleter.ready(_dbClient);
+            }
         } catch (Exception e) {
             _log.error("Unexpected error: removeVolumes failed.", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("removeVolumes", e.getMessage());
@@ -531,7 +544,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllPorts) {
+            boolean mustHaveAllPorts) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         CloseableIterator<CIMInstance> lunMaskingIter = null;
@@ -675,7 +688,7 @@ public class VnxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         try {
             CIMInstance instance = _helper.getLunMaskingProtocolController(storage, mask);
             if (instance != null) {
@@ -774,7 +787,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                     if (addInitiators) {
                         for (String port : initiatorsToAdd) {
                             Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                            if (existingInitiator != null) {
+                            // Don't add additional initiator to initiators list if it belongs to different host/cluster
+                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
                                 mask.addInitiator(existingInitiator);
                             }
                         }

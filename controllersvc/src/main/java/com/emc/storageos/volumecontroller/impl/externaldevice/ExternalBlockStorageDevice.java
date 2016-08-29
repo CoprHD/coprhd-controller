@@ -1382,7 +1382,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
@@ -1455,6 +1455,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));
                 snapshot.setIsSyncActive(true);
                 snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());
                 if (driverSnapshot.getProvisionedCapacity() > 0) {
@@ -1519,6 +1520,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));
                 snapshot.setIsSyncActive(true);
                 // we use driver snapshot consistency group id as replication group label for group snapshots
                 snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());
@@ -1649,7 +1651,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-                                                 List<String> initiatorNames, boolean mustHaveAllPorts) {
+                                                 List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
     }
 

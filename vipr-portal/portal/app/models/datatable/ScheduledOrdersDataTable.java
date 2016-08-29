@@ -4,6 +4,7 @@
  */
 package models.datatable;
 
+import java.net.URI;
 import java.util.List;
 
 import util.ExecutionWindowUtils;
@@ -26,6 +27,8 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
         alterColumn("submittedBy").setVisible(true);
         addColumn("executionWindowId").hidden().setSearchable(false);
         addColumn("executionWindow");
+        addColumn("actions").setRenderFunction("renderButtonBar");
+        sortAllExcept("actions");
     }
 
     public int getMaxOrders() {
@@ -37,7 +40,7 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
     }
 
     public List<ScheduledOrderInfo> fetchData(DataTableParams params) {
-        List<OrderRestRep> orders = OrderUtils.getScheduledOrders();
+        List<OrderRestRep> orders = OrderUtils.getScheduledOrders(URI.create(Models.currentAdminTenant()));
         if (maxOrders > 0) {
             while (orders.size() > maxOrders) {
                 orders.remove(orders.size() - 1);

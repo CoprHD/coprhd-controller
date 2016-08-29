@@ -158,9 +158,9 @@ public class BlockStorageScheduler {
      * @throws DeviceControllerException
      */
     public Map<URI, List<URI>> assignSelectedStoragePorts(StorageSystem system, List<StoragePort> storagePorts, URI virtualArray,
-                                                          List<Initiator> initiators,
-                                                          ExportPathParams pathParams,
-                                                          StringSetMap existingZoningMap) throws DeviceControllerException {
+            List<Initiator> initiators,
+            ExportPathParams pathParams,
+            StringSetMap existingZoningMap) throws DeviceControllerException {
         Map<Initiator, List<StoragePort>> assignments = new HashMap<>();
         try {
             // Group the new initiators by their networks - filter out those not in a network
@@ -172,7 +172,7 @@ public class BlockStorageScheduler {
 
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
             // Call StoragePortsAssigner once per host to do the assignments
-            Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators =
+            Map<URI, Map<URI, List<Initiator>>> hostsToNetToInitiators =
                     getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
             Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(portsByNetwork);
 
@@ -196,7 +196,6 @@ public class BlockStorageScheduler {
             throw DeviceControllerException.exceptions.unexpectedExceptionAssigningPorts(e);
         }
     }
-
 
     /**
      * Allocates and assigns StoragePorts.
@@ -225,7 +224,7 @@ public class BlockStorageScheduler {
         // Get the existing assignments in object form.
         Map<Initiator, List<StoragePort>> existingAssignments =
                 generateInitiatorsToStoragePortsMap(existingZoningMap, varray);
-        // Group the new initiators by their networks - filter out those not in a network 
+        // Group the new initiators by their networks - filter out those not in a network
         Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
         Map<Initiator, NetworkLite> initiatorsToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
         // Get the storage ports in the storage system that can be used in the initiators networks
@@ -238,12 +237,12 @@ public class BlockStorageScheduler {
 
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<Initiator, List<StoragePort>> assignments = new HashMap<Initiator, List<StoragePort>>();
-        
+
         // Call StoragePortsAssigner once per host to do the assignments
-        Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
+        Map<URI, Map<URI, List<Initiator>>> hostsToNetToInitiators =
                 getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
         Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPorts);
-        
+
         // For each host, assign the ports to the appropriate initiators.
         for (URI hostURI : hostsToNetToInitiators.keySet()) {
             Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = new HashMap<URI, Map<String, List<Initiator>>>();
@@ -380,7 +379,7 @@ public class BlockStorageScheduler {
             allocator.addPortsToAlreadyAllocatedContext(_dbClient, network, existingPorts);
         }
 
-        // Compute the StoragePort usage map. 
+        // Compute the StoragePort usage map.
         Map<URI, Map<StoragePort, Long>> portUsageMap =
                 computeStoragePortUsageMapForPorts(system.getId(),
                         networkMap, varray, portsByNetwork);
@@ -411,7 +410,7 @@ public class BlockStorageScheduler {
 
             if (portUsageMap.get(netURI).isEmpty()) {
                 _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
-                continue;                
+                continue;
             }
             
             Map<String, Integer> switchToMaxPortNumber = null;     
@@ -646,7 +645,7 @@ public class BlockStorageScheduler {
         }
         return hostInitiatorsMap;
     }
-    
+
     /**
      * Given a list of networks-to-initiators, further break down the map by host so
      * that the end result is a map of hosts-to-networks-to-initiators.
@@ -817,7 +816,7 @@ public class BlockStorageScheduler {
      * @return -- a Map of Network URI to a Map of Storage Port to Long usage factor
      */
     private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMapForPorts(
-            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, 
+            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI,
             Map<NetworkLite, List<StoragePort>> storagePortsMap)
             throws PlacementException {
         Map<URI, Map<StoragePort, Long>> result = new HashMap<URI, Map<StoragePort, Long>>();
@@ -858,14 +857,14 @@ public class BlockStorageScheduler {
      * @return
      * @throws PlacementException
      */
-// DEAD CODE ? TLW
-//    private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMap(
-//            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks)
-//            throws PlacementException {
-//        Map<NetworkLite, List<StoragePort>> selectedStoragePortsMap =
-//                selectStoragePortsInNetworks(storageUri, networkMap.values(), varrayURI);
-//        return computeStoragePortUsageMapForPorts(storageUri, networkMap, varrayURI, orderedNetworks, selectedStoragePortsMap);
-//    }
+    // DEAD CODE ? TLW
+    // private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMap(
+    // URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks)
+    // throws PlacementException {
+    // Map<NetworkLite, List<StoragePort>> selectedStoragePortsMap =
+    // selectStoragePortsInNetworks(storageUri, networkMap.values(), varrayURI);
+    // return computeStoragePortUsageMapForPorts(storageUri, networkMap, varrayURI, orderedNetworks, selectedStoragePortsMap);
+    // }
 
     /**
      * Inner class for sorting Network Usage.
@@ -1046,8 +1045,8 @@ public class BlockStorageScheduler {
      * @param storageSystemURI The URI of the storage system
      * @param networks collection of networks
      * @param varrayURI The URI of the virtual array.
-     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports. 
-     *              Optional, can be null.
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports.
+     *            Optional, can be null.
      * 
      * @return The list of storage ports.
      */
@@ -1068,12 +1067,13 @@ public class BlockStorageScheduler {
      * @param networks collection of networks
      * @param varrayURI The URI of the virtual array.
      * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports.
-     *              Optional, can be null.
+     *            Optional, can be null.
      *
      * @return The list of storage ports.
      */
-    public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(List<StoragePort> storagePorts, Collection<NetworkLite> networks,
-                                                                            URI varrayURI, ExportPathParams pathParams) {
+    public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(List<StoragePort> storagePorts,
+            Collection<NetworkLite> networks,
+            URI varrayURI, ExportPathParams pathParams) {
         Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<>();
         for (NetworkLite networkLite : networks) {
             URI networkURI = networkLite.getId();
@@ -1424,10 +1424,10 @@ public class BlockStorageScheduler {
      * @param overrideNumPaths - if greater than zero, will override the calculation and be returned.
      * @return numPaths
      */
-//    public ExportPathParams calculateExportPathParmForVolumes(Collection<URI> blockObjectURIs,
-//            Integer overrideNumPaths) {
-//        return calculateExportPathParamForVolumes(blockObjectURIs, overrideNumPaths, null);
-//    }
+    // public ExportPathParams calculateExportPathParmForVolumes(Collection<URI> blockObjectURIs,
+    // Integer overrideNumPaths) {
+    // return calculateExportPathParamForVolumes(blockObjectURIs, overrideNumPaths, null);
+    // }
 
     /**
      * Given a collection of volume URIs, generates the ExportPathParam
@@ -1464,7 +1464,7 @@ public class BlockStorageScheduler {
                         !storageSystemURI.equals(blockObject.getStorageController())) {
                     continue;
                 }
-                
+
                 ExportPathParams volParam = null;
                 if (exportGroup != null) {
                     // Check to see if the ExportGroup has path parameters for volume
@@ -2032,12 +2032,12 @@ public class BlockStorageScheduler {
                             preZonedPortsByNetwork, volumeURIs, prezoningPathParams, existingZoningMap);
                     Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPortsByNetwork);
                     // Get a map of Host to Network to Initiators
-                    Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
+                    Map<URI, Map<URI, List<Initiator>>> hostsToNetToInitiators =
                             getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
                     // Compute the number of Ports needed for each Network
                     StoragePortsAssigner assigner = StoragePortsAssignerFactory
                             .getAssignerForZones(storage.getSystemType(), zonesByNetwork);
-                    
+
                     // Assign the storage ports on a per host basis.
                     for (Map.Entry<URI, Map<URI, List<Initiator>>> entry : hostsToNetToInitiators.entrySet()) {
                         URI hostURI = entry.getKey();
@@ -2147,7 +2147,7 @@ public class BlockStorageScheduler {
 
     /**
      * Creates a map of initiators grouped and keyed by their network.
-     * Initiators which are not in any network are not returned. 
+     * Initiators which are not in any network are not returned.
      * 
      * @param initiators the initiators
      * @param client
@@ -2158,21 +2158,37 @@ public class BlockStorageScheduler {
         Map<NetworkLite, List<Initiator>> map = new HashMap<NetworkLite, List<Initiator>>();
         NetworkLite network = null;
         for (Initiator initiator : initiators) {
-            network = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+            network = getNetworkLiteOfInitiatorPair(initiator, dbClient);
             if (network == null) {
-                _log.info(String.format("Initiator %s (%s) is being removed from initiator list because it has no network association",
+                _log.info(String.format(
+                        "Initiator %s (%s) is being removed from initiator list because it has no network association",
                         initiator.getInitiatorPort(), initiator.getHostName()));
                 continue;
+
             }
             StringMapUtil.addToListMap(map, network, initiator);
-            _log.info(String.format("Processing initiator %s (%s) network %s", 
+            _log.info(String.format("Processing initiator %s (%s) network %s",
                     initiator.getInitiatorPort(), initiator.getHostName(), network.getLabel()));
         }
         return map;
     }
-    
+
+    private NetworkLite getNetworkLiteOfInitiatorPair(Initiator initiator, DbClient dbClient) {
+        NetworkLite network = null;
+        network = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+        if (network == null) {
+            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+            if (associatedInitiator != null) {
+                network = NetworkUtil.getEndpointNetworkLite(associatedInitiator.getInitiatorPort(), dbClient);
+            }
+        }
+
+        return network;
+    }
+
     /**
      * Inverts the sense of the initiatorsByNetwork map to get a map of InitiatorToNetworkLite
+     * 
      * @param initiatorsByNetwork Map of NetworkLite to a list of Initiators it contains
      * @return map of Initiator to Network Lite
      */
@@ -2242,10 +2258,10 @@ public class BlockStorageScheduler {
         }
         return preZonedPortsByNetwork;
     }
-    
-    
+
     /**
      * Converts Map<NetworkLite, List<StoragePort> to Map<URI, List<StoragePort>
+     * 
      * @param allocatedPorts map from NetworkLite to allocated ports
      * @return map from network URI to allocated ports
      */

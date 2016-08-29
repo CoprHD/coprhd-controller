@@ -25,7 +25,7 @@ public class MirrorFileCancelTaskCompleter extends MirrorFileTaskCompleter {
     private static final long serialVersionUID = 1L;
     private static final Logger _log = LoggerFactory.getLogger(MirrorFileCancelTaskCompleter.class);
 
-    public MirrorFileCancelTaskCompleter(Class<?> clazz, URI id, String opId, URI storageUri) {
+    public MirrorFileCancelTaskCompleter(Class clazz, URI id, String opId, URI storageUri) {
         super(clazz, asList(id), opId, storageUri);
     }
 

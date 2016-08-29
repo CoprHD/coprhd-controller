@@ -196,8 +196,6 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 			storageSystem.setModel(systemRes.getModel());
 			storageSystem.setProvisioningType(SupportedProvisioningType.THIN_AND_THICK);
 			Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
-            supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
-            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
 			storageSystem.setSupportedReplications(supportedReplications);
 
 			// Storage object properties

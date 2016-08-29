@@ -313,6 +313,7 @@ public class ConfigProperties extends Controller {
         }
 
     }
+
   public static void connectExternalServerIpPort(String ipPortListStr){
         if (ipPortListStr.isEmpty()) {
             renderJSON(ValidationResponse.invalid(Messages.get("configProperties.syslog.serverPort.unavailable",null)));

@@ -58,8 +58,7 @@ public class ChainingValidator implements Validator {
 
         if (logger.hasErrors()) {
             if (shouldThrowException()) {
-                throw DeviceControllerException.exceptions.validationError(
-                        type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+                logger.generateException(type);
             }
         }
 

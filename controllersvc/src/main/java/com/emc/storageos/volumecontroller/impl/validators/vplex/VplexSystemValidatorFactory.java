@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToForDisplay;
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
@@ -28,9 +31,9 @@ import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
-import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -43,7 +46,6 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     private ValidatorConfig config;
 
     private final List<Volume> remediatedVolumes = Lists.newArrayList();
-    private VPlexApiClient client;
     private ValidatorLogger logger;
 
     /**
@@ -70,7 +72,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
      */
     private void checkVplexConnectivity(StorageSystem storageSystem) {
         try {
-            client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), storageSystem, dbClient);
+            VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), storageSystem, dbClient);
         } catch (URISyntaxException ex) {
             log.error("Couldn't connect to VPLEX: " + storageSystem.getLabel(), ex);
         } catch (Exception ex) {
@@ -82,7 +84,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     @Override
     public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
         checkVplexConnectivity(ctx.getStorage());
-        logger = new ValidatorLogger(log);
+        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, ctx.getStorage(),
                 ctx.getExportMask());
         Collection<URI> volURIs = Collections2.transform(ctx.getBlockObjects(), CommonTransformerFunctions.fctnDataObjectToID());
@@ -94,8 +96,8 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     @Override
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
         checkVplexConnectivity(storage);
-        logger = new ValidatorLogger(log);
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, storage, exportMask);
         validator.setInitiatorsToValidate(initiators);
         return validator;
@@ -110,7 +112,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     @Override
     public Validator removeInitiators(ExportMaskValidationContext ctx) {
         checkVplexConnectivity(ctx.getStorage());
-        logger = new ValidatorLogger(log);
+        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, ctx.getStorage(),
                 ctx.getExportMask());
 
@@ -131,12 +133,14 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
             ValCk[] checks) {
         checkVplexConnectivity(storageSystem);
         try {
-            logger = new ValidatorLogger(log);
+            // Generate a friendly volume list for volume validation
+            Collection<String> volNames = transform(volumes, fctnDataObjectToForDisplay());
+            logger = new ValidatorLogger(log, Joiner.on(",").join(volNames), storageSystem.forDisplay());
             VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, config, logger);
             vplexVolumeValidator.validateVolumes(storageSystem, volumes, delete, remediate, checks);
             if (logger.hasErrors() && config.validationEnabled()) {
-                throw DeviceControllerException.exceptions.validationError("vplex volume(s)",
-                        logger.getMsgs().toString(), ValidatorLogger.INVENTORY_DELETE_VOLUME);
+                throw DeviceControllerException.exceptions.validationVolumeError(logger.getValidatedObjectName(),
+                        logger.getStorageSystemName(), logger.getMsgs().toString());
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating VPLEX: " + storageSystem.getId(), ex);

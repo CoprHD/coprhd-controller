@@ -48,8 +48,8 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     }
 
     @Override
-    public ValidatorLogger createValidatorLogger() {
-        return new ValidatorLogger(log);
+    public ValidatorLogger createValidatorLogger(String validatedObjectName, String storageSystemName) {
+        return new ValidatorLogger(log, validatedObjectName, storageSystemName);
     }
 
 }

@@ -52,8 +52,7 @@ public class DefaultValidator implements Validator {
         }
 
         if (logger.hasErrors() && shouldThrowException()) {
-            throw DeviceControllerException.exceptions.validationError(type, logger.getMsgs().toString(),
-                    ValidatorLogger.CONTACT_EMC_SUPPORT);
+            logger.generateException(type);
         }
 
         return true;

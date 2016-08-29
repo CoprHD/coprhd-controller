@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +32,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
     private final Collection<? extends BlockObject> blockObjects;
     private Collection<String> igNames;
 
-    public XtremIOExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
+    XtremIOExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
             Collection<? extends BlockObject> blockObjects) {
         super(storage, exportMask);
         this.blockObjects = blockObjects;
@@ -47,14 +48,14 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
         try {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(getDbClient(), storage, getClientFactory());
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            Set<String> knownVolumes = new HashSet<String>();
-            Set<String> igVols = new HashSet<String>();
+            Set<String> knownVolumes = new HashSet<>();
+            Set<String> igVols = new HashSet<>();
             // get the volumes in the IGs and validate against passed impacted block objects
             for (BlockObject maskVolume : blockObjects) {
                 knownVolumes.add(maskVolume.getDeviceLabel());
             }
 
-            List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+            List<XtremIOVolume> igVolumes = new ArrayList<>();
             for (String igName : igNames) {
                 igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
             }
@@ -66,7 +67,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             log.info("ViPR known volumes present in IG: {}, volumes in IG: {}", knownVolumes, igVols);
             igVols.removeAll(knownVolumes);
             for (String igVol : igVols) {
-                getLogger().logDiff(id, "volumes", NO_MATCH, igVol);
+                getLogger().logDiff(id, "volumes", ValidatorLogger.NO_MATCHING_ENTRY, igVol);
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);

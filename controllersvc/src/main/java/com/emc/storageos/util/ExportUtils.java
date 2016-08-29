@@ -1625,4 +1625,25 @@ public class ExportUtils {
         }
         return null;
     }
+
+    public static Initiator getAssociatedInitiator(String endpoint, DbClient dbClient) {
+        Initiator associatedInitiator = null;
+        Initiator initiator = getInitiator(endpoint, dbClient);
+        if (initiator != null) {
+            associatedInitiator = getAssociatedInitiator(initiator, dbClient);
+        }
+        return associatedInitiator;
+    }
+
+    public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
+        Initiator initiator = getInitiator(endpoint, dbClient);
+        if (initiator != null) {
+            Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
+            if (associatedInitiator != null) {
+                return associatedInitiator.getInitiatorPort();
+            }
+        }
+
+        return null;
+    }
 }

@@ -124,6 +124,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -1433,6 +1434,7 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
         validateInitiatorsInExportGroup(exportGroup);
+
         /**
          * ExportGroup Add/Remove volume should have valid nativeId
          */
@@ -1447,6 +1449,7 @@ public class ExportGroupService extends TaskResourceService {
                 for (URI volURI : param.getVolumes().getRemove()) {
                     boURIList.add(volURI);
                 }
+                validateVolumesNotMounted(exportGroup, param.getVolumes().getRemove());
             }
         }
         validateBlockObjectNativeId(boURIList);
@@ -1767,6 +1770,11 @@ public class ExportGroupService extends TaskResourceService {
          * Added extra validation for the initiators in ExportGroup
          */
         validateInitiatorsInExportGroup(exportGroup);
+
+        // Validate that none of the volumes are mounted (datastores, etc)
+        if (exportGroup.getVolumes() != null) {
+            validateVolumesNotMounted(exportGroup, URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+        }
 
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();
@@ -3021,4 +3029,46 @@ public class ExportGroupService extends TaskResourceService {
             exportGroup.addToPathParameters(blockObjectURI, pathParamURI);
         }
     }
+
+    /**
+     * Verify that none of the volumes in the export group are mounted.
+     * Unexporting a mounted volume is dangerous and should be avoided.
+     * 
+     * @param exportGroup
+     *            export group
+     * @param boURIList
+     *            URI list of block objects
+     */
+    private void validateVolumesNotMounted(ExportGroup exportGroup, List<URI> boURIList) {
+        if (exportGroup == null) {
+            throw APIException.badRequests.exportGroupContainsMountedVolumesInvalidParam();
+        }
+
+        Map<URI, String> boToLabelMap = new HashMap<>();
+        // It is valid for there to be no storage volumes in the EG, so only perform the check if there are volumes
+        if (boURIList != null) {
+            for (URI boID : boURIList) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boID);
+                if (bo != null) {
+                    if (bo.getTag() != null) {
+                        // TODO: Enter mounted volume tag criteria here....
+                        boToLabelMap.put(boID, bo.forDisplay());
+                    }
+                }
+            }
+        }
+
+        if (!boToLabelMap.isEmpty()) {
+            _log.error(
+                    "Export Group {} has volumes {} that are marked as mounted.  It is recommended to unmount via controller before unexport.  This validation check can be disabled if needed.  Contact EMC Support.",
+                    exportGroup.getId(), Joiner.on(",").join(boToLabelMap.values()));
+            ValidatorConfig vc = new ValidatorConfig();
+            vc.setCoordinator(_coordinator);
+            if (vc.validationEnabled()) {
+                throw APIException.badRequests.exportGroupContainsMountedVolumes(exportGroup.getId(),
+                    Joiner.on(",").join(boToLabelMap.values()));
+            }
+        }
+    }
+
 }

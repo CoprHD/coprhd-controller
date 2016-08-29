@@ -2631,7 +2631,7 @@ public class FileService extends TaskResourceService {
             // Verify the source virtual pool recommendations meets source fs storage!!!
             fileServiceApi.createTargetsForExistingSource(fs, project,
                     newVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (Exception e) {
+        } catch (BadRequestException | InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("Delete error", e);
             }
@@ -2738,7 +2738,7 @@ public class FileService extends TaskResourceService {
             // Verify the source virtual pool recommendations meets source fs storage!!!
             fileServiceApi.createTargetsForExistingSource(fs, project,
                     currentVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (Exception e) {
+        } catch (BadRequestException | InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("createContinuousCopies error ", e);
             }

@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -477,7 +478,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        StringBuffer errorMessage = new StringBuffer();
         logExportGroup(exportGroup, storageURI);
+        boolean killSwitchEnabled = false;
         try {
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
@@ -523,7 +526,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 Map<URI, List<URI>> existingMasksToCoexistInitiators = new HashMap<URI, List<URI>>();
                 for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
                     URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
-                    if (initiatorURI == null) {
+                    if (initiatorURI == null || !initiatorURIs.contains(initiatorURI)) {
                         // Entry key points to an initiator that was not passed in the remove request
                         continue;
                     }
@@ -550,22 +553,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                         _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),
                                 initiator.getInitiatorPort()));
-                        if (!mask.hasUserInitiator(initiator.getId())) {
-                            _log.info(String
-                                    .format("Initiator %s was not added by ViPR, so ViPR cannot remove it.  No action will be taken for this initiator",
-                                            initiator.getId()));
-                            List<URI> initiators = existingMasksToCoexistInitiators.get(mask.getId());
-                            if (initiators == null) {
-                                initiators = new ArrayList<URI>();
-                                existingMasksToCoexistInitiators.put(mask.getId(), initiators);
-                            }
-                            if (!initiators.contains(initiator.getId())) {
-                                _log.info("Adding co-exist initiator {} in mask {} to existingMasksToCoexistInitiators",
-                                        initiator.getInitiatorPort(), mask.getMaskName());
-                                initiators.add(initiator.getId());
-                            }
-                            continue;
-                        }
 
                         // If there's more than one export group, that means there's my export group plus another one.
                         // Best to just leave that initiator alone.
@@ -578,6 +565,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 _log.info(String.format(
                                         "Initiator %s is in an ExportMask that is shared by ExportGroups %s, so we will not remove it",
                                         initiator.getInitiatorPort(), Joiner.on(',').join(exportGroupURIs)));
+                                // What we supposed to do here?
                             } else {
                                 _log.info(String.format("Initiator %s is in an ExportMask that is shared by ExportGroups %s, " +
                                         "but the initiator is not in any of them. Will remove it from the ExportMask.",
@@ -726,6 +714,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // TODO - should we throw an exception here?
                             // Because we are removing initiator from viPR DB and doing any changes on array as it is shared between
                             // multiple maskingViews.
+                            // we need to add error message here.
                         }
                     }
                     // CTRL-8846 fix : Compare against all the initiators
@@ -737,7 +726,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         // initiators in the mask. This means that we will have to delete the
                         // exportGroup
                         _log.info(String.format("mask %s has removed all "
-                                + "initiators, we are going to delete the mask from the " + "array",
+                                + "initiators, we are going to delete the mask from the array. ",
+                                mask.getMaskName()));
+                        errorMessage.append(String.format("mask %s has removed all "
+                                + "initiators, we are going to delete the mask from the array. ",
                                 mask.getMaskName()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
@@ -750,7 +742,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         anyOperationsToDo = true;
                     } else {
                         _log.info(String.format("mask %s - going to remove the "
-                                + "following initiators %s", mask.getMaskName(),
+                                + "following initiators %s. ", mask.getMaskName(),
+                                Joiner.on(',').join(initiatorsToRemove)));
+                        errorMessage.append(String.format("mask %s - going to remove the "
+                                + "following initiators %s ", mask.getMaskName(),
                                 Joiner.on(',').join(initiatorsToRemove)));
                         Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                         maskToInitiatorsMap.put(mask.getId(), initiatorsToRemove);
@@ -764,29 +759,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 maskToInitiatorsMap);
                         anyOperationsToDo = true;
                     }
-
-                    // Determine if there are any more initiators from our export group in this mask. If not, remove the
-                    // reference to the mask from the export group.
-                    boolean removeMaskReference = true;
-                    if (exportGroup.hasInitiators() && mask.getInitiators() != null) {
-                        for (URI maskInitiatorId : ExportUtils.getExportMaskAllInitiators(mask, _dbClient)) {
-                            if ((exportGroup.getInitiators().contains(maskInitiatorId.toString())) &&
-                                    (!initiatorURIs.contains(maskInitiatorId))) {
-                                removeMaskReference = false;
-                            }
-                        }
-                    }
-                    if (removeMaskReference) {
-                        _log.info(String.format("removing reference to mask %s from export group %s", mask.getMaskName(),
-                                exportGroup.getLabel()));
-                        exportGroup.removeExportMask(mask.getId());
-                        _dbClient.updateObject(exportGroup);
-                    } else {
-                        for (URI initiatorToRemove : initiatorsToRemove) {
-                            exportGroup.removeInitiator(initiatorToRemove);
-                        }
-                    }
-
                 }
 
                 // In this loop we are trying to remove volumes from masks that
@@ -822,8 +794,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     exportMaskVolumeURIStrings.removeAll(volumesToRemoveURIStrings);
 
                     if (exportMaskVolumeURIStrings.isEmpty()) {
-                        _log.info(String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask",
+                        _log.info(
+                                String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
                                 Joiner.on(",").join(volumesToRemove), mask.getMaskName()));
+                        errorMessage.append(
+                                String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
+                                        Joiner.on(",").join(volumesToRemove), mask.getMaskName()));
                         // Order matters! Above this would be any remove initiators that would impact other masking views.
                         // Be sure to always remove anything inside the mask before removing the mask itself.
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup, mask,
@@ -833,7 +809,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     } else {
                         ExportTaskCompleter completer = new ExportRemoveVolumesOnAdoptedMaskCompleter(
                                 exportGroupURI, mask.getId(), volumesToRemove, token);
-                        _log.info(String.format("A subset of volumes will be removed from mask %s: %s",
+                        _log.info(String.format("A subset of volumes will be removed from mask %s: %s. ",
+                                mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
+                        errorMessage.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
                                 mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
                         List<ExportMask> masks = new ArrayList<ExportMask>();
                         masks.add(mask);
@@ -844,27 +822,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 exportGroup, masks, volumesToRemove);
                         anyOperationsToDo = true;
 
-                        // Determine if there are any more initiators from our export group in this mask. If not, remove the
-                        // reference to the mask from the export group.
-                        boolean removeMaskReference = true;
-                        if (exportGroup.hasInitiators() && mask.getUserAddedInitiators() != null) {
-                            for (Map.Entry<String, String> maskInitiatorId : mask
-                                    .getUserAddedInitiators().entrySet()) {
-                                if ((exportGroup.getInitiators().contains(maskInitiatorId.getValue())) &&
-                                        (!initiatorURIs.contains(URI.create(maskInitiatorId.getValue())))) {
-                                    removeMaskReference = false;
-                                }
-                            }
-                        }
-                        if (removeMaskReference) {
-                            _log.info(String.format("removing reference to mask %s from export group %s", mask.getMaskName(),
-                                    exportGroup.getLabel()));
-                            exportGroup.removeExportMask(mask.getId());
-                            _dbClient.updateObject(exportGroup);
-                        } else {
-                            exportGroup.removeVolumes(volumesToRemove);
-                            _dbClient.updateObject(exportGroup);
-                        }
                     }
                 }
                 for (Map.Entry<URI, List<URI>> entry : existingMasksToCoexistInitiators.entrySet()) {
@@ -872,6 +829,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // we assume the initiator was removed from the DB and clean it
                     ExportMaskUtils.removeMaskCoexistInitiators(dbModelClient, entry.getKey(), entry.getValue());
                 }
+            }
+            _log.info("killSwitchEnabled {}", killSwitchEnabled);
+            _log.info("errorMessage {}", errorMessage);
+
+            if (!killSwitchEnabled && StringUtils.hasText(errorMessage)) {
+                errorMessage.append(String.format("Remove initiators from Export Group {%s} has mentioned impact. "
+                        + "If you are sure about the impact and wants to perform this operation, "
+                        + "Please enable kill switch and rerun the same operation. Note: Disable the kill switch after complete this operation.",
+                        exportGroup.getLabel()));
+                throw DeviceControllerException.exceptions.exportGroupUpdateFailed(new Exception(errorMessage.toString()));
             }
 
             if (anyOperationsToDo) {

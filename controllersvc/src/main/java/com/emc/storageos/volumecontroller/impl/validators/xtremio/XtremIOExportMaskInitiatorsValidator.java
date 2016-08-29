@@ -149,7 +149,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask initiators: " + ex.getMessage(), ex);
-            if (getConfig().validationEnabled()) {
+            if (getConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask initiators: " + ex.getMessage());
             }

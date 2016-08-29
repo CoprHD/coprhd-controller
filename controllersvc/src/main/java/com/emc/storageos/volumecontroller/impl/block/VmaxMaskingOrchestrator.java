@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -64,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateC
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -81,6 +83,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
     public static final String CUSTOM_CONFIG_HANDLER = "customConfigHandler";
+    private ValidatorConfig config;
 
     static {
         INITIATOR_FIELDS.add("clustername");
@@ -261,8 +264,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // the determineInitiatorToExportMaskPlacements() would have found the ExportMask for
                     // the cluster to place the initiators, but it would not have them added
                     // yet. The below logic will add the volumes necessary.
-                    if (mask.hasInitiator(initiatorURI.toString()) && !ExportUtils.isInitiatorShared(_dbClient, 
-                            initiatorURI, mask, exportMaskURIs)) {
+                    if (mask.hasInitiator(initiatorURI.toString())
+                            && CollectionUtils.isEmpty(ExportUtils.getExportMasksSharingInitiator(_dbClient,
+                                    initiatorURI, mask, exportMaskURIs))) {
                         _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),
                                 initiator.getInitiatorPort()));
                         // Loop through all the block objects that have been exported
@@ -480,7 +484,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         StringBuffer errorMessage = new StringBuffer();
         logExportGroup(exportGroup, storageURI);
-        boolean killSwitchEnabled = false;
+        boolean killSwitchEnabled = config.isValidationEnabled();
         try {
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
@@ -708,14 +712,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> initiatorsToRemove = entry.getValue();
                     List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
                     for (URI initiatorURI : initiatorsToRemove) {
-                        if (!ExportUtils.isInitiatorShared(_dbClient, initiatorURI, mask, existingMasksToRemoveInitiator.keySet())) {
-                            initiatorsToRemoveOnStorage.add(initiatorURI);
-                        } else {
-                            // TODO - should we throw an exception here?
-                            // Because we are removing initiator from viPR DB and doing any changes on array as it is shared between
-                            // multiple maskingViews.
-                            // we need to add error message here.
+                        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+                        List<String> sharedMaskNames = ExportUtils.getExportMasksSharingInitiator(_dbClient, initiatorURI, mask,
+                                existingMasksToRemoveInitiator.keySet());
+                        if (!CollectionUtils.isEmpty(sharedMaskNames)) {
+                            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
+                            errorMessage.append(
+                                    String.format(" Initiator {%s-%s} is shared between other Export Masks - %s.", initiatorURI,
+                                            normalizedName, sharedMaskNames));
                         }
+                        initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
                     // CTRL-8846 fix : Compare against all the initiators
                     List<URI> allMaskInitiators = ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
@@ -726,10 +732,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         // initiators in the mask. This means that we will have to delete the
                         // exportGroup
                         _log.info(String.format("mask %s has removed all "
-                                + "initiators, we are going to delete the mask from the array. ",
+                                + "initiators, mask will be deleted from the array.. ",
                                 mask.getMaskName()));
                         errorMessage.append(String.format("mask %s has removed all "
-                                + "initiators, we are going to delete the mask from the array. ",
+                                + "initiators, mask will be deleted from the array. ",
                                 mask.getMaskName()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
@@ -833,9 +839,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info("killSwitchEnabled {}", killSwitchEnabled);
             _log.info("errorMessage {}", errorMessage);
 
-            if (!killSwitchEnabled && StringUtils.hasText(errorMessage)) {
-                errorMessage.append(String.format("Remove initiators from Export Group {%s} has mentioned impact. "
-                        + "If you are sure about the impact and wants to perform this operation, "
+            if (killSwitchEnabled && StringUtils.hasText(errorMessage)) {
+                errorMessage.append(String.format("Remove initiators from Export Group {%s} has failed due to the mentioned impact. "
+                        + "If you are sure about the impact and wants to continue this operation, "
                         + "Please enable kill switch and rerun the same operation. Note: Disable the kill switch after complete this operation.",
                         exportGroup.getLabel()));
                 throw DeviceControllerException.exceptions.exportGroupUpdateFailed(new Exception(errorMessage.toString()));
@@ -2417,5 +2423,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes)
                 throws Exception {
         }
+    }
+
+    public void setConfig(ValidatorConfig config) {
+        this.config = config;
     }
 }

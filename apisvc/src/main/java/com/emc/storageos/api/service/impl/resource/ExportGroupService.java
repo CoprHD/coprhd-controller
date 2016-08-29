@@ -1990,23 +1990,39 @@ public class ExportGroupService extends TaskResourceService {
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
                 _log.info("Validating port connectivity for initiator port: {}", initiator.getInitiatorPort());
-                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator);
+                hasConnectivity = doesInitiatorPairHasConnectivity(storageSystem, varrays, initiator);
                 if (!hasConnectivity) {
-                    Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
-                    if (pairedInitiator != null) {
-                        _log.info("Validating port connectivity for associated initiator port: {}", pairedInitiator.getInitiatorPort());
-                        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
-                        if (!hasConnectivity) {
-                            throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
-                                    storageSystem.getNativeGuid());
-                        }
-                    } else {
-                        throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
-                                storageSystem.getNativeGuid());
-                    }
+                    throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
+                            storageSystem.getNativeGuid());
                 }
             }
         }
+    }
+
+    /**
+     * Checks if at least one of the initiators in the pair is reachable to the storage system.
+     * 
+     * @param storageSystem
+     * @param varrays
+     * @param initiator
+     * @return true if initiator port or associated initiator port is reachable to storage system; false otherwise
+     */
+    private boolean doesInitiatorPairHasConnectivity(StorageSystem storageSystem,
+            List<URI> varrays,
+            Initiator initiator) {
+
+        boolean hasConnectivity = false;
+
+        _log.info("Validating port connectivity for initiator: ({})", initiator.getInitiatorPort());
+        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator);
+        if (!hasConnectivity) {
+            Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+            if (pairedInitiator != null) {
+                _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
+                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
+            }
+        }
+        return hasConnectivity;
     }
 
     /**
@@ -2210,7 +2226,7 @@ public class ExportGroupService extends TaskResourceService {
             List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup,
                     storage, _dbClient);
             // check the initiator has connectivity
-            if (!hasConnectivityToSystem(storageSystem,
+            if (!doesInitiatorPairHasConnectivity(storageSystem,
                     varrays, initiator)) {
                 hasConnectivity = false;
                 if (connectedStorageSystems != null) {

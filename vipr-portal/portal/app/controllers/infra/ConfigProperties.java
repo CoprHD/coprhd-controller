@@ -336,7 +336,6 @@ public class ConfigProperties extends Controller {
         } else {
             renderJSON(ValidationResponse.valid(Messages.get("configProperties.syslog.serverPort.successful")));
         }
-
     }
 
     public static void validateMailSettings(String server, String port, String username, String password, String enableTls,

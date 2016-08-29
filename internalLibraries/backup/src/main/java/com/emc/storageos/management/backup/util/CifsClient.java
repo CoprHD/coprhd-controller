@@ -30,6 +30,7 @@ public class CifsClient implements BackupClient{
 
     public CifsClient(String uri, String domain, String username, String password) {
         this.uri = uri + "/";
+
         if ( domain != null && !domain.equals("")){
             auth = new NtlmPasswordAuthentication(domain,username,password);
         }else {

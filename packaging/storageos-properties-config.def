@@ -2419,7 +2419,7 @@
     {
         key : "backup_external_location_url",
         label : "External Server URL",
-        description : "The URL of file server to store backup files.",
+        description : "The URL of file server to store backup files.ftp://* or ftps://* for FTP,smb://* for CIFS.",
         type : "string",
         tag : "Backup",
         userMutable : true,

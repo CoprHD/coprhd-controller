@@ -651,9 +651,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     // COP-16705, COP-21770 - Ingested non-exported Volume may be associated with SG outside of ViPR.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
-                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
-                        volumes.get(0));
-                CIMInstance volumeInstance = _helper.checkExists(forProvider,
+
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
                         _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
                 if (volumeInstance == null) {

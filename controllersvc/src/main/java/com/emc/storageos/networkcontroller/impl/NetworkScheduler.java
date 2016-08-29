@@ -235,7 +235,7 @@ public class NetworkScheduler {
         _log.info("Placing a zone for initiator {} and port {}", initiatorPort, storagePortWwn);
 
         // do some validation
-        NetworkLite iniNet = NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient);
+        NetworkLite iniNet = NetworkUtil.getNetworkLiteOfInitiatorPair(initiatorPort, _dbClient);
         NetworkLite portNet = getStoragePortNetwork(storagePort);
         if (iniNet == null || portNet == null) {
             _log.debug(String.format(
@@ -245,23 +245,20 @@ public class NetworkScheduler {
         }
 
         if (!NetworkUtil.checkInitiatorAndPortConnected(iniNet, portNet)) {
-            Initiator initiator = ExportUtils.getInitiator(initiatorPort, _dbClient);
 
-            if (initiator != null) {
-                Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
-                if (pairedInitiator == null) {
-                    _log.debug(String.format(
-                            "Paired initiator %s could not be paired with port %s",
-                            initiatorPort, storagePortWwn));
-                    return null;
-                }
-                NetworkLite pairedIniNet = NetworkUtil.getEndpointNetworkLite(pairedInitiator.getInitiatorPort(), _dbClient);
-                if (pairedIniNet == null || portNet == null || !NetworkUtil.checkInitiatorAndPortConnected(pairedIniNet, portNet)) {
-                    _log.debug(String.format(
-                            "Paired initiator %s could not be paired with port %s",
-                            initiatorPort, storagePortWwn));
-                    return null;
-                }
+            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiatorPort, _dbClient);
+            if (associatedInitiator == null) {
+                _log.debug(String.format(
+                        "Paired initiator %s could not be paired with port %s",
+                        initiatorPort, storagePortWwn));
+                return null;
+            }
+            NetworkLite associatedIniNet = NetworkUtil.getEndpointNetworkLite(associatedInitiator.getInitiatorPort(), _dbClient);
+            if (associatedIniNet == null || portNet == null || !NetworkUtil.checkInitiatorAndPortConnected(associatedIniNet, portNet)) {
+                _log.debug(String.format(
+                        "Paired initiator %s could not be paired with port %s",
+                        initiatorPort, storagePortWwn));
+                return null;
             }
         }
 

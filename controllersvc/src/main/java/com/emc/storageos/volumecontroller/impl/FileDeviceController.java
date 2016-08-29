@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
 import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -114,6 +115,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private Map<String, FileStorageDevice> _devices;
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
+    private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
 
     private WorkflowService _workflowService;
 
@@ -3675,13 +3677,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 "Unmounting path:" + mount.getMountPath(), fsObj.getStorageDevice(), args);
                     }
                 } else {// Only remove the mounts from CoPRHD database if Inventory Only delete
-                    ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(uriFile);
-                    List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
-                            containmentConstraint);
-                    for (FileMountInfo fsMount : fsDBMounts) {
-                        fsMount.setInactive(true);
-                    }
-                    _dbClient.updateObject(fsDBMounts);
+                    Object[] args = new Object[] { uriFile };
+                    waitFor = createMethod(workflow, waitFor, CHECK_IF_MOUNT_EXISTS_ON_HOST, null,
+                            "Confirming mount dependencies for fs:" + fsObj.getId(), fsObj.getStorageDevice(), args);
                 }
                 if (fsObj != null && fsObj.getMirrorfsTargets() != null) {
                     for (String mirrorTarget : fsObj.getMirrorfsTargets()) {
@@ -4088,7 +4086,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             _log.info("Verifying mount dependencies:", fsId);
-            // TODO
             List<MountInfo> unmountList = getMountedExports(fsId, param.getSubDir(), param);
             if (!unmountList.isEmpty()) {
                 WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
@@ -4316,6 +4313,63 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         dest.setMountPath(orig.getMountPath());
         dest.setSecurityType(orig.getSecurityType());
         dest.setSubDirectory(orig.getSubDirectory());
+    }
+
+    public void checkIfMountExistsOnHost(URI fsId, String opId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileMountsConstraint(fsId);
+            List<FileMountInfo> fsDBMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            FileShare fs = _dbClient.queryObject(FileShare.class, fsId);
+            for (FileMountInfo fsMount : fsDBMounts) {
+                LinuxMountUtils mountUtils = new LinuxMountUtils(_dbClient.queryObject(Host.class, fsMount.getHostId()));
+                FileExport export = findExport(fs, fsMount.getSubDirectory(), fsMount.getSecurityType());
+                if (mountUtils.verifyMountPoints(export.getMountPoint(), fsMount.getMountPath())) {
+                    String errMsg = new String("delete file system from ViPR database failed because mounts exist for file system "
+                            + fs.getLabel() + " and once deleted the mounts cannot be ingested into ViPR");
+                    final ServiceCoded serviceCoded = DeviceControllerException.errors
+                            .jobFailedOpMsg(OperationTypeEnum.DELETE_FILE_SYSTEM.toString(), errMsg);
+                    WorkflowStepCompleter.stepFailed(opId, serviceCoded);
+                }
+            }
+            for (FileMountInfo fsMount : fsDBMounts) {
+                fsMount.setInactive(true);
+            }
+            _dbClient.updateObject(fsDBMounts);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (ControllerException ex) {
+            WorkflowStepCompleter.stepFailed(opId, ex);
+            _log.error("Couldn't verify dependencies: ", fsId);
+            throw ex;
+        }
+    }
+
+    public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
+        List<FileExport> exportList = queryDBFSExportsMap(fs);
+        if (subDirectory == null || subDirectory.equalsIgnoreCase("!nodir") || subDirectory.isEmpty()) {
+            for (FileExport export : exportList) {
+                if (export.getSubDirectory().isEmpty() && securityType.equals(export.getSecurityType())) {
+                    return export;
+                }
+            }
+        }
+        for (FileExport export : exportList) {
+            if (subDirectory.equals(export.getSubDirectory()) && securityType.equals(export.getSecurityType())) {
+                return export;
+            }
+        }
+        throw new IllegalArgumentException("No exports found for the provided security type and subdirectory.");
+    }
+
+    private List<FileExport> queryDBFSExportsMap(FileShare fs) {
+        FSExportMap exportMap = fs.getFsExports();
+
+        List<FileExport> fileExports = new ArrayList<FileExport>();
+        if (exportMap != null) {
+            fileExports.addAll(exportMap.values());
+        }
+        return fileExports;
     }
 
     /**

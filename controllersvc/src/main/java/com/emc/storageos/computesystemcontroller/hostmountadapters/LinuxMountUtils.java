@@ -5,18 +5,14 @@
 package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.collect.Lists;
 import com.iwave.ext.command.CommandOutput;
@@ -146,6 +142,19 @@ public class LinuxMountUtils {
         }
     }
 
+    public boolean verifyMountPoints(String mountPoint, String mountPath) throws InternalException {
+        ListMountPointsCommand command = new ListMountPointsCommand();
+        _log.info("check existing command:" + command.getResolvedCommandLine());
+        cli.executeCommand(command);
+        Map<String, MountPoint> mountPoints = command.getResults();
+        for (MountPoint mp : mountPoints.values()) {
+            if (StringUtils.equals(mp.getDevice(), mountPoint) && StringUtils.equals(mp.getPath(), mountPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static LinuxSystemCLI convertHost(Host host) {
         LinuxSystemCLI cli = new LinuxSystemCLI();
         cli.setHost(host.getHostName());
@@ -167,5 +176,4 @@ public class LinuxMountUtils {
     public String generateMountTag(URI hostId, String mountPath, String subDirectory, String securityType) {
         return "mountNFS;" + hostId.toString() + ";" + mountPath + ";" + subDirectory + ";" + securityType;
     }
-
 }

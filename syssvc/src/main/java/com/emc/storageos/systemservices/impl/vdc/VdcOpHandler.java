@@ -140,6 +140,7 @@ public abstract class VdcOpHandler {
                 setRollingRebootNeeded(true);
             }
 
+            boolean bNeedFlushVdcConfigToLocal = false;
             String ipsecKeyZk = targetVdcPropInfo.getProperty(Constants.IPSEC_KEY);
             String ipsecKeyLocal = localVdcPropInfo.getProperty(Constants.IPSEC_KEY);
             if (ipsecKeyLocal == null || !ipsecKeyLocal.equals(ipsecKeyZk)) {

@@ -562,7 +562,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         //cancel step
-        //cancel step
         Workflow.Method cancelMethodStep = cancelMirrorPairMeth(secondarysystem.getId(),
                 targetFileShare.getId(), mirrorPolicyName);
 

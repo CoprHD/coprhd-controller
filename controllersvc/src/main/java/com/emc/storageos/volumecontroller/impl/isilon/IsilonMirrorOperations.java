@@ -643,27 +643,28 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         job.setId(policyName);
         job.setAction(Action.resync_prep);
         
-        IsilonSyncTargetPolicy targetPolicy = null;
-        JobState targetPolicyState = null;
-        
         IsilonSyncPolicy policy = isiPrimary.getReplicationPolicy(policyName);
-        JobState policyState = policy.getLastJobState();
+        
+        IsilonApi isiSecondary = null;
+        IsilonSyncTargetPolicy targetPolicy = null;
+
         //we need to enable to policy, before running resync-prep
         if(!policy.getEnabled()){
         	policy = doEnableReplicationPolicy(isiPrimary, policyName);
-        	IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
+        	
+        	isiSecondary = getIsilonDevice(secondarySystem);
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        	targetPolicyState = targetPolicy.getLastJobState();
         	//already resync is created then we can start policy
-        	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && targetPolicyState.equals(JobState.finished)) {
+        	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) 
+        			&& targetPolicy.getLastJobState().equals(JobState.finished)) {
         		return BiosCommandResult.createSuccessfulResult();
         	} 
         } else {//if it resync enabled
-        	IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
+        	isiSecondary = getIsilonDevice(secondarySystem);
         	//already resync is created then we can start policy
         	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        	targetPolicyState = targetPolicy.getLastJobState();
-        	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && targetPolicyState.equals(JobState.finished)) {
+        	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) 
+        			&& targetPolicy.getLastJobState().equals(JobState.finished)) {
         		return BiosCommandResult.createSuccessfulResult();
         	} 
         }

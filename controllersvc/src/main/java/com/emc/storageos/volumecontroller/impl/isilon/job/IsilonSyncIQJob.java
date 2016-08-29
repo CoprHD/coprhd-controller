@@ -32,20 +32,20 @@ public class IsilonSyncIQJob extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncIQJob.class);
     private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
-    protected String _jobName;
-    protected URI _storageSystemUri;
-    protected URI _targetSystemUri;
-    protected TaskCompleter _taskCompleter;
-    protected List<String> _jobIds = new ArrayList<String>();
+    private String _jobName;
+    private URI _storageSystemUri;
+    private URI _targetSystemUri;
+    private TaskCompleter _taskCompleter;
+    private List<String> _jobIds = new ArrayList<String>();
 
-    protected long _error_tracking_time = 0L;
-    protected JobStatus _status = JobStatus.IN_PROGRESS;
+    private long _error_tracking_time = 0L;
+    private JobStatus _status = JobStatus.IN_PROGRESS;
     // status of job.updateStatus() execution
-    protected JobStatus _postProcessingStatus = JobStatus.SUCCESS;
+    private JobStatus _postProcessingStatus = JobStatus.SUCCESS;
     protected Map<String, Object> _map = new HashMap<String, Object>();
 
-    protected JobPollResult _pollResult = new JobPollResult();
-    protected String _errorDescription = null;
+    private JobPollResult _pollResult = new JobPollResult();
+    private String _errorDescription = null;
 
     public IsilonSyncIQJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;

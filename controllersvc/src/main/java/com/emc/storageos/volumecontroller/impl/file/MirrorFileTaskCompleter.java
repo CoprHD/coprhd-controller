@@ -59,9 +59,13 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
 
 
-    protected URI storageUri;
+    private URI storageUri;
 
-    protected MirrorStatus getMirrorSyncStatus() {
+    public void setStorageUri(URI storageUri) {
+		this.storageUri = storageUri;
+	}
+
+	protected MirrorStatus getMirrorSyncStatus() {
         return mirrorSyncStatus;
     }
 

@@ -77,6 +77,8 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -150,6 +152,13 @@ public class ExportGroupService extends TaskResourceService {
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
 
     private static volatile BlockStorageScheduler _blockStorageScheduler;
+
+    // From KnownMachineTypes, which is upstream so re-defining here.
+    // Used in ensuring unexport isn't happening to mounted volumes.
+    private static String ISA_NAMESPACE = "vipr";
+    private static String ISA_SEPARATOR = ":";
+    private static String MOUNTPOINT = ISA_NAMESPACE + ISA_SEPARATOR + "mountPoint";
+    private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
 
     public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
         if (_blockStorageScheduler == null) {
@@ -3051,8 +3060,13 @@ public class ExportGroupService extends TaskResourceService {
                 BlockObject bo = BlockObject.fetch(_dbClient, boID);
                 if (bo != null) {
                     if (bo.getTag() != null) {
-                        // TODO: Enter mounted volume tag criteria here....
-                        boToLabelMap.put(boID, bo.forDisplay());
+                        ScopedLabelSet tagSet = bo.getTag();
+                        Iterator<ScopedLabel> tagIter = tagSet.iterator();
+                        while (tagIter.hasNext()) {
+                            ScopedLabel sl = tagIter.next();
+                            if (sl.getLabel() != null && (sl.getLabel().startsWith(MOUNTPOINT) || sl.getLabel().startsWith(VMFS_DATASTORE)))
+                                boToLabelMap.put(boID, bo.forDisplay());
+                        }
                     }
                 }
             }

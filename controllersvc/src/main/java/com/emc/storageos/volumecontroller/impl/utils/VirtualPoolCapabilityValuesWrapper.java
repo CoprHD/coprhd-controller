@@ -44,9 +44,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String QUOTA = "quota";
     public static final String DEDUP = "dedup";
 
-    public static final String FILE_REPLICATION_RPO_VALUE = "fileRpRpoValue";
-    public static final String FILE_REPLICATION_RPO_TYPE = "fileRpRpoType";
-    public static final String FILE_REPLICATION_COPY_MODE = "fileRpCopyMode";
+    public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
+    public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";
+    public static final String FILE_REPLICATION_COPY_MODE = "fileReplicationCopyMode";
 
     // Not vpool params, but hints for volume descriptor creation
     // TODO: Move to ControllerOperationValuesWrapper

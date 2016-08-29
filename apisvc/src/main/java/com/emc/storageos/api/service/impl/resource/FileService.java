@@ -495,6 +495,11 @@ public class FileService extends TaskResourceService {
                 throw APIException.badRequests
                         .invalidReplicationRPOType(vPool.getFrRpoType());
             }
+            
+            if (vPool.getFileReplicationCopyMode() == null
+                    || FileReplicationRPOType.lookup(vPool.getFrRpoType()) == null) {
+                throw APIException.badRequests.invalidCopyMode(vPool.getFileReplicationCopyMode());
+            }
 
             switch (vPool.getFrRpoType().toUpperCase()) {
                 case "MINUTES":
@@ -515,20 +520,23 @@ public class FileService extends TaskResourceService {
                 default:
                     throw APIException.badRequests.invalidReplicationRPOType(vPool.getFrRpoType());
             }
-
-            if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getRpRpoType());
+            
+            //it is positive interger
+            if (vPool.getFrRpoValue() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
             }
 
-            if (vPool.getFileReplicationCopyMode() == null
-                    || FileReplicationRPOType.lookup(vPool.getFrRpoType()) == null) {
-                throw APIException.badRequests.invalidCopyMode(vPool.getFileReplicationCopyMode());
+            // rpo type can be DAYS or HOURS or minites
+            if (vPool.getRpRpoType() != null) { 
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
             }
+
+
             // async or copy
             // async - soure changes will mirror target
             // copy - it kind backup, it is full copy
             if (vPool.getFileReplicationCopyMode() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFrRpoValue());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFileReplicationCopyMode());
             }
 
         }

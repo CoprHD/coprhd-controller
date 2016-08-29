@@ -858,8 +858,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     StringSet backingVolumes = volume.getAssociatedVolumes();
                     if (null == backingVolumes || backingVolumes.isEmpty()) {
                         _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
-                        throw InternalServerErrorException.
-                            internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                        throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
                     }
                     for (String backingVolumeStr : backingVolumes) {
                         Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backingVolumeStr));
@@ -2022,8 +2021,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         StringSet backingVolumes = volume.getAssociatedVolumes();
                         if (null == backingVolumes || backingVolumes.isEmpty()) {
                             _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
-                            throw InternalServerErrorException.
-                                internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                            throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
                         }
                         for (String volumeId : backingVolumes) {
                             Volume vol = _dbClient.queryObject(Volume.class, URI.create(volumeId));
@@ -4461,7 +4459,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // component of the swap operation to complete. There were issues with this which are documented in the
                 // RecoverPointClient. So we sleep here in order to give RP the time it needs to remove the swap target
                 // copy bookmarks before we cleanup the corresponding BlockSnapshot objects from ViPR.
-                Thread.sleep(5000);
+                Thread.sleep(10000);
                 // When we perform a swap, the target swap copy will become the production copy and lose all
                 // its bookmarks so we need to sync with RP.
                 RPHelper.cleanupSnapshots(_dbClient, rpSystem);
@@ -6422,7 +6420,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (RPHelper.isVPlexVolume(volume, _dbClient) 
+        if (RPHelper.isVPlexVolume(volume, _dbClient)
                 && (null != volume.getAssociatedVolumes())
                 && (!volume.getAssociatedVolumes().isEmpty())) {
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", volume.getLabel(),
@@ -7016,8 +7014,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             StringSet backends = volume.getAssociatedVolumes();
             if (null == backends || backends.isEmpty()) {
                 _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
-                throw InternalServerErrorException.
-                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+                throw InternalServerErrorException.internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
             }
             for (String backendId : backends) {
                 URI backendUri = URI.create(backendId);

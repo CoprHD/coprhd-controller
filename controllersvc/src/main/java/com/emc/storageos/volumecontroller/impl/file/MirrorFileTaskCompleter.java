@@ -64,6 +64,10 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     public void setStorageUri(URI storageUri) {
 		this.storageUri = storageUri;
 	}
+    
+    public URI getStorageUri() {
+        return storageUri;
+    }
 
 	protected MirrorStatus getMirrorSyncStatus() {
         return mirrorSyncStatus;
@@ -95,9 +99,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     protected List<FileShare> fileshareCache;
 
-    public URI getStorageUri() {
-        return storageUri;
-    }
+    
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {

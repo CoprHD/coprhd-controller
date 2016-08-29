@@ -34,7 +34,6 @@ public class IsilonSyncIQJob extends Job implements Serializable {
 
     private String _jobName;
     private URI _storageSystemUri;
-    private URI _targetSystemUri;
     private TaskCompleter _taskCompleter;
     private List<String> _jobIds = new ArrayList<String>();
 
@@ -42,7 +41,7 @@ public class IsilonSyncIQJob extends Job implements Serializable {
     private JobStatus _status = JobStatus.IN_PROGRESS;
     // status of job.updateStatus() execution
     private JobStatus _postProcessingStatus = JobStatus.SUCCESS;
-    protected Map<String, Object> _map = new HashMap<String, Object>();
+    private Map<String, Object> _map = new HashMap<String, Object>();
 
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;

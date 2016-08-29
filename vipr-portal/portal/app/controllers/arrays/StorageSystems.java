@@ -1050,7 +1050,7 @@ public class StorageSystems extends ViprResourceController {
             return storageProviderForm.create();
         }
 
-        public void setXIVParameters() {
+        public void setSecondaryParameters() {
             if (StringUtils.isNotEmpty(this.hyperScaleUsername)) {
                 this.secondaryUsername = this.hyperScaleUsername;
             }
@@ -1071,7 +1071,7 @@ public class StorageSystems extends ViprResourceController {
         }
 
         public Task<?> save() {
-            setXIVParameters();
+            setSecondaryParameters();
             if (isNew()) {
                 if (isStorageProviderManaged()) {
                     return createStorageProvider();
@@ -1165,9 +1165,9 @@ public class StorageSystems extends ViprResourceController {
             }
 
             if(isXIV()) {
-                if ((StringUtils.isNotEmpty(this.hyperScaleHost) && StringUtils.isEmpty(this.hyperScalePort))||(StringUtils.isEmpty(this.hyperScaleHost) && StringUtils.isNotEmpty(this.hyperScalePort))) {
-                    Validation.addError(fieldName + ".hyperScaleHost","Both Hyper Scale Host and Port details needed.One is missing");
-                    Validation.addError(fieldName + ".hyperScalePort","Both Hyper Scale Host and Port details needed. One is missing");
+                if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))) {
+                    Validation.addError(fieldName + ".hyperScaleHost","Either Secondary Host or Port details is missing");
+                    Validation.addError(fieldName + ".hyperScalePort","Either Secondary Host or Port details is missing");
                 }
             }
         }

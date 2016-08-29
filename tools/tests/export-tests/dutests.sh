@@ -711,7 +711,9 @@ vnx_setup() {
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
@@ -769,7 +771,9 @@ vmax2_setup() {
     setup_varray
 
     run storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
@@ -805,7 +809,9 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
@@ -1094,7 +1100,9 @@ xio_setup() {
     setup_varray
 
     run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-    run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
@@ -1158,7 +1166,11 @@ common_setup() {
 
 setup_varray() {
     run neighborhood create $NH
-    run transportzone create $FC_ZONE_A $NH --type FC
+    if [ "${SIM}" = "1" ]; then
+	run transportzone create $FC_ZONE_A $NH --type FC
+    else
+	run transportzone assign ${FC_ZONE_A} ${NH}
+    fi
 }
 
 setup() {
@@ -1208,6 +1220,10 @@ setup() {
             exit 1
         fi
         echo $result
+    fi
+
+    if [ "${SIM}" != "1" ]; then
+	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     fi
 
     ${SS}_setup
@@ -3080,6 +3096,73 @@ test_23() {
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
     runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
+}
+
+# Export Test 24
+#
+# Summary: Remove Volume: Tests an volume (host) sneaking into a masking view outside of ViPR doesn't remove the zone.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
+# 3. Customer add a volume to the export mask outside of ViPR
+# 4. Removal of volume workflow is resumed
+# 5. Verify the operation succeeds:  volume is removed
+# 6. Verify the zone is NOT removed from the switch (TBD)
+# 7. Cleanup
+#
+test_24() {
+    echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
+    expname=${EXPORT_GROUP_NAME}t24
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Create a new vplex volume that we can migrate
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    # Add an unrelated initiator to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove the volume from the export group
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Now remove the initiator from the export mask
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Make sure it deleted the volume
+    verify_export ${expname}1 ${HOST1} 2 0
+
+    # TBD: Verify there is a zone on the switch
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # The mask is out of our control at this point, delete mask
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
 }
 
 cleanup() {

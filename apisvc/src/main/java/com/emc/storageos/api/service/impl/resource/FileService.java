@@ -3371,28 +3371,6 @@ public class FileService extends TaskResourceService {
         return fsMounts;
     }
 
-    private List<MountInfo> queryDBHostMounts(URI host) {
-        _log.info("Querying NFS mounts for host {}", host);
-        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
-        try {
-            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
-            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
-                    containmentConstraint);
-            if (fileMounts != null && !fileMounts.isEmpty()) {
-                for (FileMountInfo dbMount : fileMounts) {
-                    MountInfo mountInfo = new MountInfo();
-                    getMountInfo(dbMount, mountInfo);
-                    hostMounts.add(mountInfo);
-                }
-            }
-            return hostMounts;
-        } catch (Exception e) {
-            _log.error("Error while querying {}", e);
-        }
-
-        return hostMounts;
-    }
-
     private List<ExportRule> queryFSExports(FileShare fs) {
         List<ExportRule> rules = null;
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
@@ -4209,28 +4187,6 @@ public class FileService extends TaskResourceService {
                 .getOpStatus().get(task).getStatus());
 
         return toTask(fs, task, op);
-    }
-
-    /**
-     * Get list of mounts for the specified host.
-     * 
-     * @param id
-     *            the URN of a hist
-     * @brief List file system mounts
-     * @return List of file system mounts.
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/mounts")
-    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public MountInfoList getHostNFSMounts(@QueryParam("host") URI host) {
-
-        ArgValidator.checkFieldUriType(host, Host.class, "id");
-        _log.info(String.format("Get list of mounts for host %1$s", host));
-
-        MountInfoList mountList = new MountInfoList();
-        mountList.setMountList(queryDBHostMounts(host));
-        return mountList;
     }
 
     /**

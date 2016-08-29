@@ -1278,7 +1278,7 @@ test_1() {
     echot "Test 1 DU Check Begins"
     expname=${EXPORT_GROUP_NAME}t1
 
-    # Turn on suspend of export after orchestration
+    # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
@@ -1307,7 +1307,7 @@ test_1() {
     
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # Turn on suspend of export after orchestration
+    # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command
@@ -1524,7 +1524,7 @@ test_4() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportDeleteOrchStep}
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
@@ -1604,7 +1604,7 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -1698,7 +1698,7 @@ test_6() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
@@ -2632,7 +2632,7 @@ test_18() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -2714,7 +2714,7 @@ test_19() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}

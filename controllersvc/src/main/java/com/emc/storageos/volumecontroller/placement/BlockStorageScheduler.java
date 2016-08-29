@@ -2014,7 +2014,7 @@ public class BlockStorageScheduler {
                 // At this time we are not discovering routed zones but we will take care of this
                 Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
                         _dbClient, storage.getId(), virtualArrayUri, pathParams);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
+                Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getNetworkToInitiatorsMap(newInitiators, _dbClient);
                 Map<Initiator, NetworkLite> initiatorToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);

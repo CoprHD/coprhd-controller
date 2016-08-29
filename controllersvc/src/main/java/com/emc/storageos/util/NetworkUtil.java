@@ -569,6 +569,32 @@ public class NetworkUtil {
     }
 
     /**
+     * This is same as {@link NetworkUtil#getInitiatorsByNetwork(Collection, DbClient)}, except this method considers the associated
+     * initiator also.
+     * 
+     * @param initiators the collection of initiators
+     * @param dbClient
+     * @return a map of network-to-initiators
+     */
+    public static Map<NetworkLite, List<Initiator>> getNetworkToInitiatorsMap(Collection<Initiator> initiators, DbClient dbClient) {
+        Map<NetworkLite, List<Initiator>> map = new HashMap<NetworkLite, List<Initiator>>();
+        NetworkLite network = null;
+        List<Initiator> netInitiators = null;
+        for (Initiator initiator : initiators) {
+            network = NetworkUtil.getNetworkLiteOfInitiatorPair(initiator.getInitiatorPort(), dbClient);
+            if (network != null) {
+                netInitiators = map.get(network);
+                if (netInitiators == null) {
+                    netInitiators = new ArrayList<Initiator>();
+                    map.put(network, netInitiators);
+                }
+                netInitiators.add(initiator);
+            }
+        }
+        return map;
+    }
+
+    /**
      * Returns the ports in the given network in a port-wwn-to-port map.
      * 
      * @param networkLite the network

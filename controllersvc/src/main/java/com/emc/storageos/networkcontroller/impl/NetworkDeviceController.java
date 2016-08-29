@@ -85,7 +85,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -413,11 +412,11 @@ public class NetworkDeviceController implements NetworkController {
                                 _dbClient.markForDeletion(ref);
                                 _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
                                         ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
-                                if(!zones.isEmpty()){
-                                	recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+                                if (!zones.isEmpty()) {
+                                    recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
                                             OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
                                 }
-                                
+
                             }
                         }
                     } catch (DatabaseException ex) {
@@ -437,11 +436,11 @@ public class NetworkDeviceController implements NetworkController {
                             _log.info(String.format(
                                     "%s FCZoneReference key: %s volume %s group %s",
                                     newOrExisting[0], ref.getPwwnKey(), ref.getVolumeUri(), exportGroupUri));
-                            if(!zones.isEmpty()){
-                            	recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
+                            if (!zones.isEmpty()) {
+                                recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
                                         OperationTypeEnum.ADD_SAN_ZONE.getDescription());
                             }
-                            
+
                         }
                     } catch (DatabaseException ex) {
                         _log.error("Could not persist FCZoneReference: " + refKey);
@@ -945,10 +944,10 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
         ExportGroup exportGroup = null;
-        try {    	
-        	exportGroup = _dbClient
-                    .queryObject(ExportGroup.class, exportGroupURI);   	            
-        	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
+        try {
+            exportGroup = _dbClient
+                    .queryObject(ExportGroup.class, exportGroupURI);
+            _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.
@@ -2121,7 +2120,7 @@ public class NetworkDeviceController implements NetworkController {
      */
     public ZoneInfoMap getInitiatorsZoneInfoMap(List<Initiator> initiators, List<StoragePort> storagePorts) {
         ZoneInfoMap zoningMap = new ZoneInfoMap();
-        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!Transport.FC.toString().equals(entry.getKey().getTransportType())) {
                 continue;
@@ -2144,7 +2143,7 @@ public class NetworkDeviceController implements NetworkController {
      */
     public Map<String, List<Zone>> getInitiatorsZones(Collection<Initiator> initiators) {
         Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
-        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 zonesMap.putAll(getInitiatorsInNetworkZones(entry.getKey(), entry.getValue()));
@@ -2215,7 +2214,7 @@ public class NetworkDeviceController implements NetworkController {
                 // possibly the first time this export mask is processed, populate from existing zones
                 List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
                 List<Initiator> initiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
 
                 StringSetMap zoningMap = new StringSetMap();
                 for (NetworkLite network : initiatorsByNetworkMap.keySet()) {

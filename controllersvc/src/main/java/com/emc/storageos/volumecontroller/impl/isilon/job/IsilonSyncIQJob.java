@@ -53,14 +53,7 @@ public class IsilonSyncIQJob extends Job implements Serializable {
         this._jobIds.add(jobId);
     }
     
-    public IsilonSyncIQJob(String jobId, URI sourceSystemUri, URI targetSystemUri, TaskCompleter taskCompleter, String jobName) {
-        this._storageSystemUri = sourceSystemUri;
-        this._targetSystemUri = targetSystemUri;
-        this._taskCompleter = taskCompleter;
-        this._jobName = jobName;
-        this._jobIds.add(jobId);
-    }
-
+    
     @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
         String currentJob = _jobIds.get(0);

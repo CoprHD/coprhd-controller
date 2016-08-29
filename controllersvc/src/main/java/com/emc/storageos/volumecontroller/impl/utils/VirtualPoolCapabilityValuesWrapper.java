@@ -421,4 +421,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
         return value != null ? (Boolean) value : false;
     }
+    
+    public void removeCapabilityEntry(String keyEntry) {
+        if(_vpoolCapabilities.get(keyEntry) != null) {
+            _vpoolCapabilities.remove(keyEntry);
+        }
+    }
 }

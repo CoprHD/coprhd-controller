@@ -74,6 +74,31 @@ public class NetworkUtil {
         return getEndpointNetworkLite(endpoint, dbClient, null);
     }
 
+    public static NetworkLite getNetworkLiteOfInitiatorPair(Initiator initiator, DbClient dbClient) {
+        NetworkLite network = null;
+        network = getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+        if (network == null) {
+            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+            if (associatedInitiator != null) {
+                network = NetworkUtil.getEndpointNetworkLite(associatedInitiator.getInitiatorPort(), dbClient);
+            }
+        }
+
+        return network;
+    }
+
+    public static NetworkLite getNetworkLiteOfInitiatorPair(String endpoint, DbClient dbClient) {
+        NetworkLite network = null;
+        network = getEndpointNetworkLite(endpoint, dbClient);
+        if (network == null) {
+            String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(endpoint, dbClient);
+            if (associatedInitiatorEndpoint != null) {
+                network = NetworkUtil.getEndpointNetworkLite(associatedInitiatorEndpoint, dbClient);
+            }
+        }
+        return network;
+    }
+
     /**
      * Get the network that has the endpoint
      * 
@@ -126,6 +151,16 @@ public class NetworkUtil {
     public static Set<NetworkLite> getEndpointAllNetworksLite(String endpoint, DbClient dbClient) {
         Set<NetworkLite> networks = new HashSet<NetworkLite>();
         NetworkLite networkLite = getEndpointNetworkLite(endpoint, dbClient);
+        if (networkLite != null) {
+            networks.add(networkLite);
+            networks.addAll(getNetworkLiteRoutedNetworks(networkLite, dbClient));
+        }
+        return networks;
+    }
+
+    public static Set<NetworkLite> getAllNetworksForEndpoint(String endpoint, DbClient dbClient) {
+        Set<NetworkLite> networks = new HashSet<NetworkLite>();
+        NetworkLite networkLite = getNetworkLiteOfInitiatorPair(endpoint, dbClient);
         if (networkLite != null) {
             networks.add(networkLite);
             networks.addAll(getNetworkLiteRoutedNetworks(networkLite, dbClient));

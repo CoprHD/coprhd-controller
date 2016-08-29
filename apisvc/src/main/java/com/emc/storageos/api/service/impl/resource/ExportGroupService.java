@@ -953,7 +953,7 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         outVarrays.addAll(exportGroupVarrays);
-        Set<NetworkLite> networks = NetworkUtil.getEndpointAllNetworksLite(initiator.getInitiatorPort(), _dbClient);
+        Set<NetworkLite> networks = NetworkUtil.getAllNetworksForEndpoint(initiator.getInitiatorPort(), _dbClient);
         if (networks == null || networks.isEmpty()) {
             // No network associated with the initiator, so it should be removed from the list
             _log.info(String.format("Initiator %s (%s) is not associated with any network.",

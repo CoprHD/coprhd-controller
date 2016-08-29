@@ -629,8 +629,8 @@ public class NetworkService extends TaggedResource {
                     }
                     if (!addedEp.contains(endpoint)) {
                         addedEp.add(endpoint);
-                        String associatedEndpoint = getAssociatedInitiatorPortEndpoint(endpoint);
-                        if (!addedEp.contains(associatedEndpoint)) {
+                        String associatedEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(endpoint, _dbClient);
+                        if (associatedEndpoint != null && !addedEp.contains(associatedEndpoint)) {
                             addedEp.add(associatedEndpoint);
                         }
                     }
@@ -668,7 +668,7 @@ public class NetworkService extends TaggedResource {
                     network.getEndpointsMap().containsKey(EndpointUtility.changeCase(str))) {
                 if (!removedEp.contains(str)) {
                     removedEp.add(str);
-                    String associatedEndpoint = getAssociatedInitiatorPortEndpoint(EndpointUtility.changeCase(str));
+                    String associatedEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(EndpointUtility.changeCase(str), _dbClient);
                     if (associatedEndpoint != null) {
                         if (!removedEp.contains(associatedEndpoint)) {
                             removedEp.add(associatedEndpoint);
@@ -1061,19 +1061,6 @@ public class NetworkService extends TaggedResource {
         auditOp(typeEnum, true, null, network.getLabel(), network.getTransportType(),
                 network.getVirtualArray(), network.getId().toString());
 
-    }
-
-    private String getAssociatedInitiatorPortEndpoint(String endpoint) {
-
-        String associatedEndpoint = null;
-        Initiator initiator = ExportUtils.getInitiator(endpoint, _dbClient);
-        if (initiator != null && !initiator.getInactive()) {
-            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
-            if (associatedInitiator != null) {
-                associatedEndpoint = associatedInitiator.getInitiatorPort();
-            }
-        }
-        return associatedEndpoint;
     }
 
     @Override

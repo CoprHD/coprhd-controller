@@ -2158,7 +2158,7 @@ public class BlockStorageScheduler {
         Map<NetworkLite, List<Initiator>> map = new HashMap<NetworkLite, List<Initiator>>();
         NetworkLite network = null;
         for (Initiator initiator : initiators) {
-            network = getNetworkLiteOfInitiatorPair(initiator, dbClient);
+            network = NetworkUtil.getNetworkLiteOfInitiatorPair(initiator, dbClient);
             if (network == null) {
                 _log.info(String.format(
                         "Initiator %s (%s) is being removed from initiator list because it has no network association",
@@ -2171,19 +2171,6 @@ public class BlockStorageScheduler {
                     initiator.getInitiatorPort(), initiator.getHostName(), network.getLabel()));
         }
         return map;
-    }
-
-    private NetworkLite getNetworkLiteOfInitiatorPair(Initiator initiator, DbClient dbClient) {
-        NetworkLite network = null;
-        network = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
-        if (network == null) {
-            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
-            if (associatedInitiator != null) {
-                network = NetworkUtil.getEndpointNetworkLite(associatedInitiator.getInitiatorPort(), dbClient);
-            }
-        }
-
-        return network;
     }
 
     /**

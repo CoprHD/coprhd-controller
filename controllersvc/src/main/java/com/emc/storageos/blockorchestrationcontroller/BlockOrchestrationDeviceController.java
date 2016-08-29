@@ -517,45 +517,47 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Check to see if the existing is not already protected by RP and that
             // there are associated volumes (meaning it's a VPLEX volume)
-            if (RPHelper.isVPlexVolume(rpExistingSource)) {
+            if (RPHelper.isVPlexVolume(rpExistingSource, s_dbClient)) {
                 s_logger.info(String.format("Adding post RP Change Vpool steps for existing VPLEX source volume [%s].",
                         rpExistingSource.getLabel()));
                 // VPLEX, use associated backing volumes
                 // NOTE: If migrations exist for this volume the VPLEX Device Controller will clean these up
                 // newly added CGs because we won't need them as the migration volumes will create their own CGs.
                 // This is OK.
-                for (String assocVolumeId : rpExistingSource.getAssociatedVolumes()) {
-                    Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+                if (null != rpExistingSource.getAssociatedVolumes()) {
+                    for (String assocVolumeId : rpExistingSource.getAssociatedVolumes()) {
+                        Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
 
-                    // If there is a migration for this backing volume, we don't have to
-                    // do any extra steps for ensuring that this volume gets gets added to the backing array CG
-                    // because the migration volume will trump this volume. This volume will eventually be
-                    // deleted so let's skip it.
-                    if (volumesWithMigration.contains(assocVolume.getId())) {
-                        s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
-                                assocVolume.getLabel()));
-                        continue;
-                    }
+                        // If there is a migration for this backing volume, we don't have to
+                        // do any extra steps for ensuring that this volume gets gets added to the backing array CG
+                        // because the migration volume will trump this volume. This volume will eventually be
+                        // deleted so let's skip it.
+                        if (volumesWithMigration.contains(assocVolume.getId())) {
+                            s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
+                                    assocVolume.getLabel()));
+                            continue;
+                        }
 
-                    // Only add the change vpool volume's backend volumes to the backend CGs if the
-                    // getReplicationGroupInstance
-                    // field has been populated during the API prepare volume steps.
-                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
-                        // Create the BLOCK_DATA descriptor with the correct info
-                        // for creating the CG and adding the backing volume to it.
-                        VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                assocVolume.getStorageController(), assocVolume.getId(), null,
-                                rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
-                        blockDataDescriptors.add(blockDataDesc);
+                        // Only add the change vpool volume's backend volumes to the backend CGs if the
+                        // getReplicationGroupInstance
+                        // field has been populated during the API prepare volume steps.
+                        if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
+                            // Create the BLOCK_DATA descriptor with the correct info
+                            // for creating the CG and adding the backing volume to it.
+                            VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                    assocVolume.getStorageController(), assocVolume.getId(), null,
+                                    rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
+                            blockDataDescriptors.add(blockDataDesc);
 
-                        // Good time to update the backing volume with its new CG
-                        assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
-                        s_dbClient.updateObject(assocVolume);
+                            // Good time to update the backing volume with its new CG
+                            assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
+                            s_dbClient.updateObject(assocVolume);
 
-                        s_logger.info(
-                                String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
-                                        assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
-                                        assocVolume.getStorageController()));
+                            s_logger.info(
+                                    String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
+                                            assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
+                                            assocVolume.getStorageController()));
+                        }
                     }
                 }
             }

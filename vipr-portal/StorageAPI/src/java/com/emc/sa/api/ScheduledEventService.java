@@ -164,9 +164,10 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @param scheduleInfo     Schedule Schema
      */
     private void validateParam(ScheduleInfo scheduleInfo) {
+        DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);;
+        Date date = null;
         try {
-            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-            Date date = formatter.parse(scheduleInfo.getStartDate());
+            date = formatter.parse(scheduleInfo.getStartDate());
         } catch (Exception e) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
         }
@@ -179,37 +180,41 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.MINUTE_OF_HOUR);
         }
 
-        Calendar currTime, endTime;
-        try {
-            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-            Date date = formatter.parse(scheduleInfo.getStartDate());
-
-            currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-            endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
-            if (endTime != null && currTime.after(endTime)) {
-                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
-            }
-        } catch (APIException e) {
-            throw e;
-        } catch (Exception e) {
-            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
-        }
-
         /* TODO: enable it later when we support customized duration
         if (scheduleInfo.getDurationLength() < 1 || scheduleInfo.getHourOfDay() > 60*24) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DURATION_LENGTH);
         }
         */
 
+        Calendar currTime, endTime;
+        currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         if (scheduleInfo.getReoccurrence() < 0) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         } else if (scheduleInfo.getReoccurrence() == 1) {
+            try {
+                Calendar startTime = ScheduleTimeHelper.getScheduledStartTime(scheduleInfo);
+                if (startTime == null || currTime.after(startTime)) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+                }
+            } catch (Exception e) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+            }
             return;
         }
 
         if (scheduleInfo.getCycleFrequency() < 1 ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
         }
+
+        try {
+            endTime = ScheduleTimeHelper.getScheduledEndTime(scheduleInfo);
+            if (endTime != null && currTime.after(endTime)) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
+            }
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.END_DATE);
+        }
+
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
                 if (scheduleInfo.getSectionsInCycle().size() != 1) {
@@ -243,13 +248,14 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         if (scheduleInfo.getDateExceptions() != null) {
             for (String dateException: scheduleInfo.getDateExceptions()) {
                 try {
-                    DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-                    Date date = formatter.parse(dateException);
+                    date = formatter.parse(dateException);
                 } catch (Exception e) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DATE_EXCEPTIONS);
                 }
             }
         }
+
+        return;
     }
 
     /**

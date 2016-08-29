@@ -18,7 +18,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -69,7 +69,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             log.info("ViPR known volumes present in IG: {}, volumes in IG: {}", knownVolumes, igVols);
             igVols.removeAll(knownVolumes);
             for (String igVol : igVols) {
-                getLogger().logDiff(id, "volumes", NO_MATCH, igVol);
+                getLogger().logDiff(id, "volumes", ValidatorLogger.NO_MATCHING_ENTRY, igVol);
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);

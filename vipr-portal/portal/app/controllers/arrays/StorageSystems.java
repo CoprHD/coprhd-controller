@@ -1068,10 +1068,6 @@ public class StorageSystems extends ViprResourceController {
                 }
                 this.secondaryURL = url.toString();
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort)) {
-                flash.error("Secondary Host or Port is Missing");
-                edit(id);
-            }
         }
 
         public Task<?> save() {
@@ -1167,6 +1163,13 @@ public class StorageSystems extends ViprResourceController {
                 Validation.required(fieldName + ".smisProviderPortNumber",
                         this.smisProviderPortNumber);
             }
+
+            if(isXIV()) {
+                if ((StringUtils.isNotEmpty(this.hyperScaleHost) && StringUtils.isEmpty(this.hyperScalePort))||(StringUtils.isEmpty(this.hyperScaleHost) && StringUtils.isNotEmpty(this.hyperScalePort))) {
+                    Validation.addError(fieldName + ".hyperScaleHost","Both Hyper Scale Host and Port details needed.One is missing");
+                    Validation.addError(fieldName + ".hyperScalePort","Both Hyper Scale Host and Port details needed. One is missing");
+                }
+            }
         }
 
         private boolean isMatchingPasswords(String password, String confirm) {
@@ -1188,6 +1191,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isScaleIOApi() {
             return StorageSystemTypes.isScaleIOApi(type);
+        }
+
+        private boolean isXIV() {
+            return StorageSystemTypes.isXIV(type);
         }
 
         private boolean isIsilon() {

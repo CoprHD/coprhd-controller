@@ -98,17 +98,24 @@
       <dd>
          #{if details.scheduledEvent.scheduleInfo.reoccurrence == 1}
          &{'order.occur'}
-         ${details.scheduledEvent.scheduleInfo.startDate}
+         #{localDateTime details.scheduleStartDateTime/}
          #{/if}
          
          #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
          &{'order.recur'}
          &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
          &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
+         &{'order.at'}
+         #{localDateTime details.scheduleStartDateTime, format: "HH:mm"/}
          #{/if}
          
-         &{'order.at'}
-         ${String.format("%02d:%02d", details.scheduledEvent.scheduleInfo.hourOfDay, details.scheduledEvent.scheduleInfo.minuteOfHour)}
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence > 1}
+            &{'order.occurrences', details.scheduledEvent.scheduleInfo.reoccurrence}
+         #{/if}
+         #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
+            &{'order.occurrences.indefinite'}
+         #{/if}
+                
       </dd>
       #{/if}
       

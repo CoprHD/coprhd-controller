@@ -28,6 +28,7 @@ class Event(object):
     URI_EVENT = URI_SERVICES_BASE + '/vdc/events/{0}'
     URI_EVENT_APPROVE = URI_EVENT + '/approve'
     URI_EVENT_DECLINE = URI_EVENT + '/decline'
+    URI_EVENT_DETAILS = URI_EVENT + '/details'
 
     URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
 
@@ -103,6 +104,12 @@ class Event(object):
             None)
         return
 
+    def event_details(self, uri):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                                             Event.URI_EVENT_DETAILS.format(uri),
+                                             None, None, False)
+        return common.json_decode(s)
+
 
 def event_delete(args):
     obj = Event(args.ip, args.port)
@@ -144,6 +151,18 @@ def event_show(args):
         common.format_err_msg_and_raise("show", "event",
                                         e.err_text, e.err_code)
 
+def event_details(args):
+    obj = Event(args.ip, args.port)
+    try:
+        res = obj.event_details(args.uri)
+
+        if(args.xml):
+            return common.format_xml(res)
+
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise("details", "event",
+                                        e.err_text, e.err_code)
 def event_list(args):
     obj = Event(args.ip, args.port)
     try:
@@ -152,10 +171,14 @@ def event_list(args):
         for event_uri in events:
             clobj = obj.event_show_uri(event_uri['id'])
             if(clobj):
+		# Sometimes resource/name isn't filled in, and that trips up the table generator
+		if (clobj['resource']['name'] == ""):
+		    clobj['resource']['name'] = "No resource specified"
                 output.append(clobj)
 
         if(len(output) > 0):
-            return common.format_json_object(output)            
+	    from common import TableGenerator
+            TableGenerator(output, ['module/id', 'event_status', 'resource/name', 'warning']).printTable()
 
     except SOSError as e:
         common.format_err_msg_and_raise("list", "event",
@@ -183,6 +206,27 @@ def show_parser(subcommand_parsers, common_parser):
 
     show_parser.set_defaults(func=event_show)
 
+def details_parser(subcommand_parsers, common_parser):
+
+    details_parser = subcommand_parsers.add_parser(
+        'details',
+        description='ViPR Event Details CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Show an Event Details')
+    mandatory_args = details_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-uri', '-i',
+                                metavar='<uri>',
+                                dest='uri',
+                                help='uri of an event',
+                                required=True)
+    details_parser.add_argument('-xml',
+                             dest='xml',
+                             action='store_true',
+                             help='XML response')
+
+    details_parser.set_defaults(func=event_details)
 
 def list_parser(subcommand_parsers, common_parser):
 
@@ -258,7 +302,7 @@ def event_parser(parent_subparser, common_parser):
         conflict_handler='resolve',
         help='Operations on Event')
     subcommand_parsers = parser.add_subparsers(
-        help='Use one of sub commands(list, show, delete, approve, decline)')
+        help='Use one of sub commands(list, show, delete, approve, decline, details)')
 
     list_parser(subcommand_parsers, common_parser)
 
@@ -269,5 +313,7 @@ def event_parser(parent_subparser, common_parser):
     approve_parser(subcommand_parsers, common_parser)
     
     decline_parser(subcommand_parsers, common_parser)
+
+    details_parser(subcommand_parsers, common_parser)
 
 

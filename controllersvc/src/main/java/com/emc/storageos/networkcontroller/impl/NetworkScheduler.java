@@ -59,7 +59,6 @@ import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerExc
 import com.emc.storageos.networkcontroller.impl.mds.Zone;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneMember;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
@@ -237,29 +236,11 @@ public class NetworkScheduler {
         // do some validation
         NetworkLite iniNet = NetworkUtil.getNetworkLiteOfInitiatorPair(initiatorPort, _dbClient);
         NetworkLite portNet = getStoragePortNetwork(storagePort);
-        if (iniNet == null || portNet == null) {
+        if (iniNet == null || portNet == null || !NetworkUtil.checkInitiatorAndPortConnected(iniNet, portNet)) {
             _log.debug(String.format(
                     "Initiator %s could not be paired with port %s",
                     initiatorPort, storagePortWwn));
             return null;
-        }
-
-        if (!NetworkUtil.checkInitiatorAndPortConnected(iniNet, portNet)) {
-
-            Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiatorPort, _dbClient);
-            if (associatedInitiator == null) {
-                _log.debug(String.format(
-                        "Paired initiator %s could not be paired with port %s",
-                        initiatorPort, storagePortWwn));
-                return null;
-            }
-            NetworkLite associatedIniNet = NetworkUtil.getEndpointNetworkLite(associatedInitiator.getInitiatorPort(), _dbClient);
-            if (associatedIniNet == null || portNet == null || !NetworkUtil.checkInitiatorAndPortConnected(associatedIniNet, portNet)) {
-                _log.debug(String.format(
-                        "Paired initiator %s could not be paired with port %s",
-                        initiatorPort, storagePortWwn));
-                return null;
-            }
         }
 
         // Check whether to check zoning on the Network System

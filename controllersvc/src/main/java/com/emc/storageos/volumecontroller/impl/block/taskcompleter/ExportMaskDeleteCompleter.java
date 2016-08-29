@@ -39,12 +39,12 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
                 // when the zone step is complete.
                 _log.info(
                         String.format("ExportMask %s will not be deleted by this step completer; unzoning step will delete the ExportMask",
-                        getId().toString()));
+                                exportMask.forDisplay()));
             }
-            _log.info(String.format("Done ExportMaskDelete - Id: %s, OpId: %s, status: %s",
+            _log.info(String.format("Done ExportMaskDelete - EG: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
         } catch (Exception e) {
-            _log.error(String.format("Failed updating status for ExportMaskDelete - Id: %s, OpId: %s",
+            _log.error(String.format("Failed updating status for ExportMaskDelete - EG: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         } finally {
             super.complete(dbClient, status, coded);

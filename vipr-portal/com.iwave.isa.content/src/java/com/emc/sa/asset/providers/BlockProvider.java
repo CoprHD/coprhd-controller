@@ -2583,27 +2583,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // get the source volume for the full copy
         if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
                 && vol.getProtection().getFullCopyRep().getAssociatedSourceVolume() != null) {
-            if (isRPTarget(client.blockVolumes().get(vol.getProtection().getFullCopyRep().getAssociatedSourceVolume()))) {
+            if (BlockStorageUtils.isRPTargetVolume(client.blockVolumes().get(vol.getProtection().getFullCopyRep().getAssociatedSourceVolume()))) {
                 return true;
             }
         }
         return false;
-    }
-
-    /**
-     * returns true if the passed in volume is a RP source volume
-     * 
-     * @param vol
-     * @return
-     */
-    private boolean isRPTarget(VolumeRestRep vol) {
-        if (vol != null && vol.getProtection() != null && vol.getProtection().getRpRep() != null
-                && vol.getProtection().getRpRep().getPersonality() != null
-                && vol.getProtection().getRpRep().getPersonality().equals("TARGET")) {
-            return true;
-        } else {
-            return false;
-        }
     }
 
     @Asset("siteFullCopyName")
@@ -3020,7 +3004,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
         for (BlockSnapshotRestRep snapshot : snapshots) {
-            options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
+            // Ignore RP Bookmarks for snapshot session options
+            boolean isRPSnapshot = (snapshot.getTechnologyType() != null 
+                                        && snapshot.getTechnologyType().equalsIgnoreCase(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE));
+            boolean validSnapshotOption = snapshot.getTechnologyType() == null || !isRPSnapshot;
+            if (validSnapshotOption) {            
+                options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
+            }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

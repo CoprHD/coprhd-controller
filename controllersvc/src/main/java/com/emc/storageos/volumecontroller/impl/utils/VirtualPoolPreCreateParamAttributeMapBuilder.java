@@ -45,6 +45,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
     private Boolean _long_term_retention;
     private boolean uniquePolicyNames;
     private Integer _minDataCenters;
+    private boolean _compressionEnabled;
     private Boolean _dedupCapable;
 
     public VirtualPoolPreCreateParamAttributeMapBuilder(String autoTieringPolicyName,
@@ -60,7 +61,8 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
             Map<String, List<String>> remoteProtectionSettings,
             Boolean long_term_retention,
             boolean uniquePolicyNames,
-            Integer minDataCenters,
+            Integer minDataCenters, 
+            boolean compressionEnabled,            
             Boolean dedupCapable) {
         this(varrays, protocols, provisionType, systemType, type, (long_term_retention == null ? Boolean.FALSE : long_term_retention));
         _autoTieringPolicyName = autoTieringPolicyName;
@@ -81,6 +83,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
         this.remoteProtectionSettings = remoteProtectionSettings;
         this.uniquePolicyNames = uniquePolicyNames;
         _minDataCenters = minDataCenters;
+        this._compressionEnabled = compressionEnabled;
         _dedupCapable = dedupCapable;
     }
 
@@ -98,6 +101,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
     public Map<String, Object> buildMap() {
         putAttributeInMap(Attributes.protocols.toString(), _protocols);
         putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), _autoTieringPolicyName);
+        putAttributeInMap(Attributes.compression_enabled.name(), _compressionEnabled);
         putAttributeInMap(Attributes.unique_policy_names.toString(), uniquePolicyNames);
         putAttributeInMap(Attributes.drive_type.toString(), _driveType);
         if (null != _systemType) {

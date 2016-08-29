@@ -286,7 +286,8 @@ public class HostService extends TaskResourceService {
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
-                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, taskId);
+                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
+                        taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
@@ -300,7 +301,7 @@ public class HostService extends TaskResourceService {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
-                ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
             }
         }
         /*
@@ -1146,7 +1147,7 @@ public class HostService extends TaskResourceService {
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
 
         // get the unmanaged volumes
-        List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient);
+        List<UnManagedVolume> unmanagedVolumes = VolumeIngestionUtil.findUnManagedVolumesForHost(id, _dbClient, _coordinator);
 
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {

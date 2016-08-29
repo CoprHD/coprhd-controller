@@ -36,17 +36,17 @@
             <dd>
                 #{if scheduledEvent.scheduleInfo.reoccurrence == 1}
                     &{'order.occur'}
-                    ${scheduledEvent.scheduleInfo.startDate}
+                    #{localDateTime scheduleStartDateTime/}
                 #{/if}
 
                 #{if scheduledEvent.scheduleInfo.reoccurrence != 1}
                     &{'order.recur'}
                     &nbsp;${scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
                     &{'order.'+scheduledEvent.scheduleInfo.cycleType}
+                    &{'order.at'}
+                	#{localDateTime scheduleStartDateTime, format: "HH:mm"/}
                 #{/if}
 
-                &{'order.at'}
-                ${String.format("%02d:%02d", scheduledEvent.scheduleInfo.hourOfDay, scheduledEvent.scheduleInfo.minuteOfHour)}
                 #{if scheduledEvent.scheduleInfo.reoccurrence > 1}
                     &{'order.occurrences',scheduledEvent.scheduleInfo.reoccurrence}
                 #{/if}

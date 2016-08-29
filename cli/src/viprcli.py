@@ -192,8 +192,8 @@ ipsecmanager.ipsec_parser(module_parsers, common_parser)
 snapshotsession.snapshotsession_parser(module_parsers, common_parser)
 schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 objectuser.objectuser_parser(module_parsers, common_parser)
-network.network_parser(module_parsers, common_parser)
 schedevent.schedule_event_parser(module_parsers, common_parser)
+network.network_parser(module_parsers, common_parser)
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 

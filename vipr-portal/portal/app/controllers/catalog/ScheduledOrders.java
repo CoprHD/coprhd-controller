@@ -17,6 +17,10 @@ import models.datatable.ScheduledOrdersDataTable;
 import models.datatable.ScheduledOrdersDataTable.ScheduledOrderInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import play.Logger;
 import play.data.binding.As;
@@ -28,6 +32,7 @@ import util.CatalogServiceUtils;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
 import util.OrderUtils;
+import util.TimeUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
 
@@ -154,6 +159,7 @@ public class ScheduledOrders extends Controller {
         public Integer dayOfWeek;
         public Boolean recurringAllowed;
         public Integer maxNumOfCopies;
+        public Integer currentTimezoneOffsetInMins;
         
         public ScheduleEventForm(OrderDetails details) {
             recurringAllowed = details.catalogService.isRecurringAllowed();
@@ -219,10 +225,14 @@ public class ScheduledOrders extends Controller {
                 scheduleInfo.setCycleType(ScheduleCycleType.DAILY);
             }
             
-            scheduleInfo.setStartDate(startDate);
-            String pair[] = startTime.split(":");
-            scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
-            scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
+            String isoDateTimeStr = String.format("%sT%s", startDate, startTime);
+            DateTimeFormatter format = ISODateTimeFormat.localDateOptionalTimeParser().withZone(TimeUtils.getLocalTimeZone(currentTimezoneOffsetInMins));
+            DateTime startDateTime = DateTime.parse(isoDateTimeStr, format);
+            startDateTime = startDateTime.withZone(DateTimeZone.UTC);
+            scheduleInfo.setHourOfDay(startDateTime.getHourOfDay());
+            scheduleInfo.setMinuteOfHour(startDateTime.getMinuteOfHour());
+            scheduleInfo.setStartDate(String.format("%d-%02d-%02d", startDateTime.getYear(), startDateTime.getMonthOfYear(), startDateTime.getDayOfMonth()));
+
             if (recurrence != null) {
                 if (recurrence == -1) {
                     recurrence = rangeOfRecurrence;
@@ -234,7 +244,9 @@ public class ScheduledOrders extends Controller {
 
             scheduleInfo.setDurationLength(3600);
             update.setScheduleInfo(scheduleInfo);
-            update.setAdditionalScheduleInfo(String.valueOf(maxNumOfCopies));
+            if (maxNumOfCopies != null) {
+                update.setAdditionalScheduleInfo(String.valueOf(maxNumOfCopies));
+            }
             
             getCatalogClient().orders().updateScheduledEvent(uri(id), update);
         }

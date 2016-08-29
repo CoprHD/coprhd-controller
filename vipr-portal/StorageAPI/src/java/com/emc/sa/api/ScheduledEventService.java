@@ -312,7 +312,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @throws Exception
      */
     private ScheduledEvent createScheduledEvent(StorageOSUser user, URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
-        URI executionWindow = null;     // ALL-TIME execution window
+        URI executionWindow = null;     // INFINITE execution window
         if (catalogService.getExecutionWindowRequired()) {
             if (catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
                 List<URI> executionWindows =

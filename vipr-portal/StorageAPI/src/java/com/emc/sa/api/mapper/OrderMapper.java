@@ -143,11 +143,12 @@ public class OrderMapper {
             if (param.getScheduledTime() != null) {
                 newObject.setScheduledTime(ScheduleTimeHelper.convertStrToCalendar(param.getScheduledTime()));
             }
-        }
-        if (param.getExecutionWindow() == null) {
-            newObject.setExecutionWindowId(null);
-        } else {
-            newObject.setExecutionWindowId(new NamedURI(param.getExecutionWindow(), "ExecutionWindow"));
+
+            if (param.getExecutionWindow() == null) {
+                newObject.setExecutionWindowId(null);
+            } else {
+                newObject.setExecutionWindowId(new NamedURI(param.getExecutionWindow(), "ExecutionWindow"));
+            }
         }
 
         updateObject(newObject, param);

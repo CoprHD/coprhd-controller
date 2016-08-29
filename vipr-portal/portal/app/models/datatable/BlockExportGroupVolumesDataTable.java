@@ -28,7 +28,6 @@ public class BlockExportGroupVolumesDataTable extends DataTable {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("capacity");
         addColumn("lun");
-        addColumn("actions").setRenderFunction("renderVolumeActions");
         sortAll();
         setDefaultSort("name", "asc");
         this.setServerSide(true);

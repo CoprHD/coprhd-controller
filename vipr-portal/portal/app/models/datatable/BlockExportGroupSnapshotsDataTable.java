@@ -29,7 +29,6 @@ public class BlockExportGroupSnapshotsDataTable extends DataTable {
         addColumn("name").setRenderFunction("renderSnapshotLink");
         addColumn("volume");
         addColumn("createdDate").setRenderFunction("render.localDate");
-        addColumn("actions").setRenderFunction("renderSnapshotActions");
         sortAll();
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");

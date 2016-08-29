@@ -78,12 +78,14 @@ public class VolumeCreateWorkflowCompleter extends VolumeWorkflowCompleter {
             List<String> livingVolumeNames = new ArrayList<String>();
 
             _log.info("Its associated volumes are: " + volume.getAssociatedVolumes());
-            for (String associatedVolumeUri : volume.getAssociatedVolumes()) {
-                Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolumeUri));
-                if (associatedVolume != null && !associatedVolume.getInactive()) {
-                    _log.warn("VPLEX virtual volume {} has active associated volume {}", volume.getLabel(), associatedVolume.getLabel());
-                    livingVolumeNames.add(associatedVolume.getLabel());
-                    deactivateVirtualVolume = false;
+            if (null != volume.getAssociatedVolumes()) {
+                for (String associatedVolumeUri : volume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolumeUri));
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
+                        _log.warn("VPLEX virtual volume {} has active associated volume {}", volume.getLabel(), associatedVolume.getLabel());
+                        livingVolumeNames.add(associatedVolume.getLabel());
+                        deactivateVirtualVolume = false;
+                    }
                 }
             }
 

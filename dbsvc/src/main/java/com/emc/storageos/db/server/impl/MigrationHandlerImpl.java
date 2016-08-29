@@ -255,7 +255,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 // check if we have a schema upgrade to deal with
                 if (!currentSchemaVersion.equals(targetVersion)) {
                     log.info("Start scanning and creating new column families");
-                    schemaUtil.checkCf();
+                    schemaUtil.checkCf(true);
                     log.info("Scanning and creating new column families succeed");
                     
                     DbSchemasDiff diff = new DbSchemasDiff(persistedSchema, currentSchema,

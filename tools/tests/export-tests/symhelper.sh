@@ -4,7 +4,7 @@
 # All Rights Reserved
 #
 
-# 
+#
 # Script to help manage storage system outside of ViPR.
 # Used to perform various operations.
 #
@@ -36,7 +36,7 @@ delete_mask() {
         # Remove the volume from the storage group it is in
 	dev_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage show ${sg_long_id} | grep Devices | awk -F: '{print $2}'`
 	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -force -name ${sg_long_id} remove dev ${dev_id}
-	
+
 	# Put it back into the optimized SG?
 
 	# Delete storage group
@@ -262,6 +262,9 @@ verify_export_via_provider() {
     NUM_LUNS=$3
     TMPFILE1=/tmp/verify-${RANDOM}
 
+    # Clean up on exit
+    trap "{ rm -f $TMPFILE1 ; }" EXIT
+
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_jar="${DIR}/preExistingConfig.jar"
 
@@ -269,42 +272,70 @@ verify_export_via_provider() {
 	echo "Missing preExistingConfg.properties.  dutests should generate this for you"
 	exit 1
     fi
-    
-    if [ "none" != "${NUM_INITIATORS}" -a "none" != "${NUM_LUNS}" ]; then
-	echo "Invalid parameters sent to verify_export_via_provider...."
-	exit 1
+
+    if [ "${NUM_INITIATORS}" = "none" -a "${NUM_LUNS}" = "none" ]; then
+        echo "Invalid parameters passed to verify_export_via_provider"
+        exit 1
     fi
 
-    numinits="none"
-    numluns="none"
-    waited=0
+    if [ "${NUM_INITIATORS}" = "none" ]; then
+	  numinits="0"
+    fi
+    if [ "${NUM_LUNS}" = "none" ]; then
+	  numluns="0"
+    fi
 
-    while [ "${numinits}" != "${NUM_INITIATORS}" -o "${numluns}" != "${NUM_LUNS}" ]
+    waited=0
+    while :
     do
-      if [ "${numinits}" != "none" -o "${numluns}" != "none" ]; then
-	  sleep ${SLEEP_INTERVAL_SECONDS}
+      # Gather results from the external tool
+      java -Dlogback.configurationFile=./logback.xml -jar ${tools_jar} show-view $SID $SG_PATTERN $NUM_INITIATORS $NUM_LUNS > ${TMPFILE1}
+
+      numviews=`grep -i "Total Found  Views Count" ${TMPFILE1} | awk '{print $NF}'`
+      numinits=`grep -i "Total Number of Initiators for View" ${TMPFILE1} | awk '{print $NF}'`
+      numluns=`grep -i "Total Number of Volumes For View" ${TMPFILE1} | awk '{print $NF}'`
+
+      # Fix empty values
+      if [ -z ${numinits// } ]; then
+        numinits="0"
+      fi
+      if [ -z ${numluns// } ]; then
+        numluns="0"
+      fi
+
+      echo "Found views ${numviews}"
+      echo "Found ${numinits} initiators and ${numluns} volumes in mask ${SG_PATTERN}"
+
+      if [ "${NUM_INITIATORS}" = "gone" -a "$numviews" = "0" ]; then
+      # Verified that the mask is gone
+      exit 0
+      fi
+
+      if [ "${NUM_INITIATORS}" = "exists" -a "$numviews" = "1" ]; then
+      # Verified that the mask exists, disregarding number of inits/luns
+      exit 0
+      fi
+
+      # Check if caller does not care about inits or luns
+      if [ "${NUM_INITIATORS}" = "none" ]; then
+        numinits="${NUM_INITIATORS}"
+      fi
+      if [ "${NUM_LUNS}" = "none" ]; then
+        numluns="${NUM_LUNS}"
+      fi
+
+      if [ "${NUM_INITIATORS}" = "$numinits" -a "${NUM_LUNS}" = "$numluns" ]; then
+      # Verified the expected number of initiators and luns
+      exit 0
+      fi
+
+      sleep ${SLEEP_INTERVAL_SECONDS}
 	  waited=`expr ${waited} + ${SLEEP_INTERVAL_SECONDS}`
 
 	  if [ ${waited} -ge ${MAX_WAIT_SECONDS} ]; then
 	      echo "Waited, but never found provider to have the right number of luns and volumes"
 	      exit 1;
 	  fi
-      fi
-
-      # Gather results from the external tool
-      java -Dlogback.configurationFile=./logback.xml -jar ${tools_jar} show-view $SID $SG_PATTERN $NUM_INITIATORS $NUM_LUNS > ${TMPFILE1}
-
-      numinits=`grep -i "Total Number of Initiators for View" ${TMPFILE1} | awk '{print $NF}'`
-      numluns=`grep -i "Total Number of Volumes For View" ${TMPFILE1} | awk '{print $NF}'`
-      echo "Found ${numinits} initiators and ${numluns} volumes in mask ${SG_PATTERN}"
-
-      if [ "${NUM_INITIATORS}" = "none" ]; then
-	  numinits="none"
-      fi
-
-      if [ "${NUM_LUNS}" = "none" ]; then
-	  numluns="none"
-      fi
     done
 }
 
@@ -313,35 +344,93 @@ create_export_mask() {
     CSG=$2
     PWWN=$3
     NAME="${4}_${SID: -3}"
+    # Test if we were passed pwwn's or an existing IG name (starting with "host")
+    if [[ $PWWN =~ ^host ]]; then
+        IG="${NAME}_CIG"
+        echo "=== symaccess -sid ${SID} create -type initiator -name ${IG}"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG}
+        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on
+        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}
 
-    IG=`echo "${NAME}_IG"`
-    echo "Creating initiator group ${IG}"
-    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}
-
-    PG=`echo "${CSG: 0:-4}_PG"`
-    echo "Hijacking port group ${PG}"
-
-    # Test if we were passed devIds or a CSG/SG name
-    if [[ $CSG =~ [A-Za-z] ]]; then
-        echo "Hijacking existing CSG/SG ${CSG}"
+        # Replace CIG or IG with PG
+        PG=`echo ${PWWN} | sed -E "s/[CIG]+$/PG/"`
+        echo "Generated PG name ${PG}"
     else
-        echo "Creating an SG with specified devs not yet supported"
+        IG="${NAME}_IG"
+        echo "=== symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}
     fi
 
-    echo "Creating masking view ${NAME}"
+    # Test if we were passed devIds or a CSG/SG name
+    if [[ $CSG =~ ^host ]]; then
+        echo "Hijacking existing CSG/SG ${CSG}"
+
+        # Replace CSG or SG with PG
+        PG=`echo ${CSG} | sed -E "s/[CSG]+$/PG/"`
+        echo "Generated PG name ${PG}"
+    else
+        dev_id=$CSG
+        CSG="${NAME}_SG"
+
+        echo "Creating new ${CSG}"
+
+        # Remove from any existing group, i.e. Optimized
+        optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
+        if [[ ! -z "${optimized// }" ]]; then
+            current_sg=`symaccess -sid ${SID} list -type storage -dev $dev_id -v | grep "Storage Group Name" | tail -n1 | awk '{ print $5 }'`
+            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id
+        fi
+
+        echo "=== symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id
+    fi
+
+    echo "Hijacking port group ${PG}"
+
+    echo "=== symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}
+
+    # Verify that the mask has been created on the provider
+    verify_export_via_provider $SID $NAME exists
 }
 
 delete_export_mask() {
     SID=$1
     NAME="${2}_${SID: -3}"
-    IG=$3
+    SG=$3
+    IG=$4
 
-    echo "Deleting masking view ${NAME}"
+    echo "=== symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt"
     /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete view -name ${NAME} -unmap -noprompt
 
-    echo "Deleting initiator group ${IG}"
-    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt
+    if [[ "$SG" != "noop" ]]; then
+        echo "Deleting storage group ${SG}"
+        dev_id=`symaccess -sid ${SID} show ${SG} -type storage | grep Devices | awk '{ print $3 }'`
+        echo "=== symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type storage -name ${SG} -force -noprompt
+
+        optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
+        if [[ ! -z "${optimized// }" ]]; then
+            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id
+        fi
+    else
+        echo "=== Skipping storage group deletion because 'noop' was passed"
+    fi
+
+    if [[ "$IG" != "noop" ]]; then
+        echo "Deleting initiator group ${IG}"
+        echo "=== symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} delete -type initiator -name ${IG} -force -noprompt
+    else
+        echo "=== Skipping initiator group deletion because 'noop' was passed"
+    fi
+
+    # Verify that the mask has been deleted on the provider
+    verify_export_via_provider $SID $NAME gone
 }
 
 # Check to see if this is an operational request or a verification of export request

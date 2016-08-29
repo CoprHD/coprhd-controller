@@ -56,9 +56,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
@@ -75,6 +72,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -82,6 +80,9 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.client.model.Cf;
@@ -124,7 +125,7 @@ public class DBClient {
     private int listLimit = 100;
     private boolean turnOnLimit = false;
     private boolean activeOnly = true;
-    
+
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
             "file from the node where the last add VDC operation was initiated.";
@@ -133,7 +134,7 @@ public class DBClient {
 
     InternalDbClientImpl _dbClient = null;
     private DependencyChecker _dependencyChecker = null;
-    
+
     private Set<Class> scannedType = new HashSet<>();
     private boolean foundReference = false;
 
@@ -222,13 +223,13 @@ public class DBClient {
         try {
             objects = _dbClient.queryIterativeObjects(clazz, ids);
             while (objects.hasNext()) {
-                T object = (T) objects.next();
+                T object = objects.next();
                 isPrint = printBeanProperties(clazz, object, criterias);
                 if (isPrint) {
                     countLimit++;
                     countAll++;
                 }
-                
+
                 if (!turnOnLimit || countLimit != listLimit) {
                     continue;
                 }
@@ -275,6 +276,22 @@ public class DBClient {
         printBeanProperties(clazz, object);
     }
 
+    private <T extends DataObject> List<String> getIndexedFields(Class<T> clazz) {
+        List<String> indexedFieldNames = new ArrayList();
+
+        DataObjectType doType = TypeMap.getDoType(clazz);
+        Collection<ColumnField> fields = doType.getColumnFields();
+        for (ColumnField field : fields) {
+            PropertyDescriptor descriptor = field.getPropertyDescriptor();
+            Class<?> type = descriptor.getPropertyType();
+            if (String.class == type) {
+                indexedFieldNames.add(field.getName());
+            }
+        }
+        System.out.println("getIndexedFields is finished");
+        return indexedFieldNames;
+    }
+
     /**
      * 
      * @param clazz
@@ -287,11 +304,11 @@ public class DBClient {
     private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object, Map<String, String> criterias)
             throws Exception {
         Map<String, String> localCriterias = new HashMap<>(criterias);
-        
+
         StringBuilder record = new StringBuilder();
         record.append("id: " + object.getId().toString() + "\n");
         boolean isPrint = true;
-        
+
         BeanInfo bInfo;
         try {
             bInfo = Introspector.getBeanInfo(clazz);
@@ -299,7 +316,7 @@ public class DBClient {
             log.error("Unexpected exception getting bean info", ex);
             throw new RuntimeException("Unexpected exception getting bean info", ex);
         }
-        
+
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
         Object objValue;
         Class type;
@@ -319,19 +336,18 @@ public class DBClient {
             }
 
             objValue = pd.getReadMethod().invoke(object);
-            
-            if(!localCriterias.isEmpty()) {
-                if(localCriterias.containsKey(objKey)) {
-                    if(!localCriterias.get(objKey).equalsIgnoreCase(String.valueOf(objValue))) {
+
+            if (!localCriterias.isEmpty()) {
+                if (localCriterias.containsKey(objKey)) {
+                    if (!localCriterias.get(objKey).equalsIgnoreCase(String.valueOf(objValue))) {
                         isPrint = false;
                         break;
-                    }
-                    else {
+                    } else {
                         localCriterias.remove(objKey);
                     }
                 }
             }
-            
+
             if (objValue == null) {
                 ignoreList.add(objKey);
                 continue;
@@ -341,7 +357,7 @@ public class DBClient {
                 ignoreList.add(objKey);
                 continue;
             }
-            
+
             record.append("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
@@ -363,17 +379,18 @@ public class DBClient {
                 record.append(objValue + "\n");
             }
         }
-        
+
         if (this.showModificationTime) {
             TimeStampCompositeColumnName latestField = _dbClient.getLatestModifiedField(
                     TypeMap.getDoType(clazz), object.getId(), ignoreList);
             if (latestField != null) {
                 record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
-                                latestField.getWriteTimeStampMS() / 1000), latestField.getOne()));
+                                latestField.getWriteTimeStampMS() / 1000),
+                        latestField.getOne()));
             }
         }
-        
+
         if (isPrint) {
             if (!localCriterias.isEmpty()) {
                 String errMsg = String.format(
@@ -383,10 +400,10 @@ public class DBClient {
             }
             System.out.println(record.toString());
         }
-        
+
         return isPrint;
     }
-    
+
     private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object)
             throws Exception {
         return printBeanProperties(clazz, object, new HashMap<String, String>());
@@ -409,7 +426,7 @@ public class DBClient {
     @SuppressWarnings("unchecked")
     public void query(String id, String cfName) throws Exception {
         Class clazz = getClassFromCFName(cfName);
-        if(clazz == null) {
+        if (clazz == null) {
             return;
         }
         queryAndPrintRecord(URI.create(id), clazz);
@@ -424,7 +441,7 @@ public class DBClient {
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
         final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
-        if(clazz == null) {
+        if (clazz == null) {
             return;
         }
         List<URI> uris = null;
@@ -629,7 +646,7 @@ public class DBClient {
     private <T extends DataObject> boolean queryAndDeleteObject(URI id, Class<T> clazz, boolean force)
             throws Exception {
         DependencyTracker dependencyTracker = null;
-        if (_dependencyChecker == null ) {
+        if (_dependencyChecker == null) {
             DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx.getBean("dataObjectScanner");
             dependencyTracker = dataObjectscanner.getDependencyTracker();
             _dependencyChecker = new DependencyChecker(_dbClient, dependencyTracker);
@@ -665,7 +682,7 @@ public class DBClient {
         printReferenceWhenDeletingFailed(id, clazz, dependencyTracker);
         return false;
     }
-    
+
     private <T extends DataObject> void printReferenceWhenDeletingFailed(URI id, Class<T> clazz,
             DependencyTracker tracker) {
         System.err.println(String.format(
@@ -728,7 +745,7 @@ public class DBClient {
     /**
      * get the keys of column family for list/count
      */
-    private List<URI> getColumnUris(Class clazz, boolean isActive) {
+    List<URI> getColumnUris(Class clazz, boolean isActive) {
         List<URI> uris = null;
         try {
             uris = _dbClient.queryByType(clazz, isActive);
@@ -851,12 +868,10 @@ public class DBClient {
                     if (type == Integer.class) {
                         method.invoke(newVdcConfig,
                                 Integer.valueOf(field.getAttribute("value")));
-                    }
-                    else if (type == Long.class) {
+                    } else if (type == Long.class) {
                         method.invoke(newVdcConfig,
                                 Long.valueOf(field.getAttribute("value")));
-                    }
-                    else if (type == HashMap.class) {
+                    } else if (type == HashMap.class) {
                         String loadString = field.getAttribute("value").replaceAll("[{}]", "");
                         if (loadString.equals("")) {
                             continue;
@@ -870,8 +885,7 @@ public class DBClient {
                             map.put(key, value);
                         }
                         method.invoke(newVdcConfig, map);
-                    }
-                    else {
+                    } else {
                         method.invoke(newVdcConfig, field.getAttribute("value"));
                     }
                 } catch (Exception e) {
@@ -1238,7 +1252,7 @@ public class DBClient {
             DbCheckerFileWriter.close();
         }
     }
-    
+
     public void printDependencies(String cfName, URI uri) {
         final Class type = _cfMap.get(cfName);
         if (type == null) {
@@ -1286,7 +1300,8 @@ public class DBClient {
 
             String childOutput = String.format("%s(Index:%s, CF:%s)",
                     childType.getSimpleName(), dependency.getColumnField().getIndex()
-                            .getClass().getSimpleName(), dependency.getColumnField()
+                            .getClass().getSimpleName(),
+                    dependency.getColumnField()
                             .getIndexCF().getName());
 
             if (uri != null) {
@@ -1309,7 +1324,7 @@ public class DBClient {
     public boolean rebuildIndex(String id, String cfName) {
         return rebuildIndex(URI.create(id), getClassFromCFName(cfName));
     }
-    
+
     public boolean rebuildIndex(String cfName) {
         boolean runResult = true;
         Class cfClazz = getClassFromCFName(cfName);
@@ -1325,7 +1340,7 @@ public class DBClient {
         }
         return runResult;
     }
-    
+
     public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
@@ -1382,7 +1397,7 @@ public class DBClient {
         return runResult;
     }
 
-    private Class<? extends DataObject>  getClassFromCFName(String cfName) {
+    Class<? extends DataObject> getClassFromCFName(String cfName) {
         Class<? extends DataObject> clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
@@ -1394,7 +1409,7 @@ public class DBClient {
         }
         return clazz;
     }
-    
+
     private void logMsg(String msg, boolean isError, Exception e) {
         if (isError) {
             log.error(msg, e);
@@ -1404,7 +1419,7 @@ public class DBClient {
             System.out.println(msg);
         }
     }
-    
+
     private void logMsg(String msg) {
         logMsg(msg, false, null);
     }

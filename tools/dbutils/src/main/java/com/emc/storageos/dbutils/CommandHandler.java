@@ -5,25 +5,25 @@
 
 package com.emc.storageos.dbutils;
 
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.text.SimpleDateFormat;
-
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
-import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.GlobalLockImpl;
-import com.emc.storageos.db.client.impl.RowMutator;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -31,16 +31,31 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.GlobalLockImpl;
+import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Encrypt;
 import com.emc.storageos.db.client.model.GlobalLock;
+import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.index.client.impl.IndexClientImpl;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.google.common.base.Joiner;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.URI;
 
 public abstract class CommandHandler {
     public String cfName = null;
@@ -71,7 +86,7 @@ public abstract class CommandHandler {
 
         return 0;
     }
-    
+
     public static class DependencyHandler extends CommandHandler {
         String id = null;
 
@@ -201,6 +216,62 @@ public abstract class CommandHandler {
         }
     }
 
+    public static class ImportHandler extends CommandHandler {
+
+        public ImportHandler(String[] args) {
+            cfName = args[args.length - 1];
+        }
+
+        @Override
+        public void process(DBClient _client) throws Exception {
+            dataImport(_client);
+        }
+
+        @SuppressWarnings("unchecked")
+        private <T extends DataObject> void dataImport(DBClient _client) {
+            Iterator<T> objects;
+
+            InternalDbClientImpl _dbClient = _client.getDbClient();
+            Class clazz = _client.getClassFromCFName(cfName);
+            if (clazz == null) {
+                return;
+            }
+            String CollectionName = clazz.getName();
+            List<URI> uris = null;
+            uris = _client.getColumnUris(clazz, true);
+            if (uris == null || !uris.iterator().hasNext()) {
+                System.out.println("No records found");
+                return;
+            }
+
+            List<String> fieldNames = getIndexedFields(clazz);
+            objects = _dbClient.queryIterativeObjects(clazz, uris);
+
+            IndexClientImpl dbsolr = new IndexClientImpl();
+            try {
+                dbsolr.DataImport(clazz, CollectionName, objects, fieldNames);
+            } catch (Exception e) {
+                System.out.println("Data import failed");
+            }
+        }
+
+        private <T extends DataObject> List<String> getIndexedFields(Class<T> clazz) {
+            List<String> indexedFieldNames = new ArrayList<String>();
+
+            DataObjectType doType = TypeMap.getDoType(clazz);
+            Collection<ColumnField> fields = doType.getColumnFields();
+            for (ColumnField field : fields) {
+                PropertyDescriptor descriptor = field.getPropertyDescriptor();
+                Class<?> type = descriptor.getPropertyType();
+                if (String.class == type) {
+                    indexedFieldNames.add(field.getName());
+                }
+            }
+            System.out.println("getIndexedFields is finished");
+            return indexedFieldNames;
+        }
+    }
+
     public static class ListHandler extends CommandHandler {
 
         private static final String TYPE_EVENTS = "events";
@@ -227,7 +298,7 @@ public abstract class CommandHandler {
                 processTimeSeriesReq(args, client);
                 return;
             }
-            
+
             if (args[1].equalsIgnoreCase(Main.INACTIVE)
                     || args[1].equalsIgnoreCase(Main.LIST_LIMIT)
                     || args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)
@@ -343,15 +414,118 @@ public abstract class CommandHandler {
                     _client.setShowModificationTime(true);
                 }
                 if (args[i].equalsIgnoreCase(Main.FILTER)) {
-                    if(!args[i+1].contains(CRITERIAS_DELIMITER)) {
+                    if (!args[i + 1].contains(CRITERIAS_DELIMITER)) {
                         String errMsg = "The filter criteria is not available, please follow the usage.";
                         throw new IllegalArgumentException(errMsg);
                     }
-                    String[] pureCriteria = args[i+1].split(CRITERIAS_DELIMITER);
+                    String[] pureCriteria = args[i + 1].split(CRITERIAS_DELIMITER);
                     criterias.put(pureCriteria[0], pureCriteria[1]);
                 }
             }
         }
+    }
+
+    public static class SolrQueryHandler extends CommandHandler {
+        String[] query;
+        int row = 10;;
+        int pageNow = 1;
+        String q = "*:*";
+        DbClientImpl dbclientimpl;
+
+        public SolrQueryHandler(String[] args) {
+            cfName = args[1];
+            query = args;
+        }
+
+        @Override
+        public void process(DBClient _client) throws Exception {
+            dbclientimpl = _client.getDbClient();
+            Class clazz = _client.getClassFromCFName(cfName);
+            if (clazz == null) {
+                return;
+            }
+            String CollectionName = clazz.getName();
+            q = (query[2]);
+            row = Integer.parseInt(query[3]);
+            pageNow = Integer.parseInt(query[4]);
+
+            IndexClientImpl dbsolr = new IndexClientImpl();
+            List<String> ids;
+            ids = dbsolr.Query(CollectionName, q, row, pageNow);
+            for (int i = 0; i < ids.size(); i++) {
+                URI uri;
+                try {
+                    uri = new URI(ids.get(i));
+                    DataObject object = dbclientimpl.queryObject(uri);
+                    System.out.println(i);
+                    printBeanProperties(clazz, object);
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)
+                throws Exception {
+
+            StringBuilder record = new StringBuilder();
+            record.append("id: " + object.getId().toString());
+            // boolean isPrint = true;
+
+            BeanInfo bInfo;
+            try {
+                bInfo = Introspector.getBeanInfo(clazz);
+            } catch (IntrospectionException ex) {
+                throw new RuntimeException("Unexpected exception getting bean info", ex);
+            }
+
+            PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
+            Object objValue;
+            Class type;
+            for (PropertyDescriptor pd : pds) {
+                // skip class property
+                if (pd.getName().equals("class") || pd.getName().equals("id")) {
+                    continue;
+                }
+
+                Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+                String objKey;
+                if (nameAnnotation == null) {
+                    objKey = pd.getName();
+                } else {
+                    objKey = nameAnnotation.value();
+                }
+
+                objValue = pd.getReadMethod().invoke(object);
+
+                if (objValue == null) {
+                    continue;
+                }
+
+                record.append("\t" + objKey + " = ");
+
+                Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
+                if (encryptAnnotation != null) {
+                    record.append("*** ENCRYPTED CONTENT ***\n");
+                    continue;
+                }
+
+                type = pd.getPropertyType();
+                if (type == URI.class) {
+                    record.append("URI: " + objValue + "\n");
+                } else if (type == StringMap.class) {
+                    record.append("StringMap " + objValue + "\n");
+                } else if (type == StringSet.class) {
+                    record.append("StringSet " + objValue + "\n");
+                } else if (type == OpStatusMap.class) {
+                    record.append("OpStatusMap " + objValue + "\n");
+                } else {
+                    record.append(objValue + "\n");
+                }
+            }
+            System.out.println(record.toString());
+        }
+
     }
 
     public static class QueryHandler extends CommandHandler {
@@ -480,8 +654,9 @@ public abstract class CommandHandler {
                     mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_OWNER_COLUMN, _owner, null);
                     long curTimeMicros = System.currentTimeMillis();
                     long exprirationTime = (_timeout == 0) ? 0 : curTimeMicros + _timeout;
-                    mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(exprirationTime), null);
-                    
+                    mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(exprirationTime),
+                            null);
+
                     mutator.setWriteCL(ConsistencyLevel.EACH_QUORUM);
                     mutator.execute();
                 } catch (Exception e) {
@@ -698,7 +873,7 @@ public abstract class CommandHandler {
                 rebuildIndexFileName = args[1];
             } else if (args.length == 3 && args[1].equalsIgnoreCase(Main.CF_NAME)) {
                 specificCF = true;
-                cfName = args[2];               
+                cfName = args[2];
             } else {
                 throw new IllegalArgumentException("Invalid command option. ");
             }
@@ -715,13 +890,13 @@ public abstract class CommandHandler {
                 }
                 return;
             }
-            
+
             if (rebuildIndexFileName == null) {
                 System.out.println("rebuild Index file is null");
                 return;
             }
             File rebuildFile = new File(rebuildIndexFileName);
-            if(!rebuildFile.exists() || !rebuildFile.isFile()) {
+            if (!rebuildFile.exists() || !rebuildFile.isFile()) {
                 System.err.println("Rebuild file is not exist or is not a file");
                 return;
             }
@@ -754,17 +929,17 @@ public abstract class CommandHandler {
         }
 
         private Map<String, String> readToMap(String input) {
-            Map<String, String> cleanUpMap = new HashMap<> ();
-            for(String property : input.split(",")) {
+            Map<String, String> cleanUpMap = new HashMap<>();
+            for (String property : input.split(",")) {
                 int index = property.indexOf(":");
-                if(index > 0) {
-                    cleanUpMap.put(property.substring(0, index).trim(), property.substring(index+1).trim());
+                if (index > 0) {
+                    cleanUpMap.put(property.substring(0, index).trim(), property.substring(index + 1).trim());
                 }
             }
             return cleanUpMap;
         }
     }
-    
+
     public static class RunMigrationCallback extends CommandHandler {
         private static final Logger log = LoggerFactory.getLogger(DeleteHandler.class);
 
@@ -782,17 +957,16 @@ public abstract class CommandHandler {
         public void process(DBClient _client) {
             try {
                 Class clazz = Class.forName(migrationCallbackClass);
-                BaseCustomMigrationCallback callback = (BaseCustomMigrationCallback)clazz.newInstance();
+                BaseCustomMigrationCallback callback = (BaseCustomMigrationCallback) clazz.newInstance();
                 callback.setDbClient(_client.getDbClient());
                 callback.setCoordinatorClient(_client.getDbClient().getCoordinatorClient());
                 System.out.print("Running migration callback:");
                 System.out.println(migrationCallbackClass);
                 callback.process();
                 System.out.println("Done");
-            } catch(ClassNotFoundException ex) {
+            } catch (ClassNotFoundException ex) {
                 System.out.println("Error: Migration callback class not found - " + migrationCallbackClass);
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 System.out.println(String.format("Unknown exception. Please check dbutils.log", ex.getMessage()));
                 log.error("Unexpected exception when executing migration callback", ex);
             }

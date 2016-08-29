@@ -1,0 +1,47 @@
+dependencies {
+    compile library(apache_cassandra),
+            library(commons_io),
+			library(solr),
+            project(":dbclient"),
+            project(":models"),
+            project(":serviceutils"),
+            project(":coordinatorsvc")
+    testCompile project(":errorhandling")
+    testCompile project(":com.emc.sa.model")
+    runtime group: 'com.datastax.cassandra',  name: 'cassandra-driver-core', version: '3.0.0'
+}
+
+test {
+    maxHeapSize = '512m'
+    exclude "com/emc/storageos/db/client/model/TimeConstraintTest.class"
+}
+
+// To change the type of schema lock, modify the following schemaLock ext.
+// VALUE must be NONE, GEO or ALL, default is NONE.
+ext {
+    schemaLock = "NONE"
+}
+def schemaLockOption = project.ext.has('schemaLock')? project.ext.get('schemaLock') : "NONE"
+
+task checkSchema(type: JavaExec, dependsOn: compileTestJava) {
+    main = 'com.emc.storageos.db.common.DbSchemaChecker'
+    args = [
+        "-i",
+        "com.emc.sa.model",
+        "-l",
+        "${schemaLockOption}",
+        "-v",
+        "2.2",
+        "-b",
+        "file:${projectDir}/src/conf/db-custom-migration-callbacks-baseline.xml",
+		"-c",
+		"file:../dbsvc/src/conf/db-custom-migration-callbacks.xml",
+        "${projectDir}/src/conf/db-schemas-baseline.xml",
+        "com.emc.storageos.db.client.model"
+    ]
+    jvmArgs '-Dlog4j.configuration=dbchecker-log4j.properties'
+    maxHeapSize "512m"
+    classpath = sourceSets.test.runtimeClasspath
+}
+
+//RAG assemble.dependsOn checkSchema

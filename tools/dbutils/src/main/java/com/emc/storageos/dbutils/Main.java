@@ -18,7 +18,23 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.dbutils.CommandHandler.*;
+import com.emc.storageos.dbutils.CommandHandler.CheckDBHandler;
+import com.emc.storageos.dbutils.CommandHandler.CountHandler;
+import com.emc.storageos.dbutils.CommandHandler.DeleteHandler;
+import com.emc.storageos.dbutils.CommandHandler.DependencyHandler;
+import com.emc.storageos.dbutils.CommandHandler.DumpKeyHandler;
+import com.emc.storageos.dbutils.CommandHandler.DumpSchemaHandler;
+import com.emc.storageos.dbutils.CommandHandler.GeoBlacklistHandler;
+import com.emc.storageos.dbutils.CommandHandler.GlobalLockHandler;
+import com.emc.storageos.dbutils.CommandHandler.ImportHandler;
+import com.emc.storageos.dbutils.CommandHandler.ListHandler;
+import com.emc.storageos.dbutils.CommandHandler.QueryHandler;
+import com.emc.storageos.dbutils.CommandHandler.RebuildIndexHandler;
+import com.emc.storageos.dbutils.CommandHandler.RecordHandler;
+import com.emc.storageos.dbutils.CommandHandler.RecoverVdcHandler;
+import com.emc.storageos.dbutils.CommandHandler.RestoreKeyHandler;
+import com.emc.storageos.dbutils.CommandHandler.RunMigrationCallback;
+import com.emc.storageos.dbutils.CommandHandler.SolrQueryHandler;
 
 /**
  * Class provided simple cli for DB, to dump records in user readable format
@@ -27,6 +43,8 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     private enum Command {
+        SOLRQUERY,
+        IMPORT,
         LIST,
         QUERY,
         DELETE,
@@ -49,7 +67,7 @@ public class Main {
     private static final String TYPE_STATS = "stats";
     private static final String TYPE_AUDITS = "audits";
 
-    public static final String LIST_LIMIT = "-limit";    
+    public static final String LIST_LIMIT = "-limit";
     public static final String INACTIVE = "-inactive";
     public static final String MODIFICATION_TIME = "-mf";
     public static final String FILTER = "-filter";
@@ -82,7 +100,8 @@ public class Main {
                 + "if <n> is missing, default is 100.%n", LIST_LIMIT);
         System.out.printf("\t\t%s\t List including inactive object ids.%n", INACTIVE);
         System.out.printf("\t\t%s\t\t Show the latest modified field of each record.%n", MODIFICATION_TIME);
-        System.out.printf("\t\t%s <criterias>\t Filter with <criterias>, e.g, -filter resource=\"<resource id>\" -filter pending=true.%n", FILTER);
+        System.out.printf("\t\t%s <criterias>\t Filter with <criterias>, e.g, -filter resource=\"<resource id>\" -filter pending=true.%n",
+                FILTER);
         System.out.printf("\t%s [%s] <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase(), MODIFICATION_TIME);
         System.out.printf("\t\t%s\t\t Show the latest modified field of the record.%n", MODIFICATION_TIME);
         System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",
@@ -215,6 +234,14 @@ public class Main {
             boolean result = false;
 
             switch (cmd) {
+                case SOLRQUERY:
+                    _client.init();
+                    handler = new SolrQueryHandler(args);
+                    break;
+                case IMPORT:
+                    _client.init();
+                    handler = new ImportHandler(args);
+                    break;
                 case LIST:
                     _client.init();
                     handler = new ListHandler(args, _client);
@@ -274,7 +301,7 @@ public class Main {
                 case RUN_MIGRATION_CALLBACK:
                     _client.init();
                     handler = new RunMigrationCallback(args);
-                    break;    
+                    break;
                 default:
                     throw new IllegalArgumentException("Invalid command ");
             }

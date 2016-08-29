@@ -14,7 +14,9 @@ dependencies {
     compile library(commons_io),
             library(commons_codec),
             library(commons_compress),
+			library(solr),
             project(":dbsvc"),
+            project(":dbindex"),
             project(":geosvc"),
             project(":com.emc.sa.model")
 }

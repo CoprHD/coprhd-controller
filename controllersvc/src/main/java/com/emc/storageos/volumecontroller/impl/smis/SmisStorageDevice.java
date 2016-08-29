@@ -597,8 +597,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<Volume> volumes, final TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         try {
-            int volumeCount = 0;
-            String[] volumeNativeIds = new String[volumes.size()];
+            List<String> volumeNativeIds = new ArrayList<String>();
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Delete Volume Start - Array:%s", storageSystem.getSerialNumber()));
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
@@ -712,7 +711,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                     cloneVolumes.add(volume);
                 }
-                volumeNativeIds[volumeCount++] = volume.getNativeId();
+                volumeNativeIds.add(volume.getNativeId());
             }
             _log.info(logMsgBuilder.toString());
 
@@ -731,7 +730,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
                 CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
                 CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storageSystem,
-                        volumeNativeIds);
+                        volumeNativeIds.toArray(new String[0]));
                 CIMArgument[] outArgs = new CIMArgument[5];
                 String returnElementsMethod;
                 if (storageSystem.getUsingSmis80()) {

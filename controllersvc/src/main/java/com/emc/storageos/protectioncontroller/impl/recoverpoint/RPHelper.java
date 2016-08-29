@@ -494,7 +494,7 @@ public class RPHelper {
                 }
 
                 // If this is a virtual volume, add a descriptor for the virtual volume
-                if (RPHelper.isVPlexVolume(volume)) {
+                if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                     // VPLEX virtual volume
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
@@ -1513,7 +1513,9 @@ public class RPHelper {
         String standbyInternalSite = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume)) {
+            if (isMetroPointVolume(dbClient, sourceVolume) 
+                    && (null != sourceVolume.getAssociatedVolumes()
+                    && (!sourceVolume.getAssociatedVolumes().isEmpty()))) {
                 // Check the associated volumes to find the non-matching internal site and return that one.
                 for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
@@ -1576,20 +1578,11 @@ public class RPHelper {
      * Determines if a volume is a VPLEX volume.
      *
      * @param volume the volume.
+     * @param dbClient the database client.
      * @return true if this is a VPLEX volume, false otherwise.
      */
-    public static boolean isVPlexVolume(Volume volume) {
-        return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
-    }
-
-    /**
-     * Determines if a volume is a VPLEX Distributed (aka Metro) volume.
-     *
-     * @param volume the volume.
-     * @return true if this is a VPLEX Distributed (aka Metro) volume, false otherwise.
-     */
-    public static boolean isVPlexDistributedVolume(Volume volume) {
-        return (isVPlexVolume(volume) && (volume.getAssociatedVolumes().size() > 1));
+    public static boolean isVPlexVolume(Volume volume, DbClient dbClient) {
+        return volume.isVPlexVolume(dbClient);
     }
 
     /**
@@ -1683,16 +1676,25 @@ public class RPHelper {
 
             // If this is a VPLEX volume, update the virtual pool references to the old vpool on
             // the backing volumes if they were set to the new vpool.
-            if (RPHelper.isVPlexVolume(volume)) {
-                for (String associatedVolId : volume.getAssociatedVolumes()) {
-                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
-                            associatedVolume.setVirtualPool(oldVpool.getId());
-                            _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
-                                    associatedVolume.getLabel(),
-                                    oldVpool.getLabel()));
+            if (RPHelper.isVPlexVolume(volume, dbClient)) {
+                if (null == volume.getAssociatedVolumes()) {
+                    // this is a rollback situation, so we probably don't want to
+                    // throw another exception...
+                    _log.warn("VPLEX volume {} has no backend volumes.", 
+                            volume.forDisplay());
+                } else {
+                    for (String associatedVolId : volume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {
+                            if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                    && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                                associatedVolume.setVirtualPool(oldVpool.getId());
+                                _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
+                                        associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                            }
+                            associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.updateObject(associatedVolume);
                         }
                         // If the old vpool did not specify multi volume consistency,
                         // remove the CG reference of the volume since we are rolling back
@@ -1746,7 +1748,7 @@ public class RPHelper {
             }
 
             // Rollback any VPLEX backing volumes too
-            if (RPHelper.isVPlexVolume(volume)) {
+            if (RPHelper.isVPlexVolume(volume, dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {

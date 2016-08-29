@@ -12,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.collect.Lists;
@@ -33,6 +34,8 @@ import com.iwave.ext.linux.model.MountPoint;
  */
 public class LinuxMountUtils {
     private static final Log _log = LogFactory.getLog(LinuxMountUtils.class);
+
+    private static final int STD_TIMEOUT = 300;
 
     private LinuxSystemCLI cli;
     private Host host;
@@ -63,11 +66,21 @@ public class LinuxMountUtils {
     }
 
     public void mountPath(String path) throws InternalException {
-        MountCommand command = new MountCommand();
+        MountCommand command = new MountCommand(STD_TIMEOUT);
         command.addArgument("-v");
         command.setPath(path);
+        command.addArgument("; if [ $? -eq 124 ] ; then >&2 echo TIMEOUT ; else >&2 echo SUCCESSFUL ; fi");
         _log.info("mount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
+        CommandOutput output = command.getOutput();
+        try {
+            if (output.getStderr().contains("TIMEOUT")) {
+                throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
+            }
+        } catch (Exception ex) {
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
+            throw exception;
+        }
     }
 
     public void createDirectory(String path) throws InternalException {
@@ -117,10 +130,20 @@ public class LinuxMountUtils {
     }
 
     public void unmountPath(String path) throws InternalException {
-        UnmountCommand command = new UnmountCommand();
+        UnmountCommand command = new UnmountCommand(STD_TIMEOUT);
         command.setPath(path);
+        command.addArgument("; if [ $? -eq 124 ] ; then >&2 echo TIMEOUT ; else >&2 echo SUCCESSFUL ; fi");
         _log.info("unmount command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
+        CommandOutput output = command.getOutput();
+        try {
+            if (output.getStderr().contains("TIMEOUT")) {
+                throw new Exception("Command:" + command.getCommand() + " TIMEOUT");
+            }
+        } catch (Exception ex) {
+            ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions.commandTimedOut(host.getType(), ex);
+            throw exception;
+        }
     }
 
     public void verifyMountPoint(String mountPoint) throws InternalException {

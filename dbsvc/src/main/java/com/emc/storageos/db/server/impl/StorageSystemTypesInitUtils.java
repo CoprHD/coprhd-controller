@@ -8,6 +8,7 @@ package com.emc.storageos.db.server.impl;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -20,6 +21,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
+import com.emc.storageos.services.util.PlatformUtils;
 
 public class StorageSystemTypesInitUtils {
 
@@ -73,7 +75,8 @@ public class StorageSystemTypesInitUtils {
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_PROVIDER, asList(SMIS, HITACHI_PROVIDER, CINDER,
-                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, SCALEIOAPI, DELLSCPROVIDER));
+                DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, DELLSCPROVIDER));
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE_PROVIDER, Arrays.asList(SCALEIOAPI));
 
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
@@ -212,18 +215,37 @@ public class StorageSystemTypesInitUtils {
         return STORAGE_PROVIDER_MAP;
     }
 
+    /**
+     * Keep consistent with previous design so to avoid possible regression.
+     * For block providers, use block as meta type.
+     * For file providers, use file as meta type.
+     */
+    private String mapType(META_TYPE metaType) {
+        if (metaType == META_TYPE.BLOCK_PROVIDER) {
+            return META_TYPE.BLOCK.toString().toLowerCase();
+        }
+        if (metaType == META_TYPE.FILE_PROVIDER) {
+            return META_TYPE.FILE.toString().toLowerCase();
+        }
+        return metaType.toString().toLowerCase();
+    }
+
     private void insertStorageSystemTypes() {
         for (Map.Entry<META_TYPE, List<String>> entry : SYSTEMS_AND_PROVIDERS.entrySet()) {
             META_TYPE metaType = entry.getKey();
             List<String> systems = entry.getValue();
             for (String system : systems) {
+                if (!PlatformUtils.isOssBuild() && system.equals(CEPH)) {
+                    log.info("Skip inserting ceph meta data in non-oss build");
+                    continue;
+                }
                 StorageSystemType type = new StorageSystemType();
                 URI uri = URIUtil.createId(StorageSystemType.class);
                 type.setId(uri);
                 type.setStorageTypeId(uri.toString());
                 type.setStorageTypeName(system);
                 type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(system));
-                type.setMetaType(metaType.toString().toLowerCase());
+                type.setMetaType(mapType(metaType));
                 type.setDriverClassName(metaType.toString().toLowerCase());
                 type.setIsSmiProvider(metaType.isProvider());
                 type.setIsDefaultSsl(SSL_ENABLE_TYPE_LIST.contains(system));

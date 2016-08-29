@@ -8,7 +8,9 @@ import static com.emc.storageos.model.property.PropertyConstants.ENCRYPTEDTEXT;
 import static com.emc.storageos.model.property.PropertyConstants.TEXT;
 import static controllers.Common.flashException;
 
-import java.net.*;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;

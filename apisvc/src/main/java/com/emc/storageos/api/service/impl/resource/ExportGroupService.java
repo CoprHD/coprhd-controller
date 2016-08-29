@@ -1989,10 +1989,12 @@ public class ExportGroupService extends TaskResourceService {
             List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup, storage, _dbClient);
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
+                _log.info("Validating port connectivity for initiator port: {}", initiator.getInitiatorPort());
                 hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator);
                 if (!hasConnectivity) {
                     Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
                     if (pairedInitiator != null) {
+                        _log.info("Validating port connectivity for associated initiator port: {}", pairedInitiator.getInitiatorPort());
                         hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
                         if (!hasConnectivity) {
                             throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),

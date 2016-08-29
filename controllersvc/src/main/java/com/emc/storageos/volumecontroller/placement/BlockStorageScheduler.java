@@ -1152,7 +1152,7 @@ public class BlockStorageScheduler {
     public static NetworkLite lookupNetworkLite(DbClient dbClient, StorageProtocol.Transport transportType,
             String endpoint) {
         try {
-            NetworkLite netLite = NetworkUtil.getEndpointNetworkLite(endpoint, dbClient);
+            NetworkLite netLite = NetworkUtil.getNetworkLiteOfInitiatorPair(endpoint, dbClient);
             if (netLite == null) {
                 return null;
             }

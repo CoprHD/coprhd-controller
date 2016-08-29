@@ -97,8 +97,8 @@
             </div>
           </div>
   
-   		  
-   		    <collapse title="&{'scheduler.title'}">
+  		  #{if service.recurringAllowed}	
+   		  <collapse title="&{'scheduler.title'}">
    		          <div class="form-group">
 				     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
 				     <div class="col-sm-6 controls">
@@ -112,7 +112,8 @@
 				   </div>
 				   
   		       	   #{Services.scheduler /}
-  		    </collapse> 
+  		  </collapse> 
+  		  #{/if}
   		  
   		  
           <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">

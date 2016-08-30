@@ -245,10 +245,10 @@ public class FileService extends TaskResourceService {
     public enum FileTechnologyType {
         LOCAL_MIRROR, REMOTE_MIRROR,
     };
-    
-    public enum FileSystemMountType{
+
+    public enum FileSystemMountType {
         AUTO, NFS, NFS4;
-        
+
         public static boolean contains(String fsType) {
             for (FileSystemMountType type : FileSystemMountType.values()) {
                 if (type.name().equalsIgnoreCase(fsType)) {
@@ -261,23 +261,16 @@ public class FileService extends TaskResourceService {
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
-        FAILBACK("failback",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
-        START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
-        STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
-        PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
-        RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
-        UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION),
-        UPDATE_RPO("update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -1535,9 +1528,9 @@ public class FileService extends TaskResourceService {
         if (getNumSnapshots(fs) >= vpool.getMaxNativeSnapshots()) {
             throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
         }
-        
+
         String label = TimeUtils.formatDateForCurrent(param.getLabel());
-        
+
         // check duplicate fileshare snapshot names for this fileshare
         checkForDuplicateName(label, Snapshot.class, id, "parent", _dbClient);
 
@@ -4293,7 +4286,7 @@ public class FileService extends TaskResourceService {
             throws InternalException {
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        
+
         validateMountPath(param.getHostId(), param.getMountPath());
         _log.info("FileService::unmount export Request recieved {}", id);
         String task = UUID.randomUUID().toString();
@@ -4370,23 +4363,14 @@ public class FileService extends TaskResourceService {
 
     private void validateSecurity(FileShare fs, FileSystemMountParam param) {
         List<String> allowedSecurities = new ArrayList<String>();
-        FSExportMap exports = fs.getFsExports();
-        Collection<FileExport> fileExports = new ArrayList<FileExport>();
-        if (exports != null) {
-            fileExports = exports.values();
+        String subDirectory = param.getSubDir();
+        if ("!nodir".equalsIgnoreCase(param.getSubDir())) {
+            subDirectory = null;
         }
-        if (param.getSubDir().equalsIgnoreCase("!nodir")) {
-            for (FileExport export : fileExports) {
-                if (export.getSubDirectory() == null || export.getSubDirectory().isEmpty()) {
-                    allowedSecurities.add(export.getSecurityType());
-                }
-            }
-        } else {
-            for (FileExport export : fileExports) {
-                if (export.getSubDirectory() != null && export.getSubDirectory().equalsIgnoreCase(param.getSubDir())) {
-                    allowedSecurities.add(export.getSecurityType());
-                }
-            }
+        List<ExportRule> exports = getExportRules(fs.getId(), false, subDirectory);
+        for (ExportRule rule : exports) {
+            List<String> securityTypes = Arrays.asList(rule.getSecFlavor().split("\\s*,\\s*"));
+            allowedSecurities.addAll(securityTypes);
         }
         if (!allowedSecurities.contains(param.getSecurity())) {
             throw APIException.badRequests.invalidParameter("security", param.getSecurity());

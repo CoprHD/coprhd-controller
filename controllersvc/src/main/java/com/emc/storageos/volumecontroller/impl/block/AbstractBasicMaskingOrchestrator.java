@@ -35,6 +35,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumesOnAdoptedMaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
@@ -612,8 +613,17 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         continue;
                     }
                     if (mask.getCreatedBySystem()) {
-                        // We cannot remove initiator if there are existing volumes in the mask.
-                        if (mask.hasUserInitiator(initiator.getId()) && !mask.hasAnyExistingVolumes()) {
+                        if (mask.hasUserInitiator(initiator.getId())) {
+                            // We cannot remove initiator if there are existing volumes in the mask. Throw an error if the
+                            // DU validations are enabled.
+                            if (validatorConfig.validationEnabled() && mask.hasAnyExistingVolumes()) {
+                                String errorMsg = String.format(
+                                        "We cannot remove initiator %s from mask %s because there are existing volumes - %s in the mask",
+                                        initiator.getInitiatorPort(), mask.getMaskName(),
+                                        Joiner.on(',').join(mask.getExistingVolumes().keySet()));
+                                throw DeviceControllerException.exceptions.validationError("Export Mask", errorMsg,
+                                        ValidatorLogger.CONTACT_EMC_SUPPORT);
+                            }
                             // If there's more than one export group, that means there's my export group plus another one.
                             // Best to just leave that initiator alone.
                             Set<URI> exportGroupURIs = new HashSet<URI>();
@@ -711,8 +721,16 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         // exported to the storage system and place only those that
                         // are not already in the masks to the remove list
                         for (BlockObject blockObject : blockObjects) {
-                            // Volumes cannot be removed if there are existing initiators in the mask
-                            if (mask.hasUserCreatedVolume(blockObject.getWWN()) && !mask.hasAnyExistingInitiators()) {
+                            if (mask.hasUserCreatedVolume(blockObject.getWWN())) {
+                                // Volumes cannot be removed if there are existing initiators in the mask.
+                                if (validatorConfig.validationEnabled() && mask.hasAnyExistingInitiators()) {
+                                    String errorMsg = String.format(
+                                            "We cannot remove block object %s from mask %s because there are existing initiators - %s in the mask",
+                                            blockObject.getWWN(), mask.getMaskName(),
+                                            Joiner.on(',').join(mask.getExistingInitiators()));
+                                    throw DeviceControllerException.exceptions.validationError("Export Mask", errorMsg,
+                                            ValidatorLogger.CONTACT_EMC_SUPPORT);
+                                }
                                 // If any system-created initiator in the mask is not in our list to remove, then we shouldn't remove
                                 // the block object because another initiator in a ViPR export group is depending on that object being
                                 // there.
@@ -1008,7 +1026,15 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             String volumeIdStr = egVolumeID.toString();
                             BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
                             // We cannot remove volumes from mask if the mask has existing initiators
-                            if (bo != null && exportMask.hasUserCreatedVolume(bo.getId()) && !exportMask.hasAnyExistingInitiators()) {
+                            if (bo != null && exportMask.hasUserCreatedVolume(bo.getId())) {
+                                // Volumes cannot be removed if there are existing initiators in the mask.
+                                if (validatorConfig.validationEnabled() && exportMask.hasAnyExistingInitiators()) {
+                                    String errorMsg = String.format(
+                                            "We cannot remove block object %s from mask %s because there are existing initiators - %s in the mask",
+                                            bo.getWWN(), exportMask.getMaskName(), Joiner.on(',').join(exportMask.getExistingInitiators()));
+                                    throw DeviceControllerException.exceptions.validationError("Export Mask", errorMsg,
+                                            ValidatorLogger.CONTACT_EMC_SUPPORT);
+                                }
                                 if (exportGroup.getInitiators() != null) {
                                     for (String initiatorIdStr : exportGroup.getInitiators()) {
                                         if (exportMask.hasInitiator(initiatorIdStr)) {
@@ -1224,13 +1250,13 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             URI.create(maskURIStr));
                     taskCompleter.setMask(exportMask.getId());
                     _log.info(String.format("Checking mask %s", exportMask.getMaskName()));
+                    StringBuffer errorMessage = new StringBuffer();
                     if (!exportMask.getInactive()
                             && exportMask.getStorageDevice().equals(storageURI)) {
                         exportMask = getDevice().refreshExportMask(storage, exportMask);
 
                         Collection<URI> volumeURIs = Collections2.transform(exportGroup.getVolumes().keySet(),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI);
-
                         // One way to know if we should delete the mask is if all of the volumes in the mask
                         // are represented in the export group.
                         boolean deleteEntireMask = removingLastExportMaskVolumes(exportMask, new ArrayList<>(volumeURIs));
@@ -1240,6 +1266,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
                             Set<String> egInitiators = new HashSet<String>(exportGroup.getInitiators());
                             for (String initiatorIdStr : egInitiators) {
+                                if (validatorConfig.validationEnabled() && exportMask.hasAnyExistingVolumes()) {
+                                    deleteEntireMask = false;
+                                    errorMessage.append("We cannot delete initiators from mask ").append(exportMask.getMaskName())
+                                    .append(" because there are exisitng volumes ")
+                                    .append(Joiner.on(',').join(exportMask.getExistingVolumes().keySet()));
+                                    break;
+                                }
+
                                 Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorIdStr));
 
                                 if (initiator == null) {
@@ -1253,15 +1287,17 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 // Search for this initiator in another export group
                                 List<ExportGroup> exportGroupList = ExportUtils.getInitiatorExportGroups(initiator, _dbClient);
                                 // We cannot remove initiator from mask if the mask has existing volumes
-                                if (exportMask.hasUserInitiator(URI.create(initiatorIdStr)) && !exportMask.hasAnyExistingVolumes()) {
+                                if (exportMask.hasUserInitiator(URI.create(initiatorIdStr))) {
                                     // If there's more than one export group, that means there's my export group plus another one. (at
                                     // least)
                                     // Best to just leave that initiator alone.
                                     if ((exportGroupList != null && exportGroupList.size() > 1)
                                             && ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null)) {
-                                        _log.info(String
+                                        String msg = String
                                                 .format("Found that my initiator is in %s more export groups, so we shouldn't remove it from the mask",
-                                                        exportGroupList.size() - 1));
+                                                        exportGroupList.size() - 1);
+                                        _log.info(msg);
+                                        errorMessage.append(msg);
                                         deleteEntireMask = false;
                                     }
                                 }
@@ -1279,8 +1315,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             for (String volumeIdStr : exportGroup.getVolumes().keySet()) {
                                 URI egVolumeID = URI.create(volumeIdStr);
                                 BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
-                                // Volume cannot be removed from amsk if there are existing initiators in the mask.
-                                if (bo != null && exportMask.hasUserCreatedVolume(bo.getId()) && !exportMask.hasAnyExistingInitiators()) {
+                                if (bo != null && exportMask.hasUserCreatedVolume(bo.getId())) {
+                                    // Volume cannot be removed from mask if there are existing initiators in the mask.
+                                    if (validatorConfig.validationEnabled() && exportMask.hasAnyExistingInitiators()) {
+                                        errorMessage.append("We cannot remove volumes from export mask ").append(exportMask.getMaskName())
+                                        .append(" because the mask has existing initiators - ")
+                                        .append(Joiner.on(',').join(exportMask.getExistingInitiators()));
+                                        break;
+                                    }
                                     if (exportGroup.getInitiators() != null) {
                                         for (String initiatorIdStr : exportGroup.getInitiators()) {
                                             if (exportMask.hasInitiator(initiatorIdStr)) {
@@ -1289,9 +1331,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                         egVolumeID, _dbClient);
 
                                                 if (exportGroupList2 != null && exportGroupList2.size() > 1) {
-                                                    _log.info(String
+                                                    String msg = String
                                                             .format("Found that my volume %s is in another export group with this initiator %s, so we shouldn't remove it from the mask",
-                                                                    volumeIdStr, initiator.getInitiatorPort()));
+                                                                    volumeIdStr, initiator.getInitiatorPort());
+                                                    _log.info(msg);
+                                                    errorMessage.append(msg);
                                                 } else {
                                                     _log.info(String.format("We can remove volume %s from mask %s", volumeIdStr,
                                                             exportMask.getMaskName()));
@@ -1330,6 +1374,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                         }
 
+                    }
+                    // throw an error if no operation was generated for the export mask.
+                    if (!someOperationDone) {
+                        throw DeviceControllerException.exceptions.validationError("Export Mask", errorMessage.toString(),
+                                ValidatorLogger.CONTACT_EMC_SUPPORT);
                     }
                 }
                 if (!exportMasksToZoneDelete.isEmpty()) {

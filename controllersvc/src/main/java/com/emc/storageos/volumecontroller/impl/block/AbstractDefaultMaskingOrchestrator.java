@@ -68,6 +68,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -104,6 +105,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected CustomConfigHandler customConfigHandler;
     @Autowired
     protected DbModelClient dbModelClient;
+    @Autowired
+    protected ValidatorConfig validatorConfig;
 
     /**
      * Simple class to hold two values that would be associated with

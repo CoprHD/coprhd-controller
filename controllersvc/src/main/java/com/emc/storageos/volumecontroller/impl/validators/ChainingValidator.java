@@ -9,7 +9,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.google.common.collect.Lists;
 
@@ -53,8 +52,7 @@ public class ChainingValidator implements Validator {
 
         if (logger.hasErrors()) {
             if (config.isValidationEnabled()) {
-                throw DeviceControllerException.exceptions.validationError(
-                        type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+                logger.generateException(type);
             }
         }
 

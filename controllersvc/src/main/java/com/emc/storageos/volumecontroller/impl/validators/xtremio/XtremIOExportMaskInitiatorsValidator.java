@@ -19,7 +19,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
-import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
@@ -96,7 +96,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 Set<String> differences = Sets.difference(Sets.newHashSet(allInitiatorsInIGs), Sets.newHashSet(knownInitiatorNames));
                 for (String diff : differences) {
-                    getLogger().logDiff(exportMask.getId().toString(), "initiators", NO_MATCH, diff);
+                    getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, diff);
                 }
 
                 checkForErrors();
@@ -143,7 +143,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                     knownInitiators.removeAll(listToIgnore);
 
                     for (String knownInitiator : knownInitiators) {
-                        getLogger().logDiff(exportMask.getId().toString(), "initiators", NO_MATCH, knownInitiator);
+                        getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, knownInitiator);
                     }
                 }
             }

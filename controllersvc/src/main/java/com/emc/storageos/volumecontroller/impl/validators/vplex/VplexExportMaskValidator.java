@@ -114,7 +114,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         }
         // Any remaining WWNs in storageViewWwns had no matching volume, and therefore are error
         for (String wwn : storageViewWwns) {
-            getValidatorLogger().logDiff(id, "virtual-volume WWN", "<no matching entry in validation list>", wwn);
+            getValidatorLogger().logDiff(id, "virtual-volume WWN", ValidatorLogger.NO_MATCHING_ENTRY, wwn);
         }
     }
 
@@ -140,7 +140,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         }
         // Any remaining WWNs in storageViewPwwns had no matching initiator, and therefore are error
         for (String wwn : storageViewPwwns) {
-            getValidatorLogger().logDiff(id, "initiator port WWN", "<no matching entry in validation list>", wwn);
+            getValidatorLogger().logDiff(id, "initiator port WWN", ValidatorLogger.NO_MATCHING_ENTRY, wwn);
         }
     }
 

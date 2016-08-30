@@ -288,4 +288,25 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.failbackFileSystem(fsURI, nfsPort, cifsPort, replicateConfiguration, taskId);
     }
+
+    @Override
+    public void restoreFS(URI storage, URI fs, URI snapshot, String opId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.restoreFS(storage, fs, snapshot, opId);
+    }
+
+    @Override
+    public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteSnapshot(storage, pool, uri, forceDelete, deleteType, opId);
+    }
+
+    @Override
+    public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteShareACLs(storage, uri, shareName, taskId);
+    }
 }

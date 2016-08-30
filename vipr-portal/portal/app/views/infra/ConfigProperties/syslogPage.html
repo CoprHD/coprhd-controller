@@ -12,12 +12,71 @@
         
         $syslogProtocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}");
         $syslogProtocol.on('change', function () {
+            checkIfDisableTestButton();
             changeLayout(this.value);
         });
 
+        checkIfDisableTestButton();
         initialServerPortCert();
 
+
+        $('#validateButtonIpPort').on('click', function(e) {
+        e.preventDefault();
+        this.disabled = 'true';
+        validateExternalServerIpPort();
+        });
     });
+    function checkIfDisableTestButton() {
+        var validateButton = $('#validateButtonIpPort');
+        var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
+        if ( protocol === 'UDP') {
+            validateButton.prop('disabled', true);
+            validateButton.addClass('disabled');
+        } else {
+            validateButton.prop('disabled', false);
+            validateButton.removeClass('disabled');
+        }
+    }
+    function validateExternalServerIpPort() {
+       var ipPortListStr = $("#${util.ConfigProperty.SYSLOG_REMOTE_SERVERS_PORTS}").val();
+
+       $('#alerts_success').hide();
+       $('#alerts_error').hide();
+
+       var data = {
+            authenticityToken: '${session.authenticityToken}',
+            ipPortListStr: ipPortListStr
+                }
+       var url = #{jsAction @infra.ConfigProperties.connectExternalServerIpPort()/}();
+       $.post(url, data, function(result) {
+               showIpPortValidationResult(result);
+               });
+
+    }
+    function showIpPortValidationResult(result) {
+        var success = false;
+        var message = "";
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (i > 0) {
+                    message += "<br>";
+                }
+            message += result[i].message;
+            success = success || result[i].success;
+            }
+        }else {
+            message = result.message;
+            success = result.success;
+        }
+        if (success) {
+            $('#alerts_success .message').html(message);
+            $('#alerts_success').slideDown('fast');
+        }else {
+            $('#alerts_error .message').html(message);
+            $('#alerts_error').slideDown('fast');
+        }
+        $('#validateButtonIpPort').prop('disabled',false);
+    }
     function initialServerPortCert() {
         var urlValue = '${page.syslogRemoteServersPorts.value}';
         var servers = urlValue.split(',');
@@ -277,4 +336,14 @@ disabled:unstable;
         <span class="help-inline clearfix">${error}</span>
     </div>
 </div>
+    <div id="ValidatConnectiontrolGroup" class="form-group">
+        <div class="col-sm-3">
+            &nbsp;
+        </div>
+        <div class="col-sm-6">
+            <button id="validateButtonIpPort" type="button" class="btn btn-info">
+                &{'configProperties.syslog.serverPort.validate'}
+            </button>
+        </div>
+    </div>
 </fieldset>

@@ -145,13 +145,12 @@ public class VPlexUtil {
      * 
      */
     public static Volume getVPLEXBackendVolume(Volume vplexVolume, boolean sourceVolume, DbClient dbClient, boolean errorIfNotFound) {
-        String vplexVolumeId = vplexVolume.getId().toString();
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         Volume backendVolume = null;
         if (associatedVolumeIds == null) {
             if (errorIfNotFound) {
                 throw InternalServerErrorException.internalServerErrors
-                        .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+                        .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
             } else {
                 return backendVolume;
             }
@@ -1592,6 +1591,15 @@ public class VPlexUtil {
     public static void updateVPlexBackingVolumeVpools(Volume volume, URI newVpoolURI, DbClient dbClient) {
         // Check to see if this is a VPLEX virtual volume
         if (isVplexVolume(volume, dbClient)) {
+            if (null == volume.getAssociatedVolumes()) {
+                // this is a change vpool operation, so we don't want to throw an exception,
+                // in case it's a change from non-supported backend array(s) to supported
+                _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'. "
+                        + "Backend volume virtual pools will not be updated.", 
+                        volume.forDisplay());
+                return;
+            }
+
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).",
                     volume.getLabel(), volume.getId()));
             VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);

@@ -1914,6 +1914,8 @@ public class SmisCommandHelper implements SmisConstants {
      * This method is used for VMAX3 storage system to find exiting storage group with a
      * specified SLO for parking volumes.
      *
+     * @param forProvider
+     *            The storage provider where the query executes
      * @param storage
      *            The reference to storage system
      * @param policyName
@@ -1924,9 +1926,8 @@ public class SmisCommandHelper implements SmisConstants {
      * @return returns map of storage group and volumes nativeguids in a storage group
      * @throws WBEMException
      */
-    public Map<CIMObjectPath, Set<String>> findAnySLOStorageGroupsCanBeReUsed(StorageSystem storage,
-            String policyName, boolean associatedToView)
-                    throws WBEMException {
+    public Map<CIMObjectPath, Set<String>> findAnySLOStorageGroupsCanBeReUsed(StorageSystem forProvider, StorageSystem storage,
+            String policyName, boolean associatedToView) throws WBEMException {
         CloseableIterator<CIMInstance> groupInstanceItr = null;
         CloseableIterator<CIMObjectPath> volumePathItr = null;
         Map<CIMObjectPath, Set<String>> groupPaths = new ConcurrentHashMap<CIMObjectPath, Set<String>>();
@@ -1934,7 +1935,7 @@ public class SmisCommandHelper implements SmisConstants {
             CIMObjectPath controllerConfigSvcPath = _cimPath.getControllerConfigSvcPath(storage);
 
             _log.info("Trying to get all Storage Groups");
-            groupInstanceItr = getAssociatorInstances(storage, controllerConfigSvcPath, null,
+            groupInstanceItr = getAssociatorInstances(forProvider, controllerConfigSvcPath, null,
                     SE_DEVICE_MASKING_GROUP, null, null, PS_V3_STORAGE_GROUP_PROPERTIES);
 
             while (groupInstanceItr.hasNext()) {
@@ -1948,7 +1949,7 @@ public class SmisCommandHelper implements SmisConstants {
                         && groupName.startsWith(Constants.STORAGE_GROUP_PREFIX)) {
                     // loop through all the volumes of this storage group
                     _log.debug("Looping through all volumes in storage group {}", groupName);
-                    volumePathItr = getAssociatorNames(storage, groupPath, null, CIM_STORAGE_VOLUME,
+                    volumePathItr = getAssociatorNames(forProvider, groupPath, null, CIM_STORAGE_VOLUME,
                             null, null);
                     while (volumePathItr.hasNext()) {
                         returnedNativeGuids.add(getVolumeNativeGuid(volumePathItr.next()));
@@ -5326,7 +5327,7 @@ public class SmisCommandHelper implements SmisConstants {
     /*
      * find/create storage group for VMAX V3
      */
-    public CIMObjectPath getVolumeGroupPath(StorageSystem storageSystem, Volume volume, StoragePool storagePool) {
+    public CIMObjectPath getVolumeGroupPath(StorageSystem forProvider, StorageSystem storageSystem, Volume volume, StoragePool storagePool) {
         CIMObjectPath volumeGrouptPath = null;
         if (storageSystem.checkIfVmax3()) {
             if (storagePool == null) {
@@ -5346,10 +5347,10 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             // Try to find existing storage group.
-            volumeGrouptPath = getVolumeGroupBasedOnSLO(storageSystem, slo, workload, srp);
+            volumeGrouptPath = getVolumeGroupBasedOnSLO(forProvider, storageSystem, slo, workload, srp);
             if (volumeGrouptPath == null) {
                 // Create new storage group.
-                volumeGrouptPath = createVolumeGroupBasedOnSLO(storageSystem, slo, workload, srp);
+                volumeGrouptPath = createVolumeGroupBasedOnSLO(forProvider, storageSystem, slo, workload, srp);
             }
         }
         return volumeGrouptPath;
@@ -5419,6 +5420,8 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Finds the storage group based on SLO
      *
+     * @param forProvider
+     *            The storage provider where the query executes
      * @param storageSystem
      *            The reference to storage system
      * @param slo
@@ -5430,14 +5433,15 @@ public class SmisCommandHelper implements SmisConstants {
      *
      * @return returns volumeGroupPath if found else null
      */
-    public CIMObjectPath getVolumeGroupBasedOnSLO(StorageSystem storageSystem, String slo, String workload, String srp) {
+    public CIMObjectPath getVolumeGroupBasedOnSLO(StorageSystem forProvider, StorageSystem storageSystem, String slo, String workload,
+            String srp) {
         CIMObjectPath volumeGroupObjectPath = null;
         StringBuffer fastSettingName = new StringBuffer();
         fastSettingName = fastSettingName.append(slo).append(Constants._plusDelimiter)
                 .append(workload).append(Constants._plusDelimiter).append(srp);
         try {
-            Map<CIMObjectPath, Set<String>> groupPaths = findAnySLOStorageGroupsCanBeReUsed(storageSystem, fastSettingName.toString(),
-                    false);
+            Map<CIMObjectPath, Set<String>> groupPaths = findAnySLOStorageGroupsCanBeReUsed(forProvider, storageSystem,
+                    fastSettingName.toString(), false);
             for (CIMObjectPath groupPath : groupPaths.keySet()) {
                 Set<String> groupVolumes = groupPaths.get(groupPath);
                 if (groupVolumes == null || (groupVolumes != null && groupVolumes.size() < 4000)) {
@@ -5456,6 +5460,8 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Creates storage group based on fast setting.
      *
+     * @param forProvider
+     *            The storage provider where the query executes
      * @param storageSystem
      *            The reference to the storage system
      * @param slo
@@ -5467,7 +5473,8 @@ public class SmisCommandHelper implements SmisConstants {
      *
      * @return returns the storage group path for the storage group created
      */
-    public CIMObjectPath createVolumeGroupBasedOnSLO(StorageSystem storageSystem, String slo, String workload, String srp) {
+    public CIMObjectPath createVolumeGroupBasedOnSLO(StorageSystem forProvider, StorageSystem storageSystem,
+            String slo, String workload, String srp) {
         String groupName = generateGroupName(slo, workload, srp);
         String lockName = generateParkingSLOSGLockName(storageSystem, groupName);
         boolean gotLock = false;
@@ -5481,12 +5488,12 @@ public class SmisCommandHelper implements SmisConstants {
                 // Since we locked this operation, we need to make sure that some other system
                 // did not already create the StorageGroup. So, check for it here.
                 volumeGroupObjectPath = _cimPath.getStorageGroupObjectPath(groupName, storageSystem);
-                CIMInstance instance = checkExists(storageSystem, volumeGroupObjectPath, false, false);
+                CIMInstance instance = checkExists(forProvider, volumeGroupObjectPath, false, false);
                 if (instance == null) {
                     // Nothing created yet and we have the lock, so let's create it ...
                     CIMArgument[] inArgs = getCreateVolumeGroupInputArguments(storageSystem, groupName, slo, srp, workload, null, false);
                     CIMArgument[] outArgs = new CIMArgument[5];
-                    invokeMethod(storageSystem, _cimPath.getControllerConfigSvcPath(storageSystem),
+                    invokeMethod(forProvider, _cimPath.getControllerConfigSvcPath(storageSystem),
                             "CreateGroup", inArgs, outArgs);
                     volumeGroupObjectPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, "MaskingGroup");
                 }

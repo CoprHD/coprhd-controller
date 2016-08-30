@@ -3091,7 +3091,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     protected Map<Volume.PersonalityTypes, Long> setUnMatchedCapacities(List<Volume> allVolumesToUpdateCapacity,
             Map<URI, String> associatedVolumePersonalityMap, boolean isExpand, Long capacityToUseInCalculation) {
-        _log.info("Capacities for RP Source and Target can not match. Capacities will calculated so Source <= Target.");
+        _log.info("Capacities for RP Source and Target can not match. Capacities will be calculated so Source <= Target.");
         Long srcCapacity = 0L;
         Long tgtCapacity = 0L;
         Map<Volume.PersonalityTypes, Long> capacities = new HashMap<Volume.PersonalityTypes, Long>();

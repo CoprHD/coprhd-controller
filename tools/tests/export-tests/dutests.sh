@@ -410,7 +410,8 @@ BOURNE_IP=${BOURNE_IP:-"localhost"}
 #
 NH=nh
 NH2=nh2
-FC_ZONE_A=fctz_a
+# By default, we'll use this network.  Some arrays may use another and redefine it in their setup
+FC_ZONE_A=FABRIC_losam082-fabric
 
 if [ "$BOURNE_IP" = "localhost" ]; then
     SHORTENED_HOST="ip-$ipaddr"
@@ -647,6 +648,7 @@ prerun_setup() {
     if [ "${SS}" = "vnx" ]
     then
 	array_ip=${VNXB_IP}
+	FC_ZONE_A=FABRIC_vplex154nbr2
     fi
 
     # All export operations orchestration go through the same entry-points
@@ -708,6 +710,7 @@ vnx_setup() {
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
+    FC_ZONE_A=FABRIC_vplex154nbr2
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
@@ -717,9 +720,6 @@ vnx_setup() {
 
     common_setup
 
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-            
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
@@ -777,9 +777,6 @@ vmax2_setup() {
 
     common_setup
 
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${VMAX2_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-        
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
@@ -815,9 +812,6 @@ vmax3_setup() {
 
     common_setup
 
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-        
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
@@ -1105,9 +1099,6 @@ xio_setup() {
     fi
 
     common_setup
-
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
@@ -3123,7 +3114,27 @@ test_24() {
 
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # Create a new vplex volume that we can migrate
+    # Find the zones that were created
+    zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
+    if [ $? -ne 0 ]; then
+	echo "Could not determine the zones that were created"
+	export_group delete ${PROJECT}/${expname}1
+	exit;
+    fi
+
+    FABRICID=${FC_ZONE_A:7}
+    for zone in ${zones}
+    do
+      echo "=== zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone}"
+      zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone} | grep ${zone} > /dev/null
+      if [ $? -ne 0 ]; then
+	  echo "Expected to find zone ${zone} but did not."
+	  export_group delete ${PROJECT}/${expname}1
+	  exit;
+      fi
+    done
+
+    # Create a new vplex volume that we can add to the mask
     HIJACK=du-hijack-volume-${RANDOM}
 
     # Create another volume that we will inventory-only delete
@@ -3131,6 +3142,9 @@ test_24() {
     
     # Get the device ID of the volume we created
     device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    # Inventory-only delete the volume we created
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Add an unrelated initiator to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -3141,16 +3155,24 @@ test_24() {
     # Remove the volume from the export group
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
 
-    # Verify the mask has the new initiator in it
+    # Verify the volume is removed
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Find the zones that were created
+    for zone in ${zones}
+    do
+      echo "=== zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone}"
+      zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone} | grep ${zone} > /dev/null
+      if [ $? -ne 0 ]; then
+	  echo "FAILED: Expected to find zone ${zone} but did not."
+      fi
+    done
 
     # Now remove the initiator from the export mask
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
     # Make sure it deleted the volume
     verify_export ${expname}1 ${HOST1} 2 0
-
-    # TBD: Verify there is a zone on the switch
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}

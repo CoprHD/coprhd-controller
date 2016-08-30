@@ -106,7 +106,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
     private static final String REGISTERED_PORT_PREFIX = "REGISTERED_0X";
     private static final String REGISTERED_PATTERN = "^" + REGISTERED_PORT_PREFIX + ".*$";
-    private static final String ALLOW_LOCAL_TO_METRO_AUTO_UPGRADE = "controller_allow_vplex_local_to_metro_upgrade";
+    private static final String ALLOW_LOCAL_TO_METRO_AUTO_UPGRADE = "controller_vplex_allow_local_to_metro_auto_upgrade";
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";

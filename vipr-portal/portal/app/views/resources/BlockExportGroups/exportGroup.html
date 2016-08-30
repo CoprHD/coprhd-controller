@@ -162,6 +162,16 @@
     return "<a href='" + url({volumeId: o.aData.id}) + "'><img src='/public/img/assets/Volume.png' style='width: 32px;'/> " + val + "</a>";
   }
   
+  function renderVolumeActions(o, val) {
+	    var url = #{jsAction @removeVolume(':exportGroupId', ':volumeId') /};
+	    return '<a href="' + url({exportGroupId : '${exportGroup.id}', volumeId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.volume.remove.confirm'}\')">&{'button.remove'}</a>';    
+  }
+
+  function renderSnapshotActions(o,val) {
+		var url = #{jsAction @removeSnapshot(':exportGroupId',':snapshotId') /};
+		return '<a href="'+ url({exportGroupId : '${exportGroup.id}', snapshotId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.snapshot.remove.confirm'}\')">&{'button.remove'}</a>';
+  }
+
   function renderSnapshotLink(o, val) {
       var url = #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId') /};
       return "<a href='" + url({snapshotId: o.aData.id}) + "'><img src='/public/img/assets/Snapshot.png' style='width: 32px;'/> " + val + "</a>";

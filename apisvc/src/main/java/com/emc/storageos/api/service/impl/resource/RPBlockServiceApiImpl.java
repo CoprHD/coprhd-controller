@@ -3068,9 +3068,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             StorageSystem storageSystem = entry.getValue();
             String storageType = storageSystem.getSystemType();
             if (storageSystem.isV3AllFlashArray()) {
-                storageType = "vmax3-AFA";
+                storageType = DiscoveredDataObject.Type.vmax3AFA.name();;
             } else if (storageSystem.checkIfVmax3()) {
-                storageType = "vmax3";
+                storageType = DiscoveredDataObject.Type.vmax3.name();
             }
             _log.info(String.format("Request requires provisioning on storage array of type: %s", storageType));
             if (NullColumnValueGetter.isNullValue(systemToCompare)) {

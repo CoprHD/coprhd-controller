@@ -481,62 +481,22 @@ public class FileService extends TaskResourceService {
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
         //validate the vpool for protection and throw error if any other field invalid
-
-        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+    	
+    	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
-            //RPO TYPE
-
-            if (vPool.getFrRpoValue() == null || vPool.getFrRpoValue() <= 0) {
-                throw APIException.badRequests.invalidReplicationRPOValue();
-            }
-            if (vPool.getFrRpoType() == null
-                    || FileReplicationRPOType.lookup(vPool.getFrRpoType()) == null) {
-                throw APIException.badRequests
-                        .invalidReplicationRPOType(vPool.getFrRpoType());
-            }
-            
-            if (vPool.getFileReplicationCopyMode() == null
-                    || FileReplicationRPOType.lookup(vPool.getFrRpoType()) == null) {
-                throw APIException.badRequests.invalidCopyMode(vPool.getFileReplicationCopyMode());
+            if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getRpRpoType());
             }
 
-            switch (vPool.getFrRpoType().toUpperCase()) {
-                case "MINUTES":
-                    if (vPool.getFrRpoValue() > MINUTES_PER_HOUR) {
-                        throw APIException.badRequests.invalidReplicationRPOValueForType(
-                                vPool.getFrRpoValue().toString(), vPool.getFrRpoType());
-                    }
-                    break;
-                case "HOURS":
-                    if (vPool.getFrRpoValue() > HOURS_PER_DAY) {
-                        throw APIException.badRequests.invalidReplicationRPOValueForType(
-                                vPool.getFrRpoValue().toString(), vPool.getFrRpoType());
-                    }
-                    break;
-                case "DAYS":
-                    // No validation required for Days.
-                    break;
-                default:
-                    throw APIException.badRequests.invalidReplicationRPOType(vPool.getFrRpoType());
-            }
-            
-            //it is positive interger
             if (vPool.getFrRpoValue() != null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
             }
-
-            // rpo type can be DAYS or HOURS or minites
-            if (vPool.getRpRpoType() != null) { 
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
-            }
-
-
             // async or copy
             // async - soure changes will mirror target
             // copy - it kind backup, it is full copy
             if (vPool.getFileReplicationCopyMode() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFileReplicationCopyMode());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFrRpoValue());
             }
 
         }

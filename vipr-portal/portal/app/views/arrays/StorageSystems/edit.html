@@ -279,7 +279,11 @@
             $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
             if (!editMode) {
             	$('#storageArray_elementManagerURLControlGroup').show();
-            	
+            	$('#storageArray_hyperScaleHostControlGroup').hide();
+            	$('#storageArray_hyperScalePortControlGroup').hide();
+            	$('#storageArray_hyperScaleUsernameControlGroup').hide();
+            	$('#storageArray_hyperScalePasswordControlGroup').hide();
+            	$('#storageArray_hyperScalePasswordConfirmControlGroup').hide();
                 if ($('#storageArray_type').val() == '${scaleIOStorageSystemType}') {
                     $('#storageArray_secondaryUsernameControlGroup').show();
                     $('#storageArray_secondaryPasswordControlGroup').show();

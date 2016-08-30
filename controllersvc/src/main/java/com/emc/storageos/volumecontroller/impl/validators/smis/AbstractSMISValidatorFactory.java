@@ -135,20 +135,15 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         ValidatorLogger sharedLogger = createValidatorLogger(ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         AbstractSMISValidator volumes = createExportMaskVolumesValidator(ctx);
         AbstractSMISValidator initiators = createExportMaskInitiatorValidator(ctx);
+        AbstractSMISValidator multiMaskBlockObjects = createMultipleExportMasksForBlockObjectsValidator(ctx);
 
-        AbstractSMISValidator multiMaskBlockObjects =
-                createMultipleExportMasksForBlockObjectsValidator(ctx);
-        AbstractSMISValidator multiMaskInitiators =
-                createMultipleExportMasksForInitiatorsValidator(ctx);
-
-        configureValidators(sharedLogger, volumes, initiators, multiMaskBlockObjects, multiMaskInitiators);
+        configureValidators(sharedLogger, volumes, initiators, multiMaskBlockObjects);
 
         ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
         chain.setExceptionContext(ctx);
         chain.addValidator(volumes);
         chain.addValidator(initiators);
         chain.addValidator(multiMaskBlockObjects);
-        chain.addValidator(multiMaskInitiators);
 
         return chain;
     }

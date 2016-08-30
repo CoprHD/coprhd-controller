@@ -18,9 +18,6 @@ public class IsilonSyncJobStart extends IsilonSyncIQJob {
         super.updateStatus(jobContext);
     }
 
-    public IsilonSyncJobStart(String jobId, URI sourceSystemUri, URI targetSystemUri, TaskCompleter taskCompleter, String jobName) {
-        super(jobId, sourceSystemUri, targetSystemUri, taskCompleter, jobName);
-    }
     
     public IsilonSyncJobStart(String jobId, URI sourceSystemUri, TaskCompleter taskCompleter, String jobName) {
         super(jobId, sourceSystemUri, taskCompleter, jobName);

@@ -409,10 +409,24 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
     }
 
+    /**
+     * Checks for hardware change from local to metro or vice versa. If the 
+     * system flag controller_vplex_allow_local_to_metro_auto_upgrade is set to
+     * true, then the StorageSystem object and related StoragePorts will be updated
+     * with the new serial number information.
+     * 
+     * @param clusterAssembyIds the cluster assembly IDs detected
+     * @param systemNativeGUID the storage system native GUID
+     * @param systemSerialNumber the storage system serial number
+     * @param client the VPLEX api client
+     * @param scanCache the scan cache
+     * @throws Exception if an error occurred
+     */
     private void checkForClusterHardwareChange(List<String> clusterAssembyIds, String systemNativeGUID, 
             String systemSerialNumber, VPlexApiClient client, Map<String, StorageSystemViewObject> scanCache) throws Exception {
         // we need to ensure the discovered storage system is not a result
         // of a hardware reconfiguration from local to metro, or vice versa
+        s_logger.info("clusterAssembyIds is " + clusterAssembyIds);
         if (VPlexApiConstants.VPLEX_METRO_ASSEMBLY_COUNT == clusterAssembyIds.size()) {
             // check if this system could have been upgraded from local to metro
             List<StorageSystem> vplexLocalStorageSystems = 
@@ -422,6 +436,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     // because this is a local system, it should have only one assembly id
                     String assemblyId = vplex.getVplexAssemblyIdtoClusterId().keySet().iterator().next();
                     if (systemNativeGUID.contains(assemblyId)) {
+
                         boolean allowAutoUpgrade = Boolean.valueOf(ControllerUtils
                             .getPropertyValueFromCoordinator(
                                     _coordinator, ALLOW_LOCAL_TO_METRO_AUTO_UPGRADE));
@@ -439,43 +454,44 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 _dbClient.updateObject(vplex);
                                 throw new Exception(message);
                             }
-                        }
+                        } else {
+                            String message = 
+                                    String.format("Existing VPLEX local native GUID %s is a part of the newly-discoverd system GUID %s, "
+                                    + "which indicates a change in VPLEX hardware configuration from local to metro. "
+                                    + "The existing VPLEX Storage System will updated to reflect the new serial number.", 
+                                    vplex.getNativeGuid(), systemNativeGUID);
+                            s_logger.warn(message);
+                            StorageSystemViewObject systemViewObject = scanCache.get(vplex.getNativeGuid());
+                            if (null == systemViewObject) {
+                                systemViewObject = new StorageSystemViewObject();
+                            }
+                            s_logger.info("adding systemNativeGuid {} storage view object {} to scan cache", 
+                                    systemNativeGUID, systemViewObject);
+                            scanCache.put(systemNativeGUID, systemViewObject);
+                            // update the label if it has not been changed from the default native GUID
+                            if (vplex.getLabel().equals(vplex.getNativeGuid())) {
+                                vplex.setLabel(systemNativeGUID);
+                            }
+                            vplex.setNativeGuid(systemNativeGUID);
+                            vplex.setSerialNumber(systemSerialNumber);
+                            // clear the assembly id collection, which will be updated by discoverClusterIdentification
+                            vplex.setVplexAssemblyIdtoClusterId(new StringMap());
+                            // update the assembly id map in the VPLEX storage system object
+                            discoverClusterIdentification(vplex, client);
+                            _dbClient.updateObject(vplex);
 
-                        s_logger.info("scanCache is " + scanCache);
-                        String message = 
-                                String.format("Existing VPLEX local native GUID %s is a part of the newly-discoverd system GUID %s, "
-                                + "which indicates a change in VPLEX hardware configuration from local to metro. "
-                                + "The existing VPLEX Storage System will updated to reflect the new serial number.", 
-                                vplex.getNativeGuid(), systemNativeGUID);
-                        s_logger.warn(message);
-                        StorageSystemViewObject systemViewObject = scanCache.get(vplex.getNativeGuid());
-                        if (null == systemViewObject) {
-                            systemViewObject = new StorageSystemViewObject();
-                        }
-                        s_logger.info("adding systemNativeGuid {} storage view object {} to scan cache", 
-                                systemNativeGUID, systemViewObject);
-                        scanCache.put(systemNativeGUID, systemViewObject);
-                        // update the label if it has not been changed from the default native GUID
-                        if (vplex.getLabel().equals(vplex.getNativeGuid())) {
-                            vplex.setLabel(systemNativeGUID);
-                        }
-                        vplex.setNativeGuid(systemNativeGUID);
-                        vplex.setSerialNumber(systemSerialNumber);
-                        // clear the assembly id collection, which will be updated by discoverClusterIdentification
-                        vplex.setVplexAssemblyIdtoClusterId(new StringMap());
-                        _dbClient.updateObject(vplex);
+                            // update storage port native guids and labels
+                            List<StoragePort> storagePorts = ControllerUtils.getSystemPortsOfSystem(_dbClient, vplex.getId());
+                            for (StoragePort storagePort : storagePorts) {
+                                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, storagePort);
+                                storagePort.setNativeGuid(nativeGuid);
+                                storagePort.setLabel(nativeGuid);
+                            }
+                            _dbClient.updateObject(storagePorts);
 
-                        // update storage port native guids and labels
-                        List<StoragePort> storagePorts = ControllerUtils.getSystemPortsOfSystem(_dbClient, vplex.getId());
-                        for (StoragePort storagePort : storagePorts) {
-                            String nativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, storagePort);
-                            storagePort.setNativeGuid(nativeGuid);
-                            storagePort.setLabel(nativeGuid);
+                            // now rediscover all storage ports to pull in the new second cluster's ports
+                            discoverPorts(client, vplex, new ArrayList<StoragePort>());
                         }
-                        _dbClient.updateObject(storagePorts);
-
-                        // update the assembly id map in the VPLEX storage system object
-                        discoverClusterIdentification(vplex.getId(), client);
                     }
                 }
             }
@@ -489,10 +505,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         if (systemNativeGUID.contains(assemblyId)) {
                             // THIS IS VERY BAD
                             String message = 
-                                    String.format("Existing VPLEX metro native GUID %s contains the newly-discoverd system GUID %s, "
+                                    String.format("Existing VPLEX metro native GUID %s contains the newly-discoverd system id %s, "
                                     + "which indicates a change in VPLEX hardware configuration from metro to local. "
                                     + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
-                                    + "to contact EMC Customer Support.", vplex.getNativeGuid(), systemNativeGUID);
+                                    + "to contact EMC Customer Support.", vplex.getNativeGuid(), assemblyId);
                             s_logger.error(message);
                             vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
                             vplex.setLastDiscoveryStatusMessage(message);
@@ -564,19 +580,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * Implementation for discovering assembly ID (serial number) to cluster id (0 or 1)
      * mapping used in placement algorithms such as RP and VPLEX.
      *
-     * @param accessProfile providing context for this discovery session
+     * @param vplex VPLEX storage system to discovery cluster info for
      * @param client a reference to the VPLEX API client
      */
-    private void discoverClusterIdentification(URI vplexSystemUri,
+    private void discoverClusterIdentification(StorageSystem vplex,
             VPlexApiClient client) {
-        StorageSystem vplex = null;
         try {
-            vplex = _dbClient.queryObject(StorageSystem.class, vplexSystemUri);
-            if (null == vplex) {
-                s_logger.error("No VPLEX Device was found in ViPR for URI: " + vplexSystemUri);
-                s_logger.error("Cluster Identification discovery cannot continue.");
-                return;
-            }
 
             if (vplex.getVplexAssemblyIdtoClusterId() != null && !vplex.getVplexAssemblyIdtoClusterId().isEmpty()) {
                 // We've already retrieved this information during registration (scan), so there's no reason
@@ -608,7 +617,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             } else {
                 vplex.getVplexAssemblyIdtoClusterId().putAll(assemblyIdToClusterId);
             }
-            _dbClient.updateObject(vplex);
         } catch (Exception e) {
             if (vplex != null) {
                 s_logger.error("Error discovering cluster identification for the VPLEX storage system {}:", vplex.getIpAddress(), e);
@@ -1854,7 +1862,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             // Discover the cluster identification (serial number / cluster id ) mapping
             try {
                 s_logger.info("Discovering cluster identification.");
-                discoverClusterIdentification(accessProfile.getSystemId(), client);
+                discoverClusterIdentification(vplexStorageSystem, client);
                 _completer.statusPending(_dbClient, "Completed cluster identification discovery");
             } catch (VPlexCollectionException vce) {
                 discoverySuccess = false;

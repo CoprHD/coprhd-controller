@@ -326,6 +326,7 @@ public class VNXeStorageDevice extends VNXeOperations
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxeClient(storage);
             String fsId = args.getFs().getNativeId();
+            String fsName = args.getFsName();
             String permission = exp.getPermissions();
 
             String path = "/";
@@ -412,8 +413,8 @@ public class VNXeStorageDevice extends VNXeOperations
                         subdirName = mountPathArg.substring(mountPathFs.length() + 1);
                         path += subdirName;
                     }
+                    String shareName = VNXeUtils.buildNfsShareName(fsName, subdirName);
 
-                    String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());

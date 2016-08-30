@@ -47,13 +47,15 @@ public class StorageSystemTypesInitUtils {
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
     private static final String VNXFILE_SMIS = "vnxfile_smis";
+    private static final String VMAXV3 = "vmaxv3_system";
+    private static final String VMAXV3_PROVIDER = "vmaxv3_provider";
 
     private static final List<String> FILE_TYPE_SYSTEMS = asList(VNX_FILE, ISILON, NETAPP, NETAPPC);
-    private static final List<String> BLOCK_TYPE_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
+    private static final List<String> BLOCK_TYPE_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN, VMAXV3);
     private static final List<String> OBJECT_TYPE_SYSTEMS = asList(ECS);
     private static final List<String> FILE_TYPE_SYSTEM_PROVIDERS = asList(SCALEIOAPI);
     private static final List<String> BLOCK_TYPE_SYSTEM_PROVIDERS = asList(SMIS, HITACHI_PROVIDER, CINDER,
-            DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH);
+            DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, VMAXV3_PROVIDER);
 
     private static final Map<String, Boolean> DEFAULT_SSL_ENABLE_MAP;
     private static final Map<String, Boolean> DEFAULT_MDM_ENABLE_MAP;
@@ -64,6 +66,7 @@ public class StorageSystemTypesInitUtils {
     private static final Map<String, String> SSL_PORT_MAP;
     private static final Map<String, String> NON_SSL_PORT_MAP;
     private static final Map<String, String> STORAGE_PROVIDER_MAP;
+    private static final Map<String, String> DRIVER_CLASS_MAP;
 
     static {
         // Initialize default SSL enable map
@@ -76,6 +79,8 @@ public class StorageSystemTypesInitUtils {
         DEFAULT_SSL_ENABLE_MAP.put(VNX_FILE, true);
         DEFAULT_SSL_ENABLE_MAP.put(VNXe, true);
         DEFAULT_SSL_ENABLE_MAP.put(IBMXIV, true);
+        DEFAULT_SSL_ENABLE_MAP.put(VMAXV3, true);
+        DEFAULT_SSL_ENABLE_MAP.put(VMAXV3_PROVIDER, true);
 
         // Initialize secret key map
         SECREAT_KEY_ENABLE_MAP = new HashMap<String, Boolean>();
@@ -116,6 +121,8 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
         DISPLAY_NAME_MAP.put(CINDER, "Storage Provider for Third-party block storage systems");
         DISPLAY_NAME_MAP.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
+        DISPLAY_NAME_MAP.put(VMAXV3, "VMAX V3 System");
+        DISPLAY_NAME_MAP.put(VMAXV3_PROVIDER, "VMAX V3 Provider");
 
         SSL_PORT_MAP = new HashMap<String, String>();
         SSL_PORT_MAP.put(VNX_FILE, "5989");
@@ -137,6 +144,8 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(VNXe, "443");
         SSL_PORT_MAP.put(VNXFILE_SMIS, "5989");
         SSL_PORT_MAP.put(UNITY, "443");
+        SSL_PORT_MAP.put(VMAXV3, "8443");
+        SSL_PORT_MAP.put(VMAXV3_PROVIDER, "8443");
 
         NON_SSL_PORT_MAP = new HashMap<String, String>();
         NON_SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
@@ -161,6 +170,8 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(VNXe, "443");
         NON_SSL_PORT_MAP.put(VNXFILE_SMIS, "5988");
         NON_SSL_PORT_MAP.put(HITACHI, "2001");
+        NON_SSL_PORT_MAP.put(VMAXV3, "8443");
+        NON_SSL_PORT_MAP.put(VMAXV3_PROVIDER, "8443");
 
         STORAGE_PROVIDER_MAP = new HashMap<String, String>();
         STORAGE_PROVIDER_MAP.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");
@@ -173,6 +184,10 @@ public class StorageSystemTypesInitUtils {
         STORAGE_PROVIDER_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
         STORAGE_PROVIDER_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
         STORAGE_PROVIDER_MAP.put(CEPH, "Block Storage powered by Ceph");
+
+        DRIVER_CLASS_MAP = new HashMap<String, String>();
+        DRIVER_CLASS_MAP.put(VMAXV3, "com.emc.storageos.driver.vmaxv3driver.Vmaxv3StorageDriver");
+        DRIVER_CLASS_MAP.put(VMAXV3_PROVIDER, "com.emc.storageos.driver.vmaxv3driver.Vmaxv3StorageDriver");
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {
@@ -182,6 +197,13 @@ public class StorageSystemTypesInitUtils {
     private DbClient dbClient;
 
     private Map<String, StorageSystemType> existingTypes;
+
+    private String getDriverClassName(String system) {
+        if (DRIVER_CLASS_MAP.containsKey(system)) {
+            return DRIVER_CLASS_MAP.get(system);
+        }
+        return null;
+    }
 
     private void loadTypeMapFromDb() {
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
@@ -299,7 +321,8 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeName(block);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(block));
             type.setMetaType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
-            type.setDriverClassName("block");
+            String driverClass = getDriverClassName(block);
+            type.setDriverClassName(driverClass == null ? "block" : driverClass);
             type.setIsSmiProvider(false);
             if (DEFAULT_SSL_ENABLE_MAP.get(block) != null) {
                 type.setIsDefaultSsl(true);
@@ -341,7 +364,8 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeName(provider);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(provider));
             type.setMetaType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
-            type.setDriverClassName("block");
+            String driverClass = getDriverClassName(provider);
+            type.setDriverClassName(driverClass == null ? "block" : driverClass);
             type.setIsSmiProvider(true);
             if (DEFAULT_SSL_ENABLE_MAP.get(provider) != null) {
                 type.setIsDefaultSsl(true);

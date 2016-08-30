@@ -86,7 +86,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCom
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -101,6 +100,7 @@ public class NetworkDeviceController implements NetworkController {
     private NetworkScheduler _networkScheduler;
     private static final String EVENT_SERVICE_TYPE = "network";
     private static final String EVENT_SERVICE_SOURCE = "NetworkDeviceController";
+    public static final String ZONESET_QUERY_FILTER = "filter:";
 
     @Autowired
     private AuditLogManager _auditMgr;

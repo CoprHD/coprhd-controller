@@ -264,7 +264,7 @@ public class NetworkScheduler {
                 return null;
             }
         } else {
-            _log.debug("Check Zones flag is false. Placing a zone for initiator {} and port {}", initiatorPort, storagePortWwn);
+            _log.debug("Check Zones flag is true. Placing a zone for initiator {} and port {}", initiatorPort, storagePortWwn);
             // If the zone already exists, just return its reference
             NetworkFCZoneInfo zoneInfo = getZoneInfoForExistingZone(iniNet, initiatorPort, storagePort.getPortNetworkId(), existingZones);
             if (zoneInfo != null) {
@@ -431,7 +431,7 @@ public class NetworkScheduler {
                 list.add(itFCZoneReference.next());
             }
         } else {
-            _log.info("No FC Zone References for key found");
+            _log.info("No FC Zone References for key {} found.", key);
         }
         return list;
     }

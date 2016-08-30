@@ -2150,18 +2150,6 @@ public class NetworkDeviceController implements NetworkController {
                 zonesMap.putAll(map);
             }
         }
-        for (String initiatorWWN : zonesMap.keySet()) {
-            List<Zone> zones = zonesMap.get(initiatorWWN);
-            if (zones != null && zones.isEmpty()) {
-                String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(initiatorWWN, _dbClient);
-                if (associatedInitiatorEndpoint != null) {
-                    zones = zonesMap.get(associatedInitiatorEndpoint);
-                    if (zones != null && !zones.isEmpty()) {
-                        zonesMap.put(initiatorWWN, zones);
-                    }
-                }
-            }
-        }
         return zonesMap;
     }
 

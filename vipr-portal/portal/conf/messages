@@ -285,10 +285,17 @@ PoolAssignment.manual=Manual
 #Direct Driver
 CreateVolume.direct.description = Enter information needed to create volume
 volume.arrayType=Storage System Type
-volume.ipAddress=Storage System Name
+volume.arrayTypeForVplex = Backend Storage System Type
+volume.ipAddress=System Name
+volume.ipAddressForVplex = Storage System
+volume.ipAddress2=High Availability Storage System Name
+volume.ha=High Availability
+
 volume.hosts=Hosts
 volume.name = Name
 volume.pool = Storage Pool
+volume.poolForVplex = Storage Pool
+volume.pool2 = High Availability Storage Pool
 volume.size=Size(in GB)
 volume.count=Count
 

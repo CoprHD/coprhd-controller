@@ -251,35 +251,38 @@ angular.module("portalApp").controller({
         };
         $scope.disableSubmitButton = function() {
                 // find all the required fields, and all the password verify fields
-        	var passwordVerifyFields = [];
-        	var requiredFields = [];
-        	angular.forEach($scope.serviceDescriptor.items, function(field) {
-        		if (field.required === true && !$scope.overriddenValues[field.name]) {
-        			requiredFields.push(field);
-        		}
-        		if (field.type === "password.verify") {
-        			passwordVerifyFields.push(field);
-        		}
-        	});
-        	
-        	// if a required field has no value, disable the order button
-                var result = false;
-                angular.forEach(requiredFields, function(field) {
-                    if (field.value == null || field.value.length < 1) {
-                        result = true;
-                    }   
-                });
-                
-                // if a password verify field has an error, disable the order button
-                angular.forEach(passwordVerifyFields, function(field) {
-                        var errors = $scope.errors[field.name];
-                        if (errors && errors.length > 0) {
-                                result = true;
-                        }
-                });
-                
-                // if we make it out, enable the order button
-                return result;
+            var passwordVerifyFields = [];
+            var requiredFields = [];
+            angular.forEach($scope.serviceDescriptor.items, function(field) {
+                if (field.required === true && !$scope.overriddenValues[field.name]) {
+                    requiredFields.push(field);
+                }
+                if (field.type === "password.verify") {
+                    passwordVerifyFields.push(field);
+	            }
+            });
+	
+            // if a required field has no value, disable the order button
+            var result = false;
+            angular.forEach(requiredFields, function(field) {
+                if (field.value == null || field.value.length < 1) {
+                    result = true;
+                }   
+            });
+
+            // if a password verify field has an error, disable the order button
+            angular.forEach(passwordVerifyFields, function(field) {
+                var errors = $scope.errors[field.name];
+                if (errors && errors.length > 0) {
+                    result = true;
+                }  
+            });
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
+            // if we make it out, enable the order button
+            return result;
         }
     },
     FileRessourceCtrl: function($scope, $http, $window, translate) {

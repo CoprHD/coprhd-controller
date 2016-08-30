@@ -504,20 +504,24 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                // If driver used recommended ports (the same ports as already in the mask), we are done.
-                // Otherwise, we return error. The case when driver uses different ports than those which are already in
-                // the mask, are not supported for add volumes.
-                // We will verify driver selected ports against recommended ports list.
-                String msg = String.format("Created export: %s . Used recommended ports: %s .", task.getMessage(), usedRecommendedPorts);
+                String msg = String.format("Created export for volumes: %s . Used recommended ports: %s .", task.getMessage(), usedRecommendedPorts);
                 log.info(msg);
-                if (usedRecommendedPorts.isFalse()) {
-                    String errorMsg = String.format("Change of storage ports in the mask for addVolume() call is not supported: %s .",
+                log.info("Driver selected storage ports: {} ", Joiner.on(',').join(selectedPorts));
+                // If driver used recommended ports (the same ports as already in the mask), we are done.
+                // If driver did not use recommended ports, we will make sure that ports selected by driver contain
+                // all ports from the export mask.
+                // We have to verify that all ports from the export mask are in the list of ports returned by driver.
+                // In case when driver returns ports which do not contain all ports from the mask, we will fail this request.
+                // recommendedPorts are all ports from the mask --- check that these ports are contained in the driver selected ports
+                if (usedRecommendedPorts.isFalse() && !selectedPorts.containsAll(recommendedPorts)) {
+                    String errorMsg = String.format("Driver selected ports do not contain ports from the export mask: %s .",
                             task.getMessage());
                     log.error(errorMsg);
                     ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolumes", errorMsg);
                     taskCompleter.error(dbClient, serviceError);
                 } else {
-                    // Driver used recommended ports for a new volume.
+                    // Driver used recommended ports for a new volumes or all export mask ports are contained
+                    // in the list of driver selected ports
                     // No port change in export mask is needed.
                     // Update volumes Lun Ids in export mask based on driver selection
                     for (String volumeNativeId : driverVolumeToHLUMap.keySet()) {

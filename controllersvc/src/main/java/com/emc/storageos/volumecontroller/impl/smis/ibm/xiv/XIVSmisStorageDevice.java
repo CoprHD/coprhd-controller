@@ -277,7 +277,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info(logMsgBuilder.toString());
     }
 
-	/*
+    /*
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExpandVolume

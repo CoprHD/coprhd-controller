@@ -280,8 +280,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
      * @return boolean
      */
     private boolean checkIfVolumeSizeExceedingPoolSize(CIMArgument[] inArgs, CIMArgument[] outArgs) {
-        Long totalInCapacity = getVolumeSize(inArgs);
-        if (totalInCapacity > getVolumeSize(outArgs)) {
+        if (getVolumeSize(inArgs) > getVolumeSize(outArgs)) {
             return true;
         }
         return false;

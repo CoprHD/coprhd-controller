@@ -6897,9 +6897,9 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.uint16(CP_MODE, mode));
         args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, repCollection));
 
-        // WaitForCopyState only valid for Synchronous mode
-        // Or Active Mode when adding pairs to an empty RDF group.
-        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode || addWaitForCopyState) {
+        // WaitForCopyState only valid for Synchronous mode Or Active Mode
+        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode ||
+                SRDFOperations.Mode.ACTIVE.getMode() == mode || addWaitForCopyState) {
             args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
         }
 

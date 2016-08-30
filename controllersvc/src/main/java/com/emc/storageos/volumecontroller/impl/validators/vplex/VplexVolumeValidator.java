@@ -162,16 +162,6 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                     && !virtualVolume.getWWN().equalsIgnoreCase(vvinfo.getWwn())) {
                 getValidatorLogger().logDiff(volumeId, "wwn", virtualVolume.getWWN(), vvinfo.getWwn());
             }            
-            // The vvinfo capacity is not as accurate as the provisioned capacity on the ViPR volume. 
-            // Ex: ViPR provisionedCapacity = 3.01 GB, vvinfo on VPLEX Virtual Volume = 3 GB.
-            // So this check will fail only if the provisioned capacity is less than the virtual volume capacity 
-            // which will hold in all cases.
-            Long provisionedCapacity = new Long(virtualVolume.getProvisionedCapacity());
-            Long virtualVolumeCapacity = new Long(vvinfo.getCapacityBytes());
-            if (provisionedCapacity.longValue() < virtualVolumeCapacity.longValue()) {
-                getValidatorLogger().logDiff(volumeId, "capacity (database should be >= hardware)", virtualVolume.getProvisionedCapacity().toString(),
-                        vvinfo.getCapacityBytes().toString());
-            }
             if (virtualVolume.getAssociatedVolumes() != null && !virtualVolume.getAssociatedVolumes().isEmpty()) {
                 String locality = virtualVolume.getAssociatedVolumes().size() > 1 ? VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME
                         : VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;

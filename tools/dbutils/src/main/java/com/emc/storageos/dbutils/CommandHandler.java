@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -53,6 +52,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.index.client.IndexClient;
 import com.emc.storageos.index.client.impl.IndexClientImpl;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.google.common.base.Joiner;
@@ -223,22 +223,22 @@ public abstract class CommandHandler {
         }
 
         @Override
-        public void process(DBClient _client) throws Exception {
-            dataImport(_client);
+        public void process(DBClient client) throws Exception {
+            dataImport(client);
         }
 
         @SuppressWarnings("unchecked")
-        private <T extends DataObject> void dataImport(DBClient _client) {
+        private <T extends DataObject> void dataImport(DBClient client) {
             Iterator<T> objects;
 
-            InternalDbClientImpl _dbClient = _client.getDbClient();
-            Class clazz = _client.getClassFromCFName(cfName);
+            InternalDbClientImpl _dbClient = client.getDbClient();
+            Class clazz = client.getClassFromCFName(cfName);
             if (clazz == null) {
                 return;
             }
             String CollectionName = clazz.getName();
             List<URI> uris = null;
-            uris = _client.getColumnUris(clazz, true);
+            uris = _dbClient.queryByType(clazz, true);
             if (uris == null || !uris.iterator().hasNext()) {
                 System.out.println("No records found");
                 return;
@@ -247,9 +247,11 @@ public abstract class CommandHandler {
             List<String> fieldNames = getIndexedFields(clazz);
             objects = _dbClient.queryIterativeObjects(clazz, uris);
 
-            IndexClientImpl dbsolr = new IndexClientImpl();
+            IndexClient indexclient = new IndexClientImpl();
             try {
-                dbsolr.DataImport(clazz, CollectionName, objects, fieldNames);
+                indexclient.start();
+                int countAll = indexclient.importData(clazz, CollectionName, objects, fieldNames);
+                System.out.println(countAll + " records imported!");
             } catch (Exception e) {
                 System.out.println("Data import failed");
             }
@@ -258,6 +260,7 @@ public abstract class CommandHandler {
         private <T extends DataObject> List<String> getIndexedFields(Class<T> clazz) {
             List<String> indexedFieldNames = new ArrayList<String>();
 
+            indexedFieldNames.add("id");
             DataObjectType doType = TypeMap.getDoType(clazz);
             Collection<ColumnField> fields = doType.getColumnFields();
             for (ColumnField field : fields) {
@@ -426,11 +429,11 @@ public abstract class CommandHandler {
     }
 
     public static class SolrQueryHandler extends CommandHandler {
-        String[] query;
-        int row = 10;;
-        int pageNow = 1;
-        String q = "*:*";
-        DbClientImpl dbclientimpl;
+        private String[] query;
+        private int row = 10;;
+        private int pageNow = 1;
+        private String queryString = "*:*";
+        private DbClientImpl dbclientimpl;
 
         public SolrQueryHandler(String[] args) {
             cfName = args[1];
@@ -445,23 +448,17 @@ public abstract class CommandHandler {
                 return;
             }
             String CollectionName = clazz.getName();
-            q = (query[2]);
+            queryString = (query[2]);
             row = Integer.parseInt(query[3]);
             pageNow = Integer.parseInt(query[4]);
 
             IndexClientImpl dbsolr = new IndexClientImpl();
-            List<String> ids;
-            ids = dbsolr.Query(CollectionName, q, row, pageNow);
-            for (int i = 0; i < ids.size(); i++) {
-                URI uri;
-                try {
-                    uri = new URI(ids.get(i));
-                    DataObject object = dbclientimpl.queryObject(uri);
-                    System.out.println(i);
-                    printBeanProperties(clazz, object);
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
+            dbsolr.start();
+            List<URI> uris;
+            uris = dbsolr.query(CollectionName, queryString, row, pageNow);
+            for (URI uri : uris) {
+                DataObject object = dbclientimpl.queryObject(uri);
+                printBeanProperties(clazz, object);
             }
         }
 
@@ -470,7 +467,6 @@ public abstract class CommandHandler {
 
             StringBuilder record = new StringBuilder();
             record.append("id: " + object.getId().toString());
-            // boolean isPrint = true;
 
             BeanInfo bInfo;
             try {
@@ -483,7 +479,6 @@ public abstract class CommandHandler {
             Object objValue;
             Class type;
             for (PropertyDescriptor pd : pds) {
-                // skip class property
                 if (pd.getName().equals("class") || pd.getName().equals("id")) {
                     continue;
                 }

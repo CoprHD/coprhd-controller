@@ -4,7 +4,7 @@ addProjects(
         "authsvc",
         "dbclient",
         "dbsvc",
-		"dbindex",
+		"indexclient",
         "coordinatorsvc",
         "controllersvc",
         "syssvc",

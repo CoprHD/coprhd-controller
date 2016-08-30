@@ -16,7 +16,7 @@ dependencies {
             library(commons_compress),
 			library(solr),
             project(":dbsvc"),
-            project(":dbindex"),
+            project(":indexclient"),
             project(":geosvc"),
             project(":com.emc.sa.model")
 }

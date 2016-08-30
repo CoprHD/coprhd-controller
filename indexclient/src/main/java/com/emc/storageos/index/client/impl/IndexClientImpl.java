@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.index.client.impl;
 
 import java.beans.BeanInfo;
@@ -6,6 +10,8 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -40,97 +46,92 @@ public class IndexClientImpl implements IndexClient {
     private CloudSolrClient solrClient;
 
     @Override
-    public <T extends DataObject> void DataImport(Class<T> clazz, String CollectionName, Iterator<T> objects, List<String> fieldNames) {
+    public <T extends DataObject> int importData(Class<T> clazz, String collectionName, Iterator<T> objects, List<String> fieldNames) {
 
         int countAll = 0;
-        StartSolr();
-        createCollection(CollectionName);
-        addSchema(CollectionName, fieldNames);
-        solrClient.setDefaultCollection(CollectionName);
+        createCollection(collectionName);
+        addSchema(collectionName, fieldNames);
+        solrClient.setDefaultCollection(collectionName);
         try {
             countAll = importRecords(clazz, objects);
-            System.out.println(countAll + " records added");
+            log.info(countAll + " records added");
             solrClient.commit();
         } catch (Exception e) {
-            System.out.println("Data import failed");
+            log.error("Data import failed");
         }
-
+        return countAll;
     }
 
     @Override
-    public List<String> Query(String CollectionName, String q, int row, int pageNow) {
+    public List<URI> query(String collectionName, String queryString, int pageSize, int pageNumber) {
 
-        StartSolr();
-        solrClient.setDefaultCollection(CollectionName);
-        List<String> res = new LinkedList<String>();
+        solrClient.setDefaultCollection(collectionName);
+        List<URI> uris = new LinkedList<URI>();
 
         SolrQuery query = new SolrQuery();
-        query.setQuery(q);
+        query.setQuery(queryString);
         query.setFields("id");
-        query.setStart((pageNow - 1) * row);
-        query.setRows(row);
+        query.setStart((pageNumber - 1) * pageSize);
+        query.setRows(pageSize);
         query.addSort("id", SolrQuery.ORDER.asc);
         QueryResponse response;
         try {
             response = solrClient.query(query);
             SolrDocumentList results = response.getResults();
-            System.out.println("Total number is " + results.getNumFound());
-            System.out.println(row + " records on page " + pageNow + " are listed");
             for (SolrDocument solrDocument : results) {
                 String id = (String) solrDocument.getFieldValue("id");
-                res.add(id);
+                URI uri = new URI(id);
+                uris.add(uri);
             }
         } catch (SolrServerException | IOException e) {
-            System.out.println("Query failed");
+            log.error("Query failed");
+        } catch (URISyntaxException e) {
+            log.error("Generate URI failed");
         }
-        return res;
+        return uris;
     }
 
     @Override
-    public void StartSolr() {
+    public void start() {
 
         String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181";
         solrClient = new CloudSolrClient.Builder().withZkHost(zkHostString).build();
         solrClient.connect();
-        System.out.println("solrClient start");
+        log.info("solrClient start");
     }
 
-    @Override
     public void createCollection(String collectionName) {
 
         boolean hasCollection = solrClient.getZkStateReader().getClusterState().hasCollection(collectionName);
 
-        if (!hasCollection) {
-            CollectionAdminResponse res = new CollectionAdminResponse();
-            log.info("Create collection:{}", collectionName);
-            ModifiableSolrParams params = new ModifiableSolrParams();
-            params.set("action", CollectionParams.CollectionAction.CREATE.toString());
-            params.set("numShards", 2);
-            params.set("replicationFactor", 1);
-            params.set("maxShardsPerNode", 1);
-            params.set("collection.configName", "myconf");
-            // params.set("createNodeSet")
-            params.set("name", collectionName);
-
-            SolrRequest request = new QueryRequest(params);
-            request.setPath("/admin/collections");
-
-            try {
-                res.setResponse(solrClient.request(request));
-            } catch (SolrServerException | IOException e) {
-                System.out.println("collection is not created");
-            }
-            log.info("collection is created");
-            System.out.println("collection is created");
-        } else {
-            System.out.println("Use collection:" + collectionName);
+        if (hasCollection) {
+            log.info("collection has been created");
+            return;
         }
+        CollectionAdminResponse res = new CollectionAdminResponse();
+        log.info("Create collection:{}", collectionName);
+        ModifiableSolrParams params = new ModifiableSolrParams();
+        params.set("action", CollectionParams.CollectionAction.CREATE.toString());
+        params.set("numShards", 2);
+        params.set("replicationFactor", 1);
+        params.set("maxShardsPerNode", 1);
+        params.set("collection.configName", "myconf");
+        params.set("name", collectionName);
+
+        SolrRequest request = new QueryRequest(params);
+        request.setPath("/admin/collections");
+
+        try {
+            res.setResponse(solrClient.request(request));
+        } catch (SolrServerException | IOException e) {
+            log.error("collection creating failed");
+        }
+        log.info("collection is created");
+
     }
 
-    @Override
     public void addSchema(String collectionName, List<String> fieldNames) {
         for (String fieldName : fieldNames) {
-            log.info("add field {}", fieldName);
             Map<String, Object> fieldAttributes = new LinkedHashMap<>();
             fieldAttributes.put("name", fieldName);
             fieldAttributes.put("type", "string");
@@ -140,16 +141,15 @@ public class IndexClientImpl implements IndexClient {
             try {
                 addFieldRequest.process(solrClient, collectionName);
             } catch (SolrServerException | IOException e) {
-                System.out.println("Add schema failed");
+                log.error("Add schema failed");
             }
         }
-        System.out.println("Schema is added");
+        log.info("Schema is added");
     }
 
-    public <T extends DataObject> int importRecords(Class<T> clazz, Iterator<T> objects)
+    private <T extends DataObject> int importRecords(Class<T> clazz, Iterator<T> objects)
             throws Exception {
 
-        System.out.println("Data importing...");
         boolean isPrint = true;
         int countAll = 0;
         while (objects.hasNext()) {
@@ -157,13 +157,12 @@ public class IndexClientImpl implements IndexClient {
             isPrint = importBeanProperties(clazz, object);
             if (isPrint) {
                 countAll++;
-                System.out.println(countAll);
             }
         }
         return countAll;
     }
 
-    public <T extends DataObject> boolean importBeanProperties(Class<T> clazz, T object)
+    private <T extends DataObject> boolean importBeanProperties(Class<T> clazz, T object)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SolrServerException, IOException {
 
         SolrInputDocument doc = new SolrInputDocument();
@@ -181,41 +180,24 @@ public class IndexClientImpl implements IndexClient {
         Object objValue;
         Class type;
         for (PropertyDescriptor pd : pds) {
-            // skip class property
             if (pd.getName().equals("class") || pd.getName().equals("id")) {
                 continue;
             }
             Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
             String objKey;
-            if (nameAnnotation == null) {
-                objKey = pd.getName();
-            } else {
+            if (nameAnnotation != null) {
                 objKey = nameAnnotation.value();
-            }
 
-            objValue = pd.getReadMethod().invoke(object);
-            if (objValue == null) {
-                continue;
-            }
+                objValue = pd.getReadMethod().invoke(object);
+                if (objValue == null) {
+                    continue;
+                }
 
-            if (isEmptyStr(objValue)) {
-                continue;
+                if (isEmptyStr(objValue)) {
+                    continue;
+                }
+                doc.addField(objKey, objValue.toString());
             }
-            /*
-             * type = pd.getPropertyType();
-             * if (type == URI.class) {
-             * doc.addField(objKey, "URI: " + objValue);
-             * } else if (type == StringMap.class) {
-             * doc.addField(objKey, "StringMap " + objValue);
-             * } else if (type == StringSet.class) {
-             * doc.addField(objKey, "StringSet " + objValue);
-             * } else if (type == OpStatusMap.class) {
-             * doc.addField(objKey, "OpStatusMap " + objValue);
-             * } else {
-             * doc.addField(objKey, objValue);
-             * }
-             */
-            doc.addField(objKey, objValue.toString());
 
         }
 

@@ -1,0 +1,15 @@
+dependencies {
+    compile library(apache_cassandra),
+            library(commons_io),
+			library(solr),
+            project(":dbclient"),
+            project(":models"),
+            project(":coordinatorsvc")
+    runtime group: 'com.datastax.cassandra',  name: 'cassandra-driver-core', version: '3.0.0'
+}
+
+test {
+    maxHeapSize = '512m'
+}
+
+// To change the type of schema lock, modify the following schemaLock ext.

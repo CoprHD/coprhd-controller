@@ -283,7 +283,7 @@ public class StorageSystemService extends TaskResourceService {
             ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
                     Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
                             StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.unity));
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.unity, StorageSystem.Type.hp3par));
         }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {

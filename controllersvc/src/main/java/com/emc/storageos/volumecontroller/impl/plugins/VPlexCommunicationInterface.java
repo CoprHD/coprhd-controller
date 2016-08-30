@@ -1016,7 +1016,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(volumeNativeGuid), result);
         if (result.iterator().hasNext()) {
-            return _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            if (null != unManagedVolume && !unManagedVolume.getInactive()) {
+                return unManagedVolume;
+            }
         }
 
         return null;

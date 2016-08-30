@@ -15,6 +15,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import models.HighAvailability;
 import models.StorageSystemTypes;
 import models.datatable.DirectDriverExportDataTable;
 import models.datatable.DirectDriverVolumeDataTable;
@@ -56,10 +57,13 @@ public class DirectDriver extends Controller{
  
     public static void createDirecVolume() {
         renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.OPTIONS));
-        renderArgs.put("hostList",getHosts());
-        render();
+          renderArgs.put("hostList",getHosts());
+        
+        renderArgs.put("ha_Options", Lists.newArrayList(                
+        		HighAvailability.option(HighAvailability.VPLEX_LOCAL),
+                HighAvailability.option(HighAvailability.VPLEX_DISTRIBUTED)));
+       render();
     }
-    
     public static void getIpFromType(String type) {
         List<StorageSystemRestRep> storageSystems = StorageSystemUtils.getStorageSystems();
         List<StorageSystemRestRep> results = Lists.newArrayList();

@@ -2631,20 +2631,25 @@ public class FileService extends TaskResourceService {
             // Verify the source virtual pool recommendations meets source fs storage!!!
             fileServiceApi.createTargetsForExistingSource(fs, project,
                     newVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (BadRequestException | InternalException e) {
-            if (_log.isErrorEnabled()) {
-                _log.error("Delete error", e);
-            }
-
-            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
-            op = fs.getOpStatus().get(task);
-            op.error(e);
-            fileShare.getOpStatus().updateTaskStatus(task, op);
+        } catch (BadRequestException e) {
             // Revert the file system to original state!!!
             restoreFromOriginalFs(orgFs, fs);
             _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
             throw e;
-        }
+        } catch (InternalException e) {
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
+            _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }    
+       
         auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
                 project == null ? null : project.getId().toString());
@@ -2738,20 +2743,24 @@ public class FileService extends TaskResourceService {
             // Verify the source virtual pool recommendations meets source fs storage!!!
             fileServiceApi.createTargetsForExistingSource(fs, project,
                     currentVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (BadRequestException | InternalException e) {
-            if (_log.isErrorEnabled()) {
-                _log.error("createContinuousCopies error ", e);
-            }
-
-            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
-            op = fs.getOpStatus().get(task);
-            op.error(e);
-            fileShare.getOpStatus().updateTaskStatus(task, op);
+        } catch (BadRequestException e) {
             // Revert the file system to original state!!!
             restoreFromOriginalFs(orgFs, fs);
             _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Create file system mirror copy failed {}, {}", e.getMessage(), e);
             throw e;
-        }
+        } catch (InternalException e) {
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
+            _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Create file system mirror copy failed {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Create file system mirror copy failed  {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } 
         auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
                 project == null ? null : project.getId().toString());

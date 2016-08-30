@@ -421,15 +421,15 @@ public class ExportGroupService extends TaskResourceService {
         if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup.getExportMasks() != null) {
             for (URI initiatorId : param.getInitiators().getRemove()) {
                 // Check all export masks associated with this export group
-                if (exportGroup.getExportMasks() != null && !ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+                if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                     // This logic is changed in 3.5 to do two things:
                     // 1. Check to make sure none of the Export Group's masks have initiators in its existing list
                     // 2. Allow user to remove an initiator that isn't part of any ExportMask (because of pathing)
                     boolean okToRemove = true;
                     ExportMask mask = null;
-                    for (String maskIdStr : exportGroup.getExportMasks()) {
-                        mask = _dbClient.queryObject(ExportMask.class, URI.create(maskIdStr));
-                        if (mask.hasExistingInitiator(initiatorId.toString())) {
+                    for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
+                    	mask = exportMask;
+                        if (exportMask.hasExistingInitiator(initiatorId.toString())) {
                             okToRemove = false;
                         }
                     }

@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class InitiatorHostMigration extends BaseCustomMigrationCallback {
     public static final Long FLAG_DEFAULT = 2L;
@@ -140,16 +141,15 @@ public class InitiatorHostMigration extends BaseCustomMigrationCallback {
 
     private void updateExportMask(ExportGroup eg, Initiator oldInitiator, Initiator newInitiator) {
         // update export mask
-    	if (eg.getExportMasks() != null) {
-	        StringSet exportMasks = eg.getExportMasks();
-	        for (URI maskUri : StringSetUtil.stringSetToUriList(exportMasks)) {
-	            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
-	            if (mask != null) {
-	                udpateExportMaskInitiators(mask, oldInitiator, newInitiator);
-	                updateExportMaskUserAddedInitiators(mask, oldInitiator, newInitiator);
-	                updateExportMaskZoningMap(mask, oldInitiator, newInitiator);
+    	List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, eg); 
+    	if (!exportMasks.isEmpty()) {
+	        for (ExportMask exportMask : exportMasks) {
+	            if (exportMask != null) {
+	                udpateExportMaskInitiators(exportMask, oldInitiator, newInitiator);
+	                updateExportMaskUserAddedInitiators(exportMask, oldInitiator, newInitiator);
+	                updateExportMaskZoningMap(exportMask, oldInitiator, newInitiator);
 	
-	                dbClient.updateObject(mask);
+	                dbClient.updateObject(exportMask);
 	            }
 	        }
     	}

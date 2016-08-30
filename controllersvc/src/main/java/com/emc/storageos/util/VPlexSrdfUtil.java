@@ -34,15 +34,18 @@ public class VPlexSrdfUtil {
      * @return -- Srdf volume if present, or null
      */
     static public Volume getSrdfVolumeFromVplexVolume(DbClient dbClient, Volume vplexVolume) {
-        for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
-            Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
-            if (assocVolume == null || assocVolume.getInactive()) {
-                continue;
-            }
-            if (assocVolume.checkForSRDF()) {
-                return assocVolume;
+        if (null != vplexVolume.getAssociatedVolumes()) {
+            for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
+                Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+                if (assocVolume == null || assocVolume.getInactive()) {
+                    continue;
+                }
+                if (assocVolume.checkForSRDF()) {
+                    return assocVolume;
+                }
             }
         }
+
         return null;
     }
     

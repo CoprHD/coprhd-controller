@@ -245,7 +245,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     }
     
     /**
-     * Deactivate an recurring order
+     * Deactivate an recurring event
      * <p>
      * API Call: <tt>POST /catalog/events/{id}/deactivate</tt>
      * 
@@ -253,5 +253,16 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      */
     public void deactivateScheduledEvent(URI eventId) {
         client.post(String.class, PathConstants.SCHEDULED_EVENTS_DEACTIVATE_URL, eventId);
+    }
+
+    /**
+     * Cancellation an recurring event
+     * <p>
+     * API Call: <tt>POST /catalog/events/{id}/cancel</tt>
+     *
+     * @param eventId - URN for the event
+     */
+    public void cancelScheduledEvent(URI eventId) {
+        client.post(String.class, PathConstants.SCHEDULED_EVENTS_CANCELLATION_URL, eventId);
     }
 }

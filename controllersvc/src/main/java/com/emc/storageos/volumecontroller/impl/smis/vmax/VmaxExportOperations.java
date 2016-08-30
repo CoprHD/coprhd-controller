@@ -377,6 +377,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             } else {
                 _log.info("Masking View {} doesn't have any SGs associated, probably removed manually from Array",
                         maskingViewName);
+                taskCompleter.ready(_dbClient);
+                return;
             }
 
             /*
@@ -1915,7 +1917,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * Gets the masks whose IGs can be reused i.e masks that can be skipped from being reused.
      */
     private Set<URI> getMasksWhoseIGsCanBeReused(StorageSystem storage, Map<URI, ExportMask> maskMap,
-            List<String> initiatorNames) throws Exception {
+            List<String> initiatorNamesInRequest) throws Exception {
         /**
          * When a masking view can be skipped and a new masking view can be created instead?
          *
@@ -1925,7 +1927,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
          * or completely different set of initiators.
          */
         Set<URI> masksWithReusableIGs = new HashSet<>();
-        _log.info("Initiators in Request : {} ", Joiner.on(", ").join(initiatorNames));
+        _log.info("Initiators in Request : {} ", Joiner.on(", ").join(initiatorNamesInRequest));
         WBEMClient client = _helper.getConnection(storage).getCimClient();
         for (URI exportMaskURI : maskMap.keySet()) {
             ExportMask mask = maskMap.get(exportMaskURI);
@@ -1933,9 +1935,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info("Checking if mask {} can be skipped from getting reused", maskName);
             // Find all the initiators associated with the MaskingView
             CIMInstance instance = _helper.getSymmLunMaskingView(storage, mask);
-            List<String> maskInitiatorNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
-            maskInitiatorNames.removeAll(initiatorNames);
-            if (!maskInitiatorNames.isEmpty()) {
+            List<String> initiatorNamesInMask = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+            initiatorNamesInMask.removeAll(initiatorNamesInRequest);
+            if (!initiatorNamesInMask.isEmpty()) {
                 CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskName);
                 CIMObjectPath parentIG = _helper.getInitiatorGroupForGivenMaskingView(maskingViewPath, storage);
                 if (_helper.isCascadedIG(storage, parentIG)) {
@@ -1947,7 +1949,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         List<String> initiatorNamesFromIG = _helper.getInitiatorNamesForInitiatorGroup(storage, igPath);
                         _log.info("Initiators in IG {}: {}", igPath.toString(), Joiner.on(", ").join(initiatorNamesFromIG));
                         int initialSize = initiatorNamesFromIG.size();
-                        initiatorNamesFromIG.removeAll(initiatorNames);
+                        initiatorNamesFromIG.removeAll(initiatorNamesInRequest);
                         if (initiatorNamesFromIG.isEmpty() || (initialSize == initiatorNamesFromIG.size())) {
                             // If IG has some or all of requested initiators, it should not have other initiators
                             // or completely different set of initiators
@@ -2049,7 +2051,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             !mask.hasUserInitiator(normalizedPort)) {
                         initiatorsToAdd.add(normalizedPort);
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                        if (existingInitiator != null) {
+                        // Don't add additional initiator to initiators list if it belongs to different host/cluster
+                        if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
                             initiatorIdsToAdd.add(existingInitiator);
                         }
                         addInitiators = true;

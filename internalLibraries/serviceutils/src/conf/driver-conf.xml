@@ -10,12 +10,14 @@
                  <entry key="Simulator" value="driversystem"/>
                  <entry key="SimulatorToo" value="providersystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
+                 <entry key="Vmaxv3Driver" value="vmaxv3_system"/>
               </map>
            </property>
 
            <property name="storageProvidersMap">
                <map>
                    <entry key="Simulator" value="driverprovider"/>
+                   <entry key="Vmaxv3Driver" value="vmaxv3_provider"/>
                </map>
            </property>
 
@@ -24,6 +26,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>vmaxv3_system</value>
                </set>
            </property>
 
@@ -39,6 +42,7 @@
                <set>
                          <value>providersystem</value>
                    <!--      <value>scaleiosystem</value>  -->
+                   <value>vmaxv3_system</value>
 
                </set>
            </property>

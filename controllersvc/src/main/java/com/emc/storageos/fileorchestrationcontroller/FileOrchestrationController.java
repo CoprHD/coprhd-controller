@@ -147,6 +147,40 @@ public interface FileOrchestrationController extends Controller {
             throws ControllerException;
 
     /**
+     * Restore File System Snapshot
+     * 
+     * @param storage
+     * @param fs
+     * @param snapshot
+     * @param opId
+     * @throws ControllerException
+     */
+    void restoreFS(URI storage, URI fs, URI snapshot, String opId)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage
+     * @param pool
+     * @param uri
+     * @param forceDelete
+     * @param deleteType
+     * @param opId
+     * @throws ControllerException
+     */
+    void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws ControllerException;
+
+    /**
+     * 
+     * @param storage
+     * @param uri
+     * @param shareName
+     * @param taskId
+     * @throws ControllerException
+     */
+    void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws ControllerException;
+
+    /**
      * 
      * @param fsURI - URI of the Source File System that has to be failed over.
      * @param nfsPort - NFS Export StoragePort for target File System
@@ -155,6 +189,7 @@ public interface FileOrchestrationController extends Controller {
      * @param taskId
      * @throws ControllerException
      */
+
     void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws ControllerException;
 

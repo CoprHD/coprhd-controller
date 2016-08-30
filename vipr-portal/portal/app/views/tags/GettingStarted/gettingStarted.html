@@ -35,7 +35,7 @@
                     </div>
 
                     <div class="landing-text">
-                        <h3 ng-show="completedSteps == 2 && !staleData">&{'gettingStarted.landing.text'}</h3>
+                        <h4 ng-show="completedSteps == 2 && !staleData">&{'gettingStarted.landing.text'}</h4>
                         <h3 ng-show="completedSteps >= 3 && completedSteps < maxSteps && !staleData" >&{'gettingStarted.landing.systemPartial'}</h3>
                         <h3 ng-show="staleData" >&{'gettingStarted.landing.oldData'}</h3>
                         <h3 ng-show="completedSteps == maxSteps && !staleData" >&{'gettingStarted.landing.systemReady'}</h3>

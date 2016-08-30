@@ -884,14 +884,14 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Return whether or not a volume in ViPR was created outside
-     * of ViPR and ingested.
+     * of ViPR and ingested virtual-volume-only (with no backend volumes).
      * 
      * @param volume
      *            A reference to a volume.
      * 
-     * @return true if the volume was ingested, else false.
+     * @return true if the volume was ingested without backend volumes, else false.
      */
-    public boolean isIngestedVolume(DbClient dbClient) {
+    public boolean isIngestedVolumeWithoutBackend(DbClient dbClient) {
         URI systemURI = getStorageController();
         if (systemURI != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);

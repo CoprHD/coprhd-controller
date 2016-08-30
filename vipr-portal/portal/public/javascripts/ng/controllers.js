@@ -251,35 +251,38 @@ angular.module("portalApp").controller({
         };
         $scope.disableSubmitButton = function() {
                 // find all the required fields, and all the password verify fields
-        	var passwordVerifyFields = [];
-        	var requiredFields = [];
-        	angular.forEach($scope.serviceDescriptor.items, function(field) {
-        		if (field.required === true && !$scope.overriddenValues[field.name]) {
-        			requiredFields.push(field);
-        		}
-        		if (field.type === "password.verify") {
-        			passwordVerifyFields.push(field);
-        		}
-        	});
-        	
-        	// if a required field has no value, disable the order button
-                var result = false;
-                angular.forEach(requiredFields, function(field) {
-                    if (field.value == null || field.value.length < 1) {
-                        result = true;
-                    }   
-                });
-                
-                // if a password verify field has an error, disable the order button
-                angular.forEach(passwordVerifyFields, function(field) {
-                        var errors = $scope.errors[field.name];
-                        if (errors && errors.length > 0) {
-                                result = true;
-                        }
-                });
-                
-                // if we make it out, enable the order button
-                return result;
+            var passwordVerifyFields = [];
+            var requiredFields = [];
+            angular.forEach($scope.serviceDescriptor.items, function(field) {
+                if (field.required === true && !$scope.overriddenValues[field.name]) {
+                    requiredFields.push(field);
+                }
+                if (field.type === "password.verify") {
+                    passwordVerifyFields.push(field);
+	            }
+            });
+	
+            // if a required field has no value, disable the order button
+            var result = false;
+            angular.forEach(requiredFields, function(field) {
+                if (field.value == null || field.value.length < 1) {
+                    result = true;
+                }   
+            });
+
+            // if a password verify field has an error, disable the order button
+            angular.forEach(passwordVerifyFields, function(field) {
+                var errors = $scope.errors[field.name];
+                if (errors && errors.length > 0) {
+                    result = true;
+                }  
+            });
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
+            // if we make it out, enable the order button
+            return result;
         }
     },
     FileRessourceCtrl: function($scope, $http, $window, translate) {
@@ -1908,10 +1911,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
                             if(failedType=="PROVIDER"){
-                                $scope.guideError = "Error: Some Provider failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Storage Provider failed to discover:\n"+failedArray;
                                 finishChecking();
                             } else {
-                                $scope.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
+                                $scope.guideError = "Error: Storage System(s) failed to discover:\n"+failedArray;
                                 finishChecking();
                             }
                         } else {
@@ -1924,7 +1927,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                     $scope.completedSteps = 4;
                                     callback();
                                 } else {
-                                    $scope.guideError = "Error: No All Flash storage systems Discovered or Registered";
+                                    $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
                                     finishChecking();
                                 }
                             });
@@ -1948,7 +1951,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Some Storage not attached to Network:\n"+data.data;
+                        $scope.guideError = "Error: Storage System(s) not attached to Network:\n"+data.data;
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -1971,7 +1974,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Some Storage not attached to Virtual Array:\n"+data.data;
+                        $scope.guideError = "Error: Storage System(s) not attached to Virtual Array:\n"+data.data;
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -1994,7 +1997,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+data.data;
+                            $scope.guideError = "Error: Storage System(s) not attached to Virtual Pool:\n"+data.data;
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;

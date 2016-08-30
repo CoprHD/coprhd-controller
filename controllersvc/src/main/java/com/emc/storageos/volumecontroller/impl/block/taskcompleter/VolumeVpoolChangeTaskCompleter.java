@@ -120,7 +120,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
                         } 
                         
-                        if (RPHelper.isVPlexVolume(volume)) {
+                        if (RPHelper.isVPlexVolume(volume, dbClient)) {
                             // Special rollback for VPLEX to update the backend vpools to the old vpools
                             rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
                         }

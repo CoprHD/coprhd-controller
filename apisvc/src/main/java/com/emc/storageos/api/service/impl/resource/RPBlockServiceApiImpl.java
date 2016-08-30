@@ -3382,19 +3382,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private void setInternalSitesForSourceBackingVolumes(RPRecommendation primaryRecommendation, RPRecommendation secondaryRecommendation,
             Volume sourceVolume, boolean exportForMetroPoint, boolean exportToHASideOnly, String haVarrayConnectedToRp,
             String activeSourceCopyName, String standbySourceCopyName) {
-        if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
-            _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
-            throw InternalServerErrorException.
-                internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
-        }
 
         if (exportForMetroPoint) {
             // If this is MetroPoint request and we're looking at the SOURCE volume we need to ensure the
             // backing volumes are aware of which internal site they have been assigned (needed for exporting in
             // RPDeviceController).
-
             _log.info(String.format("MetroPoint export, update backing volumes for [%s] " + "with correct internal site",
                     sourceVolume.getLabel()));
+            if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
+            }
 
             // Iterate over each backing volume...
             Iterator<String> it = sourceVolume.getAssociatedVolumes().iterator();
@@ -3421,6 +3420,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // we need to set the internal site name on the HA backing volume.
             _log.info(String.format("RP+VPLEX HA side export, update HA backing volume for [%s] " + "with correct internal site",
                     sourceVolume.getLabel()));
+            if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
+            }
 
             // Iterate over each backing volume...
             Iterator<String> it = sourceVolume.getAssociatedVolumes().iterator();

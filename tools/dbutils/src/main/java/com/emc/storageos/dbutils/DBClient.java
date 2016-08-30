@@ -455,7 +455,7 @@ public class DBClient {
             String xml = xmlBuilder.writeAsXML(data, "stat");
             builder.append(xml);
             ++recCount;
-        }s
+        }
 
         @Override
         public void done() {

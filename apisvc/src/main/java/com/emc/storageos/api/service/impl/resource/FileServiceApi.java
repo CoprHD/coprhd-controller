@@ -16,6 +16,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -216,4 +217,38 @@ public interface FileServiceApi {
      */
     public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws InternalException;
+
+    /**
+     * Restore File System Snapshot
+     * 
+     * @param storage
+     * @param fs
+     * @param snapshot
+     * @param opId
+     * @throws ControllerException
+     */
+    void restoreFS(URI storage, URI fs, URI snapshot, String opId)
+            throws InternalException;
+
+    /**
+     * 
+     * @param storage
+     * @param pool
+     * @param uri
+     * @param forceDelete
+     * @param deleteType
+     * @param opId
+     * @throws ControllerException
+     */
+    void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws InternalException;
+
+    /**
+     * 
+     * @param storage
+     * @param uri
+     * @param shareName
+     * @param taskId
+     * @throws InternalException
+     */
+    void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
 }

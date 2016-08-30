@@ -495,6 +495,6 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException couldNotPerformAliasOperation(final String reason);
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName, final Long volumeSize, final Long poolSize);
+    public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName);
 
 }

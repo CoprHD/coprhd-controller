@@ -4,7 +4,10 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.service.vmware.tasks.RetryableTask;
 import com.iwave.ext.vmware.HostStorageAPI;
@@ -21,7 +24,15 @@ public class AttachScsiDisk extends RetryableTask<Void> {
     public AttachScsiDisk(HostSystem host, List<HostScsiDisk> disks) {
         this.host = host;
         this.disks = disks;
-        provideDetailArgs(disks, host.getName());
+
+        List<String> deviceNames = new ArrayList<>();
+
+        for (HostScsiDisk disk : disks) {
+            deviceNames.add(disk.getDeviceName());
+        }
+        
+        String lunsString = StringUtils.join(deviceNames, ',');
+        provideDetailArgs(lunsString, host.getName());
     }
 
     @Override

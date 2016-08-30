@@ -105,7 +105,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         }
 
         vmware.disconnect();
-        addRollback(new ConnectToVCenter(vmware.getVcenter(vcenterId)));
+        ExecutionUtils.clearRollback();
 
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);

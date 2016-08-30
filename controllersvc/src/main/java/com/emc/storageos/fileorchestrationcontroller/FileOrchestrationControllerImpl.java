@@ -96,6 +96,22 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("failbackFileSystem", fsURI, nfsPort, cifsPort, replicateConfiguration, taskId);
     }
 
+    @Override
+    public void restoreFS(URI storage, URI fs, URI snapshot, String opId) throws ControllerException {
+        execOrchestration("restoreFS", storage, fs, snapshot, opId);
+    }
+
+    @Override
+    public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
+            throws ControllerException {
+        execOrchestration("deleteSnapshot", storage, pool, uri, forceDelete, deleteType, opId);
+    }
+
+    @Override
+    public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws ControllerException {
+        execOrchestration("deleteShareACLs", storage, uri, shareName, taskId);
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;
@@ -125,4 +141,5 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
     }
+
 }

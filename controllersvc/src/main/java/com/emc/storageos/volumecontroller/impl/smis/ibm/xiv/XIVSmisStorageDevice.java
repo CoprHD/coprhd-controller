@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
 import java.net.URI;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

@@ -3930,10 +3930,14 @@ recoverpoint_export_bookmark_tests()
         done
 
         secho 'Exporting RP bookmark to 2 different hosts'
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1,${RP_HOSTNAME}2"
-        
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
-        run export_group update ${rpexport} --remHosts "${RP_HOSTNAME}2"
+        run export_group delete ${rpexport}2
+
+        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
+        run export_group delete ${rpexport}
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 

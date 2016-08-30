@@ -1588,8 +1588,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
             for (ExportMask exportMask : exportMasks) {              
                 exportGroupMaskNames.add(exportMask.getMaskName());
+                set.add(exportMask.getId().toString());
             }
-            set.addAll(exportGroup.getExportMasks());
+
             for (Set<URI> entry : maskURIs) {
                 Collection<String> uris = Collections2.transform(entry,
                         CommonTransformerFunctions.FCTN_URI_TO_STRING);

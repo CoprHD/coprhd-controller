@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskRemoveInitiatorCompleter.class);
@@ -47,7 +46,12 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                 if (exportMask.getInitiators() == null ||
                         exportMask.getInitiators().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
-                    dbClient.markForDeletion(exportMask);
+                    // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
+                    // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that
+                    // when the zone step is complete.
+                    _log.info(String.format(
+                            "ExportMask %s will not be deleted by this step completer; unzoning step will delete the ExportMask",
+                            exportMask.forDisplay()));
                     dbClient.updateObject(exportGroup);
                 } else {
                     List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);

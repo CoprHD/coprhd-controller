@@ -72,7 +72,6 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
-import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -276,22 +275,6 @@ public class DBClient {
         printBeanProperties(clazz, object);
     }
 
-    private <T extends DataObject> List<String> getIndexedFields(Class<T> clazz) {
-        List<String> indexedFieldNames = new ArrayList();
-
-        DataObjectType doType = TypeMap.getDoType(clazz);
-        Collection<ColumnField> fields = doType.getColumnFields();
-        for (ColumnField field : fields) {
-            PropertyDescriptor descriptor = field.getPropertyDescriptor();
-            Class<?> type = descriptor.getPropertyType();
-            if (String.class == type) {
-                indexedFieldNames.add(field.getName());
-            }
-        }
-        System.out.println("getIndexedFields is finished");
-        return indexedFieldNames;
-    }
-
     /**
      * 
      * @param clazz
@@ -472,7 +455,7 @@ public class DBClient {
             String xml = xmlBuilder.writeAsXML(data, "stat");
             builder.append(xml);
             ++recCount;
-        }
+        }s
 
         @Override
         public void done() {

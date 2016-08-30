@@ -741,11 +741,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 mask.getMaskName()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
-                        previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
-                                exportMasks);
-
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
                                 mask, getExpectedVolumes(mask), getExpectedInitiators(mask), null);
+                        previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
+                                exportMasks);
                         exportGroup.removeExportMask(mask.getId());
                         _dbClient.updateObject(exportGroup);
                         anyOperationsToDo = true;
@@ -755,14 +754,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 Joiner.on(',').join(initiatorsToRemove)));
                         Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                         maskToInitiatorsMap.put(mask.getId(), initiatorsToRemove);
-                        previousStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep, exportGroup,
-                                maskToInitiatorsMap);
 
                         ExportMaskRemoveInitiatorCompleter exportTaskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI,
                                 mask.getId(), initiatorsToRemove, null);
                         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(mask);
                         previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
                                 exportGroup, mask, volumeURIs, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
+                        previousStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep, exportGroup,
+                                maskToInitiatorsMap);
                         anyOperationsToDo = true;
                     }
 
@@ -827,10 +826,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 Joiner.on(",").join(volumesToRemove), mask.getMaskName()));
                         // Order matters! Above this would be any remove initiators that would impact other masking views.
                         // Be sure to always remove anything inside the mask before removing the mask itself.
-                        previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, Arrays.asList(mask));
-
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup, mask,
                                 getExpectedVolumes(mask), getExpectedInitiators(mask), null);
+                        previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, Arrays.asList(mask));
                         anyOperationsToDo = true;
                     } else {
                         ExportTaskCompleter completer = new ExportRemoveVolumesOnAdoptedMaskCompleter(
@@ -839,11 +837,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
                         List<ExportMask> masks = new ArrayList<ExportMask>();
                         masks.add(mask);
-                        previousStep = generateZoningRemoveVolumesWorkflow(workflow, previousStep,
-                                exportGroup, masks, volumesToRemove);
 
                         previousStep = generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage, exportGroup,
                                 mask, volumesToRemove, getExpectedInitiators(mask), completer);
+                        previousStep = generateZoningRemoveVolumesWorkflow(workflow, previousStep,
+                                exportGroup, masks, volumesToRemove);
                         anyOperationsToDo = true;
 
                         // Determine if there are any more initiators from our export group in this mask. If not, remove the

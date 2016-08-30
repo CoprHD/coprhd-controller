@@ -117,9 +117,6 @@
         <control-group v-field='vpool.provisioningType' required>
           <select-one options="provisioningTypeOptions" auto-default v-disabled='locked'></select-one>
         </control-group>
-        <control-group v-field="vpool.enableDeDup">
-          <boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
-        </control-group>
 
         <control-group v-field='vpool.protocols'  type="array" required>
           <select-many options="protocolsAvailableOptions" v-disabled='locked'></select-many>
@@ -148,6 +145,13 @@
             </control-group>
           </div>
         </div>
+        <div ng-if="vpool.provisioningType == '${models.ProvisioningTypes.THIN}'">
+        	<div ng-if="['${models.StorageSystemTypes.HP3PAR}'].indexOf(vpool.systemType) > -1">
+        		<control-group v-field="vpool.enableDeDup">
+        			<boolean-checkbox v-default-value="false"  v-disabled='locked'></boolean-checkbox>
+        		</control-group>
+        	</div>
+        </div>
         <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.uniqueAutoTierPolicyNames'>
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
@@ -156,6 +160,11 @@
         <div ng-if="['driversystem','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.autoTierPolicy'>
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
+          </control-group>
+        </div>
+        <div ng-if="['${models.StorageSystemTypes.VMAX}'].indexOf(vpool.systemType) > -1">
+          <control-group v-field='vpool.enableCompression'>
+            <boolean-checkbox v-disabled='locked'></boolean-checkbox>
           </control-group>
         </div>
         <div ng-if="['${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">

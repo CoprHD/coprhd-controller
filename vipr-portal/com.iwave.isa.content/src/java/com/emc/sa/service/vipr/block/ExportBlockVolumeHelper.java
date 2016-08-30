@@ -95,6 +95,8 @@ public class ExportBlockVolumeHelper {
         else {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
+
+        BlockStorageUtils.checkEvents(hostId);
     }
 
     /** convenience method for exporting volumes */

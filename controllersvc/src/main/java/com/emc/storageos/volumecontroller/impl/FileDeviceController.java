@@ -384,7 +384,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.isCommandSuccess()
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
                     boolean snapshotsExist = snapshotsExistsOnFS(fsObj);
-                    boolean quotaDirsExist =  quotaDirectoriesExistsOnFS(fsObj);
+                    boolean quotaDirsExist = quotaDirectoriesExistsOnFS(fsObj);
                     boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
                     if (fsCheck) {
@@ -392,11 +392,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         if (snapshotsExist) {
                             errMsg = new String(
                                     "delete file system from ViPR database failed because snapshots exist for file system "
-                                     + fsObj.getLabel() + " and once deleted the snapshot cannot be ingested into ViPR");
+                                            + fsObj.getLabel() + " and once deleted the snapshot cannot be ingested into ViPR");
                         } else if (quotaDirsExist && !quotaDirectoryIngestionSupported(storageObj.getSystemType())) {
                             errMsg = new String(
-                                    "delete file system from ViPR database failed because quota directories exist for file system " 
-                                     + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
+                                    "delete file system from ViPR database failed because quota directories exist for file system "
+                                            + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
                         }
                         if (errMsg != null) {
                             _log.error(errMsg);
@@ -442,13 +442,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
-
+                WorkflowStepCompleter.stepExecuting(opId);
+                // Acquire lock for VNXFILE Storage System
+                acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, args);
                 if (result.getCommandPending()) {
                     return;
                 }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
                 snapshotObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
                 if (result.isCommandSuccess()) {
+                    WorkflowStepCompleter.stepSucceded(opId);
                     snapshotObj.setInactive(true);
                     // delete the corresponding export rules if available.
                     args.addSnapshot(snapshotObj);
@@ -484,11 +490,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    private boolean quotaDirectoryIngestionSupported(String storageType){
+    private boolean quotaDirectoryIngestionSupported(String storageType) {
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
         boolean qDIngestionSupported = false;
-        if (storageSystemType.equals(StorageSystem.Type.unity)){
-           qDIngestionSupported = true;
+        if (storageSystemType.equals(StorageSystem.Type.unity) || storageSystemType.equals(StorageSystem.Type.netapp)
+                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile)) {
+            qDIngestionSupported = true;
         }
         return qDIngestionSupported;
     }
@@ -632,7 +639,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                     // Per New Model of Export Rules Lets create the rule and save it as FileExportRule.
                     if (result.isCommandSuccess()) {
-                        WorkflowStepCompleter.stepSucceded(opId);
                         FileExportRule newRule = getFileExportRule(fsObj.getId(), fileExport, args);
                         _log.debug("ExportRule Constucted per expotkey {}, {}", fsExpKey, newRule);
                         if (existingRules != null && existingRules.isEmpty()) {
@@ -659,6 +665,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         }
                     }
                 }
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
             }
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             OperationTypeEnum auditType = null;
@@ -794,10 +803,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 _log.info("Exports are null");
             }
+
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnexport(storageObj, args, fileExports);
 
             if (result.getCommandPending()) {
                 return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -851,8 +865,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
 
             _dbClient.updateObject(fsObj);
-
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] params = { storage.toString(), fileUri.toString(), e.getMessage() };
             _log.error("Unable to unexport file system or snapshot: storage {}, FS/snapshot URI {}: {}", params);
             for (FileShareExport fsExport : exports) {
@@ -889,6 +907,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(opId);
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExpandFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
@@ -970,8 +990,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 if (result.isCommandSuccess()) {
                     _log.info("File share created successfully");
-                    WorkflowStepCompleter.stepSucceded(opId);
                     createDefaultACEForSMBShare(uri, smbShare, storageObj.getSystemType());
+                    WorkflowStepCompleter.stepSucceded(opId);
                 }
 
                 String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
@@ -1310,10 +1330,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addFileShare(fsObj);
             args.addSnapshot(snapshotObj);
             args.setOpId(opId);
-
+            WorkflowStepCompleter.stepExecuting(opId);
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doRestoreFS(storageObj, args);
             if (result.getCommandPending()) {
                 return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
             }
             op = result.toOperation();
             snapshotObj.getOpStatus().updateTaskStatus(opId, op);
@@ -1327,6 +1355,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             String[] params = { storage.toString(), fs.toString(), snapshot.toString(), e.getMessage() };
             _log.error("Unable to restore file system from snapshot: storage {}, FS {}, snapshot {}: {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, snapshotObj, e);
             if ((fsObj != null) && (snapshotObj != null)) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.RESTORE_FILE_SNAPSHOT, false, e.getMessage(), "", fsObj,
@@ -1931,7 +1961,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             BiosCommandResult result = getDevice(storageObj.getSystemType()).updateExportRules(storageObj, args);
 
             if (result.isCommandSuccess()) {
-                WorkflowStepCompleter.stepSucceded(opId);
                 // Update Database
                 doCRUDExports(param, fs, args);
 
@@ -1940,7 +1969,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     args.getFileObjExports().clear();
                     _dbClient.updateObject(args.getFileObj());
                 }
+                WorkflowStepCompleter.stepSucceded(opId);
             }
+
             if (result.getCommandPending()) {
                 return;
             }
@@ -2641,9 +2672,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     .updateShareACLs(storageObj, args);
 
             if (result.isCommandSuccess()) {
-                WorkflowStepCompleter.stepSucceded(opId);
                 // Update database
                 updateShareACLsInDB(param, fs, args);
+                WorkflowStepCompleter.stepSucceded(opId);
             }
 
             if (result.getCommandPending()) {
@@ -2916,7 +2947,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             while (shareAclIter.hasNext()) {
 
                 CifsShareACL shareAcl = shareAclIter.next();
-                if (args.getShareName().equals(shareAcl.getShareName())) {
+                if (shareAcl != null && args.getShareName().equals(shareAcl.getShareName())) {
                     acls.add(shareAcl);
                 }
             }
@@ -3057,15 +3088,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // query and setExistingShare ACL
             args.setExistingShareAcls(queryExistingShareAcls(args));
 
+            // Acquire lock for VNXFILE Storage System
+            WorkflowStepCompleter.stepExecuting(opId);
+            acquireStepLock(storageObj, opId);
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .deleteShareACLs(storageObj, args);
 
             if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
                 // Update database
                 deleteShareACLsFromDB(args);
             }
 
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
             if (result.getCommandPending()) {
                 return;
             }
@@ -3097,6 +3135,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             _dbClient.updateObject(fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] logParams = { storage.toString(), fsURI.toString() };
             _log.error("Unable to delete share ACL for file system or snapshot: storage {}, FS/snapshot URI {}",
                     logParams, e);

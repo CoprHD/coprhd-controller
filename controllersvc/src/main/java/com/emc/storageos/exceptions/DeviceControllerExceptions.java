@@ -489,7 +489,7 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
-    public DeviceControllerException validationError(final String type, final String details, final String remedialAction);
+    public DeviceControllerException validationError(final String type, final String details, final String remediationAction);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformAliasOperation(final String reason);
@@ -497,4 +497,9 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException validationExportMaskError(String maskName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException validationVolumeError(String volumeName, String storageSystemName, String details);
 }

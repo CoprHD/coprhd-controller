@@ -1184,7 +1184,7 @@ public class VolumeService extends TaskResourceService {
 
     public static void checkOperationSupportedOnIngestedVolume(Volume volume,
             ResourceOperationTypeEnum operation, DbClient dbClient) {
-        if (volume.isIngestedVolume(dbClient)) {
+        if (volume.isIngestedVolumeWithoutBackend(dbClient)) {
             switch (operation) {
                 case CREATE_VOLUME_FULL_COPY:
                 case CREATE_VOLUME_SNAPSHOT:

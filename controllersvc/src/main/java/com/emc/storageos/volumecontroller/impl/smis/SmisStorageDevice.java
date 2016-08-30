@@ -207,8 +207,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Create Volume Start - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
+        StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
         // volumeGroupObjectPath is required for VMAX3
-        CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(storageSystem, volumes.get(0), storagePool);
+        CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(forProvider, storageSystem, volumes.get(0), storagePool);
         List<String> volumeLabels = new ArrayList<>();
 
         for (Volume volume : volumes) {
@@ -266,7 +267,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
             CIMArgument[] outArgs = new CIMArgument[5];
-            StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
             _helper.invokeMethod(forProvider, configSvcPath,
                     _helper.createVolumesMethodName(forProvider), inArgs, outArgs);
             CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);

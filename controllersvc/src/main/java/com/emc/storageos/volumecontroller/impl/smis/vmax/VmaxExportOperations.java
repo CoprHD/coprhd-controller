@@ -536,9 +536,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
      */
     private void addVolumesToParkingStorageGroup(StorageSystem storage, String policyName, Set<String> volumeDeviceIds) throws Exception {
         String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
-        CIMObjectPath groupPath = _helper.getVolumeGroupBasedOnSLO(storage, tokens[0], tokens[1], tokens[2]);
+        CIMObjectPath groupPath = _helper.getVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
         if (groupPath == null) {
-            groupPath = _helper.createVolumeGroupBasedOnSLO(storage, tokens[0], tokens[1], tokens[2]);
+            groupPath = _helper.createVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
         }
         CIMArgument[] inArgs = _helper.getAddVolumesToMaskingGroupInputArguments(storage, groupPath, volumeDeviceIds);
         CIMArgument[] outArgs = new CIMArgument[5];
@@ -2159,6 +2159,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.removeFromExistingInitiators(initiatorsToRemove);
                     if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                         mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
+                        mask.removeFromUserAddedInitiatorsByURI(initiatorIdsToRemove);
                     }
                     // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared
                     // by
@@ -4646,7 +4647,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     } else {
                         newGroup = true;
                         String[] tokens = newPolicyName.split(Constants.SMIS_PLUS_REGEX);
-                        newChildGroupPath = _helper.createVolumeGroupBasedOnSLO(storage, tokens[0], tokens[1], tokens[2]);
+                        newChildGroupPath = _helper.createVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
 
                         // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
                         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the

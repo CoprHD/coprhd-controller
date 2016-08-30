@@ -31,5 +31,7 @@ public class VNXeConstants {
     public static final String PATH_FILTER = "path eq";
     public static final String SNAP_GROUP_FILTER = "snapGroup.id eq ";
     public static final String ID_FILTER = "id eq ";
+    public static final String FASTVP_FEATURE="FAST_VP";
+    public static final String INITIATOR_EXISITNG = "The specified host initiator already exists";
 
 }

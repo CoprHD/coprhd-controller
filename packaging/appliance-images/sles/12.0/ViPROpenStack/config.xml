@@ -47,6 +47,15 @@
   <repository type="yast2" priority="3">
     <source path="/slesmedia/12-SLES-DVD1"/>
   </repository>
+  <repository type="rpm-md" priority="2">
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/common-mitaka-master"/>
+  </repository>
+  <repository type="rpm-md" priority="1">
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/Mitaka-master"/>
+  </repository>
+  <repository type="rpm-md" priority="1">
+    <source path="http://asdrepo.isus.emc.com:8081/artifactory/vipr-openstack-local/packages-master/"/>
+  </repository>
   <packages type="image" profiles="base,appliance">
     <package name="audit"/>
     <package name="curl"/>
@@ -75,6 +84,19 @@
     <package name="zypper"/>
   </packages>
   <packages type="image" profiles="appliance">
+    <package name="openstack-keystone"/>
+    <package name="python-ipaddress"/>
+    <package name="openstack-cinder"/>
+    <package name="apache2-mod_wsgi"/>
+    <package name="memcached"/>
+    <package name="openstack-cinder-volume"/>
+    <package name="openstack-cinder-api"/>
+    <package name="openstack-cinder-scheduler"/>
+    <package name="python-cinderclient"/>
+    <package name="python-openstackclient"/>
+    <package name="python-swiftclient"/>
+    <package name="rabbitmq-server"/>
+    <package name="ViPROpenStack-cc-conf"/>
   </packages>
   <packages type="bootstrap">
     <package name="ca-certificates"/>

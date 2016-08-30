@@ -204,7 +204,7 @@ public class ExportMaskOperationsHelper {
                 }
             }
             if (requiresUpdate) {
-                dbClient.persistObject(mask);
+                dbClient.updateObject(mask);
             }
         } catch (Exception e) {
             _log.error("Unexpected error: setHLUFromProtocolControllers failed.", e);

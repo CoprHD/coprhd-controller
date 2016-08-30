@@ -41,6 +41,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
 
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
@@ -50,10 +51,16 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void createExportMask(StorageSystem storage, URI exportMask,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        _logger.info("Creating export mask.");
+                    throws DeviceControllerException {
+        _logger.info("{} createExportMask START...", storage.getSerialNumber());
+
         VNXeApiClient apiClient = getVnxeClient(storage);
         try {
+            _logger.info("createExportMask: Export mask id: {}", exportMask);
+            _logger.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            _logger.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            _logger.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+
             List<VNXeHostInitiator> initiators = prepareInitiators(initiatorList);
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMask);
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
@@ -65,7 +72,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 VNXeExportResult result = null;
                 Integer newhlu = -1;
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
-                    newhlu =Integer.valueOf(hlu);
+                    newhlu = Integer.valueOf(hlu);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, initiators, newhlu);
@@ -84,7 +91,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("createExportMask", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-
+        _logger.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
     private List<VNXeHostInitiator> prepareInitiators(List<Initiator> initiators) {
@@ -136,17 +143,30 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void deleteExportMask(StorageSystem storage, URI exportMaskUri,
             List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _logger.info("{} deleteExportMask START...", storage.getSerialNumber());
 
         try {
+            _logger.info("Export mask id: {}", exportMaskUri);
+            if (volumeURIList != null) {
+                _logger.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            }
+            if (targetURIList != null) {
+                _logger.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            }
+            if (initiatorList != null) {
+                _logger.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+
             VNXeApiClient apiClient = getVnxeClient(storage);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
             StringSet inits = exportMask.getInitiators();
             for (String init : inits) {
                 _logger.info("Initiator: {}", init);
                 Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(init));
-                initiatorList.add(initiator);
+                if (initiator != null) {
+                    initiatorList.add(initiator);
+                }
             }
 
             List<VNXeHostInitiator> initiators = prepareInitiators(initiatorList);
@@ -186,11 +206,17 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     }
 
     @Override
-    public void addVolume(StorageSystem storage, URI exportMaskUri,
-            VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void addVolumes(StorageSystem storage, URI exportMaskUri,
+            VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         _logger.info("{} addVolume START...", storage.getSerialNumber());
         try {
+            _logger.info("addVolumes: Export mask id: {}", exportMaskUri);
+            _logger.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            if (initiatorList != null) {
+                _logger.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
+            }
+
             VNXeApiClient apiClient = getVnxeClient(storage);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
             StringSet initiatorUris = exportMask.getInitiators();
@@ -210,7 +236,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 VNXeExportResult result = null;
                 Integer newhlu = -1;
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
-                    newhlu =Integer.valueOf(hlu);
+                    newhlu = Integer.valueOf(hlu);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
@@ -230,16 +256,22 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addVolume", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-
+        _logger.info("{} addVolumes END...", storage.getSerialNumber());
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskUri,
-            List<URI> volumes, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        _logger.info("{} remove volume START...", storage.getSerialNumber());
+    public void removeVolumes(StorageSystem storage, URI exportMaskUri,
+            List<URI> volumes, List<Initiator> initiatorList, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _logger.info("{} removeVolumes: START...", storage.getSerialNumber());
 
         try {
+            _logger.info("removeVolumes: Export mask id: {}", exportMaskUri);
+            _logger.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumes));
+            if (initiatorList != null) {
+                _logger.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
+
             VNXeApiClient apiClient = getVnxeClient(storage);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
             StringSet initiatorUris = exportMask.getInitiators();
@@ -266,17 +298,17 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _logger.error("Unexpected error: removeVolume failed.", e);
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("remove volume failed", e.getMessage());
+            _logger.error("Unexpected error: removeVolumes failed.", e);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("remove volumes failed", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-        _logger.info("{} remove volume END...", storage.getSerialNumber());
+        _logger.info("{} removeVolumes END...", storage.getSerialNumber());
     }
 
     @Override
-    public void addInitiator(StorageSystem storage, URI exportMaskUri,
-            List<Initiator> initiatorList, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void addInitiators(StorageSystem storage, URI exportMaskUri,
+            List<URI> volumeURIs, List<Initiator> initiatorList,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
 
         _logger.info("{} addInitiator START...", storage.getSerialNumber());
         try {
@@ -291,7 +323,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             // Finding existing host in the array
             List<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators);
             String hostId = null;
-            for (VNXeHostInitiator init : vnxeInitiators ) {
+            for (VNXeHostInitiator init : vnxeInitiators) {
                 VNXeHostInitiator foundInit = apiClient.getInitiatorByWWN(init.getInitiatorId());
                 if (foundInit != null) {
                     VNXeBase host = foundInit.getParentHost();
@@ -302,24 +334,25 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
             }
             if (hostId == null) {
-                String msg = String.format("No existing host found in the array for the existing exportMask %s", exportMask.getMaskName()) ;
+                String msg = String.format("No existing host found in the array for the existing exportMask %s", exportMask.getMaskName());
                 _logger.error(msg);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addiniator", msg);
                 taskCompleter.error(_dbClient, error);
                 return;
             }
-            
+
             List<VNXeHostInitiator> newInitiators = prepareInitiators(initiatorList);
             for (VNXeHostInitiator newInit : newInitiators) {
                 VNXeHostInitiator init = apiClient.getInitiatorByWWN(newInit.getInitiatorId());
                 if (init != null) {
-                    //found it
+                    // found it
                     VNXeBase host = init.getParentHost();
-                    if (host!= null && host.getId().equals(hostId)) {
-                        //do nothing. it is already in the array
+                    if (host != null && host.getId().equals(hostId)) {
+                        // do nothing. it is already in the array
                         _logger.info("The initiator exist in the host in the array");
                     } else {
-                        String msg = String.format("The new initiator %s does not belong to the same host as other initiators in the ExportMask",
+                        String msg = String.format(
+                                "The new initiator %s does not belong to the same host as other initiators in the ExportMask",
                                 newInit.getInitiatorId());
                         _logger.error(msg);
                         ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addiniator", msg);
@@ -345,22 +378,40 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     }
 
     @Override
-    public void removeInitiator(StorageSystem storage, URI exportMask,
-            List<Initiator> initiators, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
+    public void removeInitiators(StorageSystem storage, URI exportMask,
+            List<URI> volumeURIList, List<Initiator> initiators,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _logger.info("{} removeInitiators START...", storage.getSerialNumber());
+        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMask);
+        if (mask == null || mask.getInactive()) {
+            _logger.error(String.format("The exportMask %s is invalid.", exportMask));
+            throw DeviceControllerException.exceptions.invalidObjectNull();
+        }
+        try {
+            for (Initiator initiator : initiators) {   
+                mask.removeFromExistingInitiators(initiator);
+                mask.removeFromUserCreatedInitiators(initiator);
+            }
+            _dbClient.updateObject(mask);
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _logger.error("Problem in removeInitiators: ", e);
+            ServiceError serviceError = DeviceControllerErrors.vnxe.jobFailed("removeInitiator", e.getMessage());
+            taskCompleter.error(_dbClient, serviceError);
+        }
+        _logger.info("{} removeInitiators END...", storage.getSerialNumber());
 
     }
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -388,7 +439,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         String wwn = null;
         if (!apiClient.isUnityClient()) {
             VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
-            wwn = snap.getPromotedWWN();;
+            wwn = snap.getPromotedWWN();
+            ;
         } else {
             Snap snap = apiClient.getSnapshot(snapId);
             wwn = snap.getAttachedWWN();

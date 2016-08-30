@@ -31,6 +31,8 @@ import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
+import com.emc.storageos.vnxe.models.Feature;
+import com.emc.storageos.vnxe.models.Feature.FeatureStateEnum;
 import com.emc.storageos.vnxe.models.FileSystemParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaConfigParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaCreateParam;
@@ -106,6 +108,7 @@ import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
 import com.emc.storageos.vnxe.requests.FcPortRequests;
+import com.emc.storageos.vnxe.requests.FeatureRequest;
 import com.emc.storageos.vnxe.requests.FileInterfaceListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
 import com.emc.storageos.vnxe.requests.FileSystemListRequest;
@@ -290,6 +293,17 @@ public class VNXeApiClient {
         HostRequest req = new HostRequest(_khClient, hostId);
         return req.get();
 
+    }
+
+    /**
+     * Get hostLun based on hostLun id
+     *
+     * @param hostlunId
+     * @return HostLun
+     */
+    public HostLun getHostLun(String hostlunId) {
+        HostLunRequests req = new HostLunRequests(_khClient);
+        return req.getHostLun(hostlunId);
     }
 
     public String getNetBios() {
@@ -1871,13 +1885,31 @@ public class VNXeApiClient {
     }
 
     public boolean isFASTVPEnabled() {
-        FastVPRequest req = new FastVPRequest(_khClient);
-        List<FastVP> fastVP = req.get();
-        if (fastVP != null && !fastVP.isEmpty()) {
-            return true;
-        } else {
-            return false;
-        }
+        
+        boolean result = false;
+        try {
+            if(_khClient.isUnity()) {
+                FeatureRequest req = new FeatureRequest(_khClient, VNXeConstants.FASTVP_FEATURE);
+                Feature fastVP = req.get();
+                if (fastVP != null && fastVP.getState()==FeatureStateEnum.FeatureStateEnabled.getValue()) {
+                    result = true;
+                } else {
+                    _logger.info("FASTVP is disabled");
+                    result = false;
+                }
+            } else {
+                FastVPRequest req = new FastVPRequest(_khClient);
+                List<FastVP> fastVP = req.get();
+                if (fastVP != null && !fastVP.isEmpty()) {
+                    result = true;
+                }
+                
+            }
+        } catch (Exception e) {
+            result = false;
+        } 
+        _khClient.setFastVPEnabled(result);
+        return result;
     }
 
     public VNXeLun getLunByLunGroup(String lunGroupId, String lunName) {
@@ -2057,7 +2089,18 @@ public class VNXeApiClient {
                 initCreateParam.setInitiatorWWNorIqn(newInit.getInitiatorId());
             }
             HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
-            req.createHostInitiator(initCreateParam);
+            try {
+                req.createHostInitiator(initCreateParam);
+            } catch (VNXeException e) {
+                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the host 
+                // initiator with the created host, it would throw error, saying the initiator exists. ignore the error.
+                String message = e.getMessage();
+                if (message != null && message.contains(VNXeConstants.INITIATOR_EXISITNG)) {
+                    _logger.info("The initiator exists. Ignore the error.");
+                } else {
+                    throw e;
+                }
+            }
 
         }
         

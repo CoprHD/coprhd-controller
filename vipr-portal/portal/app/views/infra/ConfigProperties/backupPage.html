@@ -110,11 +110,11 @@
                 }
        var url = #{jsAction @infra.ConfigProperties.validateExternalSettings()/}();
        $.post(url, data, function(result) {
-               showValidationResult(result);
+               showExternalServerValidationResult(result);
                });
 
     }
-    function showValidationResult(result) {
+    function showExternalServerValidationResult(result) {
         var success = false;
         var message = "";
         if ($.isArray(result)) {

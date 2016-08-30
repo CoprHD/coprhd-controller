@@ -335,6 +335,8 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                 getClusterConsistencyGroup(volume, cg);
 
         if (clusterCg != null) {
+            log.info(String.format("Removing VPlex virtual volume [%s - %s] from VPLEX CG [%s]", 
+                    volume.getLabel(), volume.getDeviceLabel(), clusterCg.getCgName()));
             // Remove the volume from the CG. Delete the CG if it's empty
             // and the deleteCGWhenEmpty flag is set.
             client.removeVolumesFromConsistencyGroup(
@@ -343,7 +345,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
             // De-reference the CG
             volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-            dbClient.persistObject(volume);
+            dbClient.updateObject(volume);
         }
     }
 

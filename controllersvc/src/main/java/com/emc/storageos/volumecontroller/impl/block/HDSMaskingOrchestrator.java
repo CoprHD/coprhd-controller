@@ -92,11 +92,16 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * maintained.
      * 
      * 
-     * @param storageURI - URI referencing underlying storage array
-     * @param exportGroupURI - URI referencing Bourne-level masking, ExportGroup
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer URI
-     * @param token - Identifier for operation
+     * @param storageURI
+     *            - URI referencing underlying storage array
+     * @param exportGroupURI
+     *            - URI referencing Bourne-level masking, ExportGroup
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer URI
+     * @param token
+     *            - Identifier for operation
      * @throws Exception
      */
     @Override
@@ -176,9 +181,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Add the volume to all the ExportMasks that are contained in the
                 // ExportGroup. The volumes should be added only if they don't
                 // already exist for the ExportMask.
-                Collection<URI> initiatorURIs =
-                        Collections2.transform(exportGroup.getInitiators(),
-                                CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 List<URI> hostURIs = new ArrayList<URI>();
                 Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
                 List<String> portNames = new ArrayList<String>();
@@ -221,7 +225,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // Make sure the zoning map is getting updated for user-created masks
                             updateZoningMap(exportGroup, exportMask, true);
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, exportMask, volumesToAdd);
+                                    exportGroup, exportMask, volumesToAdd, null);
                             anyVolumesAdded = true;
                             // Need to check if the mask is not already associated with
                             // ExportGroup. This is case when we are adding volume to
@@ -247,11 +251,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             exportGroup, storageURI) &&
                             exportGroup.hasInitiators()) {
                         _log.info("No existing masks to which the requested volumes can be added. Creating a new mask");
-                        List<URI> initiators =
-                                StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
 
-                        Map<String, List<URI>> hostInitiatorMap =
-                                mapInitiatorsToComputeResource(exportGroup, initiators);
+                        Map<String, List<URI>> hostInitiatorMap = mapInitiatorsToComputeResource(exportGroup, initiators);
 
                         if (!hostInitiatorMap.isEmpty()) {
                             for (Map.Entry<String, List<URI>> resourceEntry : hostInitiatorMap
@@ -328,15 +330,24 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * Routine contains logic to create an export mask on the array
      * 
-     * @param workflow - Workflow object to create steps against
-     * @param previousStep - [optional] Identifier of workflow step to wait for
-     * @param device - BlockStorageDevice implementation
-     * @param storage - StorageSystem object representing the underlying array
-     * @param exportGroup - ExportGroup object representing Bourne-level masking
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer HLUs
-     * @param zoningStepNeeded - Not required ofr HDS
-     * @param token - Identifier for the operation
+     * @param workflow
+     *            - Workflow object to create steps against
+     * @param previousStep
+     *            - [optional] Identifier of workflow step to wait for
+     * @param device
+     *            - BlockStorageDevice implementation
+     * @param storage
+     *            - StorageSystem object representing the underlying array
+     * @param exportGroup
+     *            - ExportGroup object representing Bourne-level masking
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer HLUs
+     * @param zoningStepNeeded
+     *            - Not required ofr HDS
+     * @param token
+     *            - Identifier for the operation
      * 
      * @throws Exception
      */
@@ -350,7 +361,18 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<URI, URI> hostToExistingExportMaskMap = new HashMap<URI, URI>();
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        // Only update the ports of a mask that we created.
+
+        // TODO COP-22395:
+        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
+        // send down here. (then remove the log)
+        List<Initiator> initiators = null;
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        } else {
+            _log.warn("Internal warning: Need to add the initiatorURIs to the call that assembles this step for validation to occur.");
+        }
+
         // Populate the port WWN/IQNs (portNames) and the
         // mapping of the WWN/IQNs to Initiator URIs
         processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI, hostURIs);
@@ -390,11 +412,12 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(portNames), Joiner.on(",").join(matchingExportMaskURIs.values()), Joiner
-                    .on(",").join(portNameToInitiatorURI.entrySet())));
-            // There are some initiators that already exist. We need to create a
-            // workflow that create new masking containers or updates masking
-            // containers as necessary.
+                            .join(portNames),
+                    Joiner.on(",").join(matchingExportMaskURIs.values()), Joiner
+                            .on(",").join(portNameToInitiatorURI.entrySet())));
+                            // There are some initiators that already exist. We need to create a
+                            // workflow that create new masking containers or updates masking
+                            // containers as necessary.
 
             // These data structures will be used to track new initiators - ones
             // that don't already exist on the array
@@ -439,7 +462,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             for (String existingMaskInitiatorStr : mask.getInitiators()) {
 
                                 // Now look at it from a different angle. Which one of our export group initiators
-                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing one,
+                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing
+                                // one,
                                 // we should add it to this mask.
                                 Iterator<URI> initiatorIter = initiatorURIsCopy.iterator();
                                 while (initiatorIter.hasNext()) {
@@ -459,7 +483,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                                 existingMasksToUpdateWithNewInitiators.put(mask.getId(), existingMaskInitiators);
                                             }
                                             existingMaskInitiators.add(initiatorCopy);
-                                            initiatorIter.remove(); // remove this from the list of initiators we'll make a new mask from
+                                            initiatorIter.remove(); // remove this from the list of initiators we'll
+                                                                    // make a new mask from
                                         }
                                     }
                                 }
@@ -499,9 +524,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
-                                ServiceError serviceError =
-                                        DeviceControllerException.errors.
-                                                exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
+                                ServiceError serviceError = DeviceControllerException.errors
+                                        .exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
                                 completer.error(_dbClient, serviceError);
                                 return false;
                             }
@@ -569,8 +593,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // the host. If there is we will need to add these intiators
                     // associated with that host to the list
                     if (hostToExistingExportMaskMap.containsKey(hostID)) {
-                        URI existingExportMaskURI =
-                                hostToExistingExportMaskMap.get(hostID);
+                        URI existingExportMaskURI = hostToExistingExportMaskMap.get(hostID);
                         Set<Initiator> toAddInits = new HashSet<Initiator>();
                         List<URI> hostInitaitorList = hostInitiatorMap.get(hostID);
                         for (URI initURI : hostInitaitorList) {
@@ -602,7 +625,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("adding these volumes %s to mask %s",
                         Joiner.on(",").join(volumesToAdd.keySet()), mask.getMaskName()));
                 stepMap.put(entry.getKey(), generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, mask,
-                        volumesToAdd));
+                        volumesToAdd, null));
             }
 
             for (Entry<URI, Set<Initiator>> entry : existingMasksToUpdateWithNewInitiators.entrySet()) {
@@ -720,8 +743,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificAddInitiatorWorkFlow(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
-            ExportMask mask, List<URI> initiatorsURIs,
-            Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
+            ExportMask mask, List<URI> volumeURIs,
+            List<URI> initiatorsURIs, Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
 
         String maskingStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep,
                 storage, exportGroup, mask, initiatorsURIs, null, token);
@@ -733,11 +756,11 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificAddVolumeWorkFlow(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
-            ExportMask mask, Map<URI, Integer> volumesToAdd, List<URI> volumeURIs) throws Exception {
+            ExportMask mask, Map<URI, Integer> volumesToAdd, List<URI> volumeURIs, List<URI> initiatorURIs) throws Exception {
         List<ExportMask> masks = new ArrayList<ExportMask>();
         masks.add(mask);
         String exportStepId = generateExportMaskAddVolumesWorkflow(workflow, previousStep, storage, exportGroup,
-                mask, volumesToAdd);
+                mask, volumesToAdd, null);
 
         generateZoningAddVolumesWorkflow(workflow, exportStepId, exportGroup, masks, volumeURIs);
         return exportStepId;
@@ -761,7 +784,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificExportMaskAddInitiatorsWorkflow(Workflow workflow,
             String zoningGroupId, StorageSystem storage, ExportGroup exportGroup,
-            ExportMask mask, List<URI> newInitiators, String token) throws Exception {
+            ExportMask mask, List<URI> volumes, List<URI> newInitiators, String token) throws Exception {
         return generateExportMaskAddInitiatorsWorkflow(workflow, zoningGroupId, storage,
                 exportGroup, mask, newInitiators, null, token);
     }
@@ -777,13 +800,13 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificDeleteWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask mask,
-            StorageSystem storage) throws Exception {
+            List<URI> volumes, List<URI> initiators, StorageSystem storage) throws Exception {
         List<ExportMask> masks = new ArrayList<ExportMask>();
         masks.add(mask);
         ExportTaskCompleter hdsExportMaskDeleteCompleter = new HDSExportMaskDeleteCompleter(
                 exportGroup.getId(), mask.getId(), previousStep);
         String exportMaskDeleteStepId = generateExportMaskDeleteWorkflow(workflow, null,
-                storage, exportGroup, mask, hdsExportMaskDeleteCompleter);
+                storage, exportGroup, mask, null, null, hdsExportMaskDeleteCompleter);
         String zoningStepId = generateZoningDeleteWorkflow(workflow, exportMaskDeleteStepId, exportGroup, masks);
         generateWorkflowStepToMarkExportMaskInActive(workflow, zoningStepId, exportGroup,
                 mask, null);
@@ -794,10 +817,10 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public String generateDeviceSpecificRemoveInitiatorsWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask mask,
             StorageSystem storage, Map<URI, List<URI>> maskToInitiatorsMap,
-            List<URI> initiatorsToRemove, boolean removeTargets) throws Exception {
+            List<URI> volumes, List<URI> initiatorsToRemove, boolean removeTargets) throws Exception {
 
         String exportMaskRemoveInitiatorsStepId = generateExportMaskRemoveInitiatorsWorkflow(
-                workflow, previousStep, storage, exportGroup, mask, initiatorsToRemove, removeTargets);
+                workflow, previousStep, storage, exportGroup, mask, null, initiatorsToRemove, removeTargets);
 
         return generateZoningRemoveInitiatorsWorkflow(workflow,
                 exportMaskRemoveInitiatorsStepId, exportGroup, maskToInitiatorsMap);
@@ -807,9 +830,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public String generateDeviceSpecificRemoveVolumesWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask mask,
             StorageSystem storage, List<URI> volumesToRemove,
-            ExportTaskCompleter completer) throws Exception {
+            List<URI> initiatorURIs, ExportTaskCompleter completer) throws Exception {
         String exportMaskRemoveVolumesStepId = generateExportMaskRemoveVolumesWorkflow(
-                workflow, previousStep, storage, exportGroup, mask, volumesToRemove,
+                workflow, previousStep, storage, exportGroup, mask, volumesToRemove, null,
                 completer);
         String zoningStepId = generateZoningRemoveVolumesWorkflow(workflow, exportMaskRemoveVolumesStepId,
                 exportGroup, Arrays.asList(mask), volumesToRemove);
@@ -821,23 +844,23 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificExportMaskDeleteWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask exportMask,
-            StorageSystem storage) throws Exception {
+            List<URI> volumes, List<URI> initiators, StorageSystem storage) throws Exception {
         ExportTaskCompleter hdsExportMaskDeleteCompleter = new HDSExportMaskDeleteCompleter(
                 exportGroup.getId(), exportMask.getId(), previousStep);
         // HDS ExportMask operation should not depend on any other workflow step.
         return generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup,
-                exportMask, hdsExportMaskDeleteCompleter);
+                exportMask, null, null, hdsExportMaskDeleteCompleter);
     }
 
     @Override
     public String generateDeviceSpecificExportMaskRemoveVolumesWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask exportMask,
             StorageSystem storage, List<URI> volumesToRemove,
-            ExportTaskCompleter completer) throws Exception {
+            List<URI> initiatorURIs, ExportTaskCompleter completer) throws Exception {
         ExportTaskCompleter taskCompleter = new HDSExportMaskRemoveVolumeCompleter(
                 exportGroup.getId(), exportMask.getId(), volumesToRemove, previousStep);
         return generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage, exportGroup,
-                exportMask, volumesToRemove, taskCompleter);
+                exportMask, volumesToRemove, initiatorURIs, taskCompleter);
     }
 
     @Override
@@ -881,8 +904,8 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificExportGroupRemoveVolumesCleanup(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, List<URI> initiatorURIs) {
         return generateExportGroupRemoveVolumesCleanup(workflow, previousStep, storage,
-                exportGroup, volumeURIs);
+                exportGroup, volumeURIs, initiatorURIs);
     }
 }

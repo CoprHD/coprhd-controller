@@ -47,6 +47,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssh \
     $(ETCDIR)/genconfig.d/ssh_auth_key \
     $(ETCDIR)/genconfig.d/ssl \
+	$(ETCDIR)/genconfig.d/syslog \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \
@@ -105,6 +106,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/nginx/error/html/501.html \
     $(ETCDIR)/nginx/error/html/503.html \
     $(ETCDIR)/nginx/error/html/507.html \
+    $(ETCDIR)/nginx/error/html/port80.html \
     $(ETCDIR)/nginx/error/json/400.json \
     $(ETCDIR)/nginx/error/json/401.json \
     $(ETCDIR)/nginx/error/json/402.json \

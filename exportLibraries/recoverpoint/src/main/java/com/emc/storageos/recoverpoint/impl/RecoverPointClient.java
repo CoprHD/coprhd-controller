@@ -1900,9 +1900,6 @@ public class RecoverPointClient {
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
                 Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
-                    // For restore, just wait for link state of the copy being restored
-                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(),
-                            RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, rpcg.getCGUID()));
                     boolean waitForLinkState = false;
                     imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
                             request.getBookmark(), request.getAPITTime());
@@ -2505,7 +2502,7 @@ public class RecoverPointClient {
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID())
                     .getProductionCopiesUIDs();
 
-            // Need to determine if we need to resume production or perform a failover. This is based of the swap
+            // Need to determine if we need to resume production or perform a failover. This is based off the swap
             // copy information. If the swap copy is a production copy and has the REPLICA role, we know it's a
             // production copy acting as 'Target at Production'. In this case, we must resume production to reverse
             // data replication. Otherwise, we need to perform a failover.
@@ -2576,14 +2573,31 @@ public class RecoverPointClient {
      * @param prodCopyName the name of the production copy
      * @param targetCopyName the name of the target copy
      * @return the consistency group settings matching the prod/target copy relationship
+     * @throws FunctionalAPIInternalError_Exception
+     * @throws FunctionalAPIActionFailedException_Exception
      */
     private ConsistencyGroupLinkSettings findLinkSettings(List<ConsistencyGroupLinkSettings> cgLinkSettings, GlobalCopyUID prodCopyUID,
-            GlobalCopyUID targetCopyUID, String prodCopyName, String targetCopyName) {
+            GlobalCopyUID targetCopyUID, String prodCopyName, String targetCopyName) throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
         ConsistencyGroupLinkSettings toRet = null;
 
         if (cgLinkSettings != null && !cgLinkSettings.isEmpty()
                 && prodCopyUID != null && targetCopyUID != null) {
             for (ConsistencyGroupLinkSettings linkSetting : cgLinkSettings) {
+                ConsistencyGroupCopyUID firstCopyUID = new ConsistencyGroupCopyUID();
+                firstCopyUID.setGlobalCopyUID(linkSetting.getGroupLinkUID().getFirstCopy());
+                firstCopyUID.setGroupUID(linkSetting.getGroupLinkUID().getGroupUID());
+
+                ConsistencyGroupCopyUID secondCopyUID = new ConsistencyGroupCopyUID();
+                secondCopyUID.setGlobalCopyUID(linkSetting.getGroupLinkUID().getSecondCopy());
+                secondCopyUID.setGroupUID(linkSetting.getGroupLinkUID().getGroupUID());
+
+                String firstCopyName = functionalAPI.getGroupCopyName(firstCopyUID);
+                String secondCopyName = functionalAPI.getGroupCopyName(secondCopyUID);
+
+                logger.info(String.format(
+                        "Examining existing link settings between %s and %s.  Attempting to find a link between %s and %s.",
+                        firstCopyName, secondCopyName, prodCopyName, targetCopyName));
                 if (isMatchingLinkSettings(linkSetting, prodCopyUID, targetCopyUID)) {
                     logger.info("Found existing link settings between {} and {}.", prodCopyName, targetCopyName);
                     toRet = linkSetting;
@@ -2646,7 +2660,6 @@ public class RecoverPointClient {
         try {
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(newProductionCopyUID.getGroupUID());
             List<ConsistencyGroupLinkSettings> cgLinkSettings = groupSettings.getActiveLinksSettings();
-            List<ConsistencyGroupLinkSettings> existingProdCgLinkSettings = groupSettings.getPassiveLinksSettings();
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = groupSettings.getProductionCopiesUIDs();
             newProductionCopyName = functionalAPI.getGroupCopyName(newProductionCopyUID);
             cgName = functionalAPI.getGroupName(newProductionCopyUID.getGroupUID());
@@ -2659,10 +2672,12 @@ public class RecoverPointClient {
 
                 for (ConsistencyGroupCopySettings copySetting : copySettings) {
                     // We need to set the link settings for all orphaned copies. Orphaned copies
-                    // are identified by not being the existing production copy or the current production copy.
+                    // are identified by not being the existing production copy or the new production copy.
                     if (!RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), existingProductionCopyUID) &&
                             !RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
+
+                        logger.info(String.format("Attempting to prepare link between %s and %s.", newProductionCopyName, copyName));
 
                         // Check to see if a link setting already exists for the link between the 2 copies
                         linkSettings = findLinkSettings(
@@ -2672,8 +2687,9 @@ public class RecoverPointClient {
                         if (linkSettings == null) {
                             // Link settings for the source/target copies does not exist so we need to create one
                             // Find the corresponding link settings prior to the failover.
+
                             linkSettings = findLinkSettings(
-                                    existingProdCgLinkSettings, existingProductionCopyUID.getGlobalCopyUID(), copySetting.getCopyUID()
+                                    cgLinkSettings, existingProductionCopyUID.getGlobalCopyUID(), copySetting.getCopyUID()
                                             .getGlobalCopyUID(),
                                     existingProductionCopyName, copyName);
 
@@ -3731,5 +3747,36 @@ public class RecoverPointClient {
             return false;
         }
         return false;
+    }
+
+    /**
+     * Checks to see if the given copy is in direct access state.
+     *
+     * @param copyToExamine the copy to check for direct access state
+     * @return true if the given copy is in direct access state, false otherwise
+     */
+    public Map<String, String> getCopyAccessStates(Set<String> rpWWNs) {
+        Map<String, String> copyAccessStates = new HashMap<String, String>();
+
+        if (rpWWNs != null) {
+            for (String wwn : rpWWNs) {
+                RecoverPointVolumeProtectionInfo protectionInfo = getProtectionInfoForVolume(wwn);
+                ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(protectionInfo);
+
+                if (cgCopyUID != null) {
+                    RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+                    ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, cgCopyUID);
+
+                    if (copyState != null) {
+                        StorageAccessState copyAccessState = copyState.getStorageAccessState();
+                        copyAccessStates.put(wwn, copyAccessState.name());
+                    }
+                }
+            }
+        }
+
+        logger.info(String.format("Access states for requested copies: %s", copyAccessStates));
+
+        return copyAccessStates;
     }
 }

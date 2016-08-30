@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.HostUpdateParam;
@@ -25,6 +26,7 @@ import com.emc.storageos.model.host.IpInterfaceRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
 import com.emc.vipr.client.core.util.CachedResources;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
@@ -114,12 +116,12 @@ public class HostUtils {
         return getViprClient().hosts().deactivate(hostId, detachStorage);
     }
 
-    public static Task<HostRestRep> detachStorage(URI hostId) {
-        return getViprClient().hosts().detachStorage(hostId);
-    }
-
     public static Task<HostRestRep> discover(URI hostId) {
         return getViprClient().hosts().discover(hostId);
+    }
+
+    public static Tasks<HostRestRep> discoverHostArrayAffinity(ArrayAffinityHostParam param) {
+        return getViprClient().hosts().discoverHostArrayAffinity(param);
     }
 
     public static Set<URI> getDataCenterIds(List<HostRestRep> hosts) {

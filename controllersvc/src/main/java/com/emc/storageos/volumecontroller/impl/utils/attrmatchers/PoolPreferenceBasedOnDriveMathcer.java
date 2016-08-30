@@ -31,6 +31,14 @@ public class PoolPreferenceBasedOnDriveMathcer extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
+        // ignore preference in case of array affinity
+        if (attributeMap != null && attributeMap.containsKey(Attributes.array_affinity.name())) {
+            Boolean arrayAffinity = (Boolean) attributeMap.get(Attributes.array_affinity.name());
+            if (arrayAffinity) {
+                return false;
+            }
+        }
+
         // run only if System Type is VMAX.
         return (null != attributeMap
                 && attributeMap.containsKey(Attributes.system_type.toString())

@@ -4,10 +4,26 @@
  */
 package controllers.util;
 
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.vipr.client.core.util.ResourceUtils;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import controllers.Common;
+
 import java.net.URI;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -20,21 +36,12 @@ import org.apache.commons.lang.StringUtils;
 import play.Logger;
 import play.libs.F.Promise;
 import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Router;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StringOption;
 import util.datatable.DataTablesSupport;
-
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.vipr.client.core.util.ResourceUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import controllers.Common;
 
 @With(Common.class)
 public class ViprResourceController extends Controller {
@@ -387,5 +394,21 @@ public class ViprResourceController extends Controller {
         public String getErrorMessage() {
             return Common.getUserMessage(error);
         }
+    }
+
+    protected static JsonObject getCookieAsJson(String cookieKey) {
+        try {
+            Http.Cookie cookie = request.cookies.get(cookieKey);
+            JsonElement jelement = new JsonParser().parse(URLDecoder.decode(cookie.value, "UTF-8"));
+            return jelement.getAsJsonObject();
+        } catch (Exception e) {
+            Logger.error(e, "Failed to load '%s'", cookieKey);
+            return new JsonObject();
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+	protected static void saveJsonAsCookie(String cookieKey,JsonObject jobject) {
+        response.setCookie(cookieKey, URLEncoder.encode(jobject.toString()));
     }
 }

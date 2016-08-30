@@ -3058,14 +3058,28 @@ public class ExportGroupService extends TaskResourceService {
         if (boURIList != null) {
             for (URI boID : boURIList) {
                 BlockObject bo = BlockObject.fetch(_dbClient, boID);
-                if (bo != null) {
-                    if (bo.getTag() != null) {
-                        ScopedLabelSet tagSet = bo.getTag();
-                        Iterator<ScopedLabel> tagIter = tagSet.iterator();
-                        while (tagIter.hasNext()) {
-                            ScopedLabel sl = tagIter.next();
-                            if (sl.getLabel() != null && (sl.getLabel().startsWith(MOUNTPOINT) || sl.getLabel().startsWith(VMFS_DATASTORE)))
-                                boToLabelMap.put(boID, bo.forDisplay());
+                if (bo != null && bo.getTag() != null) {
+                    ScopedLabelSet tagSet = bo.getTag();
+                    Iterator<ScopedLabel> tagIter = tagSet.iterator();
+                    while (tagIter.hasNext()) {
+                        ScopedLabel sl = tagIter.next();
+                        if (sl.getLabel() != null && (sl.getLabel().startsWith(MOUNTPOINT) || sl.getLabel().startsWith(VMFS_DATASTORE))) {
+
+                            if (exportGroup.getClusters() != null) {
+                                for (String clusterID : exportGroup.getClusters()) {
+                                    if (sl.getLabel().contains(clusterID)) {
+                                        boToLabelMap.put(boID, bo.forDisplay());
+                                    }
+                                }
+                            }
+
+                            if (exportGroup.getHosts() != null) {
+                                for (String hostID : exportGroup.getHosts()) {
+                                    if (sl.getLabel().contains(hostID)) {
+                                        boToLabelMap.put(boID, bo.forDisplay());
+                                    }
+                                }
+                            }
                         }
                     }
                 }

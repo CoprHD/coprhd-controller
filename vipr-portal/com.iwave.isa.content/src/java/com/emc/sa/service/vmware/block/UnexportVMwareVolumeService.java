@@ -104,6 +104,13 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         }
         vmware.disconnect();
 
+        for (BlockObjectRestRep volume : volumes) {
+            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
+            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
+                vmware.removeVmfsDatastoreTag(volume, hostId);
+            }
+        }
+
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);
             String exportName = ResourceUtils.name(export);
@@ -132,12 +139,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
                 ExecutionUtils.addAffectedResource(hostOrClusterId.toString());
             }
         }
-        for (BlockObjectRestRep volume : volumes) {
-            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
-            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
-                vmware.removeVmfsDatastoreTag(volume, hostId);
-            }
-        }
+
         connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
     }

@@ -48,6 +48,8 @@ dependencies {
             project(":ceph"),
             project(":storagedriver"),
             project(":xiv"),
+            // get vmaxv3driver to controllersvc classpath
+            project(":vmaxv3driver"),
     // temp. here, to get simulator to controllersvc classpath
             project(":storagedriversimulator")
             

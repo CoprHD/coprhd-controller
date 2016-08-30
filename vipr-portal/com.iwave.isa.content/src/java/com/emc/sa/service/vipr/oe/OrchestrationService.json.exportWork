@@ -1,0 +1,70 @@
+{
+  baseKey:"Orchestration.Service",
+  serviceId:"OrchestrationService",
+  fields:{
+
+
+    Workflow:{
+      type:"assetType.oe.workflow",
+      required: "true",
+      lockable: true
+    }, 
+    Playbook:{
+      type:"text",
+      required: "false",
+      initialValue: "playbook.yml",
+      lockable: true
+    }, 
+
+
+    ProjectForUnexport:{
+      type:"assetType.oe.ProjectForUnexport",
+      lockable: true,
+      required: "false"
+    },
+    VolumeForUnexport:{
+      type:"assetType.oe.VolumeForUnexport.ProjectForUnexport",
+      required: "false",
+      lockable: true
+    },
+    ExportForUnexport:{
+      type:"assetType.oe.ExportForUnexport.ProjectForUnexport.VolumeForUnexport",
+      required: "false",
+      lockable: true
+    },
+
+ 
+    BlockStorageTypeForExport:{
+      type:"assetType.oe.BlockStorageTypeForExport",
+      lockable:true,
+      initialValue:"exclusive",
+      required: "false"
+    },
+    HostForExport:{
+      type: "assetType.oe.HostForExport.BlockStorageTypeForExport",
+      lockable:true,
+      required: "false"
+    },
+    ProjectForExport:{ 
+      type:"assetType.oe.ProjectForExport",
+      lockable: true,
+      required: "false"
+    }, 
+    HluForExport:{
+      type:"number",
+      lockable: true,
+      required: "false",
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }, 
+    VolumesForExport:{
+      type:"assetType.oe.VolumesForExport.ProjectForExport.HostForExport",
+      select:"many",
+      required: "false"
+    } 
+
+
+  }
+}

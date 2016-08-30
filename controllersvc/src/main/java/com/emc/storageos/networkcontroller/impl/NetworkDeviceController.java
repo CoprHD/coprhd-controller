@@ -1135,7 +1135,7 @@ public class NetworkDeviceController implements NetworkController {
                 addZoneWhileAddingVolume, addZoneOnDeviceOperation);
         if (addZoneWhileAddingVolume != null) {
             addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
-            _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
+            _log.info("Boolean converted of : {} : returned by Config handler as : {} ",
                     addZoneWhileAddingVolume, addZoneOnDeviceOperation);
         } else {
             _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
@@ -2146,7 +2146,20 @@ public class NetworkDeviceController implements NetworkController {
         Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getNetworkToInitiatorsMap(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!entry.getValue().isEmpty()) {
-                zonesMap.putAll(getInitiatorsInNetworkZones(entry.getKey(), entry.getValue()));
+                Map<String, List<Zone>> map = getInitiatorsInNetworkZones(entry.getKey(), entry.getValue());
+                zonesMap.putAll(map);
+            }
+        }
+        for (String initiatorWWN : zonesMap.keySet()) {
+            List<Zone> zones = zonesMap.get(initiatorWWN);
+            if (zones != null && zones.isEmpty()) {
+                String associatedInitiatorEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(initiatorWWN, _dbClient);
+                if (associatedInitiatorEndpoint != null) {
+                    zones = zonesMap.get(associatedInitiatorEndpoint);
+                    if (zones != null && !zones.isEmpty()) {
+                        zonesMap.put(initiatorWWN, zones);
+                    }
+                }
             }
         }
         return zonesMap;

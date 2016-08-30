@@ -128,12 +128,6 @@ public class StorageSystems extends ViprResourceController {
 
         List<EnumOption> defaultStorageArrayPortMap = StorageProviderTypes.getStoragePortMap();
         renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
-
-        renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
-        renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
-        renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
-        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
-        renderArgs.put("xivStorageSystemType", StorageSystemTypes.IBMXIV);
     }
 
     private static void addReferenceDataAllFlash() {
@@ -144,12 +138,6 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
         List<EnumOption> defaultStorageArrayPortMap = StorageProviderTypes.getStoragePortMap();
         renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
-
-        renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
-        renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
-        renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
-        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
-
     }
 
     public static void list() {

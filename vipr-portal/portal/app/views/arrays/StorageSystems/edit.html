@@ -284,11 +284,11 @@
             	$('#storageArray_hyperScaleUsernameControlGroup').hide();
             	$('#storageArray_hyperScalePasswordControlGroup').hide();
             	$('#storageArray_hyperScalePasswordConfirmControlGroup').hide();
-                if ($('#storageArray_type').val() == '${scaleIOStorageSystemType}') {
+                if (selectedType == 'scaleio') {
                     $('#storageArray_secondaryUsernameControlGroup').show();
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
-                } else if ($('#storageArray_type').val() == '${scaleIOApiStorageSystemType}') {              	
+                } else if (selectedType == 'scaleioapi') {
                 	$('#storageArray_userNameControlGroup').hide();
                 	$('#storageArray_userPasswordControlGroup').hide();
                 	$('#storageArray_confirmPasswordControlGroup').hide();
@@ -296,7 +296,7 @@
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
                     $('#storageArray_elementManagerURLControlGroup').hide();
-                } else if ($('#storageArray_type').val() == '${cephStorageSystemType}') {
+                } else if (selectedType == 'ceph') {
                     $('#storageArray_userNameControlGroup').show();
                 	$('#storageArray_secretKeyControlGroup').show().attr('required', true);
                     $('#storageArray_useSSLControlGroup').hide().attr('required', false);
@@ -307,7 +307,7 @@
                     $('#storageArray_secondaryPasswordControlGroup').hide().attr('required', false);
                     $('#storageArray_secondaryPasswordConfirmControlGroup').hide().attr('required', false);
                     $('#storageArray_elementManagerURLControlGroup').hide();
-                } else if ($('#storageArray_type').val() == '${xivStorageSystemType}') {
+                } else if (selectedType == 'ibmxiv') {
                 	$('#storageArray_secondaryUsernameControlGroup').hide();
                     $('#storageArray_secondaryPasswordControlGroup').hide();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
@@ -338,7 +338,7 @@
             	$('#storageArray_hyperScalePasswordConfirmControlGroup').hide();
                 
                 $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
-                if ($('#storageArray_type').val() == '${cephStorageSystemType}') {
+                if (selectedType == 'ceph') {
                     $('#storageArray_useSSLControlGroup').hide().attr('required', false);
                     $('#storageArray_portNumberControlGroup').hide().attr('required', false);
                     $('#storageArray_userPasswordControlGroup').hide().attr('required', false);
@@ -349,7 +349,7 @@
             $('fieldset.onboardSmisProvider').hide();            
     	
 	  		if ( !editMode ) {
-	  			if ($('#storageArray_type').val() != '${cephStorageSystemType}') {
+				if (selectedType != 'ceph') {
 	  			    $('#storageArray_useSSL').trigger('change'); // trigger change
 	  			}
 	  		} else {
@@ -386,7 +386,7 @@
                 $('#storageArray_useSSL').trigger('change'); // trigger change
             }
 	  		
-	        if ( $('#storageArray_type').val() == '${vnxfileStorageSystemType}') {
+	        if ( selectedType == 'vnxfile') {
 	            $('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.vnxFileIPAddress')}"+":");
 	            $('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.vnxFileIPAddress.help')}");
 	            
@@ -415,7 +415,7 @@
     }
     
     function autoPopulateSmisIp (){
-    	 if ( $('#storageArray_type').val() == '${vnxfileStorageSystemType}') {
+		if ( $('#storageArray_type').val() == 'vnxfile') {
     		var smisIp = $('#storageArray_smisProviderIpAddress').val();  		 
   			var existingDiscoveryVal = $('#storageArray_ipAddress').data('existingVal');
   			var existingSmisVal = $('#storageArray_smisProviderIpAddress').data('existingVal');

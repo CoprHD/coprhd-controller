@@ -810,10 +810,11 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "fileExportedFilesystem", "subDirectory" })
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
-        if ("!nodir".equalsIgnoreCase(subDirectory)) {
-            subDirectory = null;
+        String subDir = subDirectory;
+        if ("!nodir".equalsIgnoreCase(subDir)) {
+            subDir = null;
         }
-        List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, false, subDirectory);
+        List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, false, subDir);
         for (ExportRule rule : exports) {
             List<String> securityTypes = Arrays.asList(rule.getSecFlavor().split("\\s*,\\s*"));
             for (String sec : securityTypes) {

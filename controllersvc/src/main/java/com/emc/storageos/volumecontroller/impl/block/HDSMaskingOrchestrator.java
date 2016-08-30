@@ -164,7 +164,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             boolean anyVolumesAdded = false;
             boolean createdNewMask = false;
-            if (exportGroup.getExportMasks() != null) {
+            if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,

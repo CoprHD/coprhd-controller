@@ -9801,8 +9801,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private List<ExportMask> getExportMaskForHost(ExportGroup exportGroup, URI hostURI, URI vplexURI) throws Exception {
         List<ExportMask> results = new ArrayList<ExportMask>();
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
             return null;
         }
         // Create a list of sharedExportMask URIs for the src varray and ha varray if its set in the altVirtualArray
@@ -11092,8 +11091,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private Set<ExportMask> getExportMasksByHost(URI exportGroupURI, Map<URI, List<Initiator>> hostInitiatorMap, URI vplex) {
         ExportGroup exportGroup = getDataObject(ExportGroup.class, exportGroupURI, _dbClient);
         Set<ExportMask> deviceFilteredMasks = new HashSet<ExportMask>();
-        if (exportGroup != null) {
-            StringSet exportMasks = exportGroup.getExportMasks();
+        if (exportGroup != null) {            
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
 
             // look at each host
             for (URI hostUri : hostInitiatorMap.keySet()) {
@@ -11104,8 +11103,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 _log.info("attempting to locate an existing ExportMask for this host's initiators");
 
-                for (String maskURI : exportMasks) {
-                    ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(maskURI));
+                for (ExportMask mask : exportMasks) {
                     if (mask != null && mask.getStorageDevice().equals(vplex)) {
                         for (Initiator intiator : inits) {
                             if (mask.hasInitiator(intiator.getId().toString())) {
@@ -13044,10 +13042,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportGroup.addInitiators(StringSetUtil.stringSetToUriList(oldExportGroup.getInitiators()));
         exportGroup.addHosts(StringSetUtil.stringSetToUriList(oldExportGroup.getHosts()));
         exportGroup.setClusters(oldExportGroup.getClusters());
-        StringSet exportMasks = oldExportGroup.getExportMasks();
-        if (exportMasks != null) {
-            for (String exportMask : exportMasks) {
-                exportGroup.addExportMask(exportMask);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, oldExportGroup);
+        if (!exportMasks.isEmpty()) {
+            for (ExportMask exportMask : exportMasks) {
+                exportGroup.addExportMask(exportMask.getId());
             }
         }
         exportGroup.setNumPaths(oldExportGroup.getNumPaths());

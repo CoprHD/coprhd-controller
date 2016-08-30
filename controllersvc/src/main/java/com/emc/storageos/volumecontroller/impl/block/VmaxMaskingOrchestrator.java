@@ -114,7 +114,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // The export group has a set of export masks already associated with it, and we
             // simply need to determine which of those masks require the volumes and add them.
             // Exceptions to this are documented in the logic.
-            if (exportGroup.getExportMasks() != null) {
+            if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
@@ -511,7 +511,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             device.findExportMasks(storage, initiatorNames, false);
             boolean anyOperationsToDo = false;
             Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
-            if (exportGroup != null && exportGroup.getExportMasks() != null) {
+            if (exportGroup != null && !ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                 // There were some exports out there that already have some or all of the
                 // initiators that we are attempting to remove. We need to only
                 // remove the volumes that the user added to these masks

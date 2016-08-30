@@ -124,6 +124,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -420,7 +421,7 @@ public class ExportGroupService extends TaskResourceService {
         if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup.getExportMasks() != null) {
             for (URI initiatorId : param.getInitiators().getRemove()) {
                 // Check all export masks associated with this export group
-                if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
+                if (exportGroup.getExportMasks() != null && !ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                     // This logic is changed in 3.5 to do two things:
                     // 1. Check to make sure none of the Export Group's masks have initiators in its existing list
                     // 2. Allow user to remove an initiator that isn't part of any ExportMask (because of pathing)
@@ -1670,29 +1671,27 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     // This was originally in the ExportGroupRestRep
-    private Map<String, Integer> getVolumes(ExportGroup export) {
+    private Map<String, Integer> getVolumes(ExportGroup exportGroup) {
         Map<String, Integer> volumesMap = new HashMap<String, Integer>();
-        StringMap volumes = export.getVolumes();
-        if (export.getExportMasks() != null) {
-            for (String exportMaskIdStr : export.getExportMasks()) {
-                URI exportMaskId = URI.create(exportMaskIdStr);
-                try {
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskId);
-                    if (exportMask != null && exportMask.getVolumes() != null) {
-                        for (Map.Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
-                            if (!volumesMap.containsKey(entry.getKey()) && (entry.getValue() != null)) {
-                                // ensure that this volume is referenced by this export group
-                                if (volumes != null && volumes.containsKey(entry.getKey())) {
-                                    volumesMap.put(entry.getKey(), Integer.valueOf(entry.getValue()));
-                                }
+        StringMap volumes = exportGroup.getVolumes();
+        
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {               
+            try {
+                if (exportMask != null && exportMask.getVolumes() != null) {
+                    for (Map.Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
+                        if (!volumesMap.containsKey(entry.getKey()) && (entry.getValue() != null)) {
+                            // ensure that this volume is referenced by this export group
+                            if (volumes != null && volumes.containsKey(entry.getKey())) {
+                                volumesMap.put(entry.getKey(), Integer.valueOf(entry.getValue()));
                             }
                         }
                     }
-                } catch (Exception e) {
-                    _log.error("Error getting volumes for export group {}", export.getId(), e);
                 }
+            } catch (Exception e) {
+                _log.error("Error getting volumes for export group {}", exportGroup.getId(), e);
             }
         }
+        
         /*
          * Now include any volumes that might be a part of the Export Group
          * but not of the Export Mask.

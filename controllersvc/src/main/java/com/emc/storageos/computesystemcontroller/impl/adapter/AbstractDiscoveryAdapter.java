@@ -656,7 +656,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDescription",
                                     oldInitiator.getInitiatorPort()),
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorWarning"),
-                            oldInitiator, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtil.removeInitiator,
+                            host, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtil.removeInitiator,
                             new Object[] { oldInitiator.getId() }, EventUtil.removeInitiatorDecline,
                             new Object[] { oldInitiator.getId() });
                 }
@@ -666,7 +666,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDescription",
                                     newInitiator.getInitiatorPort()),
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorWarning"),
-                            newInitiator, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtil.addInitiator,
+                            host, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtil.addInitiator,
                             new Object[] { newInitiator.getId() }, EventUtil.addInitiatorDecline,
                             new Object[] { newInitiator.getId() });
                 }

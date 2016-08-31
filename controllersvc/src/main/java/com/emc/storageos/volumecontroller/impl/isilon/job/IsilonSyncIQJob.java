@@ -149,33 +149,6 @@ public class IsilonSyncIQJob extends Job implements Serializable {
         }
         return null;
     }
-    
-    /**
-     * Get Isilon API client
-     * 
-     * @param jobContext
-     * @return
-     */
-    public IsilonApi getIsilonRestClient(JobContext jobContext, URI uri) {
-        StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, uri);
-        if (jobContext.getIsilonApiFactory() != null) {
-            IsilonApi isilonAPI;
-            URI deviceURI;
-            try {
-                deviceURI = new URI("https", null, device.getIpAddress(), device.getPortNumber(), "/", null, null);
-            } catch (URISyntaxException ex) {
-                throw IsilonException.exceptions.errorCreatingServerURL(device.getIpAddress(), device.getPortNumber(), ex);
-            }
-            // get rest client
-            if (device.getUsername() != null && !device.getUsername().isEmpty()) {
-                isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI, device.getUsername(), device.getPassword());
-            } else {
-                isilonAPI = jobContext.getIsilonApiFactory().getRESTClient(deviceURI);
-            }
-            return isilonAPI;
-        }
-        return null;
-    }
 
     protected void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
         _status = JobStatus.ERROR;

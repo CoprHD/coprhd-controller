@@ -83,6 +83,7 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";
+    private static final String HTTPS_PREFIX = "https://";
 
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
             getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
@@ -257,7 +258,13 @@ public class StorageProviderService extends TaskResourceService {
         if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(provider.getInterfaceType())) {
             provider.setManufacturer("IBM");
             //For XIV, Secondary manager URL would hold HSM URL and it is expected that these values are provided during create
-            verifyHSMParams(param);
+            verifySecondaryParams(param.getSecondaryURL());
+            if(null != param.getSecondaryUsername()) {
+                ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
+            }
+            if(null != param.getSecondaryPassword()) {
+                ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+            }
         }
 
         _dbClient.createObject(provider);
@@ -467,12 +474,10 @@ public class StorageProviderService extends TaskResourceService {
             	storageProvider.setSecondaryPassword(param.getSecondaryPassword());
             }
             if (param.getSecondaryURL() != null) {
-            	//ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
-            	verifySecondaryUrl( param.getSecondaryURL());
+            	verifySecondaryParams(param.getSecondaryURL());
                 storageProvider.setSecondaryURL(param.getSecondaryURL());
             }
             if (param.getElementManagerURL() != null) {
-            	
                 storageProvider.setElementManagerURL(param.getElementManagerURL());
             }
 
@@ -624,27 +629,16 @@ public class StorageProviderService extends TaskResourceService {
         return taskList.getTaskList().listIterator().next();
     }
     
-    private boolean verifyHSMParams( StorageProviderCreateParam param) {
-        
-        if(param.getSecondaryURL() != null 
-                || param.getSecondaryUsername() != null 
-                || param.getSecondaryPassword() != null) {
-            //ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
-            verifySecondaryUrl( param.getSecondaryURL());
-            ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
-            ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+    private void verifySecondaryParams(String secondaryURL) {
+        if (null != secondaryURL) {
+            ArgValidator.checkFieldNotEmpty(secondaryURL, "secondary_url");
+            if (secondaryURL.startsWith(HTTPS_PREFIX)) {
+                secondaryURL = secondaryURL.substring(HTTPS_PREFIX.length());
+                String[] urlParts = secondaryURL.split(":");
+                ArgValidator.checkFieldNotEmpty(urlParts[0], "secondary_ip");
+                ArgValidator.checkFieldNotEmpty(urlParts[1], "secondary_port");
+            }
         }
-        return true;
-    }
-    
-    private boolean verifySecondaryUrl( String url){
-        //ArgValidator.checkFieldNotEmpty(url, "secondary_url");
-        String [] urlParts= url.split("https://");
-        if(urlParts.length < 2 || urlParts[1].split(":").length < 2) {
-            throw APIException.badRequests.requiredParameterMissingOrEmpty("secondary_url");
-        }
-        return true;
-        
     }
     
 

@@ -436,6 +436,10 @@ public class StorageProviders extends ViprResourceController {
             return StringUtils.isBlank(id);
         }
         
+        private boolean isXIV() {
+            return StorageProviderTypes.isXIV(interfaceType);
+        }
+        
         public boolean isScaleIOApi() {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
@@ -461,13 +465,9 @@ public class StorageProviders extends ViprResourceController {
                     flash.error("Unable to parse Hyper Scale Manager URL");
                 }
                 this.secondaryURL = url.toString();
-                //remove the if condition 
-            } else if (StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort)) {
-                //this.secondaryURL = "";
+            } else if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))){
                 flash.error("Secondary Host or Port is Missing");
                 edit(id);
-
-
             }
         }
 
@@ -549,6 +549,11 @@ public class StorageProviders extends ViprResourceController {
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".confirmPassword",
                         this.confirmPassword);
+            } else if (isXIV()) {
+                if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))) {
+                    Validation.addError(fieldName + ".hyperScaleHost","Either Secondary Host or Port details is missing");
+                    Validation.addError(fieldName + ".hyperScalePort","Either Secondary Host or Port details is missing");
+                }
             }
             
             if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
@@ -567,7 +572,6 @@ public class StorageProviders extends ViprResourceController {
                                         .get("smisProvider.secondaryPassword.confirmPassword.not.match"));
             }
         }
-        
     }
 
     @SuppressWarnings("rawtypes")

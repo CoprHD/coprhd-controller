@@ -88,7 +88,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME = "REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WORFLOW";
 
     private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
-    private static final String DELETE_FILESYSTEM_EXPORT_METHOD = "unexport";
     private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
     private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
     private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
@@ -722,8 +721,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 FSExportMap targetnfsExportMap = targetFileShare.getFsExports();
                 FSExportMap sourcenfsExportMap = sourceFileShare.getFsExports();
 
-                if (targetnfsExportMap != null && sourcenfsExportMap != null) {
-
+                if (!(targetnfsExportMap == null && sourcenfsExportMap == null)) {
+                    // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from target file system : %s to source file system : %s",
                             targetFileShare.getId(), sourceFileShare.getId());
                     Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
@@ -747,8 +746,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
 
-                if (targetSMBShareMap != null && sourceSMBShareMap != null) {
-
+                if (!(targetSMBShareMap == null && sourceSMBShareMap == null)) {
+                    // Both source and target share map shouldn't be null
                     stepDescription = String.format("Replicating CIFS shares from target file system : %s to file source system : %s",
                             targetFileShare.getId(), sourceFileShare.getId());
                     Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
@@ -814,8 +813,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
                 SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
 
-                if (sourceSMBShareMap != null || targetSMBShareMap != null) {
-
+                if (!(sourceSMBShareMap == null && targetSMBShareMap == null)) {
+                    // Both source and target share map shouldn't be null
                     stepDescription = String.format("Replicating CIFS shares from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
@@ -837,8 +836,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
                 FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-                if (sourceNFSExportMap != null || targetNFSExportMap != null) {
-
+                if (!(sourceNFSExportMap == null && targetNFSExportMap == null)) {
+                    // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
                     Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
@@ -895,15 +894,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
             SMBShareMap targetSMBShareMap = targetFileShare.getSMBFileShares();
 
-            if (sourceSMBShareMap == null) {
+            if (sourceSMBShareMap == null && targetSMBShareMap != null) {
+                // source file system don't have any CIFS share but target do have share.
                 List<SMBFileShare> targetSMBShares = new ArrayList<SMBFileShare>(targetSMBShareMap.values());
                 deleteCIFSShareFromTarget(workflow, systemTarget, targetSMBShares, targetFileShare);
 
-            } else if (targetSMBShareMap == null) {
+            } else if (targetSMBShareMap == null && sourceSMBShareMap != null) {
+                // target file system don't have any CIFS share but source do have share
                 List<SMBFileShare> sourceSMBShares = new ArrayList<SMBFileShare>(sourceSMBShareMap.values());
                 createCIFSShareOnTarget(workflow, systemTarget, sourceSMBShares, cifsPort, targetFileShare, sourceFileShare);
 
-            } else {
+            } else if (targetSMBShareMap != null && sourceSMBShareMap != null) {
+                // both source and target file system do have some shares..
                 List<SMBFileShare> targetSMBSharestoDelete = new ArrayList<SMBFileShare>();
                 List<SMBFileShare> targetSMBSharestoCreate = new ArrayList<SMBFileShare>();
 
@@ -973,75 +975,81 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     List<ShareACL> targetShareACLs = FileOrchestrationUtils.queryShareACLs(sourceSMBShare.getName(),
                             targetFileShare.getId(), s_dbClient);
 
-                    if (sourceShareACLs != null && !sourceShareACLs.isEmpty()) {
+                    if (!sourceShareACLs.isEmpty() && targetShareACLs.isEmpty()) {
+                        // target share doesn't have any ACLs but corresponding share on source does have ACL
+                        params = new CifsShareACLUpdateParams();
+                        ShareACLs shareACLs = new ShareACLs();
+                        shareACLs.setShareACLs(sourceShareACLs);
+                        params.setAclsToAdd(shareACLs);
+                        updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
 
-                        if (targetShareACLs.isEmpty()) {
-                            params = new CifsShareACLUpdateParams();
-                            ShareACLs shareACLs = new ShareACLs();
-                            shareACLs.setShareACLs(sourceShareACLs);
-                            params.setAclsToAdd(shareACLs);
+                    } else if (!targetShareACLs.isEmpty() && sourceShareACLs.isEmpty()) {
+                        // source share doesn't have any ACLs but corresponding share on target does have ACL
+                        params = new CifsShareACLUpdateParams();
+                        ShareACLs shareACLs = new ShareACLs();
+                        shareACLs.setShareACLs(targetShareACLs);
+                        params.setAclsToDelete(shareACLs);
+                        updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
+
+                    } else if (!targetShareACLs.isEmpty() && !sourceShareACLs.isEmpty()) {
+                        // both source and target share have some ACL
+                        List<ShareACL> shareACLsToAdd = new ArrayList<ShareACL>();
+                        List<ShareACL> shareACLsToDelete = new ArrayList<ShareACL>();
+                        List<ShareACL> shareACLsToModify = new ArrayList<ShareACL>();
+                        HashMap<String, ShareACL> sourceShareACLMap = FileOrchestrationUtils.getShareACLMap(sourceShareACLs);
+                        HashMap<String, ShareACL> targetShareACLMap = FileOrchestrationUtils.getShareACLMap(targetShareACLs);
+
+                        // ACLs To Add
+                        for (String sourceACLName : sourceShareACLMap.keySet()) {
+                            if (targetShareACLMap.get(sourceACLName) == null) {
+                                ShareACL shareACL = sourceShareACLMap.get(sourceACLName);
+                                shareACL.setFileSystemId(targetFileShare.getId());
+                                shareACLsToAdd.add(shareACL);
+                            }
+                        }
+
+                        // ACLs To Delete
+                        for (String targetACLName : targetShareACLMap.keySet()) {
+                            if (sourceShareACLMap.get(targetACLName) == null) {
+                                shareACLsToDelete.add(targetShareACLMap.get(targetACLName));
+                            }
+                        }
+
+                        // ACLs to Modify
+                        targetShareACLs.removeAll(shareACLsToDelete);
+                        sourceShareACLs.removeAll(shareACLsToAdd);
+                        sourceShareACLMap = FileOrchestrationUtils.getShareACLMap(sourceShareACLs);
+                        targetShareACLMap = FileOrchestrationUtils.getShareACLMap(targetShareACLs);
+
+                        for (String sourceACLName : sourceShareACLMap.keySet()) {
+                            if (targetShareACLMap.get(sourceACLName) != null && !targetShareACLMap.get(sourceACLName).getPermission()
+                                    .equals(sourceShareACLMap.get(sourceACLName).getPermission())) {
+                                ShareACL shareACL = targetShareACLMap.get(sourceACLName);
+                                shareACL.setPermission(sourceShareACLMap.get(sourceACLName).getPermission());
+                                shareACLsToModify.add(shareACL);
+                            }
+                        }
+
+                        params = new CifsShareACLUpdateParams();
+
+                        if (!shareACLsToAdd.isEmpty()) {
+                            ShareACLs addShareACLs = new ShareACLs();
+                            addShareACLs.setShareACLs(shareACLsToAdd);
+                            params.setAclsToAdd(addShareACLs);
+                        }
+                        if (!shareACLsToDelete.isEmpty()) {
+                            ShareACLs deleteShareACLs = new ShareACLs();
+                            deleteShareACLs.setShareACLs(shareACLsToDelete);
+                            params.setAclsToDelete(deleteShareACLs);
+                        }
+                        if (!shareACLsToModify.isEmpty()) {
+                            ShareACLs modifyShareACLs = new ShareACLs();
+                            modifyShareACLs.setShareACLs(shareACLsToModify);
+                            params.setAclsToModify(modifyShareACLs);
+                        }
+
+                        if (params.retrieveAllACLs() != null && !params.retrieveAllACLs().isEmpty()) {
                             updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
-
-                        } else {
-
-                            List<ShareACL> shareACLsToAdd = new ArrayList<ShareACL>();
-                            List<ShareACL> shareACLsToDelete = new ArrayList<ShareACL>();
-                            List<ShareACL> shareACLsToModify = new ArrayList<ShareACL>();
-                            HashMap<String, ShareACL> sourceShareACLMap = FileOrchestrationUtils.getShareACLMap(sourceShareACLs);
-                            HashMap<String, ShareACL> targetShareACLMap = FileOrchestrationUtils.getShareACLMap(targetShareACLs);
-
-                            // ACLs To Add
-                            for (String sourceACLName : sourceShareACLMap.keySet()) {
-                                if (targetShareACLMap.get(sourceACLName) == null) {
-                                    ShareACL shareACL = sourceShareACLMap.get(sourceACLName);
-                                    shareACL.setFileSystemId(targetFileShare.getId());
-                                    shareACLsToAdd.add(shareACL);
-                                }
-                            }
-
-                            // ACLs To Delete
-                            for (String targetACLName : targetShareACLMap.keySet()) {
-                                if (sourceShareACLMap.get(targetACLName) == null) {
-                                    shareACLsToDelete.add(targetShareACLMap.get(targetACLName));
-                                }
-                            }
-
-                            // ACLs to Modify
-                            targetShareACLs.removeAll(shareACLsToDelete);
-                            sourceShareACLs.removeAll(shareACLsToAdd);
-                            sourceShareACLMap = FileOrchestrationUtils.getShareACLMap(sourceShareACLs);
-                            targetShareACLMap = FileOrchestrationUtils.getShareACLMap(targetShareACLs);
-
-                            for (String sourceACLName : sourceShareACLMap.keySet()) {
-                                if (targetShareACLMap.get(sourceACLName) != null && !targetShareACLMap.get(sourceACLName).getPermission()
-                                        .equals(sourceShareACLMap.get(sourceACLName).getPermission())) {
-                                    ShareACL shareACL = targetShareACLMap.get(sourceACLName);
-                                    shareACL.setPermission(sourceShareACLMap.get(sourceACLName).getPermission());
-                                    shareACLsToModify.add(shareACL);
-                                }
-                            }
-
-                            params = new CifsShareACLUpdateParams();
-
-                            if (!shareACLsToAdd.isEmpty()) {
-                                ShareACLs addShareACLs = new ShareACLs();
-                                addShareACLs.setShareACLs(shareACLsToAdd);
-                                params.setAclsToAdd(addShareACLs);
-                            }
-                            if (!shareACLsToDelete.isEmpty()) {
-                                ShareACLs deleteShareACLs = new ShareACLs();
-                                deleteShareACLs.setShareACLs(shareACLsToDelete);
-                                params.setAclsToDelete(deleteShareACLs);
-                            }
-                            if (!shareACLsToModify.isEmpty()) {
-                                ShareACLs modifyShareACLs = new ShareACLs();
-                                modifyShareACLs.setShareACLs(shareACLsToModify);
-                                params.setAclsToModify(modifyShareACLs);
-                            }
-
-                            if (params.retrieveAllACLs() != null && !params.retrieveAllACLs().isEmpty()) {
-                                updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
-                            }
                         }
                     }
                 }
@@ -1088,21 +1096,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
             FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-            if (sourceNFSExportMap == null) {
-                List<FileExport> targetNFSExports = new ArrayList<FileExport>(targetNFSExportMap.values());
-                deleteNFSExportFromTarget(workflow, systemTarget, targetNFSExports, targetFileShare);
-
-            } else if (targetNFSExportMap == null) {
+            if (targetNFSExportMap == null && sourceNFSExportMap != null) {
+                // No export on target i.e create all source export on target
                 List<FileExport> sourceNFSExports = new ArrayList<FileExport>(sourceNFSExportMap.values());
                 createNFSExportOnTarget(workflow, systemTarget, sourceNFSExports, nfsPort, targetFileShare, sourceFileShare);
 
-            } else {
-
+            } else if (sourceNFSExportMap != null && targetNFSExportMap != null) {
+                // both source and target have some exports
                 List<FileExport> sourceNFSExports = new ArrayList<FileExport>(sourceNFSExportMap.values());
                 List<FileExport> targetNFSExports = new ArrayList<FileExport>(targetNFSExportMap.values());
 
                 List<FileExport> targetNFSExportstoCreate = new ArrayList<FileExport>();
-                List<FileExport> targetNFSExportstoDelete = new ArrayList<FileExport>();
 
                 // Creating new map since FSExportMap key contains path+sec+user
                 HashMap<String, FileExport> sourceFileExportMap = FileOrchestrationUtils.getFileExportMap(sourceNFSExports);
@@ -1121,26 +1125,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         }
                     }
                 }
-
-                for (String exportPath : targetFileExportMap.keySet()) {
-                    if (exportPath.equals(targetFileShare.getPath())) {
-                        if (sourceFileExportMap.get(sourceFileShare.getPath()) == null) {
-                            targetNFSExportstoDelete.add(targetFileExportMap.get(exportPath));
-                        }
-                    } else {
-                        ArrayList<String> subdirName = new ArrayList<String>();
-                        subdirName.add(exportPath.split(targetFileShare.getPath())[1]);
-                        if (sourceFileExportMap.get(sourceFileShare.getPath() + subdirName.get(0)) == null) {
-                            targetNFSExportstoDelete.add(targetFileExportMap.get(exportPath));
-                        }
-                    }
-                }
-
                 if (!targetNFSExportstoCreate.isEmpty()) {
                     createNFSExportOnTarget(workflow, systemTarget, targetNFSExportstoCreate, nfsPort, targetFileShare, sourceFileShare);
-                }
-                if (!targetNFSExportstoDelete.isEmpty()) {
-                    deleteNFSExportFromTarget(workflow, systemTarget, targetNFSExportstoDelete, targetFileShare);
                 }
             }
             String successMessage = String.format(
@@ -1180,10 +1166,35 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId, completer);
 
-            SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
+            FSExportMap sourceFSExportMap = sourceFileShare.getFsExports();
+            FSExportMap targetFSExportMap = targetFileShare.getFsExports();
 
-            if (sourceSMBShareMap != null) {
+            if (sourceFSExportMap == null && targetFSExportMap != null) {
+                // There are no export rule on source but there are on target!!
+                List<ExportRule> exportRulesToDelete;
+                HashMap<String, List<ExportRule>> targetExportRuleMap = FileOrchestrationUtils.getFSExportRuleMap(targetFileShare,
+                        s_dbClient);
+                for (String exportPath : targetExportRuleMap.keySet()) {
+                    FileExportUpdateParams params = new FileExportUpdateParams();
 
+                    if (exportPath.equals(targetFileShare.getPath())) {
+                        // File system export rules....
+                        exportRulesToDelete = targetExportRuleMap.get(targetFileShare.getPath());
+
+                    } else {
+                        // Sub directory export rules....
+                        String subDir = exportPath.split(targetFileShare.getPath())[1];
+                        exportRulesToDelete = targetExportRuleMap.get(targetFileShare.getPath() + subDir);
+                        params.setSubDir(subDir.substring(1));
+                    }
+                    ExportRules deleteExportRules = new ExportRules();
+                    deleteExportRules.setExportRules(exportRulesToDelete);
+                    params.setExportRulesToDelete(deleteExportRules);
+                    updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
+                }
+
+            } else if (targetFSExportMap != null && sourceFSExportMap != null) {
+                // Both source and target have export rules!!
                 HashMap<String, List<ExportRule>> sourceExportRuleMap = FileOrchestrationUtils.getFSExportRuleMap(sourceFileShare,
                         s_dbClient);
                 HashMap<String, List<ExportRule>> targetExportRuleMap = FileOrchestrationUtils.getFSExportRuleMap(targetFileShare,
@@ -1246,12 +1257,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
 
                     if (params.retrieveAllExports() != null && !params.retrieveAllExports().isEmpty()) {
-                        String stepDescription = String.format(
-                                "updating NFS export rules for path : %s, %s", exportPath, params.toString());
-                        String exportRuleUpdateStep = workflow.createStepId();
-                        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
-                        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
-                                stepDescription, systemTarget, args);
+                        updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
                     }
                 }
             }
@@ -1291,18 +1297,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String exportCreationStep = workflow.createStepId();
             Object[] args = new Object[] { systemTarget, targetFileShare.getId(), Arrays.asList(fileNFSExport) };
             _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportCreationStep, stepDescription,
-                    systemTarget, args);
-        }
-    }
-
-    private static void deleteNFSExportFromTarget(Workflow workflow, URI systemTarget, List<FileExport> nfsExportsToDelete,
-            FileShare targetFileShare) {
-        for (FileExport nfsExport : nfsExportsToDelete) {
-            FileShareExport fileNFSExport = new FileShareExport(nfsExport);
-            String stepDescription = String.format("deleting NFS export : %s", fileNFSExport.getMountPath());
-            String exportCreationStep = workflow.createStepId();
-            Object[] args = new Object[] { systemTarget, targetFileShare.getId(), Arrays.asList(fileNFSExport) };
-            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_METHOD, exportCreationStep, stepDescription,
                     systemTarget, args);
         }
     }
@@ -1347,6 +1341,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String shareACLUpdateStep = workflow.createStepId();
         Object[] args = new Object[] { systemTarget, targetFileShare.getId(), sourceSMBShare.getName(), params };
         _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep,
+                stepDescription, systemTarget, args);
+    }
+
+    private static void updateFSExportRulesOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare, String exportPath,
+            FileExportUpdateParams params) {
+        String stepDescription = String.format("updating NFS export rules for path : %s, %s", exportPath, params.toString());
+        String exportRuleUpdateStep = workflow.createStepId();
+        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
+        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
                 stepDescription, systemTarget, args);
     }
 

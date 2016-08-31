@@ -4368,12 +4368,41 @@ public class FileService extends TaskResourceService {
     }
 
     private boolean isMountPathValid(URI hostId, String mountPath) {
-        List<MountInfo> mountList = getHostNFSMounts(hostId).getMountList();
+        List<MountInfo> mountList = queryDBHostMounts(hostId);
         for (MountInfo mount : mountList) {
             if (mount.getMountPath().equalsIgnoreCase(mountPath)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Method to get the list file system mounts which are mount on a host
+     *
+     * @param host
+     *            host system URI
+     * @return List<MountInfo> List of mount infos
+     */
+    private List<MountInfo> queryDBHostMounts(URI host) {
+        _log.info("Querying NFS mounts for host {}", host);
+        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
+            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fileMounts != null && !fileMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fileMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    hostMounts.add(mountInfo);
+                }
+            }
+            return hostMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return hostMounts;
     }
 }

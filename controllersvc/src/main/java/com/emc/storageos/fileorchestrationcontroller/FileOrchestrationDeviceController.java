@@ -178,8 +178,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * Create target filesystems for existing file systems!!
      * (FileShare, FileMirroring). This method is responsible for creating
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
-     * 
-     * @param filesystems
+     * @param fs
+     * @param fileDescriptors
      * @param taskId
      * @throws ControllerException
      */
@@ -823,6 +823,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         String stepDescription = null;
+        MirrorFileFailoverTaskCompleter failoverCompleter = null;
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
@@ -837,8 +838,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             s_logger.info("Generating steps for Failover File System to Target");
             String failoverStep = workflow.createStepId();
-            MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(sourceFileShare.getId(),
-                    targetFileShare.getId(), failoverStep);
+
+            List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
+            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep, targetFileShare.getStorageDevice());
+            stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
+
             stepDescription = String.format("Failover source file System : %s to target system : %s.", sourceFileShare.getName(),
                     targetFileShare.getName());
             Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };

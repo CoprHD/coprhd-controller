@@ -1297,11 +1297,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
                             Set<String> egInitiators = new HashSet<String>(exportGroup.getInitiators());
                             for (String initiatorIdStr : egInitiators) {
-                                if (validatorConfig.validationEnabled() && exportMask.hasAnyExistingVolumes()) {
+                                if (validatorConfig.validationEnabled() && exportMask.hasAnyExistingInitiators()) {
                                     deleteEntireMask = false;
-                                    errorMessage.append("We cannot delete initiators from mask ").append(exportMask.getMaskName())
-                                    .append(" because there are exisitng volumes ")
-                                    .append(Joiner.on(',').join(exportMask.getExistingVolumes().keySet()));
+                                    errorMessage.append("We cannot delete mask ").append(exportMask.getMaskName())
+                                            .append(" because there are exisitng initiators - ")
+                                            .append(Joiner.on(',').join(exportMask.getExistingInitiators()));
                                     break;
                                 }
 
@@ -1325,7 +1325,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                     if ((exportGroupList != null && exportGroupList.size() > 1)
                                             && ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null)) {
                                         String msg = String
-                                                .format("Found that my initiator is in %s more export groups, so we shouldn't remove it from the mask",
+                                                .format("Found that initiator is in %s more export groups, so we shouldn't remove it from the mask",
                                                         exportGroupList.size() - 1);
                                         _log.info(msg);
                                         errorMessage.append(msg);

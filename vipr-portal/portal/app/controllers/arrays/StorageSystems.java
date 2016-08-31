@@ -109,6 +109,8 @@ public class StorageSystems extends ViprResourceController {
     protected static final String REGISTER_ERROR = "PhysicalAssets.registration.error";
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
+    protected static final String PARSE_ERROR = "storageArray.parseError";
+    protected static final String SECONDARY_DETAIL_MISSING = "storageArray.secondaryHost.secondaryPort.missing";
     protected static final String SCALEIO = "scaleio";
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
     private static final String HTTPS = "https";
@@ -1052,7 +1054,7 @@ public class StorageSystems extends ViprResourceController {
                 try {
                     url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
                 }catch(Exception e) {
-                    flash.error("Unable to parse Hyper Scale Manager URL");
+                    flash.error(MessagesUtils.get(PARSE_ERROR));
                 }
                 this.secondaryURL = url.toString();
             }
@@ -1154,8 +1156,10 @@ public class StorageSystems extends ViprResourceController {
 
             if(isXIV()) {
                 if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))) {
-                    Validation.addError(fieldName + ".hyperScaleHost","Either Secondary Host or Port details is missing");
-                    Validation.addError(fieldName + ".hyperScalePort","Either Secondary Host or Port details is missing");
+                    Validation.addError(fieldName + ".hyperScaleHost",MessagesUtils
+                            .get(SECONDARY_DETAIL_MISSING));
+                    Validation.addError(fieldName + ".hyperScalePort",MessagesUtils
+                            .get(SECONDARY_DETAIL_MISSING));
                 }
             }
         }

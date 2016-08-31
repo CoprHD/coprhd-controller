@@ -2059,6 +2059,8 @@ storageArray.hyperScalePort=Secondary Port
 storageArray.hyperScaleUsername=Secondary User
 storageArray.hyperScalePassword=Secondary Password
 storageArray.hyperScalePasswordConfirm=Confirm Secondary Password
+storageArray.secondaryHost.secondaryPort.missing=Either Secondary Host or Port details is missing
+storageArray.parseError=Unable to parse Hyper Scale Manager URL
 #
 # onboard SMI-S Provider
 #

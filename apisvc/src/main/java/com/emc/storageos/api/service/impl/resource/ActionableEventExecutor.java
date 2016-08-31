@@ -438,11 +438,13 @@ public class ActionableEventExecutor {
             String volumeName = details.getVolumeName();
             URI blockURI = details.getBlockURI();
             if (addPath) {
-                ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded", (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI);
+                result.add(
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded", (projectName == null ? "N/A" : projectName),
+                                (volumeName == null ? "N/A" : volumeName), blockURI));
             } else {
-                ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathRemoved", (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI);
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathRemoved",
+                        (projectName == null ? "N/A" : projectName),
+                        (volumeName == null ? "N/A" : volumeName), blockURI));
             }
         }
         return result;
@@ -463,11 +465,13 @@ public class ActionableEventExecutor {
             String volumeName = details.getVolumeName();
             URI blockURI = details.getBlockURI();
             if (gainAccess) {
-                ComputeSystemDialogProperties.getMessage("ComputeSystem.hostGainAccess", (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI);
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostGainAccess",
+                        (projectName == null ? "N/A" : projectName),
+                        (volumeName == null ? "N/A" : volumeName), blockURI));
             } else {
-                ComputeSystemDialogProperties.getMessage("ComputeSystem.hostLoseAccess", (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI);
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostLoseAccess",
+                        (projectName == null ? "N/A" : projectName),
+                        (volumeName == null ? "N/A" : volumeName), blockURI));
             }
         }
         return result;

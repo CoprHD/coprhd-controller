@@ -40,6 +40,7 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
         DbClient dbClient = getDbClient();
         List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
         Iterator<Volume> volumesIter = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+        int volumeUpdatedCount = 0;
         while (volumesIter.hasNext()) {
             Volume volume = volumesIter.next();
             URI systemURI = volume.getStorageController();
@@ -54,10 +55,13 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
                         logger.info("updating thinlyProvisioned property on volume {} to false", volume.forDisplay());
                         volume.setThinlyProvisioned(false);
                         dbClient.updateObject(volume);
+                        volumeUpdatedCount++;
                     }
                 }
             }
         }
+        logger.info("VplexVolumeThinlyProvisionedMigration completed, updated thinlyProvisioned to false on {} volumes", 
+                volumeUpdatedCount);
     }
 
 }

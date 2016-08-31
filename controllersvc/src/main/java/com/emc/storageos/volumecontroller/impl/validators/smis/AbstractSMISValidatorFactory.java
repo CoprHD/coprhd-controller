@@ -131,16 +131,13 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         AbstractSMISValidator initiators = createExportMaskInitiatorValidator(storage, exportMask, initiatorList);
         AbstractSMISValidator multiMaskBlockObjects =
                 createMultipleExportMasksForBlockObjectsValidator(storage, exportMask, null);
-        AbstractSMISValidator multiMaskInitiators =
-                createMultipleExportMasksForInitiatorsValidator(storage, exportMask, null);
 
-        configureValidators(sharedLogger, volumes, initiators, multiMaskBlockObjects, multiMaskInitiators);
+        configureValidators(sharedLogger, volumes, initiators, multiMaskBlockObjects);
 
         ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
         chain.addValidator(volumes);
         chain.addValidator(initiators);
         chain.addValidator(multiMaskBlockObjects);
-        chain.addValidator(multiMaskInitiators);
 
         return chain;
     }

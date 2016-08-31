@@ -120,6 +120,10 @@ public class StorageSystemTypes {
     public static boolean isHP3PAR(String type) {
     	return HP3PAR.equals(type);
     }
+
+    public static boolean isXIV(String type) {
+        return IBMXIV.equals(type);
+    }
     
     public static boolean isFileStorageSystem(String type) {
         return contains(FILE_TYPES, type);

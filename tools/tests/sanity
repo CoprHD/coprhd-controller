@@ -3895,7 +3895,7 @@ recoverpoint_export_bookmark_tests()
             secho 'Adding multiple bookmarks for the same target during export group create - expected failure'
             #join the list of all the bookmarks created with commas
             volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
-            fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}"
+            fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}1"
         fi
 
         secho 'Creating 2 RP bookmarks for the same volume.'
@@ -3904,7 +3904,7 @@ recoverpoint_export_bookmark_tests()
         run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
         blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
         fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
@@ -3921,13 +3921,23 @@ recoverpoint_export_bookmark_tests()
         for tgt_varray in ${rp_tgt_varrays}
         do
             secho 'Running RP bookmark export tests for target copy '${tgt_varray}
-            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}"
+            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}1"
             export_group show ${rpexport}-${tgt_varray}
             run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
             run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
             export_group show ${rpexport}-${tgt_varray}
             run export_group delete ${rpexport}-${tgt_varray}
         done
+
+        secho 'Exporting RP bookmark to 2 different hosts'
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
+
+        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
+        run export_group delete ${rpexport}2
+
+        secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
+        run export_group delete ${rpexport}
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 
@@ -3946,7 +3956,10 @@ recoverpoint_export_bookmark_tests()
             done
         done
 
-        run hosts delete ${RP_HOSTNAME}
+        secho 'Deleting host '${RP_HOSTNAME}1
+        run hosts delete ${RP_HOSTNAME}1
+        secho 'Deleting host '${RP_HOSTNAME}2
+        run hosts delete ${RP_HOSTNAME}2
         secho 'Done with RecoverPoint bookmark export cleanup'
     else
         secho 'Skipping RecoverPoint Export Bookmark Tests'
@@ -3965,6 +3978,12 @@ recoverpoint_export_host_setup()
         WWNN2=20:00:00:E0:E0:E0:A2:E0
         PWWN3=10:00:00:E0:E0:E0:A3:D0
         WWNN3=20:00:00:E0:E0:E0:A3:D0
+        PWWN4=10:00:00:E0:E0:E0:A4:D0
+        WWNN4=20:00:00:E0:E0:E0:A4:D0
+        PWWN5=10:00:00:E0:E0:E0:A5:D0
+        WWNN5=20:00:00:E0:E0:E0:A5:D0
+        PWWN6=10:00:00:E0:E0:E0:A6:D0
+        WWNN6=20:00:00:E0:E0:E0:A6:D0
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
     elif [ "${vpool}" = "rp${rptype}_crr" ]; then
         PWWN1=10:00:00:E0:E0:E0:B1:F0
@@ -3973,6 +3992,12 @@ recoverpoint_export_host_setup()
         WWNN2=20:00:00:E0:E0:E0:B2:F0
         PWWN3=10:00:00:E0:E0:E0:B3:D0
         WWNN3=20:00:00:E0:E0:E0:B3:D0
+        PWWN4=10:00:00:E0:E0:E0:B3:D0
+        WWNN4=20:00:00:E0:E0:E0:B4:D0
+        PWWN5=10:00:00:E0:E0:E0:B4:D0
+        WWNN5=20:00:00:E0:E0:E0:B5:D0
+        PWWN6=10:00:00:E0:E0:E0:B6:D0
+        WWNN6=20:00:00:E0:E0:E0:B6:D0
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
     elif [ "${vpool}" = "rp${rptype}_clr" ]; then
         PWWN1=10:00:00:E0:E0:E0:C1:D0
@@ -3981,20 +4006,40 @@ recoverpoint_export_host_setup()
         WWNN2=20:00:00:E0:E0:E0:C2:D0
         PWWN3=10:00:00:E0:E0:E0:C3:D0
         WWNN3=20:00:00:E0:E0:E0:C3:D0
+        PWWN4=10:00:00:E0:E0:E0:C4:D0
+        WWNN4=20:00:00:E0:E0:E0:C4:D0
+        PWWN5=10:00:00:E0:E0:E0:C5:D0
+        WWNN5=20:00:00:E0:E0:E0:C5:D0
+        PWWN6=10:00:00:E0:E0:E0:C6:D0
+        WWNN6=20:00:00:E0:E0:E0:C6:D0
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
-    run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0
-    run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
-    run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
-    run initiator create ${RP_HOSTNAME} FC ${PWWN3} --node ${WWNN3}
+    run hosts create ${RP_HOSTNAME}1 $TENANT Windows ${RP_HOSTNAME}1 --port 8111 --username user --password 'password' --osversion 1.0
+    run hosts create ${RP_HOSTNAME}2 $TENANT Windows ${RP_HOSTNAME}2 --port 8111 --username user --password 'password' --osversion 1.0
+  
+    run initiator create ${RP_HOSTNAME}1 FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME}2 FC ${PWWN2} --node ${WWNN2}
 
     if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        # Creating additional initiator for sanity quick
+        run initiator create ${RP_HOSTNAME}1 FC ${PWWN3} --node ${WWNN3}
+        run initiator create ${RP_HOSTNAME}2 FC ${PWWN4} --node ${WWNN4}      
+
+        run initiator create ${RP_HOSTNAME}1 FC ${PWWN5} --node ${WWNN5}
+        run initiator create ${RP_HOSTNAME}2 FC ${PWWN6} --node ${WWNN6}
+
         run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
-        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN2}
-        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN3}
+        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}  
+
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN3}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_12 ${PWWN4}
+
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
     else
         run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     
     fi
 }
 
@@ -4054,20 +4099,21 @@ recoverpoint_auto_snapshot_cleanup_test()
         secho 'Performing swap back'
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
 
-        sleep 10
+        # Removing the tests below because of COP-25080
+        #sleep 10
 
-        secho 'Creating RP bookmark'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+        #secho 'Creating RP bookmark'
+        #run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        #blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
 
-        secho 'Performing consistency group swap operation to verify auto snapshot cleanup'
-        run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+        #secho 'Performing consistency group swap operation to verify auto snapshot cleanup'
+        #run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
 
-        secho 'Verifying that RP bookmark was removed after consistency group swap'
-        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        #secho 'Verifying that RP bookmark was removed after consistency group swap'
+        #fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
  
-        secho 'Performing consistency group swap back'
-        run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $RECOVERPOINT_VARRAY1
+        #secho 'Performing consistency group swap back'
+        #run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $RECOVERPOINT_VARRAY1
     else
         secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
     fi
@@ -5064,11 +5110,13 @@ recoverpoint_direct_access_test()
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
         sleep 20
-        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}"
+        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}1"
         run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
 
-        secho 'Removing export host'
-        run hosts delete ${RP_HOSTNAME}
+        secho 'Removing export host '${RP_HOSTNAME}1
+        run hosts delete ${RP_HOSTNAME}1
+        secho 'Removing export host '${RP_HOSTNAME}2
+        run hosts delete ${RP_HOSTNAME}2
 
         secho 'Swap/swap-back while single target volume is in direct access mode'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp       

@@ -1119,7 +1119,12 @@ public class RecoverPointImageManagementUtils {
                 }
                 logger.info("Copy image " + cgCopyName + " of group " + cgName + " not in correct state.  Sleeping " + sleepTimeSeconds
                         + " seconds");
-                Thread.sleep(Long.valueOf(sleepTimeSeconds * numMillisInSecond));
+                try {
+                    Thread.sleep(Long.valueOf(sleepTimeSeconds * numMillisInSecond));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
             }
         }
         throw RecoverPointException.exceptions.stateChangeNeverCompleted();

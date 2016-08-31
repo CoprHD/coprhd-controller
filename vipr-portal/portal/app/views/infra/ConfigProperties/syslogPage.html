@@ -135,6 +135,9 @@
         var ni = document.getElementById('server-group');
         var numi = document.getElementById('theValue');
         var num = (document.getElementById('theValue').value -1)+ 2;
+        if (num > 6) {
+            return;
+        }
         numi.value = num;
         var newdiv = document.createElement('tr');
         var divIdName = 'server_'+num;

@@ -597,8 +597,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<Volume> volumes, final TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         try {
-            int volumeCount = 0;
-            String[] volumeNativeIds = new String[volumes.size()];
+            List<String> volumeNativeIds = new ArrayList<String>();
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Delete Volume Start - Array:%s", storageSystem.getSerialNumber()));
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
@@ -652,9 +651,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     // COP-16705, COP-21770 - Ingested non-exported Volume may be associated with SG outside of ViPR.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
-                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
-                        volumes.get(0));
-                CIMInstance volumeInstance = _helper.checkExists(forProvider,
+
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
                         _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
                 if (volumeInstance == null) {
@@ -712,7 +710,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                     cloneVolumes.add(volume);
                 }
-                volumeNativeIds[volumeCount++] = volume.getNativeId();
+                volumeNativeIds.add(volume.getNativeId());
             }
             _log.info(logMsgBuilder.toString());
 
@@ -731,7 +729,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
                 CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
                 CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storageSystem,
-                        volumeNativeIds);
+                        volumeNativeIds.toArray(new String[0]));
                 CIMArgument[] outArgs = new CIMArgument[5];
                 String returnElementsMethod;
                 if (storageSystem.getUsingSmis80()) {

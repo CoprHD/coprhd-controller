@@ -9,7 +9,6 @@ import java.net.URI;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
-import com.emc.storageos.volumecontroller.ControllerException;
 
 /**
  * 
@@ -24,10 +23,6 @@ public interface HostMountAdapter {
     public void setDbClient(DbClient dbClient);
 
     public void setCoordinator(CoordinatorClient coordinator);
-
-    public void doMount(HostDeviceInputOutput args) throws ControllerException;
-
-    public void doUnmount(HostDeviceInputOutput args) throws ControllerException;
 
     public void createDirectory(URI hostId, String mountPath);
 

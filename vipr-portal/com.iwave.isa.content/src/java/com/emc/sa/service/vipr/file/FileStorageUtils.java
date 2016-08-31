@@ -162,7 +162,7 @@ public class FileStorageUtils {
 
             // Delete all export rules for filesystem and all sub-directories
             if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null);
+                deactivateFileSystemExport(fileSystemId, true, null, true);
             }
 
             // Deactivate NFS Exports
@@ -249,7 +249,7 @@ public class FileStorageUtils {
                 rootUser, exportHosts, subDirectory));
         addAffectedResource(task);
         String exportId = task.getResourceId().toString();
-        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null));
+        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }
@@ -447,8 +447,8 @@ public class FileStorageUtils {
         return task.getResourceId();
     }
 
-    public static URI deactivateFileSystemExport(URI fileSystemId, Boolean allDir, String subDir) {
-        Task<FileShareRestRep> task = execute(new DeactivateFileSystemExportRule(fileSystemId, allDir, subDir));
+    public static URI deactivateFileSystemExport(URI fileSystemId, Boolean allDir, String subDir, Boolean unmountExport) {
+        Task<FileShareRestRep> task = execute(new DeactivateFileSystemExportRule(fileSystemId, allDir, subDir, unmountExport));
         addAffectedResource(task);
         return task.getResourceId();
     }

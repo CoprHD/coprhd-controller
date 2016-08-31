@@ -883,6 +883,7 @@ public class HP3PARApi {
         }
         
         body = body.concat("}");
+        _log.info("3PARDriver: createVlun body is {}", body);
 
         try {
             clientResp = post(URI_CREATE_VLUN, body);
@@ -1072,6 +1073,7 @@ public class HP3PARApi {
             path = path.concat(","+pos);
         }
 
+        _log.info("3PARDriver: getPortStatistics path is {}", path);
         try {
             clientResp = delete(path);
             if (clientResp == null) {

@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class InitiatorHostMigration extends BaseCustomMigrationCallback {
     public static final Long FLAG_DEFAULT = 2L;

@@ -4462,7 +4462,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
-                    _log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+                    Thread.currentThread().interrupt();
                 }
                 // When we perform a swap, the target swap copy will become the production copy and lose all
                 // its bookmarks so we need to sync with RP.
@@ -4495,7 +4495,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         try {
                             Thread.sleep(5000);
                         } catch (InterruptedException e) {
-                            _log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+                            Thread.currentThread().interrupt();
                         }
                         RPHelper.cleanupSnapshots(_dbClient, rpSystem);
                     }

@@ -457,7 +457,6 @@ public class ActionableEventExecutor {
      * @param gainAccess if true, host is gaining access to a volume, else access is being removed
      * @return list of volume details
      */
-
     private List<String> getVolumeDetails(List<BlockObjectDetails> affectedVolumes, boolean gainAccess) {
         List<String> result = Lists.newArrayList();
         for (BlockObjectDetails details : affectedVolumes) {

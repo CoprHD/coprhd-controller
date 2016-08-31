@@ -4459,7 +4459,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // component of the swap operation to complete. There were issues with this which are documented in the
                 // RecoverPointClient. So we sleep here in order to give RP the time it needs to remove the swap target
                 // copy bookmarks before we cleanup the corresponding BlockSnapshot objects from ViPR.
-                Thread.sleep(5000);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 // When we perform a swap, the target swap copy will become the production copy and lose all
                 // its bookmarks so we need to sync with RP.
                 RPHelper.cleanupSnapshots(_dbClient, rpSystem);
@@ -4488,7 +4492,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                         "Updated imaged access mode for copy %s at %s to DIRECT_ACCESS. Removing all bookmarks associated with that copy and site.",
                                         volumeProtectionInfo.getRpCopyName(), volumeProtectionInfo.getRpSiteName()));
                         // Wait for RP to remove copy snapshots
-                        Thread.sleep(5000);
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                         RPHelper.cleanupSnapshots(_dbClient, rpSystem);
                     }
 

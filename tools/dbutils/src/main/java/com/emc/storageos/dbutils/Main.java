@@ -27,6 +27,7 @@ import com.emc.storageos.dbutils.CommandHandler.DumpSchemaHandler;
 import com.emc.storageos.dbutils.CommandHandler.GeoBlacklistHandler;
 import com.emc.storageos.dbutils.CommandHandler.GlobalLockHandler;
 import com.emc.storageos.dbutils.CommandHandler.ImportHandler;
+import com.emc.storageos.dbutils.CommandHandler.IndexQueryHandler;
 import com.emc.storageos.dbutils.CommandHandler.ListHandler;
 import com.emc.storageos.dbutils.CommandHandler.QueryHandler;
 import com.emc.storageos.dbutils.CommandHandler.RebuildIndexHandler;
@@ -34,7 +35,6 @@ import com.emc.storageos.dbutils.CommandHandler.RecordHandler;
 import com.emc.storageos.dbutils.CommandHandler.RecoverVdcHandler;
 import com.emc.storageos.dbutils.CommandHandler.RestoreKeyHandler;
 import com.emc.storageos.dbutils.CommandHandler.RunMigrationCallback;
-import com.emc.storageos.dbutils.CommandHandler.SolrQueryHandler;
 
 /**
  * Class provided simple cli for DB, to dump records in user readable format
@@ -43,7 +43,7 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     private enum Command {
-        SOLRQUERY,
+        INDEXQUERY,
         IMPORT,
         LIST,
         QUERY,
@@ -234,9 +234,9 @@ public class Main {
             boolean result = false;
 
             switch (cmd) {
-                case SOLRQUERY:
+                case INDEXQUERY:
                     _client.init();
-                    handler = new SolrQueryHandler(args);
+                    handler = new IndexQueryHandler(args);
                     break;
                 case IMPORT:
                     _client.init();

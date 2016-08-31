@@ -4,39 +4,36 @@
  */
 package com.emc.storageos.index.client;
 
-import java.net.URI;
 import java.util.Iterator;
-import java.util.List;
 
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.index.client.impl.IndexQueryResult;
 
 public interface IndexClient {
 
     /**
-     * import data into solr
+     * import data into index server
      * 
      * @param clazz object type
-     * @param collectionName name of collection
      * @param objects object list
-     * @param fieldNames field names to index
      * @return total numbers of records imported
      */
-    public <T extends DataObject> int importData(Class<T> clazz, String collectionName, Iterator<T> objects, List<String> fieldNames);
+    public <T extends DataObject> int importData(Class<T> clazz, Iterator<T> objects);
 
     /**
-     * query form solr
+     * query from index server
      * 
-     * @param collectionName name of collection
+     * @param clazz object type
      * @param queryString string to query
      * @param pageSize number of records list on a page
      * @param pageNumber current page number
      * @return uris
      */
-    public List<URI> query(String collectionName, String queryString, int pageSize, int pageNumber);
+    public <T extends DataObject> IndexQueryResult query(Class<T> clazz, String queryString, int pageSize, int pageNumber);
 
     /**
-     * Start solr cluster with zookeeper
+     * Connect to the indexing server
      */
-    public void start();
+    public void starts();
 
 }

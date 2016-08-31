@@ -12,9 +12,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,9 @@ import org.apache.solr.common.params.ModifiableSolrParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.index.client.IndexClient;
@@ -46,27 +50,34 @@ public class IndexClientImpl implements IndexClient {
     private CloudSolrClient solrClient;
 
     @Override
-    public <T extends DataObject> int importData(Class<T> clazz, String collectionName, Iterator<T> objects, List<String> fieldNames) {
-
+    public <T extends DataObject> int importData(Class<T> clazz, Iterator<T> objects) {
         int countAll = 0;
+        String collectionName = clazz.getName();
         createCollection(collectionName);
+
+        List<String> fieldNames = getIndexedFields(clazz);
         addSchema(collectionName, fieldNames);
         solrClient.setDefaultCollection(collectionName);
         try {
             countAll = importRecords(clazz, objects);
-            log.info(countAll + " records added");
+            log.info("{} records added", countAll);
             solrClient.commit();
         } catch (Exception e) {
-            log.error("Data import failed");
+            log.error("Failed to import data e=", e);
         }
         return countAll;
     }
 
     @Override
-    public List<URI> query(String collectionName, String queryString, int pageSize, int pageNumber) {
-
+    public <T extends DataObject> IndexQueryResult query(Class<T> clazz, String queryString, int pageSize, int pageNumber) {
+        String collectionName = clazz.getName();
         solrClient.setDefaultCollection(collectionName);
-        List<URI> uris = new LinkedList<URI>();
+        List<URI> uris = new ArrayList<URI>(pageSize);
+
+        IndexQueryResult resultSets = new IndexQueryResult();
+        resultSets.setQueryString(queryString);
+        resultSets.setPageSize(pageSize);
+        resultSets.setPageNumber(pageNumber);
 
         SolrQuery query = new SolrQuery();
         query.setQuery(queryString);
@@ -78,36 +89,37 @@ public class IndexClientImpl implements IndexClient {
         try {
             response = solrClient.query(query);
             SolrDocumentList results = response.getResults();
+            resultSets.setTotalNum(results.getNumFound());
             for (SolrDocument solrDocument : results) {
                 String id = (String) solrDocument.getFieldValue("id");
                 URI uri = new URI(id);
                 uris.add(uri);
             }
+            resultSets.setUris(uris);
         } catch (SolrServerException | IOException e) {
-            log.error("Query failed");
+            log.error("Query failed", e);
         } catch (URISyntaxException e) {
-            log.error("Generate URI failed");
+            log.error("Generate URI failed", e);
         }
-        return uris;
+        return resultSets;
     }
 
     @Override
-    public void start() {
-
+    public void starts() {
         String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181";
         solrClient = new CloudSolrClient.Builder().withZkHost(zkHostString).build();
         solrClient.connect();
-        log.info("solrClient start");
+        log.info("Index Client start");
     }
 
     public void createCollection(String collectionName) {
-
         boolean hasCollection = solrClient.getZkStateReader().getClusterState().hasCollection(collectionName);
 
         if (hasCollection) {
             log.info("collection has been created");
             return;
         }
+
         CollectionAdminResponse res = new CollectionAdminResponse();
         log.info("Create collection:{}", collectionName);
         ModifiableSolrParams params = new ModifiableSolrParams();
@@ -124,10 +136,25 @@ public class IndexClientImpl implements IndexClient {
         try {
             res.setResponse(solrClient.request(request));
         } catch (SolrServerException | IOException e) {
-            log.error("collection creating failed");
+            log.error("collection creating failed", e);
         }
-        log.info("collection is created");
+        log.info("The collection {} has been created", collectionName);
+    }
 
+    private <T extends DataObject> List<String> getIndexedFields(Class<T> clazz) {
+        List<String> indexedFieldNames = new ArrayList<String>();
+
+        indexedFieldNames.add("id");
+        DataObjectType doType = TypeMap.getDoType(clazz);
+        Collection<ColumnField> fields = doType.getColumnFields();
+        for (ColumnField field : fields) {
+            PropertyDescriptor descriptor = field.getPropertyDescriptor();
+            Class<?> type = descriptor.getPropertyType();
+            if (String.class == type) {
+                indexedFieldNames.add(field.getName());
+            }
+        }
+        return indexedFieldNames;
     }
 
     public void addSchema(String collectionName, List<String> fieldNames) {
@@ -141,7 +168,7 @@ public class IndexClientImpl implements IndexClient {
             try {
                 addFieldRequest.process(solrClient, collectionName);
             } catch (SolrServerException | IOException e) {
-                log.error("Add schema failed");
+                log.error("Add schema failed", e);
             }
         }
         log.info("Schema is added");
@@ -149,7 +176,6 @@ public class IndexClientImpl implements IndexClient {
 
     private <T extends DataObject> int importRecords(Class<T> clazz, Iterator<T> objects)
             throws Exception {
-
         boolean isPrint = true;
         int countAll = 0;
         while (objects.hasNext()) {
@@ -164,7 +190,6 @@ public class IndexClientImpl implements IndexClient {
 
     private <T extends DataObject> boolean importBeanProperties(Class<T> clazz, T object)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SolrServerException, IOException {
-
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("id", object.getId().toString());
         boolean isPrint = true;

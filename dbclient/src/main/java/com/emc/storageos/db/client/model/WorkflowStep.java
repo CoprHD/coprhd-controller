@@ -206,23 +206,24 @@ public class WorkflowStep extends DataObject {
 
     @Name("executeMethodData")
     public byte[] getExecuteMethodData() {
-                return executeMethodData;
-            }
+        return executeMethodData;
+    }
 
     public void setExecuteMethodData(byte[] executeMethodData) {
-                this.executeMethodData = executeMethodData;
-                setChanged("executeMethodData");
-            }
+        this.executeMethodData = executeMethodData;
+        setChanged("executeMethodData");
+    }
 
     @Name("rollbackMethodData")
     public byte[] getRollbackMethodData() {
-                return rollbackMethodData;
-            }
+        return rollbackMethodData;
+    }
 
     public void setRollbackMethodData(byte[] rollbackMethodData) {
-                this.rollbackMethodData = rollbackMethodData;
-                setChanged("rollbackMethodData");
-            }
+        this.rollbackMethodData = rollbackMethodData;
+        setChanged("rollbackMethodData");
+    }
+
     @Name("suspendStep")
     public Boolean getSuspendStep() {
         return suspendStep;

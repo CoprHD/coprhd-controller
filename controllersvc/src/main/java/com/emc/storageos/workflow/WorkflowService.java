@@ -103,7 +103,8 @@ public class WorkflowService implements WorkflowController {
     
     // Other constants
     private static final String WORKFLOW_URI_Match = "urn:storageos:Workflow.*";
-
+    private static final int WORKFLOW_DESTROY_MAX_RETRIES = 5;
+    
     // Test-provided suspend variables that override system variables during unit testing.
     private String _suspendClassMethodTestOnly = null;
     private Boolean _suspendOnErrorTestOnly = null;
@@ -335,8 +336,8 @@ public class WorkflowService implements WorkflowController {
     /**
      * Simplified method that will store step data using either a workflow id or a step id
      * to locate the workflow. The key will be the text of stepOrWorkflowId.
-     * @param stepOrWorkflowId
-     * @param data
+     * @param stepOrWorkflowId -- A workflow id or step id used to locate the workflow
+     * @param data -- Serializable data to be persisted.
      */
     public void storeStepData(String stepOrWorkflowId, Object data) {
         storeStepData(stepOrWorkflowId, null, data);
@@ -365,6 +366,7 @@ public class WorkflowService implements WorkflowController {
                 return;
             }
         }
+        _log.info("Workflow not found for: " + stepOrWorkflowId);
         throw WorkflowException.exceptions.workflowNotFound(stepOrWorkflowId);
     }
 
@@ -428,7 +430,7 @@ public class WorkflowService implements WorkflowController {
                 return loadStepData(workflow.getWorkflowURI(), key, stepOrWorkflowId);
             }
         }
-        _log.info(String.format("No step data found for %s", stepOrWorkflowId));
+        _log.info(String.format("No step data found for %s (workflow not found)", stepOrWorkflowId));
         return null;
     }
 
@@ -444,7 +446,9 @@ public class WorkflowService implements WorkflowController {
         try {
             Workflow workflow = loadWorkflowFromUri(workflowURI);
             if (workflow == null) {
-                throw WorkflowException.exceptions.workflowNotFound(stepId);
+                Exception ex = WorkflowException.exceptions.workflowNotFound(stepId);
+                _log.error("Can't load step state for step: " + stepId, ex);
+                return null;
             }
             String path = getZKStepDataPath(stepId);
             Stat stat = _dataManager.checkExists(path);
@@ -464,7 +468,7 @@ public class WorkflowService implements WorkflowController {
             }
             return data;
         } catch (Exception ex) {
-            _log.error("Can't load step state for step: " + stepId);
+            _log.error("Can't load step data for step: " + stepId);
         }
         return null;
     }
@@ -481,6 +485,11 @@ public class WorkflowService implements WorkflowController {
         List<WorkflowStepData> dataRecords = 
                 CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, WorkflowStepData.class, constraint);
         for (WorkflowStepData dataRecord : dataRecords) {
+            if (dataRecord == null || dataRecord.getInactive()) {
+                _log.info("WorkflowStepData record inactive: "
+                        + ((dataRecord != null) ? dataRecord.getId().toString() : stepId));
+                continue;
+            }
             if (dataRecord.getWorkflowId().equals(workflowURI) && dataRecord.getStepId().equals(stepId)) { 
                 if (label == null && NullColumnValueGetter.isNullValue(dataRecord.getLabel()) 
                         || label != null && label.equals(dataRecord.getLabel()) ) {
@@ -876,7 +885,11 @@ public class WorkflowService implements WorkflowController {
         }
         _log.info("Destroying child workflows: " + childWorkflowSet.toString());
         for (URI childWorkflowURI : childWorkflowSet) {
-            for (int retryCount = 0; retryCount < 5; retryCount++) {
+            for (int retryCount = 0; retryCount < WORKFLOW_DESTROY_MAX_RETRIES; retryCount++) {
+                if (retryCount > 0) {
+                   _log.info(String.format("Waiting on child workflow %s to reach terminal state, retryCount %d", 
+                           childWorkflowURI, retryCount));
+                }
                 Workflow childWorkflow = null;
                 try {
                     childWorkflow = loadWorkflowFromUri(childWorkflowURI);
@@ -1037,8 +1050,9 @@ public class WorkflowService implements WorkflowController {
      */
     public void persistWorkflow(Workflow workflow) throws WorkflowException {
         try {
-            // Save off and the stepMap and stepStatus map and null it. The
-            // steps are persisted in ZK separately, and they can be big.
+            // Save  the stepMap and stepStatus map and null them. 
+            // These maps can be big because they contain status strings.
+            // The steps are persisted in ZK separately.
             Map<String, Workflow.Step> stepMap = workflow.getStepMap();
             Map<String, StepStatus> stepStatusMap = workflow.getStepStatusMap();
             workflow.setStepMap(null);
@@ -1759,6 +1773,8 @@ public class WorkflowService implements WorkflowController {
             Workflow.Method executeMethod = (Workflow.Method) 
                     GenericSerializer.deserialize(logStep.getExecuteMethodData());
             step.executeMethod = executeMethod;
+        } else {
+            _log.info("No execute method in WorkflowStep DB" + step.stepId);
         }
         if (logStep.getRollbackMethodData() != null) {
             Workflow.Method rollbackMethod = (Workflow.Method) 
@@ -1976,16 +1992,15 @@ public class WorkflowService implements WorkflowController {
      *      true if locks acquired, false otherwise
      */
     public boolean acquireWorkflowStepLocks(String stepId, List<String> lockKeys, long time) {
-        String workflowPath = getZKStep2WorkflowPath(stepId);
         boolean gotLocks = false;
         try {
             Workflow workflow = null;
             try {
                 workflow = loadWorkflowFromStepId(stepId);
             } catch (WorkflowException ex) {
-                _log.info("Workflow not found for stepId: " + stepId);
+                _log.warn("Workflow not found for stepId: " + stepId);
             }
-            if (workflowPath == null) {
+            if (workflow == null) {
                 return false;
             }
             Long stepStartTimeSeconds = System.currentTimeMillis();

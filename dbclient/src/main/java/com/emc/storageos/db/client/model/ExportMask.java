@@ -275,8 +275,8 @@ public class ExportMask extends DataObject {
     }
 
     public void removeVolumes(List<URI> volumes) {
-        for (URI uri : volumes) {
-            if (_volumes != null) {
+        if (_volumes != null) {
+            for (URI uri : volumes) {
                 _volumes.remove(uri.toString());
                 // TODO: Remove user added volumes
             }

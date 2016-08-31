@@ -673,13 +673,20 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 // If the BlockObject is a BlockSnapshot of type RP (bookmark), there will be no exported
                 // snapshot. In this case, a target volume will have been exported and the deviceLable of
                 // the BlockSnapshot reflects the name of that target.
-                if (URIUtil.isType(volumeUri, Volume.class) ||
-                        (URIUtil.isType(volumeUri, BlockSnapshot.class) && BlockObject.checkForRP(dbClient, volumeUri))) {
+                if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
                             blockObj.getLabel(), xioClusterName);
                 } else {
-                    xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
-                            blockObj.getDeviceLabel(), xioClusterName);
+                    if (URIUtil.isType(volumeUri, BlockSnapshot.class) && BlockObject.checkForRP(dbClient, volumeUri)) {
+                        _log.info(String.format(
+                                "Dealing with a RecoverPoint bookmark lun mapping.  Checking to see if volume %s is available on array.",
+                                blockObj.getDeviceLabel()));
+                        xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
+                                blockObj.getDeviceLabel(), xioClusterName);
+                    } else {
+                        xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
+                                blockObj.getDeviceLabel(), xioClusterName);
+                    }
                 }
 
                 if (null != xtremIOVolume) {

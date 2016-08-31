@@ -829,7 +829,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("linuxFileHost")
     public List<AssetOption> getNFSMountsForHost(AssetOptionsContext ctx, URI host) {
         List<AssetOption> options = Lists.newArrayList();
-        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsHostMounts(host.toString());
+        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsMountsByHost(host);
         for (MountInfo mountInfo : hostMounts) {
             String mountString = mountInfo.getMountString();
             options.add(new AssetOption(mountString, getDisplayMount(ctx, mountInfo)));

@@ -221,7 +221,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void rollback() {
-        _logger.info("performing rollback for " + getUnmanagedVirtualVolume().forDisplay());
+        _logger.warn("performing rollback for " + getUnmanagedVirtualVolume().forDisplay());
         getObjectsIngestedByExportProcessing().clear();
         getBlockObjectsToBeCreatedMap().clear();
         getCreatedSnapshotMap().clear();
@@ -234,12 +234,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         getVplexBackendExportGroupMap().clear();
         Set<DataObject> objectsToUpdateForUnManagedVolume = 
                 getRootIngestionRequestContext().getDataObjectsToBeUpdatedMap().get(getUnmanagedVirtualVolume().getNativeGuid());
-        _logger.info("getRootIngestionRequestContext().getDataObjectsToBeUpdatedMap() is " + getRootIngestionRequestContext().getDataObjectsToBeUpdatedMap());
         if (null != objectsToUpdateForUnManagedVolume) {
-            _logger.info("clearing objects for {}: {}", getUnmanagedVirtualVolume().getNativeGuid(), objectsToUpdateForUnManagedVolume);
+            _logger.warn("clearing objects to update on rollback for {}: {}", 
+                    getUnmanagedVirtualVolume().getNativeGuid(), objectsToUpdateForUnManagedVolume);
             objectsToUpdateForUnManagedVolume.clear();
         }
-        _logger.info("getRootIngestionRequestContext().getDataObjectsToBeUpdatedMap() is " + getRootIngestionRequestContext().getDataObjectsToBeUpdatedMap());
     }
 
     /*

@@ -129,6 +129,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.StorageSystemArrayAffinityDiscoveryMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.OrderScheduleTimeCallback"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeThinlyProvisionedMigration"/>
             </list>
         </entry>
     </util:map>

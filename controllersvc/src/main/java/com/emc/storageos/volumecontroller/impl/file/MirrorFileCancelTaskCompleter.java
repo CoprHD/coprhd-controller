@@ -2,7 +2,6 @@
  * Copyright (c) 2015-2016 EMC Corporation
  * All Rights Reserved
  */
-
 package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
@@ -17,22 +16,26 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
-public class MirrorFileRefreshTaskCompleter extends MirrorFileTaskCompleter {
+import static java.util.Arrays.asList;
 
+/**
+ * Created by bonduj on 8/18/2016.
+ */
+public class MirrorFileCancelTaskCompleter extends MirrorFileTaskCompleter {
     private static final long serialVersionUID = 1L;
-    private static final Logger _log = LoggerFactory.getLogger(MirrorFileRefreshTaskCompleter.class);
+    private static final Logger _log = LoggerFactory.getLogger(MirrorFileCancelTaskCompleter.class);
 
-    public MirrorFileRefreshTaskCompleter(Class<?> clazz, URI id, String opId) {
-        super(clazz, id, opId);
+    public MirrorFileCancelTaskCompleter(Class clazz, URI id, String opId, URI storageUri) {
+        super(clazz, asList(id), opId, storageUri);
     }
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.REFRESH_FILE_MIRROR, status, getSourceFileShare().getId().toString());
+            recordMirrorOperation(dbClient, OperationTypeEnum.CANCEL_FILE_MIRROR, status, getSourceFileShare().getId().toString());
         } catch (Exception e) {
-            _log.error("Failed updating status. MirrorSessionRefresh {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. MirrorSessionCancel {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }
@@ -40,10 +43,8 @@ public class MirrorFileRefreshTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected String getFileMirrorStatusForSuccess(FileShare fs) {
-        return fs.getMirrorStatus();
+        return FileShare.MirrorStatus.UNKNOWN.name();
     }
 
-    public void setFileMirrorStatusForSuccess(FileShare.MirrorStatus mirrorStatus) {
-        this.mirrorSyncStatus = mirrorStatus;
-    }
+
 }

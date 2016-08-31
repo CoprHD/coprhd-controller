@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
@@ -127,7 +128,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     public BiosCommandResult doCreateFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
 
         Map<String, String> autoExtendAtts = getAutoExtendAttrs(args);
-        Long fsSize = args.getFsCapacity() / BYTESPERMB;
+        
+        Long fsSize = SizeUtil.translateSize(args.getFsCapacity(),"KB").longValue(); 
         if (fsSize < 1) {
             // Invalid size throw an error
             String errMsg = "doCreateFS failed : FileSystem size in bytes is not valid " + args.getFsCapacity();
@@ -1205,7 +1207,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
             // quota directory create/update takes size in MB as similar to FS create.
-            Long sizeMBs = size / BYTESPERMB;
+            Long sizeMBs = SizeUtil.translateSize(size, "KB").longValue();
+            
             apiResult = vnxComm.createQuotaDirectory(storage, args.getFsName(), quotaTreetreeName, securityStyle, sizeMBs, oplocks,
                     isMountRequired);
             _log.info("createQuotaDirectory call result : {}", apiResult.isCommandSuccess());

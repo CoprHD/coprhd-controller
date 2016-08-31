@@ -115,7 +115,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
                 clusterIds.add(clusterId);
             }
         }
-        return api(context).clusters().getByIds(clusterIds);
+        return api(context).clusters().getByIds(clusterIds, null);
     }
 
     protected List<AssetOption> createClusterOptions(AssetOptionsContext ctx, Collection<ClusterRestRep> clusters) {

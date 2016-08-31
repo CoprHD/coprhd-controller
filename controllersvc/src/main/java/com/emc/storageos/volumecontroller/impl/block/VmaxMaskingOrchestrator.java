@@ -569,20 +569,23 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 _log.info(String.format(
                                         "Initiator %s is in an ExportMask that is shared by ExportGroups %s, so we will not remove it",
                                         initiator.getInitiatorPort(), Joiner.on(',').join(exportGroupURIs)));
-                                // What we supposed to do here?
-                            } else {
-                                _log.info(String.format("Initiator %s is in an ExportMask that is shared by ExportGroups %s, " +
-                                        "but the initiator is not in any of them. Will remove it from the ExportMask.",
-                                        initiator.getInitiatorPort(), Joiner.on(',').join(exportGroupURIs)));
-                                List<URI> initiators = existingMasksToRemoveInitiator.get(mask.getId());
-                                if (initiators == null) {
-                                    initiators = new ArrayList<URI>();
-                                    existingMasksToRemoveInitiator.put(mask.getId(), initiators);
-                                }
-                                if (!initiators.contains(initiator.getId())) {
-                                    initiators.add(initiator.getId());
-                                }
+                                errorMessage.append(String.format(
+                                        " Volumes in other export groups - {%s} will be affected by this operation.", exportGroupURIs));
                             }
+                            
+
+                            _log.info(String.format("Initiator %s is in an ExportMask that is shared by ExportGroups %s, " +
+                                    "but the initiator is not in any of them. Will remove it from the ExportMask.",
+                                    initiator.getInitiatorPort(), Joiner.on(',').join(exportGroupURIs)));
+                            List<URI> initiators = existingMasksToRemoveInitiator.get(mask.getId());
+                            if (initiators == null) {
+                                initiators = new ArrayList<URI>();
+                                existingMasksToRemoveInitiator.put(mask.getId(), initiators);
+                            }
+                            if (!initiators.contains(initiator.getId())) {
+                                initiators.add(initiator.getId());
+                            }
+                        
                         } else {
                             _log.info(
                                     String.format("We can remove initiator %s from mask %s", initiator.getInitiatorPort(),

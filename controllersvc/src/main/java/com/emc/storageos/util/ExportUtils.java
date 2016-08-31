@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -1615,5 +1616,50 @@ public class ExportUtils {
         }
         _log.info("Ports {} are going to be removed", portUris);
         return new ArrayList<URI>(portUris);
+    }
+
+    /**
+     * Method to clean ExportMask stale instances from ViPR db if any stale EM available.
+     *
+     * @param storage the storage
+     * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
+     * @param initiatorNames initiator names
+     * @param dbClient
+     */
+    public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
+            DbClient dbClient) {
+
+        Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
+        Set<ExportMask> staleExportMasks = new HashSet<>();
+        _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
+        for (Initiator initiator : initiators) {
+            URIQueryResultList emUris = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()),
+                    emUris);
+            ExportMask exportMask = null;
+            for (URI emUri : emUris) {
+                _log.debug("Export Mask URI :{}", emUri);
+                exportMask = dbClient.queryObject(ExportMask.class, emUri);
+                if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
+                    if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
+                        _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
+                        List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
+                        if (CollectionUtils.isEmpty(egList)) {
+                            _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
+                                    exportMask.getMaskName());
+                            staleExportMasks.add(exportMask);
+                        } else {
+                            _log.info("Export mask is having association with ExportGroup {}", egList);
+                        }
+                    }
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(staleExportMasks)) {
+            dbClient.markForDeletion(staleExportMasks);
+            _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
+        }
+
+        _log.info("Export Mask cleanup activity done");
     }
 }

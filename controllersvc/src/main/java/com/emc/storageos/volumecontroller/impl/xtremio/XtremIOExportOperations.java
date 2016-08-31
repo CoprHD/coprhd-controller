@@ -393,6 +393,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, dbClient);
+            ctx.setAllowExceptions(context == null);
             XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
             volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
             volumeValidator.validate();

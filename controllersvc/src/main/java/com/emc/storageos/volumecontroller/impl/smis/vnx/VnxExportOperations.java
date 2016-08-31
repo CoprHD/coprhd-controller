@@ -526,6 +526,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(context == null);
             validator.removeInitiators(ctx).validate();
 
             deleteStorageHWIDs(storage, initiatorList);

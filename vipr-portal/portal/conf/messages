@@ -2053,6 +2053,14 @@ storageArray.secondaryPasswordConfirm=Confirm MDM Password
 storageArray.secondaryPassword.confirmPassword.not.match=User MDM Password and Confirm MDM Password do not match.
 storageArray.elementManagerURL=Element Manager URL
 storageArray.secretKey=Secret key
+storageArray.hyperScaleHost=Secondary Host
+storageArray.hyperScaleHost.help=Enter the fully qualified domain name or IP address of the Secondary host
+storageArray.hyperScalePort=Secondary Port
+storageArray.hyperScaleUsername=Secondary User
+storageArray.hyperScalePassword=Secondary Password
+storageArray.hyperScalePasswordConfirm=Confirm Secondary Password
+storageArray.secondaryHost.secondaryPort.missing=Either Secondary Host or Port details is missing
+storageArray.parseError=Unable to parse Hyper Scale Manager URL
 #
 # onboard SMI-S Provider
 #

@@ -6,7 +6,7 @@ package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
 
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.vipr.client.Task;
@@ -16,7 +16,7 @@ import com.emc.vipr.client.Task;
  * @author yelkaa
  * 
  */
-public class MountFSExport extends ViPRExecutionTask<Task<FileShareRestRep>> {
+public class MountFSExport extends WaitForTask<FileShareRestRep> {
     private final URI fileSystemId;
     private final FileSystemMountParam input;
 
@@ -31,7 +31,7 @@ public class MountFSExport extends ViPRExecutionTask<Task<FileShareRestRep>> {
     }
 
     @Override
-    public Task<FileShareRestRep> executeTask() throws Exception {
+    public Task<FileShareRestRep> doExecute() throws Exception {
         return getClient().fileSystems().mountNFS(fileSystemId, input);
     }
 }

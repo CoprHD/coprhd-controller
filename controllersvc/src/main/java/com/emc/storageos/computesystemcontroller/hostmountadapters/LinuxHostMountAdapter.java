@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
@@ -122,7 +123,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         // unmount device
         try {
             mountUtils.unmountPath(mountPath);
-        } catch (CommandException ex) {
+        } catch (ComputeSystemControllerException ex) {
             if (!ex.getMessage().contains("not mounted") && !ex.getMessage().contains("mountpoint not found")) {
                 throw ex;
             }

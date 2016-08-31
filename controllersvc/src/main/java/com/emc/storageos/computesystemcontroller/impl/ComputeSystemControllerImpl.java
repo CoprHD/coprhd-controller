@@ -1693,7 +1693,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         && dbMount.getMountPath().equalsIgnoreCase(mountPath)) {
                     _log.debug("Found DB entry with mountpath {} " + mountPath);
                     return dbMount;
-
                 }
             }
         }

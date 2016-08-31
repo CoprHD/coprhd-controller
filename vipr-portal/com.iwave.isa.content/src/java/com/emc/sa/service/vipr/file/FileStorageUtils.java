@@ -584,7 +584,7 @@ public class FileStorageUtils {
         return execute(new GetNfsMountsforFileSystem(fileSystemId));
     }
 
-    public static Task<FileShareRestRep> mountNfsExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
+    public static Task<FileShareRestRep> mountNFSExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
             String security, String fsType) {
         FileSystemMountParam param = new FileSystemMountParam(hostId, subDirectory, security, mountPath, fsType);
         Task<FileShareRestRep> task = execute(new MountFSExport(fileSystemId, param));

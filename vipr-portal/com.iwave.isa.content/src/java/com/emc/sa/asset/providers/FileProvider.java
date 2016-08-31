@@ -796,9 +796,10 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        options.add(new AssetOption("!nodir", "No Sub Directory"));
         for (FileSystemExportParam export : exports) {
-            if (export.getSubDirectory() != null) {
+            if (export.getSubDirectory() == null) {
+                options.add(new AssetOption("", "No subdirectory"));
+            } else {
                 options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
             }
         }
@@ -811,7 +812,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
         String subDir = subDirectory;
-        if ("!nodir".equalsIgnoreCase(subDir)) {
+        if (subDir.isEmpty()) {
             subDir = null;
         }
         List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, false, subDir);
@@ -843,7 +844,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         StringBuffer strMount = new StringBuffer();
 
         String subDirPath = "";
-        if (mount.getSubDirectory() != null && !mount.getSubDirectory().equalsIgnoreCase("!nodir")) {
+        if (StringUtils.isEmpty(mount.getSubDirectory())) {
             subDirPath = "/" + mount.getSubDirectory();
         }
         String fsName = api(ctx).fileSystems().get(mount.getFsId()).getName();

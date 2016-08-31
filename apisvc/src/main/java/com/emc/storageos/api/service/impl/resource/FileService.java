@@ -32,6 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,6 @@ import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -262,21 +262,15 @@ public class FileService extends TaskResourceService {
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
-        START("start",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
-        STOP("stop",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
-        PAUSE("pause",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
-        RESUME("resume",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        REFRESH("refresh",
-                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
-        UNKNOWN("unknown",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION),
-        UPDATE_RPO("update-rpo",
-                ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -2651,8 +2645,8 @@ public class FileService extends TaskResourceService {
         } catch (Exception e) {
             _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
-        }    
-       
+        }
+
         auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
                 project == null ? null : project.getId().toString());
@@ -2763,7 +2757,7 @@ public class FileService extends TaskResourceService {
         } catch (Exception e) {
             _log.error("Create file system mirror copy failed  {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
-        } 
+        }
         auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
                 project == null ? null : project.getId().toString());
@@ -4174,13 +4168,17 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // validations
-        if (param.getSubDir() == null || param.getSubDir().isEmpty()) {
-            param.setSubDir("!nodir");
+        if (!isSubDirValid(fs, param.getSubDir())) {
+            throw APIException.badRequests.invalidParameter("sub_directory", param.getSubDir());
         }
 
-        validateSubDir(fs, param.getSubDir());
-        validateFSType(param);
-        validateSecurity(fs, param);
+        if (!isFSTypeValid(param)) {
+            throw APIException.badRequests.invalidParameter("fs_type", param.getFsType());
+        }
+
+        if (!isSecurityValid(fs, param)) {
+            throw APIException.badRequests.invalidParameter("security", param.getSecurity());
+        }
 
         fs.setOpStatus(new OpStatusMap());
 
@@ -4256,7 +4254,10 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        validateMountPath(param.getHostId(), param.getMountPath());
+        // validations
+        if (!isMountPathValid(param.getHostId(), param.getMountPath())) {
+            throw APIException.badRequests.invalidParameter("mount_path", param.getMountPath());
+        }
         _log.info("FileService::unmount export Request recieved {}", id);
         String task = UUID.randomUUID().toString();
 
@@ -4330,10 +4331,10 @@ public class FileService extends TaskResourceService {
         return exportRule;
     }
 
-    private void validateSecurity(FileShare fs, FileSystemMountParam param) {
+    private boolean isSecurityValid(FileShare fs, FileSystemMountParam param) {
         List<String> allowedSecurities = new ArrayList<String>();
         String subDirectory = param.getSubDir();
-        if ("!nodir".equalsIgnoreCase(param.getSubDir())) {
+        if (StringUtils.isEmpty(param.getSubDir())) {
             subDirectory = null;
         }
         List<ExportRule> exports = getExportRules(fs.getId(), false, subDirectory);
@@ -4342,40 +4343,37 @@ public class FileService extends TaskResourceService {
             allowedSecurities.addAll(securityTypes);
         }
         if (!allowedSecurities.contains(param.getSecurity())) {
-            throw APIException.badRequests.invalidParameter("security", param.getSecurity());
+            return true;
         }
+        return false;
     }
 
-    private void validateFSType(FileSystemMountParam param) {
+    private boolean isFSTypeValid(FileSystemMountParam param) {
         if (!FileSystemMountType.contains(param.getFsType())) {
-            throw APIException.badRequests.invalidParameter("fs_type", param.getFsType());
+            return true;
         }
+        return false;
     }
 
-    private void validateSubDir(FileShare fs, String subDir) {
+    private boolean isSubDirValid(FileShare fs, String subDir) {
         List<FileExportRule> exportFileRulesTemp = queryDBFSExports(fs);
-        boolean subDirFound = false;
-        if (subDir != null && !subDir.isEmpty() && !"!nodir".equalsIgnoreCase(subDir)) {
-
+        if (subDir != null) {
             for (FileExportRule rule : exportFileRulesTemp) {
                 if (rule.getExportPath().endsWith("/" + subDir)) {
-                    subDirFound = true;
+                    return true;
                 }
             }
-
-            if (!subDirFound) {
-                throw APIException.badRequests.invalidParameter("sub_directory", subDir);
-            }
         }
+        return false;
     }
 
-    private void validateMountPath(URI hostId, String mountPath) {
+    private boolean isMountPathValid(URI hostId, String mountPath) {
         List<MountInfo> mountList = getHostNFSMounts(hostId).getMountList();
         for (MountInfo mount : mountList) {
             if (mount.getMountPath().equalsIgnoreCase(mountPath)) {
-                return;
+                return true;
             }
         }
-        throw APIException.badRequests.invalidParameter("mount_path", mountPath);
+        return false;
     }
 }

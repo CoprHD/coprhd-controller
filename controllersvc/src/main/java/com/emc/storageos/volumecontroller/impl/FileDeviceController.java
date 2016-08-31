@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -4145,8 +4146,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             return mountList;
         }
         for (MountInfo mount : mountList) {
-            if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && subDir == null)
-                    || (subDir != null && subDir.equalsIgnoreCase(mount.getSubDirectory()))) {
+            if ((StringUtils.isEmpty(mount.getSubDirectory()) && StringUtils.isEmpty(subDir))
+                    || (!StringUtils.isEmpty(subDir) && subDir.equalsIgnoreCase(mount.getSubDirectory()))) {
                 unmountList.add(mount);
             }
         }
@@ -4173,7 +4174,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         } else {
             for (MountInfo mount : mountList) {
-                if ("!nodir".equalsIgnoreCase(mount.getSubDirectory())) {
+                if (StringUtils.isEmpty(mount.getSubDirectory())) {
                     WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
                     throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
                 }
@@ -4203,8 +4204,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
         for (MountInfo mount : mountList) {
             String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            if ((subDir == null || subDir.isEmpty()) && "!nodir".equalsIgnoreCase(mount.getSubDirectory())
-                    || mount.getSubDirectory().equals(subDir)) {
+            if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory()) || mount.getSubDirectory().equals(subDir)) {
                 for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
                     if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                         unmountList.add(mount);
@@ -4363,7 +4363,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             FileShare fs = _dbClient.queryObject(FileShare.class, fsId);
             for (FileMountInfo fsMount : fsDBMounts) {
                 LinuxMountUtils mountUtils = new LinuxMountUtils(_dbClient.queryObject(Host.class, fsMount.getHostId()));
-                FileExport export = findExport(fs, fsMount.getSubDirectory(), fsMount.getSecurityType());
+                ExportRule export = findExport(fs, fsMount.getSubDirectory(), fsMount.getSecurityType());
                 if (mountUtils.verifyMountPoints(export.getMountPoint(), fsMount.getMountPath())) {
                     String errMsg = new String("delete file system from ViPR database failed because mounts exist for file system "
                             + fs.getLabel() + " and once deleted the mounts cannot be ingested into ViPR");
@@ -4384,31 +4384,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
-        List<FileExport> exportList = queryDBFSExportsMap(fs);
-        if (subDirectory == null || subDirectory.equalsIgnoreCase("!nodir") || subDirectory.isEmpty()) {
-            for (FileExport export : exportList) {
-                if (export.getSubDirectory().isEmpty() && securityType.equals(export.getSecurityType())) {
-                    return export;
-                }
-            }
-        }
-        for (FileExport export : exportList) {
-            if (subDirectory.equals(export.getSubDirectory()) && securityType.equals(export.getSecurityType())) {
+    public ExportRule findExport(FileShare fs, String subDirectory, String securityType) {
+        _dbClient.queryByType(FileShare.class, true);
+        List<ExportRule> exportList = getExportRules(fs.getId(), false, subDirectory);
+        for (ExportRule export : exportList) {
+            if (securityType.equals(export.getSecFlavor())) {
                 return export;
             }
         }
         throw new IllegalArgumentException("No exports found for the provided security type and subdirectory.");
-    }
-
-    private List<FileExport> queryDBFSExportsMap(FileShare fs) {
-        FSExportMap exportMap = fs.getFsExports();
-
-        List<FileExport> fileExports = new ArrayList<FileExport>();
-        if (exportMap != null) {
-            fileExports.addAll(exportMap.values());
-        }
-        return fileExports;
     }
 
     /**

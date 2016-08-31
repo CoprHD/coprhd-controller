@@ -27,7 +27,7 @@ public class MountFSExport extends WaitForTask<FileShareRestRep> {
     public MountFSExport(URI fileSystemId, FileSystemMountParam input) {
         this.fileSystemId = fileSystemId;
         this.input = input;
-        setDetail("mounting FileSystem Id: " + fileSystemId);
+        setDetail("Mounting FileSystem Id: " + fileSystemId);
     }
 
     @Override

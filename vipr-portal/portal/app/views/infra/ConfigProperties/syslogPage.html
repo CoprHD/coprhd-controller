@@ -27,14 +27,12 @@
         });
     });
     function checkIfDisableTestButton() {
-        var validateButton = $('#validateButtonIpPort');
+        var validateControl = $('#ValidatConnectiontrolGroup');
         var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
         if ( protocol === 'UDP') {
-            validateButton.prop('disabled', true);
-            validateButton.addClass('disabled');
+            validateControl.hide();
         } else {
-            validateButton.prop('disabled', false);
-            validateButton.removeClass('disabled');
+            validateControl.show();
         }
     }
     function validateExternalServerIpPort() {

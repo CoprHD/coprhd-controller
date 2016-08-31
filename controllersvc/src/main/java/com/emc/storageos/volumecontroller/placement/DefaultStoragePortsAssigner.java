@@ -673,8 +673,14 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator() - alreadyAssigned, 0);
 
                     if (availPorts != null) {
-                        assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts, portAddressToSwitchName,
-                        		initiatorToSwitchName);
+                        assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
+                        // Remove this initiator from further provisioning consideration
+                        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
+                        if (associatedInitiator != null) {
+                            entry.getValue().remove(associatedInitiator);
+                        }
+                        entry.getValue().remove(0);
+                        addedThisPass = true;
                     } else {
                         _log.info(String.format("Insufficient ports to provision initiator %s/%s (%s)",
                                 initiator.getInitiatorPort(), getInitiatorSwitchName(initiator, initiatorToSwitchName), 
@@ -826,30 +832,42 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             addPortUse(portUseCounts, port);
         }
 
+        Initiator associatedInitiatorInAssignments = getAssociatedInitiator(initiator, assignments);
+
+        if (associatedInitiatorInAssignments != null) {
+
+            if (assignments.get(associatedInitiatorInAssignments) != null) {
+                assignments.get(associatedInitiatorInAssignments).addAll(assignedPorts);
+            } else {
+                assignments.put(associatedInitiatorInAssignments, assignedPorts);
+            }
+        }
+
         if (assignments.get(initiator) != null) {
             assignments.get(initiator).addAll(assignedPorts);
 
         } else {
             assignments.put(initiator, assignedPorts);
         }
-        Set<Initiator> initiators = assignments.keySet();
-        URI associatedInitiator = initiator.getAssociatedInitiator();
-
-        for (Iterator<Initiator> iterator = initiators.iterator(); iterator.hasNext();) {
-            Initiator initiatorInAssignments = iterator.next();
-            URI associatedInitiator2 = initiatorInAssignments.getAssociatedInitiator();
-            if (associatedInitiator != null && associatedInitiator2 != null &&
-                    associatedInitiator.equals(associatedInitiator2)) {
-
-                if (assignments.get(initiatorInAssignments) != null) {
-                    assignments.get(initiatorInAssignments).addAll(assignedPorts);
-                } else {
-                    assignments.put(initiatorInAssignments, assignedPorts);
-                }
-            }
-        }
 
         _log.info("Initiator - Storageport assignments: {}", assignments);
+    }
+
+    private Initiator getAssociatedInitiator(Initiator initiator, Map<Initiator, List<StoragePort>> assignments) {
+
+        Set<Initiator> initiators = assignments.keySet();
+
+        for (Iterator<Initiator> iterator = initiators.iterator(); iterator.hasNext();) {
+
+            Initiator initiatorInAssignments = iterator.next();
+            URI associatedInitiator2 = initiatorInAssignments.getAssociatedInitiator();
+
+            if (associatedInitiator2 != null && initiator.getId().equals(associatedInitiator2)) {
+                return initiatorInAssignments;
+            }
+        }
+        return null;
+
     }
 
     /**

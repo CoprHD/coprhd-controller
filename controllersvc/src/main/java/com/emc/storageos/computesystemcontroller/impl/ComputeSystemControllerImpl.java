@@ -599,7 +599,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             boolean isVcenter) {
         List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
         String newWaitFor = waitFor;
-        if (isVcenter) {
+        if (isVcenter && !NullColumnValueGetter.isNullURI(vcenterDataCenter)) {
             Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
             Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
             for (URI host : hostIds) {

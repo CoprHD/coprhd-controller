@@ -14,7 +14,6 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 
 public class ControllerLockingServiceImpl implements ControllerLockingService {
-    private static final String LOCK_CLIENTNAME = "anynode";
 
     private static final Logger log = LoggerFactory.getLogger(ControllerLockingServiceImpl.class);
 
@@ -44,7 +43,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
                 while (seconds-- >= 0) {
                     try {
                         lock = _coordinator.getPersistentLock(lockName);
-                        lock.acquireLock(LOCK_CLIENTNAME);
+                        lock.acquireLock(getLockClientName());
                     } catch (CoordinatorException ce) {
                         t = ce;
                         Thread.sleep(1000);
@@ -55,7 +54,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
                 while (true) {
                     try {
                         lock = _coordinator.getPersistentLock(lockName);
-                        lock.acquireLock(LOCK_CLIENTNAME);
+                        lock.acquireLock(getLockClientName());
                     } catch (CoordinatorException ce) {
                         t = ce;
                         Thread.sleep(1000);
@@ -94,7 +93,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
         try {
             DistributedPersistentLock lock = _coordinator.getPersistentLock(lockName);
             if (lock != null) {
-                lock.releaseLock(LOCK_CLIENTNAME);
+                lock.releaseLock(getLockClientName());
                 log.info("Released lock: " + lockName);
             } else {
                 log.error(String.format("Release of mutex lock: %s failed: ", lockName));
@@ -105,5 +104,19 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
             log.error(String.format("Release of mutex lock: %s failed with Exception: ", lockName), e);
             return false;
         }
+    }
+    
+    /**
+     * Generates the lock client name for acquiring and releasing a lock.
+     * 
+     * @return The lock client name.
+     */
+    private String getLockClientName() {
+        // The lock client name is the node id, combined with the thread trying
+        // to acquire/release the lock.
+        StringBuilder clientNameBuilder = new StringBuilder(_coordinator.getInetAddessLookupMap().getNodeId());
+        clientNameBuilder.append("-");
+        clientNameBuilder.append(Thread.currentThread().getId());
+        return clientNameBuilder.toString();
     }
 }

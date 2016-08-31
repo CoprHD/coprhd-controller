@@ -508,7 +508,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 log.info(msg);
                 log.info("Driver selected storage ports: {} ", Joiner.on(',').join(selectedPorts));
                 // If driver used recommended ports (the same ports as already in the mask), we are done.
-                // If driver did not use recommended ports, we will make sure that ports selected by driver contain
+                // If driver did not use recommended ports, we will make sure that ports selected by the driver contain
                 // all ports from the export mask.
                 // We have to verify that all ports from the export mask are in the list of ports returned by driver.
                 // In case when driver returns ports which do not contain all ports from the mask, we will fail this request.

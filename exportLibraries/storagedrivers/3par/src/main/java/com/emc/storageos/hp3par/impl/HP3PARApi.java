@@ -414,6 +414,7 @@ public class HP3PARApi {
     	_log.info("3PARDriver: getPortStatistics enter");
     	ClientResponse clientResp = null;
     	final String path = MessageFormat.format(URI_PORT_STATISTICS_SPECIFIC, portId);
+    	PortStatisticsCommandResult portStatResult = null;
     	_log.info("3PARDriver: getPortStatistics path is {}", path);
 
     	try {
@@ -428,12 +429,11 @@ public class HP3PARApi {
     		} else {
     			String responseString = clientResp.getEntity(String.class);
                 _log.info("3PARDriveri:getPortStatistics 3PAR response is {}", responseString);
-                PortStatisticsCommandResult portStatResult = new Gson().fromJson(sanitize(responseString),
+                portStatResult = new Gson().fromJson(sanitize(responseString),
                         PortStatisticsCommandResult.class);
-                return portStatResult;
+                
     		}
     	} catch (Exception e) {
-    		_log.info("getPortStatistics exception is {}", e.getMessage());
     		throw e;
     	} finally {
     		if (clientResp != null) {
@@ -441,7 +441,8 @@ public class HP3PARApi {
     		}
     		_log.info("3PARDriver: getPortStatistics leave");
     	} //end try/catch/finally
-
+    	
+    	return portStatResult;
     }
 
     public HostCommandResult getAllHostDetails() throws Exception {

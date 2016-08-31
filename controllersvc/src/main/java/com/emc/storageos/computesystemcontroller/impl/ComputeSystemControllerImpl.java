@@ -123,6 +123,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
     private static final String UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP = "UpdateHostAndInitiatorClusterNamesStep";
 
+    private static final String VERIFY_DATASTORE_STEP = "VerifyDatastoreStep";
+
     private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
     private static final String MOUNT_AND_ATTACH_STEP = "MountAndAttachStep";
 
@@ -605,6 +607,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
             }
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
+
             newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
         }
         for (ExportGroup export : exportGroups) {
@@ -1038,6 +1042,72 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     /**
+     * Validates that a datastore can be unmounted from this host
+     * 
+     * @param exportGroup
+     *            export group that contains volumes
+     * @param hostId
+     *            host to unmount and detach from
+     * @param vcenter
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @return workflow method for unmounting and detaching disks and datastores
+     */
+    public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("verifyDatastore", exportGroup, hostId, vcenter, vcenterDatacenter);
+    }
+
+    /**
+     * Validates that the datastore can be unmounted from this host
+     * 
+     * @param exportGroupId
+     *            export group that contains volumes
+     * @param hostId
+     *            host to check
+     * @param vcenterId
+     *            vcenter that the host belongs to
+     * @param vcenterDatacenter
+     *            vcenter datacenter that the host belongs to
+     * @param stepId
+     *            the id of the workflow step
+     */
+    public void verifyDatastore(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
+                for (String volume : exportGroup.getVolumes().keySet()) {
+
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    if (blockObject != null && blockObject.getTag() != null) {
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                                String datastoreName = getDatastoreName(tagValue);
+                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                if (datastore != null) {
+                                    ComputeSystemHelper.verifyDatastore(datastore, api);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
+
+        WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    /**
      * Unmounts and detaches every datastore and disk associated with the volumes in the export group.
      * For each volume in the export group, the backed datastore is unmounted and the associated disk is detached from
      * the host.
@@ -1374,6 +1444,42 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             export, export.toString(),
                             this.getClass(),
                             unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
+                                    vcenterDataCenter.getId()),
+                            rollbackMethodNullMethod(), null);
+                }
+            }
+        }
+        return waitFor;
+    }
+
+    /**
+     * Verify datastore can be removed
+     * 
+     * @param vCenterHostExportMap
+     *            the map of hosts and export groups to operate on
+     * @param waitFor
+     *            the step to wait on for this workflow step
+     * @param workflow
+     *            the workflow to create the step
+     * @return the step id
+     */
+    private String verifyDatastoreForRemoval(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
+        if (vCenterHostExportMap == null) {
+            return waitFor;
+        }
+        for (URI hostId : vCenterHostExportMap.keySet()) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                URI vCenterId = vcenterDataCenter.getVcenter();
+
+                for (URI export : vCenterHostExportMap.get(hostId)) {
+                    waitFor = workflow.createStep(VERIFY_DATASTORE_STEP,
+                            String.format("Verifying datastores for removal from export %s", export), waitFor,
+                            export, export.toString(),
+                            this.getClass(),
+                            verifyDatastoreMethod(export, esxHost.getId(), vCenterId,
                                     vcenterDataCenter.getId()),
                             rollbackMethodNullMethod(), null);
                 }

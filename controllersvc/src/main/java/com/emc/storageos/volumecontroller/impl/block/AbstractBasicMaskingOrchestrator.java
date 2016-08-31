@@ -1300,8 +1300,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 if (validatorConfig.validationEnabled() && exportMask.hasAnyExistingInitiators()) {
                                     deleteEntireMask = false;
                                     errorMessage.append("We cannot delete mask ").append(exportMask.getMaskName())
-                                            .append(" because there are exisitng initiators - ")
-                                            .append(Joiner.on(',').join(exportMask.getExistingInitiators()));
+                                    .append(" because there are exisitng initiators - ")
+                                    .append(Joiner.on(',').join(exportMask.getExistingInitiators()));
                                     break;
                                 }
 
@@ -1363,7 +1363,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                                                 if (exportGroupList2 != null && exportGroupList2.size() > 1) {
                                                     String msg = String
-                                                            .format("Found that volume %s is in another export group with this initiator %s, so we shouldn't remove it from the mask",
+                                                            .format("Found that volume %s is in another export group with this initiator %s, so we shouldn't remove it from the mask.",
                                                                     volumeIdStr, initiator.getInitiatorPort());
                                                     _log.info(msg);
                                                     errorMessage.append(msg);
@@ -1374,7 +1374,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                 }
                                             } else if (exportMask.getCreatedBySystem()) {
                                                 _log.info(String
-                                                        .format("Export Mask %s does not contain initiator %s, so we will not modify this export mask",
+                                                        .format("Export Mask %s does not contain initiator %s, so we will not modify this export mask.",
                                                                 exportMask.getId().toString(), initiatorIdStr));
                                             } else {
                                                 // We're in a case where there are no user added initiators for this *existing* mask. So, we

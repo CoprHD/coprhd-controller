@@ -484,7 +484,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         StringBuffer errorMessage = new StringBuffer();
         logExportGroup(exportGroup, storageURI);
-        boolean killSwitchEnabled = config.isValidationEnabled();
+        boolean isValidationEnabled = config.isValidationEnabled();
         try {
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
@@ -836,13 +836,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     ExportMaskUtils.removeMaskCoexistInitiators(dbModelClient, entry.getKey(), entry.getValue());
                 }
             }
-            _log.info("killSwitchEnabled {}", killSwitchEnabled);
-            _log.info("errorMessage {}", errorMessage);
+            _log.warn("Error Message {}", errorMessage);
 
-            if (killSwitchEnabled && StringUtils.hasText(errorMessage)) {
+            if (isValidationEnabled && StringUtils.hasText(errorMessage)) {
                 errorMessage.append(String.format("Remove initiators from Export Group {%s} has failed due to the mentioned impact. "
-                        + "If you are sure about the impact and wants to continue this operation, "
-                        + "Please enable kill switch and rerun the same operation. Note: Disable the kill switch after complete this operation.",
+                        + "Contact EMC Support for additional remediation paths including a force option for advanced users",
                         exportGroup.getLabel()));
                 throw DeviceControllerException.exceptions.exportGroupUpdateFailed(new Exception(errorMessage.toString()));
             }

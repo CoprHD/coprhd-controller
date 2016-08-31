@@ -33,22 +33,24 @@ public class MountDatastore extends RetryableTask<Void> {
         for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
                 .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
 
-            HostFileSystemVolume mountVolume = mount.getVolume();
+            if (mount != null) {
+                HostFileSystemVolume mountVolume = mount.getVolume();
 
-            if (mountVolume == null) {
-                warn("No volume attached to mount : " + mount.getMountInfo().getPath());
-                continue;
-            }
+                if (mountVolume == null) {
+                    warn("No volume attached to mount : " + mount.getMountInfo().getPath());
+                    continue;
+                }
 
-            if (mount.getVolume() instanceof HostVmfsVolume
-                    && dataStoreName.equals(mount.getVolume().getName())) {
-                HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
-                String vmfsUuid = volume.getUuid();
-                info("Mounting volume : " + vmfsUuid);
-                try {
-                    new HostStorageAPI(host).getStorageSystem().mountVmfsVolume(vmfsUuid);
-                } catch (RemoteException e) {
-                    throw new VMWareException(e);
+                if (mount.getVolume() != null && mount.getVolume() instanceof HostVmfsVolume
+                        && dataStoreName.equals(mount.getVolume().getName())) {
+                    HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
+                    String vmfsUuid = volume.getUuid();
+                    info("Mounting volume : " + vmfsUuid);
+                    try {
+                        new HostStorageAPI(host).getStorageSystem().mountVmfsVolume(vmfsUuid);
+                    } catch (RemoteException e) {
+                        throw new VMWareException(e);
+                    }
                 }
             }
         }

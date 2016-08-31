@@ -63,6 +63,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     private static final String SUBDIRECTORY_PARAM = "subDirectory";
     private static final String SUBDIR_PARAM = "subDir";
     private static final String ALLDIR_PARAM = "allDirs";
+    private static final String UNMOUNTEXPORT_PARAM = "unmountExport";
 
     public FileSystems(ViPRCoreClient parent, RestClient client) {
         super(parent, client, FileShareRestRep.class, PathConstants.FILESYSTEM_URL);
@@ -275,7 +276,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call:
+     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -435,8 +437,32 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return deleteTaskURI(targetUri);
     }
 
+    public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir, Boolean unmountExport) {
+        UriBuilder builder = client.uriBuilder(getExportUrl());
+        if (subDir != null) {
+            builder.queryParam(SUBDIR_PARAM, subDir);
+        }
+        if (unmountExport) {
+            builder.queryParam(UNMOUNTEXPORT_PARAM, unmountExport);
+        }
+        URI targetUri = builder.build(id);
+        return deleteTaskURI(targetUri);
+    }
+
     public Task<FileShareRestRep> deleteAllExport(URI id, Boolean allDir) {
         URI targetUri = client.uriBuilder(getExportUrl()).queryParam(ALLDIR_PARAM, allDir).build(id);
+        return deleteTaskURI(targetUri);
+    }
+
+    public Task<FileShareRestRep> deleteAllExport(URI id, Boolean allDir, Boolean unmountExport) {
+        UriBuilder builder = client.uriBuilder(getExportUrl());
+        if (unmountExport) {
+            builder.queryParam(UNMOUNTEXPORT_PARAM, unmountExport);
+        }
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        }
+        URI targetUri = builder.build(id);
         return deleteTaskURI(targetUri);
     }
 

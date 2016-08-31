@@ -42,6 +42,7 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 
 import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -108,8 +109,11 @@ public class StorageSystems extends ViprResourceController {
     protected static final String REGISTER_ERROR = "PhysicalAssets.registration.error";
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
+    protected static final String PARSE_ERROR = "storageArray.parseError";
+    protected static final String SECONDARY_DETAIL_MISSING = "storageArray.secondaryHost.secondaryPort.missing";
     protected static final String SCALEIO = "scaleio";
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
+    private static final String HTTPS = "https";
 
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
@@ -126,11 +130,6 @@ public class StorageSystems extends ViprResourceController {
 
         List<EnumOption> defaultStorageArrayPortMap = StorageProviderTypes.getStoragePortMap();
         renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
-
-        renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
-        renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
-        renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
-        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
     }
 
     private static void addReferenceDataAllFlash() {
@@ -141,12 +140,6 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
         List<EnumOption> defaultStorageArrayPortMap = StorageProviderTypes.getStoragePortMap();
         renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
-
-        renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
-        renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
-        renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
-        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
-
     }
 
     public static void list() {
@@ -897,6 +890,23 @@ public class StorageSystems extends ViprResourceController {
         public String referrerUrl;
 
         public boolean unregistered;
+        
+        @MaxSize(2048)
+        public String hyperScaleUsername;
+
+        @MaxSize(2048)
+        public String hyperScalePassword = "";
+
+        @MaxSize(2048)
+        public String hyperScalePasswordConfirm = "";
+
+        public String hyperScaleHost;
+
+        public String hyperScalePort;
+        
+        public URL url;
+
+        public String secondaryURL;
 
         public StorageSystemForm() {
             this.userPassword = "";
@@ -1025,11 +1035,33 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;
             storageProviderForm.secretKey = this.secretKey;
+            storageProviderForm.secondaryURL = this.secondaryURL;
 
             return storageProviderForm.create();
         }
 
+        public void setSecondaryParameters() {
+            if (StringUtils.isNotEmpty(this.hyperScaleUsername)) {
+                this.secondaryUsername = this.hyperScaleUsername;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScalePassword)) {
+                this.secondaryPassword = this.hyperScalePassword;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScalePasswordConfirm)) {
+                this.secondaryPasswordConfirm = this.hyperScalePasswordConfirm;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+                try {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
+                }catch(Exception e) {
+                    flash.error(MessagesUtils.get(PARSE_ERROR));
+                }
+                this.secondaryURL = url.toString();
+            }
+        }
+
         public Task<?> save() {
+            setSecondaryParameters();
             if (isNew()) {
                 if (isStorageProviderManaged()) {
                     return createStorageProvider();
@@ -1121,6 +1153,15 @@ public class StorageSystems extends ViprResourceController {
                 Validation.required(fieldName + ".smisProviderPortNumber",
                         this.smisProviderPortNumber);
             }
+
+            if(isXIV()) {
+                if ((StringUtils.isNotEmpty(this.hyperScaleHost) || StringUtils.isNotEmpty(this.hyperScalePort))) {
+                    Validation.addError(fieldName + ".hyperScaleHost",MessagesUtils
+                            .get(SECONDARY_DETAIL_MISSING));
+                    Validation.addError(fieldName + ".hyperScalePort",MessagesUtils
+                            .get(SECONDARY_DETAIL_MISSING));
+                }
+            }
         }
 
         private boolean isMatchingPasswords(String password, String confirm) {
@@ -1142,6 +1183,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isScaleIOApi() {
             return StorageSystemTypes.isScaleIOApi(type);
+        }
+
+        private boolean isXIV() {
+            return StorageSystemTypes.isXIV(type);
         }
 
         private boolean isIsilon() {

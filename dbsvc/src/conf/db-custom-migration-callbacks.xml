@@ -122,7 +122,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
             </list>
         </entry>
-        <entry key="3.0">
+        <entry key="3.1">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolPlacementPolicyMigration"/>

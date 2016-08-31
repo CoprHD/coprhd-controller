@@ -140,19 +140,19 @@ public class InitiatorHostMigration extends BaseCustomMigrationCallback {
     }
 
     private void updateExportMask(ExportGroup eg, Initiator oldInitiator, Initiator newInitiator) {
-        // update export mask
-    	List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, eg); 
-    	if (!exportMasks.isEmpty()) {
-	        for (ExportMask exportMask : exportMasks) {
-	            if (exportMask != null) {
-	                udpateExportMaskInitiators(exportMask, oldInitiator, newInitiator);
-	                updateExportMaskUserAddedInitiators(exportMask, oldInitiator, newInitiator);
-	                updateExportMaskZoningMap(exportMask, oldInitiator, newInitiator);
+    	StringSet exportMasks = eg.getExportMasks();
+    	if (exportMasks != null) {
+	        for (URI maskUri : StringSetUtil.stringSetToUriList(exportMasks)) {
+	            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
+	            if (mask != null) {
+	                udpateExportMaskInitiators(mask, oldInitiator, newInitiator);
+	                updateExportMaskUserAddedInitiators(mask, oldInitiator, newInitiator);
+	                updateExportMaskZoningMap(mask, oldInitiator, newInitiator);
 	
-	                dbClient.updateObject(exportMask);
+	                dbClient.updateObject(mask);
 	            }
 	        }
-    	}
+		}
     }
 
     private void udpateExportMaskInitiators(ExportMask mask, Initiator oldInitiator, Initiator newInitiator) {

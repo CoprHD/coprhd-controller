@@ -1075,7 +1075,7 @@ public class RecoverPointImageManagementUtils {
      *
      * @param impl - the FAPI implementation
      * @param groupCopy - RP group copy we are looking at
-     * @param accessState - Access modes we are waiting for. Optional
+     * @param accessState - Access modes we are waiting for
      *
      * @return void
      *

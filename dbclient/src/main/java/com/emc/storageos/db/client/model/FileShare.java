@@ -129,6 +129,15 @@ public class FileShare extends FileObject implements ProjectResource {
             }
             return MirrorStatus.OTHER.name();
         }
+
+        public static MirrorStatus getMirrorStatus(String state) {
+            for (MirrorStatus stateValue : copyOfValues) {
+                if (state != null && stateValue.getStatus().contains(state)) {
+                    return stateValue;
+                }
+            }
+            return MirrorStatus.UNKNOWN;
+        }
     }
 
     public static enum FileAccessState {

@@ -64,12 +64,7 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                 if (exportMask.getVolumes() == null ||
                         exportMask.getVolumes().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
-                    // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
-                    // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that
-                    // when the zone step is complete.
-                    _log.info(String.format(
-                            "ExportMask %s will not be deleted by this step completer; unzoning step will delete the ExportMask",
-                            exportMask.forDisplay()));
+                    dbClient.markForDeletion(exportMask);
                     dbClient.updateObject(exportGroup);
                 } else {
                     dbClient.updateObject(exportMask);

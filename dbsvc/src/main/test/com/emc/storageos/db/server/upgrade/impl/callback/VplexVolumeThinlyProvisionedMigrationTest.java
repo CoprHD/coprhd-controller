@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeThinlyProvisionedMigration;
@@ -55,16 +57,24 @@ public class VplexVolumeThinlyProvisionedMigrationTest extends DbSimpleMigration
     protected void prepareData() throws Exception {
         log.info("preparing data for VPLEX volumes for thinly-provisioned migration test.");
 
+        StorageSystem vplex = new StorageSystem();
+        vplex.setId(URIUtil.createId(StorageSystem.class));
+        vplex.setLabel("TEST_VPLEX");
+        vplex.setSystemType(DiscoveredDataObject.Type.vplex.name());
+        _dbClient.createObject(vplex);
+        
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
         volume.setLabel("VplexThinMigrationTester_True");
         volume.setThinlyProvisioned(true);
+        volume.setStorageController(vplex.getId());
         _dbClient.createObject(volume);
 
         Volume volume2 = new Volume();
         volume2.setId(URIUtil.createId(Volume.class));
         volume2.setLabel("VplexThinMigrationTester_AlreadyFalse");
         volume2.setThinlyProvisioned(false);
+        volume2.setStorageController(vplex.getId());
         _dbClient.createObject(volume2);
     }
 
@@ -77,10 +87,10 @@ public class VplexVolumeThinlyProvisionedMigrationTest extends DbSimpleMigration
         int count = 0;
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
-
             Assert.assertEquals("Thinly provisioned should be false", false, volume.getThinlyProvisioned());
             log.info("okay, everything looks good: thinlyProvisioned is {} on migrated VPLEX volume {}",
                     volume.getThinlyProvisioned(), volume.forDisplay());
+            count++;
         }
 
         Assert.assertEquals("We should have found two test VPLEX volumes.", 2, count);

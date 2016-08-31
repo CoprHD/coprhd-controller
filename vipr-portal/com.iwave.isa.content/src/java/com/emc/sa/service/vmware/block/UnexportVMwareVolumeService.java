@@ -21,6 +21,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -102,7 +103,9 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             vmware.detachLuns(host, cluster, volume);
         }
+
         vmware.disconnect();
+        ExecutionUtils.clearRollback();
 
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);

@@ -373,6 +373,48 @@ arrayhelper_verify_export() {
     esac
 }
 
+# We need a way to get all of the zones that could be associated with this host
+# that makes sense for the beginning of a test case.
+verify_no_zones() {
+    fabricid=$1
+    host=$2
+
+    echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
+    zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
+    if [ $? -eq 0 ]; then
+	echo "ERROR: Found zones on the switch associated with host ${host}."
+	exit;
+    fi
+}
+
+# Load FCZoneReference zone names from the database.  To be run after an export operation
+#
+load_zones() {
+    host=$1
+    zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
+    if [ $? -ne 0 ]; then
+	echo "ERROR: Could not determine the zones that were created"
+    fi
+}
+
+# Verify the zones exist (or don't exist)
+verify_zones() {
+    fabricid=$1
+    check=$2
+
+    for zone in ${zones}
+    do
+      echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
+      zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
+      if [ $? -ne 0 -a "${check}" = "exists" ]; then
+	  echo "ERROR: Expected to find zone ${zone} but did not."
+      elif [ $? -eq 0 -a "${check}" = "gone" ]; then
+	  echo "ERROR: Expected to not find zone ${zone} but it is there."
+      fi
+    done
+}
+
+
 dbupdate() {
     runcmd dbupdate.sh $*
 }
@@ -3091,16 +3133,15 @@ test_23() {
 
 # Export Test 24
 #
-# Summary: Remove Volume: Tests an volume (host) sneaking into a masking view outside of ViPR doesn't remove the zone.
+# Summary: Remove Volume: Tests a volume sneaking into a masking view outside of ViPR doesn't remove the zone.
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
-# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
-# 3. Customer add a volume to the export mask outside of ViPR
-# 4. Removal of volume workflow is resumed
-# 5. Verify the operation succeeds:  volume is removed
-# 6. Verify the zone is NOT removed from the switch (TBD)
-# 7. Cleanup
+# 2. Customer add a volume to the export mask outside of ViPR
+# 3. Customer removes managed volume from the export group
+# 4. Verify the operation succeeds:  volume is removed
+# 5. Verify the zone is NOT removed from the switch
+# 6. Cleanup
 #
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
@@ -3109,30 +3150,19 @@ test_24() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
+    # Verify there are no zones on the switch
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
 
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Find the zones that were created
-    zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
-    if [ $? -ne 0 ]; then
-	echo "Could not determine the zones that were created"
-	export_group delete ${PROJECT}/${expname}1
-	exit;
-    fi
+    load_zones ${HOST1} 
 
-    FABRICID=${FC_ZONE_A:7}
-    for zone in ${zones}
-    do
-      echo "=== zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone}"
-      zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone} | grep ${zone} > /dev/null
-      if [ $? -ne 0 ]; then
-	  echo "Expected to find zone ${zone} but did not."
-	  export_group delete ${PROJECT}/${expname}1
-	  exit;
-      fi
-    done
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Create a new vplex volume that we can add to the mask
     HIJACK=du-hijack-volume-${RANDOM}
@@ -3158,15 +3188,8 @@ test_24() {
     # Verify the volume is removed
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # Find the zones that were created
-    for zone in ${zones}
-    do
-      echo "=== zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone}"
-      zone list $BROCADE_NETWORK --fabricid ${FABRICID} --zone_name ${zone} | grep ${zone} > /dev/null
-      if [ $? -ne 0 ]; then
-	  echo "FAILED: Expected to find zone ${zone} but did not."
-      fi
-    done
+    # Verify the zone names, as we know them, are still on the switch
+    verify_zones ${FC_ZONE_A:7} exists
 
     # Now remove the initiator from the export mask
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -3184,6 +3207,72 @@ test_24() {
     arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
 
     # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 25
+#
+# Summary: Remove Initiator: Tests an initiator sneaking into a masking view outside of ViPR removes the proper zone.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. Customer adds an initiator to the export mask outside of ViPR
+# 3. Customer removes the managed host from the mask
+# 4. Verify the operation succeeds:  host is removed
+# 5. Verify the zones are removed from the switch 
+# 6. Cleanup
+#
+test_25() {
+    echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
+    expname=${EXPORT_GROUP_NAME}t25
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Verify there are no zones on the switch
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Find the zones that were created
+    load_zones ${HOST1} 
+
+    verify_zones ${FC_ZONE_A:7} exists
+
+    PWWN=`randwwn | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+   
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 3 1
+
+    # Run the export group command 
+    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST1}
+
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Remove initiator from the mask (done differently per array type)
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 0 1
+
+    # Verify the zones we know about are gone
+    verify_zones ${FC_ZONE_A:7} gone
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # The mask is out of our control at this point, delete mask
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 }
 

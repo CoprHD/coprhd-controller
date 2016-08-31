@@ -6,7 +6,9 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -40,14 +42,10 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
         return getClusterName(ctx, host, null);
     }
 
-    protected String getClusterName(AssetOptionsContext ctx, HostRestRep host, Collection<ClusterRestRep> clusters) {
+    protected String getClusterName(AssetOptionsContext ctx, HostRestRep host, Map<URI, String> clusters) {
         if (host.getCluster() != null) {
             if (clusters != null) {
-                for (ClusterRestRep cluster : clusters) {
-                    if (host.getCluster().getId().equals(cluster.getId())) {
-                        return cluster.getName();
-                    }
-                }
+                return clusters.get(host.getCluster().getId());
             } else {
                 ClusterRestRep cluster = api(ctx).clusters().get(host.getCluster());
                 if (cluster != null) {
@@ -63,7 +61,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
     }
 
     protected List<AssetOption> createHostOptions(AssetOptionsContext ctx, Collection<HostRestRep> hosts,
-            Collection<ClusterRestRep> clusters) {
+            Map<URI, String> clusters) {
         List<AssetOption> options = Lists.newArrayList();
         for (HostRestRep value : hosts) {
             options.add(createHostOption(ctx, value, clusters));
@@ -85,7 +83,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
         return createHostOption(ctx, host, null);
     }
 
-    protected AssetOption createHostOption(AssetOptionsContext ctx, HostRestRep host, Collection<ClusterRestRep> clusters) {
+    protected AssetOption createHostOption(AssetOptionsContext ctx, HostRestRep host, Map<URI, String> clusters) {
         String discoveryMessage = getDiscoveryError(host);
         String clusterName = getClusterName(ctx, host, clusters);
         String label = host.getName();
@@ -118,6 +116,24 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
         return api(context).clusters().getByIds(clusterIds, null);
     }
 
+    protected Map<URI, String> getClustersMap(AssetOptionsContext context, List<HostRestRep> hosts) {
+        Set<URI> clusterIds = Sets.newHashSet();
+        for (HostRestRep host : hosts) {
+            URI clusterId = ResourceUtils.id(host.getCluster());
+            if (clusterId != null) {
+                clusterIds.add(clusterId);
+            }
+        }
+
+        Collection<ClusterRestRep> clusters = api(context).clusters().getByIds(clusterIds, null);
+        Map<URI, String> clusterMap = new HashMap<URI, String>();
+        for (ClusterRestRep cluster : clusters) {
+            clusterMap.put(cluster.getId(), cluster.getName());
+        }
+
+        return clusterMap;
+    }
+
     protected List<AssetOption> createClusterOptions(AssetOptionsContext ctx, Collection<ClusterRestRep> clusters) {
         List<AssetOption> options = Lists.newArrayList();
         for (ClusterRestRep value : clusters) {
@@ -134,10 +150,11 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
 
     protected List<AssetOption> getHostOrClusterOptions(AssetOptionsContext context, List<HostRestRep> hosts,
             String storageType) {
-        List<ClusterRestRep> clusters = getClusters(context, hosts);
         if (BlockProvider.isExclusiveStorage(storageType)) {
+            Map<URI, String> clusters = getClustersMap(context, hosts);
             return createHostOptions(context, hosts, clusters);
         } else {
+            List<ClusterRestRep> clusters = getClusters(context, hosts);
             return createClusterOptions(context, clusters);
         }
     }

@@ -241,9 +241,9 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         }
         _log.info(String.format("Export Group being removed contains block objects: { %s }",
-                Joiner.on(',').join(exportGroup.getVolumes().keySet())));
+                exportGroup.getVolumes() != null ? Joiner.on(',').join(exportGroup.getVolumes().keySet()) : "NONE"));
         _log.info(String.format("Export Mask being analyzed contains block objects: { %s }",
-                Joiner.on(',').join(exportMask.getVolumes().keySet())));
+                exportMask.getVolumes() != null ? Joiner.on(',').join(exportMask.getVolumes().keySet()) : "NONE"));
         _log.info(String.format("Block Objects being sent in for removal: { %s }",
                 Joiner.on(',').join(uriList)));
         return uriList;

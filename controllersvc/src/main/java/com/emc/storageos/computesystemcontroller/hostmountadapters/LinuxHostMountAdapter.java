@@ -8,16 +8,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
-import com.emc.storageos.model.file.MountInfo;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.iwave.ext.command.CommandException;
 
 /**
  * 
@@ -40,36 +35,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     }
 
-    @Override
-    public void doMount(HostDeviceInputOutput args) throws InternalException {
-        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, args.getHostId()));
-        FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
-        FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
-        String fsType = args.getFsType() == null ? "auto" : args.getFsType();
-        String subDirectory = args.getSubDirectory() == null ? "!nodir" : args.getSubDirectory();
-        // verify mount point
-        mountUtils.verifyMountPoint(args.getMountPath());
-        // Create directory
-        mountUtils.createDirectory(args.getMountPath());
-        // Add to the /etc/fstab to allow the os to mount on restart
-        mountUtils.addToFSTab(args.getMountPath(), export.getMountPoint(), fsType, "nolock,sec=" + args.getSecurity());
-        // Mount the device
-        mountUtils.mountPath(args.getMountPath());
-    }
-
-    @Override
-    public void doUnmount(HostDeviceInputOutput args) throws InternalException {
-        mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, args.getHostId()));
-        // unmount the Export
-        mountUtils.unmountPath(args.getMountPath());
-        // remove from fstab
-        mountUtils.removeFromFSTab(args.getMountPath());
-        // delete the directory entry if it's empty
-        if (mountUtils.isDirectoryEmpty(args.getMountPath())) {
-            mountUtils.deleteDirectory(args.getMountPath());
-        }
-    }
-
     public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
         List<FileExport> exportList = queryDBFSExports(fs);
         dbClient.queryByType(FileShare.class, true);
@@ -85,7 +50,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
                 return export;
             }
         }
-        throw new IllegalArgumentException("no exports found");
+        throw new IllegalArgumentException("No exports found for the provided security type and subdirectory.");
     }
 
     private List<FileExport> queryDBFSExports(FileShare fs) {
@@ -133,8 +98,14 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     public void deleteDirectory(URI hostId, String mountPath) {
         mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
         // Delete directory
-        if (mountUtils.isDirectoryEmpty(mountPath)) {
-            mountUtils.deleteDirectory(mountPath);
+        try {
+            if (mountUtils.isDirectoryEmpty(mountPath)) {
+                mountUtils.deleteDirectory(mountPath);
+            }
+        } catch (CommandException ex) {
+            if (!ex.getMessage().contains("No such file or directory")) {
+                throw ex;
+            }
         }
     }
 
@@ -149,7 +120,13 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     public void unmountDevice(URI hostId, String mountPath) {
         mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
         // unmount device
-        mountUtils.unmountPath(mountPath);
+        try {
+            mountUtils.unmountPath(mountPath);
+        } catch (CommandException ex) {
+            if (!ex.getMessage().contains("not mounted") && !ex.getMessage().contains("mountpoint not found")) {
+                throw ex;
+            }
+        }
     }
 
 }

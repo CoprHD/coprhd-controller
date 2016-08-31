@@ -690,7 +690,7 @@ public class NetworkScheduler {
             if (portIds != null) {
                 for (String portId : portIds) {
                     StoragePort sp = _dbClient.queryObject(StoragePort.class, URI.create(portId));
-                    if (sp.getTaggedVirtualArrays() != null &&
+                    if (null != sp && sp.getTaggedVirtualArrays() != null &&
                             sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                         boolean placedZone = placeZone(zoneInfos, exportGroup, varrayURI, initiator, sp,
                                 volumeURIs, existingZonesMap.get(initiator.getInitiatorPort()), checkZones);

@@ -61,13 +61,15 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 
 /**
  * Block Service subtask (parts of larger operations) default implementation.
  */
 public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<StorageScheduler> {
     private static final Logger _log = LoggerFactory.getLogger(DefaultBlockServiceApiImpl.class);
-
+    private static final String REGEX_XIV = "^[-\\w._~]+";
+    
     public DefaultBlockServiceApiImpl() {
         super(null);
     }
@@ -97,6 +99,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 existingDescriptors, param.getName(), size, 
                 project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
+        
+        //Check for special characters in volume names
+        checkVolumeNames(preparedVolumes.get(0));
 
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -116,6 +121,26 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         return taskList;
     }
+    
+    /**
+     * Method to validate volume names.
+     * @param volume Volume Name
+     */
+    private void checkVolumeNames(Volume volume) {
+		URI storageSystemUri = volume.getStorageController();
+		if(null != storageSystemUri){
+			StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+			//A check for XIV array volume name. XIV volume name supports only four special character .~-_
+			if(storageSystem.deviceIsType(Type.ibmxiv)){
+				if(volume.getLabel().matches(REGEX_XIV)){
+					return;
+				}else{
+					throw APIException.badRequests.invalidVolumeName(volume.getLabel());
+				}
+			}
+		}
+		
+	}
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size,

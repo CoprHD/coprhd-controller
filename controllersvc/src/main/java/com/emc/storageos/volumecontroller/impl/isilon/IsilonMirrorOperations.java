@@ -649,25 +649,17 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         IsilonSyncTargetPolicy targetPolicy = null;
 
         //we need to enable to policy, before running resync-prep
-        if(!policy.getEnabled()){
+        if(!policy.getEnabled()) {
         	policy = doEnableReplicationPolicy(isiPrimary, policyName);
-        	
-        	isiSecondary = getIsilonDevice(secondarySystem);
-        	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        	//already resync is created then we can start policy
-        	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) 
-        			&& targetPolicy.getLastJobState().equals(JobState.finished)) {
-        		return BiosCommandResult.createSuccessfulResult();
-        	} 
-        } else {//if it resync enabled
-        	isiSecondary = getIsilonDevice(secondarySystem);
-        	//already resync is created then we can start policy
-        	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
-        	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) 
-        			&& targetPolicy.getLastJobState().equals(JobState.finished)) {
-        		return BiosCommandResult.createSuccessfulResult();
-        	} 
-        }
+        } 
+        
+        isiSecondary = getIsilonDevice(secondarySystem);
+    	targetPolicy = isiSecondary.getTargetReplicationPolicy(policyName);
+    	//already resync is created then we can start policy
+    	if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) 
+    			&& targetPolicy.getLastJobState().equals(JobState.finished)) {
+    		return BiosCommandResult.createSuccessfulResult();
+    	} 
 
         //if policy enable then we run resync operation
         if(true == policy.getEnabled()) {

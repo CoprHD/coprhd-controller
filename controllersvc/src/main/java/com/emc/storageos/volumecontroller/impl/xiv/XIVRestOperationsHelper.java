@@ -124,6 +124,7 @@ public class XIVRestOperationsHelper {
 	        		}
 				} catch (Exception e) {
 					_log.error("Unable to get host info from Port {} on array : {} ", initiator.getInitiatorPort(), storage.getLabel(), e);
+					throw XIVRestException.exceptions.errorInHSMHostConfiguration(initiator.getInitiatorPort(), storage.getLabel());
 				}
     		}
     		

@@ -1568,7 +1568,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         s_logger.info("Cleaning block object {} from exports", boURI);
         Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
         Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
-        Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
         Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
         BlockObject bo = BlockObject.fetch(_dbClient, boURI);
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
@@ -1594,7 +1593,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
             for (ExportMask exportMask : exportMasks) {              
                 if (exportMask.hasVolume(boURI)) {
-                    s_logger.info("Cleaning block object from export mask {}", exportMask.getId().toString());
+                    s_logger.info(String.format("Cleaning block object from export mask %s [%s]", exportMask.getLabel(), 
+                    		exportMask.getId().toString()));
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
                     String hluStr = exportMaskVolumeMap.get(boURI.toString());
                     exportMask.removeVolume(boURI);

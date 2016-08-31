@@ -208,12 +208,12 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
             // There will be only export mask for the create export group use case,
             // so fetch the 0th URI
-            ExportMask mask = exportMasks.get(0);
-
-            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
+            if (exportMasks.size() > 0) {
+	            ExportMask mask = exportMasks.get(0);	
+	            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
+            }
 
             WorkflowStepCompleter.stepSucceded(token);
-
         } catch (final InternalException e) {
             _log.error("Encountered an exception", e);
             WorkflowStepCompleter.stepFailed(token, e);

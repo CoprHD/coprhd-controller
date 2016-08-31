@@ -99,7 +99,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         ExportGroup exportGroupMissingMask = createExportGroup(oldSingleInitiators, "exportGroupMissingMask");
         missingMaskURI = URIUtil.createId(ExportMask.class);
         exportGroupMissingMask.addExportMask(missingMaskURI);
-        _dbClient.updateAndReindexObject(exportGroupMissingMask);
+        _dbClient.updateObject(exportGroupMissingMask);
 
     }
 

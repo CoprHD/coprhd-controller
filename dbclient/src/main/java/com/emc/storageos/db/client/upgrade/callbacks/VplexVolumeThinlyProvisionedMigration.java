@@ -38,7 +38,7 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
     @Override
     public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
-        List<URI> volumeURIs = dbClient.queryByType(Volume.class, false);
+        List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
         Iterator<Volume> volumesIter = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
         while (volumesIter.hasNext()) {
             Volume volume = volumesIter.next();

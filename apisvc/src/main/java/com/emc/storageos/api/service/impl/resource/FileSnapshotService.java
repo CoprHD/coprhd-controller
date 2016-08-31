@@ -123,7 +123,8 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * Get info for file share snapshot
      * 
-     * @param id the URN of a ViPR Snapshot
+     * @param id
+     *            the URN of a ViPR Snapshot
      * @brief Show file snapshot
      * @return File snapshot details
      */
@@ -243,8 +244,10 @@ public class FileSnapshotService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR Snapshot
-     * @param param File system export parameters
+     * @param id
+     *            the URN of a ViPR Snapshot
+     * @param param
+     *            File system export parameters
      * @brief Create file snapshot export
      * @return Task resource representation
      * @throws InternalException
@@ -333,7 +336,8 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * @Deprecated use {id}/export instead
      *             Get file share snapshots exports
-     * @param id the URN of a ViPR Snapshot
+     * @param id
+     *            the URN of a ViPR Snapshot
      * @brief List file snapshot exports.This method is deprecated.
      *        <p>
      *        Use /file/snapshots/{id}/export instead.
@@ -445,11 +449,16 @@ public class FileSnapshotService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR Snapshot
-     * @param protocol Protocol valid values - NFS,NFSv4,CIFS
-     * @param securityType Security type valid values - sys,krb5,krb5i,krb5p
-     * @param permissions Permissions valid values - ro,rw,root
-     * @param rootUserMapping Root user mapping
+     * @param id
+     *            the URN of a ViPR Snapshot
+     * @param protocol
+     *            Protocol valid values - NFS,NFSv4,CIFS
+     * @param securityType
+     *            Security type valid values - sys,krb5,krb5i,krb5p
+     * @param permissions
+     *            Permissions valid values - ro,rw,root
+     * @param rootUserMapping
+     *            Root user mapping
      * @brief Delete file snapshot export
      * @return Task resource representation
      * @throws InternalException
@@ -542,7 +551,7 @@ public class FileSnapshotService extends TaskResourceService {
 
         try {
             FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fileShare, _dbClient);
-            fileServiceApi.deleteExportRules(device.getId(), snapshot.getId(), false, null, task);
+            fileServiceApi.deleteExportRules(device.getId(), snapshot.getId(), false, null, false, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                     snapshot.getId().toString(), device.getId().toString(), false, null);
@@ -564,7 +573,8 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * Returns a task when there is no export to unexport
      * 
-     * @param snap Snapshot whose export has to be deleted
+     * @param snap
+     *            Snapshot whose export has to be deleted
      * @param task
      * @return Task resource representation
      */
@@ -579,7 +589,8 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * Lists all SMB shares for the specified snapshot.
      * 
-     * @param id the URN of a ViPR Snapshot
+     * @param id
+     *            the URN of a ViPR Snapshot
      * @brief List file snapshot SMB shares
      * @return List of SMB shares
      */
@@ -633,8 +644,10 @@ public class FileSnapshotService extends TaskResourceService {
      * <p>
      * Note: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR Snapshot
-     * @param param File system share parameters
+     * @param id
+     *            the URN of a ViPR Snapshot
+     * @param param
+     *            File system share parameters
      * @brief Create file snapshot SMB share
      * @return Task resource representation
      * @throws InternalException
@@ -677,7 +690,8 @@ public class FileSnapshotService extends TaskResourceService {
         }
 
         // Locate storage port for sharing snapshot
-        // Select IP port of the storage array, owning the parent file system, which belongs to the same varray as the file system.
+        // Select IP port of the storage array, owning the parent file system, which belongs to the same varray as the
+        // file system.
         // We use file system in the call since file snap belongs to the same neighbourhood as its parent file system
         StoragePort sport = _fileScheduler.placeFileShareExport(fs, StorageProtocol.File.CIFS.name(), null);
 
@@ -731,8 +745,10 @@ public class FileSnapshotService extends TaskResourceService {
      * <p>
      * Note: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR Snapshot
-     * @param shareName SMB share name
+     * @param id
+     *            the URN of a ViPR Snapshot
+     * @param shareName
+     *            SMB share name
      * @brief Delete file snapshot SMB share
      * @return Task resource representation
      * @throws InternalException
@@ -780,9 +796,12 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * API to update ACLs of an existing share
      * 
-     * @param id the file system URI
-     * @param shareName name of the share
-     * @param param request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @param param
+     *            request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
      * @return TaskResponse
      * @throws InternalException
      */
@@ -923,7 +942,8 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * Call will restore this snapshot to the File system that it is associated with.
      * 
-     * @param id [required] - the URN of a ViPR file snapshot to restore from
+     * @param id
+     *            [required] - the URN of a ViPR file snapshot to restore from
      * @brief Restore file snapshot
      * @return TaskResourceRep - Task resource object for tracking this operation
      * @throws InternalException
@@ -981,7 +1001,8 @@ public class FileSnapshotService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param id the URN of a ViPR Snapshot
+     * @param id
+     *            the URN of a ViPR Snapshot
      * @brief Delete file snapshot
      * @return Task resource representation
      * @throws InternalException
@@ -1055,7 +1076,8 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * Retrieve resource representations based on input ids.
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @brief List data of file snapshot resources
      * @return list of representations.
      */
@@ -1077,10 +1099,12 @@ public class FileSnapshotService extends TaskResourceService {
     /**
      * Retrieve FileSnapshot representations based on input ids.
      * 
-     * @param ids the URN of a ViPR FileSnapshot list.
+     * @param ids
+     *            the URN of a ViPR FileSnapshot list.
      * @return list of FileSnapshot representations.
      * 
-     * @throws DatabaseException When an error occurs querying the database.
+     * @throws DatabaseException
+     *             When an error occurs querying the database.
      */
     @Override
     public FileSnapshotBulkRep queryBulkResourceReps(List<URI> ids) {
@@ -1181,8 +1205,10 @@ public class FileSnapshotService extends TaskResourceService {
      * 
      * Existing file system exports may have their list of export rules updated.
      * 
-     * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
+     * @param id
+     *            the URN of a ViPR fileSystem
+     * @param subDir
+     *            sub-directory within a filesystem
      * @brief Update file system export
      * @return Task resource representation
      * @throws InternalException
@@ -1221,7 +1247,7 @@ public class FileSnapshotService extends TaskResourceService {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
 
             FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
-            fileServiceApi.updateExportRules(device.getId(), snap.getId(), param, task);
+            fileServiceApi.updateExportRules(device.getId(), snap.getId(), param, false, task);
 
             auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), param);

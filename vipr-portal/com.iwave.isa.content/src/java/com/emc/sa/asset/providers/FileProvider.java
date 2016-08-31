@@ -6,6 +6,7 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -808,18 +810,15 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "fileExportedFilesystem", "subDirectory" })
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
-        List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        if (subDirectory.equalsIgnoreCase("!nodir")) {
-            for (FileSystemExportParam export : exports) {
-                if (export.getSubDirectory().isEmpty()) {
-                    options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
-                }
-            }
-        } else {
-            for (FileSystemExportParam export : exports) {
-                if (export.getSubDirectory().equalsIgnoreCase(subDirectory)) {
-                    options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
-                }
+        String subDir = subDirectory;
+        if ("!nodir".equalsIgnoreCase(subDir)) {
+            subDir = null;
+        }
+        List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, false, subDir);
+        for (ExportRule rule : exports) {
+            List<String> securityTypes = Arrays.asList(rule.getSecFlavor().split("\\s*,\\s*"));
+            for (String sec : securityTypes) {
+                options.add(new AssetOption(sec, sec));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
@@ -830,7 +829,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("linuxFileHost")
     public List<AssetOption> getNFSMountsForHost(AssetOptionsContext ctx, URI host) {
         List<AssetOption> options = Lists.newArrayList();
-        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsHostMounts(host.toString());
+        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsMountsByHost(host);
         for (MountInfo mountInfo : hostMounts) {
             String mountString = mountInfo.getMountString();
             options.add(new AssetOption(mountString, getDisplayMount(ctx, mountInfo)));

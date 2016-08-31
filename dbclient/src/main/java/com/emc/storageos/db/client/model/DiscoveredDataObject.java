@@ -67,6 +67,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type ecs = new Type("ecs", types.values().size());
         static public Type ceph = new Type("ceph", types.values().size());
         static public Type unity = new Type("unity", types.values().size());
+        static public Type hp3par = new Type("hp3par", types.values().size());
 
         private String name;
         private int ordinal;
@@ -154,7 +155,8 @@ public class DiscoveredDataObject extends DataObject {
                         type.equals(ibmxiv) ||
                         type.equals(xtremio) ||
                         type.equals(scaleio) ||
-                        type.equals(ceph);
+                        type.equals(ceph) ||
+                        type.equals(hp3par);
             }
         }
 
@@ -171,7 +173,7 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isBlockStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio) || type.equals(ceph) || type.equals(unity));
+                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio) || type.equals(ceph) || type.equals(unity) || type.equals(hp3par));
             }
         }
 

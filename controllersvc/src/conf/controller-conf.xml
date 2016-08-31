@@ -914,6 +914,7 @@
         <property name="eventManager" ref="recordableEventMgr"/>
         <property name="auditLogManager" ref="auditLogManager"/>
         <property name="workflowService" ref="workflowService"/>
+        <property name="computeSystemOrchestrationDeviceController" ref="computeSystemOrchestrationDeviceController" />
     </bean>
     
 	<bean id="fileReplicationDeviceController" class="com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController">

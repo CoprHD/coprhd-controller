@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeThinlyProvisionedMigration;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
@@ -57,12 +58,14 @@ public class VplexVolumeThinlyProvisionedMigrationTest extends DbSimpleMigration
     protected void prepareData() throws Exception {
         log.info("preparing data for VPLEX volumes for thinly-provisioned migration test.");
 
+        // set up a vplex system
         StorageSystem vplex = new StorageSystem();
         vplex.setId(URIUtil.createId(StorageSystem.class));
         vplex.setLabel("TEST_VPLEX");
         vplex.setSystemType(DiscoveredDataObject.Type.vplex.name());
         _dbClient.createObject(vplex);
-        
+
+        // create a vplex volume with thin set to true
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
         volume.setLabel("VplexThinMigrationTester_True");
@@ -70,12 +73,30 @@ public class VplexVolumeThinlyProvisionedMigrationTest extends DbSimpleMigration
         volume.setStorageController(vplex.getId());
         _dbClient.createObject(volume);
 
+        // create a vplex volume with thin set to false
         Volume volume2 = new Volume();
         volume2.setId(URIUtil.createId(Volume.class));
         volume2.setLabel("VplexThinMigrationTester_AlreadyFalse");
         volume2.setThinlyProvisioned(false);
         volume2.setStorageController(vplex.getId());
         _dbClient.createObject(volume2);
+
+        // create a vnx system
+        StorageSystem vnx = new StorageSystem();
+        vnx.setId(URIUtil.createId(StorageSystem.class));
+        vnx.setLabel("TEST_VNX");
+        vnx.setSystemType(DiscoveredDataObject.Type.vnxblock.name());
+        _dbClient.createObject(vnx);
+
+        // create a vnx volume with thin set to true;
+        // this is to test that we didn't regress anything 
+        Volume volume3 = new Volume();
+        volume3.setId(URIUtil.createId(Volume.class));
+        volume3.setLabel("VnxThinMigrationTest_True");
+        volume3.setThinlyProvisioned(true);
+        volume3.setStorageController(vnx.getId());
+        _dbClient.createObject(volume3);
+
     }
 
     @Override
@@ -84,16 +105,32 @@ public class VplexVolumeThinlyProvisionedMigrationTest extends DbSimpleMigration
         List<URI> volumeUris = _dbClient.queryByType(Volume.class, true);
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeUris, true);
 
-        int count = 0;
+        int vplexCount = 0;
+        int vnxCount = 0;
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
-            Assert.assertEquals("Thinly provisioned should be false", false, volume.getThinlyProvisioned());
-            log.info("okay, everything looks good: thinlyProvisioned is {} on migrated VPLEX volume {}",
-                    volume.getThinlyProvisioned(), volume.forDisplay());
-            count++;
+            URI systemURI = volume.getStorageController();
+            if (!NullColumnValueGetter.isNullURI(systemURI)) {
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+                if (system != null) {
+                    if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
+                        Assert.assertEquals("Thinly provisioned should be false", false, volume.getThinlyProvisioned());
+                        log.info("okay, everything looks good: thinlyProvisioned is {} on migrated VPLEX volume {}",
+                                volume.getThinlyProvisioned(), volume.forDisplay());
+                        vplexCount++;
+                    }
+                    if (DiscoveredDataObject.Type.vnxblock.name().equals(system.getSystemType())) {
+                        Assert.assertEquals("Thinly provisioned should be true", true, volume.getThinlyProvisioned());
+                        log.info("okay, everything looks good: thinlyProvisioned is still {} on non-migrated vnx volume {}",
+                                volume.getThinlyProvisioned(), volume.forDisplay());
+                        vnxCount++;
+                    }
+                }
+            }
         }
 
-        Assert.assertEquals("We should have found two test VPLEX volumes.", 2, count);
+        Assert.assertEquals("We should have found two test VPLEX volumes.", 2, vplexCount);
+        Assert.assertEquals("We should have found one test VNX volume.", 1, vnxCount);
     }
 
 }

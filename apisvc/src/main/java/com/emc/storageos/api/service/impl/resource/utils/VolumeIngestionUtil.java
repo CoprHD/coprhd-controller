@@ -4709,7 +4709,7 @@ public class VolumeIngestionUtil {
             List<UnManagedExportMask> unManagedMasks) {
         if (isVplexVolume(unManagedVolume)) {
             Map<String, Set<String>> initToMaskMap = new HashMap<String, Set<String>>();
-            // vplex brownfield adaption requires initiators can only be in one storage view.
+            // vplex brownfield requires initiators to only be in one storage view.
             // assemble a map of initiators to UnManagedExportMask paths
             for (UnManagedExportMask mask : unManagedMasks) {
                 mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getKnownInitiatorNetworkIds());

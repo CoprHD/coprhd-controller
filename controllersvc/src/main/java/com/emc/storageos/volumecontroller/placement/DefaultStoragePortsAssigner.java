@@ -636,6 +636,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             _log.info(String.format("Port %s (%s) network %s assigned to initiator %s (%s)\n",
                     port.getPortName(), port.getPortNetworkId(), netURI,
                     initiator.getInitiatorPort(), initiator.getHostName()));
+
             addPortUse(portUseCounts, port);
         }
 
@@ -647,19 +648,22 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         Set<Initiator> initiators = assignments.keySet();
         URI associatedInitiator = initiator.getAssociatedInitiator();
+
         for (Iterator<Initiator> iterator = initiators.iterator(); iterator.hasNext();) {
-            Initiator initiator2 = iterator.next();
-            URI associatedInitiator2 = initiator2.getAssociatedInitiator();
+            Initiator initiatorInAssignments = iterator.next();
+            URI associatedInitiator2 = initiatorInAssignments.getAssociatedInitiator();
             if (associatedInitiator != null && associatedInitiator2 != null &&
                     associatedInitiator.equals(associatedInitiator2)) {
-                if (assignments.get(initiator2) != null && !assignments.get(initiator2).containsAll(assignedPorts)) {
-                    assignments.get(initiator2).addAll(assignedPorts);
 
+                if (assignments.get(initiatorInAssignments) != null) {
+                    assignments.get(initiatorInAssignments).addAll(assignedPorts);
                 } else {
-                    assignments.put(initiator2, assignedPorts);
+                    assignments.put(initiatorInAssignments, assignedPorts);
                 }
             }
         }
+
+        _log.info("Initiator - Storageport assignments: {}", assignments);
     }
 
     /**

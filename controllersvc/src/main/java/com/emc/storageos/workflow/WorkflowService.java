@@ -2592,4 +2592,15 @@ public class WorkflowService implements WorkflowController {
         this._suspendOnErrorTestOnly = _suspendOnErrorTestOnly;
     }
 
+    /**
+     * Determine if a workflow step is running as part of rollback.
+     *
+     * @param stepId    Step Id
+     * @return          true if in rollback, false otherwise
+     */
+    public boolean isStepInRollbackState(String stepId) {
+        Workflow workflow = _instance.getWorkflowFromStepId(stepId);
+        return workflow.isRollbackState();
+    }
+
 }

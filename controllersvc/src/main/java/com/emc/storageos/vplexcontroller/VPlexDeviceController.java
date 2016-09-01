@@ -4528,6 +4528,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ctx.setStorage(vplex);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
             validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
@@ -5164,6 +5165,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ctx.setStorage(vplex);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
             validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.

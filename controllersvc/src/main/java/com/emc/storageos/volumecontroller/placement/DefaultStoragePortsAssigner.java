@@ -648,13 +648,19 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 int alreadyAssigned = 0;
                 List<StoragePort> assignedPorts = assignments.get(initiator);
                 if (assignedPorts != null) {
-                    assignPortsToAssociatedInitiator(initiator, assignedPorts, assignments, entry.getValue());
+                    // assignPortsToAssociatedInitiator(initiator, assignedPorts, assignments, entry.getValue());
                     alreadyAssigned = assignedPorts.size();
                     if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
                         _log.info(String.format("Assignments sufficient for initiator %s (%s)",
                                 initiator.getInitiatorPort(), initiator.getHostName()));
                         entry.getValue().remove(0);
                         // This counts as we added something because we processed a previous mapping
+                        addedThisPass = true;
+                        continue;
+                    }
+                } else {
+                    boolean assigned = assignPortsToInitiatorFromAssociatedInitiator(initiator, assignments, entry.getValue());
+                    if (assigned) {
                         addedThisPass = true;
                         continue;
                     }
@@ -668,7 +674,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
                         // Remove this initiator from further provisioning consideration
-                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
                         entry.getValue().remove(0);
                         addedThisPass = true;
                     } else {
@@ -880,6 +885,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     private void assignPortsToAssociatedInitiator(Initiator initiator, List<StoragePort> assignedPorts,
             Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
+
         Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
         if (associatedInitiator != null) {
             if (assignments.get(associatedInitiator) != null) {
@@ -891,5 +897,28 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 initiatorList.remove(associatedInitiator);
             }
         }
+    }
+
+    private boolean assignPortsToInitiatorFromAssociatedInitiator(Initiator initiator,
+            Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
+
+        boolean assigned = false;
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
+
+        if (associatedInitiator != null) {
+            List<StoragePort> sports = assignments.get(associatedInitiator);
+            if (sports != null && !sports.isEmpty()) {
+                if (assignments.get(initiator) != null) {
+                    assignments.get(initiator).addAll(sports);
+                } else {
+                    assignments.put(initiator, sports);
+                }
+                assigned = true;
+            }
+            if (initiatorList != null) {
+                initiatorList.remove(initiator);
+            }
+        }
+        return assigned;
     }
 }

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.VirtualArray;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -487,7 +488,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // We use existing ports in the mask as recommended ports.
             preparePorts(storage, exportMaskUri, portList, recommendedPorts, availablePorts, nativeIdToAvailablePortMap);
-
+            log.info("varray ports: {}", nativeIdToAvailablePortMap);
             // For add volumes to existing export mask, we do not allow storage port change in the mask.
             // Only ports in the mask are available for driver call.
             availablePorts = recommendedPorts;
@@ -514,11 +515,33 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 // In case when driver returns ports which do not contain all ports from the mask, we will fail this request.
                 // recommendedPorts are all ports from the mask --- check that these ports are contained in the driver selected ports
                 if (usedRecommendedPorts.isFalse() && !selectedPorts.containsAll(recommendedPorts)) {
-                    String errorMsg = String.format("Driver selected ports do not contain ports from the export mask: %s .",
-                            task.getMessage());
-                    log.error(errorMsg);
-                    ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolumes", errorMsg);
-                    taskCompleter.error(dbClient, serviceError);
+                    // for auto san zoning enabled we can not support case when selected ports do not include ports which are already in the mask
+                    VirtualArray varray = dbClient.queryObject(VirtualArray.class, exportGroup.getVirtualArray());
+                    log.info("AutoSanZoning for varray {} is {} ", varray.getLabel(), varray.getAutoSanZoning());
+                    if (varray.getAutoSanZoning()) {
+                        String errorMsg = String.format("AutoSanZoning is enabled and driver selected ports do not contain ports from the export mask: %s .",
+                                task.getMessage());
+                        log.error(errorMsg);
+                        ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolumes", errorMsg);
+                        taskCompleter.error(dbClient, serviceError);
+                    } else {
+                        // auto san zoning is disabled --- add new selected ports to the mask
+                        // we do not care about zoning map in this case
+                        List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask = new ArrayList<>();
+                        for (StoragePort driverPort : selectedPorts) {
+                            log.info("Driver selected port: {}", driverPort);
+                            com.emc.storageos.db.client.model.StoragePort port = nativeIdToAvailablePortMap.get(driverPort.getNativeId());
+                            if (port != null) {
+                                log.info("System port: {}", port);
+                                selectedPortsForMask.add(port);
+                            }
+                        }
+                        for (com.emc.storageos.db.client.model.StoragePort port : selectedPortsForMask) {
+                            exportMask.addTarget(port.getId());
+                        }
+                        dbClient.updateObject(exportMask);
+                        taskCompleter.ready(dbClient);
+                    }
                 } else {
                     // Driver used recommended ports for a new volumes or all export mask ports are contained
                     // in the list of driver selected ports

@@ -630,11 +630,12 @@ public class StorageProviderService extends TaskResourceService {
     }
     
     private void verifySecondaryParams(String secondaryURL) {
+        String newSecondaryURL=null;
         if (null != secondaryURL) {
             ArgValidator.checkFieldNotEmpty(secondaryURL, "secondary_url");
             if (secondaryURL.startsWith(HTTPS_PREFIX)) {
-                secondaryURL = secondaryURL.substring(HTTPS_PREFIX.length());
-                String[] urlParts = secondaryURL.split(":");
+                newSecondaryURL = secondaryURL.substring(HTTPS_PREFIX.length());
+                String[] urlParts = newSecondaryURL.split(":");
                 ArgValidator.checkFieldNotEmpty(urlParts[0], "secondary_ip");
                 ArgValidator.checkFieldNotEmpty(urlParts[1], "secondary_port");
             }

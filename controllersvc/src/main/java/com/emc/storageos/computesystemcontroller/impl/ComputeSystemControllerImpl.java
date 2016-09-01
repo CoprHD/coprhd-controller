@@ -1042,29 +1042,27 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     /**
-     * Validates that a datastore can be unmounted from this host
+     * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
+     * virtual machines.
      * 
      * @param exportGroup
      *            export group that contains volumes
-     * @param hostId
-     *            host to unmount and detach from
      * @param vcenter
-     *            vcenter that the host belongs to
+     *            vcenter that the datastore belongs to
      * @param vcenterDatacenter
-     *            vcenter datacenter that the host belongs to
+     *            vcenter datacenter that the datastore belongs to
      * @return workflow method for unmounting and detaching disks and datastores
      */
-    public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
-        return new Workflow.Method("verifyDatastore", exportGroup, hostId, vcenter, vcenterDatacenter);
+    public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("verifyDatastore", exportGroup, vcenter, vcenterDatacenter);
     }
 
     /**
-     * Validates that the datastore can be unmounted from this host
+     * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
+     * virtual machines.
      * 
      * @param exportGroupId
      *            export group that contains volumes
-     * @param hostId
-     *            host to check
      * @param vcenterId
      *            vcenter that the host belongs to
      * @param vcenterDatacenter
@@ -1072,7 +1070,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param stepId
      *            the id of the workflow step
      */
-    public void verifyDatastore(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+    public void verifyDatastore(URI exportGroupId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
@@ -1453,10 +1451,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     /**
-     * Verify datastore can be removed
+     * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
+     * virtual machines.
      * 
      * @param vCenterHostExportMap
      *            the map of hosts and export groups to operate on
+     * @param virtualDataCenter
+     *            the datacenter that the hosts belong to
      * @param waitFor
      *            the step to wait on for this workflow step
      * @param workflow
@@ -1479,7 +1480,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             String.format("Verifying datastores for removal from export %s", export), waitFor,
                             export, export.toString(),
                             this.getClass(),
-                            verifyDatastoreMethod(export, esxHost.getId(), vCenterId,
+                            verifyDatastoreMethod(export, vCenterId,
                                     vcenterDataCenter.getId()),
                             rollbackMethodNullMethod(), null);
                 }

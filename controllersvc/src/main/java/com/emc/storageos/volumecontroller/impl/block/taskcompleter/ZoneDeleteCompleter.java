@@ -20,9 +20,7 @@ import com.google.common.base.Joiner;
 
 /**
  * A completer that runs after zones are deleted for a set of export masks that belong to the same
- * export group. The export mask delete completer already removed the EM reference from the EG, because
- * that reference is not needed to remove the zones. However this completer is responsible for deleting
- * the EM itself after it is done deleting the zones from the switch.
+ * export group.
  */
 @SuppressWarnings("serial")
 public class ZoneDeleteCompleter extends AbstractZoneCompleter {
@@ -35,14 +33,6 @@ public class ZoneDeleteCompleter extends AbstractZoneCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            if (this.getIds() != null) {
-                for (URI maskURI : this.getIds()) {
-                    ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskURI);
-                    if (exportMask != null && status == Operation.Status.ready) {
-                        dbClient.markForDeletion(exportMask);
-                    }
-                }
-            }
             _log.info(String.format("Done ZoneDelete - Ids: %s, OpId: %s, status: %s",
                     getIds() == null ? "None" : Joiner.on(",").join(getIds()),
                     getOpId(),

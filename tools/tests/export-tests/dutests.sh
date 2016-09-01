@@ -373,6 +373,48 @@ arrayhelper_verify_export() {
     esac
 }
 
+# We need a way to get all of the zones that could be associated with this host
+# that makes sense for the beginning of a test case.
+verify_no_zones() {
+    fabricid=$1
+    host=$2
+
+    echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
+    zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
+    if [ $? -eq 0 ]; then
+	echo "ERROR: Found zones on the switch associated with host ${host}."
+	exit;
+    fi
+}
+
+# Load FCZoneReference zone names from the database.  To be run after an export operation
+#
+load_zones() {
+    host=$1
+    zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
+    if [ $? -ne 0 ]; then
+	echo "ERROR: Could not determine the zones that were created"
+    fi
+}
+
+# Verify the zones exist (or don't exist)
+verify_zones() {
+    fabricid=$1
+    check=$2
+
+    for zone in ${zones}
+    do
+      echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
+      zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
+      if [ $? -ne 0 -a "${check}" = "exists" ]; then
+	  echo "ERROR: Expected to find zone ${zone} but did not."
+      elif [ $? -eq 0 -a "${check}" = "gone" ]; then
+	  echo "ERROR: Expected to not find zone ${zone} but it is there."
+      fi
+    done
+}
+
+
 dbupdate() {
     runcmd dbupdate.sh $*
 }
@@ -410,7 +452,8 @@ BOURNE_IP=${BOURNE_IP:-"localhost"}
 #
 NH=nh
 NH2=nh2
-FC_ZONE_A=fctz_a
+# By default, we'll use this network.  Some arrays may use another and redefine it in their setup
+FC_ZONE_A=FABRIC_losam082-fabric
 
 if [ "$BOURNE_IP" = "localhost" ]; then
     SHORTENED_HOST="ip-$ipaddr"
@@ -647,6 +690,7 @@ prerun_setup() {
     if [ "${SS}" = "vnx" ]
     then
 	array_ip=${VNXB_IP}
+	FC_ZONE_A=FABRIC_vplex154nbr2
     fi
 
     # All export operations orchestration go through the same entry-points
@@ -708,16 +752,16 @@ vnx_setup() {
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
+    FC_ZONE_A=FABRIC_vplex154nbr2
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-            
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
@@ -769,13 +813,12 @@ vmax2_setup() {
     setup_varray
 
     run storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${VMAX2_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-        
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
@@ -805,13 +848,12 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-        
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
@@ -1094,12 +1136,11 @@ xio_setup() {
     setup_varray
 
     run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-    run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
-
-    seed=`date "+%H%M%S%N"`
-    run storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
@@ -1158,7 +1199,11 @@ common_setup() {
 
 setup_varray() {
     run neighborhood create $NH
-    run transportzone create $FC_ZONE_A $NH --type FC
+    if [ "${SIM}" = "1" ]; then
+	run transportzone create $FC_ZONE_A $NH --type FC
+    else
+	run transportzone assign ${FC_ZONE_A} ${NH}
+    fi
 }
 
 setup() {
@@ -1208,6 +1253,10 @@ setup() {
             exit 1
         fi
         echo $result
+    fi
+
+    if [ "${SIM}" != "1" ]; then
+	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     fi
 
     ${SS}_setup
@@ -1278,7 +1327,7 @@ test_1() {
     echot "Test 1 DU Check Begins"
     expname=${EXPORT_GROUP_NAME}t1
 
-    # Turn on suspend of export after orchestration
+    # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
@@ -1307,7 +1356,7 @@ test_1() {
     
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # Turn on suspend of export after orchestration
+    # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command
@@ -1524,7 +1573,7 @@ test_4() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportDeleteOrchStep}
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
@@ -1604,7 +1653,7 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -1698,7 +1747,7 @@ test_6() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
@@ -2104,7 +2153,7 @@ test_11() {
 test_12() {
     echot "Test 12: Volume gets reclaimed outside of ViPR"
     expname=${EXPORT_GROUP_NAME}t12
-    volname="${HOST1}-dutest-oktodelete-t12"
+    volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
@@ -2632,7 +2681,7 @@ test_18() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -2714,7 +2763,7 @@ test_19() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
@@ -3080,6 +3129,151 @@ test_23() {
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
     runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
+}
+
+# Export Test 24
+#
+# Summary: Remove Volume: Tests a volume sneaking into a masking view outside of ViPR doesn't remove the zone.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. Customer add a volume to the export mask outside of ViPR
+# 3. Customer removes managed volume from the export group
+# 4. Verify the operation succeeds:  volume is removed
+# 5. Verify the zone is NOT removed from the switch
+# 6. Cleanup
+#
+test_24() {
+    echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
+    expname=${EXPORT_GROUP_NAME}t24
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Verify there are no zones on the switch
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Find the zones that were created
+    load_zones ${HOST1} 
+
+    # Verify the zone names, as we know them, are on the switch
+    verify_zones ${FC_ZONE_A:7} exists
+
+    # Create a new vplex volume that we can add to the mask
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    # Inventory-only delete the volume we created
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Add an unrelated initiator to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove the volume from the export group
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+
+    # Verify the volume is removed
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Verify the zone names, as we know them, are still on the switch
+    verify_zones ${FC_ZONE_A:7} exists
+
+    # Now remove the initiator from the export mask
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Make sure it deleted the volume
+    verify_export ${expname}1 ${HOST1} 2 0
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # The mask is out of our control at this point, delete mask
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 25
+#
+# Summary: Remove Initiator: Tests an initiator sneaking into a masking view outside of ViPR removes the proper zone.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. Customer adds an initiator to the export mask outside of ViPR
+# 3. Customer removes the managed host from the mask
+# 4. Verify the operation succeeds:  host is removed
+# 5. Verify the zones are removed from the switch 
+# 6. Cleanup
+#
+test_25() {
+    echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
+    expname=${EXPORT_GROUP_NAME}t25
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Verify there are no zones on the switch
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Find the zones that were created
+    load_zones ${HOST1} 
+
+    verify_zones ${FC_ZONE_A:7} exists
+
+    PWWN=`randwwn | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+   
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 3 1
+
+    # Run the export group command 
+    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST1}
+
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Remove initiator from the mask (done differently per array type)
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 0 1
+
+    # Verify the zones we know about are gone
+    verify_zones ${FC_ZONE_A:7} gone
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # The mask is out of our control at this point, delete mask
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
 }
 
 cleanup() {

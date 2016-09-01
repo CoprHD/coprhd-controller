@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -62,6 +63,9 @@ public class ExportDeleteCompleter extends ExportTaskCompleter {
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
+            if (exportGroup.checkInternalFlags(Flag.DELETION_IN_PROGRESS)) {
+                exportGroup.clearInternalFlags(Flag.DELETION_IN_PROGRESS);   
+            }
             dbClient.updateObject(exportGroup);
 
             if (operation.getStatus().equals(Operation.Status.ready.name())) {

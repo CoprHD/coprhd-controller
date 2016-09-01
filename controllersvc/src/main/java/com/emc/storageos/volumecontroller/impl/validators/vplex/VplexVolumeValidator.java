@@ -109,7 +109,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                             // We didn't find a device name for the storage volume. Error if not deleting.
                             getValidatorLogger().logDiff(volumeId, "Vplex device-name",
                                     system.getSerialNumber() + "-" + storageVolume.getNativeId(),
-                                    "<not-found>");
+                                    ValidatorLogger.NO_MATCHING_ENTRY);
                             return;
                         }
                     }
@@ -148,7 +148,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 // and we are not deleting, it is still an error.
                 // If we are deleting we won't error if it's just not there.
                 getValidatorLogger().logDiff(volumeId, "virtual-volume", virtualVolume.getDeviceLabel(),
-                        "no corresponding virtual volume information");
+                        ValidatorLogger.NO_MATCHING_ENTRY);
             }
             log.info("Vplex Validation complete (no vvinfo found); " + volumeId);
             return;
@@ -175,7 +175,8 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
             }
         }
 
-        if (checkList.contains(ValCk.VPLEX)) {
+        if (checkList.contains(ValCk.VPLEX)
+                && !virtualVolume.isIngestedVolumeWithoutBackend(getDbClient())) {
             try {
                 String drillDownInfo = client.getDrillDownInfoForDevice(vvinfo.getSupportingDevice());
                 VPlexDrillDownParser parser = new VPlexDrillDownParser(drillDownInfo);
@@ -196,7 +197,8 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                     validateStorageVolumes(virtualVolume, volumeId, root.getArg1(), false, root.getArg2(), hasMirror);
                 }
             } catch (Exception ex) {
-                getValidatorLogger().logDiff(volumeId, "exception trying to validate storage volumes", virtualVolume.getDeviceLabel(), "");
+                getValidatorLogger().logDiff(volumeId, "exception trying to validate storage volumes", virtualVolume.getDeviceLabel(),
+                        "N/A");
             }
 
         }
@@ -285,7 +287,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
         }
 
         if (!wwnToStorageVolumeInfos.isEmpty()) {
-            getValidatorLogger().logDiff(volumeId, "Extra storage volumes found", "<not present>",
+            getValidatorLogger().logDiff(volumeId, "Extra storage volumes found", ValidatorLogger.NO_MATCHING_ENTRY,
                     wwnToStorageVolumeInfos.keySet().toString());
             failed = true;
         }

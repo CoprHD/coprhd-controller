@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCZoneReference;
@@ -51,6 +52,7 @@ import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -632,7 +634,7 @@ public class ExportUtils {
                 if (exportMask != null && !exportMask.getInactive()
                         && exportMask.hasVolume(bo.getId())
                         && (exportMask.getInitiators() != null
-                                || exportMask.getExistingInitiators() != null)) {
+                        || exportMask.getExistingInitiators() != null)) {
                     List<ExportGroup> maskGroups = new ArrayList<ExportGroup>();
                     exportMasks.put(exportMask, maskGroups);
                     for (ExportGroup group : exportGroups) {                      
@@ -668,7 +670,7 @@ public class ExportUtils {
             if (exportMask != null &&
                     !exportMask.getInactive() &&
                     (exportMask.hasInitiator(initiator.getId().toString()) ||
-                            (exportMask.hasExistingInitiator(initiator)))
+                    (exportMask.hasExistingInitiator(initiator)))
                     &&
                     exportMask.getVolumes() != null) {
                 List<ExportGroup> maskGroups = new ArrayList<ExportGroup>();
@@ -773,8 +775,54 @@ public class ExportUtils {
             return project != null &&
                     (permissionsHelper.userHasGivenRole(user,
                             project.getTenantOrg().getURI(), Role.TENANT_ADMIN) ||
-                            permissionsHelper.userHasGivenACL(user, project.getId(), ACL.ANY));
+                    permissionsHelper.userHasGivenACL(user, project.getId(), ACL.ANY));
         }
     }
 
+    /**
+     * Validates the given consistency group to ensure there are no RecoverPoint snapshots that have been
+     * exported. If any RecoverPoint snapshots associated with the consistency group have been exported,
+     * an exception will be thrown.
+     *
+     * @param dbClient the database client
+     * @param consistencyGroupUri the consistency group URI
+     */
+    public static void validateConsistencyGroupBookmarksExported(DbClient dbClient, URI consistencyGroupUri) {
+        if (consistencyGroupUri == null) {
+            // If the consistency group URI is null we cannot proceed with this validation so fail.
+            throw APIException.badRequests.invalidConsistencyGroup();
+        }
+
+        _log.info(String.format("Performing validation to ensure no RP bookmarks have been exported for consistency group %s.",
+                consistencyGroupUri));
+
+        URIQueryResultList snapshotUris = new URIQueryResultList();
+        ContainmentConstraint constraint = ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup(consistencyGroupUri);
+        dbClient.queryByConstraint(constraint, snapshotUris);
+
+        List<BlockSnapshot> blockSnapshots = dbClient.queryObject(BlockSnapshot.class, snapshotUris);
+
+        for (BlockSnapshot snapshot : blockSnapshots) {
+            if (TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+                _log.info(String.format("Examining RP bookmark %s to see if it has been exported.", snapshot.getId()));
+                // We have found an RP bookmark. Now lets see if that bookmark has been exported. Using the same
+                // call that BlockSnapshotService uses to get snapshot exports.
+                ContainmentConstraint exportGroupConstraint = ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(snapshot
+                        .getId());
+
+                URIQueryResultList exportGroupIdsForSnapshot = new URIQueryResultList();
+                dbClient.queryByConstraint(exportGroupConstraint, exportGroupIdsForSnapshot);
+
+                Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
+
+                if (exportGroupIdsForSnapshotIter != null && exportGroupIdsForSnapshotIter.hasNext()) {
+                    // The consistency group has a bookmark that is already exported so fail the operation.
+                    throw APIException.badRequests.cannotPerformOperationWithExportedBookmarks(snapshot.getId(), consistencyGroupUri);
+                }
+            }
+        }
+
+        _log.info(String.format("No RP bookmarks have been exported for consistency group %s.",
+                consistencyGroupUri));
+    }
 }

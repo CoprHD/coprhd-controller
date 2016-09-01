@@ -2235,7 +2235,7 @@ test_13() {
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
-    expname=${EXPORT_GROUP_NAME}t14
+    expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -2253,7 +2253,7 @@ test_14() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Create another volume that we will inventory-only delete
-    volname="${HOST1}-dutest-oktodelete-t14"
+    volname="${HOST1}-dutest-oktodelete-t14-${RANDOM}"
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created

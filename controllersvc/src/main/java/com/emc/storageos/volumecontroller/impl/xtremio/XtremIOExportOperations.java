@@ -670,14 +670,15 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
                 _log.info("Block Obj {} , wwn {}", blockObj.getId(), blockObj.getWWN());
                 XtremIOVolume xtremIOVolume = null;
-                // If the BlockObject is a BlockSnapshot of type RP (bookmark), there will be no exported
-                // snapshot. In this case, a target volume will have been exported and the deviceLable of
-                // the BlockSnapshot reflects the name of that target.
+
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
                             blockObj.getLabel(), xioClusterName);
                 } else {
                     if (URIUtil.isType(volumeUri, BlockSnapshot.class) && BlockObject.checkForRP(dbClient, volumeUri)) {
+                        // If the BlockObject is a BlockSnapshot of type RP (bookmark), there will be no exported
+                        // snapshot. In this case, a target volume will have been exported and the deviceLabel of
+                        // the BlockSnapshot reflects the name of that target.
                         _log.info(String.format(
                                 "Dealing with a RecoverPoint bookmark lun mapping.  Checking to see if volume %s is available on array.",
                                 blockObj.getDeviceLabel()));

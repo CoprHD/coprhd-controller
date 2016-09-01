@@ -279,6 +279,9 @@ setup() {
 
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
+	
+    #Disable validation check
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
 
     SMISPASS=0
     # do this only once
@@ -1591,8 +1594,8 @@ aliastest() {
     runcmd hosts create ${HOSTALIAS} $TENANT Other ${HOSTALIAS} --port 8111
     runcmd initiator create ${HOSTALIAS} FC $INITALIAS --node $INITALIAS
     
-    runcmd initiator aliasget $HOSTALIAS/$INITALIAS $VMAX_NATIVEGUID
-    runcmd initiator aliasset $HOSTALIAS/$INITALIAS $VMAX_NATIVEGUID $HOSTALIAS
+    runcmd initiator aliasget $HOSTALIAS/$INITALIAS $NATIVEGUID
+    runcmd initiator aliasset $HOSTALIAS/$INITALIAS $NATIVEGUID $HOSTALIAS
 
     runcmd initiator delete $HOSTALIAS/$INITALIAS
     runcmd hosts delete $HOSTALIAS

@@ -1139,7 +1139,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 if (exportGroup.getVolumes().isEmpty()) {
                                     _dbClient.removeObject(exportGroup);
                                 } else {
-                                    _dbClient.updateAndReindexObject(exportGroup);
+                                    _dbClient.updateObject(exportGroup);
                                 }
                             }
                         }

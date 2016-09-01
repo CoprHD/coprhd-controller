@@ -1593,8 +1593,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
             for (ExportMask exportMask : exportMasks) {              
                 if (exportMask.hasVolume(boURI)) {
-                    s_logger.info(String.format("Cleaning block object from export mask %s [%s]", exportMask.getLabel(), 
-                    		exportMask.getId().toString()));
+                    s_logger.info(String.format("Cleaning block object from export mask [%s]", exportMask.forDisplay()));
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
                     String hluStr = exportMaskVolumeMap.get(boURI.toString());
                     exportMask.removeVolume(boURI);

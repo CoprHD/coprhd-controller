@@ -138,9 +138,9 @@ public class InitiatorHostMigration extends BaseCustomMigrationCallback {
         eg.addInitiator(newInitiator);
     }
 
-    private void updateExportMask(ExportGroup eg, Initiator oldInitiator, Initiator newInitiator) {
-    	StringSet exportMasks = eg.getExportMasks();
-    	if (exportMasks != null) {
+    private void updateExportMask(ExportGroup eg, Initiator oldInitiator, Initiator newInitiator) {    	
+    	if (eg != null && eg.getExportMasks() != null) {
+    		StringSet exportMasks = eg.getExportMasks();
 	        for (URI maskUri : StringSetUtil.stringSetToUriList(exportMasks)) {
 	            ExportMask mask = dbClient.queryObject(ExportMask.class, maskUri);
 	            if (mask != null) {

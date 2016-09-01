@@ -471,7 +471,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
             // If there are no masks associated with this export group, and it's an internal (VPLEX/RP)
             // export group, delete the export group automatically.
             if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
-                    (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty())) {
+                    (exportGroup == null || exportGroup.getExportMasks() == null || 
+                     exportGroup.getExportMasks().isEmpty())) {
                 _dbClient.markForDeletion(exportGroup);
             } else {
                 _dbClient.updateObject(exportGroup);

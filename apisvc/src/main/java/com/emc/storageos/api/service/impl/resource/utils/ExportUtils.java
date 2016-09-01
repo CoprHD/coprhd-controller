@@ -637,11 +637,9 @@ public class ExportUtils {
                         || exportMask.getExistingInitiators() != null)) {
                     List<ExportGroup> maskGroups = new ArrayList<ExportGroup>();
                     exportMasks.put(exportMask, maskGroups);
-                    for (ExportGroup group : exportGroups) {                      
-                        for (ExportMask em : ExportMaskUtils.getExportMasks(dbClient, group)) {
-                        	if (em.getId().toString().equals(exportMask.getId().toString())) {
-                        		maskGroups.add(group);
-                        	}
+                    for (ExportGroup group : exportGroups) {  
+                    	if (group.getExportMasks() != null && group.getExportMasks().contains(exportMask.getId().toString())) {
+                    		maskGroups.add(group);                        	
                         }
                     }
                 }

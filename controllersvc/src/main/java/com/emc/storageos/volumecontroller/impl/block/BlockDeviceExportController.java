@@ -147,7 +147,7 @@ public class BlockDeviceExportController implements BlockExportController {
         Workflow workflow = null;
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
-            if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+            if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 workflow = _wfUtils.newWorkflow("exportGroupDelete", false, opId);
 
                 Set<URI> storageSystemURIs = new HashSet<URI>();

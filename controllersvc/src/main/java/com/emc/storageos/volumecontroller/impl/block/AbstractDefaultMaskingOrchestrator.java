@@ -1583,7 +1583,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Collection<Set<URI>> maskURIs) {
         Set<String> set = new HashSet<String>();
         if (exportGroup != null && maskURIs != null &&
-                !ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+                exportGroup.getExportMasks() != null) {
             Set<String> exportGroupMaskNames = new HashSet<String>();
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
             for (ExportMask exportMask : exportMasks) {              

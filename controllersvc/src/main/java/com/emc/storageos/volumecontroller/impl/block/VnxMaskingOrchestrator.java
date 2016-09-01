@@ -246,7 +246,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             logExportGroup(exportGroup, storageURI);
             boolean anyVolumesAdded = false;
             boolean createdNewMask = false;
-            if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+            if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,

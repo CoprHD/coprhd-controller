@@ -392,7 +392,7 @@ public class ExportUtils {
         ExportGroup exportGroup = null;
         for (URI egUri : egUris) {
             exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
-            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
+            if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
                 continue;
             }
             List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
@@ -427,7 +427,7 @@ public class ExportUtils {
         ExportGroup exportGroup = null;
         for (URI egUri : egUris) {
             exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
-            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
+            if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
                 continue;
             }
             exportGroups.add(exportGroup);
@@ -452,7 +452,7 @@ public class ExportUtils {
                 , egUris);
         for (URI egUri : egUris) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
-            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
+            if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
                 continue;
             }
             if (exportGroup.hasBlockObject(blockObjectId)) {
@@ -1184,7 +1184,7 @@ public class ExportUtils {
         Set<ExportMask> mirrorExportMasks = new HashSet<ExportMask>();
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
         for (ExportGroup exportGroup : exportGroups) {
-            if (!exportGroup.getInactive() && !ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
+            if (exportGroup != null && !exportGroup.getInactive() && exportGroup.getExportMasks() != null) {
                 List<URI> exportMasks = new ArrayList<URI>(Collections2.transform(
                         exportGroup.getExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 mirrorExportMasks.addAll(dbClient.queryObject(ExportMask.class, exportMasks));

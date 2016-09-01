@@ -788,9 +788,10 @@ public class VPlexUtil {
         // Map of Storage view name to list of ExportMasks that represent same storage view on VPLEX.
         Map<String, Set<ExportMask>> exportGroupExportMasks = new HashMap<>();
         Map<String, Set<ExportMask>> sharedExportMasks = new HashMap<>();
-        if (ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
+        if (exportGroup.getExportMasks() == null) {
             return null;
         }
+        
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
         for (ExportMask exportMask : exportMasks) {
             if (!exportMask.getInactive()) {
@@ -904,7 +905,7 @@ public class VPlexUtil {
     public static ExportMask getSharedExportMaskInDb(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
             URI varrayUri, String vplexCluster, Map<URI, List<Initiator>> hostInitiatorMap) throws Exception {
         ExportMask sharedExportMask = null;
-        if (ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
+        if (exportGroup.getExportMasks() == null) {
             return null;
         }
         StringSet exportGrouphosts = exportGroup.getHosts();

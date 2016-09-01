@@ -443,6 +443,7 @@ public class ExportGroupService extends TaskResourceService {
                             okToRemove = false;
                         }
                     }
+                    
                     if (!okToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
                         throw APIException.badRequests.invalidParameterRemovePreexistingInitiator(mask.getMaskName(),

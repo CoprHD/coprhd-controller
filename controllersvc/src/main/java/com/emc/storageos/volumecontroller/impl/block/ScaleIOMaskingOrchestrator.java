@@ -207,7 +207,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
-            if (initiatorURIs != null && !initiatorURIs.isEmpty() && !ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token);

@@ -496,6 +496,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 int alreadyAssigned = 0;
                 List<StoragePort> assignedPorts = assignments.get(initiator);
                 if (assignedPorts != null) {
+                    assignPortsToAssociatedInitiator(initiator, assignedPorts, assignments, entry.getValue());
                     alreadyAssigned = assignedPorts.size();
                     if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
                         _log.info(String.format("Assignments sufficient for initiator %s (%s)",
@@ -512,12 +513,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator() - alreadyAssigned, 0);
 
                     if (availPorts != null) {
+
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
                         // Remove this initiator from further provisioning consideration
-                        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
-                        if (associatedInitiator != null) {
-                            entry.getValue().remove(associatedInitiator);
-                        }
+                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
                         entry.getValue().remove(0);
                         addedThisPass = true;
                     } else {
@@ -541,6 +540,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             pathParams.getMaxInitiatorsPerPort() - 1);
                     if (availPorts != null) {
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
+                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
                     } else {
                         _log.info(String.format("No available ports for initiator %s",
                                 initiator.getInitiatorPort()));
@@ -640,19 +640,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             _log.info(String.format("Port %s (%s) network %s assigned to initiator %s (%s)\n",
                     port.getPortName(), port.getPortNetworkId(), netURI,
                     initiator.getInitiatorPort(), initiator.getHostName()));
-
             addPortUse(portUseCounts, port);
-        }
-
-        Initiator associatedInitiatorInAssignments = getAssociatedInitiator(initiator, assignments);
-
-        if (associatedInitiatorInAssignments != null) {
-
-            if (assignments.get(associatedInitiatorInAssignments) != null) {
-                assignments.get(associatedInitiatorInAssignments).addAll(assignedPorts);
-            } else {
-                assignments.put(associatedInitiatorInAssignments, assignedPorts);
-            }
         }
 
         if (assignments.get(initiator) != null) {
@@ -709,5 +697,20 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             return assignmentMap;
         }
         return new HashMap<Initiator, List<StoragePort>>();
+    }
+
+    private void assignPortsToAssociatedInitiator(Initiator initiator, List<StoragePort> assignedPorts,
+            Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
+        if (associatedInitiator != null) {
+            if (assignments.get(associatedInitiator) != null) {
+                assignments.get(associatedInitiator).addAll(assignedPorts);
+            } else {
+                assignments.put(associatedInitiator, assignedPorts);
+            }
+            if (initiatorList != null) {
+                initiatorList.remove(associatedInitiator);
+            }
+        }
     }
 }

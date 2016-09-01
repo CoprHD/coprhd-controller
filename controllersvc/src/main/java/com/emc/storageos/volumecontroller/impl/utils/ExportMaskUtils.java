@@ -110,7 +110,7 @@ public class ExportMaskUtils {
      */
     public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup, URI ssysURI) {
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
-        if (exportGroup.getExportMasks() == null) {
+        if (exportGroup == null || exportGroup.getExportMasks() == null) {
             return returnMasks;
         }
                

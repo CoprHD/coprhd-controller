@@ -161,7 +161,13 @@ public class VPlexApiExportManager {
                     VPlexApiConstants.URI_DESTROY_STORAGE_VIEW);
             s_logger.info("Delete storage view URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
-            argsMap.put(VPlexApiConstants.ARG_DASH_V, viewName);
+            // assemble the full path to the storage view
+            StringBuilder viewPath = new StringBuilder(); 
+            viewPath.append(VPlexApiConstants.URI_CLUSTERS_RELATIVE.toString());
+            viewPath.append(clusterName);
+            viewPath.append(VPlexApiConstants.URI_STORAGE_VIEWS.toString());
+            viewPath.append(viewName);
+            argsMap.put(VPlexApiConstants.ARG_DASH_V, viewPath.toString());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Delete storage view POST data is {}",
                     postDataObject.toString());

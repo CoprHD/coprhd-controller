@@ -3827,9 +3827,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             blockObjectNames.add(blockObject.getDeviceLabel());
             blockObjectCache.put(blockObject.getId(), blockObject);
         }
-        _log.info("about to remove " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
         // Remove volumes from the storage view.
         String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex.getId(), client, _dbClient);
+        _log.info("about to remove {} from StorageView {} on cluster {}", blockObjectNames, exportMask.getMaskName(), vplexClusterName);
         client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(), vplexClusterName,
                 blockObjectNames);
 

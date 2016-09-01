@@ -131,7 +131,7 @@ public class ExternalDeviceCommunicationInterface extends
     private void init(AbstractStorageDriver driver) {
         Registry driverRegistry = RegistryImpl.getInstance(_dbClient);
         driver.setDriverRegistry(driverRegistry);
-        LockManager lockManager = LockManagerImpl.getInstance(_locker);
+        LockManager lockManager = LockManagerImpl.getInstance(_coordinator);
         driver.setLockManager(lockManager);
         driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }

@@ -437,7 +437,7 @@
 
     <bean id="externalBlockStorageDevice" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice">
         <property name="dbClient" ref="dbclient"/>
-        <property name="locker" ref="locker"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="exportMaskOperationsHelper" ref="externalDeviceExportMaskOperationsHelper"/>
         <!-- Block storage drivers -->
         <property name="drivers">

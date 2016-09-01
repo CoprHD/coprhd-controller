@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -58,9 +58,9 @@ import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapa
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -92,7 +92,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     // Storage drivers for block  devices
     private Map<String, AbstractStorageDriver> drivers;
     private DbClient dbClient;
-    private ControllerLockingService locker;
+    private CoordinatorClient coordinator;
     private ExportMaskOperations exportMaskOperationsHelper;
 
     // Initialized drivers map
@@ -102,10 +102,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
-
-    public void setLocker(ControllerLockingService locker) {
-        this.locker = locker;
-    }
+    
+    public void setDbClient(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }    
 
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
         this.drivers = drivers;
@@ -136,7 +136,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     private void init(AbstractStorageDriver driver) {
         Registry driverRegistry = RegistryImpl.getInstance(dbClient);
         driver.setDriverRegistry(driverRegistry);
-        LockManager lockManager = LockManagerImpl.getInstance(locker);
+        LockManager lockManager = LockManagerImpl.getInstance(coordinator);
         driver.setLockManager(lockManager);
         driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }

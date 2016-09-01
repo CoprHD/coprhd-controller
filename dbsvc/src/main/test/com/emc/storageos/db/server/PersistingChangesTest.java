@@ -952,10 +952,14 @@ public class PersistingChangesTest extends DbsvcTestBase {
         Assert.assertTrue(unManagedVolume.getVolumeInformation().containsKey(key2));
 
         unManagedVolume.getVolumeInformation().remove(key1);
+        unManagedVolume.getVolumeInformation().get(key2).remove("test6");
 
         dbClient.updateObject(unManagedVolume);
 
         unManagedVolume = dbClient.queryObject(UnManagedVolume.class, id);
         Assert.assertFalse(unManagedVolume.getVolumeInformation().containsKey(key1));
+
+        Assert.assertTrue(unManagedVolume.getVolumeInformation().get(key2).contains("test7"));
+        Assert.assertFalse(unManagedVolume.getVolumeInformation().get(key2).contains("test6"));
     }
 }

@@ -97,6 +97,7 @@ import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
+import com.emc.sa.service.vipr.tasks.GetActionableEvents;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -166,6 +167,10 @@ public class BlockStorageUtils {
             return null;
         }
         return execute(new GetHost(hostId));
+    }
+
+    public static void checkEvents(URI resourceId) {
+        execute(new GetActionableEvents(resourceId));
     }
 
     public static Cluster getCluster(URI clusterId) {
@@ -1361,6 +1366,21 @@ public class BlockStorageUtils {
     }
     
     /**
+     * returns true if the passed in volume is a RP target volume
+     * 
+     * @param vol
+     * @return
+     */
+    public static boolean isRPTargetVolume(VolumeRestRep volume) {
+        if (isRPVolume(volume)
+                && volume.getProtection().getRpRep().getPersonality() != null
+                && volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("TARGET")) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
      * gets the vplex primary/source backing volume for a vplex virtual volume
      * 
      * @param client
@@ -1399,7 +1419,7 @@ public class BlockStorageUtils {
                 volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
             }
             if (isTarget) {
-                if (volume.getVirtualArray().getId().equals(virtualArray)) {
+                if (isRPTargetVolume(volume) && volume.getVirtualArray().getId().equals(virtualArray)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {

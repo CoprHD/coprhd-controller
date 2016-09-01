@@ -66,6 +66,7 @@ public class HP3PARApi {
     private static final String URI_CPG_DETAILS = "/api/v1/cpgs/{0}";
     private static final String URI_PORTS = "/api/v1/ports";
     private static final String URI_PORT_STATISTICS = "/api/v1/systemreporter/attime/portstatistics/daily";
+    private static final String URI_PORT_STATISTICS_SPECIFIC = "/api/v1/systemreporter/attime/portstatistics/daily?query=%22portPos%20EQ%20{0}%22";
 
     // Base volume , snap and clone volume related
     private static final String URI_CREATE_VOLUME = "/api/v1/volumes";
@@ -238,7 +239,7 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:verifyUserRole enter");
+            _log.info("3PARDriver:verifyUserRole leave");
         } //end try/catch/finally
     }
     
@@ -406,6 +407,42 @@ public class HP3PARApi {
             }
             _log.info("3PARDriver:getPortStatisticsDetail leave");
         } //end try/catch/finally
+    }
+    
+    public PortStatisticsCommandResult getPortStatistics(String portId) throws Exception {
+
+    	_log.info("3PARDriver: getPortStatistics enter");
+    	ClientResponse clientResp = null;
+    	final String path = MessageFormat.format(URI_PORT_STATISTICS_SPECIFIC, portId);
+    	PortStatisticsCommandResult portStatResult = null;
+    	_log.info("3PARDriver: getPortStatistics path is {}", path);
+
+    	try {
+    		clientResp = get(path);
+    		if (clientResp == null) {
+    			_log.error("3PARDriver: getPortStatistics There is no response from 3PAR");
+    			throw new HP3PARException("There is no response from 3PAR");
+    		} else if (clientResp.getStatus() != 200) {
+    			String errResp = getResponseDetails(clientResp);
+    			_log.error("3PARDriver: getPortStatistics There is error response from 3PAR = {}" , errResp);
+    			throw new HP3PARException(errResp);
+    		} else {
+    			String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriveri:getPortStatistics 3PAR response is {}", responseString);
+                portStatResult = new Gson().fromJson(sanitize(responseString),
+                        PortStatisticsCommandResult.class);
+                
+    		}
+    	} catch (Exception e) {
+    		throw e;
+    	} finally {
+    		if (clientResp != null) {
+    			clientResp.close();
+    		}
+    		_log.info("3PARDriver: getPortStatistics leave");
+    	} //end try/catch/finally
+    	
+    	return portStatResult;
     }
 
     public HostCommandResult getAllHostDetails() throws Exception {
@@ -1163,8 +1200,8 @@ public class HP3PARApi {
 
                 // remove existing wwn/iqns in the list to be added
                 for (String portId:portIdsNew) {
-                    if (existingFc.contains(portId) == false) {
-                        portIdsNewFiltered.add(portId);
+                    if (existingFc.contains(SanUtils.cleanWWN(portId)) == false) {
+                        portIdsNewFiltered.add(SanUtils.cleanWWN(portId));
                     }
                 }
             } else {
@@ -1203,7 +1240,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+                _log.info("3PARDriver:updateHost 3PAR response is Location: {}", responseString);
             }
 
         } catch (Exception e) {

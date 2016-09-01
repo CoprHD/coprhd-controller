@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +83,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     @Override
     public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
             Collection<URI> volumeURIList, Collection<Initiator> initiatorList) {
-        logger = new ValidatorLogger(log);
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
         configureValidators(logger, validator);
         return validator;
@@ -90,11 +91,17 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     @Override
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        logger = new ValidatorLogger(log);
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiators);
         configureValidators(logger, validator);
         return validator;
+    }
+
+    @Override
+    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
+                                   Collection<? extends BlockObject> volumes) {
+        return null;
     }
 
     @Override
@@ -115,16 +122,21 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     @Override
     public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
-        logger = new ValidatorLogger(log);
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         XtremIOExportMaskVolumesValidator validator = new XtremIOExportMaskVolumesValidator(storage, exportMask, volumeURIList);
         configureValidators(logger, validator);
         return validator;
     }
 
     @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiators) {
+        return null;
+    }
+
+    @Override
     public Validator addVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        logger = new ValidatorLogger(log);
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiators);
         configureValidators(logger, validator);
         validator.setErrorOnMismatch(false);
@@ -133,7 +145,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     @Override
     public Validator addInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
-        logger = new ValidatorLogger(log);
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         XtremIOExportMaskVolumesValidator validator = new XtremIOExportMaskVolumesValidator(storage, exportMask, volumeURIList);
         configureValidators(logger, validator);
         validator.setErrorOnMismatch(false);

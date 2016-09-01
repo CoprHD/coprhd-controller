@@ -158,12 +158,16 @@ public class BlockVirtualPools extends ViprResourceController {
         for (String id:ids) {
             StorageSystemRestRep storageSystem =StorageSystemUtils.getStorageSystem(id);
             if (storageSystem != null && !storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
+                boolean found = false;
                 List<StoragePoolRestRep> storagepools = StoragePoolUtils.getStoragePools(id);
                 for (StoragePoolRestRep storagepool : storagepools) {
-                    if (!connectedstoragepools.contains(storagepool.getId().toString())) {
-                        failedArrays.add(storageSystem.getName());
+                    if (connectedstoragepools.contains(storagepool.getId().toString())) {
+                        found = true;
                         break;
                     }
+                }
+                if (!found) {
+                    failedArrays.add(storageSystem.getName());
                 }
             }
         }
@@ -240,6 +244,7 @@ public class BlockVirtualPools extends ViprResourceController {
 		List<String> vaIds4vmax = new ArrayList<String>();
 		List<String> vaIds4xio = new ArrayList<String>();
 		List<String> vaIds4unity = new ArrayList<String>();
+        JsonArray vpools = new JsonArray();
 
 		for(Object varray: varrays) {
 			JsonObject jsonvarray = (JsonObject) varray;
@@ -287,10 +292,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				updateAutoVirtualPool(vpid, blockvpool);
+				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, ALL_FLASH_DESC);
+				createBaseVPool(VP_ALL_FLASH, StorageSystemTypes.NONE, vaIds4allflash, ALL_FLASH_DESC, vpools);
 			}
 		}
 
@@ -305,10 +310,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				updateAutoVirtualPool(vpid, blockvpool);
+				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, VMAX_DIAMOND_DESC);
+				createBaseVPool(VP_VMAX_DIAMOND, StorageSystemTypes.VMAX, vaIds4vmax, VMAX_DIAMOND_DESC, vpools);
 			}
 		}
 
@@ -323,10 +328,10 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				updateAutoVirtualPool(vpid, blockvpool);
+				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, XIO_DIAMOND_DESC);
+				createBaseVPool(VP_XIO_DIAMOND, StorageSystemTypes.XTREMIO, vaIds4xio, XIO_DIAMOND_DESC, vpools);
 			}
 		}
 
@@ -341,12 +346,14 @@ public class BlockVirtualPools extends ViprResourceController {
 					virtualarrays.add(newVaId);
 				}
 				blockvpool.setVirtualArrays(virtualarrays);
-				updateAutoVirtualPool(vpid, blockvpool);
+				updateAutoVirtualPool(vpid, blockvpool,vpools);
 			}
 			else {
-				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, UNITY_DIAMOND_DESC);
+				createBaseVPool(VP_UNITY_DIAMOND, StorageSystemTypes.UNITY, vaIds4unity, UNITY_DIAMOND_DESC, vpools);
 			}
 		}
+        dataObject.add(VPOOL_COOKIES, vpools);
+        saveJsonAsCookie(GUIDE_DATA, dataObject);
         list();
     }
 
@@ -803,22 +810,15 @@ public class BlockVirtualPools extends ViprResourceController {
     	return virtualpoolAllFlashMap;
     }
 
-    private static void updateVirtualPoolCookie(String vpid, String vpname){
-        JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
-        JsonArray vpcookies = dataObject.getAsJsonArray(VPOOL_COOKIES);
-        if (vpcookies == null) {
-        	vpcookies = new JsonArray();
-        }
+    private static void buildVpoolCookies( String vpoolid, String vpoolname, JsonArray vpools) {
         JsonObject jsonvarray = new JsonObject();
-        jsonvarray.addProperty("id", vpid);
-        jsonvarray.addProperty("name", vpname);
-        
-        vpcookies.add(jsonvarray);
-        dataObject.add(VPOOL_COOKIES, vpcookies);
-        saveJsonAsCookie(GUIDE_DATA, dataObject);
+        jsonvarray.addProperty("id", vpoolid);
+        jsonvarray.addProperty("name", vpoolname);
+
+        vpools.add(jsonvarray);
     }
 
-    private static void createBaseVPool(String vpoolName, String storageType, List<String> virtualarrayIds, String vpdesc) {
+    private static void createBaseVPool(String vpoolName, String storageType, List<String> virtualarrayIds, String vpdesc,JsonArray vpools) {
 		BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
 		// defaults
 		vpool.provisioningType = ProvisioningTypes.THIN;
@@ -854,10 +854,21 @@ public class BlockVirtualPools extends ViprResourceController {
 					break;
 				}
 			}
-
 			if(!isAutoTier) { //This means we did not find the pattern, set random
 				for(String policy: autoPolicyList) {
 					vpool.autoTierPolicy = policy;
+					break;
+				}
+			}
+			for(String virtualArrayId: virtualarrayIds) {
+				List<StoragePoolRestRep> spList = StoragePoolUtils.getStoragePoolsAssignedToVirtualArray(virtualArrayId);
+				for(StoragePoolRestRep sp: spList) {
+					if(sp.getCompressionEnabled() != null && sp.getCompressionEnabled()) {
+						vpool.enableCompression = true;
+						break;
+					}
+				}
+				if(vpool.enableCompression) {
 					break;
 				}
 			}
@@ -865,16 +876,16 @@ public class BlockVirtualPools extends ViprResourceController {
 
 		BlockVirtualPoolRestRep vpoolTask = vpool.save();
 		if (vpoolTask != null) {
-			updateVirtualPoolCookie(vpoolTask.getId().toString(), vpool.name);
+            buildVpoolCookies(vpoolTask.getId().toString(), vpool.name,vpools);
 		}
     }
 
-    private static void updateAutoVirtualPool(String vpid, BlockVirtualPoolRestRep blockvpool) { 
+    private static void updateAutoVirtualPool(String vpid, BlockVirtualPoolRestRep blockvpool,JsonArray vpools) {
 		BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
 		vpool.load(blockvpool);
 		blockvpool = vpool.save();
 		if (blockvpool != null) {
-			updateVirtualPoolCookie(vpid, vpool.name);
+            buildVpoolCookies(vpid, vpool.name,vpools);
 		}
     }
 

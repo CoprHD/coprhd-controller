@@ -205,15 +205,6 @@ public class Hosts extends ViprResourceController {
         list();
     }
 
-    @FlashException("list")
-    public static void detachStorage(@As(",") String[] ids) {
-        for (URI id : ResourceUtils.uris(ids)) {
-            HostUtils.detachStorage(id);
-        }
-        flash.success(MessagesUtils.get(DETACH_STORAGE));
-        list();
-    }
-
     protected static class DiscoveryOperation implements ResourceIdOperation<Task<HostRestRep>> {
         @Override
         public Task<HostRestRep> performOperation(URI id) throws Exception {

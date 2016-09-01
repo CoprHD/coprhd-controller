@@ -217,7 +217,7 @@ public abstract class DataObject implements Serializable {
     }
 
     /**
-     * Tag settter
+     * Tag setter
      *
      * @param tags
      */

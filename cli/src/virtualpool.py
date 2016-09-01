@@ -541,7 +541,7 @@ class VirtualPool(object):
                      varrays, provisiontype, rp, rp_policy,
                      systemtype, raidlevel, fastpolicy, drivetype, expandable,
                      usematchedpools, max_snapshots ,maxretention, longtermretention, max_mirrors, vpoolmirror,
-                     multivolconsistency, autotierpolicynames,
+                     multivolconsistency, autotierpolicynames, enablecompression,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
@@ -697,6 +697,9 @@ class VirtualPool(object):
                 parms['unique_auto_tier_policy_names'] = \
                     autotierpolicynames
 
+            if(enablecompression):
+                parms['compression_enabled'] = enablecompression
+
             if (multivolconsistency is not None):
                 if(multivolconsistency.upper() == 'TRUE'):
                     parms['multi_volume_consistency'] = True
@@ -788,7 +791,7 @@ class VirtualPool(object):
             self, name, label, description, vpooltype, systemtype, drivetype,
             protocol_add, protocol_remove, varray_add, varray_remove,
             use_matched_pools, max_snapshots, max_mirrors, longtermretention, multivolconsistency,
-            expandable, autotierpolicynames, ha, fastpolicy, minpaths,
+            expandable, autotierpolicynames, enablecompression, ha, fastpolicy, minpaths,
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
@@ -998,6 +1001,9 @@ class VirtualPool(object):
                 parms['auto_tiering_policy_name'] = ""
             else:
                 parms['auto_tiering_policy_name'] = fastpolicy
+        
+        if(enablecompression): 
+            parms['compression_enabled'] = enablecompression
 
         if(autotierpolicynames):
             parms['unique_auto_tier_policy_names'] = autotierpolicynames
@@ -1233,6 +1239,12 @@ def create_parser(subcommand_parsers, common_parser):
         metavar='<unique_auto_tier_policy_names>',
         choices=VirtualPool.BOOL_TYPE_LIST)
     create_parser.add_argument(
+        '-enablecompression', '-ec',
+        help='enable compression on VMAX3 all flash arrays',
+        dest='enablecompression',
+        metavar='<enable_compression>',
+        choices=VirtualPool.BOOL_TYPE_LIST)
+    create_parser.add_argument(
         '-maxpaths', '-mxp',
         help='The maximum number of paths that can be ' +
         'used between a host and a storage volume',
@@ -1323,6 +1335,7 @@ def vpool_create(args):
                                args.continuouscopiesvpool,
                                args.multivolconsistency,
                                args.autotierpolicynames,
+                               args.enablecompression,
                                args.ha,
                                args.minpaths,
                                args.maxpaths,
@@ -1482,6 +1495,11 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='autotierpolicynames',
                                metavar='<unique_auto_tier_policy_names>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-enablecompression', '-ec',
+                               help='enable compression on VMAX3 all flash arrays',
+                               dest='enablecompression',
+                               metavar='<enable_compression>',
+                               choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-maxpaths', '-mxp',
                                help='The maximum number of paths that can ' +
                                'be used between a host and a storage volume',
@@ -1567,8 +1585,7 @@ def update_parser(subcommand_parsers, common_parser):
                                nargs='+')
 
     update_parser.add_argument('-placementpolicy', '-pp',
-                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
-                               'if not set, default_policy will be used for the virtual pool',
+                               help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool',
                                dest='placementpolicy',
                                metavar='<placementpolicy>',
                                choices=VirtualPool.PLACEMENT_POLICY_TYPE_LIST)
@@ -1625,6 +1642,7 @@ def vpool_update(args):
                              args.multivolconsistency,
                              args.expandable,
                              args.autotierpolicynames,
+                             args.enablecompression,
                              args.ha,
                              args.fastpolicy,
                              args.minpaths,

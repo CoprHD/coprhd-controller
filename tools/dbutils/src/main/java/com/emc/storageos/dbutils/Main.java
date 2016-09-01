@@ -106,6 +106,8 @@ public class Main {
         System.out.printf("\t\t%s\t\t Show the latest modified field of the record.%n", MODIFICATION_TIME);
         System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",
                 Command.LIST.name().toLowerCase(), TYPE_EVENTS, TYPE_STATS, TYPE_AUDITS);
+        System.out.printf("\t%s <Volume> \t import data%n", Command.IMPORT.name().toLowerCase());
+        System.out.printf("\t%s <Volume> <queryString> <pageSize> <pageNumber> \t query data%n", Command.INDEXQUERY.name().toLowerCase());
         System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>%n", Command.DELETE.name().toLowerCase());
         System.out
                 .printf("\t\t%s <file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n",

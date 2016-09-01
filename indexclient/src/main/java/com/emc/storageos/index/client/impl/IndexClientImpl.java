@@ -49,6 +49,11 @@ public class IndexClientImpl implements IndexClient {
 
     private CloudSolrClient solrClient;
 
+    public IndexClientImpl() {
+        String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181";
+        solrClient = new CloudSolrClient.Builder().withZkHost(zkHostString).build();
+    }
+
     @Override
     public <T extends DataObject> int importData(Class<T> clazz, Iterator<T> objects) {
         int countAll = 0;
@@ -58,6 +63,7 @@ public class IndexClientImpl implements IndexClient {
         List<String> fieldNames = getIndexedFields(clazz);
         addSchema(collectionName, fieldNames);
         solrClient.setDefaultCollection(collectionName);
+
         try {
             countAll = importRecords(clazz, objects);
             log.info("{} records added", countAll);
@@ -74,11 +80,6 @@ public class IndexClientImpl implements IndexClient {
         solrClient.setDefaultCollection(collectionName);
         List<URI> uris = new ArrayList<URI>(pageSize);
 
-        IndexQueryResult resultSets = new IndexQueryResult();
-        resultSets.setQueryString(queryString);
-        resultSets.setPageSize(pageSize);
-        resultSets.setPageNumber(pageNumber);
-
         SolrQuery query = new SolrQuery();
         query.setQuery(queryString);
         query.setFields("id");
@@ -86,16 +87,18 @@ public class IndexClientImpl implements IndexClient {
         query.setRows(pageSize);
         query.addSort("id", SolrQuery.ORDER.asc);
         QueryResponse response;
+        IndexQueryResult resultSets = null;
+
         try {
             response = solrClient.query(query);
             SolrDocumentList results = response.getResults();
-            resultSets.setTotalNum(results.getNumFound());
+            long totalNum = results.getNumFound();
             for (SolrDocument solrDocument : results) {
                 String id = (String) solrDocument.getFieldValue("id");
                 URI uri = new URI(id);
                 uris.add(uri);
             }
-            resultSets.setUris(uris);
+            resultSets = new IndexQueryResult(totalNum, uris);
         } catch (SolrServerException | IOException e) {
             log.error("Query failed", e);
         } catch (URISyntaxException e) {
@@ -105,11 +108,9 @@ public class IndexClientImpl implements IndexClient {
     }
 
     @Override
-    public void starts() {
-        String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181";
-        solrClient = new CloudSolrClient.Builder().withZkHost(zkHostString).build();
+    public void start() {
         solrClient.connect();
-        log.info("Index Client start");
+        log.info("Index Client starts");
     }
 
     public void createCollection(String collectionName) {
@@ -176,12 +177,12 @@ public class IndexClientImpl implements IndexClient {
 
     private <T extends DataObject> int importRecords(Class<T> clazz, Iterator<T> objects)
             throws Exception {
-        boolean isPrint = true;
+        boolean success = true;
         int countAll = 0;
         while (objects.hasNext()) {
             T object = objects.next();
-            isPrint = importBeanProperties(clazz, object);
-            if (isPrint) {
+            success = importBeanProperties(clazz, object);
+            if (success) {
                 countAll++;
             }
         }
@@ -192,7 +193,7 @@ public class IndexClientImpl implements IndexClient {
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SolrServerException, IOException {
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("id", object.getId().toString());
-        boolean isPrint = true;
+        boolean success = true;
         BeanInfo bInfo;
         try {
             bInfo = Introspector.getBeanInfo(clazz);
@@ -223,11 +224,10 @@ public class IndexClientImpl implements IndexClient {
                 }
                 doc.addField(objKey, objValue.toString());
             }
-
         }
 
         solrClient.add(doc);
-        return isPrint;
+        return success;
     }
 
     private boolean isEmptyStr(Object objValue) {
@@ -235,5 +235,10 @@ public class IndexClientImpl implements IndexClient {
             return false;
         }
         return StringUtils.isEmpty((String) objValue);
+    }
+
+    @Override
+    public void stop() throws IOException {
+        solrClient.close();
     }
 }

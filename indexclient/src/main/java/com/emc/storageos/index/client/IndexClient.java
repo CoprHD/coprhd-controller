@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.index.client;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 import com.emc.storageos.db.client.model.DataObject;
@@ -34,6 +35,10 @@ public interface IndexClient {
     /**
      * Connect to the indexing server
      */
-    public void starts();
+    public void start();
 
+    /**
+     * Disconnect from the indexing server
+     */
+    public void stop() throws IOException;
 }

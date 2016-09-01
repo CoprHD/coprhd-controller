@@ -223,7 +223,7 @@ public abstract class CommandHandler {
         }
 
         @SuppressWarnings("unchecked")
-        private <T extends DataObject> void dataImport(DBClient client) {
+        private <T extends DataObject> void dataImport(DBClient client) throws IOException {
             Iterator<T> objects;
 
             InternalDbClientImpl _dbClient = client.getDbClient();
@@ -242,10 +242,11 @@ public abstract class CommandHandler {
             objects = _dbClient.queryIterativeObjects(clazz, uris);
 
             IndexClient indexclient = new IndexClientImpl();
-            indexclient.starts();
+            indexclient.start();
             System.out.println("Index server start!");
             int countAll = indexclient.importData(clazz, objects);
             System.out.println(countAll + " records imported!");
+            indexclient.stop();
         }
 
     }
@@ -427,23 +428,24 @@ public abstract class CommandHandler {
             pageSize = Integer.parseInt(query[3]);
             pageNumber = Integer.parseInt(query[4]);
 
-            IndexClient indexclient = new IndexClientImpl();
-            indexclient.starts();
+            IndexClient indexClient = new IndexClientImpl();
+            indexClient.start();
 
-            IndexQueryResult indexQueryResult = new IndexQueryResult();
-            indexQueryResult = indexclient.query(clazz, queryString, pageSize, pageNumber);
+            IndexQueryResult indexQueryResult;
+            indexQueryResult = indexClient.query(clazz, queryString, pageSize, pageNumber);
             List<URI> uris;
             uris = indexQueryResult.getUris();
             StringBuilder queryResult = new StringBuilder();
-            queryResult.append("Query string is " + indexQueryResult.getQueryString() + "\n");
+            queryResult.append("Query string is " + queryString + "\n");
             queryResult.append("Total number is " + indexQueryResult.getTotalNum() +
-                    " page size is: " + indexQueryResult.getPageSize() + " page number is: "
-                    + indexQueryResult.getPageNumber());
+                    " page size is: " + pageSize + " page number is: "
+                    + pageNumber);
             System.out.println(queryResult.toString());
             for (URI uri : uris) {
                 DataObject object = dbclientimpl.queryObject(uri);
                 printBeanProperties(clazz, object);
             }
+            indexClient.stop();
         }
 
         private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)
@@ -475,10 +477,6 @@ public abstract class CommandHandler {
                 }
 
                 objValue = pd.getReadMethod().invoke(object);
-
-                if (objValue == null) {
-                    continue;
-                }
 
                 record.append("\t" + objKey + " = ");
 

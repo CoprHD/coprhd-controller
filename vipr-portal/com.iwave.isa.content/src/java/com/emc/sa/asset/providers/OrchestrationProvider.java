@@ -18,11 +18,8 @@ import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.oe.gson.AssetOptionPair;
-import com.emc.sa.service.vipr.oe.gson.Workflow;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -41,16 +38,9 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     private OrchestrationEngineRestClient restClient;
 
     // constants
-    private static final String OE_API_WORKFLOWS = "/api/1.1/workflows";
     private static final int OE_WORKFLOW_CHECK_INTERVAL = 1; // secs
     private static final int OE_WORKFLOW_CHECK_TIMEOUT = 30; // secs
-    private static final String WORKFLOW_SUCCESS_STATE =  "succeeded";
     private static final String WORKFLOW_TIMEOUT_RESPONSE = "[{\"key\":\"TIMEOUT_ERROR\",\"value\":\"TIMEOUT_ERROR\"}]";
-    private static final String OE_API_WORKFLOW_LIBRARY = "/api/1.1/workflows/library/*";
-
-    // special JSON svc descriptors like assetType.oe.node 
-    private static final String ASSET_TYPE_NODE = "node";
-    private static final String ASSET_TYPE_WORKFLOW = "workflow";
     
     // JSON converter
     private static Gson gson = new Gson();
@@ -161,26 +151,8 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getOrchestrationOptions(AssetOptionsContext ctx) { 
 
         info("Getting asset options for '" + thisAssetType + "' from OE."); 
-                
-        // special case (move to new provider or refactor out of here later)
-        if(thisAssetType.equalsIgnoreCase(ASSET_TYPE_WORKFLOW)) {
-            String workflowJson = OrchestrationUtils.makeRestCall(OE_API_WORKFLOW_LIBRARY,restClient);
-            return getWorkflowOptions(workflowJson);
-        }
 
-        // special case (move to new provider or refactor out of here later)
-        if(thisAssetType.equalsIgnoreCase(ASSET_TYPE_NODE)) {
-            String workflowJson = OrchestrationUtils.makeRestCall(OrchestrationUtils.OE_API_NODE,restClient);
-            return OrchestrationUtils.getNodeOptions(workflowJson);
-        }
-
-        // if node ID available, use in API call
-        // TODO: verify that node ID exists & is valid? (user
-        //   could randomly create a field called 'node' for something else) 
-        String apiUrl = parentAssetParams.containsKey(ASSET_TYPE_NODE) ?
-                OrchestrationUtils.OE_API_NODE + "/" + 
-                parentAssetParams.get(ASSET_TYPE_NODE) + "/workflows" :
-                OE_API_WORKFLOWS;
+        String apiUrl = null;
 
         // pass a proxy token that OE can use to login to ViPR API
         parentAssetParams.put("ProxyToken", api(ctx).auth().proxyToken());
@@ -190,94 +162,52 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         String workflowResponse = OrchestrationUtils.makeRestCall(apiUrl,
                 makePostBody(),restClient);
 
-        info("Started Orchestration Engine Workflow " + getWorkflowTaskId(workflowResponse));
+        info("Started Orchestration Engine Workflow");
 
         // Get results (waiting for OE workflow to complete)
         int intervals = 0;
         while ( !isWorkflowSuccess(workflowResponse) ) {
             sleep(OE_WORKFLOW_CHECK_INTERVAL);
-            workflowResponse = OrchestrationUtils.makeRestCall(OE_API_WORKFLOWS + "/" +
-                    getWorkflowTaskId(workflowResponse),restClient);
+            // get updated WF reponse 
+            workflowResponse = OrchestrationUtils.makeRestCall("/path/to/get/wf/status",restClient);
             if( isFailed(workflowResponse) || isTimedOut(++intervals) ) {
-                error("Orchestration Engine workflow " + getWorkflowTaskId(workflowResponse) + " timed out.");
+                error("Orchestration Engine workflow timed out.");
                 return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
             }
         }        
-        List<String> optionListJson = getOeResults(workflowResponse);
+        List<String> optionListJson = Arrays.asList("data for options in json");
 
         return jsonToOptions(optionListJson);       
+    }
+
+    private boolean isWorkflowSuccess(String workflowResponse) {
+        // test response to see if WF has finished successfully
+        return false;
     }
 
     private boolean isFailed(String workflowResponse) {
     	return OrchestrationUtils.isWorkflowFailed(workflowResponse);
 	}
 
-	private List<AssetOption> getWorkflowOptions(String workflowJson) {
-        List<AssetOption> assetOptionList = new ArrayList<>();
-        WorkflowDefinition[] wfDefs = 
-                gson.fromJson(workflowJson,WorkflowDefinition[].class);    
-        if( (wfDefs != null) && (wfDefs.length > 0) ) {
-            List<WorkflowDefinition> wfDefList = Arrays.asList(wfDefs);
-            for(WorkflowDefinition wfDef: wfDefList) {
-                assetOptionList.add(new AssetOption(wfDef.getInjectableName(),
-                        wfDef.getFriendlyName()));
-            }
-        }
-        return assetOptionList;
-    }
-
     private boolean isTimedOut(int intervals) {
         return (intervals * OE_WORKFLOW_CHECK_INTERVAL) >= 
                 OE_WORKFLOW_CHECK_TIMEOUT;
     }
 
-    private List<String> getOeResults(String workflowResponse) {
-        Workflow workflow = getWorkflowObjFromJson(workflowResponse);
-        String[] ansibleResultArray = 
-                workflow.getContext().getAnsibleResultFile();
-        return Arrays.asList(ansibleResultArray);
-    }
-
-    private String getWorkflowTaskId(String workflowResponse) {
-        Workflow oeWorkflow = getWorkflowObjFromJson(workflowResponse);  
-        return oeWorkflow.getInstanceId();
-    }
-
-    private boolean isWorkflowSuccess(String workflowResponse) {
-        Workflow oeWorkflow = getWorkflowObjFromJson(workflowResponse);
-        return oeWorkflow.get_status().equalsIgnoreCase(WORKFLOW_SUCCESS_STATE);
-    }
-
-    private Workflow getWorkflowObjFromJson(String workflowResponse){
-        return gson.fromJson(workflowResponse,Workflow.class);
-    }
-
     private String makePostBody() {
-        StringBuffer postBody = new StringBuffer("{\"name\": \"assetType." + 
-                ASSET_NAMESPACE_TAG + "." + thisAssetType + "\"");
-        if(!parentAssetParams.isEmpty()) {
-           postBody.append(",\"options\":{\"defaults\":{\"vars\":{");
-           for(String parentAssetParam : parentAssetParams.keySet()) {
-               postBody.append("\"" + parentAssetParam + "\":\"" +
-                       parentAssetParams.get(parentAssetParam) +
-                       "\",");
-           }
-           postBody.deleteCharAt(postBody.length()-1); // remove last comma
-           postBody.append("}}}");
-        }
-        postBody.append("}");; 
-        return postBody.toString();
+        // make post body as needed
+        return null;
     }
 
-    private List<AssetOption> jsonToOptions(List<String> ansibleResultFiles) {
+    private List<AssetOption> jsonToOptions(List<String> wfResults) {
         
         //options will be combined from all ansible result files 
         //  (i.e.: all OE ansible tasks that returned valid results)
         List<AssetOption> assetOptionList = new ArrayList<>();
-        for(String ansibleResultFile : ansibleResultFiles) {
+        for(String wfResult : wfResults) {
             AssetOptionPair[] assetOptionArray = null;
             try {
-                assetOptionArray = gson.fromJson(ansibleResultFile,AssetOptionPair[].class);  
+                assetOptionArray = gson.fromJson(wfResult,AssetOptionPair[].class);  
                 for(AssetOptionPair aop: assetOptionArray) {
                     assetOptionList.add(new AssetOption(aop.getId(),aop.getName()));
                 }  
@@ -285,7 +215,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
                 // not all task results will always be asset options
                 getLog().warn("Unable to parse Orchestration Engine task result as valid asset " + 
                         "options.  " + e.getMessage() + "  Unparsable string was: " + 
-                ansibleResultFile);
+                wfResult);
             }
         }
         info("Found " + assetOptionList.size()+ " options from OE: " + 

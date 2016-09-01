@@ -21,8 +21,7 @@ import com.sun.jersey.api.client.ClientResponse;
 
 public class OrchestrationTask extends ViPRExecutionTask<String> {
 
-    private static final String OE_API_WORKFLOWS = "/api/1.1/workflows";
-    private static final String OE_API_NODES = "/api/1.1/nodes";
+    private static final String OE_API_WORKFLOWS = "";
     private static final int OE_WORKFLOW_CHECK_INTERVAL = 10; // secs
 
     //TODO: move these hard-coded strings out
@@ -32,21 +31,14 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
     private static final String OESERVER = "localhost";
     private static final String OESERVERPORT = "9090"; 
 
-    private static final String NODE_NULL_VALUE = "null";
-
-    private Map<String, Object> params;
-    private String workflowName;
-    private List<String> playbookNameList;
     private OrchestrationEngineRestClient restClient;
-    private String nodeId;
-
-    public OrchestrationTask(Map<String, Object> params, String workflowName, List<String> playbookNameList, String nodeId) {
+    Map<String, Object> params;
+    
+    public OrchestrationTask(Map<String, Object> params) {
         super();
+        
         this.params = params;
-        this.workflowName = workflowName;
-        this.playbookNameList = playbookNameList;
-        this.nodeId = nodeId;
-
+        
         //init rest client
         OrchestrationEngineRestClientFactory factory = new OrchestrationEngineRestClientFactory();
         factory.setMaxConnections(100);
@@ -75,57 +67,47 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
         do {
             workflowResponse = getOeWorkflowResponse(workflowId);
 
-
-            // get results (maybe multiple, if multiple tasks were in WF)
-            String[] ansibleResultFromWfArray = OrchestrationUtils.getAnsibleResults(workflowResponse);
-
-            for(String ansibleResultFromWf : ansibleResultFromWfArray) {
-
-                // result may contain multiple JSON objects:
-                for(String ansibleResult:
-                    OrchestrationUtils.parseObjectList(ansibleResultFromWf)) {
-
-                    // see if it refers to an Operation with ViPR Tasks
-                    ViprOperation viprOperation = OrchestrationUtils.parseViprTasks(ansibleResult);
-                    if(viprOperation != null) {
-                        OrchestrationUtils.updateAffectedResources(viprOperation);
-                        List<TaskResourceRep> viprTaskIds = OrchestrationUtils.locateTasksInVipr(viprOperation,getClient());
-                        for(TaskResourceRep task : viprTaskIds ) {
-                            if(!tasksStartedByOe.contains(task.getId())) {
-                                addOrderIdTag(task.getId());
-                                tasksStartedByOe.add(task.getId());
-                                ExecutionUtils.currentContext().logInfo("Orchestration Engine started " +
-                                        " task '" + task.getName()+ "'  " +
-                                        task.getResource().getName());
-                            }
-                        }
-                    } 
-                    // else see if it's a list of resources
-                    AffectedResource[] rsrcList = null;
-                    if (viprOperation == null) {
-                        rsrcList = OrchestrationUtils.parseResourceList(ansibleResult);
-                        if(rsrcList != null) {
-                            OrchestrationUtils.updateAffectedResources(rsrcList);
-                        }
-                    }
-                    // else see if it's a status message for order log
-                    OeStatusMessage oeStatusMessage = null;
-                    if ((viprOperation == null) && (rsrcList == null)) {
-                        oeStatusMessage = OrchestrationUtils.parseOeStatusMessage(ansibleResult);
-                        if((oeStatusMessage != null) &&
-                                !messagesLogged.contains(oeStatusMessage.getMessage())){
-                            ExecutionUtils.currentContext().logInfo(oeStatusMessage.getMessage());
-                            messagesLogged.add(oeStatusMessage.getMessage());
-                        }
-                    }
-                    // if neither, log result
-                    if ((viprOperation == null) && (rsrcList == null) && (oeStatusMessage == null) ) {
-                        ExecutionUtils.currentContext().logInfo("An orchestration engine Workflow " +
-                                "result was not recognized as a ViPR Task or " +
-                                "list of Affected Resources in ViPR: " + ansibleResult);
+            // see if it refers to an Operation with ViPR Tasks
+            ViprOperation viprOperation = OrchestrationUtils.parseViprTasks(workflowResponse);
+            if(viprOperation != null) {
+                OrchestrationUtils.updateAffectedResources(viprOperation);
+                List<TaskResourceRep> viprTaskIds = OrchestrationUtils.locateTasksInVipr(viprOperation,getClient());
+                for(TaskResourceRep task : viprTaskIds ) {
+                    if(!tasksStartedByOe.contains(task.getId())) {
+                        addOrderIdTag(task.getId());
+                        tasksStartedByOe.add(task.getId());
+                        ExecutionUtils.currentContext().logInfo("Orchestration Engine started " +
+                                " task '" + task.getName()+ "'  " +
+                                task.getResource().getName());
                     }
                 }
+            } 
+            // else see if it's a list of resources
+            AffectedResource[] rsrcList = null;
+            if (viprOperation == null) {
+                rsrcList = OrchestrationUtils.parseResourceList(workflowResponse);
+                if(rsrcList != null) {
+                    OrchestrationUtils.updateAffectedResources(rsrcList);
+                }
             }
+            // else see if it's a status message for order log
+            OeStatusMessage oeStatusMessage = null;
+            if ((viprOperation == null) && (rsrcList == null)) {
+                oeStatusMessage = OrchestrationUtils.parseOeStatusMessage(workflowResponse);
+                if((oeStatusMessage != null) &&
+                        !messagesLogged.contains(oeStatusMessage.getMessage())){
+                    ExecutionUtils.currentContext().logInfo(oeStatusMessage.getMessage());
+                    messagesLogged.add(oeStatusMessage.getMessage());
+                }
+            }
+            // if neither, log result
+            if ((viprOperation == null) && (rsrcList == null) && (oeStatusMessage == null) ) {
+                ExecutionUtils.currentContext().logInfo("An orchestration engine Workflow " +
+                        "result was not recognized as a ViPR Task or " +
+                        "list of Affected Resources in ViPR: " + workflowResponse);
+            }
+
+
         } while (OrchestrationUtils.isWorkflowRunning(workflowResponse) && !timedOut);
         OrchestrationUtils.waitForTasks(tasksStartedByOe,getClient());
         return workflowResponse;
@@ -142,18 +124,11 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
     }
 
     private String startWorkflow() {
-        String apiWorkflowUri = OE_API_WORKFLOWS;
-        if( (nodeId != null) && (!nodeId.equals(NODE_NULL_VALUE)) ){
-            //TODO: instead of checking for "null", check for valid OE nodeID
-            apiWorkflowUri = OE_API_NODES + "/" + nodeId + "/workflows";
-        }
-        String postBody = OrchestrationUtils.makePostBody(params,workflowName,playbookNameList);
-        String workflowResponse = makeRestCall(apiWorkflowUri, postBody);
-        String workflowId = OrchestrationUtils.getWorkflowId(workflowResponse);
-        ExecutionUtils.currentContext().logInfo("Started Workflow on Orchestration Engine.  " +
-                "ID " + workflowId + "  API Call: POST " + apiWorkflowUri + 
-                " with body " + postBody);
-        return workflowId;
+        String workflowName = params.get("workflowName").toString();
+        
+        // add code to start workflow
+        
+        return null;  // return WF ID
     }
 
     private String makeRestCall(String uriString) {

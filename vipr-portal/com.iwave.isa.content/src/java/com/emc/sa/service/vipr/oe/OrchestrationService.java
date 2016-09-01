@@ -4,7 +4,10 @@
  */
 package com.emc.sa.service.vipr.oe;
 
+import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.oe.tasks.OrchestrationTask;
+
 import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
@@ -12,13 +15,17 @@ import com.emc.sa.engine.service.Service;
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
+    Map<String, Object> params = null;
+    
     @Override
 	public void precheck() throws Exception {
 
 	    // get input params from order form
-        Map<String, Object> params = ExecutionUtils.currentContext().getParameters();
+        params = ExecutionUtils.currentContext().getParameters();
 
-		// pass a proxy token that OE can use to login to ViPR API
+        // check input params & validate things to insure service will run
+        
+		// add a proxy token that OE can use to login to ViPR API
 		params.put("ProxyToken", ExecutionUtils.currentContext().
 				getExecutionState().getProxyToken());
 	}
@@ -26,17 +33,18 @@ public class OrchestrationService extends ViPRService {
 	@Override
 	public void execute() throws Exception {
 		
-	    
 	    ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
 	    
-	    // how to queue/start a task in ViPR
-		//String workflowResponse =
-		//		ViPRExecutionUtils.execute(new OrchestrationTask(params,workflowName,playbookNameList,nodeId));
+	    // how to queue/start a task in ViPR (start OE RUnner like this?)
+		String workflowResponse =
+				ViPRExecutionUtils.execute(new OrchestrationTask(params));
 
-		// how to fila workflow: throw exception:
-	    //throw new IllegalStateException(errMsg);
+		// how to fail workflow: throw exception:
+	    if(workflowResponse == null ) {
+	        throw new IllegalStateException("Workflow failed");
+	    }
 
 	    ExecutionUtils.currentContext().logInfo("Orchestration Engine Workflow " +
-	            "completed successfully.");
+	            "completed successfully.  Response was: " + workflowResponse);
 	} 
 } 

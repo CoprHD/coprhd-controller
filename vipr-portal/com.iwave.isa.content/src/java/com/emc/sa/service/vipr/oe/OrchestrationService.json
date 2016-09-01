@@ -2,48 +2,8 @@
   baseKey:"Orchestration.Service",
   serviceId:"OrchestrationService",
   fields:{
-    Workflow:{
-      type:"assetType.oe.workflow",
-      required: "true",
-      lockable: true
-    },
-    Playbook:{
-      type:"text",
-      required: "false",
-      initialValue: "playbook.yml",
-      lockable: true
-    },
     Project:{
       type:"assetType.oe.project",
-      lockable: true,
-      required: "false"
-    },
-    VirtualArray:{
-      type:"assetType.oe.varray",
-      lockable: true,
-      required: "false"
-    },
-    VirtualPool:{
-      type:"assetType.oe.vpool",
-      lockable: true,
-      required: "false"
-    },
-    VolumeName:{
-      type:"text",
-      lockable: true,
-      required: "false"
-    }, 
-    Size:{
-      type:"text",
-      lockable: true,
-      required: "false"
-    },        
-    NumberOfVolumes:{
-      type:"number",
-      initialValue: "1",
-      validation:{
-        min:1
-      },
       lockable: true,
       required: "false"
     }

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.index.client.impl.IndexQueryResult;
 
 public interface IndexClient {
 

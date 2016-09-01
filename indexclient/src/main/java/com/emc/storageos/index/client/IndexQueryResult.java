@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.index.client.impl;
+package com.emc.storageos.index.client;
 
 import java.net.URI;
 import java.util.List;

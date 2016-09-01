@@ -1,0 +1,13 @@
+diff --git a/internalLibraries/backup/src/main/java/com/emc/storageos/management/backup/RestoreManager.java b/internalLibraries/backup/src/main/java/com/emc/storageos/management/backup/RestoreManager.java
+index 35a1674..4db690f 100644
+--- a/internalLibraries/backup/src/main/java/com/emc/storageos/management/backup/RestoreManager.java
++++ b/internalLibraries/backup/src/main/java/com/emc/storageos/management/backup/RestoreManager.java
+@@ -250,7 +250,7 @@ public class RestoreManager {
+         try (InputStream fis = new FileInputStream(backupInfoFile)) {
+             Properties properties = new Properties();
+             properties.load(fis);
+-            checkVersion(properties);
++            // checkVersion(properties);
+             checkHosts(properties, backupInMultiVdc);
+         } catch (IOException ex) {
+             // Ignore this exception

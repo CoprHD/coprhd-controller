@@ -47,8 +47,8 @@ import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.index.client.IndexClient;
+import com.emc.storageos.index.client.IndexQueryResult;
 import com.emc.storageos.index.client.impl.IndexClientImpl;
-import com.emc.storageos.index.client.impl.IndexQueryResult;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.google.common.base.Joiner;
 

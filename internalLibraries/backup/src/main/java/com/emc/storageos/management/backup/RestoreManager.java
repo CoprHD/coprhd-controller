@@ -250,7 +250,7 @@ public class RestoreManager {
         try (InputStream fis = new FileInputStream(backupInfoFile)) {
             Properties properties = new Properties();
             properties.load(fis);
-            checkVersion(properties);
+            // checkVersion(properties);
             checkHosts(properties, backupInMultiVdc);
         } catch (IOException ex) {
             // Ignore this exception

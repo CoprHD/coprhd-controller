@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.index.client.IndexClient;
+import com.emc.storageos.index.client.IndexQueryResult;
 
 public class IndexClientImpl implements IndexClient {
 
@@ -50,7 +51,7 @@ public class IndexClientImpl implements IndexClient {
     private CloudSolrClient solrClient;
 
     public IndexClientImpl() {
-        String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181";
+        String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181,10.247.101.183:2181,10.247.101.184:2181";
         solrClient = new CloudSolrClient.Builder().withZkHost(zkHostString).build();
     }
 
@@ -125,8 +126,8 @@ public class IndexClientImpl implements IndexClient {
         log.info("Create collection:{}", collectionName);
         ModifiableSolrParams params = new ModifiableSolrParams();
         params.set("action", CollectionParams.CollectionAction.CREATE.toString());
-        params.set("numShards", 2);
-        params.set("replicationFactor", 1);
+        params.set("numShards", 5);
+        params.set("replicationFactor", 5);
         params.set("maxShardsPerNode", 1);
         params.set("collection.configName", "myconf");
         params.set("name", collectionName);

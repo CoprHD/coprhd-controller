@@ -3053,7 +3053,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Method to determine whether the capacities for all the volumes being provisioned
-     * can match. Currently the capacities for vmax and xtremio cannot match exactly.
+     * can match. Currently the capacities for vmax, vmax3, and xtremio cannot match exactly.
      *
      * @param volumeStorageSystems
      *            - map indicating storage system types required to fulfill this request
@@ -3062,9 +3062,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     protected boolean capacitiesCanMatch(Map<URI, StorageSystem> volumeStorageSystems) {
         String systemToCompare = null;
         for (Map.Entry<URI, StorageSystem> entry : volumeStorageSystems.entrySet()) {
-            _log.info("Request requires provisioning on storage array of type: " + entry.getValue().getSystemType());
+            StorageSystem storageSystem = entry.getValue();
+            String storageType = storageSystem.getSystemType();
+            if (storageSystem.isV3AllFlashArray()) {
+                storageType = DiscoveredDataObject.Type.vmax3AFA.name();;
+            } else if (storageSystem.checkIfVmax3()) {
+                storageType = DiscoveredDataObject.Type.vmax3.name();
+            }
+            _log.info(String.format("Request requires provisioning on storage array of type: %s", storageType));
             if (NullColumnValueGetter.isNullValue(systemToCompare)) {
-                systemToCompare = entry.getValue().getSystemType();
+                systemToCompare = storageSystem.getSystemType();
                 continue;
             }
             if (!capacityCalculatorFactory.getCapacityCalculator(systemToCompare).capacitiesCanMatch(entry.getValue().getSystemType())) {
@@ -3087,6 +3094,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     protected Map<Volume.PersonalityTypes, Long> setUnMatchedCapacities(List<Volume> allVolumesToUpdateCapacity,
             Map<URI, String> associatedVolumePersonalityMap, boolean isExpand, Long capacityToUseInCalculation) {
+        _log.info("Capacities for RP Source and Target can not match. Capacities will be calculated so Source <= Target.");
         Long srcCapacity = 0L;
         Long tgtCapacity = 0L;
         Map<Volume.PersonalityTypes, Long> capacities = new HashMap<Volume.PersonalityTypes, Long>();

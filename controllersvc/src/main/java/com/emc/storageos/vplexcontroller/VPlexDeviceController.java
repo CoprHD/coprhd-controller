@@ -5088,7 +5088,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (ExportMask exportMask : exportMasks) {
                 maskToInitiatorsMap.put(exportMask.getId(), initiatorURIs);
             }
-            _networkDeviceController.zoneExportRemoveInitiators(exportURI, maskToInitiatorsMap, stepId);
+            List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+            		convertExportMaskInitiatorMapsToNetworkZoningParam(exportURI, maskToInitiatorsMap, _dbClient);
+            _networkDeviceController.zoneExportRemoveInitiators(zoningParams, stepId);
         } catch (Exception ex) {
             _log.error("Exception removing initator: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_INITIATOR_WORKFLOW_STEP.getName();

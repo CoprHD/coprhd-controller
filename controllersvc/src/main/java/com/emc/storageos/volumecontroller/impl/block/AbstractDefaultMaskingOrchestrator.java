@@ -816,9 +816,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     }
 
     public String generateZoningAddInitiatorsWorkflow(Workflow workflow,
-            String previousStep,
-            ExportGroup exportGroup,
-            Map<URI, List<URI>> exportMasksToInitiators)
+            String previousStep, ExportGroup exportGroup, Map<URI, List<URI>> exportMasksToInitiators)
                     throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         String zoningStep = workflow.createStepId();
@@ -826,8 +824,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Workflow.Method zoningExecuteMethod = _networkDeviceController
                 .zoneExportAddInitiatorsMethod(exportGroupURI, exportMasksToInitiators);
 
+        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+        		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
         Workflow.Method zoningRollbackMethod = _networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(exportGroupURI, exportMasksToInitiators);
+                .zoneExportRemoveInitiatorsMethod(zoningParams);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -840,15 +840,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     }
 
     public String generateZoningRemoveInitiatorsWorkflow(Workflow workflow,
-            String previousStep,
-            ExportGroup exportGroup,
-            Map<URI, List<URI>> exportMasksToInitiators)
+            String previousStep, ExportGroup exportGroup, Map<URI, List<URI>> exportMasksToInitiators)
                     throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         String zoningStep = workflow.createStepId();
-
+        
+        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+        		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
         Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(exportGroupURI, exportMasksToInitiators);
+                .zoneExportRemoveInitiatorsMethod(zoningParams);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),

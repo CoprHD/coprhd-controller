@@ -1277,7 +1277,7 @@ public class NetworkDeviceController implements NetworkController {
             // Compute the zones for the ExportGroup
             context.setAddingZones(false);
             List<NetworkFCZoneInfo> zones = _networkScheduler.
-                    getRemoveZoningTargetsForExportMasks(zoningParams, volumeURIs);
+                    getZoningRemoveTargets(zoningParams, volumeURIs);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
@@ -1441,69 +1441,60 @@ public class NetworkDeviceController implements NetworkController {
 
     /**
      * Generate Workflow.Method for zoneExportRemoveInitiators
-     * 
-     * @param exportGroupURI
-     * @param exportMasksToInitiators
-     * @return
+     * @param zoningParam -- Zoning parameters list
+     * @return Workflow.Method for zoneExportRemoveInitiators
      */
     public Workflow.Method zoneExportRemoveInitiatorsMethod(
-            URI exportGroupURI, Map<URI, List<URI>> exportMasksToInitiators) {
-        return new Workflow.Method("zoneExportRemoveInitiators", exportGroupURI, exportMasksToInitiators);
+            List<NetworkZoningParam> zoningParam) {
+        return new Workflow.Method("zoneExportRemoveInitiators", zoningParam);
     }
 
     /**
-     * This will remove zones for all the initiators in the exportMasksToInitiators map.
-     * The ExportMasks are read to determine the volumes that are using the zones, and
-     * the potential ports that are paired to make up the zones.
-     * Note: these arguments (except token) must match zoneExportRemoveInitiatorsMethod above.
+     * This will remove zones for all the initiators in the NetworkZoningParam zoneMap.
+     * Note: these arguments (except stepId) must match zoneExportRemoveInitiatorsMethod above.
      * This routine executes as a Workflow Step.
      * 
-     * @param initiators
-     * @param exportGroup
-     * @param exportMask
-     * @param context
-     * @param completer TaskCompleter for the storage task in case of exception
-     * @return true if success, false otherwise
-     * @throws IOException
+     * @param zoningParams -- List of NetworkZoningParam zoning parameter blocks corresponding to ExportMasks
+     * @param stepId -- step id in Workflow
+     * @return
      * @throws ControllerException
      */
-    public boolean zoneExportRemoveInitiators(URI exportGroupURI,
-            Map<URI, List<URI>> exportMasksToInitiators,
-            String token) throws ControllerException {
+    public boolean zoneExportRemoveInitiators(
+    		List<NetworkZoningParam> zoningParams,
+            String stepId) throws ControllerException {
         NetworkFCContext context = new NetworkFCContext();
         boolean status = false;
-        ExportGroup exportGroup = _dbClient
-                .queryObject(ExportGroup.class, exportGroupURI);
-        _log.info(String.format("Entering zoneExportRemoveInitiators for ExportGroup: %s (%s)",
-                exportGroup.getLabel(), exportGroup.getId()));
+        URI exportGroupId = zoningParams.get(0).getExportGroupId();
+    	URI virtualArray = zoningParams.get(0).getVirtualArray();
+        _log.info(String.format("Entering zoneExportRemoveInitiators for ExportGroup: %s",
+                zoningParams.get(0).getExportGroupDisplay()));
         try {
-            if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
+            if (!checkZoningRequired(stepId, virtualArray)) {
                 return true;
             }
             context.setAddingZones(false);
 
             // Get the zoning targets to be removed.
-            List<NetworkFCZoneInfo> zoneInfos = _networkScheduler
-                    .getRemoveZoningTargetsForInitiators(exportGroup, exportMasksToInitiators);
+            List<NetworkFCZoneInfo> zoneInfos = _networkScheduler.getZoningRemoveTargets(zoningParams, null);
             context.getZoneInfos().addAll(zoneInfos);
             logZones(zoneInfos);
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
-                WorkflowStepCompleter.stepSucceded(token);
+                WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
 
             // Now call removeZones to remove all the required zones.
-            BiosCommandResult result = addRemoveZones(exportGroup.getId(), context.getZoneInfos(), true);
+            BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
             status = result.isCommandSuccess();
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportRemoveInitiators", result);
+            completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
 
             // If the result is success, remove the initiators from the ExportMask zoningMap.
             if (result.isCommandSuccess()) {
-                removeInitiatorsFromZoningMap(exportMasksToInitiators);
+                removeInitiatorsFromZoningMap(zoningParams);
             }
             return status;
 
@@ -1511,7 +1502,7 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("Exception zoning remove initiators", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemoveInitiatorsFailed(
                     ex.getMessage(), ex);
-            WorkflowStepCompleter.stepFailed(token, svcError);
+            WorkflowStepCompleter.stepFailed(stepId, svcError);
             return status;
         }
     }
@@ -1725,13 +1716,14 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param exportMasksToInitiators
      */
-    private void removeInitiatorsFromZoningMap(Map<URI, List<URI>> exportMasksToInitiators) {
-        for (URI maskURI : exportMasksToInitiators.keySet()) {
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, maskURI);
+    private void removeInitiatorsFromZoningMap(List<NetworkZoningParam> zoningParams) {
+    	for (NetworkZoningParam zoningParam : zoningParams) {
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, zoningParam.getMaskId());
             if (mask == null || mask.getInactive()) {
                 continue;
             }
-            for (URI initiatorURI : exportMasksToInitiators.get(maskURI)) {
+            List<URI> initiators = StringSetUtil.stringSetToUriList(zoningParam.getZoningMap().keySet());
+            for (URI initiatorURI : initiators) {
                 if (mask.getZoningMap() != null) {
                     mask.removeZoningMapEntry(initiatorURI.toString());
                 }

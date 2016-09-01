@@ -8,7 +8,10 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
@@ -17,6 +20,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowExceptions;
@@ -66,6 +70,11 @@ public class NetworkZoningParam implements Serializable {
 	 */
 	private URI maskId;
 	
+	/*
+	 * Export mask volumes.
+	 */
+	private List<URI> volumes;
+	
 	/**
 	 * Generates the zoning parameters from an ExportGroup/ExportMask pair.
 	 * @param exportGroup ExportGroup
@@ -83,6 +92,7 @@ public class NetworkZoningParam implements Serializable {
 		setExportGroupDisplay(exportGroup.forDisplay());
 		setMaskName(exportMask.getMaskName());
 		setMaskId(exportMask.getId());
+		setVolumes(StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet()));
 		Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
 		NetworkScheduler.checkZoningMap(exportGroup, exportMask, initiators, dbClient);
 		setZoningMap(exportMask.getZoningMap());
@@ -113,6 +123,35 @@ public class NetworkZoningParam implements Serializable {
 		return zoningParams;
 	}
 	
+	/**
+	 * Generates a list of NetworkZoningParam objects from a map of export mask URI to a list of initiator URIs.
+	 * Only the initiators in the exportMaskToInitiators map are retained from the ExportMask initiators.
+	 * @param exportGroupURI
+	 * @param exportMaskToInitiators
+	 * @param dbClient
+	 * @return
+	 */
+	static public List<NetworkZoningParam> convertExportMaskInitiatorMapsToNetworkZoningParam(
+			URI exportGroupURI, Map<URI, List<URI>> exportMaskToInitiators, DbClient dbClient) {
+		ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+		List<NetworkZoningParam> zoningParams = new ArrayList<NetworkZoningParam>();
+		for (Map.Entry<URI, List<URI>> entry : exportMaskToInitiators.entrySet()) {
+			ExportMask exportMask = dbClient.queryObject(ExportMask.class, entry.getKey());
+			if (exportMask == null || exportMask.getInactive()) {
+				throw WorkflowException.exceptions.workflowConstructionError(
+						"ExportMask is null: " + entry.getKey().toString());
+			}
+			NetworkZoningParam zoningParam = new NetworkZoningParam(exportGroup, exportMask, dbClient);
+			// Filter out entries in the zoning map not in the initiator list.
+			// This is done by retaining all the initiators in the exportMaskToInitiators value.
+			Set<String> retainedInitiators = StringSetUtil.uriListToSet(entry.getValue());
+			zoningParam.getZoningMap().keySet().retainAll(retainedInitiators);
+			// Add zoningParam to result
+			zoningParams.add(zoningParam);
+		}
+		return zoningParams;
+	}
+
 	public StringSetMap getZoningMap() {
 		return zoningMap;
 	}
@@ -169,4 +208,13 @@ public class NetworkZoningParam implements Serializable {
 	public void setExportGroupDisplay(String exportGroupDisplay) {
 		this.exportGroupDisplay = exportGroupDisplay;
 	}
+
+	public List<URI> getVolumes() {
+		return volumes;
+	}
+
+	public void setVolumes(List<URI> volumes) {
+		this.volumes = volumes;
+	}
+	
 }

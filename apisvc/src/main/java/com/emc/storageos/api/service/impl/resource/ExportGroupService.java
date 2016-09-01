@@ -1389,7 +1389,7 @@ public class ExportGroupService extends TaskResourceService {
                 _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
             }
             _log.info("{}", initiatorMap);
-            if (initiatorMap.size() > 1) {
+            if (exportGroup.getType().equals(ExportGroupType.Cluster.name()) && initiatorMap.size() > 1) {
                 _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
                         exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
                 throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),

@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,13 +36,10 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -64,7 +60,6 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
-import com.rsa.cryptoj.o.ex;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.

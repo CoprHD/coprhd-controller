@@ -17,6 +17,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
 
     private static final Logger log = LoggerFactory.getLogger(ControllerLockingServiceImpl.class);
 
+    private static final String LOCK_CLIENTNAME = "anynode";
     private CoordinatorClient _coordinator;
 
     /**
@@ -36,14 +37,15 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
         try {
             Throwable t = null;
             DistributedPersistentLock lock = null;
+            boolean acquired = false;
             if (seconds >= 0) {
 
                 log.info("Attempting to acquire lock: " + lockName + (seconds > 0 ? (" for a maximum of " + seconds + " seconds.") : ""));
 
-                while (seconds-- >= 0) {
+                while (seconds-- >= 0 && !acquired) {
                     try {
                         lock = _coordinator.getPersistentLock(lockName);
-                        lock.acquireLock(getLockClientName());
+                        acquired = lock.acquireNonReentrantLock(LOCK_CLIENTNAME);
                     } catch (CoordinatorException ce) {
                         t = ce;
                         Thread.sleep(1000);
@@ -51,10 +53,10 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
                 }
             } else if (seconds == -1) {
                 log.info("Attempting to acquire lock: " + lockName + " for as long as it takes.");
-                while (true) {
+                while (!acquired) {
                     try {
                         lock = _coordinator.getPersistentLock(lockName);
-                        lock.acquireLock(getLockClientName());
+                        acquired = lock.acquireNonReentrantLock(LOCK_CLIENTNAME);
                     } catch (CoordinatorException ce) {
                         t = ce;
                         Thread.sleep(1000);
@@ -65,7 +67,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
                 return false;
             }
 
-            if (lock == null) {
+            if (lock == null || !acquired) {
                 if (t != null) {
                     log.error(String.format("Acquisition of mutex lock: %s failed with Exception: ", lockName), t);
                 } else {
@@ -93,7 +95,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
         try {
             DistributedPersistentLock lock = _coordinator.getPersistentLock(lockName);
             if (lock != null) {
-                lock.releaseLock(getLockClientName());
+                lock.releaseLock(LOCK_CLIENTNAME);
                 log.info("Released lock: " + lockName);
             } else {
                 log.error(String.format("Release of mutex lock: %s failed: ", lockName));
@@ -104,19 +106,5 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
             log.error(String.format("Release of mutex lock: %s failed with Exception: ", lockName), e);
             return false;
         }
-    }
-    
-    /**
-     * Generates the lock client name for acquiring and releasing a lock.
-     * 
-     * @return The lock client name.
-     */
-    private String getLockClientName() {
-        // The lock client name is the node id, combined with the thread trying
-        // to acquire/release the lock.
-        StringBuilder clientNameBuilder = new StringBuilder(_coordinator.getInetAddessLookupMap().getNodeId());
-        clientNameBuilder.append("-");
-        clientNameBuilder.append(Thread.currentThread().getId());
-        return clientNameBuilder.toString();
     }
 }

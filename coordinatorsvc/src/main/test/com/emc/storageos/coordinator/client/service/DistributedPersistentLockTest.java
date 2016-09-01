@@ -223,6 +223,70 @@ public class DistributedPersistentLockTest extends CoordinatorTestBase {
                             if (bLockActionResult) {
                                 _logger.info(": {} request succeeded. doing work", currOwnerName);
                                 Thread.sleep(50);
+                                bLockActionResult = lock.acquireNonReentrantLock(currOwnerName);
+                                _logger.info(": {} re-acquiring reentrant lock. Return {}", currOwnerName, bLockActionResult);
+                                Assert.assertTrue(bLockActionResult);
+
+                                _logger.info(": {} work done. releasing lock", currOwnerName);
+                                bLockActionResult = lock.releaseLock(clientName);
+                                _logger.info(": lock release status: {}; {} released lock", bLockActionResult, clientName);
+                                Thread.sleep(100);
+                            } else {
+                                _logger.info(": {} request failed. retrying.", clientName);
+                                Thread.sleep(50);
+                            }
+                        } catch (InterruptedException e) {
+                            // Ignore this.
+                        } catch (Exception e) {
+                            _logger.info(": {} transient error ...", clientName, e);
+                        }
+                    }
+                }
+            });
+        }
+        clients.awaitTermination(20, TimeUnit.SECONDS);
+        _logger.info("*** miscDistributedPersistentLock end");
+    }
+    
+    /**
+     * Simulates multiple clients accessing persistent lock API acquireNonReentrant simultaneously.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void miscNonReentrantPersistentLock() throws Exception {
+        _logger.info("*** miscNonReentrantPersistentLock start");
+        ExecutorService clients = Executors.newFixedThreadPool(NUMCLIENTS);
+        for (int i = 0; i < NUMCLIENTS; i++) {
+            clients.submit(new Runnable() {
+                @Override
+                public void run() {
+                    String lockName = "TestLock";
+                    String clientName = Thread.currentThread().getName();
+                    String currOwnerName = null;
+                    DistributedPersistentLock lock = null;
+                    try {
+                        lock = connectClient().getPersistentLock(lockName);
+                    } catch (Exception e) {
+                        _logger.info(": {} miscDistributedPersistentLock could not get coordinator client", e);
+                        Assert.assertNull(e);
+                    }
+                    _logger.info(": ### Client {}, Initialized lock {} ###", clientName, lockName);
+                    while (true) {
+                        try {
+                            _logger.info(": {} ------ client: starts loop ------", clientName);
+                            _logger.info(": {} client trying to acquire lock", clientName);
+                            Thread.sleep(50);
+                            boolean bLockActionResult = lock.acquireNonReentrantLock(clientName);
+                            currOwnerName = lock.getLockOwner();
+                            _logger.info(": {} is current owner", currOwnerName);
+                            Thread.sleep(50);
+                            if (bLockActionResult) {
+                                _logger.info(": {} request succeeded. doing work", currOwnerName);
+                                Thread.sleep(50);
+                                bLockActionResult = lock.acquireNonReentrantLock(currOwnerName);
+                                _logger.info(": {} re-acquiring non reentrant lock. Return {}", currOwnerName, bLockActionResult);
+                                Assert.assertFalse(bLockActionResult);
                                 _logger.info(": {} work done. releasing lock", currOwnerName);
                                 bLockActionResult = lock.releaseLock(clientName);
                                 _logger.info(": lock release status: {}; {} released lock", bLockActionResult, clientName);

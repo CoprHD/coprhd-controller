@@ -6,7 +6,13 @@
 package com.emc.storageos.volumecontroller;
 
 /**
- * Controller locking service that provides a block and timeout feature.
+ * Controller locking service that provides a block and timeout feature. The following are 
+ * some behaviors of the lock
+ * 1) Fully distributed locks across multiple JVMs and hosts. It's globally synchronous, meaning 
+ *    at any snapshot in time no two clients think they hold the same lock.
+ * 2) Non re-entrant. If a owner has acquired the lock, subsequent calls to acquireLock returns false  
+ * 3) Persistent. It survives client reboots. After it is acquired and the owner dies, the lock is 
+ *    still held and no one else could get the lock anymore. It need be explicitly released.  
  */
 public interface ControllerLockingService {
 

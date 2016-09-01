@@ -28,11 +28,30 @@ public interface DistributedPersistentLock {
      * Exception is thrown, if null clientName is specified or something is wrong per ZK.
      * Client is encouraged to catch and retry.
      * 
+     * This lock is reentrant, which means the lock owner could call this method multiple times and 
+     * subsequent calls return true
+     * 
      * @return true, if lock is granted
      *         false, otherwise
      */
     public boolean acquireLock(final String clientName) throws Exception;
 
+    /**
+     * Non-blocking method to acquire the persistent lock, with a specified clientName (lock owner) name.
+     * If the lock is available,
+     * the lock is granted,
+     * the current requester name is established as lock owner.
+     * Exception is thrown, if null clientName is specified or something is wrong per ZK.
+     * Client is encouraged to catch and retry.
+     *
+     * This lock is non reentrant, which means the lock owner could call this method multiple times and 
+     * subsequent calls return false
+     * 
+     * @return true, if lock is granted
+     *         false, otherwise
+     */
+    public boolean acquireNonReentrantLock(final String clientName) throws Exception;
+    
     /**
      * Releases the persistent lock associated with a specified client name.
      * The lock is released only if the specified clientName matches lock owner information.

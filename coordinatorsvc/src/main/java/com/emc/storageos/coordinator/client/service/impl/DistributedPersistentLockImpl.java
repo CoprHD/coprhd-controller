@@ -26,7 +26,8 @@ import org.apache.curator.utils.ZKPaths;
  * 
  * - It survives client reboots.
  * - It has to be explicitly released.
- * - It is not re-entrant ... use getLockOwner(), to determine current owner.
+ * - It is could be either re-entrant or non re-entrant depends on you call acquireLock or 
+ *   acquireNonRentrantLock ... use getLockOwner(), to determine current owner.
  * 
  * Implementation details: A persistent lock comprises a root (parent) ZNode and a child ZNode.
  * 
@@ -71,17 +72,26 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
 
     @Override
     public boolean acquireLock(final String clientName) throws Exception {
+        return acquireLock(clientName, true);
+    }
+
+    @Override
+    public boolean acquireNonReentrantLock(final String clientName) throws Exception {
+        return acquireLock(clientName, false);
+    }
+
+    private boolean acquireLock(final String clientName, boolean isReentrant) throws Exception {
         boolean bLockAcquired;
         _log.debug("acquireLock(): Client: {} wants to acquire lock: {}", clientName, _persistentLockName);
         if (clientName == null) {
             throw CoordinatorException.fatals.clientNameCannotBeNull();
         }
         _log.debug("acquireLock(): Creating ZNodes...");
-        bLockAcquired = createZNodes(clientName);
+        bLockAcquired = createZNodes(clientName, isReentrant);
         _log.debug("acquireLock(): Completed: {}", bLockAcquired);
         return bLockAcquired;
     }
-
+    
     @Override
     public boolean releaseLock(final String clientName) throws Exception {
         boolean bLockReleased;
@@ -118,10 +128,11 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
     /**
      * Creates the ZNodes
      * 
-     * @param clientName
+     * @param clientName - owner name
+     * @param isReentrant - true for re-entrant lock, otherwise non re-entrant lock
      * @return true, if success; false otherwise
      */
-    private boolean createZNodes(final String clientName) {
+    private boolean createZNodes(final String clientName, boolean isReentrant) {
         boolean bZNodesCreated = false;
         try {
             byte[] clientNameInBytes = clientName.getBytes(Charset.forName("UTF-8"));
@@ -135,7 +146,8 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
         } catch (KeeperException.NodeExistsException nee) {
             _log.debug("createZNodes(): For lock: {}, ZNodes already exist", _persistentLockName, nee);
             try {
-                if (clientName.equals(getLockOwner())) {
+                // For re-entrant lock, allow the owner to acquire the same lock multiple times
+                if (clientName.equals(getLockOwner()) && isReentrant) {
                     bZNodesCreated = true;
                     _log.debug("createZNodes(): owner is trying to create {} again.", _persistentLockName);
                 }

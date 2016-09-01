@@ -3037,7 +3037,7 @@
     {
         key : "network_syslog_remote_servers_ports",
         label : "Remote Syslog Servers &amp; Ports",
-        description : "Syslog servers address &amp;  ports.",
+        description : "Syslog servers address &amp;  ports. Maximum number of servers is 6.",
         type : "ipportlist",
         userConfigurable : true,
         userMutable : true,

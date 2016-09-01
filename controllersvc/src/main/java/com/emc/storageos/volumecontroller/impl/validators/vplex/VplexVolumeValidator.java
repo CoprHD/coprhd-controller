@@ -171,7 +171,8 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
             }
         }
 
-        if (checkList.contains(ValCk.VPLEX)) {
+        if (checkList.contains(ValCk.VPLEX)
+                && !virtualVolume.isIngestedVolumeWithoutBackend(getDbClient())) {
             try {
                 String drillDownInfo = client.getDrillDownInfoForDevice(vvinfo.getSupportingDevice());
                 VPlexDrillDownParser parser = new VPlexDrillDownParser(drillDownInfo);

@@ -97,7 +97,7 @@ public class DellSCDiscovery {
                     storageProvider.getProviderHost(),
                     storageProvider.getPortNumber(),
                     storageProvider.getUsername(),
-                    storageProvider.getPassword());
+                    storageProvider.getPassword(), true);
 
             LOG.info("Connected to DSM {} as user {}",
                     storageProvider.getProviderHost(), storageProvider.getUsername());
@@ -170,7 +170,7 @@ public class DellSCDiscovery {
                     storageSystem.getIpAddress(),
                     port,
                     storageSystem.getUsername(),
-                    storageSystem.getPassword());
+                    storageSystem.getPassword(), false);
 
             // Populate the SC information
             StorageCenter sc = api.findStorageCenter(sn);

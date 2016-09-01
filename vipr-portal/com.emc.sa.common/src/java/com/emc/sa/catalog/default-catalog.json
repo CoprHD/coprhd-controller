@@ -736,11 +736,7 @@
         { 
           "image": "icon_orchestration.png", 
           "baseService": "OrchestrationService"
-        },
-        {
-          "image": "icon_orchestration.png",
-          "baseService": "OrchestrationAnsibleService" 
-        }
+        } 
       ]
     } 
   ]

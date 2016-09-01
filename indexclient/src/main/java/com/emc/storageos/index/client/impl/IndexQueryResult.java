@@ -20,15 +20,7 @@ public class IndexQueryResult {
         return totalNum;
     }
 
-    public void setTotalNum(long totalNum) {
-        this.totalNum = totalNum;
-    }
-
     public List<URI> getUris() {
         return uris;
-    }
-
-    public void setUris(List<URI> uris) {
-        this.uris = uris;
     }
 }

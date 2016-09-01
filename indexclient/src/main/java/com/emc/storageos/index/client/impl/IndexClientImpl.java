@@ -117,7 +117,7 @@ public class IndexClientImpl implements IndexClient {
         boolean hasCollection = solrClient.getZkStateReader().getClusterState().hasCollection(collectionName);
 
         if (hasCollection) {
-            log.info("collection has been created");
+            log.info("The collection {} has been created", collectionName);
             return;
         }
 

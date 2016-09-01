@@ -3234,7 +3234,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
                     _log.info("removing this export mask from VPLEX: " + exportMask.getMaskName());
-                    client.deleteStorageView(exportMask.getMaskName(), viewFound);
+                    client.deleteStorageView(exportMask.getMaskName(), vplexClusterName, viewFound);
                     if (viewFound[0]) {
                         _log.info("as expected, storage view was found for deletion on the VPLEX.");
                     } else {
@@ -3469,8 +3469,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 return;
             }
 
+            String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
             VPlexStorageViewInfo svInfo = client.addVirtualVolumesToStorageView(
-                    exportMask.getMaskName(), deviceLabelToHLU);
+                    exportMask.getMaskName(), vplexClusterName, deviceLabelToHLU);
 
             // When VPLEX volumes are exported to a storage view, they get a WWN,
             // so set the WWN from the returned storage view information.
@@ -3828,7 +3829,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         _log.info("about to remove " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
         // Remove volumes from the storage view.
-        client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(),
+        String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex.getId(), client, _dbClient);
+        client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(), vplexClusterName,
                 blockObjectNames);
 
         // Remove the volumes from the Export Mask.
@@ -4295,7 +4297,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                         }
                         // Add the initiators to the VPLEX
-                        client.addInitiatorsToStorageView(exportMask.getMaskName(), initiatorPortInfos);
+                        client.addInitiatorsToStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfos);
 
                         for (PortInfo portInfo : initiatorPortInfos) {
                             // update the ExportMask with the successfully added initiator
@@ -5208,7 +5210,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (!lockAcquired) {
                         throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                     }
-                    client.removeInitiatorsFromStorageView(exportMask.getMaskName(), initiatorPortInfo);
+                    client.removeInitiatorsFromStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfo);
                 } finally {
                     if (lockAcquired) {
                         _vplexApiLockManager.releaseLock(lockName);

@@ -13,6 +13,7 @@ import com.emc.sa.service.vipr.oe.gson.AffectedResource;
 import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
@@ -169,7 +170,7 @@ public class OrchestrationUtils {
         }  
     }
 
-    public static void waitForTasks(List<URI> tasksStartedByOe, ViPRCoreClient client) {
+    public static void waitForViprTasks(List<URI> tasksStartedByOe, ViPRCoreClient client) {
         if( tasksStartedByOe.isEmpty()) {
             return;
         }  
@@ -226,6 +227,24 @@ public class OrchestrationUtils {
             e.printStackTrace();
         }
         return responseString;
+    }
+
+    public static String makeOrderJson(Map<String, Object> params) {
+
+        // get workflow ID from input params (it must be associated with the Service and passed in)
+        String workflowDefinitionId = params.get("workflow").toString();
+
+        String workflowDefinition = null; // use ID to get definition from DB
+
+        // temporarily insert test JSON here until DB calls are ready (Shane is doing DB work)
+        workflowDefinition = "{\"workflow\": \"test JSON Workflow Goes Here\"}";
+
+        WorkflowDefinition workflowObj = gson.fromJson(workflowDefinition,WorkflowDefinition.class);
+
+        // add code here to insert values of parameters into object model of workflow
+        // TODO:  insert params
+
+        return gson.toJson(workflowObj);  // return JSON
     }
 
 }

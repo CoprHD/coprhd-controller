@@ -2,8 +2,8 @@
   baseKey:"Orchestration.Service",
   serviceId:"OrchestrationService",
   fields:{
-    Project:{
-      type:"assetType.oe.project",
+    workflow:{
+      type:"assetType.oe.workflow",
       lockable: true,
       required: "false"
     }

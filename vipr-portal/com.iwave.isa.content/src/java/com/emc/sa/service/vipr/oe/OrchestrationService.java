@@ -6,7 +6,7 @@ package com.emc.sa.service.vipr.oe;
 
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.oe.tasks.OrchestrationTask;
+import com.emc.sa.service.vipr.oe.tasks.OrchestrationRunnerTask;
 
 import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
@@ -16,6 +16,7 @@ import com.emc.sa.engine.service.Service;
 public class OrchestrationService extends ViPRService {
 
     Map<String, Object> params = null;
+    String oeOrderJson;
     
     @Override
 	public void precheck() throws Exception {
@@ -23,11 +24,15 @@ public class OrchestrationService extends ViPRService {
 	    // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
 
-        // check input params & validate things to insure service will run
+        // validate input params to insure service will run
         
 		// add a proxy token that OE can use to login to ViPR API
 		params.put("ProxyToken", ExecutionUtils.currentContext().
 				getExecutionState().getProxyToken());
+		
+		// merge params into Workflow Definition JSON to make  Order JSON
+		oeOrderJson = OrchestrationUtils.makeOrderJson(params);
+		
 	}
 
 	@Override
@@ -37,7 +42,7 @@ public class OrchestrationService extends ViPRService {
 	    
 	    // how to queue/start a task in ViPR (start OE RUnner like this?)
 		String workflowResponse =
-				ViPRExecutionUtils.execute(new OrchestrationTask(params));
+				ViPRExecutionUtils.execute(new OrchestrationRunnerTask(oeOrderJson));
 
 		// how to fail workflow: throw exception:
 	    if(workflowResponse == null ) {

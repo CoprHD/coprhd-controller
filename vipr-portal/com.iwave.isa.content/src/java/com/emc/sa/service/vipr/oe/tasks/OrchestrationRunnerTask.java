@@ -1,13 +1,8 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.io.IOUtils;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.oe.gson.AffectedResource;
@@ -15,59 +10,44 @@ import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
-import com.sun.jersey.api.client.ClientResponse;
 
-public class OrchestrationTask extends ViPRExecutionTask<String> {
+public class OrchestrationRunnerTask extends ViPRExecutionTask<String> {
 
-    private static final String OE_API_WORKFLOWS = "";
     private static final int OE_WORKFLOW_CHECK_INTERVAL = 10; // secs
 
-    //TODO: move these hard-coded strings out
-    private static final String USER = "root";
-    private static final String PASSWORD = "ChangeMe1!";
-    private static final String OESCHEME = "http"; // include, else URI.resolve(..) fails
-    private static final String OESERVER = "localhost";
-    private static final String OESERVERPORT = "9090"; 
-
-    private OrchestrationEngineRestClient restClient;
-    Map<String, Object> params;
+    String oeOrderJson;
     
-    public OrchestrationTask(Map<String, Object> params) {
+    public OrchestrationRunnerTask(String oeOrderJson) {
         super();
-        
-        this.params = params;
-        
-        //init rest client
-        OrchestrationEngineRestClientFactory factory = new OrchestrationEngineRestClientFactory();
-        factory.setMaxConnections(100);
-        factory.setMaxConnectionsPerHost(100);
-        factory.setNeedCertificateManager(false);
-        factory.setSocketConnectionTimeoutMs(3600000);
-        factory.setConnectionTimeoutMs(3600000);
-        factory.init();
-        String endpoint = OESCHEME + "://" + 
-                OESERVER + ":" + OESERVERPORT;
-        restClient = (OrchestrationEngineRestClient) factory.
-                getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
+        this.oeOrderJson = oeOrderJson;
     }
-
 
     int intervals = 0;
     boolean timedOut = false;
 
     @Override
     public String executeTask() throws Exception {
+        
         String workflowResponse = null; 
-
+        
+      
         String workflowId = startWorkflow();
+        
+        // while WF is running, periodically get the status/response from the wf engine
+        
+        // response may contain log messages for UI
+        
+        // in the case of ViPRRestCalls, response may contain AffectedResources & ViPRTasks to
+        //   be added to the UI  (see sample code below, based on JSON response structure)
+        
         List<URI> tasksStartedByOe = new ArrayList<>();
         List<String> messagesLogged = new ArrayList<>();
         do {
-            workflowResponse = getOeWorkflowResponse(workflowId);
+            workflowResponse = getOeWorkflowResponse(workflowId); // retrieve current response of running WF
 
-            // see if it refers to an Operation with ViPR Tasks
+            // here we check the response to see what's in it, looking for useful things
+            
+            // see if it contains an Operation with ViPR Tasks
             ViprOperation viprOperation = OrchestrationUtils.parseViprTasks(workflowResponse);
             if(viprOperation != null) {
                 OrchestrationUtils.updateAffectedResources(viprOperation);
@@ -82,15 +62,15 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
                     }
                 }
             } 
-            // else see if it's a list of resources
+            // else see if it has a list of affected resources
             AffectedResource[] rsrcList = null;
             if (viprOperation == null) {
                 rsrcList = OrchestrationUtils.parseResourceList(workflowResponse);
                 if(rsrcList != null) {
-                    OrchestrationUtils.updateAffectedResources(rsrcList);
+                    OrchestrationUtils.updateAffectedResources(rsrcList);  // update UI with rsrcs
                 }
             }
-            // else see if it's a status message for order log
+            // else see if it has a status message for order log in UI
             OeStatusMessage oeStatusMessage = null;
             if ((viprOperation == null) && (rsrcList == null)) {
                 oeStatusMessage = OrchestrationUtils.parseOeStatusMessage(workflowResponse);
@@ -100,16 +80,17 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
                     messagesLogged.add(oeStatusMessage.getMessage());
                 }
             }
-            // if neither, log result
+            // if unrecognized, log result
             if ((viprOperation == null) && (rsrcList == null) && (oeStatusMessage == null) ) {
                 ExecutionUtils.currentContext().logInfo("An orchestration engine Workflow " +
                         "result was not recognized as a ViPR Task or " +
                         "list of Affected Resources in ViPR: " + workflowResponse);
             }
 
-
         } while (OrchestrationUtils.isWorkflowRunning(workflowResponse) && !timedOut);
-        OrchestrationUtils.waitForTasks(tasksStartedByOe,getClient());
+        
+        OrchestrationUtils.waitForViprTasks(tasksStartedByOe,getClient());
+        
         return workflowResponse;
     }
 
@@ -119,43 +100,24 @@ public class OrchestrationTask extends ViPRExecutionTask<String> {
             ExecutionUtils.currentContext().logError("Orchestration Engine Workflow " +
                     workflowId + " timed out.");
             timedOut = true;
-        }      
-        return makeRestCall(OE_API_WORKFLOWS + "/" + workflowId); 
+        }   
+        
+        String workflowStatus = null;  // TODO: get workflow status from OE_Runner
+        
+        // not sure how status will be structured.  Previously this was in JSON format
+        //  and contained ViPR Tasks returned from ViPR API
+        
+        return workflowStatus; 
     }
 
     private String startWorkflow() {
-        String workflowName = params.get("workflowName").toString();
         
-        // add code to start workflow
+        // TODO: add code to start workflow (call OE_Runner?)
         
-        return null;  // return WF ID
+        return null;  // return WF ID?
     }
 
-    private String makeRestCall(String uriString) {
-        return makeRestCall(uriString,null);
-    }
-
-    private String makeRestCall(String uriString, String postBody) {
-        info("OE request uri: " + uriString);
-
-        ClientResponse response = null;
-        if(postBody == null) {
-            response = restClient.get(uri(uriString));
-        } else {
-            info("OE request post body: " + postBody);
-            response = restClient.post(uri(uriString),postBody);
-        }
-
-        String responseString = null;
-        try {
-            responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");
-        } catch (IOException e) {
-            error("Error getting response from Orchestration Engine for: " + uriString +
-                    " :: "+ e.getMessage());
-            e.printStackTrace();
-        }
-        return responseString;
-    }
+  
 
 
 }

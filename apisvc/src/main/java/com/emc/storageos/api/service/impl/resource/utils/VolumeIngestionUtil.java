@@ -1395,10 +1395,8 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         List<UnManagedExportMask> unManagedMasks = new ArrayList<UnManagedExportMask>();
         for (UnManagedExportMask mask : masks) {
-            @SuppressWarnings("deprecation")
-            List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getExportMaskByNameConstraint(mask.getLabel()));
-            if (null == maskUris || maskUris.isEmpty()) {
+            ExportMask exportMask = getExportsMaskAlreadyIngested(mask, dbClient);
+            if (null == exportMask) {
                 unManagedMasks.add(mask);
             } else {
                 _logger.info("Export Mask {} already ingested ", mask.getLabel());
@@ -1415,15 +1413,38 @@ public class VolumeIngestionUtil {
      * @return a ExportMask if present, or null
      */
     public static ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
-        ExportMask exportMask = null;
         @SuppressWarnings("deprecation")
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(mask.getMaskName()));
         if (null != maskUris && !maskUris.isEmpty()) {
-            return dbClient.queryObject(ExportMask.class, maskUris.get(0));
+            boolean checkMaskPathForVplex = false;
+            if (maskUris.size() > 1) {
+                // if more than one mask was returned by name and this is a vplex system,
+                // it could be the case that there are storage views on each vplex cluster
+                // with the same name, so we need to check the full unmanaged export mask path
+                StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
+                checkMaskPathForVplex = storageSystem != null && ConnectivityUtil.isAVPlex(storageSystem);
+            }
+            for (URI maskUri : maskUris) {
+                ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                if (null == exportMask) {
+                    continue;
+                }
+                if (checkMaskPathForVplex) {
+                    if (exportMask.getNativeId() != null 
+                            && exportMask.getNativeId().equalsIgnoreCase(mask.getNativeId())){
+                        // this is not the right mask
+                        _logger.info("found a mask with the same name {}, but the mask view paths are different. "
+                                + "UnManagedExportMask: {} Existing ExportMask: {}", mask.getMaskName(),
+                                mask.getNativeId(), exportMask.getNativeId());
+                        continue;
+                    }
+                }
+                return exportMask;
+            }
         }
 
-        return exportMask;
+        return null;
     }
 
     /**

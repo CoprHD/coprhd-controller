@@ -70,7 +70,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
                 }
                 if (checkMaskPathForVplex) {
                     if (exportMask.getNativeId() != null 
-                            && exportMask.getNativeId().equalsIgnoreCase(mask.getNativeId())){
+                            && !exportMask.getNativeId().equalsIgnoreCase(mask.getNativeId())){
                         // this is not the right mask
                         _logger.info("found a mask with the same name {}, but the mask view paths are different. "
                                 + "UnManagedExportMask: {} Existing ExportMask: {}", mask.getMaskName(),

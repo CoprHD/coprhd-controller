@@ -108,7 +108,8 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                     // Remove matched WWNs
                     storageViewWwns.remove(boWwn);
                 } else {
-                    log.info(String.format("Database volume/snap %s (%s) not in StorageView", bo.getId(), bo.getWWN()));
+                    log.info(String.format("Database volume/snap %s (%s) is not in StorageView [%s]", bo.getId(), bo.getWWN(),
+                            storageView.getName()));
                 }
             }
         }

@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -795,13 +796,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             exportMaskURIs.add(mask.getId());
             volumeURIs.addAll(ExportMaskUtils.getVolumeURIs(mask));
         }
+        
+        List<NetworkZoningParam> zoningParams = 
+        		NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroupURI, exportMaskURIs, _dbClient);
 
         String zoningStep = workflow.createStepId();
 
-        ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskURIs, zoningStep);
-
         Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportMasksDeleteMethod(exportGroupURI, exportMaskURIs, volumeURIs, zoneTaskCompleter);
+                .zoneExportMasksDeleteMethod(zoningParams, volumeURIs);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -896,11 +898,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         for (ExportMask mask : exportMasks) {
             exportMaskURIs.add(mask.getId());
         }
+        List<NetworkZoningParam> zoningParams = 
+        		NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroup.getId(), exportMaskURIs, _dbClient);
 
         String zoningStep = workflow.createStepId();
 
-        Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(exportGroupURI,
-                exportMaskURIs, volumeURIs);
+        Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
+                zoningParams, volumeURIs);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),

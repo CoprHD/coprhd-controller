@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +25,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -348,7 +350,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     exportGroup, storageURI);
             if (exportMask != null) {
                 _log.info("export_delete: export mask exists");
-                List<URI> exportMaskURIs = new ArrayList<URI>();
+                List<NetworkZoningParam> zoningParam = 
+                    NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroup.getId(), 
+                    		Collections.singletonList(exportMask.getId()), _dbClient);
 
                 List<URI> volumeURIs = new ArrayList<>();
                 if (exportMask.getVolumes() != null) {
@@ -363,10 +367,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         initiatorURIs.add(URI.create(initiatorId));
                     }
                 }
-                exportMaskURIs.add(exportMask.getId());
                 getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
-                ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskURIs, UUID.randomUUID().toString());
-                _networkDeviceController.zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, zoneTaskCompleter,
+                _networkDeviceController.zoneExportMasksDelete(zoningParam, volumeURIs, 
                         UUID.randomUUID().toString());
             } else {
                 _log.info("export_delete: no export mask, task completed");

@@ -1229,59 +1229,47 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     /**
-     * Returns a Workflow Method to delete ExportMask(s) from an ExportGroup
-     * 
-     * @param exportGroupURI
-     * @param exportMaskURIs
-     * @param volumeURIs
-     * @return
+     * Method called when deleting one or more ExportMasks
+     * @param zoningParams -- one or more NetworkZoningParam blocks corresponding to ExportMask
+     * @param volumeURIs -- list of Volumes that are affected
+     * @return status, true if SUCCESS
      */
-    public Workflow.Method zoneExportMasksDeleteMethod(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer) {
-        return new Workflow.Method("zoneExportMasksDelete",
-                exportGroupURI, exportMaskURIs, volumeURIs, completer);
+    public Workflow.Method zoneExportMasksDeleteMethod(
+            List<NetworkZoningParam> zoningParams, Collection<URI> volumeURIs) {
+        return new Workflow.Method("zoneExportMasksDelete", zoningParams, volumeURIs);
     }
 
-    /**
-     * Workflow step to do zone removal when deleting one or more ExportMasks from an ExportGroup.
-     * This will delete all the zones from initiators in the export mask to volumes in the
-     * export mask if all the volumes in the export mask are enclosed in the collection.
-     * Note: these arguments (except token) must match zoneExportMasksDeleteMethod above.
-     * This routine executes as a Workflow Step.
-     * 
-     * @param exportGroupURI
-     * @param exportMaskURIs
-     * @param volumeURIs
-     * @param token
-     * @return true if successful
+    /** 
+     * Deletes all the zones in the zoningMaps supplied in the zoningParams.
+     * @param zoningParams -- zoning parameter block corresponding to ExportMask
+     * @param volumeURIs -- list of Volumes that are affected
+     * @param stepId
+     * @return status, true if SUCCESS
      */
-    public boolean zoneExportMasksDelete(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer, String token) {
-        ExportGroup exportGroup = _dbClient
-                .queryObject(ExportGroup.class, exportGroupURI);
-        _log.info(String.format("Entering zoneExportMasksDelete for ExportGroup: %s (%s)",
-                exportGroup.getLabel(), exportGroup.getId()));
-        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, completer, token);
+    public boolean zoneExportMasksDelete(
+            List<NetworkZoningParam> zoningParams, Collection<URI> volumeURIs, String stepId) {
+    	NetworkZoningParam zoningParam = zoningParams.get(0);
+        _log.info(String.format("Entering zoneExportMasksDelete for ExportGroup: %s",
+                zoningParam.getExportGroupDisplay()));
+        return doZoneExportMasksDelete(zoningParams, volumeURIs, stepId);
     }
 
     /**
      * Remove ExportMasks or delete Volumes from ExportMasks.
      * 
-     * @param exportGroupURI -- the Export Group URI
-     * @param exportMaskURIs -- List of Export Mask URIs
+     * @param zoningParamss -- List of NetworkZoningParam block obtained from ExportMask
      * @param volumeURIs -- Collection of all volumes being removed
-     * @param token - Step id.
-     * @return
+     * @param stepId - Step id.
+     * @return status -- true if success
      */
-    private boolean doZoneExportMasksDelete(ExportGroup exportGroup,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, ZoneDeleteCompleter completer, String token) {
+    private boolean doZoneExportMasksDelete(List<NetworkZoningParam> zoningParams,
+            Collection<URI> volumeURIs, String stepId) {
         NetworkFCContext context = new NetworkFCContext();
         boolean status = false;
         try {
-            if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
-                if (completer != null) {
-                    completer.ready(_dbClient); // completer only exists if we're deleting export masks
-                }
+        	URI exportGroupId = zoningParams.get(0).getExportGroupId();
+        	URI virtualArray = zoningParams.get(0).getVirtualArray();
+            if (!checkZoningRequired(stepId, virtualArray)) {
                 return true;
             }
             volumeURIs = removeDuplicateURIs(volumeURIs);
@@ -1289,16 +1277,13 @@ public class NetworkDeviceController implements NetworkController {
             // Compute the zones for the ExportGroup
             context.setAddingZones(false);
             List<NetworkFCZoneInfo> zones = _networkScheduler.
-                    getRemoveZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs);
+                    getRemoveZoningTargetsForExportMasks(zoningParams, volumeURIs);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
-                if (completer != null) {
-                    completer.ready(_dbClient); // completer only exists if we're deleting export masks
-                }
-                WorkflowStepCompleter.stepSucceded(token);
+                WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
 
@@ -1310,33 +1295,34 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
             // Now call removeZones to remove all the required zones.
-            BiosCommandResult result = addRemoveZones(exportGroup.getId(), context.getZoneInfos(), true);
+            BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
             status = result.isCommandSuccess();
 
-            if (status && !lastReferenceZoneInfo.isEmpty()) {
-                _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
-                updateZoningMap(lastReferenceZoneInfo, exportGroup.getId(), exportMaskURIs);
+            List<URI> exportMaskURIs = new ArrayList<URI>();
+            for (NetworkZoningParam zoningParam : zoningParams) {
+            	exportMaskURIs.add(zoningParam.getMaskId());
             }
-
-            if (completer != null) {
-                completer.ready(_dbClient); // completer only exists if we're deleting export masks
+            
+            // This code isn't ideal, but its too risky to rework it here.
+            // It cleans up the zoningMap entries in the associated ExportMasks
+            // if they still exist.
+            if (status && !lastReferenceZoneInfo.isEmpty()) {
+                _log.info("There seems to be last reference zones that were removed, clean those zones from the ExportMask zoning map.");
+                updateZoningMap(lastReferenceZoneInfo, exportGroupId, exportMaskURIs);
             }
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportMasksDelete", result);
+            completeWorkflowState(stepId, "zoneExportMasksDelete", result);
 
-            _log.info("Successfully removed zones for ExportGroup: {}", exportGroup.toString());
+            _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
             _log.error("Exception zoning delete Export Masks", ex);
             // TODO revisit Exceptions
             // Save our zone infos in case we want to rollback.
-            WorkflowService.getInstance().storeStepData(token, context);
+            WorkflowService.getInstance().storeStepData(stepId, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
-            if (completer != null) {
-                completer.error(_dbClient, svcError);
-            }
-            WorkflowStepCompleter.stepFailed(token, svcError);
+            WorkflowStepCompleter.stepFailed(stepId, svcError);
         }
         return status;
     }
@@ -1420,41 +1406,37 @@ public class NetworkDeviceController implements NetworkController {
     /**
      * Returns a Workflow Method for zoneExportRemoveVolumes
      * 
-     * @param exportGroupURI -- Export Group URI
-     * @param exportMaskURIs -- List of Export Mask URIs
-     * @param volumeURIs -- Collection of Volume URIs
+     * Removes the indicated volumes from the zones given by the zoning parameters.
+     * If the FCZoneReferences for a zone are all removed (and there are no existing
+     * volumes in the associated export mask), the zones will be removed from switch.
+     * @param zoningParams -- List of NetworkZoningParam structure containing needed information
+     *   derived from the ExportMasks
+     * @param volumeURIs -- List of volumes being removed from the masks
+     * @param stepId -- stepId from Workflow
      * @return Workflow.Method
      */
-    public Workflow.Method zoneExportRemoveVolumesMethod(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs) {
-        return new Workflow.Method("zoneExportRemoveVolumes", exportGroupURI, exportMaskURIs, volumeURIs);
+    public Workflow.Method zoneExportRemoveVolumesMethod(
+    		List<NetworkZoningParam> zoningParams, Collection<URI> volumeURIs) {
+        return new Workflow.Method("zoneExportRemoveVolumes", zoningParams, volumeURIs);
     }
-
+    
     /**
-     * This is called when volumes are removed from ExportMask(s). It is important because
-     * we keep a FCZoneReference for each export group / volume pair to each zone.
-     * The ExportMasks are read to determined the potential zones (initiators and
-     * ports). If the call includes the last volume to use a zone, it will be
-     * deleted.
-     * Note: these arguments (except token) must match zoneExportRemoveVolumesMethod above.
-     * This routine executes as a Workflow Step.
-     * 
-     * @param exportGroup
-     * @param exportMaskURIs - a List of ExportMask URIs
-     * @param volumeURIs - a Collection of Volume URIs
-     * @param token - The Workflow Step id.
-     * @return true if success, false otherwise
-     * @throws IOException
-     * @throws ControllerException
+     * Removes the indicated volumes from the zones given by the zoning parameters.
+     * If the FCZoneReferences for a zone are all removed (and there are no existing
+     * volumes in the associated export mask), the zones will be removed from switch.
+     * @param zoningParams -- List of NetworkZoningParam structure containing needed information
+     *   derived from the ExportMasks
+     * @param volumeURIs -- List of volumes being removed from the masks
+     * @param stepId -- stepId from Workflow
+     * @return true if zones are removed
      */
-    public boolean zoneExportRemoveVolumes(URI exportGroupURI,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
-        ExportGroup exportGroup = _dbClient
-                .queryObject(ExportGroup.class, exportGroupURI);
+    public boolean zoneExportRemoveVolumes(
+            List<NetworkZoningParam> zoningParams, Collection<URI> volumeURIs, String stepId) {
+        NetworkZoningParam zoningParam = zoningParams.get(0);
         _log.info(String.format(
-                "Entering zoneExportRemoveVolumes for ExportGroup: %s (%s) Volumes: %s",
-                exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksDelete(exportGroup, exportMaskURIs, volumeURIs, null, token);
+                "Entering zoneExportRemoveVolumes for ExportGroup: %s Volumes: %s",
+                zoningParam.getExportGroupDisplay(), volumeURIs.toString()));
+        return doZoneExportMasksDelete(zoningParams, volumeURIs, stepId);
     }
 
     /**

@@ -124,16 +124,14 @@ public class StorageProviderUtils {
         StorageProviderRestRep provider = getStorageProvider(id);
         if(provider.getSecondaryUsername()!=null && !provider.getSecondaryUsername().equals(secondaryUsername)) {
             update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, ""));
-            update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, ""));
         }
         if (provider.getSecondaryURL()!=null && !provider.getSecondaryURL().equals(secondaryURL)) {
             update.setSecondaryURL(StringUtils.defaultIfEmpty(secondaryURL, ""));
         }
-        if(StringUtils.isEmpty(secondaryURL) && secondaryUsername!=null) {
+        if(StringUtils.isEmpty(secondaryURL) && !secondaryUsername.isEmpty() && !StorageProviderTypes.isScaleIOApi(interfaceType)) {
                 update.setSecondaryURL(StringUtils.defaultIfEmpty(secondaryURL, ""));
-        } else if(StringUtils.isEmpty(secondaryUsername) && secondaryURL!=null) {
+        } else if(StringUtils.isEmpty(secondaryUsername) && secondaryURL!=null ) {
             update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, ""));
-            update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, ""));
         }
         return getViprClient().storageProviders().update(id, update);
     }

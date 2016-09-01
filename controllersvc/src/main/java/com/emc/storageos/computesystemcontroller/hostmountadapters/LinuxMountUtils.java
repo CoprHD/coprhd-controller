@@ -165,6 +165,19 @@ public class LinuxMountUtils {
         }
     }
 
+    public boolean verifyMountPoints(String mountPoint, String mountPath) throws InternalException {
+        ListMountPointsCommand command = new ListMountPointsCommand();
+        _log.info("check existing command:" + command.getResolvedCommandLine());
+        cli.executeCommand(command);
+        Map<String, MountPoint> mountPoints = command.getResults();
+        for (MountPoint mp : mountPoints.values()) {
+            if (StringUtils.equals(mp.getDevice(), mountPoint) && StringUtils.equals(mp.getPath(), mountPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static LinuxSystemCLI convertHost(Host host) {
         LinuxSystemCLI cli = new LinuxSystemCLI();
         cli.setHost(host.getHostName());
@@ -186,5 +199,4 @@ public class LinuxMountUtils {
     public String generateMountTag(URI hostId, String mountPath, String subDirectory, String securityType) {
         return "mountNFS;" + hostId.toString() + ";" + mountPath + ";" + subDirectory + ";" + securityType;
     }
-
 }

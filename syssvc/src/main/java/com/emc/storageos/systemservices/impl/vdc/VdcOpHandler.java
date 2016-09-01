@@ -140,12 +140,26 @@ public abstract class VdcOpHandler {
                 setRollingRebootNeeded(true);
             }
 
+            boolean bNeedFlushVdcConfigToLocal = false;
             String ipsecKeyZk = targetVdcPropInfo.getProperty(Constants.IPSEC_KEY);
             String ipsecKeyLocal = localVdcPropInfo.getProperty(Constants.IPSEC_KEY);
             if (ipsecKeyLocal == null || !ipsecKeyLocal.equals(ipsecKeyZk)) {
-                log.info("Local ipsec key doesn't match with new key in zk. Flush to local");
+                log.info("Local ipsec key doesn't match with new key in zk, need to flush to local");
+                bNeedFlushVdcConfigToLocal = true;
+            }
+
+            String ipsecStatusZK = targetVdcPropInfo.getProperty(Constants.IPSEC_STATUS);
+            String ipsecStatusLocal = localVdcPropInfo.getProperty(Constants.IPSEC_STATUS);
+            if (ipsecStatusLocal == null || !ipsecStatusLocal.equals(ipsecStatusZK)) {
+                log.info("Local ipsec status doesn't match with new status in zk, need to flush to local");
+                bNeedFlushVdcConfigToLocal = true;
+            }
+
+            if (bNeedFlushVdcConfigToLocal) {
+                log.info("flushing ipsec related configure changes to local.");
                 syncFlushVdcConfigToLocal();
             }
+
             refreshIPsec();
         }
     }

@@ -36,14 +36,22 @@ public interface FileServiceApi {
     /**
      * Create filesystems
      * 
-     * @param param -The filesystem creation post parameter
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
+     * @param param
+     *            -The filesystem creation post parameter
+     * @param project
+     *            -project requested
+     * @param varray
+     *            -source VirtualArray
+     * @param vpool
+     *            -VirtualPool requested
+     * @param recommendations
+     *            -Placement recommendation object
+     * @param taskList
+     *            -list of tasks for source filesystems
+     * @param task
+     *            -task ID
+     * @param vpoolCapabilities
+     *            -wrapper for vpool params
      * @return TaskList
      * 
      * @throws InternalException
@@ -57,11 +65,15 @@ public interface FileServiceApi {
     /**
      * Delete the passed filesystems for the passed system.
      * 
-     * @param systemURI -URI of the system owing the filesystems.
-     * @param fileSystemURIs- The URIs of the filesystems to be deleted.
-     * @param deletionType -The type of deletion to perform.
+     * @param systemURI
+     *            -URI of the system owing the filesystems.
+     * @param fileSystemURIs-
+     *            The URIs of the filesystems to be deleted.
+     * @param deletionType
+     *            -The type of deletion to perform.
      * @param
-     * @param task -The task identifier.
+     * @param task
+     *            -The task identifier.
      * 
      * @throws InternalException
      */
@@ -91,14 +103,22 @@ public interface FileServiceApi {
     /**
      * Create Continuous Copies for existing source file system
      * 
-     * @param fs -source file system for which mirror file system to be created
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
+     * @param fs
+     *            -source file system for which mirror file system to be created
+     * @param project
+     *            -project requested
+     * @param varray
+     *            -source VirtualArray
+     * @param vpool
+     *            -VirtualPool requested
+     * @param recommendations
+     *            -Placement recommendation object
+     * @param taskList
+     *            -list of tasks for source filesystems
+     * @param task
+     *            -task ID
+     * @param vpoolCapabilities
+     *            -wrapper for vpool params
      * @return TaskList
      * 
      * @throws InternalException
@@ -138,10 +158,11 @@ public interface FileServiceApi {
      * @param storage
      * @param fsURI
      * @param param
+     * @param unmountExport
      * @param opId
      * @throws InternalException
      */
-    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
             throws InternalException;
 
     /**
@@ -190,7 +211,8 @@ public interface FileServiceApi {
      * @param taskId
      * @throws InternalException
      */
-    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
+    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId)
+            throws InternalException;
 
     /**
      * Fail over the File System to target system

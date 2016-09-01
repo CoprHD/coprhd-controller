@@ -23,7 +23,9 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.google.common.collect.Collections2;
 
 /*
@@ -53,10 +55,31 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(mask
                 .getMaskName()));
         if (null != maskUris && !maskUris.isEmpty()) {
+            boolean checkMaskPathForVplex = false;
+            if (maskUris.size() > 1) {
+                // if more than one mask was returned by name and this is a vplex system,
+                // it could be the case that there are storage views on each vplex cluster
+                // with the same name, so we need to check the full unmanaged export mask path
+                StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
+                checkMaskPathForVplex = storageSystem != null && ConnectivityUtil.isAVPlex(storageSystem);
+            }
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                if (null == exportMask) {
+                    continue;
+                }
+                if (checkMaskPathForVplex) {
+                    if (exportMask.getNativeId() != null 
+                            && exportMask.getNativeId().equalsIgnoreCase(mask.getNativeId())){
+                        // this is not the right mask
+                        _logger.info("found a mask with the same name {}, but the mask view paths are different. "
+                                + "UnManagedExportMask: {} Existing ExportMask: {}", mask.getMaskName(),
+                                mask.getNativeId(), exportMask.getNativeId());
+                        continue;
+                    }
+                }
                 // COP-18184 : Check if the initiators are also matching
-                if (null != exportMask && exportMask.getInitiators() != null
+                if (exportMask.getInitiators() != null
                         && exportMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
                     return exportMask;
                 }

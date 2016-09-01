@@ -111,6 +111,7 @@ public interface SmisConstants {
     static final String DEFAULT_INSTANCE = "DefaultInstance";
     static final String EMC_CONSISTENCY_EXEMPT = "EMCConsistencyExempt";
     static final String CONSISTENCY_EXEMPT = "ConsistencyExempt";
+    static final String FORMAT = "Format";
     static final String EMPTY_STRING = "";
     static final String ROOT_EMC_NAMESPACE = "root/emc";
     static final String STORAGE_CONFIGURATION_SERVICE = "_StorageConfigurationService";

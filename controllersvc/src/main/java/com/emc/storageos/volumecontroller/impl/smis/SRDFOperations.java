@@ -175,7 +175,7 @@ public class SRDFOperations implements SmisConstants {
             String targetGroupName = (String) tgtCGPath.getKey(CP_INSTANCE_ID).getValue();
             log.info("Target Volumes placed into replication group: {}", tgtCGPath);
 
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(systemWithCg, modeValue);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(systemWithCg, modeValue, false);
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
             if (completer instanceof SRDFLinkStartCompleter) {
@@ -274,7 +274,7 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     group);
             // look for existing volumes, if found then use AddSyncPair
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, false);
             String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceblockObj, dbClient);
             CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
                     groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
@@ -324,7 +324,7 @@ public class SRDFOperations implements SmisConstants {
         return false;
     }
 
-    private CIMInstance getReplicationSettingDataInstance(final StorageSystem sourceSystem, int modeValue) {
+    private CIMInstance getReplicationSettingDataInstance(final StorageSystem sourceSystem, int modeValue, boolean formatToBeCreatedPairs) {
         CIMInstance modifiedInstance = null;
         try {
             CIMObjectPath replicationSettingCapabilities = cimPath
@@ -354,6 +354,21 @@ public class SRDFOperations implements SmisConstants {
                                         existingProp.getDataType(), true);
                             } else {
                                 prop = new CIMProperty<Object>(EMC_CONSISTENCY_EXEMPT,
+                                        existingProp.getDataType(), true);
+                            }
+                            propList.add(prop);
+                        }
+                        if (formatToBeCreatedPairs && Mode.ACTIVE.getMode() == modeValue) {
+                            // NOTE: Format flag will wipe out the data.
+                            CIMProperty<?> existingProp = repInstance.getProperty(FORMAT);
+                            CIMProperty<?> prop = null;
+                            if (existingProp == null) {
+                                // Format property is now part of the smi-s standard. Available in providers 8.0+ (VMAX3 arrays)
+                                existingProp = repInstance.getProperty(FORMAT);
+                                prop = new CIMProperty<Object>(FORMAT,
+                                        existingProp.getDataType(), true);
+                            } else {
+                                prop = new CIMProperty<Object>(FORMAT,
                                         existingProp.getDataType(), true);
                             }
                             propList.add(prop);
@@ -609,7 +624,7 @@ public class SRDFOperations implements SmisConstants {
             }
 
             Mode mode = Mode.valueOf(targets.get(0).getSrdfCopyMode());
-            CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode());
+            CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode(), false);
 
             @SuppressWarnings("rawtypes")
             CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, settingInstance,
@@ -655,7 +670,7 @@ public class SRDFOperations implements SmisConstants {
 
             if (groupSynchronized != null && null != syncPair) {
                 CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(activeProviderSystem,
-                        Mode.valueOf(target.getSrdfCopyMode()).getMode());
+                        Mode.valueOf(target.getSrdfCopyMode()).getMode(), false);
                 @SuppressWarnings("rawtypes")
                 CIMArgument[] inArgs = helper.getRemoveSyncPairInputArguments(groupSynchronized,
                         syncPair, replicationSettingDataInstance);
@@ -702,7 +717,7 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath tgtVolumePath = cimPath.getVolumePath(targetSystem, target.getNativeId());
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     group);
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, false);
             CIMArgument[] inArgs = helper.getCreateElementReplicaForSRDFInputArguments(
                     srcVolumePath, tgtVolumePath, repCollectionPath, modeValue,
                     replicationSettingDataInstance);
@@ -725,7 +740,7 @@ public class SRDFOperations implements SmisConstants {
     }
 
     public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
-            TaskCompleter completer) {
+            boolean formatToBeCreatedPairs, TaskCompleter completer) {
         try {
 
             Volume firstTarget = dbClient.queryObject(Volume.class, targets.get(0));
@@ -734,7 +749,7 @@ public class SRDFOperations implements SmisConstants {
             int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
             CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue, formatToBeCreatedPairs);
 
             List<CIMObjectPath> sourcePaths = new ArrayList<>();
             List<CIMObjectPath> targetPaths = new ArrayList<>();
@@ -1872,7 +1887,7 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     raGroup);
             // look for existing volumes, if found then use AddSyncPair
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, false);
             String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
             CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
                     groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);

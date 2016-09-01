@@ -2634,8 +2634,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
+            boolean formatToBeCreatedPairs,
             TaskCompleter completer) {
-        _srdfOperations.createListReplicas(system, sources, targets, addWaitForCopyState, completer);
+        _srdfOperations.createListReplicas(system, sources, targets, addWaitForCopyState, formatToBeCreatedPairs, completer);
     }
 
     @Override

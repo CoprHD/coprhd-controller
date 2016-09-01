@@ -51,7 +51,7 @@ public interface RemoteMirroring {
      * @param completer
      */
     void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
-            TaskCompleter completer);
+            boolean formatToBeCreatedPairs, TaskCompleter completer);
 
     /**
      * Detach a source and target from their replication link.

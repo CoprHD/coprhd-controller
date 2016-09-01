@@ -402,9 +402,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         // .getNativeGuid());
         // }
         // }
-
+        // We need to format the volumes that we are adding if the RDF Group is non empty
+        boolean formatToBeCreatedPairs = volumesInRDFGroupsOnProvider.isEmpty() ? false : true;
         String createSrdfPairStep = createNonCGSrdfActivePairSteps(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
-                workflow);
+                workflow, formatToBeCreatedPairs);
         // if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
         // log.info("RA Group {} was empty", group.getId());
         // createSrdfPairStep = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
@@ -707,7 +708,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * 1. Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -1444,12 +1445,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
     private Workflow.Method
             createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
-                    boolean addWaitForCopyState) {
-        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState);
+                    boolean addWaitForCopyState, boolean formatToBeCreatedPairs) {
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState,
+                formatToBeCreatedPairs);
     }
 
     public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
-            boolean addWaitForCopyState, String opId) {
+            boolean addWaitForCopyState, boolean formatToBeCreatedPairs, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
         try {
@@ -1461,7 +1463,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(targetURIs);
 
             completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
+            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, formatToBeCreatedPairs,
+                    completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
             log.info("OpId: {}", opId);
@@ -1550,12 +1553,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
      * @param uriVolumeMap map of volume URI to volume object
      * @param waitFor String waitFor of previous step, we wait on this to complete
      * @param workflow Reference to Workflow
+     * @param formatToBeCreatedPairs is a boolean that tells if the Volumes need to be formatted.
      * @return stepId
      **/
 
     private String createNonCGSrdfActivePairSteps(List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group, Map<URI, Volume> uriVolumeMap,
-            String waitFor, Workflow workflow) {
+            String waitFor, Workflow workflow, boolean formatToBeCreatedPairs) {
 
         StorageSystem system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
         URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
@@ -1575,7 +1579,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, true);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, true,
+                formatToBeCreatedPairs);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 

@@ -962,6 +962,7 @@
 
     <bean id="vnxFileDevice" class="com.emc.storageos.volumecontroller.impl.vnx.VNXFileStorageDeviceXML">
         <property name="dbClient" ref="dbclient"/>
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
     </bean>
     
     <bean id="vnxeDevice" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeStorageDevice">

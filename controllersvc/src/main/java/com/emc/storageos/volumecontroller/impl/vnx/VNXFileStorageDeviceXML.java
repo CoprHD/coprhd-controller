@@ -50,6 +50,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
+import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 
 /*
  * Suppressing these warnings as fix will be made in future release.
@@ -68,6 +69,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     private int _controllerID = 4002;
 
     private DbClient _dbClient;
+    
+    private CIMConnectionFactory _cimConnection = null;
 
     private static final String ERROR = "error";
     private static final String READY = "ready";
@@ -80,6 +83,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
+    }
+    
+    public void setCimConnectionFactory(CIMConnectionFactory connectionFactory) {
+        _cimConnection = connectionFactory;
     }
 
     /**
@@ -1036,7 +1043,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public void doConnect(StorageSystem storage) {
-
+        try {
+            _cimConnection.getConnection(storage);
+        } catch (Exception e) {
+            throw new IllegalStateException("No cim connection for " + storage.getIpAddress(), e);
+        }
     }
 
     @Override

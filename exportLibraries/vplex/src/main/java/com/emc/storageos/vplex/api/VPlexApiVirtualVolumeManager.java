@@ -92,13 +92,13 @@ public class VPlexApiVirtualVolumeManager {
         } else if ((!isDistributed) && (nativeVolumeInfoList.size() != 1)) {
             throw VPlexApiException.exceptions.oneDevicesRequiredForLocalVolume();
         }
-
-        // Find the storage volumes corresponding to the passed native
-        // volume information, discovery them if required.
+        
         if (null == clusterInfoList) {
             clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
 
+        // Find the storage volumes corresponding to the passed native
+        // volume information, discover them if required.
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(nativeVolumeInfoList,
                 discoveryRequired, clusterInfoList);
 

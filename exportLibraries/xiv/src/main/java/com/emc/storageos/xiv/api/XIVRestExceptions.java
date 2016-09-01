@@ -73,6 +73,6 @@ public interface XIVRestExceptions {
     public XIVRestException queryExistingMasksFailure(final String message, final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.XIV_REST_REQUEST_FAILURE)
-    public XIVRestException errorInHSMHostConfiguration(final String initiatorPort, final String storageName);
+    public XIVRestException errorInHSMHostConfiguration(final String message);
 
 }

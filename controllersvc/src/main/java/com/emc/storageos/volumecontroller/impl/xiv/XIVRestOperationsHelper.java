@@ -114,7 +114,9 @@ public class XIVRestOperationsHelper {
     	if(null != initiators && !initiators.isEmpty()) {
     		Set<String> hostNames = new HashSet<String>();
     		XIVRestClient restExportOpr = getRestClient(storage);
-    		
+    		if(null == restExportOpr){
+    		    return isClusteredHost;
+    		}
     		//From Initiators find all the Hosts on Array
     		for (Initiator initiator : initiators) {
 	    		try {
@@ -122,9 +124,12 @@ public class XIVRestOperationsHelper {
 	        		if(null != hostName) {
 	        			hostNames.add(hostName);	
 	        		}
-				} catch (Exception e) {
-					throw XIVRestException.exceptions.errorInHSMHostConfiguration(initiator.getInitiatorPort(), storage.getLabel());
-				}
+                } catch (Exception e) {
+                    _log.error("Invalid host : {} or Port : {} for HSM from Storage System : {} ", storage.getSmisProviderIP(),
+                            initiator.getInitiatorPort(), storage.getLabel());
+                    final String errorMessage = "Unable to contact Hyper Scale Manager to execute operation. Either Host or Port could be invalid.";
+                    throw XIVRestException.exceptions.errorInHSMHostConfiguration(errorMessage);
+                }
     		}
     		
     		//Check if Host is part of Cluster

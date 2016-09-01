@@ -25,6 +25,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_SERVICE;
 import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
@@ -45,6 +46,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.MIGRATION;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.ORDER;
 import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
@@ -138,6 +140,8 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
 
@@ -211,6 +215,8 @@ public class ResourceTypeMapping {
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
         classMapping.put(OPENSTACK_TENANT, OSTenant.class);
         classMapping.put(STORAGE_SYSTEM_TYPE, StorageSystemType.class);
+        classMapping.put(CATALOG_SERVICE, CatalogService.class);
+        classMapping.put(ORDER, Order.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

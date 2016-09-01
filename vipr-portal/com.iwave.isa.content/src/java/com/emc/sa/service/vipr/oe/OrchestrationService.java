@@ -46,7 +46,7 @@ public class OrchestrationService extends ViPRService {
 
 		// how to fail workflow: throw exception:
 	    if(workflowResponse == null ) {
-	        throw new IllegalStateException("Workflow failed");
+	        throw new IllegalStateException("Workflow did not return any response.");
 	    }
 
 	    ExecutionUtils.currentContext().logInfo("Orchestration Engine Workflow " +

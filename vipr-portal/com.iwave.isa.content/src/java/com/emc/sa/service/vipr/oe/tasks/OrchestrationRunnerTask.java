@@ -45,6 +45,10 @@ public class OrchestrationRunnerTask extends ViPRExecutionTask<String> {
         do {
             workflowResponse = getOeWorkflowResponse(workflowId); // retrieve current response of running WF
 
+            if(workflowResponse == null) {
+                continue;
+            }
+            
             // here we check the response to see what's in it, looking for useful things
             
             // see if it contains an Operation with ViPR Tasks
@@ -113,6 +117,8 @@ public class OrchestrationRunnerTask extends ViPRExecutionTask<String> {
     private String startWorkflow() {
         
         // TODO: add code to start workflow (call OE_Runner?)
+        
+        ExecutionUtils.currentContext().logInfo("Orchestration Engine Runner started.");
         
         return null;  // return WF ID?
     }

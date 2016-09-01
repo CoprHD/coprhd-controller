@@ -648,24 +648,16 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 int alreadyAssigned = 0;
                 List<StoragePort> assignedPorts = assignments.get(initiator);
                 if (assignedPorts != null) {
-                	alreadyAssigned = assignedPorts.size();
-                	if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
-                		// Sufficient ports have already been assigned.
-                		entry.getValue().remove(initiator);
-                		// This counts as we added something because we processed a previous mapping
-                		continue;
-                	} else {
-                		_log.info(String.format("Retaining partial assignments Initiator %s (%s):", 
-                    			initiator.getInitiatorPort(), initiator.getHostName()));
-                    	for (StoragePort port : assignedPorts) {
-                    		_log.info(String.format("   Port %s (%s/%s) network %s assigned to initiator %s/%s (%s)\n",
-                    				port.getPortName(), port.getPortNetworkId(), 
-                    				getPortSwitchName(port, portAddressToSwitchName), entry.getKey(),
-                    				initiator.getInitiatorPort(), getInitiatorSwitchName(initiator, initiatorToSwitchName),
-                    				initiator.getHostName()));
-                    		addPortUse(portUseCounts, port);
-                    	}
-                	}
+                    assignPortsToAssociatedInitiator(initiator, assignedPorts, assignments, entry.getValue());
+                    alreadyAssigned = assignedPorts.size();
+                    if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
+                        _log.info(String.format("Assignments sufficient for initiator %s (%s)",
+                                initiator.getInitiatorPort(), initiator.getHostName()));
+                        entry.getValue().remove(0);
+                        // This counts as we added something because we processed a previous mapping
+                        addedThisPass = true;
+                        continue;
+                    }
                 }
                 if ((currentStoragePaths + pathParams.getPathsPerInitiator() - alreadyAssigned) <= pathParams.getMaxPaths()) {
                     List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
@@ -673,12 +665,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator() - alreadyAssigned, 0);
 
                     if (availPorts != null) {
+
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
                         // Remove this initiator from further provisioning consideration
-                        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
-                        if (associatedInitiator != null) {
-                            entry.getValue().remove(associatedInitiator);
-                        }
+                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
                         entry.getValue().remove(0);
                         addedThisPass = true;
                     } else {
@@ -704,6 +694,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                             pathParams.getMaxInitiatorsPerPort() - 1);
                     if (availPorts != null) {
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
+                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
                     } else {
                         _log.info(String.format("No available ports for initiator %s",
                                 initiator.getInitiatorPort()));
@@ -828,19 +819,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     getPortSwitchName(port, portAddressToSwitchMap), netURI,
                     initiator.getInitiatorPort(), getInitiatorSwitchName(initiator, initiatorToSwitchMap), 
                     initiator.getHostName()));
-
             addPortUse(portUseCounts, port);
-        }
-
-        Initiator associatedInitiatorInAssignments = getAssociatedInitiator(initiator, assignments);
-
-        if (associatedInitiatorInAssignments != null) {
-
-            if (assignments.get(associatedInitiatorInAssignments) != null) {
-                assignments.get(associatedInitiatorInAssignments).addAll(assignedPorts);
-            } else {
-                assignments.put(associatedInitiatorInAssignments, assignedPorts);
-            }
         }
 
         if (assignments.get(initiator) != null) {
@@ -898,66 +877,19 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         return new HashMap<Initiator, List<StoragePort>>();
     }
-    
-    /**
-     * Makes a map of StoragePort portNetworkId to switch name. Used for logging.
-     * @param switchToStoragePortsByNet Map of network to map of switch name to storage ports
-     * @return Map of port network id to switch name
-     */
-    private Map<String, String> makePortAddressToSwitchMap(Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
-    	Map<String, String> result = new HashMap<String, String>();
-    	if (switchToStoragePortsByNet == null) {
-    		return result;
-    	}
-    	for (Map<String, List<StoragePort>> switchToPorts : switchToStoragePortsByNet.values()) {
-    		for (Map.Entry<String, List<StoragePort>> entry : switchToPorts.entrySet()) {
-    			for (StoragePort port : entry.getValue()) {
-    				result.put(port.getPortNetworkId(), entry.getKey());
-    				_log.info(String.format("%s WWN %s SWITCH %s NET %s", 
-    						port.getPortName(), port.getPortNetworkId(), entry.getKey(), port.getNetwork()));
-    			}
-    		}
-    	}
-    	return result;
-    }
-    
-    /**
-     * Given a portAddressToSwitchMap and a port, returns the switch name
-     * @param port -- StoragePort
-     * @param portAddressToSwitchMap -- map of Port NetworkId to Switch Name
-     * @return -- Switch name string
-     */
-    private String getPortSwitchName(StoragePort port, Map<String, String> portAddressToSwitchMap) {
-    	if (portAddressToSwitchMap == null || !portAddressToSwitchMap.containsKey(port.getPortNetworkId())) {
-    		return "sw?";
-    	}
-    	return portAddressToSwitchMap.get(port.getPortNetworkId());
-    }
-    
-    /**
-     * Returns a map of Initiator to Switch Name
-     * @param switchToInitiatorsByNetwork -- Map of Network to Map of SwitchName to List of Initiators
-     * @return == Map of Initiator to Switch Name
-     */
-    private Map<Initiator, String> makeInitiatorToSwitchMap(Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNetwork) {
-    	Map<Initiator, String> initiatorToSwitchMap = new HashMap<Initiator, String>();
-    	if (switchToInitiatorsByNetwork == null) {
-    		return initiatorToSwitchMap;
-    	}
-    	for (Map<String, List<Initiator>> switchToInitiators: switchToInitiatorsByNetwork.values()) {
-    		for (Map.Entry<String, List<Initiator>> entry : switchToInitiators.entrySet()) {
-    			for (Initiator initiator : entry.getValue()) {
-    				initiatorToSwitchMap.put(initiator,  entry.getKey());
-    			}
-    		}
-    	}
-    	return initiatorToSwitchMap;
-    }
-    
-    private String getInitiatorSwitchName(Initiator initiator, Map<Initiator, String> initiatorToSwitchMap) {
-    	if (initiatorToSwitchMap == null || !initiatorToSwitchMap.containsKey(initiator)) {
-    		return "sw?";
-    	}
-    	return initiatorToSwitchMap.get(initiator);
+
+    private void assignPortsToAssociatedInitiator(Initiator initiator, List<StoragePort> assignedPorts,
+            Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
+        if (associatedInitiator != null) {
+            if (assignments.get(associatedInitiator) != null) {
+                assignments.get(associatedInitiator).addAll(assignedPorts);
+            } else {
+                assignments.put(associatedInitiator, assignedPorts);
+            }
+            if (initiatorList != null) {
+                initiatorList.remove(associatedInitiator);
+            }
+        }
     }
 }

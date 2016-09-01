@@ -353,11 +353,9 @@ public class RecoverPointImageManagementUtils {
                 impl.disableImageAccess(cgCopy, startTransfer);
             }
 
-            waitForDisableToComplete(impl, cgCopyName, cgName, cgCopy);
+            waitForCGCopyState(impl, cgCopy, StorageAccessState.NO_ACCESS);
             logger.info(String.format("Successfully disabled image for copy %s in consistency group %s", cgCopyName, cgName));
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToDisableCopy(cgCopyName, cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
             throw RecoverPointException.exceptions.failedToDisableCopy(cgCopyName, cgName, e);
         }
     }
@@ -1067,6 +1065,66 @@ public class RecoverPointImageManagementUtils {
                 logger.info("Copy image " + cgCopyName + " of group " + cgName + " not in correct state.  Sleeping " + sleepTimeSeconds
                         + " seconds");
                 Thread.sleep(Long.valueOf(sleepTimeSeconds * numMillisInSecond));
+            }
+        }
+        throw RecoverPointException.exceptions.stateChangeNeverCompleted();
+    }
+
+    /**
+     * Wait for a CG copy to change state
+     *
+     * @param impl - the FAPI implementation
+     * @param groupCopy - RP group copy we are looking at
+     * @param accessState - Access modes we are waiting for
+     *
+     * @return void
+     *
+     * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
+     *             InterruptedException
+     **/
+    public void waitForCGCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID groupCopy, StorageAccessState accessState)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException,
+            RecoverPointException {
+
+        if (accessState == null) {
+            throw RecoverPointException.exceptions.waitForInvalidCopyState("null");
+        }
+
+        ConsistencyGroupUID groupUID = groupCopy.getGroupUID();
+        List<ConsistencyGroupCopyState> groupCopyStateList;
+        String cgName = impl.getGroupName(groupCopy.getGroupUID());
+        String cgCopyName = impl.getGroupCopyName(groupCopy);
+        final int maxMinutes = 30;
+        final int sleepTimeSeconds = 15; // seconds
+        final int secondsPerMin = 60;
+        final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
+
+        logger.info(String.format(
+                "Waiting up to %d minutes for consistency group copy state to change to %s.  Copy name: %s, consistency group name: %s.",
+                maxMinutes, accessState.toString(), cgCopyName, cgName));
+
+        for (int minIter = 0; minIter < maxMinutes; minIter++) {
+            for (int perMinIter = 0; perMinIter < numItersPerMin; perMinIter++) {
+                groupCopyStateList = impl.getGroupState(groupUID).getGroupCopiesStates();
+                for (ConsistencyGroupCopyState groupCopyState : groupCopyStateList) {
+                    if (RecoverPointUtils.copiesEqual(groupCopyState.getCopyUID(), groupCopy)) {
+                        StorageAccessState copyAccessState = groupCopyState.getStorageAccessState();
+                        logger.info("Current Copy Access State: " + copyAccessState);
+
+                        if (copyAccessState.equals(accessState)) {
+                            logger.info(String.format("Copy %s of group %s is in %s state.", cgCopyName, cgName, copyAccessState.toString()));
+                            return;
+                        }
+                    }
+                }
+                logger.info("Copy image " + cgCopyName + " of group " + cgName + " not in correct state.  Sleeping " + sleepTimeSeconds
+                        + " seconds");
+                try {
+                    Thread.sleep(Long.valueOf(sleepTimeSeconds * numMillisInSecond));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
             }
         }
         throw RecoverPointException.exceptions.stateChangeNeverCompleted();

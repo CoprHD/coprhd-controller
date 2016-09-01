@@ -749,9 +749,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("mask %s - going to remove the "
                                 + "following initiators %s. ", mask.getMaskName(),
                                 Joiner.on(',').join(initiatorsToRemove)));
-                        errorMessage.append(String.format("mask %s - going to remove the "
-                                + "following initiators %s ", mask.getMaskName(),
-                                Joiner.on(',').join(initiatorsToRemove)));
                         Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                         maskToInitiatorsMap.put(mask.getId(), initiatorsToRemove);
 

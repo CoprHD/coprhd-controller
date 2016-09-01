@@ -1333,6 +1333,9 @@ public class DBClient {
                 _dbClient.updateObject(newObject);
                 logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));
                 runResult = true;
+            } else {
+                logMsg(String.format("Could not find data object record for %s in cf %s, no need to rebuild index. Mark as success too.", id, clazz));
+                runResult = true;
             }
         } catch (Exception e) {
             logMsg(String.format("Error when rebuilding index for %s in cf %s", id, clazz), true, e);

@@ -673,7 +673,7 @@ public class BlockStorageDeviceTest {
         List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
         if (masks.isEmpty()) {
             exportGroup.addExportMask(getExportMask().getId());
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
         }
 
         return exportGroup;
@@ -689,7 +689,7 @@ public class BlockStorageDeviceTest {
             ExportMask mask = iter.next();
             mask.setMaskName("host2278");
             mask.setStorageDevice(_storageSystem.getId());
-            _dbClient.persistObject(mask);
+            _dbClient.updateObject(mask);
             return mask;
         }
 

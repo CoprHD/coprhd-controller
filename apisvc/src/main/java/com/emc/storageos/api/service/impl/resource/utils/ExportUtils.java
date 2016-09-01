@@ -674,7 +674,7 @@ public class ExportUtils {
                 List<ExportGroup> maskGroups = new ArrayList<ExportGroup>();
                 exportMasks.put(exportMask, maskGroups);
                 for (ExportGroup group : exportGroups) {                   
-                    for(ExportMask em : ExportMaskUtils.getExportMasks(dbClient, group)) {
+                    for (ExportMask em : ExportMaskUtils.getExportMasks(dbClient, group)) {
                     	if (em.getId().toString().equals(exportMask.getId().toString())) {
                     		maskGroups.add(group);
                     	}

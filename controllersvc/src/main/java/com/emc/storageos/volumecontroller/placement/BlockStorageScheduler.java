@@ -451,7 +451,7 @@ public class BlockStorageScheduler {
                             + "Examining storage ports and qualifying only storage ports used in the RecoverPoint masking view(s)");
                     // Explore storage ports in the masking views and collect them.
                     Set<URI> rpTargetPorts = new HashSet<URI>();
-                    if (exportGroup.getExportMasks() == null || exportGroup.getExportMasks().isEmpty()) {
+                    if (exportGroup == null || exportGroup.getExportMasks() == null || exportGroup.getExportMasks().isEmpty()) {
                         continue;
                     }
                     List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);

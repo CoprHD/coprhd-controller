@@ -950,7 +950,7 @@ public class NetworkDeviceController implements NetworkController {
                     .queryObject(ExportGroup.class, exportGroupURI);   	            
         	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
-            if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
+            if (exportMaskURIs == null && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.
                 exportMaskURIs = new ArrayList<URI>(Collections2.transform(
                         exportGroup.getExportMasks(),

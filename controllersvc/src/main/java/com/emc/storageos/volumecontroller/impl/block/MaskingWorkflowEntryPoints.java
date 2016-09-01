@@ -208,7 +208,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
             // There will be only export mask for the create export group use case,
             // so fetch the 0th URI
-            if (exportMasks.size() > 0) {
+            if (!exportMasks.isEmpty()) {
 	            ExportMask mask = exportMasks.get(0);	
 	            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
             }

@@ -146,15 +146,13 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
      */
     protected boolean hasActiveMasks(DbClient dbClient, ExportGroup exportGroup) {
 
-    	List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
-    	if (!exportMasks.isEmpty()) {
-            for (ExportMask exportMask : exportMasks) {
-                if (exportMask != null && !exportMask.getInactive()) {
-                    _logger.info("this ExportGroup has active masks: " + exportGroup.getGeneratedName());
-                    return true;
-                }
+    	List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);    	
+        for (ExportMask exportMask : exportMasks) {
+            if (exportMask != null && !exportMask.getInactive()) {
+                _logger.info("this ExportGroup has active masks: " + exportGroup.getGeneratedName());
+                return true;
             }
-        }
+        }       
 
         _logger.info("this ExportGroup does not have any remaining active masks: "
                 + exportGroup.getGeneratedName());

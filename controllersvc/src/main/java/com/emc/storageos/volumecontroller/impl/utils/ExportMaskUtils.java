@@ -810,7 +810,7 @@ public class ExportMaskUtils {
 
     static public Map<String, Set<URI>> mapComputeResourceToExportMask(DbClient dbClient, ExportGroup exportGroup, URI storage) {
         Map<String, Set<URI>> computeResourceToExportMaskURIs = new HashMap<String, Set<URI>>();
-        if (exportGroup.getExportMasks() != null) {
+        if (exportGroup != null && exportGroup.getExportMasks() != null) {
             for (String exportMaskURIStr : exportGroup.getExportMasks()) {
                 ExportMask mask = asExportMask(dbClient, exportMaskURIStr);
                 if (mask == null || (mask.getStorageDevice() != null && !mask.getStorageDevice().equals(storage))) {

@@ -428,7 +428,8 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup
      */
     private void validateUpdateRemoveInitiators(ExportUpdateParam param, ExportGroup exportGroup) {
-        if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup.getExportMasks() != null) {
+        if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup != null && 
+        		exportGroup.getExportMasks() != null) {
             for (URI initiatorId : param.getInitiators().getRemove()) {
                 // Check all export masks associated with this export group
                 if (!ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {

@@ -14,6 +14,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.google.common.collect.Collections2;
 import org.slf4j.Logger;
@@ -90,7 +91,10 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         Collection<URI> volURIs = Collections2.transform(ctx.getBlockObjects(), CommonTransformerFunctions.fctnDataObjectToID());
         validator.setVolumesToValidate(volURIs);
         validator.setInitiatorsToValidate(ctx.getInitiators());
-        return validator;
+
+        DefaultValidator defaultValidator = new DefaultValidator(validator, config, logger, "Export Mask");
+        defaultValidator.setExceptionContext(ctx);
+        return defaultValidator;
     }
 
     @Override
@@ -100,7 +104,9 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
         VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, storage, exportMask);
         validator.setInitiatorsToValidate(initiators);
-        return validator;
+
+        DefaultValidator defaultValidator = new DefaultValidator(validator, config, logger, "Export Mask");
+        return defaultValidator;
     }
 
     @Override
@@ -120,7 +126,10 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         Collection<URI> uris = Collections2.transform(blockObjects, CommonTransformerFunctions.fctnDataObjectToID());
         // FIXME setVolumesToValidate should accept Collection<Volume> (or <? extends BlockObject>)
         validator.setVolumesToValidate(uris);
-        return validator;
+
+        DefaultValidator defaultValidator = new DefaultValidator(validator, config, logger, "Export Mask");
+        defaultValidator.setExceptionContext(ctx);
+        return defaultValidator;
     }
 
     @Override

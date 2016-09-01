@@ -73,15 +73,8 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 log.info(String.format("Storage View %s cannot be located on VPLEX", id));
                 return false;
             }
-            log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            if (getValidatorConfig().validationEnabled()) {
-                throw DeviceControllerException.exceptions.unexpectedCondition(
-                        "Unexpected exception validating ExportMask: " + ex.getMessage());
-            }
-        }
-        if (getValidatorLogger().hasErrors() && getValidatorConfig().validationEnabled()) {
-            throw DeviceControllerException.exceptions.validationError(
-                    "Export Mask", getValidatorLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            log.error("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
+            throw ex;
         }
         log.info("Vplex ExportMask validation complete: " + id);
 

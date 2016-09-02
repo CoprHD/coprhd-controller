@@ -380,6 +380,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     mgmntServer.getInterfaceType(), systemSerialNumber.toString());
             s_logger.info("Scanned VPLEX system {}", systemNativeGUID);
 
+            // Check for potential cluster hardware changes from local to metro, or vice versa 
             checkForClusterHardwareChange(clusterAssembyIds, systemNativeGUID, systemSerialNumber.toString(), client, scanCache);
 
             // Determine if the VPLEX system was already scanned by another
@@ -432,38 +433,37 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             List<StorageSystem> vplexLocalStorageSystems = 
                     VPlexControllerUtils.getAllVplexLocalStorageSystems(_dbClient);
             for (StorageSystem vplex : vplexLocalStorageSystems) {
-                if (null != vplex) {
+                if (null != vplex && null != vplex.getVplexAssemblyIdtoClusterId()) {
                     // because this is a local system, it should have only one assembly id
                     String assemblyId = vplex.getVplexAssemblyIdtoClusterId().keySet().iterator().next();
                     if (systemNativeGUID.contains(assemblyId)) {
-
+                        String message = 
+                                String.format("Existing VPLEX local assembly id %s is a substring of the newly-discoverd system GUID %s, "
+                                + "which indicates a change in VPLEX hardware configuration from local to metro. "
+                                + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
+                                + "to contact EMC Customer Support.", assemblyId, systemNativeGUID);
                         boolean allowAutoUpgrade = Boolean.valueOf(ControllerUtils
                             .getPropertyValueFromCoordinator(
                                     _coordinator, ALLOW_LOCAL_TO_METRO_AUTO_UPGRADE));
                         if (!allowAutoUpgrade) {
                             if (null != vplex && systemNativeGUID.contains(vplex.getNativeGuid())) {
-                                String message = 
-                                        String.format("Existing VPLEX local native GUID %s is a substring of the newly-discoverd system GUID %s, "
-                                        + "which indicates a change in VPLEX hardware configuration from local to metro. "
-                                        + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
-                                        + "to contact EMC Customer Support.", vplex.getNativeGuid(), systemNativeGUID);
                                 s_logger.error(message);
                                 vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
                                 vplex.setLastDiscoveryStatusMessage(message);
                                 vplex.setLastDiscoveryRunTime(System.currentTimeMillis());
                                 _dbClient.updateObject(vplex);
-                                throw new Exception(message);
+                                throw VPlexApiException.exceptions
+                                    .vplexClusterConfigurationChangedFromLocalToMetro(assemblyId, systemNativeGUID);
                             }
                         } else {
-                            String message = 
-                                    String.format("Existing VPLEX local native GUID %s is a part of the newly-discoverd system GUID %s, "
-                                    + "which indicates a change in VPLEX hardware configuration from local to metro. "
-                                    + "The existing VPLEX Storage System will updated to reflect the new serial number.", 
-                                    vplex.getNativeGuid(), systemNativeGUID);
                             s_logger.warn(message);
                             StorageSystemViewObject systemViewObject = scanCache.get(vplex.getNativeGuid());
                             if (null == systemViewObject) {
                                 systemViewObject = new StorageSystemViewObject();
+                            } else {
+                                // this is a strange scanCache state that doesn't make any sense. just fail for safety reason.
+                                throw VPlexApiException.exceptions
+                                    .vplexClusterConfigurationChangedFromLocalToMetro(assemblyId, systemNativeGUID);
                             }
                             s_logger.info("adding systemNativeGuid {} storage view object {} to scan cache", 
                                     systemNativeGUID, systemViewObject);
@@ -478,7 +478,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             vplex.setVplexAssemblyIdtoClusterId(new StringMap());
                             // update the assembly id map in the VPLEX storage system object
                             discoverClusterIdentification(vplex, client);
-                            _dbClient.updateObject(vplex);
 
                             // update storage port native guids and labels
                             List<StoragePort> storagePorts = ControllerUtils.getSystemPortsOfSystem(_dbClient, vplex.getId());
@@ -487,6 +486,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 storagePort.setNativeGuid(nativeGuid);
                                 storagePort.setLabel(nativeGuid);
                             }
+
+                            _dbClient.updateObject(vplex);
                             _dbClient.updateObject(storagePorts);
 
                             // now rediscover all storage ports to pull in the new second cluster's ports
@@ -505,16 +506,17 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         if (systemNativeGUID.contains(assemblyId)) {
                             // THIS IS VERY BAD
                             String message = 
-                                    String.format("Existing VPLEX metro native GUID %s contains the newly-discoverd system id %s, "
-                                    + "which indicates a change in VPLEX hardware configuration from metro to local. "
+                                    String.format("Existing VPLEX metro native GUID %s contains the newly-discovered system assembly "
+                                    + "id %s, which indicates a change in VPLEX hardware configuration from metro to local. "
                                     + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
-                                    + "to contact EMC Customer Support.", vplex.getNativeGuid(), assemblyId);
+                                    + "to contact EMC Customer Support.", systemNativeGUID, assemblyId);
                             s_logger.error(message);
                             vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
                             vplex.setLastDiscoveryStatusMessage(message);
                             vplex.setLastDiscoveryRunTime(System.currentTimeMillis());
                             _dbClient.updateObject(vplex);
-                            throw new Exception(message);
+                            throw VPlexApiException.exceptions
+                                .vplexClusterConfigurationChangedFromMetroToLocal(systemNativeGUID, assemblyId);
                         }
                     }
                 }

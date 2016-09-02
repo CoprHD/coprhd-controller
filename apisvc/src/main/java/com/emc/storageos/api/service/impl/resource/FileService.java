@@ -486,7 +486,7 @@ public class FileService extends TaskResourceService {
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
             if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getRpRpoType());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
             }
 
             if (vPool.getFrRpoValue() != null) {
@@ -496,7 +496,7 @@ public class FileService extends TaskResourceService {
             // async - soure changes will mirror target
             // copy - it kind backup, it is full copy
             if (vPool.getFileReplicationCopyMode() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFrRpoValue());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFileReplicationCopyMode());
             }
 
         }

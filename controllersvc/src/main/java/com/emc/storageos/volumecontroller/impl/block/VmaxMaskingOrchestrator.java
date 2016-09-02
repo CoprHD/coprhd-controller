@@ -354,7 +354,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             }
                         }
                     }
-
+                    //TODO we need to move this into completer
                     // Update the list of volumes and initiators for the mask
                     Map<URI, Integer> volumeMapForExistingMask = existingMasksToUpdateWithNewVolumes
                             .get(mask.getId());
@@ -717,8 +717,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         if (!CollectionUtils.isEmpty(sharedMaskNames)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                             errorMessage.append(
-                                    String.format(" Initiator {%s-%s} is shared between other Export Masks - %s.", initiatorURI,
-                                            normalizedName, sharedMaskNames));
+                                    String.format(" Initiator %s is shared between other Export Masks  %s.", initiatorURI,
+                                            normalizedName, Joiner.on(", ").join(sharedMaskNames)));
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
@@ -735,7 +735,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 mask.getMaskName()));
                         errorMessage.append(String.format("mask %s has removed all "
                                 + "initiators, mask will be deleted from the array. ",
-                                mask.getMaskName()));
+                                mask.forDisplay()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
@@ -785,7 +785,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             _log.info(String.format("ExportMask %s would have remaining initiators {%s} that require access to {%s}. " +
                                     "Not going to remove any of the volumes",
                                     mask.getMaskName(), Joiner.on(',').join(initiatorsInExportMask),
-                                    Joiner.on(',').join(volumesToRemove)));
+                                    Joiner.on(", ").join(volumesToRemove)));
                             continue;
                         }
                     }
@@ -798,10 +798,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (exportMaskVolumeURIStrings.isEmpty()) {
                         _log.info(
                                 String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
-                                Joiner.on(",").join(volumesToRemove), mask.getMaskName()));
+                                        Joiner.on(", ").join(volumesToRemove), mask.getMaskName()));
+                        List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
                         errorMessage.append(
-                                String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
-                                        Joiner.on(",").join(volumesToRemove), mask.getMaskName()));
+                                String.format(
+                                        "All the volumes (%s) from mask %s will be removed, which results in deleting the whole mask. ",
+                                        Joiner.on(", ").join(
+                                                Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay())),
+                                        mask.forDisplay()));
                         // Order matters! Above this would be any remove initiators that would impact other masking views.
                         // Be sure to always remove anything inside the mask before removing the mask itself.
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup, mask,
@@ -835,10 +839,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.warn("Error Message {}", errorMessage);
 
             if (isValidationEnabled && StringUtils.hasText(errorMessage)) {
-                errorMessage.append(String.format("Remove initiators from Export Group {%s} has failed due to the mentioned impact. "
-                        + "Contact EMC Support for additional remediation paths including a force option for advanced users",
-                        exportGroup.getLabel()));
-                throw DeviceControllerException.exceptions.exportGroupUpdateFailed(new Exception(errorMessage.toString()));
+                throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
+                        storage.forDisplay(),
+                        errorMessage.toString());
             }
 
             if (anyOperationsToDo) {
@@ -857,6 +860,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
     }
+
 
     @Override
     protected boolean useComputedMaskName() {

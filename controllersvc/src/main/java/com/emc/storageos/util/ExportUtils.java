@@ -607,7 +607,7 @@ public class ExportUtils {
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
                 _log.info(String.format("Initiator %s is shared with mask %s.", 
                         initiatorUri, exportMask.getMaskName()));
-                sharedExportMaskNameList.add(exportMask.getMaskName());
+                sharedExportMaskNameList.add(exportMask.forDisplay());
             }
         }
         return sharedExportMaskNameList;

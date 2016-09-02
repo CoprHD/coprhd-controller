@@ -509,11 +509,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 log.info(msg);
                 log.info("Driver selected storage ports: {} ", Joiner.on(',').join(selectedPorts));
                 // If driver used recommended ports (the same ports as already in the mask), we are done.
-                // If driver did not use recommended ports, we will make sure that ports selected by the driver contain
-                // all ports from the export mask.
-                // We have to verify that all ports from the export mask are in the list of ports returned by driver.
-                // In case when driver returns ports which do not contain all ports from the mask, we will fail this request.
-                // recommendedPorts are all ports from the mask --- check that these ports are contained in the driver selected ports
+                // If driver did not use recommended ports, we will allow this to proceed only when auto san zoning is disabled, otherwise, if
+                // auto san zoning is enabled, we will fail the request.
                 if (usedRecommendedPorts.isFalse() && !selectedPorts.containsAll(recommendedPorts)) {
                     // for auto san zoning enabled we can not support case when selected ports do not include ports which are already in the mask
                     VirtualArray varray = dbClient.queryObject(VirtualArray.class, exportGroup.getVirtualArray());
@@ -532,6 +529,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                             log.info("Driver selected port: {}", driverPort);
                             com.emc.storageos.db.client.model.StoragePort port = nativeIdToAvailablePortMap.get(driverPort.getNativeId());
                             if (port != null) {
+                                // add all ports, StringSet in the mask will ignore duplicates
                                 log.info("System port: {}", port);
                                 selectedPortsForMask.add(port);
                             }

@@ -485,7 +485,7 @@ public class FileService extends TaskResourceService {
     	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
-            if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
+            if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
             }
 

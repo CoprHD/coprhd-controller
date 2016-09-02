@@ -241,12 +241,15 @@ public abstract class CommandHandler {
 
             objects = _dbClient.queryIterativeObjects(clazz, uris);
 
+            long startTime = System.currentTimeMillis();
             IndexClient indexclient = new IndexClientImpl();
             indexclient.start();
             System.out.println("Index server start!");
             int countAll = indexclient.importData(clazz, objects);
-            System.out.println(countAll + " records imported!");
             indexclient.stop();
+            long stopTime = System.currentTimeMillis();
+            long time = stopTime - startTime;
+            System.out.println("It takes " + time + " ms to import " + countAll + " records.");
         }
 
     }
@@ -428,6 +431,7 @@ public abstract class CommandHandler {
             pageSize = Integer.parseInt(query[3]);
             pageNumber = Integer.parseInt(query[4]);
 
+            long startTime = System.currentTimeMillis();
             IndexClient indexClient = new IndexClientImpl();
             indexClient.start();
 
@@ -435,17 +439,20 @@ public abstract class CommandHandler {
             indexQueryResult = indexClient.query(clazz, queryString, pageSize, pageNumber);
             List<URI> uris;
             uris = indexQueryResult.getUris();
-            StringBuilder queryResult = new StringBuilder();
-            queryResult.append("Query string is " + queryString + "\n");
-            queryResult.append("Total number is " + indexQueryResult.getTotalNum() +
-                    " page size is: " + pageSize + " page number is: "
-                    + pageNumber);
-            System.out.println(queryResult.toString());
+
             for (URI uri : uris) {
                 DataObject object = dbclientimpl.queryObject(uri);
                 printBeanProperties(clazz, object);
             }
             indexClient.stop();
+            long stopTime = System.currentTimeMillis();
+            long time = stopTime - startTime;
+            StringBuilder queryResult = new StringBuilder();
+            queryResult.append("Query string is " + queryString + "\n");
+            queryResult.append("Total number is " + indexQueryResult.getTotalNum() +
+                    " page size is: " + pageSize + " page number is: "
+                    + pageNumber + " time taken:" + time + " ms");
+            System.out.println(queryResult.toString());
         }
 
         private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)

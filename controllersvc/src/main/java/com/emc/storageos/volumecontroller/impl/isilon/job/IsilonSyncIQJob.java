@@ -30,7 +30,7 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
 public class IsilonSyncIQJob extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncIQJob.class);
-    private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
+    private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
     private String _jobName;
     private URI _storageSystemUri;
@@ -52,7 +52,8 @@ public class IsilonSyncIQJob extends Job implements Serializable {
         this._jobName = jobName;
         this._jobIds.add(jobId);
     }
-
+    
+    
     @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
         String currentJob = _jobIds.get(0);
@@ -149,7 +150,7 @@ public class IsilonSyncIQJob extends Job implements Serializable {
         return null;
     }
 
-    private void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
+    protected void processTransientError(String jobId, long trackingInterval, String errorMessage, Exception ex) {
         _status = JobStatus.ERROR;
         _errorDescription = errorMessage;
         if (ex != null) {
@@ -171,7 +172,7 @@ public class IsilonSyncIQJob extends Job implements Serializable {
         }
     }
 
-    private String isiGetReportErrMsg(List<IsilonSyncPolicyReport> policyReports) {
+    protected String isiGetReportErrMsg(List<IsilonSyncPolicyReport> policyReports) {
         String errorMessage = "";
         for (IsilonSyncPolicyReport report : policyReports) {
             if (report.getState().equals(JobState.failed) || report.getState().equals(JobState.needs_attention)) {

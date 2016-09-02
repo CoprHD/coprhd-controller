@@ -5,13 +5,20 @@
 
 package com.emc.storageos.model.pools;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.varray.VirtualArrayResourceRestRep;
-
-import javax.xml.bind.annotation.*;
-
-import java.util.*;
 
 @XmlRootElement(name = "storage_pool")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -48,6 +55,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     private String compatibilityStatus;
     private String discoveryStatus;
     private Integer dataCenters;
+    private Boolean compressionEnabled;
 
     public StoragePoolRestRep() {
     }
@@ -556,6 +564,21 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     public void setDataCenters(Integer dataCenters) {
         this.dataCenters = dataCenters;
+    }
+
+    /**
+     * @return the compressionEnabled
+     */
+    @XmlElement(name = "compression_enabled")
+    public Boolean getCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
     }
     
 }

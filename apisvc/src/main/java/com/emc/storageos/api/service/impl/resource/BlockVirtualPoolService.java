@@ -469,6 +469,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
             }
         }
+        
+        if (null != param.getCompressionEnabled()) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
 
         vpool.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
 
@@ -510,6 +514,21 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             updateProtectionParamsForVirtualPool(vpool, param.getProtection(), param.getHighAvailability());
         }
 
+        // update placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+        
+        // non-dedep vpool can NOT be made dedup if it has volumes created
+        // dedup vpool can be made non-dedup because dedup storage pools will always remain
+        if (null != param.getDedupCapable()) {
+            if (vpool.getDedupCapable() != null && !vpool.getDedupCapable() &&
+            		param.getDedupCapable()) {
+                ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
+            }
+            vpool.setDedupCapable(param.getDedupCapable());
+        }
+
         // Validate Block VirtualPool update params.
         VirtualPoolUtil.validateBlockVirtualPoolUpdateParams(vpool, param, _dbClient);
         StringBuffer errorMessage = new StringBuffer();
@@ -533,7 +552,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (vpool.getMaxNativeContinuousCopies() != null) {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
-
+        
         _dbClient.updateObject(vpool);
 
         // Update VirtualPool and QoS with new parameters
@@ -1726,6 +1745,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (null != param.getAutoTieringPolicyName() && !param.getAutoTieringPolicyName().isEmpty()) {
             vpool.setAutoTierPolicyName(param.getAutoTieringPolicyName());
         }
+        if (param.getCompressionEnabled() != null) {
+            vpool.setCompressionEnabled(param.getCompressionEnabled());
+        }
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
         }
@@ -1745,6 +1767,16 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set limit for host i/o
         if (param.getHostIOLimitIOPs() != null) {
             vpool.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        }
+        
+        // set placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+        
+        // set dedup capable or not
+        if (null != param.getDedupCapable()) {
+        	vpool.setDedupCapable(param.getDedupCapable());
         }
 
         return vpool;

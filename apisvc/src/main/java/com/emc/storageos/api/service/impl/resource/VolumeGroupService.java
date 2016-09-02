@@ -61,6 +61,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -69,6 +70,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -114,6 +116,7 @@ import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -121,6 +124,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -158,7 +162,8 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
             DiscoveredDataObject.Type.rp.name(),
-            DiscoveredDataObject.Type.ibmxiv.name()));
+            DiscoveredDataObject.Type.ibmxiv.name(),
+            DiscoveredDataObject.Type.unity.name()));
 
     private static final Set<String> PENDING_TASK_NAMES = new HashSet<String>(Arrays.asList(
             ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP.getName(), 
@@ -174,7 +179,10 @@ public class VolumeGroupService extends TaskResourceService {
             ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY.getName(),
             ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY.getName(),
             ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName()));
-            
+    
+    private static final Set<String> FULL_COPY_NOT_SUPPORTED_SYSTEM_TYPES = new HashSet<String>(Arrays.asList(
+            Type.xtremio.name(),
+            Type.unity.name()));
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";
     private static final String NAME_FIELD = "name";
@@ -675,9 +683,9 @@ public class VolumeGroupService extends TaskResourceService {
             
             checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
             
-            // check for xtremio volumes
+            // check for full copy not supported volumes
             for (String groupName : arrayGroupNames) {
-                checkForXtremio(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                checkForFullCopyNotSupportedVolumes(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName)));
             }
 
@@ -708,8 +716,8 @@ public class VolumeGroupService extends TaskResourceService {
 
             checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
 
-            // make sure there are no xtremio volumes in the application
-            checkForXtremio(volumes);
+            // make sure there are no xtremio/unity volumes in the application
+            checkForFullCopyNotSupportedVolumes(volumes);
 
             auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
                     param.getName(), param.getCount());
@@ -831,11 +839,11 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * checks the list of volumes to see if any is on xtremio storage; handles vplex; throws if xtremio exists
+     * checks the list of volumes to see if any is on FULL_COPY_NOT_SUPPORTED_SYSTEM_TYPES; handles vplex;
      * 
      * @param volumes
      */
-    private void checkForXtremio(List<Volume> volumes) {
+    private void checkForFullCopyNotSupportedVolumes(List<Volume> volumes) {
         // getVolumeByAssociatedVolumesConstraint
         Set<URI> virtualVolAlreadyChecked = new HashSet<URI>();
         for (Volume volume : volumes) {
@@ -858,10 +866,15 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
             }
-            
-            if (ControllerUtils.isXtremIOVolume(checkVolume, _dbClient)) {
-                throw APIException.badRequests.replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
+
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, checkVolume.getStorageController());
+            if (storage != null) {
+                if (FULL_COPY_NOT_SUPPORTED_SYSTEM_TYPES.contains(storage.getSystemType())) {
+                    throw APIException.badRequests.replicaOperationNotAllowedApplication(ReplicaTypeEnum.FULL_COPY.toString(), 
+                            storage.getSystemType());
+                }
             }
+            
         }
     }
 
@@ -1656,6 +1669,7 @@ public class VolumeGroupService extends TaskResourceService {
         // validate name
         String name = param.getName();
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
+        name = TimeUtils.formatDateForCurrent(name);
 
         // snapsetLabel is normalized in RP, do it here too to avoid potential mismatch
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
@@ -2321,9 +2335,9 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT_SESSION);
 
         // validate name
-        String name = param.getName();
+        String name = TimeUtils.formatDateForCurrent(param.getName());
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
-
+        
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {
             // original name has special chars only
@@ -3182,7 +3196,7 @@ public class VolumeGroupService extends TaskResourceService {
          * @param volumeGroup being update
          * @param volumes being added or removed
          */
-        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
+        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {            
             Set<URI> consistencyGroups = Sets.newHashSet();
             List<URI> volumeIds = new ArrayList<URI>();
             // Get list of all consistency groups for these volumes
@@ -3199,7 +3213,12 @@ public class VolumeGroupService extends TaskResourceService {
 
                 for (URI consistencyGroupId : consistencyGroups) {
                     BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-                    List<Volume> cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                    List<Volume> cgVolumes = null;
+                    if (consistencyGroup.getRequestedTypes().contains(Types.RP.toString())) {
+                        cgVolumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), dbClient);
+                    } else {
+                        cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                    }
 
                     // make sure all volumes in 'cgVolumes' are also in 'volumes'
                     for (Volume cgVolume : cgVolumes) {

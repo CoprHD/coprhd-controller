@@ -46,6 +46,18 @@ var NAV = (function() {
         }
     }
 
+    function pinMenu() {
+        createCookie(PINNED_COOKIE, 'true', 'session');
+        $(CONTENT_AREA).addClass(MENU_PINNED);
+        $(MENU_PIN).addClass(MENU_PINNED);
+    }
+
+    function unpinMenu() {
+        createCookie(PINNED_COOKIE, 'false', 'session');
+        $(CONTENT_AREA).removeClass(MENU_PINNED);
+        $(MENU_PIN).removeClass(MENU_PINNED);
+    }
+
     function isMenuOpened() {
         var elements = $('div.'+MENU_OPEN);
         if (elements.length > 0) {
@@ -70,6 +82,7 @@ var NAV = (function() {
         $(MAIN_MENU_NAV, $container).removeClass(MAIN_MENU_OPEN);
         $(MENU, $container).removeClass(MENU_OPEN);
         $(CONTENT_AREA).removeClass(MENU_OPEN);
+        $("#wizard").removeClass('guide-menuopen');
         updateActiveIndicator();
     }
 
@@ -88,6 +101,7 @@ var NAV = (function() {
                 $menu.addClass(MAIN_MENU_OPEN);
                 $subMenu.addClass(MENU_OPEN);
                 $(CONTENT_AREA).addClass(MENU_OPEN);
+                $("#wizard").addClass('guide-menuopen');
             }
         }
         updateActiveIndicator();
@@ -116,6 +130,7 @@ var NAV = (function() {
             }
             if (isMenuOpened()) {
                 $(CONTENT_AREA).addClass(MENU_OPEN);
+                $("#wizard").addClass('guide-menuopen');
             }
             $(MAIN_MENU_NAV, $container).tooltip();
             $(MAIN_MENU, $container).on('click', NAV, function(event) {
@@ -137,6 +152,21 @@ var NAV = (function() {
             $(MENU_PIN, $container).on('click', function(event) {
                 applyContentAreaChange(toggleMenuPinned);
             });
+            /*$("#colWiz").on('click', function(event) {
+                var elements = $('#wizard.ng-hide');
+                if (elements.length > 0) {
+                    openMenu($('a.rootNav.active'));
+                    pinMenu();
+                    alert('wizard open '+elements.length);
+
+                }
+                else {
+                    closeMenus();
+                    unpinMenu();
+                    alert('wizard closed');
+                }
+
+            });*/
             $(CONTENT_AREA, $container).on('click', function(event) {
                 if (!isMenuPinned()) {
                     applyContentAreaChange(closeMenus);

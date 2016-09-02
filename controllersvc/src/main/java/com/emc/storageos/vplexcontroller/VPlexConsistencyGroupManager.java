@@ -37,6 +37,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -519,8 +520,10 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                             BlockDeviceController.class, updateLocalMethod,
                             rollbackLocalMethod, null);
                 }
-                waitFor = UPDATE_LOCAL_CG_STEP;
-                log.info("Created steps to remove volumes from native consistency groups.");
+                if (!localSystems.isEmpty()) {
+                    waitFor = UPDATE_LOCAL_CG_STEP;
+                    log.info("Created steps to remove volumes from native consistency groups.");
+                }
             }
 
             // First remove any volumes to be removed.
@@ -584,6 +587,8 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             String failMsg = String.format("Update of consistency group %s failed",
                     cgURI);
             log.error(failMsg, e);
+            // Release the locks 
+            workflowService.releaseAllWorkflowLocks(workflow);
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
                     Arrays.asList(cgURI), opId, null);
             String opName = ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP.getName();
@@ -662,15 +667,19 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             for (URI vplexVolumeURI : vplexVolumes) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
-                for (String assocVolumeId : associatedVolumes) {
-                    URI assocVolumeURI = URI.create(assocVolumeId);
-                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
-                    URI assocSystemURI = assocVolume.getStorageController();
-                    if (!localVolumesMap.containsKey(assocSystemURI)) {
-                        List<URI> systemVolumes = new ArrayList<URI>();
-                        localVolumesMap.put(assocSystemURI, systemVolumes);
+                if (null == associatedVolumes || associatedVolumes.isEmpty()) {
+                    log.warn("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                } else {
+                    for (String assocVolumeId : associatedVolumes) {
+                        URI assocVolumeURI = URI.create(assocVolumeId);
+                        Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                        URI assocSystemURI = assocVolume.getStorageController();
+                        if (!localVolumesMap.containsKey(assocSystemURI)) {
+                            List<URI> systemVolumes = new ArrayList<URI>();
+                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                        }
+                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                     }
-                    localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                 }
             }
         }
@@ -743,17 +752,21 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             for (URI vplexVolumeURI : vplexVolumes) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
-                for (String assocVolumeId : associatedVolumes) {
-                    URI assocVolumeURI = URI.create(assocVolumeId);
-                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
-                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
-                        // The backend volume is in a backend CG
-                        URI assocSystemURI = assocVolume.getStorageController();
-                        if (!localVolumesMap.containsKey(assocSystemURI)) {
-                            List<URI> systemVolumes = new ArrayList<URI>();
-                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                if (null == associatedVolumes || associatedVolumes.isEmpty()) {
+                    log.warn("VPLEX volume {} has no backend volumes.", vplexVolume.forDisplay());
+                } else {
+                    for (String assocVolumeId : associatedVolumes) {
+                        URI assocVolumeURI = URI.create(assocVolumeId);
+                        Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                        if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
+                            // The backend volume is in a backend CG
+                            URI assocSystemURI = assocVolume.getStorageController();
+                            if (!localVolumesMap.containsKey(assocSystemURI)) {
+                                List<URI> systemVolumes = new ArrayList<URI>();
+                                localVolumesMap.put(assocSystemURI, systemVolumes);
+                            }
+                            localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                         }
-                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                     }
                 }
             }

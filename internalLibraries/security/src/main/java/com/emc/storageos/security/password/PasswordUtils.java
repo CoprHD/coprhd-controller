@@ -70,6 +70,10 @@ public class PasswordUtils {
         defaultProperties = defaults;
     }
 
+    public synchronized Properties getDefaultProperties() {
+        return defaultProperties;
+    }
+
     private Map<String, StorageOSUser> _localUsers;
 
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
@@ -219,6 +223,7 @@ public class PasswordUtils {
         }
 
         Map<String, String> overrides = new HashMap();
+        Map<String, String> siteScopeprops = new HashMap();
 
         try {
             overrides = coordinator.getTargetInfo(PropertyInfoExt.class).getProperties();
@@ -226,7 +231,19 @@ public class PasswordUtils {
             _log.info("Fail to get the cluster information ", e);
         }
 
+        try {
+            PropertyInfo targetInfo = coordinator.getTargetInfo(coordinator.getSiteId(), PropertyInfoExt.class);
+            if (targetInfo != null) {
+                siteScopeprops = targetInfo.getProperties();
+            }
+        } catch (Exception e) {
+            _log.info("Fail to get the site information ", e);
+        }
+
         for (Map.Entry<String, String> entry : overrides.entrySet()) {
+            mergedProps.put(entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<String, String> entry : siteScopeprops.entrySet()) {
             mergedProps.put(entry.getKey(), entry.getValue());
         }
 

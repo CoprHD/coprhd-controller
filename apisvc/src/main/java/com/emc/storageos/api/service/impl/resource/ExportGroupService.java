@@ -36,6 +36,8 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -75,6 +77,8 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -122,8 +126,10 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -146,6 +152,13 @@ public class ExportGroupService extends TaskResourceService {
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
 
     private static volatile BlockStorageScheduler _blockStorageScheduler;
+
+    // From KnownMachineTypes, which is upstream so re-defining here.
+    // Used in ensuring unexport isn't happening to mounted volumes.
+    private static String ISA_NAMESPACE = "vipr";
+    private static String ISA_SEPARATOR = ":";
+    private static String MOUNTPOINT = ISA_NAMESPACE + ISA_SEPARATOR + "mountPoint";
+    private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
 
     public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
         if (_blockStorageScheduler == null) {
@@ -267,7 +280,13 @@ public class ExportGroupService extends TaskResourceService {
                 addVolumeURIs.add(volParam.getId());
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
+            /**
+             * Validate ExportGroup add volume's nativeId/nativeGuid
+             */
+            validateBlockObjectNativeId(addVolumeURIs);
         }
+
+
 
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
@@ -340,6 +359,23 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
+     * Validates the given list of BlockObject's are having valid nativeId
+     * 
+     * @param blockObjectURIs Block Object's URI list
+     */
+    private void validateBlockObjectNativeId(List<URI> blockObjectURIs) {
+        if (!CollectionUtils.isEmpty(blockObjectURIs)) {
+            for (URI boURI : blockObjectURIs) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boURI);
+                ArgValidator.checkEntity(bo, boURI, false);
+                if (NullColumnValueGetter.isNullValue(bo.getNativeId())) {
+                    throw APIException.badRequests.nativeIdCannotBeNull(boURI);
+                }
+            }
+        }
+    }
+
+    /**
      * When creating an export group the input request should be restricted based on the the
      * export type as follows:
      * <ol>
@@ -395,12 +431,15 @@ public class ExportGroupService extends TaskResourceService {
             for (URI initiatorId : param.getInitiators().getRemove()) {
                 // Check all export masks associated with this export group
                 if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
-                    boolean okToRemove = false;
+                    // This logic is changed in 3.5 to do two things:
+                    // 1. Check to make sure none of the Export Group's masks have initiators in its existing list
+                    // 2. Allow user to remove an initiator that isn't part of any ExportMask (because of pathing)
+                    boolean okToRemove = true;
                     ExportMask mask = null;
                     for (String maskIdStr : exportGroup.getExportMasks()) {
                         mask = _dbClient.queryObject(ExportMask.class, URI.create(maskIdStr));
-                        if (mask.hasInitiator(initiatorId.toString()) && mask.hasUserInitiator(initiatorId)) {
-                            okToRemove = true;
+                        if (mask.hasExistingInitiator(initiatorId.toString())) {
+                            okToRemove = false;
                         }
                     }
                     if (!okToRemove) {
@@ -453,7 +492,10 @@ public class ExportGroupService extends TaskResourceService {
             }
 
             // validate the RP BlockSnapshots for ExportGroup create
-            validateRPBlockSnapshotsForExport(blockObjURIs);
+            validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
+            
+            // Validate VPLEX backend snapshots for export.
+            validateVPLEXBlockSnapshotsForExport(blockObjURIs);
         }
     }
 
@@ -465,6 +507,8 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validateBlockSnapshotsForExportGroupUpdate(ExportUpdateParam param, ExportGroup exportGroup) {
         if (param != null && exportGroup != null) {
+            List<URI> blockObjToAdd = new ArrayList<URI>();
+            List<URI> blockObjExisting = new ArrayList<URI>();
             List<URI> blockObjURIs = new ArrayList<URI>();
 
             List<VolumeParam> addVolumeParams = param.getVolumes().getAdd();
@@ -473,8 +517,12 @@ public class ExportGroupService extends TaskResourceService {
             if (addVolumeParams != null && !addVolumeParams.isEmpty()) {
                 // Collect the block objects being added from the request param
                 for (VolumeParam volParam : addVolumeParams) {
+                    blockObjToAdd.add(volParam.getId());
                     blockObjURIs.add(volParam.getId());
                 }
+                
+                // Validate VPLEX backend snapshots for export.
+                validateVPLEXBlockSnapshotsForExport(blockObjURIs);
 
                 // Collect the existing block objects from the export group. We are combining
                 // the block objects being added with the existing export block objects so that
@@ -482,12 +530,67 @@ public class ExportGroupService extends TaskResourceService {
                 // easily through validation.
                 if (exportGroup.getVolumes() != null) {
                     for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-                        blockObjURIs.add(URI.create(entry.getKey()));
+                        URI uri = URI.create(entry.getKey());
+                        blockObjURIs.add(uri);
+                        blockObjExisting.add(uri);
                     }
                 }
 
                 // validate the RP BlockSnapshots for ExportGroup create
-                validateRPBlockSnapshotsForExport(blockObjURIs);
+                validateDuplicateRPBlockSnapshotsForExport(blockObjURIs);
+            }
+
+            // Validate any RP BlockSnapshots being added to ensure no corresponding target volumes
+            // have already been exported.
+            validateSnapshotTargetNotExported(blockObjToAdd, blockObjExisting);
+        }
+    }
+    
+    /**
+     * Validate VPLEX backend snapshots for export.
+     * 
+     * @param blockObjURIs The URIs of the block objects to be exported.
+     */
+    private void validateVPLEXBlockSnapshotsForExport(List<URI> blockObjURIs) {
+        // We do not allow a VPLEX backend snapshot that is exposed as a VPLEX
+        // volume to be exported to a host/cluster. If the user was to write
+        // to the snapshot, this would invalidate the VPLEX volume as the 
+        // VPLEX would not be aware of these writes. Further, we know this will
+        // fail for VMAX3 backend snapshots with the error "A device cannot belong
+        // to more than one storage group in use by FAST".
+        for (URI blockObjectURI : blockObjURIs) {
+            if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+                if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshot.getNativeGuid()).isEmpty()) {
+                    throw APIException.badRequests.cantExportSnapshotExposedAsVPLEXVolume(snapshot.getLabel());
+                }
+            }
+        }
+    }
+
+    /**
+     * Validate any RP BlockSnapshots being added to ensure no corresponding target volumes
+     * have already been exported.
+     *
+     * @param blockObjectsToAdd the list of block object to export
+     * @param blockObjectsExisting the list of block objects already exported
+     */
+    private void validateSnapshotTargetNotExported(List<URI> blockObjectsToAdd, List<URI> blockObjectsExisting) {
+        for (URI blockObjToAdd : blockObjectsToAdd) {
+            if (URIUtil.isType(blockObjToAdd, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjToAdd);
+
+                // Search the list of existing BlockObjects for a Volume that corresponds to the snapshot's
+                // referenced target Volume. This is done by matching on the nativeId.
+
+                for (URI blockObjExisting : blockObjectsExisting) {
+                    if (URIUtil.isType(blockObjExisting, Volume.class)) {
+                        Volume volume = _dbClient.queryObject(Volume.class, blockObjExisting);
+                        if (snapshot.getNativeId() != null && snapshot.getNativeId().equals(volume.getNativeId())) {
+                            throw APIException.badRequests.snapshotTargetAlreadyExported(volume.getId(), snapshot.getId());
+                        }
+                    }
+                }
             }
         }
     }
@@ -498,7 +601,7 @@ public class ExportGroupService extends TaskResourceService {
      *
      * @param blockObjURIs the list of BlockObject URIs.
      */
-    private void validateRPBlockSnapshotsForExport(List<URI> blockObjURIs) {
+    private void validateDuplicateRPBlockSnapshotsForExport(List<URI> blockObjURIs) {
         Map<URI, List<String>> cgToRpSiteMap = new HashMap<URI, List<String>>();
 
         for (URI blockObjectURI : blockObjURIs) {
@@ -524,7 +627,7 @@ public class ExportGroupService extends TaskResourceService {
                         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class,
                                 snapshot.getConsistencyGroup());
                         String rpCopyName = RPHelper.getCgCopyName(_dbClient, cg, snapshot.getVirtualArray(), false);
-                        throw APIException.badRequests.duplicateRpBookMarkExport(rpCopyName, cg.getLabel());
+                        throw APIException.badRequests.duplicateRpBookmarkExport(rpCopyName, cg.getLabel());
                     } else {
                         rpSites.add(snapshot.getEmInternalSiteName());
                     }
@@ -1228,6 +1331,74 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
+     * Validates the ExportGroup initaitor's identity to avoid DU case.
+     * Export Group should not have initiators from multiple Host or clusters.
+     * 
+     * @param exportGroup
+     */
+    private void validateInitiatorsInExportGroup(ExportGroup exportGroup) {
+        /*
+         * Export Group should not have initiators(non vplex and non RP) from multiple cluster/host.
+         * This validation is a extra check to prevent DU.
+         */
+
+        if (exportGroup != null && exportGroup.getInitiators() != null) {
+            Initiator initiator = null;
+            boolean isCluster = exportGroup.forCluster();
+            /**
+             * Key - cluster name / host name
+             * Value - list of cluster initiators or host initiators
+             */
+            Map<String, Set<URI>> initiatorMap = new HashMap<>();
+            Iterator<String> existingInitiatorsIterator = exportGroup.getInitiators().iterator();
+            List<URI> staleInitiatorList = new ArrayList<>();
+            URI initiatorURI = null;
+            while (existingInitiatorsIterator.hasNext()) {
+                initiatorURI = URI.create(existingInitiatorsIterator.next());
+                initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+                String name = null;
+                if (initiator != null && !initiator.getInactive()) {
+                    if (!initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
+                            && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
+                        if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
+                            name = initiator.getClusterName();
+                        } else if (StringUtils.hasText(initiator.getHostName())) {
+                            name = initiator.getHostName();
+                        } else {
+                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
+                        }
+                        Set<URI> set = null;
+                        if (initiatorMap.get(name) == null) {
+                            set = new HashSet<URI>();
+                            initiatorMap.put(name, set);
+                        } else {
+                            set = initiatorMap.get(name);
+                        }
+                        set.add(initiator.getId());
+                    }
+                } else {
+                    _log.error("Stale initiator URI {} is in ExportGroup and can be removed from ExportGroup{}", initiatorURI,
+                            exportGroup.getId());
+                    staleInitiatorList.add(initiatorURI);
+                }
+            }
+            if (!staleInitiatorList.isEmpty()) {
+                exportGroup.removeInitiators(staleInitiatorList);
+                _dbClient.updateObject(exportGroup);
+                _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
+            }
+            _log.info("{}", initiatorMap);
+            if (initiatorMap.size() > 1) {
+                _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
+                        exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
+                throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),
+                        Joiner.on(",").join(initiatorMap.keySet()));
+            }
+        }
+    }
+
+    /**
      * Update an export group which includes:
      * <ol>
      * <li>Add/Remove block objects (volumes, mirrors and snapshots)</li>
@@ -1271,6 +1442,26 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateRemoveInitiators(param, exportGroup);
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
+        validateInitiatorsInExportGroup(exportGroup);
+
+        /**
+         * ExportGroup Add/Remove volume should have valid nativeId
+         */
+        List<URI> boURIList = new ArrayList<>();
+        if (param.getVolumes() != null) {
+            if (param.getVolumes().getAdd() != null) {
+                for (VolumeParam volParam : param.getVolumes().getAdd()) {
+                    boURIList.add(volParam.getId());
+                }
+            }
+            if (param.getVolumes().getRemove() != null) {
+                for (URI volURI : param.getVolumes().getRemove()) {
+                    boURIList.add(volURI);
+                }
+                validateVolumesNotMounted(exportGroup, param.getVolumes().getRemove());
+            }
+        }
+        validateBlockObjectNativeId(boURIList);
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
@@ -1584,6 +1775,15 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
+        /**
+         * Added extra validation for the initiators in ExportGroup
+         */
+        validateInitiatorsInExportGroup(exportGroup);
+
+        // Validate that none of the volumes are mounted (datastores, etc)
+        if (exportGroup.getVolumes() != null) {
+            validateVolumesNotMounted(exportGroup, URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+        }
 
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();
@@ -2838,4 +3038,65 @@ public class ExportGroupService extends TaskResourceService {
             exportGroup.addToPathParameters(blockObjectURI, pathParamURI);
         }
     }
+
+    /**
+     * Verify that none of the volumes in the export group are mounted.
+     * Unexporting a mounted volume is dangerous and should be avoided.
+     * 
+     * @param exportGroup
+     *            export group
+     * @param boURIList
+     *            URI list of block objects
+     */
+    private void validateVolumesNotMounted(ExportGroup exportGroup, List<URI> boURIList) {
+        if (exportGroup == null) {
+            throw APIException.badRequests.exportGroupContainsMountedVolumesInvalidParam();
+        }
+
+        Map<URI, String> boToLabelMap = new HashMap<>();
+        // It is valid for there to be no storage volumes in the EG, so only perform the check if there are volumes
+        if (boURIList != null) {
+            for (URI boID : boURIList) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boID);
+                if (bo != null && bo.getTag() != null) {
+                    ScopedLabelSet tagSet = bo.getTag();
+                    Iterator<ScopedLabel> tagIter = tagSet.iterator();
+                    while (tagIter.hasNext()) {
+                        ScopedLabel sl = tagIter.next();
+                        if (sl.getLabel() != null && (sl.getLabel().startsWith(MOUNTPOINT) || sl.getLabel().startsWith(VMFS_DATASTORE))) {
+
+                            if (exportGroup.getClusters() != null) {
+                                for (String clusterID : exportGroup.getClusters()) {
+                                    if (sl.getLabel().contains(clusterID)) {
+                                        boToLabelMap.put(boID, bo.forDisplay());
+                                    }
+                                }
+                            }
+
+                            if (exportGroup.getHosts() != null) {
+                                for (String hostID : exportGroup.getHosts()) {
+                                    if (sl.getLabel().contains(hostID)) {
+                                        boToLabelMap.put(boID, bo.forDisplay());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!boToLabelMap.isEmpty()) {
+            _log.error(
+                    "Export Group {} has volumes {} that are marked as mounted.  It is recommended to unmount via controller before unexport.  This validation check can be disabled if needed.  Contact EMC Support.",
+                    exportGroup.getId(), Joiner.on(",").join(boToLabelMap.values()));
+            ValidatorConfig vc = new ValidatorConfig();
+            vc.setCoordinator(_coordinator);
+            if (vc.validationEnabled()) {
+                throw APIException.badRequests.exportGroupContainsMountedVolumes(exportGroup.getId(),
+                    Joiner.on(",").join(boToLabelMap.values()));
+            }
+        }
+    }
+
 }

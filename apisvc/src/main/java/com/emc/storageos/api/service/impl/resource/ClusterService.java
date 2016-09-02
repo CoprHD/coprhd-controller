@@ -112,10 +112,10 @@ public class ClusterService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     @Path("/{id}")
     public ClusterRestRep updateCluster(@PathParam("id") URI id,
-            ClusterUpdateParam updateParam) {
+            ClusterUpdateParam updateParam,
+            @DefaultValue("true") @QueryParam("update-exports") boolean updateExports) {
         // update the cluster
         Cluster cluster = queryObject(Cluster.class, id, true);
-        boolean oldExportEnabled = cluster.getAutoExportEnabled();
 
         validateClusterData(updateParam, cluster.getTenant(), cluster, _dbClient);
         populateCluster(updateParam, cluster);
@@ -123,14 +123,12 @@ public class ClusterService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());
 
-        boolean enablingAutoExports = !oldExportEnabled && cluster.getAutoExportEnabled();
-
-        if (enablingAutoExports) {
+        if (updateExports) {
             String taskId = UUID.randomUUID().toString();
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.synchronizeSharedExports(cluster.getId(), taskId);
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
                     ResourceOperationTypeEnum.UPDATE_CLUSTER);
+            controller.synchronizeSharedExports(cluster.getId(), taskId);
             auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, op.getStatus(),
                     cluster.auditParameters());
         }

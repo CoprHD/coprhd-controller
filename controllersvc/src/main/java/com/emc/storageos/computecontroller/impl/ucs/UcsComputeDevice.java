@@ -69,7 +69,6 @@ import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -282,8 +281,7 @@ public class UcsComputeDevice implements ComputeDevice {
                         serviceProfileTemplateDetails.put(ASSOCIATED_SERVER_POOL, lsRequirement.getName());
                     } else if (((JAXBElement) element).getValue() instanceof VnicEther) {
                         vnicCount++;
-                    }
-                    else if (((JAXBElement) element).getValue() instanceof VnicFc) {
+                    } else if (((JAXBElement) element).getValue() instanceof VnicFc) {
                         vhbaCount++;
                     }
                 }
@@ -453,8 +451,10 @@ public class UcsComputeDevice implements ComputeDevice {
             createSpToken = workflow.createStep(CREATE_SP_FROM_SPT_STEP,
                     "create a service profile from the ServiceProfile template selected in the VCP", null,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "createLsServer", computeSystem, sptDn, host.getHostName()), new Workflow.Method(
-                            "deleteLsServer", computeSystem, createSpToken), createSpToken);
+                            "createLsServer", computeSystem, sptDn, host.getHostName()),
+                    new Workflow.Method(
+                            "deleteLsServer", computeSystem, createSpToken),
+                    createSpToken);
 
             String modifySpBootToken = workflow.createStepId();
             modifySpBootToken = workflow
@@ -470,20 +470,23 @@ public class UcsComputeDevice implements ComputeDevice {
                     "bind a service profile to the blade represented by the CE associated with the Host",
                     modifySpBootToken, computeSystem.getId(), computeSystem.getSystemType(), this.getClass(),
                     new Workflow.Method("bindServiceProfileToBlade", computeSystem, host.getId(),
-                            createSpToken), new Workflow.Method("unbindServiceProfile", computeSystem, createSpToken),
+                            createSpToken),
+                    new Workflow.Method("unbindServiceProfile", computeSystem, createSpToken),
                     bindSPStepId);
 
             String addHostPortsToNetworkStepId = workflow.createStepId();
             addHostPortsToNetworkStepId = workflow.createStep(ADD_HOST_PORTS_TO_NETWORKS_STEP,
                     "Add host ports from service profile to the corresponding network in the vArray", bindSPStepId,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "addHostPortsToVArrayNetworks", varray, host), null, addHostPortsToNetworkStepId);
+                            "addHostPortsToVArrayNetworks", varray, host),
+                    null, addHostPortsToNetworkStepId);
 
             String addHostToSharedExportGroupsStepId = workflow.createStepId();
             addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
                     "Add host to shared export groups", addHostPortsToNetworkStepId,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "addHostToSharedExportGroups", host), null, addHostToSharedExportGroupsStepId);
+                            "addHostToSharedExportGroups", host),
+                    null, addHostToSharedExportGroupsStepId);
 
             workflow.executePlan(taskCompleter, "Successfully created host : " + host.getHostName());
 
@@ -542,8 +545,8 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
-                    blockExportController.exportGroupUpdate(exportGroup.getId(), 
-                            noUpdatesVolumeMap, noUpdatesVolumeMap, 
+                    blockExportController.exportGroupUpdate(exportGroup.getId(),
+                            noUpdatesVolumeMap, noUpdatesVolumeMap,
                             updatedClusters, updatedHosts, updatedInitiators, task);
 
                     while (true) {
@@ -587,8 +590,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 LOGGER.info("Unbinding Service Profile : " + spDn + " from blade");
                 ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), spDn);
                 LOGGER.info("Done Unbinding Service Profile : " + spDn + " from blade");
-            }
-            else {
+            } else {
                 LOGGER.info("No OP");
             }
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -815,8 +817,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 LOGGER.info("Deleting Service Profile : " + spDn);
                 ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), spDn);
                 LOGGER.info("Done Deleting Service Profile : " + spDn);
-            }
-            else {
+            } else {
                 LOGGER.info("No OP");
             }
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -883,8 +884,7 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
             if (cs.getSecure()) {
                 ucsmURL = new URL("https", cs.getIpAddress(), cs.getPortNumber(), "/nuova");
-            }
-            else {
+            } else {
                 ucsmURL = new URL("http", cs.getIpAddress(), cs.getPortNumber(), "/nuova");
             }
         } catch (MalformedURLException e) {
@@ -946,8 +946,7 @@ public class UcsComputeDevice implements ComputeDevice {
                                     .toString(), null));
                     return;
 
-                }
-                else {
+                } else {
 
                     if (networkToInitiatorMap.get(network) == null) {
                         networkToInitiatorMap.put(network, new ArrayList<String>());
@@ -1136,7 +1135,8 @@ public class UcsComputeDevice implements ComputeDevice {
                     ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                             computeElement.getLabel(), ComputeBlade.class);
 
-                    // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                    // Release the computeElement back into the pool as soon as we have unbound it from the service
+                    // profile
                     if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
                         computeElement.setAvailable(true);
                         _dbClient.persistObject(computeElement);
@@ -1146,7 +1146,8 @@ public class UcsComputeDevice implements ComputeDevice {
                             unboundServiceProfile.getDn());
                 }
 
-                // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+                // On successful deletion of the service profile - get rid of the objects that represent objects from
+                // the service profile
                 removeHostInitiatorsFromNetworks(host);
             }
 

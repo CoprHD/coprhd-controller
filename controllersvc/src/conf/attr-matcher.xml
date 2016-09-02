@@ -21,6 +21,7 @@
 		 <ref bean="deviceTypeMatcher"/>
 		 <ref bean="protocolsMatcher" />
 		 <ref bean="fastPolicyMatcher" />
+		 <ref bean="compressionMatcher" />
 		 <ref bean="raidLevelMatcher" />
          <ref bean="driveTypeMatcher"/>
 		 <ref bean="multiVolumeConsistencyMatcher" />
@@ -34,6 +35,7 @@
          <ref bean="fileReplicationMatcher" />
          <ref bean="fileScheduleSnapshotMatcher" />
          <ref bean="minDataCenterMatcher"/>
+         <ref bean="dedupMatcher"/>
 	</util:list>
 	
 	<util:list id="placementMatchers">
@@ -83,6 +85,7 @@
 	<bean id="provisionTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProvisioningTypeMatcher" />
 	<bean id="raidLevelMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RaidLevelMatcher" />
 	<bean id="fastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.AutoTieringPolicyMatcher" />
+	<bean id="compressionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompressionMatcher" />
 	<bean id="thinVolumePreAllocateMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ThinVolumePreAllocationMatcher" />
 	<bean id="vnxBlockFastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VNXBlockAutoTieringPolicyMatcher" />
 	<bean id="capacityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher"/>
@@ -110,6 +113,7 @@
     <bean id="fileScheduleSnapshotMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileScheduleSnaphotMatcher" />
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
     <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
+    <bean id="dedupMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.DedupMatcher"/>
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 
 	     Ex. matcherFramework bean in a ImplicitPoolMatcher static method. -->

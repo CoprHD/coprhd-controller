@@ -64,6 +64,7 @@ public abstract class AttributeMatcher {
         high_availability_rp,
         metropoint,
         auto_tiering_policy_name,
+        compression_enabled, 
         thin_volume_preallocation_size,
         storage_system,
         multi_volume_consistency,
@@ -83,7 +84,9 @@ public abstract class AttributeMatcher {
         min_datacenters,
         quota,
         source_storage_system,
-        remote_copy_mode
+        remote_copy_mode,
+        array_affinity,
+        dedup
 
     }
 

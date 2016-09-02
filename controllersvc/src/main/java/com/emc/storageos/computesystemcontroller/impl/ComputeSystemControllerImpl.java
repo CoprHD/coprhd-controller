@@ -1097,12 +1097,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**

@@ -70,6 +70,9 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -2287,6 +2290,97 @@ public class RPHelper {
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Validate the CG before performing destructive operations.
+     * 
+     * @param dbClient dbclient
+     * @param system protection system
+     * @param cgId BlockConsistencyGroup ID
+     * @param volumes list of volumes
+     * @return true if CG is what we expect on the hardware, false otherwise
+     */
+    public static boolean validateCG(DbClient dbClient, ProtectionSystem system, URI cgId, Set<URI> volumes) {
+        _log.info("validateCG - start", system.getId());
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+        Set<GetCGsResponse> cgList = rp.getAllCGs();
+        if (cgList == null || cgList.isEmpty()) {
+            // TODO: Convert to exception
+            _log.error("Could not retrieve CGs from the RPA to perform validation.");
+            return false;
+        }
+        
+        // Grab all of the source volumes from the CG according to ViPR
+        List<Volume> srcVolumes = RPHelper.getCgVolumes(dbClient, cgId, PersonalityTypes.SOURCE.toString());
+        
+        // Get the protection set
+        if (srcVolumes == null || srcVolumes.isEmpty()) {
+            // TODO: Convert to exception
+            _log.error("Could not retrieve volumes from the database for CG to perform validation");
+            return false;
+        }
+        
+        URI psetId = srcVolumes.get(0).getProtectionSet().getURI();
+        
+        if (NullColumnValueGetter.isNullURI(psetId)) {
+            // TODO: Convert to exception
+            _log.error("Could not retrieve protection set ID from the database for CG to perform validation");
+            return false;
+        }
+        
+        ProtectionSet pset = dbClient.queryObject(ProtectionSet.class, psetId);
+        
+        if (pset == null) {
+            // TODO: Convert to exception
+            _log.error("Could not retrieve protection set from the database for CG to perform validation");
+            return false;
+        }
+        
+        // Pre-populate the wwn fields for comparisons later.
+        List<String> srcVolumeWwns = new ArrayList<>();
+        for (Volume srcVolume : srcVolumes) {
+            srcVolumeWwns.add(srcVolume.getWWN());
+        }
+        
+        for (GetCGsResponse cgResponse : cgList) {
+            // TODO: should be CG ID, not the name
+            if (!cgResponse.getCgName().equals(pset.getLabel())) {
+                continue;                
+            }
+            
+            if (Long.parseLong(pset.getProtectionId()) != cgResponse.getCgId()) {
+                continue;
+            }
+
+            if (cgResponse.getRsets() == null || cgResponse.getRsets().isEmpty()) {
+                // TODO: Convert to exception
+                _log.error("Could not retrieve replication sets from the hardware to perform validation");
+                return false;
+            }
+            
+            // Find one of our volumes
+            for (GetRSetResponse rsetResponse : cgResponse.getRsets()) {
+                
+                if (rsetResponse == null || rsetResponse.getVolumes() == null || rsetResponse.getVolumes().isEmpty()) {
+                    // TODO: Convert to exception
+                    _log.error("Could not retrieve the volumes in the replication set from the hardware to perform validation");
+                    return false;
+                }
+            
+                for (GetVolumeResponse volumeResponse : rsetResponse.getVolumes()) {
+                    // This volume should be represented in the list of srcVolumes
+                    if (!srcVolumeWwns.contains(volumeResponse.getWwn())) {
+                        _log.warn(
+                                "Found at least one volume that isn't in our list of source volumes {}, therefore we can not delete the entire CG.",
+                                volumeResponse.getWwn());
+                        return false;
+                    }
+                }
+            }
+        }
+        _log.info("validateCG - end", system.getId());
         return true;
     }
 }

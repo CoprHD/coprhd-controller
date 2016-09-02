@@ -18,7 +18,9 @@ public class OrderCreateParam extends OrderCommonParam {
     private URI scheduledEventId;
 
     private String scheduledTime;
-    
+
+    private URI executionWindow;
+
     // order specific schedule info - for snapshot/fullcopy orders, it indicates "max number of retained copies"
     private String additionalScheduleInfo;
     
@@ -48,6 +50,15 @@ public class OrderCreateParam extends OrderCommonParam {
 
     public void setScheduledTime(String scheduledTime) {
         this.scheduledTime = scheduledTime;
+    }
+
+    @XmlElement(name = "executionWindow")
+    public URI getExecutionWindow() {
+        return executionWindow;
+    }
+
+    public void setExecutionWindow(URI executionWindow) {
+        this.executionWindow = executionWindow;
     }
 
 	@XmlElement(name = "additionalScheduleInfo")

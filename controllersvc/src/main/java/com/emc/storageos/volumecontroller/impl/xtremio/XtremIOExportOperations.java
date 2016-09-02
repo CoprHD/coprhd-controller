@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
@@ -94,7 +95,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             List<Initiator> initiatorsToBeCreated = new ArrayList<Initiator>();
-            ArrayListMultimap<String, Initiator> initiatorToIGMap = XtremIOProvUtils.mapInitiatorToInitiatorGroup(storage.getSerialNumber(),
+            ArrayListMultimap<String, Initiator> initiatorToIGMap = XtremIOProvUtils.mapInitiatorToInitiatorGroup(
+                    storage.getSerialNumber(),
                     initiatorList, initiatorsToBeCreated, xioClusterName, client);
 
             runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList,
@@ -111,7 +113,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList,
             List<URI> targetURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getSerialNumber());
 
         try {
@@ -190,7 +192,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            ArrayListMultimap<String, Initiator> initiatorToIGMap = XtremIOProvUtils.mapInitiatorToInitiatorGroup(storage.getSerialNumber(),
+            ArrayListMultimap<String, Initiator> initiatorToIGMap = XtremIOProvUtils.mapInitiatorToInitiatorGroup(
+                    storage.getSerialNumber(),
                     initiatorList, null, xioClusterName, client);
 
             XtremIOExportMaskInitiatorsValidator initiatorsValidator = (XtremIOExportMaskInitiatorsValidator) validator.addVolumes(storage,
@@ -283,7 +286,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             List<Initiator> initiatorsToBeCreated = new ArrayList<Initiator>();
-            ArrayListMultimap<String, Initiator> initiatorToIGMap = XtremIOProvUtils.mapInitiatorToInitiatorGroup(storage.getSerialNumber(),
+            ArrayListMultimap<String, Initiator> initiatorToIGMap = XtremIOProvUtils.mapInitiatorToInitiatorGroup(
+                    storage.getSerialNumber(),
                     initiators, initiatorsToBeCreated, xioClusterName, client);
 
             XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.addInitiators(storage,
@@ -318,7 +322,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void removeInitiators(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _log.info("{} removeInitiators START...", storage.getSerialNumber());
         // Get the context from the task completer, in case this is a rollback.
         ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
@@ -473,7 +477,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     private void runLunMapDeletionAlgorithm(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
@@ -627,7 +631,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
      */
     private void runLunMapDeletionOrRemoveInitiatorAlgorithm(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
@@ -666,12 +670,24 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
                 _log.info("Block Obj {} , wwn {}", blockObj.getId(), blockObj.getWWN());
                 XtremIOVolume xtremIOVolume = null;
+
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
                             blockObj.getLabel(), xioClusterName);
                 } else {
-                    xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
-                            blockObj.getDeviceLabel(), xioClusterName);
+                    if (URIUtil.isType(volumeUri, BlockSnapshot.class) && BlockObject.checkForRP(dbClient, volumeUri)) {
+                        // If the BlockObject is a BlockSnapshot of type RP (bookmark), there will be no exported
+                        // snapshot. In this case, a target volume will have been exported and the deviceLabel of
+                        // the BlockSnapshot reflects the name of that target.
+                        _log.info(String.format(
+                                "Dealing with a RecoverPoint bookmark lun mapping.  Checking to see if volume %s is available on array.",
+                                blockObj.getDeviceLabel()));
+                        xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
+                                blockObj.getDeviceLabel(), xioClusterName);
+                    } else {
+                        xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
+                                blockObj.getDeviceLabel(), xioClusterName);
+                    }
                 }
 
                 if (null != xtremIOVolume) {
@@ -854,7 +870,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private void addInitiatorToInitiatorGroup(XtremIOClient client, String xioClusterName,
             String clusterName, String hostName, List<Initiator> initiatorsToBeCreated,
             Set<String> igNames, ExportMask exportMask, StorageSystem storage, TaskCompleter taskCompleter)
-                    throws Exception {
+            throws Exception {
         XtremIOInitiatorGroup igGroup = null;
         // create initiator group folder and initiator group
         String igFolderName = getInitiatorGroupFolderName(clusterName, hostName, storage);
@@ -897,7 +913,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     remainingInitiator.getLabel());
             String initiatorName = ((null == remainingInitiator.getLabel() || remainingInitiator
                     .getLabel().isEmpty()) ? remainingInitiator.getInitiatorPort()
-                            : remainingInitiator.getLabel());
+                    : remainingInitiator.getLabel());
             List<Initiator> createdInitiators = new ArrayList<Initiator>();
             _log.info("Initiator {}  ", initiatorName);
             try {
@@ -935,7 +951,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private void runLunMapCreationAlgorithm(StorageSystem storage, ExportMask exportMask, VolumeURIHLU[] volumeURIHLUs,
             List<Initiator> initiators, List<URI> targets, XtremIOClient client, String xioClusterName,
             ArrayListMultimap<String, Initiator> initiatorToIGMap, List<Initiator> initiatorsToBeCreated, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
 
         Set<String> igNames = null;
         List<URI> mappedVolumes = new ArrayList<URI>();

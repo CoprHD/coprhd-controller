@@ -25,7 +25,13 @@
           <div class="section-header">
             <h1>HTTPS Connection Required (6410)</h1>
           </div>
-          <p>This application no longer allows insecure (HTTP) connections on port 80.  Please reconnect using a secure (HTTPS) connection on port 443.</p>
+          <p>
+            This application no longer allows insecure (HTTP) connections on port 80.  Please reconnect using a secure (HTTPS) connection on port 443
+            <script>
+                var https_url = "https://" + window.location.hostname;
+                document.write('<a href="' + https_url + '">' + https_url + '</a>');
+            </script>
+          </p>
         </div>
       </div>
     </div>

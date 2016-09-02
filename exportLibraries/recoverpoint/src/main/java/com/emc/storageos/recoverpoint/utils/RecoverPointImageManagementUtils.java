@@ -476,7 +476,7 @@ public class RecoverPointImageManagementUtils {
             // Get the storage access state prior to enabling direct access. In the event of a failure,
             // we want to present the current state of the copy to the user.
             ConsistencyGroupCopyState copyState = getCopyState(impl, cgCopyUID);
-            if (copyState != null) {
+            if (copyState != null && copyState.getStorageAccessState() != null) {
                 accessState = copyState.getStorageAccessState().name();
             }
 

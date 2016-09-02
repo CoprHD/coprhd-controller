@@ -12,6 +12,8 @@ import java.util.*;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.*;
@@ -96,17 +98,19 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
-
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
         ServiceDescriptor serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), catalogService.getBaseService());
 
         order.setOrderNumber(getNextOrderNumber());
         order.setSummary(catalogService.getTitle());
+
         if (catalogService.getExecutionWindowRequired()) {
-            order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
             if (order.getScheduledEventId() == null) {
-                if (order.getExecutionWindowId() == null ||
-                        order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
+                // Order is scheduled with traditional way but not the new scheduler framework
+                order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+
+                if (order.getExecutionWindowId() == null /* not invalid any more */||
+                    order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
                     Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                     scheduleTime.setTime(order.getLastUpdated());
                     order.setScheduledTime(scheduleTime);
@@ -118,8 +122,13 @@ public class OrderManagerImpl implements OrderManager {
                     ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
                     order.setScheduledTime(helper.getScheduledTime());
                 }
+            } else {
+                // Order is scheduled with new scheduler framework
+                // ExecutionWindow and ScheduleTime are already set via Parameter
+                ;
             }
         }
+
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());
         order.setOrderStatus(OrderStatus.PENDING.name());

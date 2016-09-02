@@ -966,6 +966,11 @@ public class VirtualArrays extends ViprResourceController {
 				for (Object virtualarray : varrays) {
 					JsonObject varrayobject = (JsonObject) virtualarray;
 					String varrayid = varrayobject.get("id").getAsString();
+                    VirtualArrayRestRep virtualArrayRestRep = VirtualArrayUtils.getVirtualArray(varrayid);
+                    if (virtualArrayRestRep == null || virtualArrayRestRep.getInactive()) {
+                        // ignore for now
+                        continue;
+                    }
 					for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(varrayid)) {
 						connectedstoragesystems.add(storageSystem.getId().toString());
 					}

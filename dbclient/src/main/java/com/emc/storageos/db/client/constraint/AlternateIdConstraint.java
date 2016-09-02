@@ -71,6 +71,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFS
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -753,6 +754,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
+        public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
     }
 }

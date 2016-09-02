@@ -51,7 +51,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void createExportMask(StorageSystem storage, URI exportMask,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} createExportMask START...", storage.getSerialNumber());
 
         VNXeApiClient apiClient = getVnxeClient(storage);
@@ -78,8 +78,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     result = apiClient.exportLun(nativeId, initiators, newhlu);
                     mask.addVolume(volUri, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    result = apiClient.exportSnap(nativeId, initiators, null);
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                    if (BlockObject.checkForRP(_dbClient, volUri)) {
+                        _logger.info(String.format(
+                                "BlockObject %s is a RecoverPoint bookmark.  Exporting associated lun %s instead of snap.",
+                                volUri, nativeId));
+                        result = apiClient.exportLun(nativeId, initiators, newhlu);
+                    } else {
+                        result = apiClient.exportSnap(nativeId, initiators, null);
+                        setSnapWWN(apiClient, blockObject, nativeId);
+                    }
                     mask.addVolume(volUri, result.getHlu());
                 }
             }
@@ -143,7 +150,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void deleteExportMask(StorageSystem storage, URI exportMaskUri,
             List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} deleteExportMask START...", storage.getSerialNumber());
 
         try {
@@ -176,8 +183,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, initiators);
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    apiClient.unexportSnap(nativeId, initiators);
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                    if (BlockObject.checkForRP(_dbClient, volUri)) {
+                        _logger.info(String.format(
+                                "BlockObject %s is a RecoverPoint bookmark.  Un-exporting associated lun %s instead of snap.",
+                                volUri, nativeId));
+                        apiClient.unexportLun(nativeId, initiators);
+                    } else {
+                        apiClient.unexportSnap(nativeId, initiators);
+                        setSnapWWN(apiClient, blockObject, nativeId);
+                    }
                 }
                 // update the exportMask object
                 exportMask.removeVolume(volUri);
@@ -208,7 +222,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     @Override
     public void addVolumes(StorageSystem storage, URI exportMaskUri,
             VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} addVolume START...", storage.getSerialNumber());
         try {
             _logger.info("addVolumes: Export mask id: {}", exportMaskUri);
@@ -262,7 +276,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     @Override
     public void removeVolumes(StorageSystem storage, URI exportMaskUri,
             List<URI> volumes, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} removeVolumes: START...", storage.getSerialNumber());
 
         try {
@@ -388,7 +402,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             throw DeviceControllerException.exceptions.invalidObjectNull();
         }
         try {
-            for (Initiator initiator : initiators) {   
+            for (Initiator initiator : initiators) {
                 mask.removeFromExistingInitiators(initiator);
                 mask.removeFromUserCreatedInitiators(initiator);
             }
@@ -430,7 +444,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
     /**
      * set snap wwn after export/unexport. if a snap is not exported to any host, its wwn is null
-     * 
+     *
      * @param apiClient
      * @param blockObj
      * @param snapId

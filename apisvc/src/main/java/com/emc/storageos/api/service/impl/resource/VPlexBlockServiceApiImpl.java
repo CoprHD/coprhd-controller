@@ -1344,17 +1344,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         TaskList taskList = new TaskList();
 
-        // Check for common Vpool updates handled by generic code. It returns true if handled.
-        TaskList taskListForVolumes = createTasksForVolumes(vpool, volumes, taskId);
-        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return taskListForVolumes;
-        }
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
 
-        // Set volume tasks to ready as the tasks are not needed if volumes are in CG
-        // Ideally tasks should be created in checkCommonVpoolUpdate to avoid creating tasks unnecessarily
-        // Note in case of individual volume VPool change is performed, task for volume need to be recreated
-        for (TaskResourceRep volumeTask : taskListForVolumes.getTaskList()) {
-            _dbClient.ready(Volume.class, volumeTask.getResource().getId(), taskId);
+        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), volumeVirtualPool, vpool,
+                _dbClient, notSuppReasonBuff) ||
+                VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volumes.get(0), volumeVirtualPool, vpool,
+                        _dbClient, notSuppReasonBuff)) {
+            taskList = createTasksForVolumes(vpool, volumes, taskId);
+            checkCommonVpoolUpdates(volumes, vpool, taskId);
+            return taskList;
         }
 
         // Check if any of the volumes passed is a VPLEX volume

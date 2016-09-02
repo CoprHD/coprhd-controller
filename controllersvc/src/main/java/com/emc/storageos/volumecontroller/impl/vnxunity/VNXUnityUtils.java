@@ -28,12 +28,9 @@ public class VNXUnityUtils {
     /**
      * Acquire the workflow step lock for CG
      * 
-     * @param system
-     *            The storage system
-     * @param cgName
-     *            The consistency group name
-     * @param stepId
-     *            The step id
+     * @param system The storage system instance
+     * @param cgName The consistency group name
+     * @param stepId The step id
      */
     public static void getCGLock(WorkflowService workflowService, StorageSystem system, String cgName, String stepId) {
         logger.info(String.format("Getting lock for the CG %s", cgName));
@@ -51,8 +48,8 @@ public class VNXUnityUtils {
      * Get Unity block object consistency group name if the block object is in a consistency group; otherwise, it
      * returns null.
      * 
-     * @param blockObject volume or snapshot
-     * @param dbClient
+     * @param blockObject Volume or snapshot
+     * @param dbClient The dbClient instance
      * @return The consistency group name
      */
     public static String getBlockObjectCGName(BlockObject blockObject, DbClient dbClient) {

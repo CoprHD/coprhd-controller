@@ -379,8 +379,14 @@ public class RecoverPointClient {
 	                }
 	
 	                returnSiteSet.add(discoveredSite);
-            	} catch (FunctionalAPIInternalError_Exception re) {   
-            		logger.warn(String.format("Internal Error during discover of RP Cluster %s, Skipping discovery of this site",localSiteName));
+            	} catch (FunctionalAPIInternalError_Exception | FunctionalAPIActionFailedException_Exception fe) {
+            		StringBuffer buf = new StringBuffer();
+            		buf.append(String.format("Internal Error during discover of RP Cluster %s, Skipping discovery of this site.", localSiteName));
+            		if (fe != null) {
+            			buf.append('\n');
+            			buf.append(String.format("Exception returned : %s", fe.getMessage()));
+            		}  
+            		logger.warn(buf.toString());
         	    }
             }
 

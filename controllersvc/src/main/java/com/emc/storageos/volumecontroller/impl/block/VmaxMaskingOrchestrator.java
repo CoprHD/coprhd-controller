@@ -114,7 +114,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // The export group has a set of export masks already associated with it, and we
             // simply need to determine which of those masks require the volumes and add them.
             // Exceptions to this are documented in the logic.
-            if (exportGroup.getExportMasks() != null) {
+            if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,

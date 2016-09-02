@@ -950,7 +950,7 @@ public class NetworkDeviceController implements NetworkController {
                     .queryObject(ExportGroup.class, exportGroupURI);   	            
         	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
-            if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
+            if (exportMaskURIs == null && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.
                 exportMaskURIs = new ArrayList<URI>(Collections2.transform(
                         exportGroup.getExportMasks(),
@@ -1359,16 +1359,21 @@ public class NetworkDeviceController implements NetworkController {
      */
     private void updateZoningMap(List<NetworkFCZoneInfo> lastReferenceZoneInfo, URI exportGroupURI, List<URI> exportMaskURIs) {
 
+    	List<URI> emURIs = new ArrayList<URI>();
         if (exportMaskURIs == null || exportMaskURIs.isEmpty()) {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            if (exportGroup != null && exportGroup.getExportMasks() != null) {
-                exportMaskURIs = new ArrayList<URI>();
-                exportMaskURIs = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            if (exportGroup != null && !exportMasks.isEmpty()) {
+            	for (ExportMask mask : exportMasks) {
+            		emURIs.add(mask.getId());
+            	}
             }
+        } else {
+        	emURIs.addAll(exportMaskURIs);
         }
 
-        for (URI exportMaskURI : exportMaskURIs) {
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        for (URI emURI : emURIs) {
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, emURI);
             if (exportMask != null && !exportMask.getInactive()
                     && !exportMask.fetchDeviceDataMapEntry(
                             ExportMask.DeviceDataMapKeys.ImmutableZoningMap.name()).contains(Boolean.TRUE.toString())) {
@@ -1397,12 +1402,12 @@ public class NetworkDeviceController implements NetworkController {
                                                 if (ports.isEmpty()) {
                                                     exportMask.removeZoningMapEntry(initiatorId);
                                                     _log.info("Removing zoning map entry for initiator {}, in exportmask {}",
-                                                            initiatorId, exportMaskURI);
+                                                            initiatorId, emURI);
                                                 } else {
                                                     exportMask.addZoningMapEntry(initiatorId, ports);
                                                     _log.info("Removing storagePort " + storagePort.getId()
                                                             + " from zoning map for initiator " + initiatorId
-                                                            + " in export mask " + exportMaskURI);
+                                                            + " in export mask " + emURI);
                                                 }
                                             }
                                         }

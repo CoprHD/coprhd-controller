@@ -1585,12 +1585,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup != null && maskURIs != null &&
                 exportGroup.getExportMasks() != null) {
             Set<String> exportGroupMaskNames = new HashSet<String>();
-            for (String it : exportGroup.getExportMasks()) {
-                URI uri = URI.create(it);
-                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, uri);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {              
                 exportGroupMaskNames.add(exportMask.getMaskName());
+                set.add(exportMask.getId().toString());
             }
-            set.addAll(exportGroup.getExportMasks());
+
             for (Set<URI> entry : maskURIs) {
                 Collection<String> uris = Collections2.transform(entry,
                         CommonTransformerFunctions.FCTN_URI_TO_STRING);
@@ -1770,10 +1770,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      */
     protected Map<String, Set<URI>> getInitiatorToExportMaskMap(ExportGroup exportGroup) {
         Map<String, Set<URI>> mapping = new HashMap<String, Set<URI>>();
-        for (String maskURIStr : exportGroup.getExportMasks()) {
-            ExportMask mask = ExportMaskUtils.asExportMask(_dbClient, maskURIStr);
-            if (ExportMaskUtils.isUsable(mask)) {
-                Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null);
+        for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
+            if (ExportMaskUtils.isUsable(exportMask)) {
+                Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
                 for (Initiator initiator : initiators) {
                     String name = Initiator.normalizePort(initiator.getInitiatorPort());
                     Set<URI> maskURIs = mapping.get(name);
@@ -1781,7 +1780,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                         maskURIs = new HashSet<URI>();
                         mapping.put(name, maskURIs);
                     }
-                    maskURIs.add(mask.getId());
+                    maskURIs.add(exportMask.getId());
                 }
             }
 

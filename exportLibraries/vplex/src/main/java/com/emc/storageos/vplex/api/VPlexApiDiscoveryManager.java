@@ -1733,44 +1733,6 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Finds the storage view with the passed name.
-     * 
-     * @param viewName The name of the storage view to be found.
-     * 
-     * @return A VPlexStorageViewInfo instance specifying the storage view
-     *         information or null when not found.
-     * 
-     * @throws VPlexApiException When an error occurs finding the storage view.
-     */
-    VPlexStorageViewInfo findStorageView(String viewName) throws VPlexApiException {
-        return findStorageView(viewName, false);
-    }
-
-    /**
-     * Finds the storage view with the passed name.
-     * 
-     * @param viewName The name of the storage view to be found.
-     * @param includeDetails true if the request should include storage details
-     * 
-     * @return A VPlexStorageViewInfo instance specifying the storage view
-     *         information or null when not found.
-     * 
-     * @throws VPlexApiException When an error occurs finding the storage view.
-     */
-    VPlexStorageViewInfo findStorageView(String viewName, boolean includeDetails) throws VPlexApiException {
-
-        VPlexStorageViewInfo storageViewInfo = null;
-        List<VPlexClusterInfo> clusterInfoList = getClusterInfoLite();
-        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-            storageViewInfo = findStorageViewOnCluster(viewName, clusterInfo.getName(), includeDetails);
-            if (storageViewInfo != null) {
-                break;
-            }
-        }
-        return storageViewInfo;
-    }
-
-    /**
      * Finds the storage view with the passed name on the cluster with the
      * passed cluster name.
      * 

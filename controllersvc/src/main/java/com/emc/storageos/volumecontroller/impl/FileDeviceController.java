@@ -4204,7 +4204,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
         for (MountInfo mount : mountList) {
             String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory()) || mount.getSubDirectory().equals(subDir)) {
+            if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory())
+                    || (!StringUtils.isEmpty(mount.getSubDirectory()) && mount.getSubDirectory().equals(subDir))) {
                 for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
                     if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                         unmountList.add(mount);

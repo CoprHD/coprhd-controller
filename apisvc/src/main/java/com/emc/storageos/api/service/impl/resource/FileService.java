@@ -4342,27 +4342,23 @@ public class FileService extends TaskResourceService {
             List<String> securityTypes = Arrays.asList(rule.getSecFlavor().split("\\s*,\\s*"));
             allowedSecurities.addAll(securityTypes);
         }
-        if (!allowedSecurities.contains(param.getSecurity())) {
+        if (allowedSecurities.contains(param.getSecurity())) {
             return true;
         }
         return false;
     }
 
     private boolean isFSTypeValid(FileSystemMountParam param) {
-        if (!FileSystemMountType.contains(param.getFsType())) {
+        if (FileSystemMountType.contains(param.getFsType())) {
             return true;
         }
         return false;
     }
 
     private boolean isSubDirValid(FileShare fs, String subDir) {
-        List<FileExportRule> exportFileRulesTemp = queryDBFSExports(fs);
-        if (subDir != null) {
-            for (FileExportRule rule : exportFileRulesTemp) {
-                if (rule.getExportPath().endsWith("/" + subDir)) {
-                    return true;
-                }
-            }
+        List<ExportRule> exportFileRulesTemp = getExportRules(fs.getId(), false, subDir);
+        if (!exportFileRulesTemp.isEmpty()) {
+            return true;
         }
         return false;
     }

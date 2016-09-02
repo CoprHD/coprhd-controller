@@ -56,7 +56,7 @@ public class MountNFSExportService extends LinuxService {
     @Override
     public void execute() throws Exception {
         String subDir = subDirectory;
-        if (subDirectory.isEmpty()) {
+        if ("!No subdirectory".equalsIgnoreCase(subDir)) {
             subDir = null;
         }
         mountNFSExportHelper.mountExport(fsId, hostId, subDir, mountPath, securityType, host.getHostName(), fsType);

@@ -6,6 +6,7 @@ package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -46,7 +47,8 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         dbClient.queryByType(FileShare.class, true);
         List<ExportRule> exportList = getExportRules(fs.getId(), false, subDirectory);
         for (ExportRule export : exportList) {
-            if (securityType.equals(export.getSecFlavor())) {
+            List<String> securityTypes = Arrays.asList(export.getSecFlavor().split("\\s*,\\s*"));
+            if (securityTypes.contains(securityType)) {
                 return export;
             }
         }
@@ -134,9 +136,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         FileShare fs = dbClient.queryObject(FileShare.class, resId);
         ExportRule export = findExport(fs, subDirectory, security);
         String options = "nolock,sec=";
-        if (fsType.equalsIgnoreCase("nfs") || fsType.equalsIgnoreCase("nfs4")) {
-            options = "sec=";
-        }
         // Add to etc/fstab
         mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, options + security);
 

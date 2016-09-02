@@ -785,7 +785,7 @@ zone_setup()
     #
     # set up zone for cisco switch simulator
     #
-    if [ $QUICK -eq 1  -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+    if [ $QUICK -eq 1 -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
         cisco_mds_quick_setup_once
     elif [ $DISCOVER_SAN -eq 1 ]; then
         brocade_setup_once
@@ -5308,9 +5308,9 @@ recoverpoint_simulator_setup()
     fi
 
     run storagedevice discover_all
-#run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
-#run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
-#run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
+    run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
+    run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
+    run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
 
     RECOVERPOINT_IP=$RP_SIMULATOR_IP
     rp_protection_system_setup
@@ -6632,28 +6632,32 @@ common_setup()
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
 
         # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
-	if [ $QUICK -eq 0  -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+	if [ $QUICK -eq 0  -a "${VPLEX_QUICK_PARAM}" != "quick" -a "${RP_QUICK_PARAM}" != "quick" -a "${XIO_QUICK_PARAM}" != quick ]; then
 	    secho "Turning on DISCOVER_SAN because we are testing physical"
 	    DISCOVER_SAN=1
 	fi
 
-	zone_setup
-	run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+	if [ "${RP_QUICK_PARAM}" != "quick" ]; then
+	  zone_setup
+	  run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+	fi
     fi
 
     project_setup
     projectid=$(project query $PROJECT)
     secho "Project id of $PROJECT is $projectid."
 
-    ROOT_TENANT=`tenant root|tail -1`
-    if [ "${RP_INGESTTESTS}" = "0" ]; then
-	secho "Setup ACLs on neighborhood for $TENANT"
-	run neighborhood allow $NH $TENANT
-	run neighborhood allow $NH2 $TENANT
-	run neighborhood allow $NH $ROOT_TENANT
-	run neighborhood allow $NH2 $ROOT_TENANT
-	secho "Setup hosts and clusters for $TENANT"
-	host_setup
+    if [ "${RP_QUICK_PARAM}" != "quick" ]; then
+	ROOT_TENANT=`tenant root|tail -1`
+	if [ "${RP_INGESTTESTS}" = "0" ]; then
+	    secho "Setup ACLs on neighborhood for $TENANT"
+	    run neighborhood allow $NH $TENANT
+	    run neighborhood allow $NH2 $TENANT
+	    run neighborhood allow $NH $ROOT_TENANT
+	    run neighborhood allow $NH2 $ROOT_TENANT
+	    secho "Setup hosts and clusters for $TENANT"
+	    host_setup
+	fi
     fi
 }
 

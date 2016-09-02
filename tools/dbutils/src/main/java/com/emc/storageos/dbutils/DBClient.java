@@ -689,12 +689,31 @@ public class DBClient {
     private List<URI> getColumnUris(Class clazz, boolean isActive) {
         List<URI> uris = null;
         try {
+            if (onlySupportActiveOnlyIsFalse(clazz)) {
+                isActive = false;
+            }
             uris = _dbClient.queryByType(clazz, isActive);
         } catch (DatabaseException e) {
             System.err.println("Error querying from db: " + e);
             return null;
         }
         return uris;
+    }
+
+    /**
+     * Some model classes do not use .inactive field at all, which means all object instances with .inactive == null,
+     * so When querying , can only specify activeOnly == false, otherwise will get nothing.
+     * Forward to {@link com.emc.storageos.db.client.impl.DbClientImpl#queryByType} for more detail.
+     */
+    private boolean onlySupportActiveOnlyIsFalse(Class clazz) {
+        Set<Class> inactiveIsNullClass = new HashSet<>();
+        inactiveIsNullClass.add(Token.class);
+        inactiveIsNullClass.add(ProxyToken.class);
+
+        if (inactiveIsNullClass.contains(clazz)) {
+            return true;
+        }
+        return false;
     }
 
     public void setListLimit(int listLimit) {

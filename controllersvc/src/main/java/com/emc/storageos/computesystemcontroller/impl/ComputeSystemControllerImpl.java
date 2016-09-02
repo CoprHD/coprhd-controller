@@ -822,12 +822,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         if (cluster == null) {
             return Lists.newArrayList();
-        } else {
-            return CustomQueryUtility.queryActiveResourcesByConstraint(
-                    _dbClient, ExportGroup.class,
-                    AlternateIdConstraint.Factory.getConstraint(
-                            ExportGroup.class, "clusters", cluster.getId().toString()));
         }
+        return CustomQueryUtility.queryActiveResourcesByConstraint(
+                _dbClient, ExportGroup.class,
+                AlternateIdConstraint.Factory.getConstraint(
+                        ExportGroup.class, "clusters", cluster.getId().toString()));
     }
 
     /**

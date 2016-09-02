@@ -77,6 +77,8 @@ public class DBClient {
 
     private static final String pkgs = "com.emc.storageos.db.client.model";
 
+    private static final Set<Class> inactiveIsNullClass = new HashSet<>(Arrays.asList(Token.class, ProxyToken.class));
+
     private static final String QUITCHAR = "q";
     private int listLimit = 100;
     private boolean turnOnLimit = false;
@@ -653,10 +655,10 @@ public class DBClient {
      * Get the column family row count
      * 
      * @param cfName
-     * @param isActive
+     * @param isActiveOnly
      */
     @SuppressWarnings("unchecked")
-    public int getRowCount(String cfName, boolean isActive) throws Exception {
+    public int getRowCount(String cfName, boolean isActiveOnly) throws Exception {
         Class clazz = _cfMap.get(cfName); // fill in type from cfName
         int rowCount = 0;
         if (clazz == null) {
@@ -664,7 +666,7 @@ public class DBClient {
             return -1;
         }
         List<URI> uris = null;
-        uris = getColumnUris(clazz, isActive);
+        uris = getColumnUris(clazz, isActiveOnly);
         if (uris == null || !uris.iterator().hasNext()) {
             System.out.println(String.format(PRINT_COUNT_RESULT, cfName, rowCount));
             return -1;
@@ -686,13 +688,14 @@ public class DBClient {
     /**
      * get the keys of column family for list/count
      */
-    private List<URI> getColumnUris(Class clazz, boolean isActive) {
+    private List<URI> getColumnUris(Class clazz, boolean isActiveOnly) {
         List<URI> uris = null;
         try {
             if (onlySupportActiveOnlyIsFalse(clazz)) {
-                isActive = false;
+                uris = _dbClient.queryByType(clazz, false);
+            } else {
+                uris = _dbClient.queryByType(clazz, isActiveOnly);
             }
-            uris = _dbClient.queryByType(clazz, isActive);
         } catch (DatabaseException e) {
             System.err.println("Error querying from db: " + e);
             return null;
@@ -706,10 +709,6 @@ public class DBClient {
      * Forward to {@link com.emc.storageos.db.client.impl.DbClientImpl#queryByType} for more detail.
      */
     private boolean onlySupportActiveOnlyIsFalse(Class clazz) {
-        Set<Class> inactiveIsNullClass = new HashSet<>();
-        inactiveIsNullClass.add(Token.class);
-        inactiveIsNullClass.add(ProxyToken.class);
-
         if (inactiveIsNullClass.contains(clazz)) {
             return true;
         }

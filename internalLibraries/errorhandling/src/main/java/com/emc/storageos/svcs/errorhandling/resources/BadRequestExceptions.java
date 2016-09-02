@@ -2571,7 +2571,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnRPVolumes();
 
@@ -3080,13 +3080,25 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidGroupOfInitiators(URI exportGroupURI, String nameList);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantExposeExportedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantExportSnapshotExposedAsVPLEXVolume(final String snapshotId);
-    
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotPerformOperationWithExportedBookmarks(final URI snapshotId, final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConsistencyGroup();
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVolumeName(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportGroupContainsMountedVolumesInvalidParam();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportGroupContainsMountedVolumes(URI exportGroup, String volumes);
 }

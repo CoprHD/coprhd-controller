@@ -59,6 +59,11 @@ public class ScheduleTimeHelper {
 
         Calendar startTime = getScheduledStartTime(scheduleInfo);
         Calendar endTime = startTime;
+
+        if (scheduleInfo.getReoccurrence() == 1) {
+            return endTime;
+        }
+
         int timeToIncrease = scheduleInfo.getCycleFrequency() * (scheduleInfo.getReoccurrence() - 1);
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:

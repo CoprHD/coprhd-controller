@@ -615,13 +615,13 @@ public class VPlexBackendManager {
         // Read all the ExportMasks
         Map<String, ExportMask> exportMasks = new HashMap<String, ExportMask>();
         Map<String, List<URI>> maskToVolumes = new HashMap<String, List<URI>>();
-        for (String maskId : exportGroup.getExportMasks()) {
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(maskId));
+        List<ExportMask> egExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+        for (ExportMask mask : egExportMasks) {
             if (mask == null || mask.getInactive()) {
                 continue;
             }
-            exportMasks.put(maskId, mask);
-            maskToVolumes.put(maskId, new ArrayList<URI>());
+            exportMasks.put(mask.getId().toString(), mask);
+            maskToVolumes.put(mask.getId().toString(), new ArrayList<URI>());
         }
 
         // Determine the ExportMasks in use for each of the volumes.

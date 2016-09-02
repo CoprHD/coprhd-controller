@@ -255,7 +255,9 @@ public class StorageSystems extends ViprResourceController {
                 flash.put("warning",
                         MessagesUtils.get(NOT_REGISTERED, storageArray.name));
             }
-            if (storageArray.type.equals(VMAX) || storageArray.type.equals(VNX_BLOCK)) {
+            String type = storageSystem.getSystemType();
+            if (type.equals(VMAX) || type.equals(VNX_BLOCK)) {
+                storageArray.setType(type);
                 @SuppressWarnings("unchecked")
                 List<StringOption> options = (List<StringOption>)renderArgs.get("storageArrayTypeList");
                 options.add(new StringOption(VMAX, "EMC VMAX"));
@@ -958,6 +960,10 @@ public class StorageSystems extends ViprResourceController {
                 this.smisProviderUserName = storageArray.getSmisUserName();
             }
 
+        }
+
+        public void setType(String type) {
+            this.type = type;
         }
 
         public boolean isNew() {

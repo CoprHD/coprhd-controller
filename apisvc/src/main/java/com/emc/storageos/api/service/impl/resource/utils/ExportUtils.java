@@ -55,6 +55,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ExportUtils {
 
@@ -636,9 +637,9 @@ public class ExportUtils {
                         || exportMask.getExistingInitiators() != null)) {
                     List<ExportGroup> maskGroups = new ArrayList<ExportGroup>();
                     exportMasks.put(exportMask, maskGroups);
-                    for (ExportGroup group : exportGroups) {
-                        if (group.getExportMasks().contains(exportMask.getId().toString())) {
-                            maskGroups.add(group);
+                    for (ExportGroup group : exportGroups) {  
+                    	if (group.getExportMasks() != null && group.getExportMasks().contains(exportMask.getId().toString())) {
+                    		maskGroups.add(group);                        	
                         }
                     }
                 }
@@ -672,9 +673,11 @@ public class ExportUtils {
                     exportMask.getVolumes() != null) {
                 List<ExportGroup> maskGroups = new ArrayList<ExportGroup>();
                 exportMasks.put(exportMask, maskGroups);
-                for (ExportGroup group : exportGroups) {
-                    if (group.getExportMasks().contains(exportMask.getId().toString())) {
-                        maskGroups.add(group);
+                for (ExportGroup group : exportGroups) {                   
+                    for (ExportMask em : ExportMaskUtils.getExportMasks(dbClient, group)) {
+                    	if (em.getId().toString().equals(exportMask.getId().toString())) {
+                    		maskGroups.add(group);
+                    	}
                     }
                 }
             }
@@ -695,10 +698,10 @@ public class ExportUtils {
             DbClient dbClient) {
         List<URI> maskUris = new ArrayList<URI>();
         for (ExportGroup exportGroup : exportGroups) {
-            List<URI> uris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
-            for (URI uri : uris) {
-                if (!maskUris.contains(uri)) {
-                    maskUris.add(uri);
+            List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+            for (ExportMask mask : masks) {
+                if (!maskUris.contains(mask.getId())) {
+                    maskUris.add(mask.getId());
                 }
             }
         }
@@ -712,7 +715,7 @@ public class ExportUtils {
         dbClient.queryByConstraint(constraint, egUris);
         List<ExportGroup> queryExportGroups = dbClient.queryObject(ExportGroup.class, iteratorToList(egUris));
         for (ExportGroup exportGroup : queryExportGroups) {
-            if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null
+            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()
                     || !checkUserPermissions(exportGroup, permissionsHelper, user)) {
                 continue;
             }

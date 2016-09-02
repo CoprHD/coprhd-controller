@@ -1531,6 +1531,12 @@ public class WorkflowService implements WorkflowController {
         // execution step esx was dependent on es1. Thus esx can either be directly dependent on es1,
         // or it can be dependent on the stepGroup containing es1.
         for (Step executeStep : workflow.getStepMap().values()) {
+            // Suspended no error steps have not run, treat them as cancelled
+            if (executeStep.status.state == StepState.SUSPENDED_NO_ERROR) {
+                executeStep.status.state = StepState.CANCELLED;
+                persistWorkflowStep(workflow, executeStep);
+                continue;
+            }
             if (executeStep.status.state == StepState.CANCELLED) {
                 continue;
             }

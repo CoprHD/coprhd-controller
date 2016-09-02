@@ -480,18 +480,36 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             discoverClusterIdentification(vplex, client);
 
                             // update storage port native guids and labels
+                            // and add them to an autoUpgradePortsMap to short circuit
+                            // another database check and hold them through until they can be persisted
+                            // at the end of the discoverPorts method call below
+                            Map<String, StoragePort> autoUpgradePortsMap = new HashMap<String, StoragePort>();
                             List<StoragePort> storagePorts = ControllerUtils.getSystemPortsOfSystem(_dbClient, vplex.getId());
                             for (StoragePort storagePort : storagePorts) {
                                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, storagePort);
                                 storagePort.setNativeGuid(nativeGuid);
                                 storagePort.setLabel(nativeGuid);
+                                autoUpgradePortsMap.put(nativeGuid, storagePort);
                             }
 
-                            _dbClient.updateObject(vplex);
-                            _dbClient.updateObject(storagePorts);
-
-                            // now rediscover all storage ports to pull in the new second cluster's ports
-                            discoverPorts(client, vplex, new ArrayList<StoragePort>());
+                            boolean doPersist = true;
+                            try {
+                                // now rediscover all storage ports to pull in the new second cluster's ports
+                                discoverPorts(client, vplex, new ArrayList<StoragePort>(), autoUpgradePortsMap);
+                            } catch (Exception ex) {
+                                s_logger.error("Failed to discover ports. ", ex);
+                                doPersist = false;
+                                // we've encountered and error and shouldn't persist any of this.
+                                // throw an exception to tell the user to contact customer support.
+                                throw VPlexApiException.exceptions
+                                    .vplexClusterConfigurationChangedFromLocalToMetro(assemblyId, systemNativeGUID);
+                            } finally {
+                                if (doPersist) {
+                                    // storage ports would have been updated by the discoverPorts method
+                                    // but we still need to update the vplex object
+                                    _dbClient.updateObject(vplex);
+                                } 
+                            }
                         }
                     }
                 }
@@ -1885,7 +1903,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 // The backend storage ports serve as initiators for the
                 // connected backend storage.
                 s_logger.info("Discovering frontend and backend ports.");
-                discoverPorts(client, vplexStorageSystem, allPorts);
+                discoverPorts(client, vplexStorageSystem, allPorts, null);
                 _dbClient.persistObject(vplexStorageSystem);
                 _completer.statusPending(_dbClient, "Completed port discovery");
             } catch (VPlexCollectionException vce) {
@@ -1977,7 +1995,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @throws VPlexCollectionException When an error occurs discovering the
      *             VPlex ports.
      */
-    private void discoverPorts(VPlexApiClient client, StorageSystem vplexStorageSystem, List<StoragePort> allPorts)
+    private void discoverPorts(VPlexApiClient client, StorageSystem vplexStorageSystem, 
+            List<StoragePort> allPorts, Map<String, StoragePort> autoUpgradePortsMap)
             throws VPlexCollectionException {
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
@@ -2028,7 +2047,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                 // See if the port already exists in the DB. If not we need to
                 // create it.
-                StoragePort storagePort = findPortInDB(vplexStorageSystem, portInfo);
+                StoragePort storagePort = findPortInDB(vplexStorageSystem, portInfo, autoUpgradePortsMap);
                 if (storagePort == null) {
                     s_logger.info("Creating new port {}", portWWN);
                     storagePort = new StoragePort();
@@ -2080,7 +2099,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
             // Persist changes to new and exiting ports and initiators.
             _dbClient.createObject(newStoragePorts);
-            _dbClient.persistObject(existingStoragePorts);
+            _dbClient.updateObject(existingStoragePorts);
             _dbClient.createObject(newInitiatorPorts);
 
             allPorts.addAll(newStoragePorts);
@@ -2144,11 +2163,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @throws IOException When an error occurs querying the database.
      */
     private StoragePort findPortInDB(StorageSystem vplexStorageSystem,
-            VPlexPortInfo portInfo) throws IOException {
+            VPlexPortInfo portInfo, Map<String, StoragePort> autoUpgradePortsMap) throws IOException {
         StoragePort port = null;
         String portWWN = WWNUtility.getWWNWithColons(portInfo.getPortWwn());
         String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 vplexStorageSystem, portWWN, NativeGUIDGenerator.PORT);
+        if (null != autoUpgradePortsMap && autoUpgradePortsMap.containsKey(portNativeGuid)) {
+            s_logger.info("Found port {} in the auto upgrade ports map", portNativeGuid);
+            return autoUpgradePortsMap.get(portNativeGuid);
+        }
         s_logger.info("Looking for port {} in database", portNativeGuid);
         URIQueryResultList queryResults = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory

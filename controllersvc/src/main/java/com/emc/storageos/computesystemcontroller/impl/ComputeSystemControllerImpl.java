@@ -1473,16 +1473,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
-                URI vCenterId = vcenterDataCenter.getVcenter();
+                if (vcenterDataCenter != null) {
+                    URI vCenterId = vcenterDataCenter.getVcenter();
 
-                for (URI export : vCenterHostExportMap.get(hostId)) {
-                    waitFor = workflow.createStep(VERIFY_DATASTORE_STEP,
-                            String.format("Verifying datastores for removal from export %s", export), waitFor,
-                            export, export.toString(),
-                            this.getClass(),
-                            verifyDatastoreMethod(export, vCenterId,
-                                    vcenterDataCenter.getId()),
-                            rollbackMethodNullMethod(), null);
+                    for (URI export : vCenterHostExportMap.get(hostId)) {
+                        waitFor = workflow.createStep(VERIFY_DATASTORE_STEP,
+                                String.format("Verifying datastores for removal from export %s", export), waitFor,
+                                export, export.toString(),
+                                this.getClass(),
+                                verifyDatastoreMethod(export, vCenterId,
+                                        vcenterDataCenter.getId()),
+                                rollbackMethodNullMethod(), null);
+                    }
                 }
             }
         }

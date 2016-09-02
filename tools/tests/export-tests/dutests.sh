@@ -414,6 +414,22 @@ verify_zones() {
     done
 }
 
+# Deletes the zones returned by load_zones
+delete_zones() {
+    for zone in ${zones}
+    do
+        echo "deleteing zone ${zone}"
+    	zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1
+	if [ $? -ne 0 ]; then
+	    echo "zones not deleted"
+	fi
+	echo "activating fabric ${fabricid}"
+	zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1
+	if [ $? -ne 0 ]; then
+	    echo "fabric not activated"
+	fi
+    done
+}
 
 dbupdate() {
     runcmd dbupdate.sh $*
@@ -3208,6 +3224,9 @@ test_24() {
 
     # Make sure the mask is gone
     verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the zones
+    delete_zones
 }
 
 # DU Prevention Validation Test 25

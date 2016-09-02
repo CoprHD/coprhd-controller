@@ -629,11 +629,13 @@
     <bean id="vnxeExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="workflowService" ref="workflowService" />
     </bean>
     
     <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="workflowService" ref="workflowService" />
     </bean>
 
     <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">

@@ -186,7 +186,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             if (isCG) {
                 logger.info(String.format("cg %s for the volume", cgName));
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
-                getCGLock(storage, cgName, opId);
+                VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
                         vol.getThinlyProvisioned(), autoTierPolicyName, cgId);
                 jobs.add(job.getId());
@@ -241,7 +241,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             if (NullColumnValueGetter.isNotNullValue(cgName)) {
                 consistencyGroupId = apiClient.getConsistencyGroupIdByName(cgName);
-                getCGLock(storage, cgName, taskCompleter.getOpId());
+                VNXUnityUtils.getCGLock(workflowService, storage, cgName, taskCompleter.getOpId());
             }
             VNXeCommandJob commandJob = apiClient.expandLun(volume.getNativeId(), size, consistencyGroupId);
             VNXeExpandVolumeJob expandVolumeJob = new VNXeExpandVolumeJob(commandJob.getId(), storage.getId(), taskCompleter);
@@ -313,7 +313,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                                         // Remove the luns from the CG
                                         isRP = true;
                                         logger.info(String.format("Removing volumes from CG because the CG %sis exported to RP", cgName));
-                                        getCGLock(storageSystem, cgName, opId);
+                                        VNXUnityUtils.getCGLock(workflowService, storageSystem, cgName, opId);
                                         apiClient.removeLunsFromConsistencyGroup(cgId, lunIDs);
                                         for (String lunId : lunIDs) {
                                             logger.info(String.format("Deleting the volume %s", lunId));
@@ -327,7 +327,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                 }
                 if (!isRP) {
-                    getCGLock(storageSystem, cgName, opId);
+                    VNXUnityUtils.getCGLock(workflowService, storageSystem, cgName, opId);
                     apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
                 }
             }
@@ -1247,26 +1247,4 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
-    /**
-     * Acquire the workflow step lock for CG
-     * 
-     * @param system
-     *            The storage system
-     * @param cgName
-     *            The consistency group name
-     * @param stepId
-     *            The step id
-     */
-    private void getCGLock(StorageSystem system, String cgName, String stepId) {
-        // lock around create and delete operations on the same CG
-        logger.info(String.format("Getting lock for the CG %s", cgName));
-        List<String> lockKeys = new ArrayList<String>();
-        String key = cgName + system.getNativeGuid();
-        lockKeys.add(key);
-        boolean lockAcquired = workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
-        if (!lockAcquired) {
-            throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                    String.format("Add or remove volumes from Unity consistency group %s", cgName));
-        }
-    }
 }

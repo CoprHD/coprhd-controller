@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.vnxe;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,12 +42,19 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUtils;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
     private static final String OTHER = "other";
-
+    protected WorkflowService workflowService;
+    
+    public void setWorkflowService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
+    }
+    
     @Override
     public void createExportMask(StorageSystem storage, URI exportMask,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
@@ -60,9 +68,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             _logger.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
             _logger.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             _logger.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
-
+            Set<String> processedCGs = new HashSet<String>();
             List<VNXeHostInitiator> initiators = prepareInitiators(initiatorList);
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMask);
+            String opId = taskCompleter.getOpId();
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 URI volUri = volURIHLU.getVolumeURI();
                 String hlu = volURIHLU.getHLU();
@@ -73,6 +82,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 Integer newhlu = -1;
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
                     newhlu = Integer.valueOf(hlu);
+                }
+                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                if (cgName != null && !processedCGs.contains(cgName)) {
+                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, initiators, newhlu);
@@ -169,10 +182,16 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
             }
 
+            String opId = taskCompleter.getOpId();
+            Set<String> processedCGs = new HashSet<String>();
             List<VNXeHostInitiator> initiators = prepareInitiators(initiatorList);
             for (URI volUri : volumeURIList) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
+                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                if (cgName != null && !processedCGs.contains(cgName)) {
+                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
+                }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, initiators);
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
@@ -227,6 +246,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
             List<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators);
 
+            String opId = taskCompleter.getOpId();
+            Set<String> processedCGs = new HashSet<String>();
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 URI volUri = volURIHLU.getVolumeURI();
                 String hlu = volURIHLU.getHLU();
@@ -237,6 +258,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 Integer newhlu = -1;
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
                     newhlu = Integer.valueOf(hlu);
+                }
+                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                if (cgName != null && !processedCGs.contains(cgName)) {
+                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
@@ -281,9 +306,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 initiators.add(init);
             }
             List<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators);
+            String opId = taskCompleter.getOpId();
+            Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
+                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                if (cgName != null && !processedCGs.contains(cgName)) {
+                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
+                }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, vnxeInitiators);
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {

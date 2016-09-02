@@ -130,8 +130,10 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     /**
      * Looks up controller dependency for given hardware
      * 
-     * @param clazz controller interface
-     * @param hw hardware name
+     * @param clazz
+     *            controller interface
+     * @param hw
+     *            hardware name
      * @param <T>
      * @return
      */
@@ -239,11 +241,11 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
             throws InternalException {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.updateExportRules(storage, fsURI, param, opId);
+        controller.updateExportRules(storage, fsURI, param, unmountExport, opId);
     }
 
     @Override
@@ -269,10 +271,10 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) {
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId) {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.deleteExportRules(storage, uri, allDirs, subDirs, taskId);
+        controller.deleteExportRules(storage, uri, allDirs, subDirs, unmountExport, taskId);
     }
 
     @Override
@@ -287,5 +289,26 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.failbackFileSystem(fsURI, nfsPort, cifsPort, replicateConfiguration, taskId);
+    }
+
+    @Override
+    public void restoreFS(URI storage, URI fs, URI snapshot, String opId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.restoreFS(storage, fs, snapshot, opId);
+    }
+
+    @Override
+    public void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteSnapshot(storage, pool, uri, forceDelete, deleteType, opId);
+    }
+
+    @Override
+    public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteShareACLs(storage, uri, shareName, taskId);
     }
 }

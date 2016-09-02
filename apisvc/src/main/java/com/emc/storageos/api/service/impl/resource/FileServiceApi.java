@@ -16,6 +16,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -35,14 +36,22 @@ public interface FileServiceApi {
     /**
      * Create filesystems
      * 
-     * @param param -The filesystem creation post parameter
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
+     * @param param
+     *            -The filesystem creation post parameter
+     * @param project
+     *            -project requested
+     * @param varray
+     *            -source VirtualArray
+     * @param vpool
+     *            -VirtualPool requested
+     * @param recommendations
+     *            -Placement recommendation object
+     * @param taskList
+     *            -list of tasks for source filesystems
+     * @param task
+     *            -task ID
+     * @param vpoolCapabilities
+     *            -wrapper for vpool params
      * @return TaskList
      * 
      * @throws InternalException
@@ -56,11 +65,15 @@ public interface FileServiceApi {
     /**
      * Delete the passed filesystems for the passed system.
      * 
-     * @param systemURI -URI of the system owing the filesystems.
-     * @param fileSystemURIs- The URIs of the filesystems to be deleted.
-     * @param deletionType -The type of deletion to perform.
+     * @param systemURI
+     *            -URI of the system owing the filesystems.
+     * @param fileSystemURIs-
+     *            The URIs of the filesystems to be deleted.
+     * @param deletionType
+     *            -The type of deletion to perform.
      * @param
-     * @param task -The task identifier.
+     * @param task
+     *            -The task identifier.
      * 
      * @throws InternalException
      */
@@ -90,14 +103,22 @@ public interface FileServiceApi {
     /**
      * Create Continuous Copies for existing source file system
      * 
-     * @param fs -source file system for which mirror file system to be created
-     * @param project -project requested
-     * @param varray -source VirtualArray
-     * @param vpool -VirtualPool requested
-     * @param recommendations -Placement recommendation object
-     * @param taskList -list of tasks for source filesystems
-     * @param task -task ID
-     * @param vpoolCapabilities -wrapper for vpool params
+     * @param fs
+     *            -source file system for which mirror file system to be created
+     * @param project
+     *            -project requested
+     * @param varray
+     *            -source VirtualArray
+     * @param vpool
+     *            -VirtualPool requested
+     * @param recommendations
+     *            -Placement recommendation object
+     * @param taskList
+     *            -list of tasks for source filesystems
+     * @param task
+     *            -task ID
+     * @param vpoolCapabilities
+     *            -wrapper for vpool params
      * @return TaskList
      * 
      * @throws InternalException
@@ -137,10 +158,11 @@ public interface FileServiceApi {
      * @param storage
      * @param fsURI
      * @param param
+     * @param unmountExport
      * @param opId
      * @throws InternalException
      */
-    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, boolean unmountExport, String opId)
             throws InternalException;
 
     /**
@@ -189,7 +211,8 @@ public interface FileServiceApi {
      * @param taskId
      * @throws InternalException
      */
-    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
+    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, boolean unmountExport, String taskId)
+            throws InternalException;
 
     /**
      * Fail over the File System to target system
@@ -216,4 +239,38 @@ public interface FileServiceApi {
      */
     public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws InternalException;
+
+    /**
+     * Restore File System Snapshot
+     * 
+     * @param storage
+     * @param fs
+     * @param snapshot
+     * @param opId
+     * @throws ControllerException
+     */
+    void restoreFS(URI storage, URI fs, URI snapshot, String opId)
+            throws InternalException;
+
+    /**
+     * 
+     * @param storage
+     * @param pool
+     * @param uri
+     * @param forceDelete
+     * @param deleteType
+     * @param opId
+     * @throws ControllerException
+     */
+    void deleteSnapshot(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws InternalException;
+
+    /**
+     * 
+     * @param storage
+     * @param uri
+     * @param shareName
+     * @param taskId
+     * @throws InternalException
+     */
+    void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
 }

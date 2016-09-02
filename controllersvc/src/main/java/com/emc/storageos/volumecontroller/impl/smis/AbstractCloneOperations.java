@@ -172,7 +172,7 @@ public class AbstractCloneOperations implements CloneOperations {
             TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, tenantUri);
             String cloneLabel = generateLabel(tenantOrg, cloneObj);
 
-            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storageSystem, baseVolume, targetPool);
+            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storageSystem, storageSystem, baseVolume, targetPool);
             CIMObjectPath sourceVolumePath = _cimPath.getBlockObjectPath(storageSystem, sourceObj);
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storageSystem);
             CIMArgument[] inArgs = null;

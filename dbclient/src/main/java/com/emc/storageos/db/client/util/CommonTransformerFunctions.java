@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -142,6 +141,16 @@ public class CommonTransformerFunctions {
             @Override
             public String apply(StoragePort port) {
                 return port.getPortName();
+            }
+        };
+    }
+
+    public static Function<DataObject, String> fctnDataObjectToForDisplay() {
+        return new Function<DataObject, String>() {
+
+            @Override
+            public String apply(DataObject obj) {
+                return obj.forDisplay();
             }
         };
     }

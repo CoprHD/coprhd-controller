@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -152,9 +153,10 @@ public class IngestVolumesExportedSchedulingThread implements Runnable {
             }
 
             // Update the related objects if any after successful export mask ingestion
-            for (Set<DataObject> updatedObjects : _requestContext.getDataObjectsToBeUpdatedMap().values()) {
-                if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    for (DataObject dob : updatedObjects) {
+            for (Entry<String, Set<DataObject>> updatedObjectsEntry : _requestContext.getDataObjectsToBeUpdatedMap().entrySet()) {
+                if (updatedObjectsEntry != null) {
+                    _logger.info("Ingestion Wrap Up: Updating objects for UnManagedVolume URI " + updatedObjectsEntry.getKey());
+                    for (DataObject dob : updatedObjectsEntry.getValue()) {
                         if (dob.getInactive()) {
                             _logger.info("Ingestion Wrap Up: Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
                         } else {

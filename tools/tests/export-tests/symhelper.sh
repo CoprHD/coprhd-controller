@@ -136,8 +136,12 @@ remove_initiator_from_mask() {
 }
 
 delete_volume() {
-    echo "Delete volume for VMAX not yet supported";
-    sleep 30
+    serial_number=$1
+    devid=$2
+    /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} not_ready ${devid} -noprompt
+    /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "unmap dev ${devid};" commit -noprompt
+    /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} -dev ${devid} unbind -noprompt
+    /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "delete dev ${devid};" commit -noprompt
 }
 
 verify_export_prechecks() {

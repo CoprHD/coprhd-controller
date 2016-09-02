@@ -239,6 +239,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
     private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
+    
+    private static final String METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP = "createFullCopyOrchestrationRollbackSteps";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -6791,7 +6793,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
             return waitFor;
-}
+        }
         
         URI storageURI = null;
         boolean createInactive = false;
@@ -6815,14 +6817,34 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
             Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
                     createInactive);
-            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+            Workflow.Method createFullCopyOrchestrationExecutionRollbackMethod = new Workflow.Method(METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP,
+                    workflow.getWorkflowURI(), stepId);
 
             waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
-                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, createFullCopyOrchestrationExecutionRollbackMethod, stepId);
             _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
         }
         
         return waitFor;
+    }
+    
+    /**
+     * calls the child workflow step rollback methods
+     * 
+     * @param parentWorkflow
+     * @param orchestrationStepId
+     * @param token
+     * @return
+     * @throws WorkflowException
+     */
+    public boolean createFullCopyOrchestrationRollbackSteps(URI parentWorkflow, String orchestrationStepId, String token)
+            throws WorkflowException {
+        // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
+        // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and
+        // exportOrchestrationStepId.
+        _workflowService.rollbackChildWorkflow(parentWorkflow, orchestrationStepId, token);
+
+        return true;
     }
 
     /* (non-Javadoc)

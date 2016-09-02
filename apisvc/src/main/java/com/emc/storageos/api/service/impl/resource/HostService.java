@@ -77,6 +77,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
@@ -94,6 +95,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -115,6 +117,8 @@ import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
+import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostBulkRep;
@@ -1187,6 +1191,32 @@ public class HostService extends TaskResourceService {
     }
 
     /**
+     * Get list of file system mounts for the specified host.
+     * 
+     * @param id
+     *            the URN of a host
+     * @brief List file system mounts
+     * @return List of file system mounts.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/filesystem-mounts")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MountInfoList getHostNFSMounts(@PathParam("id") URI id) {
+
+        ArgValidator.checkFieldUriType(id, Host.class, "id");
+        _log.info(String.format("Get list of mounts for host %1$s", id));
+        Host host = queryObject(Host.class, id, false);
+        
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(queryDBHostMounts(id));
+        return mountList;
+    }
+    
+    /**
      * Creates a new host for the tenant organization. Discovery is initiated
      * after the host is created.
      *
@@ -2103,5 +2133,43 @@ public class HostService extends TaskResourceService {
             _log.info("Selected image {} exists on imageServer {}",
                     img.getLabel(), imageServer.getLabel());
         }
+    }
+    
+    private void getMountInfo(FileMountInfo orig, MountInfo dest) {
+
+        dest.setFsId(orig.getFsId());
+        dest.setHostId(orig.getHostId());
+        dest.setMountPath(orig.getMountPath());
+        dest.setSecurityType(orig.getSecurityType());
+        dest.setSubDirectory(orig.getSubDirectory());
+    }
+    
+
+    /**
+     * Method to get the list file system mounts which are mount on a host
+     *
+     * @param host host system URI
+     * @return List<MountInfo> List of mount infos
+     */
+    private List<MountInfo> queryDBHostMounts(URI host) {
+        _log.info("Querying NFS mounts for host {}", host);
+        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
+            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fileMounts != null && !fileMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fileMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    hostMounts.add(mountInfo);
+                }
+            }
+            return hostMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return hostMounts;
     }
 }

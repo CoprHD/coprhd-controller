@@ -16,15 +16,17 @@ public class DeactivateFileSystemExportRule extends WaitForTask<FileShareRestRep
     private final URI fileSystemId;
     private final Boolean allDirectory;
     private final String subDirectory;
+    private final Boolean unmountExport;
 
-    public DeactivateFileSystemExportRule(String fileSystemId, Boolean allDirectory, String subDirectory) {
-        this(uri(fileSystemId), allDirectory, subDirectory);
+    public DeactivateFileSystemExportRule(String fileSystemId, Boolean allDirectory, String subDirectory, Boolean unmountExport) {
+        this(uri(fileSystemId), allDirectory, subDirectory, unmountExport);
     }
 
-    public DeactivateFileSystemExportRule(URI fileSystemId, Boolean allDirectory, String subDirectory) {
+    public DeactivateFileSystemExportRule(URI fileSystemId, Boolean allDirectory, String subDirectory, Boolean unmountExport) {
         this.fileSystemId = fileSystemId;
         this.allDirectory = allDirectory;
         this.subDirectory = subDirectory;
+        this.unmountExport = unmountExport;
         provideDetailArgs(fileSystemId, allDirectory, subDirectory);
     }
 
@@ -35,8 +37,8 @@ public class DeactivateFileSystemExportRule extends WaitForTask<FileShareRestRep
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
         if (StringUtils.isBlank(subDirectory)) {
-            return getClient().fileSystems().deleteAllExport(fileSystemId, allDirectory);
+            return getClient().fileSystems().deleteAllExport(fileSystemId, allDirectory, unmountExport);
         }
-        return getClient().fileSystems().deleteExport(fileSystemId, allDirectory, subDirectory);
+        return getClient().fileSystems().deleteExport(fileSystemId, allDirectory, subDirectory, unmountExport);
     }
 }

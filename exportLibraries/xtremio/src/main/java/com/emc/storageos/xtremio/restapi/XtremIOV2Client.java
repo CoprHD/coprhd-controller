@@ -415,7 +415,7 @@ public class XtremIOV2Client extends XtremIOClient {
             return initiators.getContent();
         } catch (Exception e) {
             // No need to log this message at error level.
-            log.warn(e.getMessage(), e);
+            log.warn("Exception in getInitiator - {}", e.getMessage());
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;

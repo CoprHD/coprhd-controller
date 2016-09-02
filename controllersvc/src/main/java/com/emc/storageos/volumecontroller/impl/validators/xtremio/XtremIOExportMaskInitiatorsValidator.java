@@ -31,15 +31,11 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
 
     private static final Logger log = LoggerFactory.getLogger(XtremIOExportMaskInitiatorsValidator.class);
 
-    private final Collection<Initiator> initiators;
-
     private ArrayListMultimap<String, Initiator> initiatorToIGMap;
     private ArrayListMultimap<String, Initiator> knownInitiatorToIGMap;
-    private final boolean errorOnMismatch = true;
 
-    public XtremIOExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask, Collection<Initiator> expectedInitiators) {
+    public XtremIOExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask) {
         super(storage, exportMask);
-        this.initiators = expectedInitiators;
     }
 
     public void setInitiatorToIGMap(ArrayListMultimap<String, Initiator> initiatorToIGMap) {

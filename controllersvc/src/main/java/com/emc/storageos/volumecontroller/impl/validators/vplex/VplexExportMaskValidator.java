@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -53,7 +54,15 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
             // no such export mask, ignore, but don't indicate pass
             return false;
         }
+
         log.info("Initiating validation of Vplex ExportMask: " + id);
+
+        // Don't validate against RP masks
+        if (ExportMaskUtils.isBackendExportMask(getDbClient(), mask)) {
+            log.info("validation against RP masks is disabled.");
+            return true;
+        }
+
         VPlexStorageViewInfo storageView = null;
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, getDbClient());

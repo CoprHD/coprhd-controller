@@ -337,8 +337,6 @@
         <property name="srdfOperations" ref="vmaxSrdfOperations" />
         <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
-        <property name="locker" ref="locker"/>
-        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.smis.SmisMetaVolumeOperations">

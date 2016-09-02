@@ -462,6 +462,7 @@ public class RecoverPointImageManagementUtils {
             throws RecoverPointException {
         String cgCopyName = NAME_UNKNOWN;
         String cgName = NAME_UNKNOWN;
+        String accessState = "N/A";
 
         // Not checking cgCopUID for null because RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID
         // ensures it will not be null.
@@ -472,6 +473,13 @@ public class RecoverPointImageManagementUtils {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
+            // Get the storage access state prior to enabling direct access. In the event of a failure,
+            // we want to present the current state of the copy to the user.
+            ConsistencyGroupCopyState copyState = getCopyState(impl, cgCopyUID);
+            if (copyState != null && copyState.getStorageAccessState() != null) {
+                accessState = copyState.getStorageAccessState().name();
+            }
+
             impl.enableDirectAccess(cgCopyUID);
 
             // Wait for the CG copy state to change to DIRECT_ACCESS
@@ -479,7 +487,7 @@ public class RecoverPointImageManagementUtils {
                     cgName));
             waitForCGCopyState(impl, cgCopyUID, false);
         } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception | InterruptedException e) {
-            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+            throw RecoverPointException.exceptions.failedToEnableDirectAccessForCopy(cgCopyName, cgName, accessState, e);
         }
     }
 

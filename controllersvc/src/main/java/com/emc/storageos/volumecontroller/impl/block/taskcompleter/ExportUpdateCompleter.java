@@ -106,14 +106,15 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup);
             }
-            dbClient.updateObject(exportGroup);
-            _log.info("export_update completer: done");
-            _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
-                    getId().toString(), getOpId(), status.name()));
 
             if (exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
                 exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
             }
+
+            dbClient.updateObject(exportGroup);
+            _log.info("export_update completer: done");
+            _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
+                    getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);

@@ -900,9 +900,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
             throw new Exception("Export group is being updated by another operation");
-        } else {
-            exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
         }
+        exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+        _dbClient.updateObject(exportGroupObject);
 
         _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                 stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);

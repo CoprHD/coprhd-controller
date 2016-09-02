@@ -127,6 +127,7 @@ import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ControllerOperationValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
@@ -1958,8 +1959,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         // Retain any previous RP fields on the new target volumes
-        targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
-        targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getRpCopyName())) {
+            targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+        }
+
+        if ((sourceVolume != null) && NullColumnValueGetter.isNotNullValue(sourceVolume.getInternalSiteName())) {
+            targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
+        }
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 
@@ -2210,9 +2216,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egUri);
             List<URI> inits = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             initiators.addAll(inits);
-            List<URI> exportMaskuris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
-            for (URI exportMaskUri : exportMaskuris) {
-                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {
                 storagePorts.addAll(StringSetUtil.stringSetToUriList(exportMask.getStoragePorts()));
             }
         }

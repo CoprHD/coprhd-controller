@@ -820,10 +820,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public static List<ExportGroup> getSharedExports(DbClient _dbClient, URI clusterId) {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
-        return CustomQueryUtility.queryActiveResourcesByConstraint(
-                _dbClient, ExportGroup.class,
-                AlternateIdConstraint.Factory.getConstraint(
-                        ExportGroup.class, "clusters", cluster.getId().toString()));
+        if (cluster == null) {
+            return Lists.newArrayList();
+        } else {
+            return CustomQueryUtility.queryActiveResourcesByConstraint(
+                    _dbClient, ExportGroup.class,
+                    AlternateIdConstraint.Factory.getConstraint(
+                            ExportGroup.class, "clusters", cluster.getId().toString()));
+        }
     }
 
     /**

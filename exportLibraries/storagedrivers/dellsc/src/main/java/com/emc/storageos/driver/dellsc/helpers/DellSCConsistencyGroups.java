@@ -245,7 +245,7 @@ public class DellSCConsistencyGroups {
             boolean found = false;
 
             for (ScReplay replay : replays) {
-                if (replay.parent.instanceId.startsWith(snapshot.getParentId())) {
+                if (replay.instanceId.startsWith(snapshot.getParentId())) {
                     // Found match, populate the info
                     util.getVolumeSnapshotFromReplay(replay, snapshot);
                     found = true;

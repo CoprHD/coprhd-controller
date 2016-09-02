@@ -251,35 +251,38 @@ angular.module("portalApp").controller({
         };
         $scope.disableSubmitButton = function() {
                 // find all the required fields, and all the password verify fields
-        	var passwordVerifyFields = [];
-        	var requiredFields = [];
-        	angular.forEach($scope.serviceDescriptor.items, function(field) {
-        		if (field.required === true && !$scope.overriddenValues[field.name]) {
-        			requiredFields.push(field);
-        		}
-        		if (field.type === "password.verify") {
-        			passwordVerifyFields.push(field);
-        		}
-        	});
-        	
-        	// if a required field has no value, disable the order button
-                var result = false;
-                angular.forEach(requiredFields, function(field) {
-                    if (field.value == null || field.value.length < 1) {
-                        result = true;
-                    }   
-                });
-                
-                // if a password verify field has an error, disable the order button
-                angular.forEach(passwordVerifyFields, function(field) {
-                        var errors = $scope.errors[field.name];
-                        if (errors && errors.length > 0) {
-                                result = true;
-                        }
-                });
-                
-                // if we make it out, enable the order button
-                return result;
+            var passwordVerifyFields = [];
+            var requiredFields = [];
+            angular.forEach($scope.serviceDescriptor.items, function(field) {
+                if (field.required === true && !$scope.overriddenValues[field.name]) {
+                    requiredFields.push(field);
+                }
+                if (field.type === "password.verify") {
+                    passwordVerifyFields.push(field);
+	            }
+            });
+	
+            // if a required field has no value, disable the order button
+            var result = false;
+            angular.forEach(requiredFields, function(field) {
+                if (field.value == null || field.value.length < 1) {
+                    result = true;
+                }   
+            });
+
+            // if a password verify field has an error, disable the order button
+            angular.forEach(passwordVerifyFields, function(field) {
+                var errors = $scope.errors[field.name];
+                if (errors && errors.length > 0) {
+                    result = true;
+                }  
+            });
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
+            // if we make it out, enable the order button
+            return result;
         }
     },
     FileRessourceCtrl: function($scope, $http, $window, translate) {
@@ -1552,6 +1555,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     requiredSteps = 2;
     landingStep = 3;
     maxSteps = 9;
+    $scope.staleData = false;
     initialNav = $(".navMenu .active").text();
     initialNavParent = $(".rootNav.active").text();
 
@@ -1574,6 +1578,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         //we need to check that the guide only appears on the license and initial setup nonav pages
         if (nonav) {
             if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
+                //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
+                eraseCookie(cookieKey);
                 return;
             }
         }
@@ -1698,9 +1704,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 2:
                 if ($scope.completedSteps>2) {
-                     loadPage('/config');
+                    loadPage('/config');
                 } else {
-                loadPage('/setup/index');
+                    loadPage('/setup/index');
                 }
                 break;
             case landingStep:
@@ -1828,10 +1834,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         })(1);
     }
 
-    checkStep = function(step,callback,callback2) {
+    checkStep = function(step,callback,finishCheckingCallback) {
 
         finishChecking = function(){
-            callback2();
+            finishCheckingCallback();
         }
 
         switch (step) {
@@ -2090,74 +2096,54 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     checkCookie = function(cookie) {
-        cookieObject = readCookie(cookie);
+        var guideCookie = readCookie(cookie);
 
-        if (cookieObject) {
+        if (guideCookie) {
             return true;
         }
         return false;
     }
 
-    $scope.$watch('guideVisible', function(newValue, oldValue) {
-        if (newValue != oldValue){
-            if(newValue){
-                openMenu();
-                $(colWiz).popover('hide');
-            }
-            else {
-                closeMenus();
-                $(colWiz).popover('show');
-            }
-        }
-        if(newValue) {
-            $('.rootNav , .navMenu a').on('click', function(event) {
-                $('.wizard-side-next').popover('show');
-                return false;
-            });
-        } else {
-             $('.rootNav , .navMenu a').off('click');
-        }
-    });
     var PINNED_COOKIE = 'isMenuPinned';
-        var MAIN_MENU = '#mainMenu';
-        var NAV = '.rootNav';
-        var MAIN_MENU_NAV = MAIN_MENU + ' ' + NAV;
-        var MENU = '.navMenu';
-        var MENU_NAME = 'subnav';
-        var MENU_PIN = '.menuPin';
-        var CONTENT_AREA = '#contentArea';
+    var MAIN_MENU = '#mainMenu';
+    var NAV = '.rootNav';
+    var MAIN_MENU_NAV = MAIN_MENU + ' ' + NAV;
+    var MENU = '.navMenu';
+    var MENU_NAME = 'subnav';
+    var MENU_PIN = '.menuPin';
+    var CONTENT_AREA = '#contentArea';
 
-        // --- CSS Classes ---
-        var MAIN_MENU_OPEN = 'selected';
-        var MENU_OPEN = 'menu-open';
-        var MENU_PINNED = 'menu-pinned';
-        var ACTIVE_INDICATOR = 'blueArrow';
+    // --- CSS Classes ---
+    var MAIN_MENU_OPEN = 'selected';
+    var MENU_OPEN = 'menu-open';
+    var MENU_PINNED = 'menu-pinned';
+    var ACTIVE_INDICATOR = 'blueArrow';
 
-        function openMenu() {
-            $menu = $('a.rootNav.active');
-            closeMenus();
-            var name = $menu.data(MENU_NAME);
-            if (name) {
-                var $subMenu = $('#' + name);
-                if ($subMenu) {
-                    $menu.addClass(MAIN_MENU_OPEN);
-                    $subMenu.addClass(MENU_OPEN);
-                    $(CONTENT_AREA).addClass(MENU_OPEN);
-                    $(CONTENT_AREA).addClass(MENU_PINNED);
-                    $("#wizard").addClass('guide-menuopen');
-                    createCookie(PINNED_COOKIE, 'true', 'session');
-                }
+    function openMenu() {
+        $menu = $('a.rootNav.active');
+        closeMenus();
+        var name = $menu.data(MENU_NAME);
+        if (name) {
+            var $subMenu = $('#' + name);
+            if ($subMenu) {
+                $menu.addClass(MAIN_MENU_OPEN);
+                $subMenu.addClass(MENU_OPEN);
+                $(CONTENT_AREA).addClass(MENU_OPEN);
+                $(CONTENT_AREA).addClass(MENU_PINNED);
+                $("#wizard").addClass('guide-menuopen');
+                createCookie(PINNED_COOKIE, 'true', 'session');
             }
-            //updateActiveIndicator();
         }
-            function closeMenus() {
-                createCookie(PINNED_COOKIE, 'false', 'session');
-                $(MAIN_MENU_NAV).removeClass(MAIN_MENU_OPEN);
-                $(MENU).removeClass(MENU_OPEN);
-                $(CONTENT_AREA).removeClass(MENU_OPEN);
-                $("#wizard").removeClass('guide-menuopen');
-                //updateActiveIndicator();
-            }
+        //updateActiveIndicator();
+    }
+    function closeMenus() {
+        createCookie(PINNED_COOKIE, 'false', 'session');
+        $(MAIN_MENU_NAV).removeClass(MAIN_MENU_OPEN);
+        $(MENU).removeClass(MENU_OPEN);
+        $(CONTENT_AREA).removeClass(MENU_OPEN);
+        $("#wizard").removeClass('guide-menuopen');
+        //updateActiveIndicator();
+    }
     function isMenuOpened() {
         var elements = $('div.'+MENU_OPEN);
         if (elements.length > 0) {
@@ -2200,9 +2186,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
 
     });
-
-
-
 
     function setActiveMenu(name,parent) {
         $(".navMenu .active , #mainMenu .active").removeClass("active");
@@ -2247,5 +2230,49 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         content : translate("gettingStarted.step.popover"),
         selector : '.wizard-side-next'
 
+    });
+
+    var guideMonitor;
+
+    var checkCookieChanged = function() {
+
+        return function() {
+
+            var currentCookie = angular.fromJson(readCookie(cookieKey));
+
+            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
+                window.clearInterval(guideMonitor);
+                $scope.currentStep = 3;
+                $scope.staleData = true;
+            }
+        };
+    }();
+
+    $scope.refreshPage = function() {
+        $window.location.reload(true);
+    }
+
+
+    $scope.$watch('guideVisible', function(newValue, oldValue) {
+        if (newValue != oldValue){
+            if(newValue){
+                openMenu();
+                $(colWiz).popover('hide');
+            }
+            else {
+                closeMenus();
+                $(colWiz).popover('show');
+            }
+        }
+        if(newValue) {
+            $('.rootNav , .navMenu a').on('click', function(event) {
+                $('.wizard-side-next').popover('show');
+                return false;
+            });
+            guideMonitor = window.setInterval(checkCookieChanged, 500);
+        } else {
+            window.clearInterval(guideMonitor);
+            $('.rootNav , .navMenu a').off('click');
+        }
     });
 });

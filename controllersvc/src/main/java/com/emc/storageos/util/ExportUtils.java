@@ -361,18 +361,16 @@ public class ExportUtils {
             if (exportGroup.getInactive()) {
                 continue;
             }
-            if (exportGroup.getExportMasks() != null) {
-                for (String exportMaskUriStr : exportGroup.getExportMasks()) {
-                    ExportMask exportMask = dbClient.queryObject(ExportMask.class,
-                            URI.create(exportMaskUriStr));
-                    if (exportMask != null && !exportMask.getInactive() && exportMask
-                            .getStorageDevice().equals(blockObject.getStorageController())
-                            && exportMask.hasVolume(blockObject.getId())
-                            && exportMask.getInitiators() != null && exportMask.getStoragePorts() != null) {
-                        exportMasksMap.put(exportMask, exportGroup);
-                    }
+            
+            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) { 
+                if (exportMask != null && !exportMask.getInactive() && exportMask
+                        .getStorageDevice().equals(blockObject.getStorageController())
+                        && exportMask.hasVolume(blockObject.getId())
+                        && exportMask.getInitiators() != null && exportMask.getStoragePorts() != null) {
+                    exportMasksMap.put(exportMask, exportGroup);
                 }
             }
+            
         }
         _log.info("Found {} export masks for block object {}", exportMasksMap.size(), blockObject.getLabel());
         return exportMasksMap;
@@ -398,15 +396,14 @@ public class ExportUtils {
             if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
                 continue;
             }
-            Collection<String> exportMaskUris = exportGroup.getExportMasks();
-            for (String exportMaskUri : exportMaskUris) {
-                ExportMask exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskUri));
-                if (exportMask != null &&
-                        !exportMask.getInactive() &&
-                        exportMask.hasInitiator(initiator.getId().toString()) &&
-                        exportMask.getVolumes() != null &&
-                        exportMask.getStoragePorts() != null) {
-                    exportMasks.add(exportMask);
+            List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+            for (ExportMask mask : masks) {
+                if (mask != null &&
+                        !mask.getInactive() &&
+                        mask.hasInitiator(initiator.getId().toString()) &&
+                        mask.getVolumes() != null &&
+                        mask.getStoragePorts() != null) {
+                    exportMasks.add(mask);
                 }
             }
         }
@@ -500,7 +497,7 @@ public class ExportUtils {
             }
 
             // Update all of the export groups in the DB
-            dbClient.updateAndReindexObject(exportGroups);
+            dbClient.updateObject(exportGroups);
         }
     }
 
@@ -516,12 +513,11 @@ public class ExportUtils {
     private static TreeMultimap<String, URI> buildVolumesToExportMasksMap(DbClient dbClient,
             ExportGroup exportGroup) {
         TreeMultimap<String, URI> volumesToExportMasks = TreeMultimap.create();
-        for (String exportMaskURIString : exportGroup.getExportMasks()) {
-            URI exportMaskURI = URI.create(exportMaskURIString);
-            ExportMask checkMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-            if (checkMask.getUserAddedVolumes() != null) {
-                for (String volUriStr : checkMask.getUserAddedVolumes().values()) {
-                    volumesToExportMasks.put(volUriStr, checkMask.getId());
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+        for (ExportMask exportMask : exportMasks) {
+            if (exportMask.getUserAddedVolumes() != null) {
+                for (String volUriStr : exportMask.getUserAddedVolumes().values()) {
+                    volumesToExportMasks.put(volUriStr, exportMask.getId());
                 }
             }
         }
@@ -1193,7 +1189,7 @@ public class ExportUtils {
         Set<ExportMask> mirrorExportMasks = new HashSet<ExportMask>();
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
         for (ExportGroup exportGroup : exportGroups) {
-            if (!exportGroup.getInactive() && exportGroup.getExportMasks() != null) {
+            if (exportGroup != null && !exportGroup.getInactive() && exportGroup.getExportMasks() != null) {
                 List<URI> exportMasks = new ArrayList<URI>(Collections2.transform(
                         exportGroup.getExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 mirrorExportMasks.addAll(dbClient.queryObject(ExportMask.class, exportMasks));
@@ -1223,7 +1219,7 @@ public class ExportUtils {
             }
         }
 
-        dbClient.updateAndReindexObject(updatedObjects);
+        dbClient.updateObject(updatedObjects);
     }
 
     /**

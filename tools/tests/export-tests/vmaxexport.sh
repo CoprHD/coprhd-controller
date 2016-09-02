@@ -1602,6 +1602,8 @@ aliastest() {
 }
 
 cleanup() {
+   #Enable validation check
+   syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
    for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
    do
       runcmd export_group delete ${id} > /dev/null

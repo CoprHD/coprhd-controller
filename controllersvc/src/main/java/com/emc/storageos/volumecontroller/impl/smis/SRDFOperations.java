@@ -17,6 +17,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static javax.cim.CIMDataType.UINT16_T;
+import static javax.cim.CIMDataType.BOOLEAN_T;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMArgument;
+import javax.cim.CIMDataType;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
@@ -357,21 +359,19 @@ public class SRDFOperations implements SmisConstants {
                                         existingProp.getDataType(), true);
                             }
                             propList.add(prop);
+
                         }
                         if (formatToBeCreatedPairs && Mode.ACTIVE.getMode() == modeValue) {
                             // NOTE: Format flag will wipe out the data.
-                            CIMProperty<?> existingProp = repInstance.getProperty(FORMAT);
-                            CIMProperty<?> prop = null;
-                            if (existingProp == null) {
-                                // Format property is now part of the smi-s standard. Available in providers 8.0+ (VMAX3 arrays)
-                                existingProp = repInstance.getProperty(FORMAT);
-                                prop = new CIMProperty<Object>(FORMAT,
-                                        existingProp.getDataType(), true);
-                            } else {
-                                prop = new CIMProperty<Object>(FORMAT,
-                                        existingProp.getDataType(), true);
-                            }
-                            propList.add(prop);
+                            // The FORMAT property is not available as part of the default Replication Instance.
+                            // We will be on our own adding this property..
+                            CIMProperty<?> formatData = new CIMProperty<Object>(FORMAT, BOOLEAN_T, true);
+                            List<CIMProperty<?>> dupPropList = new ArrayList<CIMProperty<?>>();
+                            dupPropList.addAll(Arrays.asList(repInstance.getProperties()));
+                            dupPropList.add(formatData);
+                            CIMInstance duplicateRepInstance = new CIMInstance(repInstance.getObjectPath(),
+                                    dupPropList.toArray(new CIMProperty<?>[] {}));
+                            repInstance = duplicateRepInstance;// Re-assigning
                         }
 
                         // Set target supplier to Implementation Decides so that the supplied targets can be used

@@ -71,7 +71,7 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
         }
         ctx.setCollector(collectorStrategy);
 
-        if (SUSPEND_CONS_EXEMPT.equals(operation) && !isAsync(target)) {
+        if (SUSPEND_CONS_EXEMPT.equals(operation) && !isAsync(target) && !isActive(target)) {
             // suspend+cons_exempt not valid for Sync with/without CG
             operation = SUSPEND;
         }
@@ -194,6 +194,10 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
 
     private boolean isAsync(Volume target) {
         return SRDFOperations.Mode.ASYNCHRONOUS.toString().equalsIgnoreCase(target.getSrdfCopyMode());
+    }
+
+    private boolean isActive(Volume target) {
+        return SRDFOperations.Mode.ACTIVE.toString().equalsIgnoreCase(target.getSrdfCopyMode());
     }
 
     private boolean isAsyncWithoutCG(Volume target) {

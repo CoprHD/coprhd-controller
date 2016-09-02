@@ -990,11 +990,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
                 targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
 
-                boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+                // boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
                 boolean consExempt = true;
-                if (activeMode) {
-                    consExempt = false;
-                }
+                // if (activeMode) {
+                // consExempt = false;
+                // }
                 if (!source.hasConsistencyGroup()) {
                     // No CG, so suspend single link
                     // Procedure:

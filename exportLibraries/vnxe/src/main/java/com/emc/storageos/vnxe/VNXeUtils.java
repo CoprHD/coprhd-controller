@@ -59,9 +59,12 @@ public class VNXeUtils {
 
     }
 
-    public static String buildNfsShareName(String id, String path) {
+    public static String buildNfsShareName(String name, String path) {
+        if (path == null || path.isEmpty() || path.equalsIgnoreCase("/")) {
+            return name;
+        }
         path = path.replace('/', '.');
-        String name = String.format("%1$s.%2$s", id, path);
+        name = String.format("%1$s.%2$s", name, path);
         return name;
     }
 

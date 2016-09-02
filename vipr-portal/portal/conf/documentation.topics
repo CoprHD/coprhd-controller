@@ -21,6 +21,7 @@ VirtualArrays.networks = vArrayNetworks
 VirtualArrays.storagePorts = vArrayStoragePorts
 VirtualArrays.storagePools = vArrayStoragePools
 Tasks = TasksPage
+Events = ResourcesEvents
 
 # Arrays
 arrays.BlockVirtualPools = BlockVirtualPool

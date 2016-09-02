@@ -30,12 +30,14 @@ import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vmware.block.tasks.AttachScsiDisk;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.DetachLunsFromHost;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
 import com.emc.sa.service.vmware.block.tasks.FindLunsBackingDatastore;
+import com.emc.sa.service.vmware.block.tasks.MountDatastore;
 import com.emc.sa.service.vmware.block.tasks.RefreshStorage;
 import com.emc.sa.service.vmware.block.tasks.SetMultipathPolicy;
 import com.emc.sa.service.vmware.block.tasks.SetStorageIOControl;
@@ -229,10 +231,12 @@ public class VMwareSupport {
 
     public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
         execute(new DetachLunsFromHost(host, disks));
+        addRollback(new AttachScsiDisk(host, disks));
     }
 
     public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
         execute(new UnmountVmfsDatastore(host, datastore));
+        addRollback(new MountDatastore(host, datastore));
     }
 
     /**

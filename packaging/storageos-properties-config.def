@@ -2419,7 +2419,7 @@
     {
         key : "backup_external_location_url",
         label : "External Server URL",
-        description : "The URL of file server to store backup files.",
+        description : "The URL of file server to store backup files.ftp://* or ftps://* for FTP,smb://* for CIFS.",
         type : "string",
         tag : "Backup",
         userMutable : true,
@@ -3037,7 +3037,7 @@
     {
         key : "network_syslog_remote_servers_ports",
         label : "Remote Syslog Servers &amp; Ports",
-        description : "Syslog servers address &amp;  ports.",
+        description : "Syslog servers address &amp;  ports. Maximum number of servers is 6.",
         type : "ipportlist",
         userConfigurable : true,
         userMutable : true,

@@ -1468,6 +1468,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         if (vCenterHostExportMap == null) {
             return waitFor;
         }
+        String wait = waitFor;
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
@@ -1476,8 +1477,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     URI vCenterId = vcenterDataCenter.getVcenter();
 
                     for (URI export : vCenterHostExportMap.get(hostId)) {
-                        waitFor = workflow.createStep(VERIFY_DATASTORE_STEP,
-                                String.format("Verifying datastores for removal from export %s", export), waitFor,
+                        wait = workflow.createStep(VERIFY_DATASTORE_STEP,
+                                String.format("Verifying datastores for removal from export %s", export), wait,
                                 export, export.toString(),
                                 this.getClass(),
                                 verifyDatastoreMethod(export, vCenterId,
@@ -1487,7 +1488,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
-        return waitFor;
+        return wait;
     }
 
     /**

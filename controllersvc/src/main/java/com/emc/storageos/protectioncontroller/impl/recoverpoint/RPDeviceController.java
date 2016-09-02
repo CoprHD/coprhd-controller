@@ -2454,7 +2454,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             cgVolumeMap.get(volume.getConsistencyGroup()).add(volume.getId());
 
             // Set the consistency group to protection system mapping
-            if (cgProtectionSystemMap.get(volume.getConsistencyGroup()) == null) {
+            if (!NullColumnValueGetter.isNullURI(cgProtectionSystemMap.get(volume.getConsistencyGroup()))
+                    || !NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
                 cgProtectionSystemMap.put(volume.getConsistencyGroup(), volume.getProtectionController());
             }
         }
@@ -2483,7 +2484,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, cgProtectionSystemMap.get(cgId));
 
-            // If we happy with deleting the entire CG based on our internal information, perform a check externally
+            // If we are happy with deleting the entire CG based on our internal information, perform a check externally
             // to see if the volumes match the RSets. If there are extras that we're not managing, then we should revert
             // to removing the RSets instead.
             if (deleteEntireCG) {

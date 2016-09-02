@@ -742,8 +742,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 mask, getExpectedVolumes(mask), getExpectedInitiators(mask), null);
                         previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
                                 exportMasks);
-                        exportGroup.removeExportMask(mask.getId());
-                        _dbClient.updateObject(exportGroup);
                         anyOperationsToDo = true;
                     } else {
                         _log.info(String.format("mask %s - going to remove the "

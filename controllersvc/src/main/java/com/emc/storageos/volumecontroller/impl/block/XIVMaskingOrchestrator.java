@@ -93,7 +93,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             boolean anyVolumesAdded = false;
             boolean createdNewMask = false;
-            if (exportGroup.getExportMasks() != null) {
+            if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
@@ -562,22 +562,21 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
             }
 
-            if (exportGroup.getExportMasks() != null) {
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            if (!exportMasks.isEmpty()) {
                 _log.info("There are export masks for this group. Adding initiators.");
                 // Loop through all the exports and add the initiators to those masks on
                 // the storage system that were created by Bourne and are still active.
-                for (String maskURIStr : exportGroup.getExportMasks()) {
-                    URI maskURI = URI.create(maskURIStr);
-                    ExportMask mask = _dbClient.queryObject(ExportMask.class, maskURI);
-                    if (mask != null && !mask.getInactive()
-                            && mask.getStorageDevice().equals(storageURI)
-                            && mask.getCreatedBySystem()) {
-                        List<URI> newInitiators = hostInitiatorMap.get(mask.getResource());
+                for (ExportMask exportMask : exportMasks) {                  
+                    if (exportMask != null && !exportMask.getInactive()
+                            && exportMask.getStorageDevice().equals(storageURI)
+                            && exportMask.getCreatedBySystem()) {
+                        List<URI> newInitiators = hostInitiatorMap.get(exportMask.getResource());
                         if (newInitiators != null && !newInitiators.isEmpty()) {
-                            zoneMasksToInitiatorsURIs.put(maskURI, newInitiators);
+                            zoneMasksToInitiatorsURIs.put(exportMask.getId(), newInitiators);
 
                             generateDeviceSpecificExportMaskAddInitiatorsWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, mask, null, newInitiators, token);
+                                    exportGroup, exportMask, null, newInitiators, token);
                             foundASystemCreatedMask = true;
                             anyOperationsToDo = true;
                         }

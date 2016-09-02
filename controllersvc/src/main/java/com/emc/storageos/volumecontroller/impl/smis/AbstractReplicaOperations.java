@@ -19,26 +19,24 @@ import java.util.Map;
 import javax.cim.CIMArgument;
 import javax.cim.CIMObjectPath;
 
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.SynchronizationState;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -47,6 +45,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ReplicaOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockDeleteListReplicaJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateListReplicaJob;
@@ -187,7 +186,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
         _log.info("detachListReplica operation START");
 
         try {
-            List<? extends BlockObject> replicas = BlockObject.fetch(_dbClient, replicaList);
+            List<? extends BlockObject> replicas = BlockObject.fetchAll(_dbClient, replicaList);
             modifyListReplica(storage, replicaList, replicas, SmisConstants.DETACH_VALUE, SmisConstants.NON_COPY_STATE);
             for (BlockObject replica : replicas) {
                 if (replica instanceof BlockMirror) {

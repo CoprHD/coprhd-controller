@@ -83,6 +83,10 @@ public interface RecoverPointExceptions {
     public RecoverPointException failedToEnableCopy(final String cgCopyName, final String cgName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToEnableDirectAccessForCopy(final String cgCopyName, final String cgName, String state,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToDisableCopy(final String cgCopyName, final String cgName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)

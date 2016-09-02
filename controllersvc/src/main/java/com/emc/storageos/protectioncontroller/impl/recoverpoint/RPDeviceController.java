@@ -2487,7 +2487,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // to see if the volumes match the RSets. If there are extras that we're not managing, then we should revert
             // to removing the RSets instead.
             if (deleteEntireCG) {
-                deleteEntireCG = RPHelper.validateCG(_dbClient, rpSystem, cgId, volumes);
+                deleteEntireCG = RPHelper.validateCGForDelete(_dbClient, rpSystem, cgId, volumes);
             }
             
             // All protection sets can be deleted at the same time, but only one step per protection set can be running

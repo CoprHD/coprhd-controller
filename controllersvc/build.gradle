@@ -67,4 +67,5 @@ test {
     exclude "com/emc/storageos/computecontroller/impl/ucs/ComputeElementsCreateTest.class"
     exclude "com/emc/storageos/computecontroller/impl/ucs/TaskUpdateTest.class"
     exclude "com/emc/storageos/volumecontroller/BlockStorageDeviceTest.class"
+    include "com/emc/storageos/volumecontroller/ControllerLockingServiceTest.class"
 }

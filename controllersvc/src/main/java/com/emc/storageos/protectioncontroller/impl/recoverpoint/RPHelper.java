@@ -2309,7 +2309,7 @@ public class RPHelper {
      * @return true if CG is what we expect on the hardware, false otherwise
      */
     public static boolean validateCGForDelete(DbClient dbClient, ProtectionSystem system, URI cgId, Set<URI> volumes) {
-        _log.info("validateCG {} - start", system.getId());
+        _log.info("validateCGForDelete {} - start", system.getId());
 
         // Retrieve all of the RP CGs, their RSets, and their volumes
         RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
@@ -2382,7 +2382,7 @@ public class RPHelper {
                 }
             }
         }
-        _log.info("validateCG {} - end", system.getId());
+        _log.info("validateCGForDelete {} - end", system.getId());
         return true;
     }
 }

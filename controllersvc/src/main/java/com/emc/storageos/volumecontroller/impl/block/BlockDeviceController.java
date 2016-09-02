@@ -161,6 +161,7 @@ import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -1124,15 +1125,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         if (exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                             // Make sure the volume is not in an export mask
                             boolean foundInMask = false;
-                            if (exportGroup.getExportMasks() != null) {
-                                for (String exportMaskId : exportGroup.getExportMasks()) {
-                                    ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
-                                    if (mask.hasVolume(volume.getId())) {
-                                        foundInMask = true;
-                                        break;
-                                    }
+                            
+                            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {                                  
+                                if (exportMask.hasVolume(volume.getId())) {
+                                    foundInMask = true;
+                                    break;
                                 }
-                            }
+                            }                            
 
                             // If we didn't find that volume in a mask, it's OK to remove it.
                             if (!foundInMask) {
@@ -1140,7 +1139,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 if (exportGroup.getVolumes().isEmpty()) {
                                     _dbClient.removeObject(exportGroup);
                                 } else {
-                                    _dbClient.updateAndReindexObject(exportGroup);
+                                    _dbClient.updateObject(exportGroup);
                                 }
                             }
                         }

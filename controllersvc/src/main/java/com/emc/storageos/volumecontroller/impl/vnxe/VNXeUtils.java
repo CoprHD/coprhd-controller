@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.volumecontroller.impl.vnxunity;
+package com.emc.storageos.volumecontroller.impl.vnxe;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -22,8 +22,8 @@ import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.workflow.WorkflowService;
 
-public class VNXUnityUtils {
-    private static final Logger logger = LoggerFactory.getLogger(VNXUnityUtils.class);
+public class VNXeUtils {
+    private static final Logger logger = LoggerFactory.getLogger(VNXeUtils.class);
 
     /**
      * Acquire the workflow step lock for CG
@@ -45,7 +45,7 @@ public class VNXUnityUtils {
     }
 
     /**
-     * Get Unity block object consistency group name if the block object is in a consistency group; otherwise, it
+     * Get block object consistency group name if the block object is in a consistency group; otherwise, it
      * returns null.
      * 
      * @param blockObject Volume or snapshot

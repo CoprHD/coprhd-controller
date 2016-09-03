@@ -42,7 +42,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUtils;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 
@@ -83,10 +82,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
                     newhlu = Integer.valueOf(hlu);
                 }
-                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
-                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
+                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, initiators, newhlu);
@@ -189,10 +188,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             for (URI volUri : volumeURIList) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
-                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
-                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
+                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, initiators);
@@ -261,10 +260,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
                     newhlu = Integer.valueOf(hlu);
                 }
-                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
-                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
+                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
@@ -314,10 +313,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             for (URI volUri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
-                String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
+                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
-                    VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
+                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, vnxeInitiators);

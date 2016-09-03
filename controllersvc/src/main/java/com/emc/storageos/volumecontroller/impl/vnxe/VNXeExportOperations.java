@@ -85,6 +85,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
                 String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
+                    processedCGs.add(cgName);
                     VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
@@ -190,6 +191,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 String nativeId = blockObject.getNativeId();
                 String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
+                    processedCGs.add(cgName);
                     VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
@@ -261,6 +263,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
                 String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
+                    processedCGs.add(cgName);
                     VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {
@@ -313,6 +316,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 String nativeId = blockObject.getNativeId();
                 String cgName = VNXUnityUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
+                    processedCGs.add(cgName);
                     VNXUnityUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
                 if (URIUtil.isType(volUri, Volume.class)) {

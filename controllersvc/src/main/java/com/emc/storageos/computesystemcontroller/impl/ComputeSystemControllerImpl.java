@@ -820,6 +820,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public static List<ExportGroup> getSharedExports(DbClient _dbClient, URI clusterId) {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+        if (cluster == null) {
+            return Lists.newArrayList();
+        }
         return CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, ExportGroup.class,
                 AlternateIdConstraint.Factory.getConstraint(
@@ -1366,16 +1369,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
-                URI vCenterId = vcenterDataCenter.getVcenter();
+                if (vcenterDataCenter != null) {
+                    URI vCenterId = vcenterDataCenter.getVcenter();
 
-                for (URI export : vCenterHostExportMap.get(hostId)) {
-                    waitFor = workflow.createStep(UNMOUNT_AND_DETACH_STEP,
-                            String.format("Unmounting and detaching volumes from export group %s", export), waitFor,
-                            export, export.toString(),
-                            this.getClass(),
-                            unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
-                                    vcenterDataCenter.getId()),
-                            rollbackMethodNullMethod(), null);
+                    for (URI export : vCenterHostExportMap.get(hostId)) {
+                        waitFor = workflow.createStep(UNMOUNT_AND_DETACH_STEP,
+                                String.format("Unmounting and detaching volumes from export group %s", export), waitFor,
+                                export, export.toString(),
+                                this.getClass(),
+                                unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
+                                        vcenterDataCenter.getId()),
+                                rollbackMethodNullMethod(), null);
+                    }
                 }
             }
         }

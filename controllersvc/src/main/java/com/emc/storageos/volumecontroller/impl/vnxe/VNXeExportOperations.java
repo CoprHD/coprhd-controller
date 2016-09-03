@@ -48,9 +48,13 @@ import com.google.common.base.Joiner;
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
     private static final String OTHER = "other";
-    protected WorkflowService workflowService;
+    private WorkflowService workflowService;
     
     public void setWorkflowService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
+    }
+    
+    public void getWorkflowService(WorkflowService workflowService) {
         this.workflowService = workflowService;
     }
     

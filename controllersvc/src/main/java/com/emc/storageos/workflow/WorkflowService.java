@@ -1482,6 +1482,7 @@ public class WorkflowService implements WorkflowController {
             if (step.status.state == StepState.SUSPENDED_NO_ERROR) {
                 step.status.state = StepState.CANCELLED;
                 step.status.message = "Step cancelled because rollback was initiated";
+                step.status.serviceCode = ServiceCode.WORKFLOW_STEP_CANCELLED;
                 persistWorkflowStep(workflow, step);
                 continue;
             }

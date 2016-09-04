@@ -1478,6 +1478,13 @@ public class WorkflowService implements WorkflowController {
         // TODO: handle null rollback methods better.
         boolean norollback = false;
         for (Step step : workflow.getStepMap().values()) {
+            // Suspended no error steps have not run, treat them as cancelled
+            if (step.status.state == StepState.SUSPENDED_NO_ERROR) {
+                step.status.state = StepState.CANCELLED;
+                step.status.message = "Step cancelled because rollback was initiated";
+                persistWorkflowStep(workflow, step);
+                continue;
+            }
             if (step.status.state != StepState.CANCELLED && step.rollbackMethod == null) {
                 _log.error(String
                         .format("Cannot rollback step %s because it does not have a rollback method",
@@ -1507,13 +1514,6 @@ public class WorkflowService implements WorkflowController {
         // Map of StepGroup to nodes having a dependence on StepGroup
 
         for (Step step : workflow.getStepMap().values()) {
-            // Suspended no error steps have not run, treat them as cancelled
-            if (step.status.state == StepState.SUSPENDED_NO_ERROR) {
-                step.status.state = StepState.CANCELLED;
-                step.status.message = "Step cancelled because rollback was initiated";
-                persistWorkflowStep(workflow, step);
-                continue;
-            }
             // Don't process cancelled nodes, they don't need to be rolled back.
             if (step.status.state == StepState.CANCELLED) {
                 continue;

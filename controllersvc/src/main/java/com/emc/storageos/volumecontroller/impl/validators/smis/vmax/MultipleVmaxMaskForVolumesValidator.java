@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -70,11 +69,6 @@ class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends Abstrac
         boolean assocMaskHasExportGroup = false;
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
-
-        // Don't validate against backing masks or RP
-        if (ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
-            return true;
-        }
 
         // Does ViPR know about this other mask?
         List<ExportMask> exportMasks = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),

@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
@@ -68,6 +69,12 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
 
             if (knownInitiatorToIGMap == null) {
                 knownInitiatorToIGMap = ArrayListMultimap.create();
+            }
+
+            // Don't validate against backing masks or RP
+            if (!ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+                log.info("validation against backing mask for VPLEX or RP is disabled.");
+                return true;
             }
 
             List<Initiator> knownInitiatorsInIGs = new ArrayList<Initiator>();

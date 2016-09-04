@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
@@ -48,34 +47,29 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
     public boolean validate() throws Exception {
         log.info("Initiating volume validation of XtremIO ExportMask: " + id);
         try {
-            // Don't validate against backing masks or RP
-            if (!ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
-                XtremIOClient client = XtremIOProvUtils.getXtremIOClient(getDbClient(), storage, getClientFactory());
-                String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-                Set<String> knownVolumes = new HashSet<String>();
-                Set<String> igVols = new HashSet<String>();
-                // get the volumes in the IGs and validate against passed impacted block objects
-                for (URI maskVolumeURI : volumeURIs) {
-                    BlockObject maskVolume = BlockObject.fetch(getDbClient(), maskVolumeURI);
-                    knownVolumes.add(maskVolume.getDeviceLabel());
-                }
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(getDbClient(), storage, getClientFactory());
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            Set<String> knownVolumes = new HashSet<String>();
+            Set<String> igVols = new HashSet<String>();
+            // get the volumes in the IGs and validate against passed impacted block objects
+            for (URI maskVolumeURI : volumeURIs) {
+                BlockObject maskVolume = BlockObject.fetch(getDbClient(), maskVolumeURI);
+                knownVolumes.add(maskVolume.getDeviceLabel());
+            }
 
-                List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
-                for (String igName : igNames) {
-                    igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
-                }
+            List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+            for (String igName : igNames) {
+                igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
+            }
 
-                for (XtremIOVolume igVolume : igVolumes) {
-                    igVols.add(igVolume.getVolInfo().get(1));
-                }
+            for (XtremIOVolume igVolume : igVolumes) {
+                igVols.add(igVolume.getVolInfo().get(1));
+            }
 
-                log.info("ViPR known volumes present in IG: {}, volumes in IG: {}", knownVolumes, igVols);
-                igVols.removeAll(knownVolumes);
-                for (String igVol : igVols) {
-                    getLogger().logDiff(id, "volumes", ValidatorLogger.NO_MATCHING_ENTRY, igVol);
-                }
-            } else {
-                log.info("validation against backing mask for VPLEX or RP is disabled.");
+            log.info("ViPR known volumes present in IG: {}, volumes in IG: {}", knownVolumes, igVols);
+            igVols.removeAll(knownVolumes);
+            for (String igVol : igVols) {
+                getLogger().logDiff(id, "volumes", ValidatorLogger.NO_MATCHING_ENTRY, igVol);
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);

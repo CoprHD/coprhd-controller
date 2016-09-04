@@ -57,12 +57,6 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
 
         log.info("Initiating validation of Vplex ExportMask: " + id);
 
-        // Don't validate against RP masks
-        if (ExportMaskUtils.isBackendExportMask(getDbClient(), mask)) {
-            log.info("validation against RP masks is disabled.");
-            return true;
-        }
-
         VPlexStorageViewInfo storageView = null;
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, getDbClient());
@@ -137,6 +131,13 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      */
     private void validateNoAdditionalInitiators(VPlexStorageViewInfo storageView) {
         Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns());
+
+        // Don't validate against RP masks
+        if (ExportMaskUtils.isBackendExportMask(getDbClient(), mask)) {
+            log.info("validation against RP masks is disabled.");
+            return;
+        }
+
         for (Initiator initiator : initiatorsToValidate) {
             if (initiator == null || initiator.getInactive()) {
                 continue;

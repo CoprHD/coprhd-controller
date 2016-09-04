@@ -4,24 +4,27 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
+import static com.google.common.collect.Collections2.transform;
 
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
-import static com.google.common.collect.Collections2.transform;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.collect.Lists;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
@@ -60,6 +63,11 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
         
+        // Don't validate against backing masks or RP
+        if (ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+            return true;
+        }
+
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         log.warn("MV {} is sharing an initiator with MV {}", name, assocName);

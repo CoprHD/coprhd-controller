@@ -1507,6 +1507,13 @@ public class WorkflowService implements WorkflowController {
         // Map of StepGroup to nodes having a dependence on StepGroup
 
         for (Step step : workflow.getStepMap().values()) {
+            // Suspended no error steps have not run, treat them as cancelled
+            if (step.status.state == StepState.SUSPENDED_NO_ERROR) {
+                step.status.state = StepState.CANCELLED;
+                step.status.message = "Step cancelled because rollback was initiated";
+                persistWorkflowStep(workflow, step);
+                continue;
+            }
             // Don't process cancelled nodes, they don't need to be rolled back.
             if (step.status.state == StepState.CANCELLED) {
                 continue;
@@ -1531,12 +1538,6 @@ public class WorkflowService implements WorkflowController {
         // execution step esx was dependent on es1. Thus esx can either be directly dependent on es1,
         // or it can be dependent on the stepGroup containing es1.
         for (Step executeStep : workflow.getStepMap().values()) {
-            // Suspended no error steps have not run, treat them as cancelled
-            if (executeStep.status.state == StepState.SUSPENDED_NO_ERROR) {
-                executeStep.status.state = StepState.CANCELLED;
-                persistWorkflowStep(workflow, executeStep);
-                continue;
-            }
             if (executeStep.status.state == StepState.CANCELLED) {
                 continue;
             }

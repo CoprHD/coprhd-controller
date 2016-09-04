@@ -767,7 +767,7 @@ public class Workflow implements Serializable {
             case SUSPENDED_NO_ERROR:
                 return WorkflowState.SUSPENDED_NO_ERROR;
             case CANCELLED:
-                return WorkflowState.SUSPENDED_NO_ERROR;
+                return WorkflowState.ERROR;
             default:
                 return getWorkflowState();
         }

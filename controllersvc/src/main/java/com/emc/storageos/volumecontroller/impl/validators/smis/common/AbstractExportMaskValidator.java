@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.google.common.base.Function;
@@ -34,8 +35,10 @@ import com.google.common.collect.Sets;
  */
 public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
+    public static final String FIELD_INITIATORS = "initiators";
+    public static final String FIELD_VOLUMES = "volumes";
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
 
     private final StorageSystem storage;
     private final ExportMask exportMask;
@@ -59,6 +62,12 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         if (getConfig().validationRefreshEnabled()) {
             // Refresh the provider's view of the storage system
             getHelper().callRefreshSystem(storage);
+        }
+
+        // Don't validate against backing masks or RP if we're validating initiators.
+        if (field.equalsIgnoreCase(FIELD_INITIATORS) && !ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+            log.info("validation against backing mask for VPLEX or RP is disabled.");
+            return true;
         }
 
         Set<String> database = getDatabaseResources();

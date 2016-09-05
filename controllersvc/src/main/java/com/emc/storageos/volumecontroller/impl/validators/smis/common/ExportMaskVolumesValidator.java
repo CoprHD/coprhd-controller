@@ -30,7 +30,7 @@ public class ExportMaskVolumesValidator extends AbstractExportMaskValidator {
     private final Collection<URI> expectedVolumeURIs;
 
     public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask, Collection<URI> expectedVolumeURIs) {
-        super(storage, exportMask, "volumes");
+        super(storage, exportMask, FIELD_VOLUMES);
         this.expectedVolumeURIs = expectedVolumeURIs;
     }
 

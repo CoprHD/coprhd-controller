@@ -29,7 +29,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String sslPort;
     private String driverClassName;
     private boolean isSecretKey = false;
-    
+
     public StorageSystemTypeRestRep() {
     }
 

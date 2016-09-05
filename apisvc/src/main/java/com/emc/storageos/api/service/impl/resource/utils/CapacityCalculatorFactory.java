@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  * requested volume size on the array.
  */
 public class CapacityCalculatorFactory {
-
     @Resource(name = "capacityCalculators")
     private Map<String, CapacityCalculator> capacityCalculators =
             new HashMap<String, CapacityCalculator>();
@@ -33,5 +32,4 @@ public class CapacityCalculatorFactory {
         defaultCapacityCalculator.setSystemType(systemType);
         return defaultCapacityCalculator;
     }
-
 }

@@ -67,7 +67,9 @@ public class DellSCCloning {
             try {
                 StorageCenterAPI api = connectionManager.getConnection(clone.getStorageSystemId());
                 ScReplay replay = null;
-
+                //Make sure volume is active for the automated tests that try to
+                //create temporary snapshot to create the clone from after immediate volume creation
+                api.checkAndInitVolume(clone.getParentId());
                 if (clone.getSourceType() == SourceType.SNAPSHOT) {
                     replay = api.getReplay(clone.getParentId());
                 } else {

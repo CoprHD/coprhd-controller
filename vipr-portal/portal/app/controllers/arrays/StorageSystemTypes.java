@@ -100,12 +100,12 @@ public class StorageSystemTypes extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
-    public static void save(StorageSystemTypeForm storageSystemTypes) {
+    public static void save(StorageSystemTypeForm storageSystemTypes, File deviceDriverFile) {
         storageSystemTypes.validate("storageSystemType");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-
+        // TODO: Need to upload file now
         storageSystemTypes.save();
         flash.success(MessagesUtils.get(SAVED, storageSystemTypes.name));
         backToReferrer();

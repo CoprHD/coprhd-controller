@@ -43,7 +43,7 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StorageSystemType;
 
 /**
- * Defines the API for making requests to the backup service.
+ * Defines the API for making requests to the storage driver service.
  */
 @Path("/storagedriver/")
 public class DriverService {

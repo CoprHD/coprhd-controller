@@ -72,7 +72,7 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
             }
 
             // Don't validate against backing masks or RP
-            if (!ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+            if (ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
                 log.info("validation against backing mask for VPLEX or RP is disabled.");
                 return true;
             }

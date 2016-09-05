@@ -65,7 +65,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         }
 
         // Don't validate against backing masks or RP if we're validating initiators.
-        if (field.equalsIgnoreCase(FIELD_INITIATORS) && !ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+        if (field.equalsIgnoreCase(FIELD_INITIATORS) && ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
             log.info("validation against backing mask for VPLEX or RP is disabled.");
             return true;
         }

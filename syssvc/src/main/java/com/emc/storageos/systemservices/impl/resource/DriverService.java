@@ -110,6 +110,11 @@ public class DriverService {
     /**
      * File has been uploaded and stored on current node, with meta data, will start to install and restart controller service
      */
+    @POST
+    @Path("install/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StorageSystemTypeRestRep install(StorageSystemTypeAddParam addParam) {
         StorageSystemType type = map(addParam);
         dbClient.createObject(type);

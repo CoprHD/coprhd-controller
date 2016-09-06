@@ -37,17 +37,17 @@ import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.FileMountInfo;
-import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -658,6 +658,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(resourceId, ActionableEvent.class, field);
         }
 
+        public static ContainmentConstraint getAffectedResourceEventConstraint(URI resourceId) {
+            DataObjectType doType = TypeMap.getDoType(ActionableEvent.class);
+            ColumnField field = doType.getColumnField("affectedResources");
+            return new ContainmentConstraintImpl(resourceId, ActionableEvent.class, field);
+        }
+
         public static ContainmentConstraint getTenantOrgTaskConstraint(URI tenantId) {
             DataObjectType doType = TypeMap.getDoType(Task.class);
             ColumnField field = doType.getColumnField("tenant");
@@ -830,5 +836,6 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("scheduledEventId");
             return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
+
     }
 }

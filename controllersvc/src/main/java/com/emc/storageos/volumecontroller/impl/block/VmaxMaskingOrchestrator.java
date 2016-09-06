@@ -733,8 +733,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("mask %s has removed all "
                                 + "initiators, mask will be deleted from the array.. ",
                                 mask.getMaskName()));
-                        errorMessage.append(String.format("mask %s has removed all "
-                                + "initiators, mask will be deleted from the array. ",
+                        errorMessage.append(String.format("Mask %s would have deleted from the array. ",
                                 mask.forDisplay()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
@@ -800,9 +799,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
                         errorMessage.append(
                                 String.format(
-                                        "All the volumes (%s) from mask %s will be removed, which results in deleting the whole mask. ",
-                                        Joiner.on(", ").join(
-                                                Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay())),
+                                        "Mask %s would have deleted from array ",
                                         mask.forDisplay()));
                         // Order matters! Above this would be any remove initiators that would impact other masking views.
                         // Be sure to always remove anything inside the mask before removing the mask itself.

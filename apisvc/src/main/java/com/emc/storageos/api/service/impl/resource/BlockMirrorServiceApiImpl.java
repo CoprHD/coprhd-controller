@@ -694,27 +694,29 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
 
+        TaskList taskList = new TaskList();
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
-        if (checkCommonVpoolUpdates(volumes, virtualPool, taskId)) {
-            return null;
-        }
-
         if (DiscoveredDataObject.Type.vnxblock.name().equals(systemType) ||
-                DiscoveredDataObject.Type.vmax.name().equals(systemType)) {
-            URI original = volume.getVirtualPool();
+                DiscoveredDataObject.Type.vmax.name().equals(systemType) ||
+                DiscoveredDataObject.Type.vmax3.name().equals(systemType)) {
             // Update the volume with the new virtual pool
+            URI original = volume.getVirtualPool();
             volume.setVirtualPool(virtualPool.getId());
             _dbClient.updateObject(volume);
+            
             // Update the task
-            String msg = format("VirtualPool changed from %s to %s for Volume %s",
-                    original, virtualPool.getId(), volume.getId());
-            Operation opStatus = new Operation(Operation.Status.ready.name(), msg);
-            _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskId, opStatus);
+            Operation op = _dbClient.createTaskOpStatus(Volume.class,
+                    volume.getId(), taskId, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+            op = _dbClient.ready(Volume.class, volume.getId(), taskId);
+            TaskResourceRep taskResourceRep = toTask(volume, taskId, op);
+            taskResourceRep.setMessage(format("VirtualPool changed from %s to %s for Volume %s",
+                    original, virtualPool.getId(), volume.getId()));
+            taskList.getTaskList().add(taskResourceRep);
+            return taskList;
         } else {
             throw APIException.badRequests.unsupportedSystemType(systemType);
         }
-        return null;
     }
 
     @Override
@@ -726,10 +728,12 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             return createTasksForVolumes(vpool, volumes, taskId);
         }
 
+        TaskList taskList = new TaskList();
         for (Volume volume : volumes) {
-            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
+            taskList.getTaskList().addAll(changeVolumeVirtualPool(volume.getStorageController(),
+                    volume, vpool, vpoolChangeParam, taskId).getTaskList());
         }
-        return createTasksForVolumes(vpool, volumes, taskId);
+        return taskList;
     }
 
     private Predicate<URI> isMirrorInactivePredicate() {

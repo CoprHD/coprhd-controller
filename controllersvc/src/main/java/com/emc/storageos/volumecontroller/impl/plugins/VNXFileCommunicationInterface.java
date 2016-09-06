@@ -1676,8 +1676,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGuid);
                     unManagedFileQuotaDirectory.setOpLock(false);
                     if (quotaTree.getLimits() != null) {
+                        /* 
+                         * response is in MB, so Byte = 1024 * 1024 * response
+                         */
                         unManagedFileQuotaDirectory.setSize(
-                                Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()) * BYTESCONV);
+                                Long.valueOf(quotaTree.getLimits().getSpaceHardLimit()) * BYTESCONV * BYTESCONV);
                     }
 
                     if (!unManagedFileQuotaDirectoryExists) {

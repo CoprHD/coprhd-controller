@@ -45,8 +45,15 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.EventUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.DatastoreSummary;
+import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
+import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeSystemHelper {
 
@@ -676,4 +683,57 @@ public class ComputeSystemHelper {
         }
         return false;
     }
+
+    /**
+     * Verify that datastore can be unmounted
+     * 
+     * @param datastore the datastore to check
+     * @param vCenterApi the api for connecting to vCenter
+     * @throws Exception if an error occurs
+     */
+    public static void verifyDatastore(Datastore datastore, VCenterAPI vCenterApi) throws Exception {
+        DatastoreSummary summary = datastore.getSummary();
+        if (summary == null) {
+            throw new Exception("Summary unavailable for datastore " + datastore.getName());
+        }
+        if (!summary.isAccessible()) {
+            throw new Exception("Datastore " + datastore.getName() + " is not accessible");
+        }
+        checkMaintenanceMode(datastore, summary);
+        checkVirtualMachines(datastore);
+    }
+
+    /**
+     * Check maintenance mode of a datastore and fail if datastore is entering maintenance mode
+     * 
+     * @param datastore the datastore to check
+     * @param summary the datastore summary
+     * @throws Exception if datastore is entering maintenance mode
+     */
+    private static void checkMaintenanceMode(Datastore datastore, DatastoreSummary summary) throws Exception {
+        String mode = summary.getMaintenanceMode();
+        // If a datastore is already entering maintenance mode, fail
+        if (DatastoreSummaryMaintenanceModeState.enteringMaintenance.name().equals(mode)) {
+            throw new Exception("Datastore " + datastore.getName() + " is entering maintenance mode");
+        }
+    }
+
+    /**
+     * Checks if Virtual Machines are running on the datastore and fail if any are found
+     * 
+     * @param datastore the datastore to check
+     * @throws Exception if datastore contains any virtual machines
+     */
+    private static void checkVirtualMachines(Datastore datastore) throws Exception {
+        VirtualMachine[] vms = datastore.getVms();
+        if ((vms != null) && (vms.length > 0)) {
+            Set<String> names = Sets.newTreeSet();
+            for (VirtualMachine vm : vms) {
+                names.add(vm.getName());
+            }
+            throw new Exception(
+                    "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
+        }
+    }
+
 }

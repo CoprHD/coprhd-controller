@@ -2687,7 +2687,7 @@ configProperties.syslog.setToZero.ip=Required ip value is empty.
 configProperties.syslog.setToZero.port=Required port value is empty.
 configProperties.syslog.setToZero.cert=Required cert is empty.
 configProperties.syslog.serverPort.unavailable=Connection to server %s failed.
-configProperties.syslog.serverPort.successful=Connect to remote syslog servers successful.
+configProperties.syslog.serverPort.successful=Connection to remote syslog server was successful.
 configProperties.syslog.serverPort.validate=Test connection on servers
 configProperties.error.ipportlist=Invalid IP or Port in list.
 

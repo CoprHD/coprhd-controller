@@ -2434,7 +2434,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Create a map of all of the protection sets this delete operation impacts.
         Map<URI, Set<URI>> cgVolumeMap = new HashMap<URI, Set<URI>>();
-        Map<URI, URI> cgProtectionSetMap = new HashMap<URI, URI>();
+        Map<URI, URI> cgProtectionSystemMap = new HashMap<URI, URI>();
         boolean validCg = false;
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
@@ -2454,8 +2454,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             cgVolumeMap.get(volume.getConsistencyGroup()).add(volume.getId());
 
             // Set the consistency group to protection system mapping
-            if (cgProtectionSetMap.get(volume.getConsistencyGroup()) == null) {
-                cgProtectionSetMap.put(volume.getConsistencyGroup(), volume.getProtectionController());
+            if (!NullColumnValueGetter.isNullURI(cgProtectionSystemMap.get(volume.getConsistencyGroup()))
+                    || !NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+                cgProtectionSystemMap.put(volume.getConsistencyGroup(), volume.getProtectionController());
             }
         }
 
@@ -2481,11 +2482,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
+            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, cgProtectionSystemMap.get(cgId));
+
+            // If we are happy with deleting the entire CG based on our internal information, perform a check externally
+            // to see if the volumes match the RSets. If there are extras that we're not managing, then we should revert
+            // to removing the RSets instead.
+            if (deleteEntireCG) {
+                deleteEntireCG = RPHelper.validateCGForDelete(_dbClient, rpSystem, cgId, volumes);
+            }
+            
             // All protection sets can be deleted at the same time, but only one step per protection set can be running
             String cgWaitFor = waitFor;
 
             String stepId = workflow.createStepId();
-            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, cgProtectionSetMap.get(cgId));
             List<URI> volumeList = new ArrayList<URI>();
             volumeList.addAll(volumes);
             Workflow.Method cgRemovalExecuteMethod = new Workflow.Method(METHOD_DELETE_CG_STEP, rpSystem.getId(), volumeList,

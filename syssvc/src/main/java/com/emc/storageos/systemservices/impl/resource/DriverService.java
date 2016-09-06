@@ -103,7 +103,7 @@ public class DriverService {
         driver.close();
         os.close();
         // Till now, driver file has been saved, need to parse file to get meta data and return
-        String tmpFilePath = f.getAbsolutePath();
+        String tmpFilePath = f.getName();
         return map(this.parseDriver(tmpFilePath), tmpFilePath);
     }
 
@@ -111,7 +111,19 @@ public class DriverService {
      * File has been uploaded and stored on current node, with meta data, will start to install and restart controller service
      */
     public StorageSystemTypeRestRep install(StorageSystemTypeAddParam addParam) {
-        return null;
+        StorageSystemType type = map(addParam);
+        dbClient.createObject(type);
+        
+        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
+        DriverInfo2 info = new DriverInfo2(coordinator.queryConfiguration(DriverInfo2.CONFIG_ID, DriverInfo2.CONFIG_ID));
+        info.setInitNode(localNode);
+        if (info.getDrivers() == null) {
+            info.setDrivers(new ArrayList<String>());
+        }
+        info.getDrivers().add(addParam.getDriverFilePath());
+        coordinator.persistServiceConfiguration(info.toConfiguration());
+        log.info("set target info successfully");
+        return map(type);
     }
 //======================= OLD implementation ==========================
     @POST
@@ -213,7 +225,7 @@ public class DriverService {
         type.setIsOnlyMDM(false);
         type.setIsElementMgr(false);
         type.setIsSecretKey(false);
-        type.setDriverFileName(path);
+        type.setDriverFileName(path +"_dirver_file_name");
         return type;
     }
 

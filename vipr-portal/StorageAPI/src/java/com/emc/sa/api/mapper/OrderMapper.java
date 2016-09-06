@@ -81,6 +81,9 @@ public class OrderMapper {
         if (from.getScheduledEventId() != null) {
             to.setScheduledEventId(from.getScheduledEventId());
         }
+        if (from.getScheduledTime() != null) {
+            to.setScheduledTime(from.getScheduledTime());
+        }
         return to;
     }
 

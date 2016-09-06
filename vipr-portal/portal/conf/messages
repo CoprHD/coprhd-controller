@@ -572,8 +572,8 @@ HostClusters.editHosts.shortTitle=Edit Hosts
 HostClusters.addHosts.title=Add Hosts to Cluster
 HostClusters.addedHosts=Successfully added hosts to the cluster
 HostClusters.removedHosts=Successfully removed hosts from the cluster
-HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster. The host will lose access to the volumes it is sharing in this cluster.
-HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster and the host's current cluster. The host will lose access to the volumes it is sharing in the current cluster.
+HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster. The hosts will lose access to volumes they are sharing in this cluster.
+HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster and the host's current cluster. The hosts will be removed from their current cluster and added to this cluster. The hosts will lose access to volumes they are sharing in the current cluster.
 HostClusters.hosts=Hosts
 HostClusters.deleteClusters.title=Delete Clusters
 HostClusters.detachStorageModal=Detach Storage
@@ -2053,14 +2053,16 @@ storageArray.secondaryPasswordConfirm=Confirm MDM Password
 storageArray.secondaryPassword.confirmPassword.not.match=User MDM Password and Confirm MDM Password do not match.
 storageArray.elementManagerURL=Element Manager URL
 storageArray.secretKey=Secret key
-storageArray.hyperScaleHost=Secondary Host
+storageArray.hyperScaleHost=Hyper Scale Manager Host
 storageArray.hyperScaleHost.help=Enter the fully qualified domain name or IP address of the Secondary host
-storageArray.hyperScalePort=Secondary Port
-storageArray.hyperScaleUsername=Secondary User
-storageArray.hyperScalePassword=Secondary Password
-storageArray.hyperScalePasswordConfirm=Confirm Secondary Password
+storageArray.hyperScalePort=Hyper Scale Manager Port
+storageArray.hyperScaleUsername=Hyper Scale Manager User
+storageArray.hyperScalePassword=Hyper Scale Manager Password
+storageArray.hyperScalePasswordConfirm=Confirm Hyper Scale Manager Password
 storageArray.secondaryHost.secondaryPort.missing=Either Secondary Host or Port details is missing
 storageArray.parseError=Unable to parse Hyper Scale Manager URL
+storageArray.secondaryName.missing=Secondary Username required when Host and Port specified
+
 #
 # onboard SMI-S Provider
 #
@@ -2685,7 +2687,7 @@ configProperties.syslog.setToZero.ip=Required ip value is empty.
 configProperties.syslog.setToZero.port=Required port value is empty.
 configProperties.syslog.setToZero.cert=Required cert is empty.
 configProperties.syslog.serverPort.unavailable=Connection to server %s failed.
-configProperties.syslog.serverPort.successful=Connect to remote syslog servers successful.
+configProperties.syslog.serverPort.successful=Connection to remote syslog server was successful.
 configProperties.syslog.serverPort.validate=Test connection on servers
 configProperties.error.ipportlist=Invalid IP or Port in list.
 

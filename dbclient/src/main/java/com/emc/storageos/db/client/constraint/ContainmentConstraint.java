@@ -71,6 +71,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -382,6 +383,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(WorkflowStep.class);
             ColumnField field = doType.getColumnField("workflow");
             return new ContainmentConstraintImpl(workflow, WorkflowStep.class, field);
+        }
+        
+        public static ContainmentConstraint getWorkflowStepDataConstraint(URI workflow) {
+            DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
+            ColumnField field = doType.getColumnField("workflow");
+            return new ContainmentConstraintImpl(workflow, WorkflowStepData.class, field);
         }
 
         public static Constraint getProjectProtectionSetConstraint(URI project) {

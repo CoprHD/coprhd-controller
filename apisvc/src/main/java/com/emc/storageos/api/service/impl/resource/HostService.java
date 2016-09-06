@@ -268,7 +268,8 @@ public class HostService extends TaskResourceService {
     @Path("/{id}")
     public TaskResourceRep updateHost(@PathParam("id") URI id,
             HostUpdateParam updateParam,
-            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
+            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
+            @QueryParam("update-exports") @DefaultValue("true") boolean updateExports) {
         // update the host
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);
@@ -286,18 +287,18 @@ public class HostService extends TaskResourceService {
 
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
-            if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+            if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
                         taskId);
-            } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
+            } else if (updateExports && NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
-            } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)

@@ -794,7 +794,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(
                                 String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
                                         Joiner.on(", ").join(volumesToRemove), mask.getMaskName()));
-
                         errorMessage.append(
                                 String.format(
                                         "Mask %s would have deleted from array ",

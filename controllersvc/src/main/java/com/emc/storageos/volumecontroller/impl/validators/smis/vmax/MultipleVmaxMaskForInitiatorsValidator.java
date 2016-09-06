@@ -23,7 +23,6 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Lists;
 
 /**
@@ -63,11 +62,6 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
         
-        // Don't validate against backing masks or RP
-        if (ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
-            return true;
-        }
-
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         log.warn("MV {} is sharing an initiator with MV {}", name, assocName);

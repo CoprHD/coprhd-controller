@@ -2220,6 +2220,10 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
+# Currently failing for:
+# 1) VPLEX - COP-25238
+# 2) XIO   - COP-25240
+#
 # Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
 #
 # Basic Use Case for single host, single volume

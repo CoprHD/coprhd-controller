@@ -811,7 +811,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("A subset of volumes will be removed from mask %s: %s. ",
                                 mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
                         errorMessage.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
-                                mask.getMaskName(), Joiner.on(", ").join(
+                                mask.forDisplay(), Joiner.on(", ").join(
                                         Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay()))));
                         List<ExportMask> masks = new ArrayList<ExportMask>();
                         masks.add(mask);

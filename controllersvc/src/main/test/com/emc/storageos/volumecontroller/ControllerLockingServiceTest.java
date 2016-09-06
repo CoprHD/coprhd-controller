@@ -64,7 +64,7 @@ public class ControllerLockingServiceTest extends CoordinatorTestBase{
                     try {
                         boolean bLockActionResult =  impl.acquireLock(lockName, 10);
                         Assert.assertTrue(bLockActionResult);
-                        log.error("Thread 1 - acquire lock {}", bLockActionResult);
+                        log.info("Thread 1 - acquire lock {}", bLockActionResult);
                         Thread.sleep(30000);
                     } catch (InterruptedException e) {
                         // Ignore this.
@@ -81,7 +81,7 @@ public class ControllerLockingServiceTest extends CoordinatorTestBase{
                     try {
                         Thread.sleep(10000); // yield so that thread 1 acquired the lock
                         boolean bLockActionResult =  impl.acquireLock(lockName, 10);
-                        log.error("Thread 2 - acquire lock {}", bLockActionResult);
+                        log.info("Thread 2 - acquire lock {}", bLockActionResult);
                         Assert.assertFalse(bLockActionResult);
                         Thread.sleep(30000);
                     } catch (InterruptedException e) {

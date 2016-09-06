@@ -346,4 +346,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException waitForInvalidCopyState(final String state);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException unableToPerformValidation(final String errMsg);
 }

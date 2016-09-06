@@ -3533,7 +3533,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
 
         _log.info("{} Groups generated based on grouping volumes by fast policy", policyToVolumeGroup.size());
-        Map<StorageGroupPolicyLimitsParam, Set<String>> existingGroupNames = _helper.getExistingSGNamesFromArray(storage);
         /** Grouped Volumes based on Fast Policy */
         for (Entry<StorageGroupPolicyLimitsParam, Collection<VolumeURIHLU>> policyToVolumeGroupEntry : policyToVolumeGroup.asMap()
                 .entrySet()) {
@@ -3589,6 +3588,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             childVolumeGroupsToBeAddedToParentGroup.addAll(childVolumeGroupsToBeAdded);
         }
+        Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = _helper.getExistingSGNamesFromArray(storage);
+        Set<String> existingGroupNames = new HashSet<>();
+        for (Set<String> groupNames : allStorageGroups.values()) {
+            existingGroupNames.addAll(groupNames);
+        }
+        // Avoid duplicate names for the Cascaded VolumeGroup
+        parentGroupName = _helper.generateGroupName(existingGroupNames, parentGroupName);
         CIMObjectPath cascadedGroupPath = createCascadedVolumeGroup(storage, parentGroupName, childVolumeGroupsToBeAddedToParentGroup,
                 taskCompleter);
 

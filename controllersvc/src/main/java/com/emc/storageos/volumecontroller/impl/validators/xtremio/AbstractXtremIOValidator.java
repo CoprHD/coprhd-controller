@@ -64,7 +64,7 @@ public abstract class AbstractXtremIOValidator implements Validator {
 
     public void checkForErrors() {
         if (getLogger().hasErrors() && errorOnMismatch) {
-            if (getConfig().validationEnabled()) {
+            if (getConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.validationError(
                         "Export Mask", getLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
             }

@@ -77,12 +77,12 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 return false;
             }
             log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            if (getValidatorConfig().validationEnabled()) {
+            if (getValidatorConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask: " + ex.getMessage());
             }
         }
-        if (getValidatorLogger().hasErrors() && getValidatorConfig().validationEnabled()) {
+        if (getValidatorLogger().hasErrors() && getValidatorConfig().isValidationEnabled()) {
             throw DeviceControllerException.exceptions.validationError(
                     "Export Mask", getValidatorLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
         }

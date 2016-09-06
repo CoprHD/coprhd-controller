@@ -6639,7 +6639,8 @@ common_setup()
 	    DISCOVER_SAN=1
 	fi
 
-	if [ "${SS}" == "recoverpoint" ]; then
+	# RecoverPoint doesn't need zone setup, it uses its own zone setup
+	if [ "${SS}" != "recoverpoint" ]; then
 	  zone_setup
 	  run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
 	fi

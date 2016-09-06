@@ -65,7 +65,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateC
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -83,7 +82,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
     public static final String CUSTOM_CONFIG_HANDLER = "customConfigHandler";
-    private ValidatorConfig config;
 
     static {
         INITIATOR_FIELDS.add("clustername");
@@ -484,7 +482,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         StringBuffer errorMessage = new StringBuffer();
         logExportGroup(exportGroup, storageURI);
-        boolean isValidationEnabled = config.isValidationEnabled();
+        boolean isValidationEnabled = validatorConfig.isValidationEnabled();
         try {
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
@@ -792,12 +790,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             CommonTransformerFunctions.FCTN_URI_TO_STRING);
                     List<String> exportMaskVolumeURIStrings = new ArrayList<String>(mask.getVolumes().keySet());
                     exportMaskVolumeURIStrings.removeAll(volumesToRemoveURIStrings);
-
+                    List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
                     if (exportMaskVolumeURIStrings.isEmpty()) {
                         _log.info(
                                 String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
                                         Joiner.on(", ").join(volumesToRemove), mask.getMaskName()));
-                        List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
+
                         errorMessage.append(
                                 String.format(
                                         "All the volumes (%s) from mask %s will be removed, which results in deleting the whole mask. ",
@@ -816,7 +814,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("A subset of volumes will be removed from mask %s: %s. ",
                                 mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
                         errorMessage.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
-                                mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
+                                mask.getMaskName(), Joiner.on(", ").join(
+                                        Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay()))));
                         List<ExportMask> masks = new ArrayList<ExportMask>();
                         masks.add(mask);
 
@@ -2419,9 +2418,5 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes)
                 throws Exception {
         }
-    }
-
-    public void setConfig(ValidatorConfig config) {
-        this.config = config;
     }
 }

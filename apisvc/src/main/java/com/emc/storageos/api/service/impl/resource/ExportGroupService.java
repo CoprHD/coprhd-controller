@@ -1522,7 +1522,7 @@ public class ExportGroupService extends TaskResourceService {
 
         // Grab all clusters from the export group
         if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
-            computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getHosts()));
+            computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getClusters()));
         }
 
         // Grab all hosts from the export group

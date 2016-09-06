@@ -26,10 +26,9 @@ public class ExportMaskVolumesValidator extends AbstractExportMaskValidator {
 
     private final Collection<? extends BlockObject> blockObjects;
 
-
     public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
                                       Collection<? extends BlockObject> blockObjects) {
-        super(storage, exportMask, "volumes");
+        super(storage, exportMask, FIELD_VOLUMES);
         this.blockObjects = blockObjects;
     }
 

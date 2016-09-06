@@ -29,7 +29,11 @@ public class VnxSystemValidatorFactory extends AbstractSMISValidatorFactory {
 
     @Override
     public AbstractSMISValidator createExportMaskInitiatorValidator(ExportMaskValidationContext ctx) {
-        return new ExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getInitiators());
+        // Check to see if validation makes sense to perform for this export mask
+        if (performInitiatorValidation(ctx.getExportMask())) {
+            return new ExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getInitiators());
+        }
+        return truthyValidator;
     }
 
 }

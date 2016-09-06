@@ -34,8 +34,10 @@ import com.google.common.collect.Sets;
  */
 public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
+    public static final String FIELD_INITIATORS = "initiators";
+    public static final String FIELD_VOLUMES = "volumes";
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
 
     private final StorageSystem storage;
     private final ExportMask exportMask;

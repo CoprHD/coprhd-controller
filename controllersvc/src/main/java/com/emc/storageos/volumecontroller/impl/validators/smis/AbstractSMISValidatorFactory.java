@@ -11,6 +11,9 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -20,6 +23,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ChainingValidator;
 import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
@@ -43,12 +47,15 @@ import com.google.common.collect.Lists;
  **/
 public abstract class AbstractSMISValidatorFactory implements StorageSystemValidatorFactory {
 
+    private static final Logger _log = LoggerFactory.getLogger(AbstractSMISValidatorFactory.class);
+
     private ValidatorConfig config;
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
 
-    private static final AbstractSMISValidator truthyValidator = new AbstractSMISValidator() {
+
+    protected static final AbstractSMISValidator truthyValidator = new AbstractSMISValidator() {
         @Override
         public boolean validate() throws Exception {
             return true;
@@ -242,6 +249,22 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
             validator.setFactory(this);
             validator.setLogger(logger);
         }
+    }
+
+    /**
+     * Determines if it should perform initiator validation, given the export mask.
+     * 
+     * @param exportMask
+     *            export mask
+     * @return true if validation should be performed, false otherwise
+     */
+    protected boolean performInitiatorValidation(ExportMask exportMask) {
+        // Don't validate against backing masks or RP if we're validating initiators.
+        if (ExportMaskUtils.isBackendExportMask(getDbClient(), exportMask)) {
+            _log.info("validation against backing mask for VPLEX or RP is disabled.");
+            return false;
+        }
+        return true;
     }
 
     @Override

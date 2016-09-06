@@ -15,7 +15,7 @@ import play.Logger;
 import play.Play;
 import play.mvc.Http;
 import plugin.StorageOsPlugin;
-
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.security.ssl.ViPRSSLSocketFactory;
 import com.emc.storageos.security.ssl.ViPRX509TrustManager;
@@ -94,12 +94,24 @@ public class BourneUtil {
         config.setRequestLoggingEnabled(isConfigPropertySet("storageos.api.debugging"));
 
         // Client timeout
-        int timeout = Integer.parseInt(Play.configuration.getProperty("vipr.client.timeout.minutes", "5"));
-        config.setReadTimeout(timeout * MINUTES_IN_MS);
-        config.setConnectionTimeout(timeout * MINUTES_IN_MS);
+        PropertyInfo propInfo = StorageOsPlugin.getInstance().getCoordinatorClient().getPropertyInfo();
+        String timeoutProperty = null;
+        if(propInfo != null) {
+        	timeoutProperty = propInfo.getProperty("portal_service_timeout");
+        }
+        
+        if(timeoutProperty != null) {
+        	int timeout = Integer.parseInt(timeoutProperty);
+        	config.setReadTimeout(timeout * MINUTES_IN_MS);
+                config.setConnectionTimeout(timeout * MINUTES_IN_MS);
+        }
+        else {
+        	int timeout = Integer.parseInt(Play.configuration.getProperty("vipr.client.timeout.minutes", "5"));
+        	config.setReadTimeout(timeout * MINUTES_IN_MS);
+        	config.setConnectionTimeout(timeout * MINUTES_IN_MS);
+        }
 
         // setup socketfactory, unless we're in portal only mode
-
         if (StorageOsPlugin.isEnabled()) {
             config.setSocketFactory(getSocketFactory());
             config.setHostnameVerifier(SSLUtil.getNullHostnameVerifier());

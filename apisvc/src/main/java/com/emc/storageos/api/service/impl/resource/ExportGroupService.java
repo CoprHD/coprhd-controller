@@ -1533,7 +1533,7 @@ public class ExportGroupService extends TaskResourceService {
         StringBuffer errMsg = new StringBuffer();
         // Query for actionable events with these resources
         for (URI computeResourceID : computeResourceIDs) {
-            List<ActionableEvent> events = EventUtils.findResourceEvents(_dbClient, computeResourceID);
+            List<ActionableEvent> events = EventUtils.findAffectedResourceEvents(_dbClient, computeResourceID);
             if (events != null && !events.isEmpty()) {
                 for (ActionableEvent event : events) {
                     if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {

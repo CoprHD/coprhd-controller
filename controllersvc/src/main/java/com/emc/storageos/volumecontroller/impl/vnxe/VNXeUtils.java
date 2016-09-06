@@ -40,7 +40,7 @@ public class VNXeUtils {
         boolean lockAcquired = workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
         if (!lockAcquired) {
             throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                    String.format("mdoify Unity consistency group %s", cgName));
+                    String.format("modify Unity consistency group %s", cgName));
         }
     }
 
@@ -59,7 +59,7 @@ public class VNXeUtils {
                 BlockSnapshot snap = (BlockSnapshot) blockObject;
                 URI volURI = snap.getParent().getURI();
                 Volume parentVol = dbClient.queryObject(Volume.class, volURI);
-                if (parentVol != null) {
+                if (parentVol != null && !parentVol.getInactive()) {
                     cgName = parentVol.getReplicationGroupInstance();
                 } else {
                     logger.error("The snapshot parent volume does not exist");

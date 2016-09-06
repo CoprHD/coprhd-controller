@@ -791,12 +791,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             CommonTransformerFunctions.FCTN_URI_TO_STRING);
                     List<String> exportMaskVolumeURIStrings = new ArrayList<String>(mask.getVolumes().keySet());
                     exportMaskVolumeURIStrings.removeAll(volumesToRemoveURIStrings);
-
+                    List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
                     if (exportMaskVolumeURIStrings.isEmpty()) {
                         _log.info(
                                 String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
                                         Joiner.on(", ").join(volumesToRemove), mask.getMaskName()));
-                        List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
                         errorMessage.append(
                                 String.format(
                                         "Mask %s would have deleted from array ",

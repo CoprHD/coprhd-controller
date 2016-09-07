@@ -97,6 +97,7 @@ public enum ResourceTypeEnum {
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
+    FILE_POLICY_PROFILE("file_policy_profile", "/file/policy-profile"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
 
     private final String type;

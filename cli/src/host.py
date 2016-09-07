@@ -1105,8 +1105,8 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-updateExports', '-updateEx',
                             help="Updates the exports during host update",
                             dest='updateExports',
-                            choices = Host.BOOL_TYPE_LIST)
-
+                            default='true',
+                            choices=['true', 'false'])
 
     update_parser.set_defaults(func=host_update)
 

@@ -25,6 +25,7 @@ import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2544,7 +2545,11 @@ public class WorkflowService implements WorkflowController {
      */
     public void markWorkflowBeenCreated(String stepId, String workflowKey) {
         // Mark this workflow as created/executed so we don't do it again on retry/resume
-        WorkflowService.getInstance().storeStepData(stepId, workflowKey, Boolean.TRUE.toString());
+        try {
+            WorkflowService.getInstance().storeStepData(stepId, workflowKey, Boolean.TRUE.toString());
+        } catch (WorkflowException ex) {
+            _log.info(String.format("Step %s has already been deleted and therefore cannot mark sub-workflow created, key %s", stepId, workflowKey));
+        }
     }
 
     /**

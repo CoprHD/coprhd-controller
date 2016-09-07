@@ -83,7 +83,7 @@ public class NetworkZoningParam implements Serializable {
 	 */
 	public NetworkZoningParam(ExportGroup exportGroup, ExportMask exportMask, DbClient dbClient) {
 		String storageSystem = exportMask.getStorageDevice().toString();
-		setVirtualArray(virtualArray = exportGroup.getVirtualArray());
+		setVirtualArray(exportGroup.getVirtualArray());
 		if (exportGroup.hasAltVirtualArray(storageSystem)) {
 			setAltVirtualArray(URI.create(exportGroup.getAltVirtualArrays().get(storageSystem)));
 		}

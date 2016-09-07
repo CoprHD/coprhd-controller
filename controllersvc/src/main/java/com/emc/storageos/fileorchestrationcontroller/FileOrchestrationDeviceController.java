@@ -107,7 +107,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String VERIFY_MOUNT_DEPENDENCIES_METHOD = "verifyMountDependencies";
-    private static final String IS_EXPORT_MOUNTED_METHOD = "isExportMounted";
+    private static final String CHECK_IF_EXPORT_IS_MOUNTED = "CheckIfExportIsMounted";
 
     /*
      * (non-Javadoc)
@@ -178,6 +178,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * Create target filesystems for existing file systems!!
      * (FileShare, FileMirroring). This method is responsible for creating
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
+     * 
      * @param fs
      * @param fileDescriptors
      * @param taskId
@@ -632,7 +633,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             } else if (URIUtil.isType(uri, FileShare.class)) {
                 // Check if the export is mounted and throw an error if mounted
                 Object[] args = new Object[] { uri, subDirs, allDirs };
-                waitFor = _fileDeviceController.createMethod(workflow, waitFor, IS_EXPORT_MOUNTED_METHOD, null,
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, CHECK_IF_EXPORT_IS_MOUNTED, null,
                         "Checking if the export is mounted", storage, args);
             }
             Object[] args = new Object[] { storage, uri, allDirs, subDirs };
@@ -840,7 +841,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String failoverStep = workflow.createStepId();
 
             List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
-            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep, targetFileShare.getStorageDevice());
+            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep,
+                    targetFileShare.getStorageDevice());
             stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
 
             stepDescription = String.format("Failover source file System : %s to target system : %s.", sourceFileShare.getName(),

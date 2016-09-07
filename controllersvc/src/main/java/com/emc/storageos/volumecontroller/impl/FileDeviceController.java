@@ -4155,7 +4155,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return unmountList;
     }
 
-    public void isExportMounted(URI fsId, String subDir, boolean allDirs, String opId) {
+    public void CheckIfExportIsMounted(URI fsId, String subDir, boolean allDirs, String opId) {
         WorkflowStepCompleter.stepExecuting(opId);
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
         if (mountList == null || mountList.isEmpty()) {

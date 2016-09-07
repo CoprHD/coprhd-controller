@@ -1620,13 +1620,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted));
     }
 
+    private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted, 
+            ResourceFilter<BlockObjectRestRep> filter) {
+        List<? extends BlockObjectRestRep> resources = BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted);
+        ResourceUtils.applyFilter((List<BlockObjectRestRep>) resources, filter);
+        return createVolumeOptions(client, null, host, resources);
+    }
+
     private List<AssetOption> getBlockVolumesForHostDatastore(ViPRCoreClient client, URI tenant, URI host, String datastore) {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumesForDatastore(client, tenant, host, datastore));
     }
 
     private List<AssetOption> getProjectBlockVolumesForHost(ViPRCoreClient client, URI project, URI host,
             boolean mounted) {
-        return createVolumeOptions(client, project, host, getProjectBlockVolumes(client, host, project, mounted));
+        return getProjectBlockVolumesForHost(client, project, host, mounted, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<AssetOption> getProjectBlockVolumesForHost(ViPRCoreClient client, URI project, URI host,
+            boolean mounted, ResourceFilter<BlockObjectRestRep> filter) {
+        List<? extends BlockObjectRestRep> resources = getProjectBlockVolumes(client, host, project, mounted);
+        ResourceUtils.applyFilter((List<BlockObjectRestRep>) resources, filter);
+        return createVolumeOptions(client, project, host, resources);
     }
 
     private List<AssetOption> getBlockResourcesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {
@@ -1669,37 +1684,37 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockVolume")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getMountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies({ "linuxHost", "project" })
     public List<AssetOption> getMountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, true);
+        return getProjectBlockVolumesForHost(api(context), project, host, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies("hpuxHost")
     public List<AssetOption> getMountedBlockVolumesForHpuxHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies({ "hpuxHost", "project" })
     public List<AssetOption> getMountedBlockVolumesForHpuxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, true);
+        return getProjectBlockVolumesForHost(api(context), project, host, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getMountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies({ "windowsHost", "project" })
     public List<AssetOption> getMountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, true);
+        return getProjectBlockVolumesForHost(api(context), project, host, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("fileSystemType")
@@ -1756,25 +1771,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockVolume")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getUnmountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, false);
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockVolume")
     @AssetDependencies({ "linuxHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, false);
+        return getProjectBlockVolumesForHost(api(context), project, host, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockVolume")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getUnmountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, false);
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockVolume")
     @AssetDependencies({ "windowsHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, false);
+        return getProjectBlockVolumesForHost(api(context), project, host, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockVolume")
@@ -1822,25 +1837,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockResource")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getLinuxMountedBlockResources(AssetOptionsContext context, URI linuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true);
+        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getLinuxMountedBlockResourcesNoTargets(AssetOptionsContext context, URI linuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true, new BlockObjectSRDFTargetFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true,
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "linuxHost" })
     public List<AssetOption> getLinuxUnmountedBlockResources(AssetOptionsContext context, URI linuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, false);
+        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "linuxHost", "project" })
     public List<AssetOption> getLinuxUnmountedBlockResources(AssetOptionsContext context, URI linuxHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, linuxHost, false);
+        return getProjectBlockResourcesForHost(api(context), project, linuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResourcePath")
@@ -1854,55 +1870,57 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "aixHost" })
     public List<AssetOption> getAixUnmountedBlockResources(AssetOptionsContext context, URI aixHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, false);
+        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "aixHost", "project" })
     public List<AssetOption> getAixUnmountedBlockResources(AssetOptionsContext context, URI aixHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, aixHost, false);
+        return getProjectBlockResourcesForHost(api(context), project, aixHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResource")
     @AssetDependencies("aixHost")
     public List<AssetOption> getAixMountedBlockResources(AssetOptionsContext context, URI aixHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true);
+        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("aixHost")
     public List<AssetOption> getAixMountedBlockResourcesNoTargets(AssetOptionsContext context, URI aixHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true, new BlockObjectSRDFTargetFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true,
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "hpuxHost" })
     public List<AssetOption> getHpuxUnmountedBlockResources(AssetOptionsContext context, URI hpuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, false);
+        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "hpuxHost", "project" })
     public List<AssetOption> getHpuxUnmountedBlockResources(AssetOptionsContext context, URI hpuxHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, hpuxHost, false);
+        return getProjectBlockResourcesForHost(api(context), project, hpuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResource")
     @AssetDependencies("hpuxHost")
     public List<AssetOption> getHpuxMountedBlockResources(AssetOptionsContext context, URI hpuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true);
+        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("hpuxHost")
     public List<AssetOption> getHpuxMountedBlockResourcesNoTargets(AssetOptionsContext context, URI hpuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true, new BlockObjectSRDFTargetFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true,
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
     }
 
     @Asset("mountedBlockResource")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getWindowsMountedBlockResources(AssetOptionsContext context, URI windowsHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true);
+        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResourceNoTargets")
@@ -1914,13 +1932,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "windowsHost" })
     public List<AssetOption> getWindowsUnmountedBlockResources(AssetOptionsContext context, URI windowsHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, false);
+        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "windowsHost", "project" })
     public List<AssetOption> getWindowsUnmountedBlockResources(AssetOptionsContext context, URI windowsHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, windowsHost, false);
+        return getProjectBlockResourcesForHost(api(context), project, windowsHost, false, new BlockObjectVMFSDatastoreFilter().not());
     }
 
     @Asset("mountedBlockResource")
@@ -3412,6 +3430,24 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             if (item instanceof VolumeRestRep) {
                 return filter.accept((VolumeRestRep) item);
             }
+            return false;
+        }
+    }
+
+    /**
+     * VMFS Datastore filter for block objects.
+     */
+    private static class BlockObjectVMFSDatastoreFilter extends DefaultResourceFilter<BlockObjectRestRep> {
+        @Override
+        public boolean accept(BlockObjectRestRep blockObject) {
+            Set<String> volumeTags = blockObject.getTags();
+            Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+
+            for (String tag : parsedTags.keySet()) {
+                return (tag != null
+                        && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName()));
+            }
+
             return false;
         }
     }

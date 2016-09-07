@@ -1139,7 +1139,6 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         // If active, add the RelationshipName
         if (!createInactive) {
             args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
-            args.add(_cimArgument.string(RELATIONSHIP_NAME, label));
         }
         return args.toArray(new CIMArgument[args.size()]);
     }

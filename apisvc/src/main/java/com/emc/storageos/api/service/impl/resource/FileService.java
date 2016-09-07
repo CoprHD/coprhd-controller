@@ -490,21 +490,23 @@ public class FileService extends TaskResourceService {
     }
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
-        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+        //validate the vpool for protection and throw error if any other field invalid
+    	
+    	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
-            if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
+            if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
             }
 
             if (vPool.getFrRpoValue() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_VALUE, vPool.getFrRpoValue());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
             }
             // async or copy
             // async - soure changes will mirror target
             // copy - it kind backup, it is full copy
             if (vPool.getFileReplicationCopyMode() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_COPY_MODE, vPool.getFrRpoValue());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, vPool.getFileReplicationCopyMode());
             }
 
         }
@@ -2634,20 +2636,25 @@ public class FileService extends TaskResourceService {
             // Verify the source virtual pool recommendations meets source fs storage!!!
             fileServiceApi.createTargetsForExistingSource(fs, project,
                     newVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (InternalException e) {
-            if (_log.isErrorEnabled()) {
-                _log.error("Delete error", e);
-            }
-
-            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
-            op = fs.getOpStatus().get(task);
-            op.error(e);
-            fileShare.getOpStatus().updateTaskStatus(task, op);
+        } catch (BadRequestException e) {
             // Revert the file system to original state!!!
             restoreFromOriginalFs(orgFs, fs);
             _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
             throw e;
-        }
+        } catch (InternalException e) {
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
+            _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }    
+       
         auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
                 project == null ? null : project.getId().toString());
@@ -2741,20 +2748,24 @@ public class FileService extends TaskResourceService {
             // Verify the source virtual pool recommendations meets source fs storage!!!
             fileServiceApi.createTargetsForExistingSource(fs, project,
                     currentVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (InternalException e) {
-            if (_log.isErrorEnabled()) {
-                _log.error("createContinuousCopies error ", e);
-            }
-
-            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
-            op = fs.getOpStatus().get(task);
-            op.error(e);
-            fileShare.getOpStatus().updateTaskStatus(task, op);
+        } catch (BadRequestException e) {
             // Revert the file system to original state!!!
             restoreFromOriginalFs(orgFs, fs);
             _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Create file system mirror copy failed {}, {}", e.getMessage(), e);
             throw e;
-        }
+        } catch (InternalException e) {
+            // Revert the file system to original state!!!
+            restoreFromOriginalFs(orgFs, fs);
+            _dbClient.updateObject(fs);
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Create file system mirror copy failed {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Create file system mirror copy failed  {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } 
         auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), fs.getLabel(),
                 project == null ? null : project.getId().toString());
@@ -3372,28 +3383,6 @@ public class FileService extends TaskResourceService {
         }
 
         return fsMounts;
-    }
-
-    private List<MountInfo> queryDBHostMounts(URI host) {
-        _log.info("Querying NFS mounts for host {}", host);
-        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
-        try {
-            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
-            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
-                    containmentConstraint);
-            if (fileMounts != null && !fileMounts.isEmpty()) {
-                for (FileMountInfo dbMount : fileMounts) {
-                    MountInfo mountInfo = new MountInfo();
-                    getMountInfo(dbMount, mountInfo);
-                    hostMounts.add(mountInfo);
-                }
-            }
-            return hostMounts;
-        } catch (Exception e) {
-            _log.error("Error while querying {}", e);
-        }
-
-        return hostMounts;
     }
 
     private List<ExportRule> queryFSExports(FileShare fs) {
@@ -4224,28 +4213,6 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Get list of mounts for the specified host.
-     * 
-     * @param id
-     *            the URN of a hist
-     * @brief List file system mounts
-     * @return List of file system mounts.
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/mounts")
-    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public MountInfoList getHostNFSMounts(@QueryParam("host") URI host) {
-
-        ArgValidator.checkFieldUriType(host, Host.class, "id");
-        _log.info(String.format("Get list of mounts for host %1$s", host));
-
-        MountInfoList mountList = new MountInfoList();
-        mountList.setMountList(queryDBHostMounts(host));
-        return mountList;
-    }
-
-    /**
      * Get list of mounts for the specified file system.
      * 
      * @param id
@@ -4405,12 +4372,40 @@ public class FileService extends TaskResourceService {
     }
 
     private void validateMountPath(URI hostId, String mountPath) {
-        List<MountInfo> mountList = getHostNFSMounts(hostId).getMountList();
+        List<MountInfo> mountList = queryDBHostMounts(hostId);
         for (MountInfo mount : mountList) {
             if (mount.getMountPath().equalsIgnoreCase(mountPath)) {
                 return;
             }
         }
         throw APIException.badRequests.invalidParameter("mount_path", mountPath);
+    }
+    
+    /**
+     * Method to get the list file system mounts which are mount on a host
+     *
+     * @param host host system URI
+     * @return List<MountInfo> List of mount infos
+     */
+    private List<MountInfo> queryDBHostMounts(URI host) {
+        _log.info("Querying NFS mounts for host {}", host);
+        List<MountInfo> hostMounts = new ArrayList<MountInfo>();
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getHostFileMountsConstraint(host);
+            List<FileMountInfo> fileMounts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileMountInfo.class,
+                    containmentConstraint);
+            if (fileMounts != null && !fileMounts.isEmpty()) {
+                for (FileMountInfo dbMount : fileMounts) {
+                    MountInfo mountInfo = new MountInfo();
+                    getMountInfo(dbMount, mountInfo);
+                    hostMounts.add(mountInfo);
+                }
+            }
+            return hostMounts;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return hostMounts;
     }
 }

@@ -55,6 +55,10 @@ public class StorageProviderTypes {
         }
     };
 
+    public static boolean isXIV(String type) {
+        return IBMXIV.equals(type);
+    }
+    
     public static boolean isScaleIOApi(String type) {
     	return SCALEIOAPI.equals(type);
     }

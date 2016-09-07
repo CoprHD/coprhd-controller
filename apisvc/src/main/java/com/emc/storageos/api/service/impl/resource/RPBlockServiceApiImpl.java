@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1828,6 +1829,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throws InternalException {
         _log.info("Request to delete {} volume(s) with RP Protection", volumeURIs.size());
         try {
+            // check to make sure no target volumes were passed in
+            Iterator<Volume> dbVolumeIter = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+            while (dbVolumeIter.hasNext()) {
+                Volume vol = dbVolumeIter.next();
+                if (StringUtils.equals(vol.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                    throw APIException.badRequests.deactivateRPTargetNotSupported(vol.getLabel());
+                }
+            }
             super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
         } catch (Exception e) {
             // Set the task to failed

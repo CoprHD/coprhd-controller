@@ -5905,7 +5905,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Skip this if validation disabled
             ValidatorConfig validatorConfig = new ValidatorConfig();
             validatorConfig.setCoordinator(coordinator);
-            if (!validatorConfig.validationEnabled()) {
+            if (!validatorConfig.isValidationEnabled()) {
                 WorkflowStepCompleter.stepSucceeded(stepId, "Validations not enabled");
                 return;
             }

@@ -139,7 +139,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                 }
             } catch (VPlexApiException ex) {
                 log.error("Unable to determine if VPLEX device reused: " + volumeId, ex);
-                if (getValidatorConfig().validationEnabled()) {
+                if (getValidatorConfig().isValidationEnabled()) {
                     throw ex;
                 }
             }

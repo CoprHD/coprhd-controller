@@ -68,7 +68,12 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             save(host);
             super.discoverHost(host, changes);
-            checkMultipathSoftwareCompatibility(host);
+            try {
+                checkMultipathSoftwareCompatibility(host);
+            } catch (CompatibilityException e) {
+                host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
+                save(host);
+            }
         }
         else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());

@@ -620,7 +620,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 initiator.getInitiatorPort()));
                         if (mask.getCreatedBySystem()) {
                             // We cannot remove initiator if there are existing volumes in the mask.
-                            if (mask.hasUserInitiator(initiator.getId()) && !mask.hasAnyExistingVolumes()) {
+                            if (!mask.hasAnyExistingVolumes()) {
                                 // If there's more than one export group, that means there's my export group plus another one.
                                 // Best to just leave that initiator alone.
                                 Set<URI> exportGroupURIs = new HashSet<URI>();
@@ -712,7 +712,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                 "Removing volumes from an Initiator type export group as part of an initiator removal is not supported.");
                                     }
                                 }
-                            } else if(mask.hasAnyExistingVolumes()){
+                            } else {
                                 errorMessage.append(String.format("Mask %s is having existing volumes %s", mask.forDisplay(),
                                         Joiner.on(", ").join(mask.getExistingVolumes().keySet())));
                             }
@@ -722,7 +722,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             // are not already in the masks to the remove list
                             for (BlockObject blockObject : blockObjects) {
                                 // Volumes cannot be removed if there are existing initiators in the mask
-                                if (mask.hasUserCreatedVolume(blockObject.getWWN()) && !mask.hasAnyExistingInitiators()) {
+                                if (mask.hasUserCreatedVolume(blockObject.getWWN())) {
                                     // If any system-created initiator in the mask is not in our list to remove, then we shouldn't remove
                                     // the block object because another initiator in a ViPR export group is depending on that object being
                                     // there.
@@ -850,28 +850,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         anyOperationsToDo = true;
                     }
 
-                    // Determine if there are any more initiators from our export group in this mask. If not, remove the
-                    // reference to the mask from the export group.
-                    boolean removeMaskReference = true;
-                    if (exportGroup.hasInitiators() && mask.getUserAddedInitiators() != null
-                            && mask.getUserAddedInitiators().entrySet() != null) {
-                        for (Entry<String, String> maskInitiatorId : mask.getUserAddedInitiators().entrySet()) {
-                            if ((exportGroup.getInitiators() != null && exportGroup.getInitiators().contains(maskInitiatorId.getValue())) &&
-                                    (!initiatorURIs.contains(URI.create(maskInitiatorId.getValue())))) {
-                                removeMaskReference = false;
-                            }
-                        }
-                    }
-                    if (removeMaskReference) {
-                        _log.info(String.format("removing reference to mask %s from export group %s", mask.getMaskName(),
-                                exportGroup.getLabel()));
-                        // TODO: All export group modifications should be moved to completers
-                        for (URI uri : initiatorURIs) {
-                            exportGroup.removeInitiator(uri);
-                        }
-                        exportGroup.removeExportMask(mask.getId());
-                        _dbClient.updateAndReindexObject(exportGroup);
-                    }
+                   
 
                 }
 
@@ -890,7 +869,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     List<URI> volumesToRemove = entry.getValue();
                     List<URI> initiatorsToRemove = existingMasksToRemoveInitiator.get(mask.getId());
                     if (initiatorsToRemove != null) {
-                        List<URI> initiatorsInExportMask = StringSetUtil.stringSetToUriList(mask.getInitiators());
+                        List<URI> initiatorsInExportMask =  ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
                         initiatorsInExportMask.removeAll(initiatorsToRemove);
                         if (!initiatorsInExportMask.isEmpty()) {
                             // There are still some initiators in this ExportMask
@@ -936,35 +915,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
                         anyOperationsToDo = true;
 
-                        // Determine if there are any more initiators from our export group in this mask. If not, remove the
-                        // reference to the mask from the export group.
-                        boolean removeMaskReference = true;
-                        if (exportGroup.hasInitiators() && mask.getUserAddedInitiators() != null
-                                && mask.getUserAddedInitiators().entrySet() != null) {
-                            for (Entry<String, String> maskInitiatorId : mask.getUserAddedInitiators().entrySet()) {
-                                if ((exportGroup.getInitiators() != null && exportGroup.getInitiators().contains(maskInitiatorId.getValue())) &&
-                                        (!initiatorURIs.contains(URI.create(maskInitiatorId.getValue())))) {
-                                    removeMaskReference = false;
-                                }
-                            }
-                        }
-                        if (removeMaskReference) {
-                            _log.info(String.format("removing reference to mask %s from export group %s", mask.getMaskName(),
-                                    exportGroup.getLabel()));
-                            // TODO: All export group modifications should be moved to completers
-                            for (URI uri : initiatorURIs) {
-                                exportGroup.removeInitiator(uri);
-                            }
-                            exportGroup.removeExportMask(mask.getId());
-                            _dbClient.updateAndReindexObject(exportGroup);
-                        }
+                       
                     }
                 }
-                for (Map.Entry<URI, List<URI>> entry : existingMasksToCoexistInitiators.entrySet()) {
-                    // this was a co-exist initiator - We need to remove any zone references and
-                    // we assume the initiator was removed from the DB and clean it
-                    ExportMaskUtils.removeMaskCoexistInitiators(dbModelClient, entry.getKey(), entry.getValue());
-                }
+               
             }
 
             _log.warn("Error Message {}", errorMessage);

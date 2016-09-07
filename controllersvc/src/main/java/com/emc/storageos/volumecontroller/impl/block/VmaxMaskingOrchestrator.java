@@ -778,7 +778,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> volumesToRemove = entry.getValue();
                     List<URI> initiatorsToRemove = existingMasksToRemoveInitiator.get(mask.getId());
                     if (initiatorsToRemove != null) {
-                        List<URI> initiatorsInExportMask = StringSetUtil.stringSetToUriList(mask.getInitiators());
+                        List<URI> initiatorsInExportMask =  ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
                         initiatorsInExportMask.removeAll(initiatorsToRemove);
                         if (!initiatorsInExportMask.isEmpty()) {
                             // There are still some initiators in this ExportMask
@@ -794,8 +794,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             CommonTransformerFunctions.FCTN_URI_TO_STRING);
                     List<String> exportMaskVolumeURIStrings = new ArrayList<String>(mask.getVolumes().keySet());
                     exportMaskVolumeURIStrings.removeAll(volumesToRemoveURIStrings);
+                    
+                    boolean hasExistingVolumes = !CollectionUtils.isEmpty(mask.getExistingVolumes()); 
                     List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
-                    if (exportMaskVolumeURIStrings.isEmpty()) {
+                    if (!hasExistingVolumes && exportMaskVolumeURIStrings.isEmpty()) {
                         _log.info(
                                 String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
                                         Joiner.on(", ").join(volumesToRemove), mask.getMaskName()));
@@ -828,11 +830,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     }
                 }
-                for (Map.Entry<URI, List<URI>> entry : existingMasksToCoexistInitiators.entrySet()) {
-                    // this was a co-exist initiator - We need to remove any zone references and
-                    // we assume the initiator was removed from the DB and clean it
-                    ExportMaskUtils.removeMaskCoexistInitiators(dbModelClient, entry.getKey(), entry.getValue());
-                }
+                
             }
             _log.warn("Error Message {}", errorMessage);
 

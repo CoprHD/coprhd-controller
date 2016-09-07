@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -264,6 +265,19 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
                     newhlu = Integer.valueOf(hlu);
                 }
+                // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
+                // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
+                // with the same nativeGUID
+                String nativeGuid = blockObject.getNativeGuid(); 
+                List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+                if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
+                        URIUtil.isType(volUri, Volume.class)) {
+                    snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
+                    if (snapshots != null && !snapshots.isEmpty()) {
+                        blockObject = (BlockObject)snapshots.get(0);
+                        volUri = blockObject.getId();
+                    }
+                }
                 String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
@@ -317,6 +331,19 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             for (URI volUri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
+                // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
+                // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
+                // with the same nativeGUID
+                String nativeGuid = blockObject.getNativeGuid(); 
+                List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+                if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
+                        URIUtil.isType(volUri, Volume.class)) {
+                    snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
+                    if (snapshots != null && !snapshots.isEmpty()) {
+                        blockObject = (BlockObject)snapshots.get(0);
+                        volUri = blockObject.getId();
+                    }
+                }
                 String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);

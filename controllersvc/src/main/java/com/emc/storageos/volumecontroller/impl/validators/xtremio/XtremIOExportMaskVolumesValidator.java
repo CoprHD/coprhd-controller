@@ -4,13 +4,13 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -30,13 +29,13 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
 
     private static final Logger log = LoggerFactory.getLogger(XtremIOExportMaskVolumesValidator.class);
 
-    private final Collection<URI> volumeURIs;
+    private final Collection<? extends BlockObject> blockObjects;
     private Collection<String> igNames;
 
-    public XtremIOExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
-            Collection<URI> volumeURIList) {
+    XtremIOExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
+            Collection<? extends BlockObject> blockObjects) {
         super(storage, exportMask);
-        this.volumeURIs = volumeURIList;
+        this.blockObjects = blockObjects;
     }
 
     public void setIgNames(Collection<String> igNames) {
@@ -49,15 +48,14 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
         try {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(getDbClient(), storage, getClientFactory());
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            Set<String> knownVolumes = new HashSet<String>();
-            Set<String> igVols = new HashSet<String>();
+            Set<String> knownVolumes = new HashSet<>();
+            Set<String> igVols = new HashSet<>();
             // get the volumes in the IGs and validate against passed impacted block objects
-            for (URI maskVolumeURI : volumeURIs) {
-                BlockObject maskVolume = BlockObject.fetch(getDbClient(), maskVolumeURI);
+            for (BlockObject maskVolume : blockObjects) {
                 knownVolumes.add(maskVolume.getDeviceLabel());
             }
 
-            List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+            List<XtremIOVolume> igVolumes = new ArrayList<>();
             for (String igName : igNames) {
                 igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
             }
@@ -73,7 +71,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);
-            if (getConfig().validationEnabled()) {
+            if (getConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask volumes: " + ex.getMessage());
             }

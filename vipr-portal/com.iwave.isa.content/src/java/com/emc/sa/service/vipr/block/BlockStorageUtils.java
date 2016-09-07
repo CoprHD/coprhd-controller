@@ -1413,13 +1413,9 @@ public class BlockStorageUtils {
         NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
         NamedVolumesList volumesToUse = new NamedVolumesList();
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
-            VolumeRestRep volume = client.blockVolumes().get(volumeId);
-            VolumeRestRep parentVolume = volume;
-            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
-                volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
-            }
+            VolumeRestRep parentVolume = client.blockVolumes().get(volumeId);
             if (isTarget) {
-                if (isRPTargetVolume(volume) && volume.getVirtualArray().getId().equals(virtualArray)) {
+                if (isRPTargetVolume(parentVolume) && parentVolume.getVirtualArray().getId().equals(virtualArray)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {

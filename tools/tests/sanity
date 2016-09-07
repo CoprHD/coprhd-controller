@@ -642,14 +642,16 @@ fi
 
 pwwn()
 {
+    WWN=${WWN:-0}
     idx=$1
-    echo 50:${wwnsegment}:${idx}
+    echo 3${WWN}:${wwnsegment}:${idx}
 }
 
 nwwn()
 {
+    WWN=${WWN:-0}
     idx=$1
-    echo 51:${wwnsegment}:${idx}
+    echo 4${WWN}:${wwnsegment}:${idx}
 }
 
 wwnIdx() {
@@ -785,7 +787,7 @@ zone_setup()
     #
     # set up zone for cisco switch simulator
     #
-    if [ $QUICK -eq 1  -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+    if [ $QUICK -eq 1 -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
         cisco_mds_quick_setup_once
     elif [ $DISCOVER_SAN -eq 1 ]; then
         brocade_setup_once
@@ -3577,6 +3579,21 @@ rp_vpool_setup()
     fi
 }
 
+rp_network_setup()
+{
+    if [ $DISCOVER_SAN -eq 1 ]; then
+        # Do once
+        nsys=`networksystem list | wc -l`
+        [ "$nsys" -gt 0 ] && return;
+
+        #Discover the Brocade SAN switch.
+        secho "RecoverPoint network setup"
+        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        secho "Sleeping 30 seconds..."
+        sleep 30
+    fi
+}
+
 rp_varray_setup()
 {
     secho 'RecoverPoint varray setup'
@@ -3972,46 +3989,46 @@ recoverpoint_export_host_setup()
     rptype=${2}
 
     if [ "${vpool}" = "rp${rptype}_cdp" ]; then
-        PWWN1=10:00:00:E0:E0:E0:A1:E0
-        WWNN1=20:00:00:E0:E0:E0:A1:E0
-        PWWN2=10:00:00:E0:E0:E0:A2:E0
-        WWNN2=20:00:00:E0:E0:E0:A2:E0
-        PWWN3=10:00:00:E0:E0:E0:A3:D0
-        WWNN3=20:00:00:E0:E0:E0:A3:D0
-        PWWN4=10:00:00:E0:E0:E0:A4:D0
-        WWNN4=20:00:00:E0:E0:E0:A4:D0
-        PWWN5=10:00:00:E0:E0:E0:A5:D0
-        WWNN5=20:00:00:E0:E0:E0:A5:D0
-        PWWN6=10:00:00:E0:E0:E0:A6:D0
-        WWNN6=20:00:00:E0:E0:E0:A6:D0
+        PWWN1=`pwwn A1`
+        WWNN1=`nwwn A1`
+        PWWN2=`pwwn A2`
+        WWNN2=`nwwn A2`
+        PWWN3=`pwwn A3`
+        WWNN3=`nwwn A3`
+        PWWN4=`pwwn A4`
+        WWNN4=`nwwn A4`
+        PWWN5=`pwwn A5`
+        WWNN5=`nwwn A5`
+        PWWN6=`pwwn A6`
+        WWNN6=`nwwn A6`
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
     elif [ "${vpool}" = "rp${rptype}_crr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:B1:F0
-        WWNN1=20:00:00:E0:E0:E0:B1:F0
-        PWWN2=10:00:00:E0:E0:E0:B2:F0
-        WWNN2=20:00:00:E0:E0:E0:B2:F0
-        PWWN3=10:00:00:E0:E0:E0:B3:D0
-        WWNN3=20:00:00:E0:E0:E0:B3:D0
-        PWWN4=10:00:00:E0:E0:E0:B3:D0
-        WWNN4=20:00:00:E0:E0:E0:B4:D0
-        PWWN5=10:00:00:E0:E0:E0:B4:D0
-        WWNN5=20:00:00:E0:E0:E0:B5:D0
-        PWWN6=10:00:00:E0:E0:E0:B6:D0
-        WWNN6=20:00:00:E0:E0:E0:B6:D0
+        PWWN1=`pwwn B1`
+        WWNN1=`nwwn B1`
+        PWWN2=`pwwn B2`
+        WWNN2=`nwwn B2`
+        PWWN3=`pwwn B3`
+        WWNN3=`nwwn B3`
+        PWWN4=`pwwn B4`
+        WWNN4=`nwwn B4`
+        PWWN5=`pwwn B5`
+        WWNN5=`nwwn B5`
+        PWWN6=`pwwn B6`
+        WWNN6=`nwwn B6`
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
     elif [ "${vpool}" = "rp${rptype}_clr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:C1:D0
-        WWNN1=20:00:00:E0:E0:E0:C1:D0
-        PWWN2=10:00:00:E0:E0:E0:C2:D0
-        WWNN2=20:00:00:E0:E0:E0:C2:D0
-        PWWN3=10:00:00:E0:E0:E0:C3:D0
-        WWNN3=20:00:00:E0:E0:E0:C3:D0
-        PWWN4=10:00:00:E0:E0:E0:C4:D0
-        WWNN4=20:00:00:E0:E0:E0:C4:D0
-        PWWN5=10:00:00:E0:E0:E0:C5:D0
-        WWNN5=20:00:00:E0:E0:E0:C5:D0
-        PWWN6=10:00:00:E0:E0:E0:C6:D0
-        WWNN6=20:00:00:E0:E0:E0:C6:D0
+        PWWN1=`pwwn C1`
+        WWNN1=`nwwn C1`
+        PWWN2=`pwwn C2`
+        WWNN2=`nwwn C2`
+        PWWN3=`pwwn C3`
+        WWNN3=`nwwn C3`
+        PWWN4=`pwwn C4`
+        WWNN4=`nwwn C4`
+        PWWN5=`pwwn C5`
+        WWNN5=`nwwn C5`
+        PWWN6=`pwwn C6`
+        WWNN6=`nwwn C6`
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
@@ -5308,9 +5325,9 @@ recoverpoint_simulator_setup()
     fi
 
     run storagedevice discover_all
-#run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
-#run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
-#run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
+    run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
+    run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
+    run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
 
     RECOVERPOINT_IP=$RP_SIMULATOR_IP
     rp_protection_system_setup
@@ -5333,6 +5350,7 @@ recoverpoint_simulator_setup()
 recoverpoint_common_setup()
 {
     project_setup
+    rp_network_setup
     rp_varray_setup
     rp_storage_setup
     rp_port_setup
@@ -6632,28 +6650,33 @@ common_setup()
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
 
         # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
-	if [ $QUICK -eq 0  -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+	if [ $QUICK -eq 0  -a "${VPLEX_QUICK_PARAM}" != "quick" -a "${RP_QUICK_PARAM}" != "quick" -a "${XIO_QUICK_PARAM}" != quick ]; then
 	    secho "Turning on DISCOVER_SAN because we are testing physical"
 	    DISCOVER_SAN=1
 	fi
 
-	zone_setup
-	run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+	# RecoverPoint doesn't need zone setup, it uses its own zone setup
+	if [ "${SS}" != "recoverpoint" ]; then
+	  zone_setup
+	  run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+	fi
     fi
 
     project_setup
     projectid=$(project query $PROJECT)
     secho "Project id of $PROJECT is $projectid."
 
-    ROOT_TENANT=`tenant root|tail -1`
-    if [ "${RP_INGESTTESTS}" = "0" ]; then
-	secho "Setup ACLs on neighborhood for $TENANT"
-	run neighborhood allow $NH $TENANT
-	run neighborhood allow $NH2 $TENANT
-	run neighborhood allow $NH $ROOT_TENANT
-	run neighborhood allow $NH2 $ROOT_TENANT
-	secho "Setup hosts and clusters for $TENANT"
-	host_setup
+    if [ "${SS}" != "recoverpoint" ]; then
+	ROOT_TENANT=`tenant root|tail -1`
+	if [ "${RP_INGESTTESTS}" = "0" ]; then
+	    secho "Setup ACLs on neighborhood for $TENANT"
+	    run neighborhood allow $NH $TENANT
+	    run neighborhood allow $NH2 $TENANT
+	    run neighborhood allow $NH $ROOT_TENANT
+	    run neighborhood allow $NH2 $ROOT_TENANT
+	    secho "Setup hosts and clusters for $TENANT"
+	    host_setup
+	fi
     fi
 }
 

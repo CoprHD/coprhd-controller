@@ -281,14 +281,14 @@ public class ArrayAffinityExportProcessor extends Processor {
                     Set<String> maskingViewPaths = getHostToExportMasksMap().get(hostId);
                     if (maskingViewPaths == null) {
                         maskingViewPaths = new HashSet<String>();
-                        _logger.info("Creating mask set for host {}" + hostId);
+                        _logger.info("Creating mask set for host {}", hostId);
                         getHostToExportMasksMap().put(hostId, maskingViewPaths);
                     }
                     maskingViewPaths.add(maskingViewPath);
 
                     Set<URI> hosts = getExportMaskToHostsMap().get(maskingViewPath);
                     if (hosts == null) {
-                         _logger.info("Initial host count for mask {}" + maskingViewPath);
+                         _logger.info("Initial host count for mask {}", maskingViewPath);
                          hosts = new HashSet<URI>();
                          getExportMaskToHostsMap().put(maskingViewPath, hosts);
                     }
@@ -311,7 +311,7 @@ public class ArrayAffinityExportProcessor extends Processor {
                             Set<String> volumes = getExportMaskToVolumesMap().get(maskingViewPath);
                             if (volumes == null) {
                                 volumes = new HashSet<String>();
-                                _logger.info("Creating volume set for mask {}" + maskingViewPath);
+                                _logger.info("Creating volume set for mask {}", maskingViewPath);
                                 getExportMaskToVolumesMap().put(maskingViewPath, volumes);
                             }
 
@@ -320,7 +320,7 @@ public class ArrayAffinityExportProcessor extends Processor {
                             Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
                             if (pools == null) {
                                 pools = new HashSet<URI>();
-                                _logger.info("Creating pool set for mask {}" + maskingViewPath);
+                                _logger.info("Creating pool set for mask {}", maskingViewPath);
                                 getMaskToStoragePoolsMap().put(maskingViewPath, pools);
                             }
 

@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 
 /**
  * Abstract factory interface containing methods for building validators across various storage systems.
@@ -23,19 +24,10 @@ public interface StorageSystemValidatorFactory {
     /**
      * Create an {@link Validator} instance for validating an export mask delete operation.
      *
-     * @param storage
-     *            StorageSystem
-     * @param exportMask
-     *            ExportMask
-     * @param volumeURIList
-     *            Expected Volume URI list
-     * @param initiatorList
-     *            Expected Initiator list
-     * @return An {@link Validator} instance.
+     * @param ctx   ExportMaskValidationContext
+     * @return      Validator
      */
-    Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
-            Collection<URI> volumeURIList,
-            Collection<Initiator> initiatorList);
+    Validator exportMaskDelete(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating removal of a volume from an
@@ -77,24 +69,10 @@ public interface StorageSystemValidatorFactory {
     /**
      * Create an {@link Validator} instance for validating an export mask remove initiators operation
      *
-     * @param storage
-     * @param exportMask
-     * @param volumeURIList
-     * @return
+     * @param ctx   ExportMaskValidationContext
+     * @return      Validator
      */
-    Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList);
-
-    /**
-     * Create an {@link Validator} instance for validating an export mask remove initiators operation
-     *
-     * @param storage
-     * @param exportMask
-     * @param volumeURIList
-     * @param initiators
-     * @return
-     */
-    Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
-                               Collection<Initiator> initiators);
+    Validator removeInitiators(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating an export mask add initiators operation

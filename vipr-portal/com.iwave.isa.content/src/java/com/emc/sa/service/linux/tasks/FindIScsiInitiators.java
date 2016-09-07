@@ -9,8 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.google.common.collect.Sets;
 import com.iwave.ext.linux.command.iscsi.ListIScsiHostsCommand;
 import com.iwave.ext.linux.model.IScsiHost;
@@ -32,10 +30,6 @@ public class FindIScsiInitiators extends LinuxExecutionTask<List<IScsiHost>> {
             if (!isMatch(host)) {
                 iter.remove();
             }
-        }
-        if (hosts.isEmpty()) {
-            String sourceIqns = StringUtils.join(iqns, ", ");
-            throw stateException("illegalState.noActiveIscsiConnections", sourceIqns);
         }
         return hosts;
     }

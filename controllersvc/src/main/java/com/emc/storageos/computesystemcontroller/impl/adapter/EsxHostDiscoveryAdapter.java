@@ -56,6 +56,8 @@ import com.vmware.vim25.mo.HostSystem;
 @Component
 public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
+    public static String KNOWN_DUPLICATE_UUID = "03000200-0400-0500-0006-000700080009";
+
     /**
      * Create helper API instance of VCenter to traverse tree structure of mob.
      * 
@@ -184,6 +186,9 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
+                    if (KNOWN_DUPLICATE_UUID.equalsIgnoreCase(uuid)) {
+                        info("Host " + hostSystem.getName() + " contains a known non-unique UUID");
+                    }
                     // search host by uuid in VIPR if host already discovered
                     targetHost = findHostByUuid(uuid);
                     checkDuplicateHost(host, targetHost);

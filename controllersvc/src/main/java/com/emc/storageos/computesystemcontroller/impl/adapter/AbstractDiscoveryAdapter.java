@@ -701,8 +701,18 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
         }
 
-        log.info("Number of deleted clusters: " + deletedClusters.size()
-                + ". These clusters will remain in our database and must be deleted manually.");
+        // delete clusters that don't contain any hosts, don't have any exports, and don't have any pending events
+        for (URI clusterId : deletedClusters) {
+            List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+            if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
+                    && EventUtils.getAffectedResources(Lists.newArrayList(clusterId)).isEmpty()) {
+                Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
+                ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+                info("Deactivating Cluster: " + clusterId);
+            } else {
+                info("Unable to delete cluster " + clusterId);
+            }
+        }
 
     }
 

@@ -20,6 +20,7 @@ import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
@@ -189,15 +191,26 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
     private void deleteDatacenters(Iterable<VcenterDataCenter> datacenters, List<URI> deletedHosts, List<URI> deletedClusters) {
         for (VcenterDataCenter datacenter : datacenters) {
-            for (Cluster cluster : getClusters(datacenter)) {
+            Iterable<Cluster> datacenterClusters = getClusters(datacenter);
+            Iterable<Host> datacenterHosts = getHosts(datacenter);
+
+            for (Cluster cluster : datacenterClusters) {
                 deletedClusters.add(cluster.getId());
             }
 
-            for (Host host : getHosts(datacenter)) {
+            for (Host host : datacenterHosts) {
                 deletedHosts.add(host.getId());
             }
 
-            info("vCenter Datacenter " + datacenter.getId() + " was not rediscovered. Must be manually deleted.");
+            // delete datacenters that don't contain any clusters or hosts, don't have any exports, and don't have any pending events
+            if (!datacenterClusters.iterator().hasNext() && !datacenterHosts.iterator().hasNext()
+                    && !ComputeSystemHelper.isDataCenterInUse(dbClient, datacenter.getId())
+                    && EventUtils.getAffectedResources(Lists.newArrayList(datacenter.getId())).isEmpty()) {
+                ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, datacenter);
+                info("Deactivating Datacenter: " + datacenter.getId());
+            } else {
+                info("Unable to delete datacenter " + datacenter.getId());
+            }
         }
     }
 

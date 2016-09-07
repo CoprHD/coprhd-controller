@@ -267,14 +267,19 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
                 // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
                 // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
-                // with the same nativeGUID
+                // with the same nativeGUID, then export the snapshot.
                 String nativeGuid = blockObject.getNativeGuid(); 
-                List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+                List<BlockSnapshot> snapshots = null;
+                boolean isVplexVolumeFromSnap = false;
+                URI vplexBackendVol = null;
                 if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
                         URIUtil.isType(volUri, Volume.class)) {
                     snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
                     if (snapshots != null && !snapshots.isEmpty()) {
                         blockObject = (BlockObject)snapshots.get(0);
+                        exportMask.addVolume(volUri, newhlu);
+                        isVplexVolumeFromSnap = true;
+                        vplexBackendVol = volUri;
                         volUri = blockObject.getId();
                     }
                 }
@@ -289,7 +294,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
                     result = apiClient.exportSnap(nativeId, vnxeInitiators, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                    String snapWWN = setSnapWWN(apiClient, blockObject, nativeId);
+                    if (isVplexVolumeFromSnap) {
+                        Volume backendVol = _dbClient.queryObject(Volume.class, vplexBackendVol);
+                        backendVol.setWWN(snapWWN);
+                        _dbClient.updateObject(backendVol);                        
+                    }
                 }
 
             }
@@ -331,7 +341,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             for (URI volUri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
-                // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
+                // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
                 // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
                 // with the same nativeGUID
                 String nativeGuid = blockObject.getNativeGuid(); 
@@ -341,6 +351,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
                     if (snapshots != null && !snapshots.isEmpty()) {
                         blockObject = (BlockObject)snapshots.get(0);
+                        exportMask.removeVolume(volUri);
                         volUri = blockObject.getId();
                     }
                 }
@@ -500,7 +511,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
      * @param blockObj
      * @param snapId
      */
-    private void setSnapWWN(VNXeApiClient apiClient, BlockObject blockObj, String snapId) {
+    private String setSnapWWN(VNXeApiClient apiClient, BlockObject blockObj, String snapId) {
         String wwn = null;
         if (!apiClient.isUnityClient()) {
             VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
@@ -516,6 +527,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
         blockObj.setWWN(wwn);
         _dbClient.updateObject(blockObj);
+        return wwn;
     }
 
 }

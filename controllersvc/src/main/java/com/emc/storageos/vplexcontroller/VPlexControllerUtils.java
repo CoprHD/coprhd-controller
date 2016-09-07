@@ -8,23 +8,27 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -47,7 +51,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
@@ -546,7 +549,10 @@ public class VPlexControllerUtils {
                         exportMask, storageView, portNameMapEntryCount);
                 log.error(message);
                 if (null == storageView) {
-                    throw new IllegalArgumentException("storage view could not be found on vplex device; " + message);
+                    log.error("storage view {} could not be found on vplex device", exportMask.getMaskName());
+                    cleanStaleExportMasks(dbClient, exportMask.getStorageDevice());
+                    throw new IllegalArgumentException("storage view could not be found on vplex device; " + message 
+                            + "; any stale export masks have been removed, so you may retry the operation");
                 } else {
                     throw new IllegalArgumentException("export mask refresh arguments are invalid: " + message);
                 }
@@ -759,4 +765,95 @@ public class VPlexControllerUtils {
             throw VPlexApiException.exceptions.failedToRefreshVplexStorageView(storageViewName, ex.getLocalizedMessage());
         }
     }
+
+    /**
+     * Method to clean ExportMask stale instances from ViPR db if any stale EM available.
+     *
+     * @param storage the storage
+     * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
+     * @param initiatorNames initiator names
+     */
+    public static void cleanStaleExportMasks(DbClient dbClient, URI vplexUri) {
+
+        log.info("starting clean up of stale export masks for vplex {}", vplexUri);
+        URIQueryResultList queryResults = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceExportMaskConstraint(vplexUri), queryResults);
+        Iterator<URI> exportMasks = queryResults.iterator();
+
+        VPlexApiClient client = null;
+        try {
+            client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplexUri, dbClient);
+        } catch (URISyntaxException ex) {
+            log.error("URISyntaxException encountered: ", ex);
+        }
+        if (null == client) {
+            log.error("Couldn't load vplex api client, skipping stale export mask cleanup.");
+            return;
+        }
+
+        List<VPlexStorageViewInfo> storageViewsOnDevice = client.getStorageViews();
+
+        Set<String> maskNativeIds = new HashSet<String>();
+        Set<String> maskNames = new HashSet<String>();
+        for (VPlexStorageViewInfo sv : storageViewsOnDevice) {
+            maskNativeIds.add(sv.getPath());
+            maskNames.add(sv.getName());
+        }
+
+        Set<ExportMask> staleExportMasks = new HashSet<ExportMask>();
+        Map<ExportGroup, Set<ExportMask>> exportGroupToStaleMaskMap = new HashMap<ExportGroup, Set<ExportMask>>();
+        Map<URI, ExportGroup> exportGroupUriMap = new HashMap<URI, ExportGroup>();
+        while (exportMasks.hasNext()) {
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMasks.next());
+            if (null != exportMask && !exportMask.getInactive()) {
+                if (maskNativeIds.contains(exportMask.getNativeId())
+                        || maskNames.contains(exportMask.getMaskName())) {
+                    log.info("Export Mask {} is not found on VPLEX", exportMask.getMaskName());
+                    staleExportMasks.add(exportMask);
+                    List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
+                    if (!CollectionUtils.isEmpty(egList)) {
+                        for (ExportGroup exportGroup : egList) {
+                            if (null == exportGroup || exportGroup.getInactive()) {
+                                continue;
+                            }
+                            if (!exportGroupUriMap.containsKey(exportGroup.getId())) {
+                                exportGroupUriMap.put(exportGroup.getId(), exportGroup);
+                            } else {
+                                // just reuse the one already loaded from the db
+                                exportGroup = exportGroupUriMap.get(exportGroup.getId());
+                            }
+                            if (!exportGroupToStaleMaskMap.containsKey(exportGroup)) {
+                                exportGroupToStaleMaskMap.put(exportGroup, new HashSet<ExportMask>());
+                            }
+                            log.info("Stale Export Mask {} will be removed from Export Group {}", 
+                                    exportMask.getMaskName(), exportGroup.getLabel());
+                            exportGroupToStaleMaskMap.get(exportGroup).add(exportMask);
+                        }
+                    }
+                    continue;
+                }
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(staleExportMasks)) {
+            dbClient.markForDeletion(staleExportMasks);
+            log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
+            if (!CollectionUtils.isEmpty(exportGroupToStaleMaskMap.keySet())) {
+                for (Entry<ExportGroup, Set<ExportMask>> entry : exportGroupToStaleMaskMap.entrySet()) {
+                    ExportGroup exportGroup = entry.getKey();
+                    for (ExportMask exportMask : entry.getValue()) {
+                        log.info("Removing Export Mask {} from ExportGroup {}",
+                                exportMask.getMaskName(), exportGroup.getLabel());
+                        exportGroup.removeExportMask(exportMask.getId());
+                    }
+                }
+                dbClient.updateObject(exportGroupToStaleMaskMap.keySet());
+            }
+        }
+
+        log.info("Export Mask cleanup activity done");
+    }
+
 }
+

@@ -292,7 +292,10 @@ public class StorageSystemTypes extends ViprResourceController {
             }
 
             addParams.setDriverFilePath(driverFilePath);
-            addParams.setNode(BourneUtil.getSysApiUrl());
+            String sysEndPoint = BourneUtil.getSysApiUrl();
+            // Tricky way, must change before going into product codes
+            sysEndPoint.replace("4443", "9998");
+            addParams.setNode(sysEndPoint);
 
             StorageSystemTypeUtils.installStorageDriver(addParams);
         }

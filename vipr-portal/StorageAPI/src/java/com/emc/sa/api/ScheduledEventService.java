@@ -218,7 +218,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                if (scheduleInfo.getSectionsInCycle() == null || scheduleInfo.getSectionsInCycle().size() != 1) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -227,7 +227,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 }
                 break;
             case WEEKLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                if (scheduleInfo.getSectionsInCycle() == null || scheduleInfo.getSectionsInCycle().size() != 1) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -238,7 +238,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case DAILY:
             case HOURLY:
             case MINUTELY:
-                if (!scheduleInfo.getSectionsInCycle().isEmpty()) {
+                if (scheduleInfo.getSectionsInCycle() != null && !scheduleInfo.getSectionsInCycle().isEmpty()) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 break;
@@ -320,7 +320,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     private ScheduledEvent createScheduledEvent(StorageOSUser user, URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         URI executionWindow = null;     // INFINITE execution window
         if (catalogService.getExecutionWindowRequired()) {
-            if (catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
+            if (catalogService.getDefaultExecutionWindowId() == null ||
+                catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
                 List<URI> executionWindows =
                         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExecutionWindowTenantIdIdConstraint(tenantId.toString()));
                 Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -437,10 +438,21 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @throws Exception
      */
     private ScheduledEvent updateScheduledEvent(ScheduledEvent scheduledEvent, ScheduleInfo scheduleInfo) throws Exception{
+        URI executionWindow = null;     // INFINITE execution window
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(scheduledEvent.getCatalogServiceId());
         if (catalogService.getExecutionWindowRequired()) {
-            ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-            String msg = match(scheduleInfo, executionWindow);
+            if (catalogService.getDefaultExecutionWindowId() == null ||
+                catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
+                List<URI> executionWindows =
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExecutionWindowTenantIdIdConstraint(scheduledEvent.getTenant()));
+                Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                executionWindow = getNextExecutionWindow(executionWindows, currTime);
+            } else {
+                executionWindow = catalogService.getDefaultExecutionWindowId().getURI();
+            }
+
+            ExecutionWindow window = client.findById(executionWindow);
+            String msg = match(scheduleInfo, window);
             if (!msg.isEmpty()) {
                 throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }

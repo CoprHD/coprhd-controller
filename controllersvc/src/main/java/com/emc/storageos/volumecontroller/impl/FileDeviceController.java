@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -700,9 +701,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     }
                 }
             }
-            if (result.isCommandSuccess()) {
-                WorkflowStepCompleter.stepSucceded(opId);
-            }
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             OperationTypeEnum auditType = null;
             auditType = (isFile) ? OperationTypeEnum.EXPORT_FILE_SYSTEM : OperationTypeEnum.EXPORT_FILE_SNAPSHOT;
@@ -717,7 +715,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         getExportClientExtensions(fileExports), snapshotObj, fs, storageObj);
             }
             _dbClient.updateObject(fsObj);
-
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
@@ -2359,6 +2359,33 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         _dbClient.updateObject(rule);
                     }
                 }
+                // Delete the ExportMap entry if there are no export rules for this file system or sub directory
+                FSExportMap fsNFSExportMap = fs.getFsExports();
+                ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
+                List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        FileExportRule.class, containmentConstraint);
+                Set<String> fileExportMapKeys = fsNFSExportMap.keySet();
+                Iterator<String> keySetIterator = fileExportMapKeys.iterator();
+                HashSet<String> keystoRemove = new HashSet<String>();
+                while (keySetIterator.hasNext()) {
+                    String fileExportMapKey = keySetIterator.next();
+                    FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
+                    boolean exportRuleExists = false;
+                    for (FileExportRule fileExportRule : fileExportRules) {
+                        if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
+                            exportRuleExists = true;
+                            break;
+                        }
+                    }
+                    if (!exportRuleExists) {
+                        keystoRemove.add(fileExportMapKey);
+                    }
+                }
+                for (String key : keystoRemove) {
+                    _log.info("Deleting file export map entry : {} for key : {}", fsNFSExportMap.get(key), key);
+                    fsNFSExportMap.remove(key);
+                }
+                _dbClient.updateObject(fs);
             }
         } catch (Exception e) {
             _log.info("Error While executing CRUD Operations {}", e);

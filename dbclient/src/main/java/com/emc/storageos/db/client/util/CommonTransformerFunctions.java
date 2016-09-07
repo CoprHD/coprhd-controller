@@ -134,6 +134,17 @@ public class CommonTransformerFunctions {
         };
     }
 
+    public static Function<BlockObject, String>
+            fctnBlockObjectToForDisplay() {
+        return new Function<BlockObject, String>() {
+
+            @Override
+            public String apply(BlockObject blockObject) {
+                return blockObject.forDisplay();
+            }
+        };
+    }
+
     public static Function<StoragePort, String>
             fctnStoragePortToPortName() {
         return new Function<StoragePort, String>() {

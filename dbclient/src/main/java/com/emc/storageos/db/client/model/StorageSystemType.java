@@ -19,6 +19,8 @@ public class StorageSystemType extends DataObject {
 
     private String driverFileName;
 
+    private String installStatus;
+
     // Storage type like Block, File or Object
     private String metaType;
 
@@ -53,6 +55,17 @@ public class StorageSystemType extends DataObject {
         public boolean isProvider() {
             return this == BLOCK_PROVIDER || this == FILE_PROVIDER;
         }
+    }
+
+
+    @Name("installStatus")
+    public String getInstallStatus() {
+        return installStatus;
+    }
+
+    public void setInstallStatus(String installStatus) {
+        this.installStatus = installStatus;
+        setChanged("installStatus");
     }
 
     @Name("storageTypeName")

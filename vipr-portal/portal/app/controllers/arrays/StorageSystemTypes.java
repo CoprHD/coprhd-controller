@@ -10,6 +10,11 @@ import static controllers.Common.backToReferrer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,6 +23,9 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.api.mapper.SystemsMapper;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
@@ -51,11 +59,11 @@ public class StorageSystemTypes extends ViprResourceController {
     protected static final String UNKNOWN = "disasterRecovery.unknown";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String SAVED = "SMISProviders.saved";
+//    protected static final String TMP_DRIVER_FORMAT = "/tmp/%s";
+    protected static final String TMP_DRIVER_FORMAT = "C:\\Users\\caos1\\Downloads\\tests\\%s";
 
     public static void create() {
-        StorageSystemTypeForm storageSystemType = new StorageSystemTypeForm();
-        renderArgs.put("supportedTypeOptions", StorageProviderTypes.getSupportedStorageType());
-        render("@edit", storageSystemType);
+        render("@upload");
     }
 
     public static void list() {
@@ -79,6 +87,10 @@ public class StorageSystemTypes extends ViprResourceController {
         render("@edit", storageSystemTypes);
     }
 
+    private static void edit(StorageSystemTypeForm storageSystemTypes, String driverFilePath) {
+        render("@edit", storageSystemTypes, driverFilePath);
+    }
+
     public static void listJson() {
         List<StorageSystemTypeDataTable.StorageSystemTypeInfo> storageSystemTypes = Lists.newArrayList();
 
@@ -100,49 +112,39 @@ public class StorageSystemTypes extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
-    public static void save(StorageSystemTypeForm storageSystemTypes, File deviceDriverFile) {
+    public static void save(StorageSystemTypeForm storageSystemTypes) {
         storageSystemTypes.validate("storageSystemType");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        // TODO: Need to upload file now
         storageSystemTypes.save();
         flash.success(MessagesUtils.get(SAVED, storageSystemTypes.name));
         backToReferrer();
         list();
     }
 
-    public static void uploadDriver(File deviceDriverFile) {
-
-        if (deviceDriverFile != null) {
-            ClientResponse restResponse;
-            try {
-                FileInputStream fs = new FileInputStream(deviceDriverFile);
-                deviceDriverFile.getName();
-
-                FileDataBodyPart fdp = new FileDataBodyPart("deviceDriver", deviceDriverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE);
-
-                @SuppressWarnings("resource")
-                MultiPart mdf = new FormDataMultiPart().bodyPart(fdp);
-                // Keeping commented code for future use
-                // restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
-
-                flash.success("Device Driver jar file uploaded");
-                list();
-            } catch (FileNotFoundException e) {
-                flash.error("Device Driver jar not Found");
-                list();
-            }
+    public static void uploadDriver(File deviceDriverFile) throws IOException {
+        if (deviceDriverFile == null) {
+            flash.error("Error: please specify a driver jar file");
+            create();
         }
+
+        File dest = new File(String.format(TMP_DRIVER_FORMAT, deviceDriverFile.getName()));
+        if (dest.exists()) {
+            dest.delete();
+        }
+
+        Files.copy(deviceDriverFile.toPath(), dest.toPath());
+        StorageSystemType type = parseDriver(dest.getAbsolutePath());
+        StorageSystemTypeForm form = new StorageSystemTypeForm(type);
+        form.driverFilePath = dest.getName();
+        flash.success("Storage driver has been uploaded, please confirm/edit meta data for it");
+        edit(form, dest.getName());
     }
 
     public static void itemsJson(@As(",") String[] ids) {
         List<String> uuids = Arrays.asList(ids);
         itemsJson(uuids);
-    }
-
-    public static void upload(String ids) {
-        render(ids);
     }
 
     private static void itemsJson(List<String> uuids) {
@@ -199,12 +201,17 @@ public class StorageSystemTypes extends ViprResourceController {
         public Boolean isProvider = false;
         
         public Boolean isSecretKey = false;
+        public String driverFilePath = null;
 
         public StorageSystemTypeForm() {
         }
 
         public StorageSystemTypeForm(StorageSystemTypeRestRep storageSysType) {
             readFrom(storageSysType);
+        }
+
+        public StorageSystemTypeForm(StorageSystemType type) {
+            readFrom(SystemsMapper.map(type));
         }
 
         public void readFrom(StorageSystemTypeRestRep storageSysType) {
@@ -230,18 +237,17 @@ public class StorageSystemTypes extends ViprResourceController {
             this.isSecretKey = storageSysType.getIsSecretKey();
         }
 
-        public StorageSystemTypeRestRep save() {
+        public void save() {
             if (isNew()) {
-                return create();
+                create();
             }
-            return null;
         }
 
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
 
-        public StorageSystemTypeRestRep create() {
+        public void create() {
             StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
             addParams.setStorageTypeName(name);
             addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
@@ -285,8 +291,9 @@ public class StorageSystemTypes extends ViprResourceController {
                 addParams.setIsSecretKey(false);
             }
 
-            StorageSystemTypeRestRep task = StorageSystemTypeUtils.addStorageSystemType(addParams);
-            return task;
+            addParams.setDriverFilePath(driverFilePath);
+
+            StorageSystemTypeUtils.installStorageDriver(addParams);
         }
 
         public void validate(String fieldName) {
@@ -295,4 +302,23 @@ public class StorageSystemTypes extends ViprResourceController {
 
     }
 
+    private static StorageSystemType parseDriver(String path) {
+        StorageSystemType type = new StorageSystemType();
+
+        type.setStorageTypeName("typename");
+        type.setMetaType("block");
+        type.setDriverClassName("driver class");
+        type.setStorageTypeDispName("display_name");
+        type.setNonSslPort("1234");
+        type.setSslPort("4321");
+
+        type.setIsSmiProvider(false);
+        type.setIsDefaultSsl(true);
+        type.setIsDefaultMDM(false);
+        type.setIsOnlyMDM(false);
+        type.setIsElementMgr(false);
+        type.setIsSecretKey(false);
+        type.setDriverFileName(path +"_dirver_file_name");
+        return type;
+    }
 }

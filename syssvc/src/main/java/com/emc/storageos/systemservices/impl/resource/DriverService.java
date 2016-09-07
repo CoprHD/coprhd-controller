@@ -79,35 +79,6 @@ public class DriverService {
     }
 
     /**
-     * Upload JAR file, return parsed meta data, including storing path
-     */
-    @POST
-    @Path("parseandstore/")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public StorageSystemTypeAddParam parseAndStore(@Context HttpServletRequest request, @QueryParam("filename") String name) throws Exception {
-        log.info("Parse/Upload driver ...");
-        InputStream driver = request.getInputStream();
-        File f = new File(UPLOAD_DEVICE_DRIVER + name);
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
-        int bytesRead = 0;
-        while (true) {
-            byte[] buffer = new byte[0x10000];
-            bytesRead = driver.read(buffer);
-            if (bytesRead == -1) {
-                break;
-            }
-            os.write(buffer, 0, bytesRead);
-        }
-        driver.close();
-        os.close();
-        // Till now, driver file has been saved, need to parse file to get meta data and return
-        String tmpFilePath = f.getName();
-        return map(this.parseDriver(tmpFilePath), tmpFilePath);
-    }
-
-    /**
      * File has been uploaded and stored on current node, with meta data, will start to install and restart controller service
      */
     @POST

@@ -122,4 +122,8 @@ public class ViPRSystemClient {
         return new IPsec(client);
 
     }
+
+    public StorageDriver storageDriver() {
+        return new StorageDriver(client);
+    }
 }

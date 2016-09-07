@@ -1,6 +1,8 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.settings', 'nav.storageSystemTypes'] /}
 
+#{alerts/}
+
 #{Form.header titleKey:'storageSystemTypes.upload.title' /}
 #{form @uploadDriver(), enctype:'multipart/form-data', method:'POST', id: 'StorageSystemTypeForm', class:'form form-horizontal', autocomplete:"off"}
      #{field 'deviceDriverFile'}

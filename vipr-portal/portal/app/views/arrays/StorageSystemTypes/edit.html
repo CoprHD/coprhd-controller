@@ -21,7 +21,7 @@
   </form-header>
 
   %{ editing = storageSystemTypes?.id }%
-  
+
   #{form @save(), enctype:'multipart/form-data', method:'POST', class:'form form-horizontal', autocomplete:"off"}
     #{if storageSystemTypes?.id}
       #{field 'storageSystemTypes.id'}
@@ -33,14 +33,6 @@
     #{/field}
 
   <fieldset>
-    #{if !editing}
-        #{field 'deviceDriverFile'}
-            %{
-                field.required = true
-            }%
-            #{Form.fileUploadControlGroup field:field/}
-        #{/field}
-    #{/if}
     #{field 'storageSystemTypes.name'}
       %{
         field.cssClass = 'span6 initialFocus';
@@ -86,6 +78,9 @@
 	      }%
 	      #{Form.inputTextControlGroup field:field /}
 	    #{/field}
+	    #{field 'storageSystemTypes.driverFilePath'}
+          <input type="hidden" name="${field.name}" value="${driverFilePath}">
+        #{/field}
     #{/if}
   </fieldset>
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()}

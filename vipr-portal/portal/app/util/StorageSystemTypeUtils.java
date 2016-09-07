@@ -6,6 +6,7 @@
 package util;
 
 import static util.BourneUtil.getViprClient;
+import static util.BourneUtil.getSysClient;
 
 import java.io.File;
 import java.io.InputStream;
@@ -44,6 +45,10 @@ public class StorageSystemTypeUtils {
 	public static StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAddParam addparam) {
 		return getViprClient().storageSystemType().createStorageSystemType(addparam);
 	}
+
+    public static void installStorageDriver(StorageSystemTypeAddParam addparam) {
+        getSysClient().storageDriver().install(addparam);
+    }
 
 	// Keeping commented code for future use.
 	//public static ClientResponse uploadDriver(MultiPart deviceDriverFile) {

@@ -18,6 +18,7 @@ public class StorageSystemTypeDataTable extends DataTable {
         addColumn("portNumber");
         addColumn("sslPortNumber");
         addColumn("driverClassName");
+        addColumn("installingStatus");
         sortAll();
     }
 
@@ -34,6 +35,7 @@ public class StorageSystemTypeDataTable extends DataTable {
         public Boolean useMDM;
         public Boolean isProvider;
         public String driverClassName;
+        public String installingStatus;
 
         public StorageSystemTypeInfo() {
         }
@@ -51,6 +53,7 @@ public class StorageSystemTypeDataTable extends DataTable {
             this.useMDM = storageSysType.getIsDefaultMDM();
             this.isProvider = storageSysType.getIsSmiProvider();
             this.driverClassName = storageSysType.getDriverClassName();
+            this.installingStatus = "Completed";
         }
     }
 }

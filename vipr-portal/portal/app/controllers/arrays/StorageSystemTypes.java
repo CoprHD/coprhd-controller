@@ -201,7 +201,6 @@ public class StorageSystemTypes extends ViprResourceController {
         public Boolean isProvider = false;
         
         public Boolean isSecretKey = false;
-//        public String driverFilePath;
 
         public StorageSystemTypeForm() {
         }

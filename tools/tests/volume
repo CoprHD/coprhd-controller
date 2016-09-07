@@ -266,7 +266,12 @@ def volume_list(args):
     res = bourne.volume_list(args.project)
     for r in res:
         vol = bourne.volume_show(r['id'])
-        vol_display(vol)
+        storage = vol['storage_controller']
+        if (args.storage):
+            if (args.storage == storage):
+                vol_display(vol)
+        else:
+            vol_display(vol)
 
 def volume_bulkget(args):
     bourne.connect(args.ip)
@@ -512,6 +517,7 @@ query.add_argument('name',	help = 'full pathname of volume')
 # volume list project
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 list.add_argument('project',	help = 'container project name')
+list.add_argument('--storage', help='URI of storage controller')
 
 # volume exports
 export_args = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

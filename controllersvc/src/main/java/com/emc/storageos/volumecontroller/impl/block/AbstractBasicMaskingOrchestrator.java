@@ -1275,8 +1275,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             for (String volumeIdStr : exportGroup.getVolumes().keySet()) {
                                 URI egVolumeID = URI.create(volumeIdStr);
                                 BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
-                                // Volume cannot be removed from amsk if there are existing initiators in the mask.
-                                if (bo != null && exportMask.hasUserCreatedVolume(bo.getId()) && !exportMask.hasAnyExistingInitiators()) {
+                                if (bo != null && exportMask.hasUserCreatedVolume(bo.getId())) {
                                     if (exportGroup.getInitiators() != null) {
                                         for (String initiatorIdStr : exportGroup.getInitiators()) {
                                             if (exportMask.hasInitiator(initiatorIdStr)) {

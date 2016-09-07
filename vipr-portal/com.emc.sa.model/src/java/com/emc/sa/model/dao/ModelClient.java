@@ -62,6 +62,10 @@ public class ModelClient {
         this.client = client;
     }
 
+    public DBClientWrapper getModelClient() {
+        return client;
+    }
+
     public <T extends DataObject> ModelFinder<T> of(final Class<T> clazz) {
         return new ModelFinder<T>(clazz, client);
     }

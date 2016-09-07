@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveV
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -540,11 +542,17 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StringBuffer errorMessage = new StringBuffer();
             logExportGroup(exportGroup, storageURI);
-            boolean isValidationEnabled = validatorConfig.isValidationEnabled();
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
                     token);
+
+            Initiator firstInitiator = _dbClient.queryObject(Initiator.class, initiatorURIs.get(0));
+            // No need to validate the orchestrator level validation for vplex/rp. Hence ignoring validation for vplex/rp initiators.
+            boolean isValidationNeeded = validatorConfig.isValidationEnabled()
+                    && !VPlexControllerUtils.isVplexInitiator(firstInitiator, _dbClient)
+                    && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(firstInitiator));
+            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
 
             Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
             List<String> portNames = new ArrayList<String>();
@@ -704,6 +712,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                                 "Removing volumes from an Initiator type export group as part of an initiator removal is not supported.");
                                     }
                                 }
+                            } else if(mask.hasAnyExistingVolumes()){
+                                errorMessage.append(String.format("Mask %s is having existing volumes %s", mask.forDisplay(),
+                                        Joiner.on(", ").join(mask.getExistingVolumes().keySet())));
                             }
                         } else {
                             // Loop through all the block objects that have been
@@ -958,7 +969,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
             _log.warn("Error Message {}", errorMessage);
 
-            if (isValidationEnabled && StringUtils.hasText(errorMessage)) {
+            if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
                         storage.forDisplay(),
                         errorMessage.toString());

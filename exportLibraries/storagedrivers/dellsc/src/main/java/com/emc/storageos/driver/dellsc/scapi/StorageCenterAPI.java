@@ -1072,12 +1072,13 @@ public class StorageCenterAPI implements AutoCloseable {
      * @param preferredLun The preferred LUN to use or -1 to let the system decided.
      * @param preferredPorts The preferred server HBA ports to use.
      * @param maxPathCount The maximum paths to map or -1 for no restriction.
+     * @param preferredController The preferred controller to map through or null.
      * @return The created mapping profile.
      * @throws StorageCenterAPIException
      */
     public ScMappingProfile createVolumeMappingProfile(
             String volInstanceId, String serverInstanceId, int preferredLun,
-            String[] preferredPorts, int maxPathCount)
+            String[] preferredPorts, int maxPathCount, String preferredController)
                     throws StorageCenterAPIException {
         Parameters advancedParams = new Parameters();
         advancedParams.add("MapToDownServerHbas", true);
@@ -1089,6 +1090,9 @@ public class StorageCenterAPI implements AutoCloseable {
         }
         if (maxPathCount > 0) {
             advancedParams.add("MaximumPathCount", maxPathCount);
+        }
+        if (preferredController != null) {
+            advancedParams.add("PreferredController", preferredController);
         }
 
         Parameters params = new Parameters();
@@ -1464,5 +1468,22 @@ public class StorageCenterAPI implements AutoCloseable {
                 }
             }
         }
+    }
+
+    /**
+     * Gets a volume's configuration.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The volume config.
+     */
+    public ScVolumeConfiguration getVolumeConfig(String instanceId) {
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScVolume/%s/VolumeConfiguration", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScVolumeConfiguration.class);
+        }
+
+        LOG.warn(String.format("Error getting volume configuration: %s", rr.getErrorMsg()));
+        return null;
     }
 }

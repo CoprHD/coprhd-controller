@@ -1536,13 +1536,42 @@ public class VPlexApiClient {
     }
 
     /**
-     * Finds virtual volume by name.
+     * Returns a VPlexVirtualVolumeInfo object for the given virtual volume name
+     * and context path.  An attempt will first be made to get the virtual volume
+     * directly by its path, but if that fails, this method will do the old "search
+     * the entire vplex method.  If still no volume is found, it will return null.
      * 
-     * @param virtualVolumeName Name of virtual volume.
-     * @return A reference to the virtual volume info.
+     * @param virtualVolumeName the virtual volume name
+     * @param virtualVolumePath the virtual volume path
+     * @return a VPlexVirtualVolumeInfo object or null if none is found
      */
-    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName) {
-        return _discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName, String virtualVolumePath) {
+        VPlexVirtualVolumeInfo vvinfo = null;
+        if (virtualVolumePath != null && !virtualVolumePath.isEmpty()) {
+            // first attempt to get by the much more efficient native id
+            try {
+                vvinfo = getVirtualVolumeByPath(virtualVolumePath);
+            } catch (Exception ex) {
+                s_logger.warn("find virtual volume by path failed: ", ex);
+            }
+        }
+        if (null == vvinfo && (null != virtualVolumeName && !virtualVolumeName.isEmpty())) {
+            // otherwise, fall back on the "search the whole vplex" method
+            vvinfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName);
+        }
+
+        s_logger.info("returning virtual volume: ");
+        return vvinfo;
+    }
+
+    /**
+     * This method gets a virtual volume on the VPLEX directly by full context path.
+     * 
+     * @param virtualVolumePath the virtual volume context path
+     * @return VPlexVirtualVolumeInfo object with full details
+     */
+    private VPlexVirtualVolumeInfo getVirtualVolumeByPath(String virtualVolumePath) {
+        return _discoveryMgr.getVirtualVolumeByPath(virtualVolumePath);
     }
 
     /**
@@ -1713,10 +1742,9 @@ public class VPlexApiClient {
      * This method finds virtual volume on the VPLEX and then updates virtual volume info.
      * 
      * @param virtualVolumeName virtual volume name
-     * @param discoveryMgr reference to VPlexApiDiscoveryManager
      * @return VPlexVirtualVolumeInfo object with updated info.
      */
-    public VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName) {
+    protected VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName) {
         return _virtualVolumeMgr.findVirtualVolumeAndUpdateInfo(virtualVolumeName, null);
     }
 
@@ -1795,16 +1823,18 @@ public class VPlexApiClient {
      * from the ViPR database are the actual backend volumes used by the passed VPLEX volume.
      * 
      * @param virtualVolumeName The name of the VPLEX volume.
+     * @param virtualVolumePath The path to the VPLEX volume.
      * @param nativeVolumeInfoMap The native volume info for expected backend volumes keyed by cluster name.
      * 
      * @throws VPlexApiException When an exception occurs validating the backend volumes.
      */
-    public void validateBackendVolumesForVPlexVolume(String virtualVolumeName, Map<String, List<VolumeInfo>> nativeVolumeInfoMap)
+    public void validateBackendVolumesForVPlexVolume(String virtualVolumeName, String virtualVolumePath, 
+            Map<String, List<VolumeInfo>> nativeVolumeInfoMap)
             throws VPlexApiException {
         s_logger.info("Validating backend volumes for VPLEX volume {}", virtualVolumeName);
         
         // Find the VPLEX volume.
-        VPlexVirtualVolumeInfo vvInfo = _discoveryMgr.findVirtualVolume(virtualVolumeName, true);
+        VPlexVirtualVolumeInfo vvInfo = findVirtualVolume(virtualVolumeName, virtualVolumePath);
         if (vvInfo == null) {
             s_logger.error("Could not find VPLEX volume {} to validate its backend volumes", virtualVolumeName);
             throw VPlexApiException.exceptions.couldNotFindVolumeForValidation(virtualVolumeName);

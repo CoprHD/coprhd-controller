@@ -151,8 +151,6 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
         }
 
-    
-
     /**
      * Get the specific NFS share's details
      * 

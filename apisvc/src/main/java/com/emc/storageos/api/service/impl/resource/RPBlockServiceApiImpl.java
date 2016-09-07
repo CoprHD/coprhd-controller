@@ -1833,7 +1833,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             Iterator<Volume> dbVolumeIter = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
             while (dbVolumeIter.hasNext()) {
                 Volume vol = dbVolumeIter.next();
-                if (StringUtils.equals(vol.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                if (vol.checkPersonality(Volume.PersonalityTypes.TARGET)) {
                     throw APIException.badRequests.deactivateRPTargetNotSupported(vol.getLabel());
                 }
             }

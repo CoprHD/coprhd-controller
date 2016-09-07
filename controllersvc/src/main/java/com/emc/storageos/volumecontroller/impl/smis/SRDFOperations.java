@@ -712,7 +712,7 @@ public class SRDFOperations implements SmisConstants {
             CIMObjectPath tgtVolumePath = cimPath.getVolumePath(targetSystem, target.getNativeId());
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     group);
-            boolean emptyRDFGroup = group.getVolumes().isEmpty();
+            boolean emptyRDFGroup = group.getVolumes() == null || group.getVolumes().isEmpty();
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue, !emptyRDFGroup);
             CIMArgument[] inArgs = helper.getCreateElementReplicaForSRDFInputArguments(
                     srcVolumePath, tgtVolumePath, repCollectionPath, modeValue,

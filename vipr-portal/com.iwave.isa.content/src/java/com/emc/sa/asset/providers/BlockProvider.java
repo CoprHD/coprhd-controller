@@ -3440,14 +3440,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static class BlockObjectVMFSDatastoreFilter extends DefaultResourceFilter<BlockObjectRestRep> {
         @Override
         public boolean accept(BlockObjectRestRep blockObject) {
-            Set<String> volumeTags = blockObject.getTags();
-            Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
-
-            for (String tag : parsedTags.keySet()) {
-                if (tag != null
-                        && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+            if (BlockStorageUtils.isVolumeVMFSDatastore(blockObject)) {
                     return true;
-                }
             }
 
             return false;

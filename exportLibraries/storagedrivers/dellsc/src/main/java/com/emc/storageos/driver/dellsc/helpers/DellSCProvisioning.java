@@ -42,6 +42,7 @@ import com.emc.storageos.driver.dellsc.scapi.objects.ScServer;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerHba;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScServerOperatingSystem;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScVolume;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScVolumeConfiguration;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.HostExportInfo;
@@ -219,7 +220,8 @@ public class DellSCProvisioning {
         StringBuilder errBuffer = new StringBuilder();
         int volumesMapped = 0;
         Set<StoragePort> usedPorts = new HashSet<>();
-        List<String> discoveredPorts = new ArrayList<>();
+        Map<String, StoragePort> discoveredPorts = new HashMap<>();
+        String preferredController = null;
 
         // See if a max port count has been specified
         int maxPaths = -1;
@@ -267,6 +269,26 @@ public class DellSCProvisioning {
                     throw new DellSCDriverException(SERVER_CREATE_FAIL_MSG);
                 }
 
+                // See if we have a preferred controller
+                if (preferredController == null && scVol.active) {
+                    // At least first volume is active somewhere, so we need to try to
+                    // use that controller for all mappings
+                    ScVolumeConfiguration volConfig = api.getVolumeConfig(scVol.instanceId);
+                    if (volConfig != null) {
+                        preferredController = volConfig.controller.instanceId;
+                    }
+                }
+
+                // Next try to get a preferred controller based on what's requested
+                if (preferredController == null && !recommendedPorts.isEmpty()) {
+                    try {
+                        ScControllerPort scPort = api.getControllerPort(recommendedPorts.get(0).getNativeId());
+                        preferredController = scPort.controller.instanceId;
+                    } catch (Exception e) {
+                        LOG.warn("Failed to get recommended port controller.", e);
+                    }
+                }
+
                 int preferredLun = -1;
                 if (volumeToHLUMap.containsKey(volume.getNativeId())) {
                     String hlu = volumeToHLUMap.get(volume.getNativeId());
@@ -288,18 +310,23 @@ public class DellSCProvisioning {
                 } else {
                     profile = api.createVolumeMappingProfile(
                             scVol.instanceId, server.instanceId, preferredLun,
-                            new String[0], maxPaths);
+                            new String[0], maxPaths, preferredController);
                 }
 
                 ScMapping[] maps = api.getMappingProfileMaps(profile.instanceId);
                 for (ScMapping map : maps) {
                     volumeToHLUMap.put(volume.getNativeId(), String.valueOf(map.lun));
-                    ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
-                    StoragePort port = util.getStoragePortForControllerPort(api, scPort, null);
-                    usedPorts.add(port);
-                    if (!discoveredPorts.contains(map.controllerPort.instanceId)) {
-                        discoveredPorts.add(scPort.instanceId);
+
+                    StoragePort port;
+                    if (discoveredPorts.containsKey(map.controllerPort.instanceId)) {
+                        port = discoveredPorts.get(map.controllerPort.instanceId);
+                    } else {
+                        ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
+                        port = util.getStoragePortForControllerPort(api, scPort, null);
+                        discoveredPorts.put(map.controllerPort.instanceId, port);
                     }
+
+                    usedPorts.add(port);
                 }
 
                 volumesMapped++;
@@ -317,11 +344,11 @@ public class DellSCProvisioning {
         }
 
         // See if we were able to use all of the recommended ports
+        // TODO: Expand this to do more accurate checking
         usedRecommendedPorts.setValue(recommendedPorts.size() == usedPorts.size());
         if (!usedRecommendedPorts.isTrue()) {
             selectedPorts.addAll(usedPorts);
         }
-        usedRecommendedPorts.setValue(true);
 
         task.setMessage(errBuffer.toString());
 

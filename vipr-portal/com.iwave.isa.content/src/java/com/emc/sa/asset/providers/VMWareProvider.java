@@ -39,6 +39,7 @@ import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.HostTypeFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -87,7 +88,7 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     protected List<HostRestRep> listEsxHostsByDatacenter(AssetOptionsContext context, URI datacenterId) {
-        return api(context).hosts().getByDataCenter(datacenterId);
+        return api(context).hosts().getByDataCenter(datacenterId, HostTypeFilter.ESX.and(REGISTERED).and(INCOMPATIBLE.not()));
     }
 
     protected List<String> listFileDatastoresByProjectAndDatacenter(AssetOptionsContext context, URI projectId,

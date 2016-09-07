@@ -17,6 +17,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.google.common.collect.Sets;
@@ -118,7 +119,13 @@ public abstract class VMwareHostService extends ViPRService {
             List<Host> dbHosts = getModelClient().hosts().findByCluster(hostCluster.getId());
             Set<String> dbHostUuids = Sets.newHashSet();
             for (Host host : dbHosts) {
-                dbHostUuids.add(host.getUuid());
+                // Validate the hosts within the cluster all have good discovery status
+                if (!DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString().equalsIgnoreCase(host.getDiscoveryStatus())) {
+                    dbHostUuids.add(host.getUuid());
+                } else {
+                    ExecutionUtils.fail("failTask.vmware.cluster.hostsdiscoveryfailed", args(), args(cluster.getLabel(), host.getLabel()));
+                }
+                
             }
 
             if (!vCenterHostUuids.equals(dbHostUuids)) {

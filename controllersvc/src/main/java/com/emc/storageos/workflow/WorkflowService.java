@@ -564,7 +564,6 @@ public class WorkflowService implements WorkflowController {
                 WorkflowException ex = WorkflowException.exceptions.workflowNotFound(workflowPath);
                 _log.info("Workflow not found: " + workflowPath, ex);
                 throw ex;
-                        
             }
             // Lock the Workflow
             lock = lockWorkflow(workflow);

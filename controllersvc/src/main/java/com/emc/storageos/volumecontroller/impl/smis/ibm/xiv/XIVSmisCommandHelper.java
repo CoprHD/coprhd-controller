@@ -1132,7 +1132,8 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 _cimArgument.uint16("Consistency", 3),
                 _cimArgument.uint16("Mode", 3),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
-                _cimArgument.reference(CP_SOURCE_GROUP, cgPath) };
+                _cimArgument.reference(CP_SOURCE_GROUP, cgPath),
+                _cimArgument.string(RELATIONSHIP_NAME, label)};
         final List<CIMArgument> args = new ArrayList<CIMArgument>(
                 Arrays.asList(basicArgs));
         // If active, add the RelationshipName

@@ -66,7 +66,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName);
 
     /**
      * Rollback replication links.

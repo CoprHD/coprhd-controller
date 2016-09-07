@@ -204,16 +204,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
         try {
             ExportGroup eg = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            List<URI> exportMaskURIs = StringSetUtil.stringSetToUriList(eg.getExportMasks());
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, eg);
 
             // There will be only export mask for the create export group use case,
             // so fetch the 0th URI
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURIs.get(0));
-
-            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
+            if (!exportMasks.isEmpty()) {
+	            ExportMask mask = exportMasks.get(0);	
+	            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
+            }
 
             WorkflowStepCompleter.stepSucceded(token);
-
         } catch (final InternalException e) {
             _log.error("Encountered an exception", e);
             WorkflowStepCompleter.stepFailed(token, e);
@@ -471,7 +471,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
             // If there are no masks associated with this export group, and it's an internal (VPLEX/RP)
             // export group, delete the export group automatically.
             if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
-                    (exportGroup.getExportMasks() == null || exportGroup.getExportMasks().isEmpty())) {
+                    (exportGroup == null || exportGroup.getExportMasks() == null || 
+                     exportGroup.getExportMasks().isEmpty())) {
                 _dbClient.markForDeletion(exportGroup);
             } else {
                 _dbClient.updateObject(exportGroup);

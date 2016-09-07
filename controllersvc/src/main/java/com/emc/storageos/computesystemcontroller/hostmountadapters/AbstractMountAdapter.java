@@ -16,13 +16,11 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.Controller;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.volumecontroller.ControllerException;
 
 public abstract class AbstractMountAdapter implements HostMountAdapter {
     private Logger log;
@@ -175,18 +173,6 @@ public abstract class AbstractMountAdapter implements HostMountAdapter {
             rootCause = rootCause.getCause();
         }
         return rootCause;
-    }
-
-    @Override
-    public void doMount(HostDeviceInputOutput args) throws ControllerException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void doUnmount(HostDeviceInputOutput args) throws ControllerException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

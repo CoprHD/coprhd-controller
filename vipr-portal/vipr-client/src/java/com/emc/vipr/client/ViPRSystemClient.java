@@ -5,6 +5,7 @@
 package com.emc.vipr.client;
 
 import com.emc.vipr.client.core.Backup;
+import com.emc.vipr.client.core.StorageDriver;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.CallHome;
 import com.emc.vipr.client.system.Config;

@@ -84,7 +84,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
             Collection<URI> volumeURIList, Collection<Initiator> initiatorList) {
         logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
-        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask);
         configureValidators(logger, validator);
         return validator;
     }
@@ -93,7 +93,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
-        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiators);
+        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask);
         configureValidators(logger, validator);
         return validator;
     }
@@ -137,7 +137,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     public Validator addVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
-        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask, initiators);
+        XtremIOExportMaskInitiatorsValidator validator = new XtremIOExportMaskInitiatorsValidator(storage, exportMask);
         configureValidators(logger, validator);
         validator.setErrorOnMismatch(false);
         return validator;

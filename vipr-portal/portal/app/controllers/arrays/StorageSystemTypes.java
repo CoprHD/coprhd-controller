@@ -59,8 +59,8 @@ public class StorageSystemTypes extends ViprResourceController {
     protected static final String UNKNOWN = "disasterRecovery.unknown";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String SAVED = "SMISProviders.saved";
-//    protected static final String TMP_DRIVER_FORMAT = "/tmp/%s";
-    protected static final String TMP_DRIVER_FORMAT = "C:\\Users\\caos1\\Downloads\\tests\\%s";
+    protected static final String TMP_DRIVER_FORMAT = "/tmp/%s";
+//    protected static final String TMP_DRIVER_FORMAT = "C:\\Users\\caos1\\Downloads\\tests\\%s";
 
     public static void create() {
         render("@upload");

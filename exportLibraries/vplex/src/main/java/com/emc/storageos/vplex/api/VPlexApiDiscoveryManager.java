@@ -2411,6 +2411,54 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
+     * This method gets a virtual volume on the VPLEX directly by full context path.
+     * 
+     * @param virtualVolumePath the virtual volume context path
+     * @return VPlexVirtualVolumeInfo object with full details
+     * 
+     * @throws VPlexApiException
+     */
+    VPlexVirtualVolumeInfo getVirtualVolumeByPath(String virtualVolumePath) throws VPlexApiException {
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                URI.create(virtualVolumePath));
+        s_logger.info("Virtual Volume Info Request URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Response is {}", responseStr);
+        int status = response.getStatus();
+        response.close();
+
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                List<VPlexVirtualVolumeInfo> vvols = VPlexApiUtils.getResourcesFromResponseContext(
+                        virtualVolumePath, responseStr, VPlexVirtualVolumeInfo.class);
+
+                if (vvols != null && !vvols.isEmpty()) {
+                    if (vvols.size() > 1) {
+                        String message = "More than one VPLEX virtual volume was returned: " + vvols;
+                        s_logger.error(message);
+                        throw new IllegalStateException(message);
+                    }
+
+                    VPlexVirtualVolumeInfo virtualVolumeInfo = vvols.get(0);
+                    if (virtualVolumeInfo != null) {
+                        s_logger.info("returning VPLEX virtual volume: " + virtualVolumeInfo.toString());
+                        return virtualVolumeInfo;
+                    }
+                }
+
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingVirtualVolumeInformation(e.getLocalizedMessage());
+            }
+        } else {
+            throw VPlexApiException.exceptions.failedGettingVirtualVolumeInfo(String.valueOf(status));
+        }
+
+        return null;
+    }
+
+    /**
      * Gets all consistency groups on the VPLEX.
      * 
      * NOTE: We want the list to be unique, but consistency group names

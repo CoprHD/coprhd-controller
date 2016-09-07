@@ -52,9 +52,8 @@ public class CifsClient implements BackupClient{
             //work around for jcifs bug that exception would throw out when list empty dir of netapp
             if (e.getMessage().contains("The system cannot find the file specified.")) {
                 return fileList;
-            }else {
-                throw e;
             }
+            throw e;
         }
         for (String file : files) {
             if (!file.endsWith(BackupConstants.COMPRESS_SUFFIX)) {

@@ -232,7 +232,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
     /**
      * Updates a host by ID.
      * <p>
-     * API Call: <tt>PUT /compute/hosts/{id}?update-exports={updateExports}</tt>
+     * API Call: <tt>PUT /compute/hosts/{id}?validate_connection={validateConnection}&update_exports={updateExports}</tt>
      * 
      * @param id
      *            the ID of the host to update.

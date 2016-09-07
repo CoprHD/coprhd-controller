@@ -48,6 +48,7 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
+import util.BourneUtil;
 import util.MessagesUtils;
 import util.StorageSystemTypeUtils;
 import util.datatable.DataTablesSupport;
@@ -291,6 +292,7 @@ public class StorageSystemTypes extends ViprResourceController {
             }
 
             addParams.setDriverFilePath(driverFilePath);
+            addParams.setNode(BourneUtil.getSysApiUrl());
 
             StorageSystemTypeUtils.installStorageDriver(addParams);
         }

@@ -90,9 +90,9 @@ public class DriverService {
         StorageSystemType type = map(addParam);
         dbClient.createObject(type);
         
-        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
+//        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
         DriverInfo2 info = new DriverInfo2(coordinator.queryConfiguration(DriverInfo2.CONFIG_ID, DriverInfo2.CONFIG_ID));
-        info.setInitNode(localNode);
+        info.setInitNode(addParam.getNode());
         if (info.getDrivers() == null) {
             info.setDrivers(new ArrayList<String>());
         }

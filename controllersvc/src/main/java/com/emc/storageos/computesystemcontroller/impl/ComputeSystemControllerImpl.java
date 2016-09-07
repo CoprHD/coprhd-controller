@@ -635,13 +635,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
-            newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                    String.format("Updating export group %s", export.getId()), newWaitFor,
-                    export.getId(), export.getId().toString(),
-                    this.getClass(),
-                    updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
-                    null, null);
+            if (updatedHosts.isEmpty()) {
+                newWaitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
+                        String.format("Deleting export group %s", export.getId()), newWaitFor,
+                        export.getId(), export.getId().toString(),
+                        this.getClass(),
+                        deleteExportGroupMethod(export.getId()),
+                        null, null);
+            } else {
+                newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                        String.format("Updating export group %s", export.getId()), newWaitFor,
+                        export.getId(), export.getId().toString(),
+                        this.getClass(),
+                        updateExportGroupMethod(export.getId(),
+                                updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
+                                updatedClusters, updatedHosts, updatedInitiators),
+                        null, null);
+            }
         }
         return newWaitFor;
     }

@@ -117,7 +117,8 @@ public class StorageSystemTypes extends ViprResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        storageSystemTypes.save();
+        String driverFilePath = params.get("storageSystemTypes.driverFilePath");
+        storageSystemTypes.save(driverFilePath);
         flash.success(MessagesUtils.get(SAVED, storageSystemTypes.name));
         backToReferrer();
         list();
@@ -137,7 +138,6 @@ public class StorageSystemTypes extends ViprResourceController {
         Files.copy(deviceDriverFile.toPath(), dest.toPath());
         StorageSystemType type = parseDriver(dest.getAbsolutePath());
         StorageSystemTypeForm form = new StorageSystemTypeForm(type);
-        form.driverFilePath = dest.getName();
         flash.success("Storage driver has been uploaded, please confirm/edit meta data for it");
         edit(form, dest.getName());
     }
@@ -201,7 +201,7 @@ public class StorageSystemTypes extends ViprResourceController {
         public Boolean isProvider = false;
         
         public Boolean isSecretKey = false;
-        public String driverFilePath = null;
+//        public String driverFilePath;
 
         public StorageSystemTypeForm() {
         }
@@ -237,9 +237,9 @@ public class StorageSystemTypes extends ViprResourceController {
             this.isSecretKey = storageSysType.getIsSecretKey();
         }
 
-        public void save() {
+        public void save(String driverFilePath) {
             if (isNew()) {
-                create();
+                create(driverFilePath);
             }
         }
 
@@ -247,7 +247,7 @@ public class StorageSystemTypes extends ViprResourceController {
             return StringUtils.isBlank(id);
         }
 
-        public void create() {
+        public void create(String driverFilePath) {
             StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
             addParams.setStorageTypeName(name);
             addParams.setStorageTypeDispName(storageSystemTypeDisplayName);

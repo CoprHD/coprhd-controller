@@ -760,15 +760,16 @@ public class VPlexApiClient {
      * tracking parameter.
      * 
      * @param viewName The name of the storage view to be deleted.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param viewFound An out parameter indicating whether or
      *            not the storage view was actually found on
      *            the VPLEX device during this process.
      * 
      * @throws VPlexApiException When an error occurs deleting the storage view.
      */
-    public void deleteStorageView(String viewName, Boolean[] viewFound) throws VPlexApiException {
+    public void deleteStorageView(String viewName, String clusterName, Boolean[] viewFound) throws VPlexApiException {
         s_logger.info("Request for storage view deletion on VPlex at {}", _baseURI);
-        _exportMgr.deleteStorageView(viewName, viewFound);
+        _exportMgr.deleteStorageView(viewName, clusterName, viewFound);
         s_logger.info("Storage view was found for deletion: {}", viewFound[0]);
     }
 
@@ -777,16 +778,17 @@ public class VPlexApiClient {
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param initiatorPortInfo The port information for the initiators to be
      *            added.
      * 
      * @throws VPlexApiException When an error occurs adding the initiators.
      */
-    public void addInitiatorsToStorageView(String viewName,
+    public void addInitiatorsToStorageView(String viewName, String clusterName,
             List<PortInfo> initiatorPortInfo) throws VPlexApiException {
         s_logger.info("Request to add initiators to storage view on VPlex at {}",
                 _baseURI);
-        _exportMgr.addInitiatorsToStorageView(viewName, initiatorPortInfo);
+        _exportMgr.addInitiatorsToStorageView(viewName, clusterName, initiatorPortInfo);
     }
 
     /**
@@ -794,16 +796,17 @@ public class VPlexApiClient {
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param initiatorPortInfo The port information for the initiators to be
      *            removed.
      * 
      * @throws VPlexApiException When an error occurs removing the initiators.
      */
-    public void removeInitiatorsFromStorageView(String viewName,
+    public void removeInitiatorsFromStorageView(String viewName, String clusterName,
             List<PortInfo> initiatorPortInfo) throws VPlexApiException {
         s_logger.info("Request to remove initiators from storage view on VPlex at {}",
                 _baseURI);
-        _exportMgr.removeInitiatorsFromStorageView(viewName, initiatorPortInfo);
+        _exportMgr.removeInitiatorsFromStorageView(viewName, clusterName, initiatorPortInfo);
     }
 
     /**
@@ -836,6 +839,8 @@ public class VPlexApiClient {
      * Adds the virtual volumes with the passed names to the storage view with
      * the passed name.
      * 
+     * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param virtualVolumeMap Map of virtual volume names to LUN ID.
      * 
      *            NOTE: If you want VPlex to pick the LUN ID pass
@@ -847,28 +852,30 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs adding the virtual
      *             volumes.
      */
-    public VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName,
+    public VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName, String clusterName,
             Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
         s_logger.info("Request to add virtual volumes to storage view on VPlex at {}",
                 _baseURI);
-        return _exportMgr.addVirtualVolumesToStorageView(viewName, virtualVolumeMap);
+        return _exportMgr.addVirtualVolumesToStorageView(viewName, clusterName, virtualVolumeMap);
     }
 
     /**
      * Removes the virtual volumes with the passed names from the storage view
      * with the passed name.
      * 
+     * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param virtualVolumeNames The names of the virtual volumes to be removed.
      * 
      * @throws VPlexApiException When an error occurs removing the virtual
      *             volumes.
      */
-    public void removeVirtualVolumesFromStorageView(String viewName,
+    public void removeVirtualVolumesFromStorageView(String viewName, String clusterName,
             List<String> virtualVolumeNames) throws VPlexApiException {
         s_logger.info(
                 "Request to remove virtual volumes from storage view on VPlex at {}",
                 _baseURI);
-        _exportMgr.removeVirtualVolumesFromStorageView(viewName, virtualVolumeNames);
+        _exportMgr.removeVirtualVolumesFromStorageView(viewName, clusterName, virtualVolumeNames);
     }
 
     /**

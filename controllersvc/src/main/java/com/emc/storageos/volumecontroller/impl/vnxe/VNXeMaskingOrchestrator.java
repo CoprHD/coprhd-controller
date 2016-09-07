@@ -651,10 +651,9 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup) {
         Map<ExportMask, List<Initiator>> exportMasksMap = new HashMap<ExportMask, List<Initiator>>();
 
-        Collection<String> exportMaskUris = exportGroup.getExportMasks();
-        for (String exportMaskUri : exportMaskUris) {
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+        for (ExportMask exportMask : exportMasks) {
             List<Initiator> maskInitiators = new ArrayList<Initiator>();
-            ExportMask exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskUri));
             for (Initiator initiator : initiators) {
                 _log.info("initiator to be removed: {}", initiator.getId().toString());
                 if (exportMask != null &&

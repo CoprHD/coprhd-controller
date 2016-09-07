@@ -43,7 +43,11 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     @Override
     public AbstractSMISValidator createExportMaskInitiatorValidator(StorageSystem storage, ExportMask exportMask,
             Collection<Initiator> initiatorList) {
-        return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+        // Check to see if validation makes sense to perform for this export mask
+        if (performInitiatorValidation(exportMask)) {
+            return new ExportMaskInitiatorsValidator(storage, exportMask, initiatorList);
+        }
+        return truthyValidator;
     }
 
     @Override

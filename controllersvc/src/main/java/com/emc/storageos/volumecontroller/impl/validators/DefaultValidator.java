@@ -36,12 +36,12 @@ public class DefaultValidator implements Validator {
             validator.validate();
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            if (config.validationEnabled()) {
+            if (config.isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
 
-        if (logger.hasErrors() && config.validationEnabled()) {
+        if (logger.hasErrors() && config.isValidationEnabled()) {
             logger.generateException(type);
         }
 

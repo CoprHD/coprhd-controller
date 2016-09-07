@@ -767,7 +767,7 @@ public class Workflow implements Serializable {
             case SUSPENDED_NO_ERROR:
                 return WorkflowState.SUSPENDED_NO_ERROR;
             case CANCELLED:
-                return WorkflowState.SUSPENDED_NO_ERROR;
+                return WorkflowState.ERROR;
             default:
                 return getWorkflowState();
         }
@@ -910,6 +910,10 @@ public class Workflow implements Serializable {
 
     Map<String, StepStatus> getStepStatusMap() {
         return _stepStatusMap;
+    }
+
+    public void setStepStatusMap(Map<String, StepStatus> stepStatusMap) {
+        this._stepStatusMap = stepStatusMap;
     }
 
     public Boolean getRollbackContOnError() {

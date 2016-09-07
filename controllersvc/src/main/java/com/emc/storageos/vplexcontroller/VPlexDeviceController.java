@@ -154,6 +154,7 @@ import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
@@ -181,7 +182,6 @@ import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
-import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.emc.storageos.workflow.WorkflowTaskCompleter;
 import com.google.common.base.Joiner;
@@ -5898,6 +5898,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void validateVPlexVolume(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
         Volume vplexVolume = null;
         try {
+            // Skip this if validation disabled
+            ValidatorConfig validatorConfig = new ValidatorConfig();
+            validatorConfig.setCoordinator(coordinator);
+            if (!validatorConfig.isValidationEnabled()) {
+                WorkflowStepCompleter.stepSucceeded(stepId, "Validations not enabled");
+                return;
+            }
+            
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -6658,9 +6666,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // Execute this sub workflow.
-                    DeleteMigrationSourcesCallback wfCallback = new DeleteMigrationSourcesCallback();
-                    subWorkflow.executePlan(completer, "Deleted migration sources", wfCallback,
-                            new Object[] { stepId }, null, null);
+                    subWorkflow.executePlan(completer, "Deleted migration sources");
                     // Mark this workflow as created/executed so we don't do it again on retry/resume
                     WorkflowService.getInstance().markWorkflowBeenCreated(stepId, workflowKey);
                 }
@@ -6677,45 +6683,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // successfully committed migration. We don't want rollback,
             // so we return success.
             WorkflowStepCompleter.stepSucceded(stepId);
-        }
-    }
-
-    /**
-     * Callback handler for the delete migrations source sub workflow. The
-     * handler is informed when the workflow completes at which point we simply
-     * update the workflow step step state in the main workflow.
-     */
-    @SuppressWarnings("serial")
-    public static class DeleteMigrationSourcesCallback implements
-            Workflow.WorkflowCallbackHandler, Serializable {
-
-        /**
-         * {@inheritDoc}
-         *
-         * @throws WorkflowException
-         */
-        @Override
-        public void workflowComplete(Workflow workflow, Object[] args) throws WorkflowException {
-            _log.info("Delete migration workflow completed.");
-
-            // Get the WorkflowState
-            WorkflowState state = workflow.getWorkflowStateFromSteps();
-
-            // Support SUSPEND_NO_ERROR (which is resumable) in this sub-workflow
-            if (state == WorkflowState.SUSPENDED_NO_ERROR) {
-                WorkflowStepCompleter.stepSuspendedNoError(args[0].toString());
-            } else if (state == WorkflowState.SUSPENDED_ERROR) {
-                _log.error(
-                        "Migration delete original sources sub-workflow suspended with error, but top-level workflow will not be set to suspended.");
-                WorkflowStepCompleter.stepSuspendedError(args[0].toString(), null);
-            } else {
-                // Simply update the workflow step in the main workflow that caused
-                // the sub workflow to execute. The delete migration sources sub
-                // workflow is a cleanup step after a successfully committed
-                // migration. We don't want rollback, so we return success
-                // regardless of the result after the sub workflow has completed.
-                WorkflowStepCompleter.stepSucceded(args[0].toString());
-            }
         }
     }
 
@@ -9803,8 +9770,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private List<ExportMask> getExportMaskForHost(ExportGroup exportGroup, URI hostURI, URI vplexURI) throws Exception {
         List<ExportMask> results = new ArrayList<ExportMask>();
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (exportGroup ==  null || exportGroup.getExportMasks() == null) {
             return null;
         }
         // Create a list of sharedExportMask URIs for the src varray and ha varray if its set in the altVirtualArray
@@ -11094,8 +11060,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private Set<ExportMask> getExportMasksByHost(URI exportGroupURI, Map<URI, List<Initiator>> hostInitiatorMap, URI vplex) {
         ExportGroup exportGroup = getDataObject(ExportGroup.class, exportGroupURI, _dbClient);
         Set<ExportMask> deviceFilteredMasks = new HashSet<ExportMask>();
-        if (exportGroup != null) {
-            StringSet exportMasks = exportGroup.getExportMasks();
+        if (exportGroup != null) {            
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
 
             // look at each host
             for (URI hostUri : hostInitiatorMap.keySet()) {
@@ -11106,8 +11072,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 _log.info("attempting to locate an existing ExportMask for this host's initiators");
 
-                for (String maskURI : exportMasks) {
-                    ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(maskURI));
+                for (ExportMask mask : exportMasks) {
                     if (mask != null && mask.getStorageDevice().equals(vplex)) {
                         for (Initiator intiator : inits) {
                             if (mask.hasInitiator(intiator.getId().toString())) {
@@ -13046,10 +13011,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportGroup.addInitiators(StringSetUtil.stringSetToUriList(oldExportGroup.getInitiators()));
         exportGroup.addHosts(StringSetUtil.stringSetToUriList(oldExportGroup.getHosts()));
         exportGroup.setClusters(oldExportGroup.getClusters());
-        StringSet exportMasks = oldExportGroup.getExportMasks();
-        if (exportMasks != null) {
-            for (String exportMask : exportMasks) {
-                exportGroup.addExportMask(exportMask);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, oldExportGroup);
+        if (!exportMasks.isEmpty()) {
+            for (ExportMask exportMask : exportMasks) {
+                exportGroup.addExportMask(exportMask.getId());
             }
         }
         exportGroup.setNumPaths(oldExportGroup.getNumPaths());

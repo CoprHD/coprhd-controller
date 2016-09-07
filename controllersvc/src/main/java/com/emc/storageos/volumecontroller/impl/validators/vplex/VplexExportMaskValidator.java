@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -53,7 +54,9 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
             // no such export mask, ignore, but don't indicate pass
             return false;
         }
+
         log.info("Initiating validation of Vplex ExportMask: " + id);
+
         VPlexStorageViewInfo storageView = null;
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, getDbClient());
@@ -74,12 +77,12 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 return false;
             }
             log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            if (getValidatorConfig().validationEnabled()) {
+            if (getValidatorConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask: " + ex.getMessage());
             }
         }
-        if (getValidatorLogger().hasErrors() && getValidatorConfig().validationEnabled()) {
+        if (getValidatorLogger().hasErrors() && getValidatorConfig().isValidationEnabled()) {
             throw DeviceControllerException.exceptions.validationError(
                     "Export Mask", getValidatorLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
         }
@@ -128,6 +131,13 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      */
     private void validateNoAdditionalInitiators(VPlexStorageViewInfo storageView) {
         Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns());
+
+        // Don't validate against RP masks
+        if (ExportMaskUtils.isBackendExportMask(getDbClient(), mask)) {
+            log.info("validation against RP masks is disabled.");
+            return;
+        }
+
         for (Initiator initiator : initiatorsToValidate) {
             if (initiator == null || initiator.getInactive()) {
                 continue;

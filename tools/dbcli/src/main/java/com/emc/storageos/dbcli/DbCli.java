@@ -424,6 +424,12 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, longNum);
+                        } else if (type == Double.class) {
+                            Double doubleNum = FieldType.toDouble(fieldValue);
+                            if (!verifyField(doubleNum)) {
+                                throw new Exception("field format exception");
+                            }
+                            pd.getWriteMethod().invoke(object, doubleNum);
                         } else {
                             pd.getWriteMethod().invoke(object, fieldValue);
                         }

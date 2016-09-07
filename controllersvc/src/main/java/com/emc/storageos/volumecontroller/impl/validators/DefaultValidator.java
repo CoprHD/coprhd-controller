@@ -59,6 +59,6 @@ public class DefaultValidator implements Validator {
     }
 
     private boolean shouldThrowException() {
-        return config.validationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
+        return config.isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 }

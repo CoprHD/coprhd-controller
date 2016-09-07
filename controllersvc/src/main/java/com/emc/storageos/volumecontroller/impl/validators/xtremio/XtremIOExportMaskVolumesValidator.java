@@ -71,7 +71,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             }
         } catch (Exception ex) {
             log.error("Unexpected exception validating ExportMask volumes: " + ex.getMessage(), ex);
-            if (getConfig().validationEnabled()) {
+            if (getConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask volumes: " + ex.getMessage());
             }

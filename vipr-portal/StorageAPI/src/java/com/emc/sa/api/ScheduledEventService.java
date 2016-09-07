@@ -218,7 +218,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                if (scheduleInfo.getSectionsInCycle() == null || scheduleInfo.getSectionsInCycle().size() != 1) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -227,7 +227,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 }
                 break;
             case WEEKLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                if (scheduleInfo.getSectionsInCycle() == null || scheduleInfo.getSectionsInCycle().size() != 1) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -238,7 +238,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case DAILY:
             case HOURLY:
             case MINUTELY:
-                if (!scheduleInfo.getSectionsInCycle().isEmpty()) {
+                if (scheduleInfo.getSectionsInCycle() != null && !scheduleInfo.getSectionsInCycle().isEmpty()) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 break;

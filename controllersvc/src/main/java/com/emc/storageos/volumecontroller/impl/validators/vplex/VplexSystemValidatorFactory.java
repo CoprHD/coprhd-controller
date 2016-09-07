@@ -147,7 +147,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
             logger = new ValidatorLogger(log, Joiner.on(",").join(volNames), storageSystem.forDisplay());
             VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, config, logger);
             vplexVolumeValidator.validateVolumes(storageSystem, volumes, delete, remediate, checks);
-            if (logger.hasErrors() && config.validationEnabled()) {
+            if (logger.hasErrors() && config.isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.validationVolumeError(logger.getValidatedObjectName(),
                         logger.getStorageSystemName(), logger.getMsgs().toString());
             }

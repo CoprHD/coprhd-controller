@@ -56,16 +56,14 @@ public class ChainingValidator implements Validator {
             }
         }
 
-        if (logger.hasErrors()) {
-            if (shouldThrowException()) {
-                logger.generateException(type);
-            }
+        if (logger.hasErrors() && shouldThrowException()) {
+            logger.generateException(type);
         }
 
         return true;
     }
 
     private boolean shouldThrowException() {
-        return config.validationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
+        return config.isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 }

@@ -183,7 +183,6 @@ import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
-import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.emc.storageos.workflow.WorkflowTaskCompleter;
 import com.google.common.base.Joiner;
@@ -5923,7 +5922,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Skip this if validation disabled
             ValidatorConfig validatorConfig = new ValidatorConfig();
             validatorConfig.setCoordinator(coordinator);
-            if (!validatorConfig.validationEnabled()) {
+            if (!validatorConfig.isValidationEnabled()) {
                 WorkflowStepCompleter.stepSucceeded(stepId, "Validations not enabled");
                 return;
             }

@@ -38,7 +38,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -1910,7 +1909,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             /**
              * Needs to clean up stale EM from ViPR DB.
              */
-            cleanStaleExportMasks(storage, maskNamesFromArray, initiatorNames);
+            ExportUtils.cleanStaleExportMasks(storage, maskNamesFromArray, initiatorNames, _dbClient);
             _log.info(builder.toString());
         } catch (Exception e) {
             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
@@ -1987,48 +1986,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return masksWithReusableIGs;
     }
 
-    /**
-     * Method to clean ExportMask stale instances from ViPR db if any stale EM available.
-     *
-     * @param storage the storage
-     * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
-     * @param initiatorNames initiator names
-     */
-    private void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames) {
-        
-        Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, _dbClient);
-        Set<ExportMask> staleExportMasks = new HashSet<>();
-        _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
-        for (Initiator initiator : initiators) {
-            URIQueryResultList emUris = new URIQueryResultList();
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()),
-                    emUris);
-            ExportMask exportMask = null;
-            for (URI emUri : emUris) {
-                _log.debug("Export Mask URI :{}", emUri);
-                exportMask = _dbClient.queryObject(ExportMask.class, emUri);
-                if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
-                    if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
-                        _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
-                        List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), _dbClient);
-                        if (CollectionUtils.isEmpty(egList)) {
-                            _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
-                                    exportMask.getMaskName());
-                            staleExportMasks.add(exportMask);
-                        } else {
-                            _log.info("Export mask is having association with ExportGroup {}", egList);
-                        }
-                    }
-                }
-            }
-        }
-        if (!CollectionUtils.isEmpty(staleExportMasks)) {
-            _dbClient.markForDeletion(staleExportMasks);
-            _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
-        }
 
-        _log.info("Export Mask cleanup activity done");
-    }
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {

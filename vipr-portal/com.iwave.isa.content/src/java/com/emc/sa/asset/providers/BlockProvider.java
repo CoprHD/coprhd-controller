@@ -3444,8 +3444,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
 
             for (String tag : parsedTags.keySet()) {
-                return (tag != null
-                        && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName()));
+                if (tag != null
+                        && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+                    return true;
+                }
             }
 
             return false;

@@ -45,13 +45,13 @@ public class ChainingValidator implements Validator {
             }
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            if (config.validationEnabled()) {
+            if (config.isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
 
         if (logger.hasErrors()) {
-            if (config.validationEnabled()) {
+            if (config.isValidationEnabled()) {
                 logger.generateException(type);
             }
         }

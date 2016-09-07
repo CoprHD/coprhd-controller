@@ -155,12 +155,17 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
-                if (VolumeIngestionUtil.isVplexVolume(unManagedVolume) &&
+                if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+                    boolean crossConnectedDistributedVolume = 
+                            VolumeIngestionUtil.isVplexDistributedVolume(unManagedVolume) && 
+                            requestContext.getVpool(unManagedVolume).getAutoCrossConnectExport();
+                    if (!crossConnectedDistributedVolume &&
                         !VolumeIngestionUtil.isRpExportMask(unManagedExportMask, _dbClient) &&
                         !VolumeIngestionUtil.validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
-                    // logs already inside the above method.
-                    itr.remove();
-                    continue;
+                        // logs already inside the above method.
+                        itr.remove();
+                        continue;
+                    }
                 }
 
                 _logger.info("looking for an existing export mask for " + unManagedExportMask.getMaskName());

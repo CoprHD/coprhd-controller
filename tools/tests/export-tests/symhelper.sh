@@ -139,9 +139,25 @@ delete_volume() {
     serial_number=$1
     devid=$2
     /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} not_ready ${devid} -noprompt
-    /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "unmap dev ${devid};" commit -noprompt
-    /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} -dev ${devid} unbind -noprompt
+    
+    # Assume VMAX3 if there is an Optimized group...
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -v | grep "ViPR_Optimized"
+    if [ $? -eq 0 ]; then
+        # Check if the volume is in there...
+        OPTIMIZEDSG=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -devs ${devid} -v \
+            | grep "Storage Group Name" | grep "Optimized"  | awk -F:  '{ print $2 }' | sed -E 's/\s//'`
+        if [ ! -z ${OPTIMIZEDSG// } ]; then
+            echo "OPTIMIZEDSG is ${OPTIMIZEDSG}"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name ${OPTIMIZEDSG} remove dev ${devid} -noprompt
+        fi
+        echo "Freeing..."
+        /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} free -all -devs ${devid} -noprompt
+    else
+        /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "unmap dev ${devid};" commit -noprompt
+        /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} -dev ${devid} unbind -noprompt
+    fi
     /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "delete dev ${devid};" commit -noprompt
+    exit 0;
 }
 
 verify_export_prechecks() {

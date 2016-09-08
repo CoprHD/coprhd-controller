@@ -269,7 +269,7 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep updateHost(@PathParam("id") URI id,
             HostUpdateParam updateParam,
             @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
-            @QueryParam("update-exports") @DefaultValue("true") boolean updateExports) {
+            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports) {
         // update the host
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);

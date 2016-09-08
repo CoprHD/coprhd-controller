@@ -2380,7 +2380,7 @@ public class VPlexApiDiscoveryManager {
     VPlexVirtualVolumeInfo getVirtualVolumeByPath(String virtualVolumePath) throws VPlexApiException {
 
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                URI.create(virtualVolumePath));
+                URI.create(VPlexApiConstants.VPLEX_PATH + virtualVolumePath));
         s_logger.info("Virtual Volume Info Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);

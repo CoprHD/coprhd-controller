@@ -353,6 +353,15 @@ public class ExportMaskUtils {
         return false;
     }
     
+    /**
+     * For a given export group and storage system, this will check wheather there are any export mask exists
+     * in storage system which matches export group and storage ports in VArray
+     * 
+     * @param dbClient
+     * @param exportGroup
+     * @param storageURI
+     * @return 
+     */
     public static boolean hasExportMaskForStorageAndVArray(DbClient dbClient,
             ExportGroup exportGroup,
             URI storageURI) {
@@ -375,6 +384,14 @@ public class ExportMaskUtils {
         return false;
     }
 
+    /**
+     * For a given storage system and varray this will fetch the set of storage ports which are part of both
+     * the storage system and varray.
+     * @param storageURI
+     * @param varray
+     * @param dbClient
+     * @return
+     */
     public static Set<String> getStoragePortUrisAssociatedWithVarrayAndStorageArray(URI storageURI, URI varray, DbClient dbClient) {
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varray.toString()),

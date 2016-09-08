@@ -12537,6 +12537,10 @@ rpunity_tests()
     
     # CG Failover/Swap Test
     recoverpoint_cg_failover_test ${RP_UNITY_CONSISTENCY_GROUP} ${RP_UNITY_VOLUME} ${NH} $RP_UNITY_VOLUME-target-${NH} ${NH}
+
+    # Bookmark Export Tests
+    rp_tgt_varrays=("${NH}")
+    recoverpoint_export_bookmark_tests ${RP_UNITY_VOLUME} ${NH} ${rp_tgt_varrays} rpunity_cdp "unity"
    
     run volume delete $PROJECT/${RP_UNITY_VOLUME} --wait
 

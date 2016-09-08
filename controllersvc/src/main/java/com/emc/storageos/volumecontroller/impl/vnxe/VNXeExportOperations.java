@@ -343,7 +343,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 String nativeId = blockObject.getNativeId();
                 // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
                 // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
-                // with the same nativeGUID
+                // with the same nativeGUID, then unexport the snapshot.
                 String nativeGuid = blockObject.getNativeGuid(); 
                 List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
                 if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&

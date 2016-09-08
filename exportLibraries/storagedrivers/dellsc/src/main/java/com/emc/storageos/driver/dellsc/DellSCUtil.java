@@ -272,7 +272,8 @@ public class DellSCUtil {
 
         ScControllerPortFibreChannelConfiguration portConfig = api.getControllerPortFCConfig(
                 scPort.instanceId);
-        port.setPortNetworkId(scPort.wwn);
+        port.setPortNetworkId(formatWwn(scPort.wwn));
+        port.setEndPointID(port.getPortNetworkId());
         port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
         port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
         port.setPortSubGroup(String.format("%s", portConfig.slot));
@@ -425,5 +426,24 @@ public class DellSCUtil {
         storageSystem.setProtocols(protocols);
 
         return storageSystem;
+    }
+
+    /**
+     * Gets a formatted WWN.
+     *
+     * @param wwn The raw WWN.
+     * @return The formatted WWN.
+     */
+    public String formatWwn(String wwn) {
+        if (wwn == null || wwn.length() != 16) {
+            return wwn;
+        }
+
+        List<String> parts = new ArrayList<>();
+        for (int i = 0; i < wwn.length(); i += 2) {
+            parts.add(wwn.substring(i, i + 2).toUpperCase());
+        }
+
+        return String.join(":", parts);
     }
 }

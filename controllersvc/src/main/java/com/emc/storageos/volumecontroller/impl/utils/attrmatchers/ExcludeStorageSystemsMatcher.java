@@ -34,7 +34,7 @@ public class ExcludeStorageSystemsMatcher extends AttributeMatcher {
             Map<String, Object> attributeMap, StringBuffer errorMessage) {
         // We only allow pools that are not on the excluded systems.
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
-        Set<String> excludeSystems = (Set<String>) attributeMap.get(Attributes.storage_system.toString());
+        Set<String> excludeSystems = (Set<String>) attributeMap.get(Attributes.exclude_storage_system.toString());
         Iterator<StoragePool> poolIterator = pools.iterator();
         while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();

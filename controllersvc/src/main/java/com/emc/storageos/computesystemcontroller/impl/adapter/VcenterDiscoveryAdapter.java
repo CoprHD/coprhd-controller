@@ -205,7 +205,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             // delete datacenters that don't contain any clusters or hosts, don't have any exports, and don't have any pending events
             if (!datacenterClusters.iterator().hasNext() && !datacenterHosts.iterator().hasNext()
                     && !ComputeSystemHelper.isDataCenterInUse(dbClient, datacenter.getId())
-                    && EventUtils.getAffectedResources(Lists.newArrayList(datacenter.getId())).isEmpty()) {
+                    && EventUtils.findAffectedResourcePendingEvents(dbClient, datacenter.getId()).isEmpty()) {
                 ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, datacenter);
                 info("Deactivating Datacenter: " + datacenter.getId());
             } else {

@@ -219,6 +219,18 @@ public class EventUtils {
         return getEvents(dbClient, ContainmentConstraint.Factory.getAffectedResourceEventConstraint(resourceId));
     }
 
+    public static List<ActionableEvent> findAffectedResourcePendingEvents(DbClient dbClient, URI resourceId) {
+        List<ActionableEvent> events = findAffectedResourceEvents(dbClient, resourceId);
+        List<ActionableEvent> result = Lists.newArrayList();
+        for (ActionableEvent event : events) {
+            if (event != null && event.getEventStatus() != null 
+                    && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {
+                result.add(event);
+            }
+        }
+        return result;
+    }
+
     private static List<ActionableEvent> getEvents(DbClient dbClient, Constraint constraint) {
         URIQueryResultList results = new URIQueryResultList();
         dbClient.queryByConstraint(constraint, results);

@@ -705,7 +705,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         for (URI clusterId : deletedClusters) {
             List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
             if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
-                    && EventUtils.getAffectedResources(Lists.newArrayList(clusterId)).isEmpty()) {
+                    && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
                 info("Deactivating Cluster: " + clusterId);

@@ -550,6 +550,7 @@ public class XIVRestClient extends StandardRestClient {
             } else {
                 body = MessageFormat.format(EXPORT_VOLUME_TO_HOST_BODY, exportName, volumeName, lunID);
             }
+            _log.info("Export Volume to Host request Body : " + body);
             ResponseValidator failureStatus = executePOSTRequest(xivSystem, MessageFormat.format(EXPORT_VOLUME_URL, xivSystem), body);
 
             if (failureStatus.isFailed()) {

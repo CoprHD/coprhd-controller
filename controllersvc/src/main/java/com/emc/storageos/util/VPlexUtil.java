@@ -1517,7 +1517,7 @@ public class VPlexUtil {
             throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
         }
 
-        return client.getClusterName(vplexClusterId);
+        return client.getClusterNameForId(vplexClusterId);
     }
 
     /**
@@ -1539,7 +1539,7 @@ public class VPlexUtil {
             throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
         }
 
-        return client.getClusterName(vplexClusterId);
+        return client.getClusterNameForId(vplexClusterId);
     }
 
     /**

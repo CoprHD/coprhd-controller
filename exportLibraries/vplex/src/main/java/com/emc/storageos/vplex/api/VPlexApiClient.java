@@ -84,6 +84,12 @@ public class VPlexApiClient {
     // in case it expires and a new session is created.
     private String _vplexSessionId = null;
 
+    // caching of some almost-static VPLEX info for performance improvement
+    private long cacheLastRefreshed = 0;
+    private static final long CACHE_TIMEOUT = 3600000; // 60 minutes
+    private static final Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
+    private static final List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+
     /**
      * Constructor
      * 
@@ -167,34 +173,36 @@ public class VPlexApiClient {
     }
 
     /**
-     * Gets information about the VPLEX clusters.
-     * 
-     * @param shallow true to get just the name and path for each cluster, false
-     *            to get additional info about the systems and volumes.
-     * @param isStorageVolumeItlsFetch true to get the storage volume ITLs, false otherwise.
+     * Gets detailed information about the VPLEX clusters, including storage
+     * volume information.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isStorageVolumeItlsFetch) throws VPlexApiException {
-        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
+    public List<VPlexClusterInfo> getClusterInfoDetails() throws VPlexApiException {
+        s_logger.info("Request for complete detailed cluster info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getClusterInfo(false, true);
     }
 
     /**
      * Gets information about the VPLEX clusters.
      * 
-     * @param shallow true to get just the name and path for each cluster, false
-     *            to get additional info about the systems and volumes.
-     * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
-        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow, false);
+    public List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
+        s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
+        long timeRightNow = System.currentTimeMillis();
+        if (timeRightNow > (cacheLastRefreshed + CACHE_TIMEOUT)) {
+            vplexClusterInfoLiteCache.clear();
+            vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
+            cacheLastRefreshed = timeRightNow;
+            s_logger.info("refreshed lightweight cluster info list is " + vplexClusterInfoLiteCache.toString());
+        }
+
+        return vplexClusterInfoLiteCache;
     }
 
     /**
@@ -255,9 +263,22 @@ public class VPlexApiClient {
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
      */
-    public List<VPlexStorageViewInfo> getStorageViews() throws VPlexApiException {
-        s_logger.info("Request for storage view info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getStorageViews();
+    public List<VPlexStorageViewInfo> getStorageViewDetails() throws VPlexApiException {
+        s_logger.info("Request for detailed storage view info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getStorageViews(true);
+    }
+
+    /**
+     * Gets the Storage Views in a VPLEX System without some details (faster in certain cases).
+     * 
+     * @return A list of VPlexStorageViewInfo specifying the info for the VPlex storage views.
+     * 
+     * @throws VPlexApiException If a VPlex request returns a failed status or
+     *             an error occurs processing the response.
+     */
+    public List<VPlexStorageViewInfo> getStorageViewsLite() throws VPlexApiException {
+        s_logger.info("Request for lightweight storage view info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getStorageViews(false);
     }
 
     /**
@@ -300,7 +321,7 @@ public class VPlexApiClient {
         Map<String, Map<String, VPlexVirtualVolumeInfo>> localVirtualVolumesMap = new HashMap<String, Map<String, VPlexVirtualVolumeInfo>>();
 
         // Get the cluster information.
-        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();
+        List<VPlexClusterInfo> clusterInfoList = getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
@@ -1281,16 +1302,9 @@ public class VPlexApiClient {
      * @param clusterId the cluster id (1 or 2)
      * @return the name for the cluster or null in none found
      */
-    public String getClusterName(String clusterId) {
-        String clusterName = null;
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
-        for (VPlexClusterInfo clusterInfo : clusterInfos) {
-            if (clusterId.equals(clusterInfo.getClusterId())) {
-                clusterName = clusterInfo.getName();
-                s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
-            }
-        }
-
+    public String getClusterNameForId(String clusterId) {
+        String clusterName = getClusterIdToNameMap().get(clusterId);
+        s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
         return clusterName;
     }
 
@@ -1300,14 +1314,18 @@ public class VPlexApiClient {
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
     public Map<String, String> getClusterIdToNameMap() {
-        Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
-        for (VPlexClusterInfo clusterInfo : clusterInfos) {
-            clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName());
+        long timeRightNow = System.currentTimeMillis();
+        if (timeRightNow > (cacheLastRefreshed + CACHE_TIMEOUT)) {
+            vplexClusterIdToNameCache.clear();
+            List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
+            for (VPlexClusterInfo clusterInfo : clusterInfos) {
+                vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
+            }
+            cacheLastRefreshed = timeRightNow;
+            s_logger.info("refreshed cluster id to name map is " + vplexClusterIdToNameCache.toString());
         }
 
-        s_logger.info("cluster id to name map is " + clusterIdToNameMap.toString());
-        return clusterIdToNameMap;
+        return vplexClusterIdToNameCache;
     }
 
     /**
@@ -1858,7 +1876,7 @@ public class VPlexApiClient {
         
         // Get the cluster information, which will get the storage volume 
         // information on both clusters.
-        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfo(false, true);
+        List<VPlexClusterInfo> clusterInfoList = getClusterInfoDetails();
         
         // Validate the expected backend storage volumes on each cluster.
         Iterator<String> clusterNameIter = clusterNames.iterator();
@@ -1969,7 +1987,7 @@ public class VPlexApiClient {
      */
     public List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName) throws VPlexApiException {
         s_logger.info("Request to get storage view info for cluster {}", clusterName);
-        return getDiscoveryManager().getStorageViewsForCluster(clusterName);
+        return getDiscoveryManager().getStorageViewsForCluster(clusterName, true);
     }
 
 }

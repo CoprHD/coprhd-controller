@@ -2727,6 +2727,7 @@
         type : "uint32",
         userConfigurable : true,
         userMutable : true,
+		hidden : true,
         advanced : true,
         tag : "Other",
         reconfigRequired : false,

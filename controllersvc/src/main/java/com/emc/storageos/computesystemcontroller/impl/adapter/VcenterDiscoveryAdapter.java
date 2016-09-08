@@ -191,21 +191,19 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
     private void deleteDatacenters(Iterable<VcenterDataCenter> datacenters, List<URI> deletedHosts, List<URI> deletedClusters) {
         for (VcenterDataCenter datacenter : datacenters) {
-            Iterable<Cluster> datacenterClusters = getClusters(datacenter);
-            Iterable<Host> datacenterHosts = getHosts(datacenter);
             boolean containsHosts = false;
             boolean clustersInUse = false;
 
-            for (Cluster cluster : datacenterClusters) {
+            for (Cluster cluster : getClusters(datacenter)) {
                 deletedClusters.add(cluster.getId());
             }
 
-            for (Host host : datacenterHosts) {
+            for (Host host : getHosts(datacenter)) {
                 deletedHosts.add(host.getId());
                 containsHosts = true;
             }
 
-            for (Cluster cluster : datacenterClusters) {
+            for (Cluster cluster : getClusters(datacenter)) {
                 URI clusterId = cluster.getId();
                 List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
                 if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)

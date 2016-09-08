@@ -1926,7 +1926,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getWindowsMountedBlockResourcesNoTargets(AssetOptionsContext context, URI windowsHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true, new BlockObjectSRDFTargetFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true,
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
     }
 
     @Asset("unmountedBlockResource")

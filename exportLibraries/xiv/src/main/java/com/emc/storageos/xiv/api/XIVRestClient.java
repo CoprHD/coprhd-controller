@@ -538,8 +538,8 @@ public class XIVRestClient extends StandardRestClient {
         //Check if Volume is present on Array before proceeding.
         checkAvailability(MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volumeName));
         
-        boolean isAvailable = findAvailability(
-                MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));
+        boolean isAvailable = false;//findAvailability(
+                //MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));
         if (isAvailable) {
             _log.info("Volume {} already already exported to {} {} on XIV {}. Skipping Export!", volumeName, exportType, exportName,
                     xivSystem);

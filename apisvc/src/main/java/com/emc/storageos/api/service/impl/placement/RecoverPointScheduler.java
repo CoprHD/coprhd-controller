@@ -2145,8 +2145,11 @@ public class RecoverPointScheduler implements Scheduler {
         for (VirtualArray protectionVarray : protectionVarrays) {
             
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
-            VirtualPool targetVpool = protectionSettings.get(protectionVarray.getId()).getVirtualPool() != null ? dbClient.queryObject(VirtualPool.class,
-                    protectionSettings.get(protectionVarray.getId()).getVirtualPool()) : vpool;
+            // if the target vpool is not set, it defaults to the source vpool
+            VirtualPool targetVpool = vpool;
+            if (protectionSettings.get(protectionVarray.getId()) != null && protectionSettings.get(protectionVarray.getId()).getVirtualPool() != null) {
+                targetVpool = dbClient.queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getVirtualPool());
+            }
             
             RPRecommendation targetRecommendation = 
                     buildRpRecommendationFromExistingVolume(targetVolume, targetVpool, capabilities, null);

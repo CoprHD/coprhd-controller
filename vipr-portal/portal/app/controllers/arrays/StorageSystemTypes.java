@@ -134,7 +134,7 @@ public class StorageSystemTypes extends ViprResourceController {
         String filename = deviceDriverFile.getName();
         StorageSystemTypeAddParam addParam = StorageSystemTypeUtils.uploadStorageDriver(deviceDriverFile, filename);
 //        StorageSystemType type = parseDriver(dest.getAbsolutePath());
-        StorageSystemTypeForm form = new StorageSystemTypeForm(type);
+        StorageSystemTypeForm form = new StorageSystemTypeForm(addParam);
 //        flash.success("Storage driver has been uploaded, please confirm/edit meta data for it");
         edit(form, addParam.getDriverFilePath());
     }

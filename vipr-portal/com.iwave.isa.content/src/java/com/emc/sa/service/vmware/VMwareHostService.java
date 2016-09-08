@@ -120,11 +120,13 @@ public abstract class VMwareHostService extends ViPRService {
             Set<String> dbHostUuids = Sets.newHashSet();
             for (Host host : dbHosts) {
                 // Validate the hosts within the cluster all have good discovery status
-                if (!DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString().equalsIgnoreCase(host.getDiscoveryStatus())) {
-                    dbHostUuids.add(host.getUuid());
-                } else {
+                if (!DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.toString().equalsIgnoreCase(host.getCompatibilityStatus())) {
+                    ExecutionUtils.fail("failTask.vmware.cluster.hostincompatible", args(), args(cluster.getLabel(), host.getLabel()));
+                } else if (DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString().equalsIgnoreCase(host.getDiscoveryStatus())) {
                     ExecutionUtils.fail("failTask.vmware.cluster.hostsdiscoveryfailed", args(), args(cluster.getLabel(), host.getLabel()));
                 }
+
+                dbHostUuids.add(host.getUuid());
                 
             }
 

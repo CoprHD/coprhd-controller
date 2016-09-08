@@ -857,7 +857,7 @@ test_18() {
 test_19() {
     echot "Test 19 Begins"
     expname=${EXPORT_GROUP_NAME}t19
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts ${HOST1ID}
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${HOST1} gone
@@ -872,10 +872,11 @@ test_19() {
 }
 
 test_20() {
+    echot "Test 20 Begins"
     expname=${EXPORT_GROUP_NAME}t21
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1ID}
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
     runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
-    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts ${HOST1ID}
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}

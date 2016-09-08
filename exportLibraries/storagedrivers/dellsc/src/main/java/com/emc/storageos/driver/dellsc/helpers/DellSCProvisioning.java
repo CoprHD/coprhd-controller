@@ -322,7 +322,7 @@ public class DellSCProvisioning {
                         port = discoveredPorts.get(map.controllerPort.instanceId);
                     } else {
                         ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
-                        port = util.getStoragePortForControllerPort(api, scPort, null);
+                        port = util.getStoragePortForControllerPort(api, scPort);
                         discoveredPorts.put(map.controllerPort.instanceId, port);
                     }
 
@@ -741,7 +741,7 @@ public class DellSCProvisioning {
             port = portCache.get(map.controllerPort.instanceId);
         } else {
             ScControllerPort scPort = api.getControllerPort(map.controllerPort.instanceId);
-            port = util.getStoragePortForControllerPort(api, scPort, null);
+            port = util.getStoragePortForControllerPort(api, scPort);
             portCache.put(scPort.instanceId, port);
         }
 

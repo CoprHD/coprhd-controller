@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.dellsc.scapi.objects.ApiConnection;
 import com.emc.storageos.driver.dellsc.scapi.objects.EmDataCollector;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
@@ -1485,5 +1486,57 @@ public class StorageCenterAPI implements AutoCloseable {
 
         LOG.warn(String.format("Error getting volume configuration: %s", rr.getErrorMsg()));
         return null;
+    }
+
+    /**
+     * Gets SC configuration settings.
+     *
+     * @param ssn The system serial number.
+     * @return The configuration settings.
+     * @throws StorageCenterAPIException
+     */
+    public ScConfiguration getScConfig(String ssn) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScConfiguration/%s", ssn));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScConfiguration.class);
+        }
+
+        String message = String.format("Error getting Storage Center configuration: %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets all fault domains for a system.
+     *
+     * @param ssn The system serial number.
+     * @return The fault domains.
+     */
+    public ScFaultDomain[] getFaultDomains(String ssn) {
+        RestResult rr = restClient.get(String.format("StorageCenter/StorageCenter/%s/FaultDomainList", ssn));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScFaultDomain[].class);
+        }
+
+        LOG.warn(String.format("Error getting Storage Center configuration: %s", rr.getErrorMsg()));
+        return new ScFaultDomain[0];
+    }
+
+    /**
+     * Gets the virtual ports in a fault domain.
+     *
+     * @param instanceId The fault domain instance ID.
+     * @param True to get virtual ports, false to get physical.
+     * @return The controller ports.
+     */
+    public ScControllerPort[] getFaultDomainPorts(String instanceId, boolean virtualPorts) {
+        String portType = virtualPorts ? "Virtual" : "Physical";
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScFaultDomain/%s/%sPortList", instanceId, portType));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScControllerPort[].class);
+        }
+
+        LOG.warn(String.format("Error getting controller ports for fault domain %s: %s", instanceId, rr.getErrorMsg()));
+        return new ScControllerPort[0];
     }
 }

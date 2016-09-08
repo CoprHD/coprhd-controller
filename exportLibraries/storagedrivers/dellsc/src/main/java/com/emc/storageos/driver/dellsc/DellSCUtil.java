@@ -218,28 +218,32 @@ public class DellSCUtil {
     }
 
     /**
-     * @param api
-     * @param scPort
-     * @param storagePort
-     * @return
+     * Gets a StoragePort object for an ScControllerPort.
+     *
+     * @param api The API connection.
+     * @param scPort The ScControllerPort.
+     * @return The StoragePort.
      */
-    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort, StoragePort storagePort) {
-        StoragePort port = storagePort;
-        if (port == null) {
-            port = new StoragePort();
-        }
+    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort) {
+        return getStoragePortForControllerPort(api, scPort, null);
+    }
+
+    /**
+     * Gets a StoragePort object for an ScControllerPort.
+     *
+     * @param api The API connection.
+     * @param scPort The ScControllerPort.
+     * @param haZone The fault domain name.
+     * @return The StoragePort.
+     */
+    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort, String haZone) {
+        StoragePort port = new StoragePort();
 
         port.setNativeId(scPort.instanceId);
         port.setStorageSystemId(scPort.scSerialNumber);
 
         // Get the port configuration
-        String haZone = "";
-        ScFaultDomain[] faultDomains = api.getControllerPortFaultDomains(scPort.instanceId);
-        if (faultDomains.length > 0) {
-            // API returns list, but currently only one fault domain per port allowed
-            haZone = faultDomains[0].name;
-        }
-        port.setPortHAZone(haZone);
+        port.setPortHAZone(getHaZone(api, scPort, haZone));
 
         if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
             setFCPortInfo(api, scPort, port);
@@ -257,6 +261,28 @@ public class DellSCUtil {
         port.setAccessStatus(AccessStatus.READ_WRITE);
 
         return port;
+    }
+
+    /**
+     * Gets the HA zone name.
+     * 
+     * @param api The API connection.
+     * @param scPort The ScControllerPort.
+     * @param hazone The zone name if known.
+     * @return The zone name.
+     */
+    private String getHaZone(StorageCenterAPI api, ScControllerPort scPort, String hazone) {
+        if (hazone != null && !hazone.isEmpty()) {
+            return hazone;
+        }
+        String haZone = "";
+        ScFaultDomain[] faultDomains = api.getControllerPortFaultDomains(scPort.instanceId);
+        if (faultDomains.length > 0) {
+            // API returns list, but currently only one fault domain per port allowed
+            haZone = faultDomains[0].name;
+        }
+
+        return haZone;
     }
 
     /**

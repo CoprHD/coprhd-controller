@@ -58,13 +58,7 @@
     
     #{Services.scheduler /}
     
-    #{Form.buttonBar}
-    	#{Form.saveButton size:_size, save:_save, disabled:_disabled/}
-        #{Form.button name:'ScheduledOrder.back', icon:'arrow-left', size:_size, href:@list()/}
-        #{Form.button name:'ScheduledOrder.deactivate',class: 'btn-sm btn-danger', icon:'trash', size:_size, 
-            href: @deactivate(scheduleEventForm.id) , action:'showDeactivateConfirm();' /}
-	#{/Form.buttonBar}
-
+	#{Form.saveCancel cancelHref:@list()/} 
 #{/form}
 
 </div>

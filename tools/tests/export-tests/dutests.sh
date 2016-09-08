@@ -2285,6 +2285,10 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
+# Currently failing for:
+# 1) VPLEX - COP-25238
+# 2) XIO   - COP-25240
+#
 # Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
 #
 # Basic Use Case for single host, single volume
@@ -2300,7 +2304,7 @@ test_13() {
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
-    expname=${EXPORT_GROUP_NAME}t14
+    expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -2318,7 +2322,7 @@ test_14() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Create another volume that we will inventory-only delete
-    volname="${HOST1}-dutest-oktodelete-t14"
+    volname="${HOST1}-dutest-oktodelete-t14-${RANDOM}"
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created
@@ -2362,8 +2366,8 @@ test_14() {
     echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
     fail task follow $task
 
-    # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 2 2
+    # Verify that ViPR rollback removed only the initiator that was previously added
+    verify_export ${expname}1 ${HOST1} 1 2
 
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2372,7 +2376,7 @@ test_14() {
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Verify the volume was removed
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 1 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1

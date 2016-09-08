@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -572,25 +573,29 @@ public class ExportUtils {
      * being processed and this other export mask is used by a different export group yet they all
      * are for the same host or compute resource. This situation happens when volumes in different
      * virtual arrays but on the same storage array are exported to the same host. In this situation
-     * the application creates 2 export groups and 2 export masks in ViPR and 2 different masking 
-     * views on the storage array, yet the masking views share the same initiator group. 
+     * the application creates 2 export groups and 2 export masks in ViPR and 2 different masking
+     * views on the storage array, yet the masking views share the same initiator group.
      * <p>
-     * This function checks that another export masks is not sharing the same initiator group 
-     * but that is not under the same export group (this is handled elsewhere) by searching 
-     * for an export mask that:<ol>
+     * This function checks that another export masks is not sharing the same initiator group
+     * but that is not under the same export group (this is handled elsewhere) by searching
+     * for an export mask that:
+     * <ol>
      * <li>is for the same storage system</li>
      * <li>is not one used by the same export group</li>
-     * </ol>  
+     * </ol>
+     * 
      * @param dbClient an instance of DbClient
      * @param initiatorUri the URI of the initiator being checked
      * @param curExportMask the export mask being processed
      * @param exportMaskURIs other export masks in the same export group as the export mask being processed.
-     * @return true if the initiator is found in other export masks.
+     * @return List of other shared masks name if the initiator is found in other export masks.
      */
-    public static boolean isInitiatorShared(DbClient dbClient, URI initiatorUri, ExportMask curExportMask, Collection<URI> exportMaskURIs) {
+    public static List<String> getExportMasksSharingInitiator(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
+            Collection<URI> exportMaskURIs) {
         List<ExportMask> results =
                 CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
                         ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        List<String> sharedExportMaskNameList = new ArrayList<>();
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
@@ -598,10 +603,10 @@ public class ExportUtils {
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
                 _log.info(String.format("Initiator %s is shared with mask %s.", 
                         initiatorUri, exportMask.getMaskName()));
-                return true;
+                sharedExportMaskNameList.add(exportMask.forDisplay());
             }
         }
-        return false;
+        return sharedExportMaskNameList;
     }
 
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
@@ -1607,5 +1612,50 @@ public class ExportUtils {
         }
         _log.info("Ports {} are going to be removed", portUris);
         return new ArrayList<URI>(portUris);
+    }
+
+    /**
+     * Method to clean ExportMask stale instances from ViPR db if any stale EM available.
+     *
+     * @param storage the storage
+     * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
+     * @param initiatorNames initiator names
+     * @param dbClient
+     */
+    public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
+            DbClient dbClient) {
+
+        Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
+        Set<ExportMask> staleExportMasks = new HashSet<>();
+        _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
+        for (Initiator initiator : initiators) {
+            URIQueryResultList emUris = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()),
+                    emUris);
+            ExportMask exportMask = null;
+            for (URI emUri : emUris) {
+                _log.debug("Export Mask URI :{}", emUri);
+                exportMask = dbClient.queryObject(ExportMask.class, emUri);
+                if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
+                    if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
+                        _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
+                        List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
+                        if (CollectionUtils.isEmpty(egList)) {
+                            _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
+                                    exportMask.getMaskName());
+                            staleExportMasks.add(exportMask);
+                        } else {
+                            _log.info("Export mask is having association with ExportGroup {}", egList);
+                        }
+                    }
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(staleExportMasks)) {
+            dbClient.markForDeletion(staleExportMasks);
+            _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
+        }
+
+        _log.info("Export Mask cleanup activity done");
     }
 }

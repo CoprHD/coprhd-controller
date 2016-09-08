@@ -40,7 +40,6 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
-import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
@@ -707,8 +706,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
                     && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
-                ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
                 info("Deactivating Cluster: " + clusterId);
+                ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
             } else {
                 info("Unable to delete cluster " + clusterId);
             }

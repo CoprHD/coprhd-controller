@@ -862,7 +862,7 @@ public class StorageSystems extends ViprResourceController {
 
         public String secretKey;
 
-        public boolean useSSL;
+        public Boolean useSSL;
 
         public Integer resourceLimit;
         public String resourceType;

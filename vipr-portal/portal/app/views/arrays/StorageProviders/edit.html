@@ -49,7 +49,7 @@
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem() || smisProvider.interfaceType === 'ibmxiv'">
+      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem()" ng-disabled="isProviderXIV()">
         <boolean-checkbox></boolean-checkbox>
       </control-group>
 

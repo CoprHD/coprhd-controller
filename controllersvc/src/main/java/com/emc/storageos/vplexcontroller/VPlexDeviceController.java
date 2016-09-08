@@ -3229,8 +3229,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
                     List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
-                    List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
-                    List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                    List<Initiator> initiators = new ArrayList<>();
+                    if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                        initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
+                    }
 
                     ExportMaskValidationContext ctx = new ExportMaskValidationContext();
                     ctx.setStorage(vplex);

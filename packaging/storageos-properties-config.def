@@ -2731,7 +2731,7 @@
         tag : "Other",
         reconfigRequired : false,
         rebootRequired : true,
-        controlNodeOnly : false,
+        controlNodeOnly : true,
         value : "5",
     },
 ]

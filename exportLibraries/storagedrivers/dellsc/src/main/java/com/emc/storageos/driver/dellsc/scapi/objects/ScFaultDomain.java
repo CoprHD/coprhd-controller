@@ -22,4 +22,8 @@ package com.emc.storageos.driver.dellsc.scapi.objects;
 public class ScFaultDomain extends ScObject {
     public String name;
     public String transportType;
+    public String iscsiName;
+    public String targetIpv4Address;
+    public String subnetMask;
+    public String gateway;
 }

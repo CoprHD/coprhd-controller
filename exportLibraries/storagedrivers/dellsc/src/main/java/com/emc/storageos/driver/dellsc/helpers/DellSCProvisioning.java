@@ -220,8 +220,10 @@ public class DellSCProvisioning {
         StringBuilder errBuffer = new StringBuilder();
         int volumesMapped = 0;
         Set<StoragePort> usedPorts = new HashSet<>();
-        Map<String, StoragePort> discoveredPorts = new HashMap<>();
         String preferredController = null;
+
+        // Cache of controller port instance IDs to StoragePort objects
+        Map<String, StoragePort> discoveredPorts = new HashMap<>();
 
         // See if a max port count has been specified
         int maxPaths = -1;

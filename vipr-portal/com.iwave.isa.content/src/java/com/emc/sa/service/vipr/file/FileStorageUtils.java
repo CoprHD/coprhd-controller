@@ -135,8 +135,18 @@ public class FileStorageUtils {
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
-        logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
+        logInfo("file.storage.filesystem.task", task.getResourceId(), task.getOpId());
         return fileSystemId;
+    }
+
+    public static URI createFileSystemWithoutRollBack(URI project, URI virtualArray, URI virtualPool, String label,
+            double sizeInGb, int advisoryLimit,
+            int softLimit, int gracePeriod) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
+                virtualArray, project));
+        addAffectedResource(task);
+        logInfo("file.storage.filesystem.task", task.getResourceId(), task.getOpId());
+        return task.getResourceId();
     }
 
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
@@ -245,13 +255,20 @@ public class FileStorageUtils {
 
     public static String createFileSystemExport(URI fileSystemId, String comment, String security, String permissions, String rootUser,
             List<String> exportHosts, String subDirectory) {
+        Task<FileShareRestRep> task = createFileSystemExportWithoutRollBack(fileSystemId, comment, security, permissions, rootUser,
+                exportHosts, subDirectory);
+        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
+        String exportId = task.getResourceId().toString();
+        logInfo("file.storage.export.task", exportId, task.getOpId());
+        return exportId;
+    }
+
+    public static Task<FileShareRestRep> createFileSystemExportWithoutRollBack(URI fileSystemId, String comment, String security,
+            String permissions, String rootUser, List<String> exportHosts, String subDirectory) {
         Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permissions,
                 rootUser, exportHosts, subDirectory));
         addAffectedResource(task);
-        String exportId = task.getResourceId().toString();
-        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
-        logInfo("file.storage.export.task", exportId, task.getOpId());
-        return exportId;
+        return task;
     }
 
     public static String createFileSnapshotExport(URI fileSnapshotId, String comment, FileExportRule exportRule, String subDirectory) {
@@ -584,7 +601,7 @@ public class FileStorageUtils {
         return execute(new GetNfsMountsforFileSystem(fileSystemId));
     }
 
-    public static Task<FileShareRestRep> mountNfsExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
+    public static Task<FileShareRestRep> mountNFSExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
             String security, String fsType) {
         FileSystemMountParam param = new FileSystemMountParam(hostId, subDirectory, security, mountPath, fsType);
         Task<FileShareRestRep> task = execute(new MountFSExport(fileSystemId, param));

@@ -863,7 +863,7 @@ test_19() {
     verify_export ${HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${HOST1} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST1ID}
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST1ID}"
     verify_export ${HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
     verify_export ${HOST1} 2 1
@@ -879,7 +879,7 @@ test_20() {
     runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST2ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} gone
     runcmd export_group delete $PROJECT/${expname}1
@@ -901,12 +901,12 @@ test_21() {
     expname=${EXPORT_GROUP_NAME}t21
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host
     runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
+    runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
+    runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST2ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST2ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} gone
     runcmd export_group delete $PROJECT/${expname}1
@@ -946,27 +946,27 @@ test_22() {
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --remHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$clusterXP --remHosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --addHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$clusterXP --addHosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --remHosts ${HOST1ID},${HOST2ID},${HOST3ID}
+    runcmd export_group update ${PROJECT}/$clusterXP --remHosts "${HOST1ID},${HOST2ID},${HOST3ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} gone
     verify_export ${HOST3} gone
-    runcmd export_group update ${PROJECT}/$clusterXP --addClusters ${CLUSTERID}
+    runcmd export_group update ${PROJECT}/$clusterXP --addClusters "${CLUSTERID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$hostXP --remHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$hostXP --remHosts "${HOST1ID}"
     verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$hostXP --addHosts ${HOST1ID}
+    runcmd export_group update ${PROJECT}/$hostXP --addHosts "${HOST1ID}"
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1

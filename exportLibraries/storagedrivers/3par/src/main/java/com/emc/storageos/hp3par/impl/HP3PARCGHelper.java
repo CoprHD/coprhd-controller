@@ -137,10 +137,12 @@ public class HP3PARCGHelper {
 				}
 
 				String generatedSnapshotName = snap.getDisplayName();
-				if (noOfSnaps > 1)
+				if (noOfSnaps > 1) {
 				VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-";
-				else
+				}
+				else {
 					VVsetSnapshotName = generatedSnapshotName;
+				}
 				_log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ", VVsetSnapshotName);
 				break;
 

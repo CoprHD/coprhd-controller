@@ -572,7 +572,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
             List<BlockSnapshot> groupSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, dbClient);
 
-            if (groupSnapshots.size() >= 1 &&
+            if (!groupSnapshots.isEmpty() &&
                     ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)) {
                 // make sure we delete only snapshots from the same consistency group
                 List<BlockSnapshot> snapshotsToDelete = new ArrayList<>();

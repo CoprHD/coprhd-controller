@@ -257,7 +257,7 @@ class Host(object):
             request['boot_volume'] = volume_id
 
         if(updateExports is not None):
-            host_uri = host_uri + "?update_exports=" + updateExports
+            hostUri = hostUri + "?update_exports=" + updateExports
 
         restapi = Host.URI_HOST_DETAILS.format(hostUri)
 

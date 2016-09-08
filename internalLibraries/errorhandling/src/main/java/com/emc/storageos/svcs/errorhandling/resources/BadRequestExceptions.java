@@ -3095,4 +3095,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVolumeName(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportGroupContainsMountedVolumesInvalidParam();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportGroupContainsMountedVolumes(final URI exportGroup, final String volumes);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotExecuteOperationWhilePendingEvent(final String string);
 }

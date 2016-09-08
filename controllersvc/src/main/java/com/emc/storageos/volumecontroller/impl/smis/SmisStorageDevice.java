@@ -73,7 +73,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.CloneOperations;
-import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.MetaVolumeOperations;
@@ -104,7 +103,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchron
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
@@ -130,16 +128,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private SRDFOperations _srdfOperations;
     private SmisStorageDevicePreProcessor _smisStorageDevicePreProcessor;
     private FindProviderFactory findProviderFactory;
-    private ControllerLockingService _locker;
-    private ValidatorFactory validator;
-
-    public void setValidator(ValidatorFactory validator) {
-        this.validator = validator;
-    }
-
-    public void setLocker(final ControllerLockingService locker) {
-        this._locker = locker;
-    }
 
     public void setCimObjectPathFactory(final CIMObjectPathFactory cimObjectPathFactory) {
         _cimPath = cimObjectPathFactory;
@@ -207,8 +195,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Create Volume Start - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
+        StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
         // volumeGroupObjectPath is required for VMAX3
-        CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(storageSystem, volumes.get(0), storagePool);
+        CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(forProvider, storageSystem, volumes.get(0), storagePool);
         List<String> volumeLabels = new ArrayList<>();
 
         for (Volume volume : volumes) {
@@ -266,7 +255,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
             CIMArgument[] outArgs = new CIMArgument[5];
-            StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
             _helper.invokeMethod(forProvider, configSvcPath,
                     _helper.createVolumesMethodName(forProvider), inArgs, outArgs);
             CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
@@ -597,8 +585,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<Volume> volumes, final TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         try {
-            int volumeCount = 0;
-            String[] volumeNativeIds = new String[volumes.size()];
+            List<String> volumeNativeIds = new ArrayList<String>();
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Delete Volume Start - Array:%s", storageSystem.getSerialNumber()));
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
@@ -652,9 +639,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     // COP-16705, COP-21770 - Ingested non-exported Volume may be associated with SG outside of ViPR.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
-                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
-                        volumes.get(0));
-                CIMInstance volumeInstance = _helper.checkExists(forProvider,
+
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
                         _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
                 if (volumeInstance == null) {
@@ -712,7 +698,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                     cloneVolumes.add(volume);
                 }
-                volumeNativeIds[volumeCount++] = volume.getNativeId();
+                volumeNativeIds.add(volume.getNativeId());
             }
             _log.info(logMsgBuilder.toString());
 
@@ -731,7 +717,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
                 CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
                 CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storageSystem,
-                        volumeNativeIds);
+                        volumeNativeIds.toArray(new String[0]));
                 CIMArgument[] outArgs = new CIMArgument[5];
                 String returnElementsMethod;
                 if (storageSystem.getUsingSmis80()) {

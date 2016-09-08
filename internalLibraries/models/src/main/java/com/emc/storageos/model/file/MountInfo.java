@@ -77,7 +77,7 @@ public class MountInfo {
         StringBuffer strMount = new StringBuffer();
 
         String subDirPath = "";
-        if (getSubDirectory() != null && getSubDirectory().equalsIgnoreCase("!nodir")) {
+        if (getSubDirectory() != null && !getSubDirectory().isEmpty()) {
             subDirPath = "/" + getSubDirectory();
         }
         strMount.append(getHostId()).append(";")

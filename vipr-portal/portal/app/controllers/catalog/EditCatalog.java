@@ -167,7 +167,8 @@ public class EditCatalog extends ServiceCatalog {
     }
 
     private static void addExecutionWindowsToRenderArgs() {
-        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows();
+        // Query windows by current chosen tenant id. By default it's home tenant.
+        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows( URI.create(Models.currentAdminTenant()) );
         renderArgs.put("executionWindows", executionWindows);
     }
 

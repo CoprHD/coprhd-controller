@@ -3579,6 +3579,21 @@ rp_vpool_setup()
     fi
 }
 
+rp_network_setup()
+{
+    if [ $DISCOVER_SAN -eq 1 ]; then
+        # Do once
+        nsys=`networksystem list | wc -l`
+        [ "$nsys" -gt 0 ] && return;
+
+        #Discover the Brocade SAN switch.
+        secho "RecoverPoint network setup"
+        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        secho "Sleeping 30 seconds..."
+        sleep 30
+    fi
+}
+
 rp_varray_setup()
 {
     secho 'RecoverPoint varray setup'
@@ -5335,6 +5350,7 @@ recoverpoint_simulator_setup()
 recoverpoint_common_setup()
 {
     project_setup
+    rp_network_setup
     rp_varray_setup
     rp_storage_setup
     rp_port_setup
@@ -6639,7 +6655,8 @@ common_setup()
 	    DISCOVER_SAN=1
 	fi
 
-	if [ "${SS}" == "recoverpoint" ]; then
+	# RecoverPoint doesn't need zone setup, it uses its own zone setup
+	if [ "${SS}" != "recoverpoint" ]; then
 	  zone_setup
 	  run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
 	fi

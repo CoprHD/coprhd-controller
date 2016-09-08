@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 from common import SOSError
 
 
+
 class StorageProvider(object):
 
     URI_STORAGEPROVIDER_LIST = '/vdc/storage-providers'
@@ -54,7 +55,7 @@ class StorageProvider(object):
                 'secondary_url': secondary_url
             }
         )
-
+        
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST",
             StorageProvider.URI_STORAGEPROVIDER_LIST,
@@ -121,6 +122,7 @@ class StorageProvider(object):
                 'secondary_url': secondary_url
             }
         )
+        
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "PUT",
@@ -265,24 +267,37 @@ def storageprovider_create(args):
     if (args.user and len(args.user) > 0):
         passwd = common.get_password("storage provider")
     
-    secondary_password = None
     secondary_url = None
-    if (args.secondary_username and len(args.secondary_username) > 0):
-        secondary_password = common.get_password("secondary password")
-
     try:
         if (not args.usessl):
             args.usessl = False
 
         if (args.interface =="ibmxiv") :
-            if(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is None ):
-                common.format_err_msg_and_raise ("create","storageprovider","Secondary Username missing",SOSError.NOT_FOUND_ERR)			
-                		    
-            if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
+            if(not args.usessl):
+                args.usessl = True 
+            if(args.hyperScaleHost is None  and args.hyperScalePort is None and args.secondary_username is None):
+                args.hyperScaleHost = None
+                args.hyperScalePort = None
+                args.secondary_username = None
+                args.secondary_password = None
+            elif((args.hyperScaleHost is None ) or (args.hyperScalePort is None)):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Either Secondary Host or Port was missing ")
+            elif((args.hyperScaleHost is "") or (args.hyperScalePort is "")):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Either Secondary Host or Port was missing ")
+            elif(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is None ):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Secondary Username was missing ")   
+            elif(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
-            elif(args.hyperScaleHost is not None or args.hyperScalePort is not None):
-			    common.format_err_msg_and_raise ("create","storageprovider","Hypercale Host or Port Missing",SOSError.NOT_FOUND_ERR)
-
+            elif(args.hyperScaleHost is not ""  and args.hyperScalePort is not ""  and args.secondary_username is "" ):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Secondary Username was missing ")   
+            elif(args.hyperScaleHost is not "" and args.hyperScalePort is not "" and args.secondary_username is not "") :
+                secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
+        
+        secondary_password = None
+        if (args.secondary_username and len(args.secondary_username) > 0):
+            secondary_password = common.get_password("secondary password")
+            		
+                		    
         res = obj.create(args.name, args.providerip, args.providerport,
                          args.user, passwd, args.usessl, args.interface, args.sio_cli, args.element_manager_url,
                             args.secondary_username, secondary_password, secondary_url)
@@ -376,19 +391,28 @@ def storageprovider_update(args):
         
         if (not args.usessl):
             args.usessl = False
+        if (args.interface =="ibmxiv") :
+            if(not args.usessl):
+                args.usessl = True 
+            if(args.hyperScaleHost is None  and args.hyperScalePort is None and args.secondary_username is None):
+                args.hyperScaleHost = None
+                args.hyperScalePort = None
+                args.secondary_username = None
+                args.secondary_password = None
+            elif((args.hyperScaleHost is None ) or (args.hyperScalePort is None)):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Either Secondary Host or Port was missing ")
+            elif((args.hyperScaleHost is "") or (args.hyperScalePort is "")):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Either Secondary Host or Port was missing ")
+            elif(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is None ):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Secondary Username was missing ")   
+            elif(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is not None) :
+                secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
+            elif(args.hyperScaleHost is not ""  and args.hyperScalePort is not ""  and args.secondary_username is "" ):
+                raise SOSError(SOSError.CMD_LINE_ERR,"Secondary Username was missing ")   
+            elif(args.hyperScaleHost is not "" and args.hyperScalePort is not "" and args.secondary_username is not "") :
+                secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
             
         secondary_password = None
-        if (args.interface =="ibmxiv") :
-            if(args.hyperScaleHost is not None and args.hyperScalePort is not None and args.secondary_username is None ):
-                common.format_err_msg_and_raise ("update","storageprovider","Secondary Username missing",None)
-            if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
-                secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
-            elif(args.hyperScaleHost is not None or args.hyperScalePort is not None):
-			    common.format_err_msg_and_raise ("update","storageprovider","Hypercale Host or Port Missing",SOSError.NOT_FOUND_ERR)
-			
-				
-				
-
         if (args.secondary_username and len(args.secondary_username) > 0):
             secondary_password = common.get_password("secondary password")
 

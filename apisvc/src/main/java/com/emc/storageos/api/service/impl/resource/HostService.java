@@ -555,7 +555,7 @@ public class HostService extends TaskResourceService {
                 (host == null ? Boolean.FALSE : host.getDiscoverable()) :
                 hostParam.getDiscoverable();
 
-        boolean vCenterManaged = Host.HostType.Esx.name().equals(host.getType())
+        boolean vCenterManaged = host == null ? false : Host.HostType.Esx.name().equals(host.getType())
                 && !NullColumnValueGetter.isNullURI(host.getVcenterDataCenter());
 
         // If discoverable, ensure username and password are set in the current host or parameters

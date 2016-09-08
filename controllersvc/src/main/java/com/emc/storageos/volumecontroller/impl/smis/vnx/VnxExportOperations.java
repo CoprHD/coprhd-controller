@@ -28,6 +28,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -252,7 +253,12 @@ public class VnxExportOperations implements ExportMaskOperations {
                 }
             }
 
-            validator.exportMaskDelete(storage, exportMask, volumeURIList, initiatorList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setInitiators(initiatorList);
+            validator.exportMaskDelete(ctx).validate();
 
             CIMObjectPath protocolController = _cimPath.getClarProtocolControllers(storage, nativeId)[0];
             CIMInstance instance = _helper.checkExists(storage, protocolController, true, true);
@@ -516,7 +522,12 @@ public class VnxExportOperations implements ExportMaskOperations {
             }
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            validator.removeInitiators(storage, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(context == null);
+            validator.removeInitiators(ctx).validate();
 
             deleteStorageHWIDs(storage, initiatorList);
             taskCompleter.ready(_dbClient);
@@ -817,7 +828,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
                 _networkDeviceController.refreshZoningMap(mask,
-                        initiatorsToRemove, Collections.emptyList(),
+                        initiatorsToRemove, Collections.<String>emptyList(),
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }

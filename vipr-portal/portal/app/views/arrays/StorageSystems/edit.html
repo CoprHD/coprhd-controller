@@ -198,6 +198,7 @@
         }
         
         var useSSL = calculateUseSSL(target, storageArrayType, targetCheckboxIsOriginalTarget)
+
         if (useSSL) {
             storageArrayType += "_useSSL";
         }
@@ -317,7 +318,7 @@
                 	$('#storageArray_hyperScaleUsernameControlGroup').show();
                 	$('#storageArray_hyperScalePasswordControlGroup').show();
                 	$('#storageArray_hyperScalePasswordConfirmControlGroup').show();
-                	$('#storageArray_useSSLControlGroup').hide();
+					$('#storageArray_useSSL').attr('disabled', true);
                 } else {
                 	$('#storageArray_userNameControlGroup').show();
                 	$('#storageArray_userPasswordControlGroup').show();
@@ -397,7 +398,7 @@
 	        } else {
 	            $('fieldset.onboardSmisProvider').hide();            
 	        }	  		
-      }            
+      }
     }
     
     function handleListPools() {

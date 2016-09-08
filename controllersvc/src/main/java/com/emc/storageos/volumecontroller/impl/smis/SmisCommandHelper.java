@@ -3981,11 +3981,7 @@ public class SmisCommandHelper implements SmisConstants {
             _log.info("Storage Group exists already for given volume's fast Policies -->{}",
                     Joiner.on("\t").join(storageGroupPolicyLimitsParamSet));
 
-            Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = getExistingSGNamesFromArray(storage);
-            Set<String> existingGroupNames = new HashSet<>();
-            for (Set<String> groupNames : allStorageGroups.values()) {
-                existingGroupNames.addAll(groupNames);
-            }
+            Set<String> existingGroupNames = getExistingStorageGroupsFromArray(storage);
 
             /**
              * At this point, volumes with expected fast policies might have been already grouped. A
@@ -4072,12 +4068,13 @@ public class SmisCommandHelper implements SmisConstants {
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
         // replace "+" in the group name with "-" to make sure that we do not hit limitation on vmax3 for group names with
         // "+" and do not return false positive here for such a mask. For example, mask with "+"s does not exist on array, but
-        // when we replace "+"s bu "_"s we hit the existing mask on device.
+        // when we replace "+"s bu "_"s we hit the existing mask on device. We will also convert them to lower case to avoid
+        // hitting case sensitive issue during the search
         String storageGroupNameTemp = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
         _log.info("Converted storage group name from {} to {} .", storageGroupName, storageGroupNameTemp);
         String result = storageGroupNameTemp;
         // Is 'storageGroupName' already in the list of existing names?
-        if (existingGroupNames.contains(storageGroupNameTemp)) {
+        if (existingGroupNames.contains(storageGroupNameTemp.toLowerCase())) {
             // Yes -- name is already in the existing group name list. We're going to have to generate a unique name by
             // using an appended
             // numeric index. The format will be storageGroupName_<[N]>, where N is a number between 1 and the size of
@@ -4087,7 +4084,7 @@ public class SmisCommandHelper implements SmisConstants {
                 // Generate an indexed name ...
                 result = String.format("%s_%d", storageGroupNameTemp, index);
                 // If the indexed name does not exist, then exit the loop and return 'result'
-                if (!existingGroupNames.contains(result)) {
+                if (!existingGroupNames.contains(result.toLowerCase())) {
                     break;
                 }
             }
@@ -4199,6 +4196,32 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Get Existing Storage Group Names
+     *
+     * @param storage
+     * @return
+     */
+    public Set<String> getExistingStorageGroupsFromArray(StorageSystem storage) {
+        CloseableIterator<CIMInstance> groupInstanceItr = null;
+        Set<String> storageGroupNames = new HashSet<String>();
+        try {
+            CIMObjectPath storageGroupPath = CimObjectPathCreator.createInstance(
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), ROOT_EMC_NAMESPACE);
+            groupInstanceItr = getEnumerateInstances(storage, storageGroupPath, SmisConstants.PS_ELEMENT_NAME);
+            while (groupInstanceItr.hasNext()) {
+                CIMInstance groupInstance = groupInstanceItr.next();
+                storageGroupNames.add((groupInstance.getPropertyValue(CP_ELEMENT_NAME).toString()).toLowerCase());
+            }
+        } catch (Exception e) {
+            _log.warn("Get Existing port Group Names failed", e);
+        } finally {
+            closeCIMIterator(groupInstanceItr);
+        }
+        return storageGroupNames;
+
+    }
+
+    /**
      * Get Existing Port Group Names
      *
      * @param storage
@@ -4213,7 +4236,7 @@ public class SmisCommandHelper implements SmisConstants {
             groupInstanceItr = getEnumerateInstances(storage, portMaskingGroupPath, SmisConstants.PS_ELEMENT_NAME);
             while (groupInstanceItr.hasNext()) {
                 CIMInstance groupInstance = groupInstanceItr.next();
-                portGroupNames.add(groupInstance.getPropertyValue(CP_ELEMENT_NAME).toString());
+                portGroupNames.add((groupInstance.getPropertyValue(CP_ELEMENT_NAME).toString()).toLowerCase());
             }
         } catch (Exception e) {
             _log.warn("Get Existing port Group Names failed", e);
@@ -4239,7 +4262,7 @@ public class SmisCommandHelper implements SmisConstants {
             groupInstanceItr = getEnumerateInstances(storage, portMaskingGroupPath, SmisConstants.PS_ELEMENT_NAME);
             while (groupInstanceItr.hasNext()) {
                 CIMInstance groupInstance = groupInstanceItr.next();
-                initiatorGroupNames.add(groupInstance.getPropertyValue(CP_ELEMENT_NAME).toString());
+                initiatorGroupNames.add((groupInstance.getPropertyValue(CP_ELEMENT_NAME).toString()).toLowerCase());
             }
         } catch (Exception e) {
             _log.warn("Get Existing initiator Group Names failed", e);

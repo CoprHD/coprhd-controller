@@ -41,8 +41,8 @@ public class ServiceCatalog extends Controller {
     private static final String SERVICE_CATALOG = "SERVICE_CATALOG";
     private static final String CATALOG_EXPIRE = "10min";
 
-    public static void view() {
-        Map<String, CategoryDef> catalog = getCatalog(Models.currentAdminTenant());
+    public static void view(String source) {
+        Map<String, CategoryDef> catalog = getCatalog(Models.currentAdminTenant(), source);
         Map<String, List<BreadCrumb>> breadcrumbs = createBreadCrumbs(catalog);
         TenantSelector.addRenderArgs();
         render(catalog, breadcrumbs);
@@ -63,7 +63,7 @@ public class ServiceCatalog extends Controller {
 
     @Util
     public static CategoryDef getCatalogRoot(String tenantId) {
-        Map<String, CategoryDef> catalog = getCatalog(tenantId);
+        Map<String, CategoryDef> catalog = getCatalog(tenantId, null);
 
         for (CategoryDef categoryDef : catalog.values()) {
             if (categoryDef.parentId == null) {
@@ -81,7 +81,7 @@ public class ServiceCatalog extends Controller {
     }
 
     @Util
-    public static Map<String, CategoryDef> getCatalog(String tenantId) {
+    public static Map<String, CategoryDef> getCatalog(String tenantId, String source) {
         // change service catalog cache from by tenant to by tenant_user, as based on user's
         // roles and ACLs of every catalog, different users will have different views.
         String cacheKey = SERVICE_CATALOG + "." + tenantId + "." + Security.getUserInfo().getIdentifier();
@@ -89,7 +89,7 @@ public class ServiceCatalog extends Controller {
         if (catalog == null) {
             Logger.debug("Creating catalog cache for " + cacheKey);
 
-            catalog = createCatalog(tenantId);
+            catalog = createCatalog(tenantId, source);
             Cache.set(cacheKey, catalog, CATALOG_EXPIRE);
         }
         else {
@@ -98,9 +98,9 @@ public class ServiceCatalog extends Controller {
         return catalog;
     }
 
-    private static Map<String, CategoryDef> createCatalog(String tenantId) {
+    private static Map<String, CategoryDef> createCatalog(String tenantId, String source) {
         Map<String, CategoryDef> catalog = Maps.newLinkedHashMap();
-        CategoryDef root = createCategory(CatalogCategoryUtils.getRootCategory(uri(tenantId)), null);
+        CategoryDef root = createCategory(CatalogCategoryUtils.getRootCategory(uri(tenantId)), null, source);
         addCategories(root, catalog);
         return catalog;
     }
@@ -112,7 +112,7 @@ public class ServiceCatalog extends Controller {
         }
     }
 
-    private static CategoryDef createCategory(CatalogCategoryRestRep category, String path) {
+    private static CategoryDef createCategory(CatalogCategoryRestRep category, String path, String source) {
         CategoryDef def = new CategoryDef();
         def.id = category.getId().toString();
         def.name = category.getName();
@@ -127,9 +127,9 @@ public class ServiceCatalog extends Controller {
             def.services.add(createService(catalogService, def.path));
         }
 
-        List<CatalogCategoryRestRep> subCategories = CatalogCategoryUtils.getCatalogCategories(category);
+        List<CatalogCategoryRestRep> subCategories = CatalogCategoryUtils.getCatalogCategories(category, source);
         for (CatalogCategoryRestRep subCategory : subCategories) {
-            def.categories.add(createCategory(subCategory, def.path));
+            def.categories.add(createCategory(subCategory, def.path, source));
         }
         return def;
     }
@@ -192,7 +192,7 @@ public class ServiceCatalog extends Controller {
     public static List<BreadCrumb> createBreadCrumbs(String tenantId, CatalogServiceRestRep service) {
         RelatedResourceRep categoryId = service.getCatalogCategory();
         String parentId = getParentId(categoryId);
-        List<BreadCrumb> breadcrumbs = createBreadCrumbs(parentId, getCatalog(tenantId));
+        List<BreadCrumb> breadcrumbs = createBreadCrumbs(parentId, getCatalog(tenantId, null));
         String id = service.getId() != null ? service.getId().toString() : "";
         addBreadCrumb(breadcrumbs, id, service.getName(), service.getTitle());
         return breadcrumbs;
@@ -207,7 +207,7 @@ public class ServiceCatalog extends Controller {
      */
     @Util
     public static List<BreadCrumb> createBreadCrumbs(String tenantId, CatalogCategoryRestRep category) {
-        return createBreadCrumbs(category.getId().toString(), getCatalog(tenantId));
+        return createBreadCrumbs(category.getId().toString(), getCatalog(tenantId, null));
     }
 
     /**

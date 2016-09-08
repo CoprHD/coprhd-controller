@@ -93,7 +93,7 @@ public class EditCatalog extends ServiceCatalog {
     protected static final String EDIT_CATEGORY_KEY = "Category.edit.title";
 
     public static void edit() {
-        Map<String, CategoryDef> catalog = getCatalog(Models.currentAdminTenant());
+        Map<String, CategoryDef> catalog = getCatalog(Models.currentAdminTenant(), null);
         Map<String, List<BreadCrumb>> breadcrumbs = createBreadCrumbs(catalog);
 
         boolean catalogUpdateAvailable = CatalogCategoryUtils.isUpdateAvailable(uri(Models.currentAdminTenant()));
@@ -111,7 +111,7 @@ public class EditCatalog extends ServiceCatalog {
      * @return the URL for accessing the category in the catalog.
      */
     private static String getCategoryUrl(String tenantId, String categoryId) {
-        Map<String, CategoryDef> catalog = getCatalog(tenantId);
+        Map<String, CategoryDef> catalog = getCatalog(tenantId, null);
         CategoryDef category = catalog.get(categoryId);
         String path = category != null ? category.path : "";
         return Common.reverseRoute(EditCatalog.class, "edit") + "#" + path;
@@ -189,7 +189,7 @@ public class EditCatalog extends ServiceCatalog {
     }
 
     private static void addBreadCrumbToRenderArgs(String tenantId, CategoryForm form) {
-        Map<String, CategoryDef> catalog = getCatalog(tenantId);
+        Map<String, CategoryDef> catalog = getCatalog(tenantId, null);
         if (form.id != null) {
             List<BreadCrumb> breadcrumbs = createBreadCrumbs(form.id, catalog);
             addBreadCrumb(breadcrumbs, MessagesUtils.get(EDIT_CATEGORY_KEY));
@@ -205,7 +205,7 @@ public class EditCatalog extends ServiceCatalog {
     }
 
     private static void addBreadCrumbToRenderArgs(String tenantId, ServiceForm form) {
-        Map<String, CategoryDef> catalog = getCatalog(tenantId);
+        Map<String, CategoryDef> catalog = getCatalog(tenantId, null);
         List<BreadCrumb> breadcrumbs = createBreadCrumbs(form.owningCategoryId, catalog);
         if (form.id != null) {
             addBreadCrumb(breadcrumbs, form.title);
@@ -232,7 +232,7 @@ public class EditCatalog extends ServiceCatalog {
 
     private static void addCategoriesToRenderArgs(String tenantId, String categoryId) {
         List<CategoryPath> categories = new ArrayList<CategoryPath>();
-        Map<String, CategoryDef> catalog = getCatalog(tenantId);
+        Map<String, CategoryDef> catalog = getCatalog(tenantId, null);
         for (CategoryDef category : catalog.values()) {
             // Do not add descendants of the specified category, it would cause a circular reference if you tried
             // assigning a descendant as its parent
@@ -288,7 +288,7 @@ public class EditCatalog extends ServiceCatalog {
 
     private static void showCategory(String tenantId, String categoryId) {
         if (StringUtils.isNotBlank(categoryId)) {
-            CategoryDef category = getCatalog(tenantId).get(categoryId);
+            CategoryDef category = getCatalog(tenantId, null).get(categoryId);
             if (category != null) {
                 flash.put("categoryId", categoryId);
                 flash.put("categoryPath", category.path);
@@ -491,7 +491,7 @@ public class EditCatalog extends ServiceCatalog {
         List<CatalogCategoryRestRep> catalogCategories = null;
         if (StringUtils.isNotBlank(id)) {
             CatalogCategoryRestRep parent = CatalogCategoryUtils.getCatalogCategory(uri(id));
-            catalogCategories = CatalogCategoryUtils.getCatalogCategories(parent);
+            catalogCategories = CatalogCategoryUtils.getCatalogCategories(parent, null);
         }
         render(catalogCategories);
     }
@@ -980,7 +980,7 @@ public class EditCatalog extends ServiceCatalog {
         }
         CatalogCategoryRestRep parentCatalogCategory = CatalogCategoryUtils.getCatalogCategory(uri(parentId));
         if (parentCatalogCategory != null) {
-            List<CatalogCategoryRestRep> subCatalogCategories = CatalogCategoryUtils.getCatalogCategories(parentCatalogCategory);
+            List<CatalogCategoryRestRep> subCatalogCategories = CatalogCategoryUtils.getCatalogCategories(parentCatalogCategory, null);
             for (CatalogCategoryRestRep subCatalogCategory : subCatalogCategories) {
                 if (subCatalogCategory.getId().toString().equals(id) == false
                         && name.equalsIgnoreCase(subCatalogCategory.getName())) {

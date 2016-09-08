@@ -136,7 +136,7 @@ public class CatalogApi extends OrderExecution {
                     return catalogService;
                 }
             }
-            List<CatalogCategoryRestRep> subCatalogCategories = CatalogCategoryUtils.getCatalogCategories(category);
+            List<CatalogCategoryRestRep> subCatalogCategories = CatalogCategoryUtils.getCatalogCategories(category, null);
             for (CatalogCategoryRestRep subCatalogCategory : subCatalogCategories) {
                 if (StringUtils.equalsIgnoreCase(subPath, subCatalogCategory.getName())) {
                     return subCatalogCategory;

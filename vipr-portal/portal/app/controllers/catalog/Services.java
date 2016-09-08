@@ -57,7 +57,7 @@ public class Services extends Controller {
             String path = "";
             URI categoryId = service.getCatalogCategory().getId();
             if (categoryId != null) {
-                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant());
+                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant(), null);
                 CategoryDef category = catalog.get(categoryId.toString());
                 path = (category != null) ? category.path : path;
             }

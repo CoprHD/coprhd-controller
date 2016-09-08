@@ -898,7 +898,6 @@ public class VPlexBackendManager {
                 			exportGroup.getId(), maskURIs, _dbClient);
             
             HashSet<URI> volumes = new HashSet<URI>(volumeLunIdMap.keySet());
-            maskURIs.add(exportMask.getId());
             Workflow.Method zoneCreateMethod = _networkDeviceController
                     .zoneExportAddVolumesMethod(exportGroup.getId(), maskURIs, volumes);
             Workflow.Method zoneDeleteMethod = _networkDeviceController

@@ -9,6 +9,7 @@ import static util.BourneUtil.getViprClient;
 import static util.BourneUtil.getSysClient;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import javax.ws.rs.core.Response;
@@ -50,6 +51,9 @@ public class StorageSystemTypeUtils {
         getSysClient().storageDriver().install(addparam);
     }
 
+    public static StorageSystemTypeAddParam uploadStorageDriver(File f, String name) throws FileNotFoundException {
+        return getSysClient().storageDriver().upload(f, name);
+    }
 	// Keeping commented code for future use.
 	//public static ClientResponse uploadDriver(MultiPart deviceDriverFile) {
 	//	return getViprClient().storageSystemType().uploadDeviceDriver(deviceDriverFile);

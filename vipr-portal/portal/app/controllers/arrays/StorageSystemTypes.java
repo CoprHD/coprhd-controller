@@ -131,16 +131,12 @@ public class StorageSystemTypes extends ViprResourceController {
             create();
         }
 
-        File dest = new File(String.format(TMP_DRIVER_FORMAT, deviceDriverFile.getName()));
-        if (dest.exists()) {
-            dest.delete();
-        }
-
-        Files.copy(deviceDriverFile.toPath(), dest.toPath());
-        StorageSystemType type = parseDriver(dest.getAbsolutePath());
+        String filename = deviceDriverFile.getName();
+        StorageSystemTypeAddParam addParam = StorageSystemTypeUtils.uploadStorageDriver(deviceDriverFile, filename);
+//        StorageSystemType type = parseDriver(dest.getAbsolutePath());
         StorageSystemTypeForm form = new StorageSystemTypeForm(type);
-        flash.success("Storage driver has been uploaded, please confirm/edit meta data for it");
-        edit(form, dest.getName());
+//        flash.success("Storage driver has been uploaded, please confirm/edit meta data for it");
+        edit(form, addParam.getDriverFilePath());
     }
 
     public static void itemsJson(@As(",") String[] ids) {
@@ -204,6 +200,21 @@ public class StorageSystemTypes extends ViprResourceController {
         public Boolean isSecretKey = false;
 
         public StorageSystemTypeForm() {
+        }
+
+        public StorageSystemTypeForm(StorageSystemTypeAddParam params) {
+            this.name = params.getStorageTypeName();
+            this.storageSystemTypeDisplayName = params.getStorageTypeDispName();
+            this.metaType = params.getMetaType();
+            this.driverClassName = params.getDriverClassName();
+            this.isProvider = params.getIsSmiProvider();
+            this.useSSL = params.getIsDefaultSsl();
+            this.sslPortNumber = params.getSslPort();
+            this.portNumber = params.getNonSslPort();
+            this.useMDM = params.getIsDefaultMDM();
+            this.isOnlyMDM = params.getIsOnlyMDM();
+            this.isElementMgr = params.getIsElementMgr();
+            this.isSecretKey = params.getIsSecretKey();
         }
 
         public StorageSystemTypeForm(StorageSystemTypeRestRep storageSysType) {
@@ -292,10 +303,6 @@ public class StorageSystemTypes extends ViprResourceController {
             }
 
             addParams.setDriverFilePath(driverFilePath);
-            String sysEndPoint = BourneUtil.getSysApiUrl();
-            // Tricky way, must change before going into product codes
-            sysEndPoint.replace("4443", "9998");
-            addParams.setNode(sysEndPoint);
 
             StorageSystemTypeUtils.installStorageDriver(addParams);
         }
@@ -303,26 +310,5 @@ public class StorageSystemTypes extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
         }
-
-    }
-
-    private static StorageSystemType parseDriver(String path) {
-        StorageSystemType type = new StorageSystemType();
-
-        type.setStorageTypeName("typename");
-        type.setMetaType("block");
-        type.setDriverClassName("driver class");
-        type.setStorageTypeDispName("display_name");
-        type.setNonSslPort("1234");
-        type.setSslPort("4321");
-
-        type.setIsSmiProvider(false);
-        type.setIsDefaultSsl(true);
-        type.setIsDefaultMDM(false);
-        type.setIsOnlyMDM(false);
-        type.setIsElementMgr(false);
-        type.setIsSecretKey(false);
-        type.setDriverFileName(path +"_dirver_file_name");
-        return type;
     }
 }

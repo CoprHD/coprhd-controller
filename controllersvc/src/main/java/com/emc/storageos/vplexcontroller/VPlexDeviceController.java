@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -3234,7 +3235,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
                     List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-                    validator.vplex().exportMaskDelete(vplex, exportMask, volumeURIs, initiators).validate();
+
+                    ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                    ctx.setStorage(vplex);
+                    ctx.setExportMask(exportMask);
+                    ctx.setBlockObjects(volumeURIs, _dbClient);
+                    ctx.setInitiators(initiators);
+                    validator.exportMaskDelete(ctx).validate();
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
                     _log.info("removing this export mask from VPLEX: " + exportMask.getMaskName());
@@ -4523,7 +4530,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(vplex);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -4643,7 +4655,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (volumeURIList.isEmpty()) {
                         _log.warn("volume URI list for validating remove initiators is empty...");
                     }
-                    validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+                    ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                    ctx.setStorage(vplex);
+                    ctx.setExportMask(exportMask);
+                    ctx.setBlockObjects(volumeURIList, _dbClient);
+                    validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
                             vplex, workflow, exportGroup, exportMask, initsToRemove,
@@ -5151,7 +5167,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(vplex);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip

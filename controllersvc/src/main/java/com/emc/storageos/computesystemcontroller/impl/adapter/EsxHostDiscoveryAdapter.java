@@ -56,7 +56,9 @@ import com.vmware.vim25.mo.HostSystem;
 @Component
 public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
-    public static String KNOWN_DUPLICATE_UUID = "03000200-0400-0500-0006-000700080009";
+    // VMWare KB 1006250: The UUID of a host can be non unique on White box hardware.
+    // This is a known non-unique UUID
+    private static String KNOWN_DUPLICATE_UUID = "03000200-0400-0500-0006-000700080009";
 
     /**
      * Create helper API instance of VCenter to traverse tree structure of mob.

@@ -140,7 +140,12 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
             throws Exception {
         CIMInstance syncObject = _helper.getInstance(storage, syncObjectPath, false, false,
                 new String[] { SmisConstants.EMC_COPY_STATE_DESC });
-        String value = syncObject.getProperty(SmisConstants.EMC_COPY_STATE_DESC).getValue().toString();
+        CIMProperty copyState = syncObject.getProperty(SmisConstants.EMC_COPY_STATE_DESC);
+        if (copyState == null) {
+            _log.warn(String.format("Skip deactivateSnapshot because EMCCopyStateDesc is null for snapshot %s", syncObjectPath.toString()));
+            return;
+        }
+        String value = copyState.getValue().toString();
         _log.info(String.format("Attempting to deactivate snapshot %s, EMCCopyStateDesc = %s",
                 syncObjectPath.toString(), value));
         if (value.equalsIgnoreCase(SmisConstants.ACTIVE)) {

@@ -8,8 +8,6 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +21,6 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.WorkflowException;
-import com.emc.storageos.workflow.WorkflowExceptions;
 
 public class NetworkZoningParam implements Serializable {
 	private static final long serialVersionUID = 678350596864970920L;
@@ -92,7 +89,11 @@ public class NetworkZoningParam implements Serializable {
 		setExportGroupDisplay(exportGroup.forDisplay());
 		setMaskName(exportMask.getMaskName());
 		setMaskId(exportMask.getId());
-		setVolumes(StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet()));
+		if (exportMask.getVolumes() != null) {
+		    setVolumes(StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet()));
+		} else {
+		    setVolumes(new ArrayList<URI>());
+		}
 		Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
 		NetworkScheduler.checkZoningMap(exportGroup, exportMask, initiators, dbClient);
 		setZoningMap(exportMask.getZoningMap());

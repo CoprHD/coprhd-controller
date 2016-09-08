@@ -536,7 +536,7 @@ public class XIVRestClient extends StandardRestClient {
             final String lunID) throws Exception {
         
         //Check if Volume is present on Array before proceeding.
-        checkAvailability(MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volumeName));
+        //checkAvailability(MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volumeName));
         
         boolean isAvailable = false;//findAvailability(
                 //MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));

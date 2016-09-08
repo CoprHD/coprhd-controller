@@ -898,16 +898,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
 
-        if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-            throw new Exception("Export group is being updated by another operation");
-        }
-        exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
-        _dbClient.updateObject(exportGroupObject);
+        try {
+            if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
+                throw new Exception("Export group is being updated by another operation");
+            }
+            exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+            _dbClient.updateObject(exportGroupObject);
 
-        _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
-                stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
-        blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
-                newHosts, newInitiators, stepId);
+            _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                    stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+            blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
+                    newHosts, newInitiators, stepId);
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {

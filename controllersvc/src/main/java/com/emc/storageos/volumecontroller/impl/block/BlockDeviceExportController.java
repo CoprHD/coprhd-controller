@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -425,12 +424,6 @@ public class BlockDeviceExportController implements BlockExportController {
                                 addedStorageToBlockObjects.get(controllerKey),
                                 removedStorageToBlockObjects.get(controllerKey),
                                 addedInitiators, removedInitiators, controllerKey.getStorageControllerUri());
-            }
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
-            if (exportGroup != null && exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-                _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", export);
-                exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
-                _dbClient.updateObject(exportGroup);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());

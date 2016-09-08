@@ -193,6 +193,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         for (VcenterDataCenter datacenter : datacenters) {
             Iterable<Cluster> datacenterClusters = getClusters(datacenter);
             Iterable<Host> datacenterHosts = getHosts(datacenter);
+            boolean containsHosts = false;
+            boolean clustersInUse = false;
 
             for (Cluster cluster : datacenterClusters) {
                 deletedClusters.add(cluster.getId());
@@ -200,14 +202,28 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
             for (Host host : datacenterHosts) {
                 deletedHosts.add(host.getId());
+                containsHosts = true;
+            }
+
+            for (Cluster cluster : datacenterClusters) {
+                URI clusterId = cluster.getId();
+                List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+                if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
+                        && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
+                    info("Deactivating Cluster: " + clusterId);
+                    ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+                } else {
+                    info("Unable to delete cluster " + clusterId);
+                    clustersInUse = true;
+                }
             }
 
             // delete datacenters that don't contain any clusters or hosts, don't have any exports, and don't have any pending events
-            if (!datacenterClusters.iterator().hasNext() && !datacenterHosts.iterator().hasNext()
+            if (!containsHosts && !clustersInUse
                     && !ComputeSystemHelper.isDataCenterInUse(dbClient, datacenter.getId())
                     && EventUtils.findAffectedResourcePendingEvents(dbClient, datacenter.getId()).isEmpty()) {
-                ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, datacenter);
                 info("Deactivating Datacenter: " + datacenter.getId());
+                ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, datacenter);
             } else {
                 info("Unable to delete datacenter " + datacenter.getId());
             }

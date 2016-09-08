@@ -13,7 +13,7 @@ import common
 import json
 from argparse import ArgumentParser
 from common import SOSError
-from test.test_ssl import NULLBYTECERT
+
 
 
 class StorageProvider(object):

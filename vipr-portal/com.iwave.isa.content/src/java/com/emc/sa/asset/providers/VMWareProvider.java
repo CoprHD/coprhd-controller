@@ -147,7 +147,7 @@ public class VMWareProvider extends BaseHostProvider {
      */
     private void filterClusterHosts(AssetOptionsContext context, URI datacenter, String storageType, List<HostRestRep> esxHosts) {
         // Gather all ESX hosts that didn't match the filter
-        if (esxHosts != null && !esxHosts.isEmpty() && storageType.equalsIgnoreCase("shared")) {
+        if (esxHosts != null && !esxHosts.isEmpty() && storageType.equalsIgnoreCase(BlockProvider.SHARED_STORAGE.toString())) {
             List<HostRestRep> misfitEsxHosts = api(context).hosts().getByDataCenter(datacenter,
                     HostTypeFilter.ESX.and(REGISTERED.not()).or(INCOMPATIBLE).or(COMPLETE.not()));
             Set<URI> misfitEsxClusterIds = new HashSet<>();

@@ -573,8 +573,8 @@ HostClusters.editHosts.shortTitle=Edit Hosts
 HostClusters.addHosts.title=Add Hosts to Cluster
 HostClusters.addedHosts=Successfully added hosts to the cluster
 HostClusters.removedHosts=Successfully removed hosts from the cluster
-HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster. The host will lose access to the volumes it is sharing in this cluster.
-HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster and the host's current cluster. The host will lose access to the volumes it is sharing in the current cluster.
+HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster. The hosts will lose access to volumes they are sharing in this cluster.
+HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster and the host's current cluster. The hosts will be removed from their current cluster and added to this cluster. The hosts will lose access to volumes they are sharing in the current cluster.
 HostClusters.hosts=Hosts
 HostClusters.deleteClusters.title=Delete Clusters
 HostClusters.detachStorageModal=Detach Storage
@@ -2054,6 +2054,16 @@ storageArray.secondaryPasswordConfirm=Confirm MDM Password
 storageArray.secondaryPassword.confirmPassword.not.match=User MDM Password and Confirm MDM Password do not match.
 storageArray.elementManagerURL=Element Manager URL
 storageArray.secretKey=Secret key
+storageArray.hyperScaleHost=Hyper Scale Manager Host
+storageArray.hyperScaleHost.help=Enter the fully qualified domain name or IP address of the Secondary host
+storageArray.hyperScalePort=Hyper Scale Manager Port
+storageArray.hyperScaleUsername=Hyper Scale Manager User
+storageArray.hyperScalePassword=Hyper Scale Manager Password
+storageArray.hyperScalePasswordConfirm=Confirm Hyper Scale Manager Password
+storageArray.secondaryHost.secondaryPort.missing=Either Secondary Host or Port details is missing
+storageArray.parseError=Unable to parse Hyper Scale Manager URL
+storageArray.secondaryName.missing=Secondary Username required when Host and Port specified
+
 #
 # onboard SMI-S Provider
 #
@@ -2677,6 +2687,9 @@ configProperties.syslog.logs=Log Settings
 configProperties.syslog.setToZero.ip=Required ip value is empty.
 configProperties.syslog.setToZero.port=Required port value is empty.
 configProperties.syslog.setToZero.cert=Required cert is empty.
+configProperties.syslog.serverPort.unavailable=Connection to server %s failed.
+configProperties.syslog.serverPort.successful=Connection to remote syslog server was successful.
+configProperties.syslog.serverPort.validate=Test connection on servers
 configProperties.error.ipportlist=Invalid IP or Port in list.
 
 #Upgrade
@@ -4795,13 +4808,8 @@ scheduler.retention.helpText=Maximum snapshots or copies to keep.
 gettingStarted.header.full=Getting Started Guide
 gettingStarted.header.side=Return To Guide
 gettingStarted.header.side.next=Next Step
-gettingStarted.navigation.next=Next >>
-gettingStarted.navigation.previous=<< Previous
-gettingStarted.loader.welcome=Welcome to the Getting Started Guide
-gettingStarted.loader.oops=Sorry!
-gettingStarted.loader.error=An error occurred in determining your progress <br>in the Getting Started Guide.
 gettingStarted.loader.recheck=Add more Storage
-gettingStarted.loader.close=Close Guide
+gettingStarted.landing.loading=&nbsp;&nbsp;&nbsp;Loading...
 gettingStarted.loader.dismiss=No thanks, I\'ll get started on my own
 gettingStarted.landing.header=Welcome to EMC ViPR Controller
 gettingStarted.landing.text=ViPR Controller Getting Started Guide, brings easy and quick steps to create a virtual data center with EMC VMAX All Flash, EMC Unity All Flash, and XtremIO arrays.<br><br>If you are not configuring ViPR Controller with all flash arrays, or prefer a custom deployment, exit guide, and continue with ViPR Controller UI.
@@ -4810,6 +4818,8 @@ gettingStarted.landing.systemPartial=Welcome back! You\'re almost done with the 
 gettingStarted.landing.systemReady=Welcome back! You\'re done with the Getting Started Guide.
 gettingStarted.landing.initial=Guide Me
 gettingStarted.landing.partial=Resume Guide
+gettingStarted.landing.oldData=Guide data has been changed externally. Please refresh the guide to continue.
+gettingStarted.landing.updateData=Refresh Guide
 gettingStarted.landing.completed=Browse the Guide
 gettingStarted.licenses.title=Upload Licensing
 gettingStarted.licenses.text=To configure ViPR Controller, you will need a valid license (.lic) file. <br>To obtain your license file (.lic) from the EMC license management web site, you will need the License Authorization Code (LAC), which was emailed from EMC.

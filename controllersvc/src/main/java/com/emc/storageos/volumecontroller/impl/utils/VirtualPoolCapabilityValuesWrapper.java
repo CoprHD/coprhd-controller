@@ -44,9 +44,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String QUOTA = "quota";
     public static final String DEDUP = "dedup";
 
-    public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
-    public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
-    public static final String FILE_RP_COPY_MODE = "fileRpCopyMode";
+    public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
+    public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";
+    public static final String FILE_REPLICATION_COPY_MODE = "fileReplicationCopyMode";
 
     // Not vpool params, but hints for volume descriptor creation
     // TODO: Move to ControllerOperationValuesWrapper
@@ -196,16 +196,16 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(DEDUP, capabilities.getDedupCapable());
         }
 
-        if (capabilities.contains(FILE_RP_RPO_TYPE)) {
-            _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpRpoType());
+        if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getRpRpoType());
         }
 
-        if (capabilities.contains(FILE_RP_RPO_TYPE)) {
-            _vpoolCapabilities.put(FILE_RP_RPO_TYPE, capabilities.getRpCopyMode());
+        if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getRpCopyMode());
         }
 
-        if (capabilities.contains(FILE_RP_COPY_MODE)) {
-            _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
+        if (capabilities.contains(FILE_REPLICATION_COPY_MODE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_COPY_MODE, capabilities.getRpCopyMode());
         }
 
         if (capabilities.contains(COMPUTE)) {
@@ -365,17 +365,17 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     }
 
     public Long getFileRpRpoValue() {
-        Object value = _vpoolCapabilities.get(FILE_RP_RPO_VALUE);
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_RPO_VALUE);
         return value != null ? (Long) value : 0L;
     }
 
     public String getFileRpRpoType() {
-        Object value = _vpoolCapabilities.get(FILE_RP_RPO_TYPE);
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_RPO_TYPE);
         return value != null ? (String) value : null;
     }
 
     public String getFileRpCopyMode() {
-        Object value = _vpoolCapabilities.get(FILE_RP_COPY_MODE);
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_COPY_MODE);
         return value != null ? (String) value : null;
     }
 
@@ -420,5 +420,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public boolean getArrayAffinity() {
         Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
         return value != null ? (Boolean) value : false;
+    }
+    
+    public void removeCapabilityEntry(String keyEntry) {
+        if(_vpoolCapabilities.get(keyEntry) != null) {
+            _vpoolCapabilities.remove(keyEntry);
+        }
     }
 }

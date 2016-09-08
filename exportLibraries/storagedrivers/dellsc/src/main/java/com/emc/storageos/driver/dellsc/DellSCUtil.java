@@ -319,9 +319,9 @@ public class DellSCUtil {
         ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
                 scPort.instanceId);
         port.setEndPointID(scPort.iscsiName);
-        port.setIpAddress(portConfig.ipAddress);
+        port.setIpAddress(scPort.iscsiIpAddress);
         port.setPortNetworkId(scPort.iscsiName);
-        port.setNetworkId(portConfig.getNetwork());
+        port.setNetworkId(scPort.getNetwork());
         port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
         port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
         port.setPortSubGroup(String.format("%s", portConfig.slot));

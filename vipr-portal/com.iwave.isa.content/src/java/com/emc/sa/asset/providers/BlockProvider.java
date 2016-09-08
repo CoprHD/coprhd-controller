@@ -3440,11 +3440,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static class BlockObjectVMFSDatastoreFilter extends DefaultResourceFilter<BlockObjectRestRep> {
         @Override
         public boolean accept(BlockObjectRestRep blockObject) {
-            if (BlockStorageUtils.isVolumeVMFSDatastore(blockObject)) {
-                    return true;
-            }
-
-            return false;
+            return BlockStorageUtils.isVolumeVMFSDatastore(blockObject);
         }
     }
 

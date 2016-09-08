@@ -147,10 +147,8 @@ delete_volume() {
         OPTIMIZEDSG=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -devs ${devid} -v \
             | grep "Storage Group Name" | grep "Optimized"  | awk -F:  '{ print $2 }' | sed -E 's/\s//'`
         if [ ! -z ${OPTIMIZEDSG// } ]; then
-            echo "OPTIMIZEDSG is ${OPTIMIZEDSG}"
             /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name ${OPTIMIZEDSG} remove dev ${devid} -noprompt
         fi
-        echo "Freeing..."
         /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} free -all -devs ${devid} -noprompt
     else
         /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "unmap dev ${devid};" commit -noprompt

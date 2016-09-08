@@ -45,7 +45,7 @@ public class ExcludeStorageSystemsMatcher extends AttributeMatcher {
         _logger.info("{} Storage pools matching after filtering excluded storage systems.", matchedPools.size());
         
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("The only matching storage pools are on systems %s, which are not allowed for the request : %s. ", excludeSystems));
+            errorMessage.append(String.format("The only matching storage pools are on systems %s, which are not allowed for the request.", excludeSystems));
             _logger.error(errorMessage.toString());
         }
 

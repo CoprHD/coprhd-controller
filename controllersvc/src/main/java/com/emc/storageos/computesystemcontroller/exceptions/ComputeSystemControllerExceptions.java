@@ -125,5 +125,5 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException unableToUnmount(final String systemType, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException commandTimedOut(final String systemType, final Throwable cause);
+    public ComputeSystemControllerException commandTimedOut(final String systemType);
 }

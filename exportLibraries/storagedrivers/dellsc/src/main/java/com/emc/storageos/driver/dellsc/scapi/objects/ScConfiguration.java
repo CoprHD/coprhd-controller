@@ -17,13 +17,15 @@
 package com.emc.storageos.driver.dellsc.scapi.objects;
 
 /**
- * Port fault domain configuration.
+ * Overal Storage Center configuration settings.
  */
-public class ScFaultDomain extends ScObject {
-    public String name;
-    public String transportType;
-    public String iscsiName;
-    public String targetIpv4Address;
-    public String subnetMask;
-    public String gateway;
+public class ScConfiguration extends ScObject {
+    public boolean backEndConfigured;
+    public boolean fibreChannelFrontEndConfigured;
+    public String fibreChannelTransportMode;
+    public boolean iscsiFrontEndConfigured;
+    public String iscsiTransportMode;
+    public boolean portRebalanceNeeded;
+    public boolean sasFrontEndConfigured;
+    public String sasTransportMode;
 }

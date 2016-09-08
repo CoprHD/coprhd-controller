@@ -113,6 +113,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String SECONDARY_DETAIL_MISSING = "storageArray.secondaryHost.secondaryPort.missing";
     protected static final String SECONDARY_USER_MISSING = "storageArray.secondaryName.missing";
     protected static final String SCALEIO = "scaleio";
+    protected static final String VMAX = "vmax";
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
     private static final String HTTPS = "https";
 
@@ -253,6 +254,11 @@ public class StorageSystems extends ViprResourceController {
             if (storageArray.unregistered) {
                 flash.put("warning",
                         MessagesUtils.get(NOT_REGISTERED, storageArray.name));
+            }
+            if (storageArray.type.equals(VMAX)) {
+                @SuppressWarnings("unchecked")
+                List<StringOption> options = (List<StringOption>)renderArgs.get("storageArrayTypeList");
+                options.add(new StringOption(VMAX, "Storage Provider for EMC VMAX, VNX Block"));
             }
             render(storageArray);
         } else {
@@ -862,7 +868,7 @@ public class StorageSystems extends ViprResourceController {
 
         public String secretKey;
 
-        public boolean useSSL;
+        public Boolean useSSL;
 
         public Integer resourceLimit;
         public String resourceType;

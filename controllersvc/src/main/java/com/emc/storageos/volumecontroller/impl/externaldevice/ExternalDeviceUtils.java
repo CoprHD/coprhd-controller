@@ -163,7 +163,7 @@ public class ExternalDeviceUtils {
         List<URI> externalProvidersUris = new ArrayList<>();
 
         try {
-            StorageDriverManager driverManager = getDriverManager();
+            driverManager = getDriverManager();
             Collection<String> externalDeviceProviderTypes = driverManager.getStorageProvidersMap().values();
             _log.info("Processing external provider types: {}", externalDeviceProviderTypes);
 

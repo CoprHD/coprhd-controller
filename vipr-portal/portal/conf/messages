@@ -3857,8 +3857,9 @@ storageSystemTypes.useMDM=Use MDM
 storageSystemTypes.driverClassName=Driver Class Name
 storageSystemTypes.installingStatus=Installing Status
 storageSystemTypes.uploadButton=Upload
+storageSystemTypes.installStatus=Install Status
+storageSystemTypes.driverFile=Driver File
 deviceDriverFile=Device Driver Jar
-storageSystemTypes.driverFilePath=Driver File Path
 
 tasks.task=Task
 tasks.id=ID

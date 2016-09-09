@@ -65,7 +65,7 @@ public class StorageSystemTypeMapper {
         type.setIsOnlyMDM(param.getIsOnlyMDM());
         type.setIsElementMgr(param.getIsElementMgr());
         type.setIsSecretKey(param.getIsSecretKey());
-        
+        type.setDriverFileName(param.getDriverFilePath());
         return type;
     }
 

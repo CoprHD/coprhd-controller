@@ -3989,46 +3989,34 @@ recoverpoint_export_host_setup()
     rptype=${2}
 
     if [ "${vpool}" = "rp${rptype}_cdp" ]; then
-        PWWN1=`pwwn A1`
-        WWNN1=`nwwn A1`
-        PWWN2=`pwwn A2`
-        WWNN2=`nwwn A2`
-        PWWN3=`pwwn A3`
-        WWNN3=`nwwn A3`
-        PWWN4=`pwwn A4`
-        WWNN4=`nwwn A4`
-        PWWN5=`pwwn A5`
-        WWNN5=`nwwn A5`
-        PWWN6=`pwwn A6`
-        WWNN6=`nwwn A6`
+        PWWN1=`pwwn D5`
+        WWNN1=`nwwn D5`
+        PWWN2=`pwwn D6`
+        WWNN2=`nwwn D6`
+        PWWN3=`pwwn D7`
+        WWNN3=`nwwn D7`
+        PWWN4=`pwwn D8`
+        WWNN4=`nwwn D8`
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
     elif [ "${vpool}" = "rp${rptype}_crr" ]; then
-        PWWN1=`pwwn B1`
-        WWNN1=`nwwn B1`
-        PWWN2=`pwwn B2`
-        WWNN2=`nwwn B2`
-        PWWN3=`pwwn B3`
-        WWNN3=`nwwn B3`
-        PWWN4=`pwwn B4`
-        WWNN4=`nwwn B4`
-        PWWN5=`pwwn B5`
-        WWNN5=`nwwn B5`
-        PWWN6=`pwwn B6`
-        WWNN6=`nwwn B6`
+        PWWN1=`pwwn E5`
+        WWNN1=`nwwn E5`
+        PWWN2=`pwwn E6`
+        WWNN2=`nwwn E6`
+        PWWN3=`pwwn E7`
+        WWNN3=`nwwn E7`
+        PWWN4=`pwwn E8`
+        WWNN4=`nwwn E8`
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
     elif [ "${vpool}" = "rp${rptype}_clr" ]; then
-        PWWN1=`pwwn C1`
-        WWNN1=`nwwn C1`
-        PWWN2=`pwwn C2`
-        WWNN2=`nwwn C2`
-        PWWN3=`pwwn C3`
-        WWNN3=`nwwn C3`
-        PWWN4=`pwwn C4`
-        WWNN4=`nwwn C4`
-        PWWN5=`pwwn C5`
-        WWNN5=`nwwn C5`
-        PWWN6=`pwwn C6`
-        WWNN6=`nwwn C6`
+        PWWN1=`pwwn F5`
+        WWNN1=`nwwn F5`
+        PWWN2=`pwwn F6`
+        WWNN2=`nwwn F6`
+        PWWN3=`pwwn F7`
+        WWNN3=`nwwn F7`
+        PWWN4=`pwwn F8`
+        WWNN4=`nwwn F8`
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
@@ -4043,17 +4031,11 @@ recoverpoint_export_host_setup()
         run initiator create ${RP_HOSTNAME}1 FC ${PWWN3} --node ${WWNN3}
         run initiator create ${RP_HOSTNAME}2 FC ${PWWN4} --node ${WWNN4}      
 
-        run initiator create ${RP_HOSTNAME}1 FC ${PWWN5} --node ${WWNN5}
-        run initiator create ${RP_HOSTNAME}2 FC ${PWWN6} --node ${WWNN6}
-
         run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
         run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}  
 
         run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN3}
         run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_12 ${PWWN4}
-
-        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
-        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
     else
         run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
         run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     
@@ -12533,10 +12515,10 @@ rpunity_tests()
     run blockconsistencygroup create $PROJECT $RP_UNITY_CONSISTENCY_GROUP
     run volume create $RP_UNITY_VOLUME $PROJECT $NH rpunity_cdp $RP_VOLUME_SIZE --consistencyGroup $RP_UNITY_CONSISTENCY_GROUP --count=1
     # Failover Test
-    recoverpoint_failover_test ${RP_UNITY_VOLUME} $RP_UNITY_VOLUME-target-${NH}
+    #recoverpoint_failover_test ${RP_UNITY_VOLUME} $RP_UNITY_VOLUME-target-${NH}
     
     # CG Failover/Swap Test
-    recoverpoint_cg_failover_test ${RP_UNITY_CONSISTENCY_GROUP} ${RP_UNITY_VOLUME} ${NH} $RP_UNITY_VOLUME-target-${NH} ${NH}
+    #recoverpoint_cg_failover_test ${RP_UNITY_CONSISTENCY_GROUP} ${RP_UNITY_VOLUME} ${NH} $RP_UNITY_VOLUME-target-${NH} ${NH}
 
     # Bookmark Export Tests
     rp_tgt_varrays=("${NH}")

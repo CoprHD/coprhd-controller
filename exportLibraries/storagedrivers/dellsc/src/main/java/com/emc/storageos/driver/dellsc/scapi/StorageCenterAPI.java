@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.dellsc.scapi.objects.ApiConnection;
 import com.emc.storageos.driver.dellsc.scapi.objects.EmDataCollector;
+import com.emc.storageos.driver.dellsc.scapi.objects.ScConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPort;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortFibreChannelConfiguration;
 import com.emc.storageos.driver.dellsc.scapi.objects.ScControllerPortIscsiConfiguration;
@@ -1072,12 +1073,13 @@ public class StorageCenterAPI implements AutoCloseable {
      * @param preferredLun The preferred LUN to use or -1 to let the system decided.
      * @param preferredPorts The preferred server HBA ports to use.
      * @param maxPathCount The maximum paths to map or -1 for no restriction.
+     * @param preferredController The preferred controller to map through or null.
      * @return The created mapping profile.
      * @throws StorageCenterAPIException
      */
     public ScMappingProfile createVolumeMappingProfile(
             String volInstanceId, String serverInstanceId, int preferredLun,
-            String[] preferredPorts, int maxPathCount)
+            String[] preferredPorts, int maxPathCount, String preferredController)
                     throws StorageCenterAPIException {
         Parameters advancedParams = new Parameters();
         advancedParams.add("MapToDownServerHbas", true);
@@ -1089,6 +1091,9 @@ public class StorageCenterAPI implements AutoCloseable {
         }
         if (maxPathCount > 0) {
             advancedParams.add("MaximumPathCount", maxPathCount);
+        }
+        if (preferredController != null) {
+            advancedParams.add("PreferredController", preferredController);
         }
 
         Parameters params = new Parameters();
@@ -1456,7 +1461,7 @@ public class StorageCenterAPI implements AutoCloseable {
             if (!"down".equalsIgnoreCase(server.status)) {
                 try {
                     ScMappingProfile mapping = createVolumeMappingProfile(
-                            volume.instanceId, server.instanceId, -1, new String[0], -1);
+                            volume.instanceId, server.instanceId, -1, new String[0], -1, null);
                     deleteMappingProfile(mapping.instanceId);
                     break;
                 } catch (StorageCenterAPIException e) {
@@ -1464,5 +1469,74 @@ public class StorageCenterAPI implements AutoCloseable {
                 }
             }
         }
+    }
+
+    /**
+     * Gets a volume's configuration.
+     *
+     * @param instanceId The volume instance ID.
+     * @return The volume config.
+     */
+    public ScVolumeConfiguration getVolumeConfig(String instanceId) {
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScVolume/%s/VolumeConfiguration", instanceId));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScVolumeConfiguration.class);
+        }
+
+        LOG.warn(String.format("Error getting volume configuration: %s", rr.getErrorMsg()));
+        return null;
+    }
+
+    /**
+     * Gets SC configuration settings.
+     *
+     * @param ssn The system serial number.
+     * @return The configuration settings.
+     * @throws StorageCenterAPIException
+     */
+    public ScConfiguration getScConfig(String ssn) throws StorageCenterAPIException {
+        RestResult rr = restClient.get(String.format("StorageCenter/ScConfiguration/%s", ssn));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScConfiguration.class);
+        }
+
+        String message = String.format("Error getting Storage Center configuration: %s", rr.getErrorMsg());
+        throw new StorageCenterAPIException(message);
+    }
+
+    /**
+     * Gets all fault domains for a system.
+     *
+     * @param ssn The system serial number.
+     * @return The fault domains.
+     */
+    public ScFaultDomain[] getFaultDomains(String ssn) {
+        RestResult rr = restClient.get(String.format("StorageCenter/StorageCenter/%s/FaultDomainList", ssn));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScFaultDomain[].class);
+        }
+
+        LOG.warn(String.format("Error getting Storage Center configuration: %s", rr.getErrorMsg()));
+        return new ScFaultDomain[0];
+    }
+
+    /**
+     * Gets the virtual ports in a fault domain.
+     *
+     * @param instanceId The fault domain instance ID.
+     * @param True to get virtual ports, false to get physical.
+     * @return The controller ports.
+     */
+    public ScControllerPort[] getFaultDomainPorts(String instanceId, boolean virtualPorts) {
+        String portType = virtualPorts ? "Virtual" : "Physical";
+        RestResult rr = restClient.get(
+                String.format("StorageCenter/ScFaultDomain/%s/%sPortList", instanceId, portType));
+        if (checkResults(rr)) {
+            return gson.fromJson(rr.getResult(), ScControllerPort[].class);
+        }
+
+        LOG.warn(String.format("Error getting controller ports for fault domain %s: %s", instanceId, rr.getErrorMsg()));
+        return new ScControllerPort[0];
     }
 }

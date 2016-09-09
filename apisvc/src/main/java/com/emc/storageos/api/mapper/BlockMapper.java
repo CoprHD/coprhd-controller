@@ -219,7 +219,7 @@ public class BlockMapper {
         FullCopyRestRep toFullCopy = null;
         URI fullCopySourceVolumeURI = from.getAssociatedSourceVolume();
         StringSet fromFullCopies = from.getFullCopies();
-        if (fullCopySourceVolumeURI != null || (fromFullCopies != null && !fromFullCopies.isEmpty())) {
+        if (!NullColumnValueGetter.isNullURI(fullCopySourceVolumeURI) || (fromFullCopies != null && !fromFullCopies.isEmpty())) {
             toFullCopy = new FullCopyRestRep();
             if (fullCopySourceVolumeURI != null) {
                 toFullCopy.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, fullCopySourceVolumeURI));

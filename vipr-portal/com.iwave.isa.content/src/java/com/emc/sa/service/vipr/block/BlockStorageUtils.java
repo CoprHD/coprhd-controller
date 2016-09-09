@@ -41,6 +41,8 @@ import org.apache.log4j.Logger;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSession;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
@@ -247,6 +249,29 @@ public class BlockStorageUtils {
         }
 
         execute(new VerifyVolumeDependencies(allBlockResources, projectId));
+    }
+
+    /**
+     * Return true of false if a given volume is a VMFS datastore.
+     *
+     * @param blockObject to validate
+     * @return true or false if the volume is a VMFS Datastore
+     */
+    public static boolean isVolumeVMFSDatastore(BlockObjectRestRep blockObject) {
+        if (blockObject != null) {
+            Set<String> volumeTags = blockObject.getTags();
+            if (volumeTags != null) {
+                Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+
+                for (String tag : parsedTags.keySet()) {
+                    if (tag != null && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1413,13 +1438,9 @@ public class BlockStorageUtils {
         NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
         NamedVolumesList volumesToUse = new NamedVolumesList();
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
-            VolumeRestRep volume = client.blockVolumes().get(volumeId);
-            VolumeRestRep parentVolume = volume;
-            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
-                volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
-            }
+            VolumeRestRep parentVolume = client.blockVolumes().get(volumeId);
             if (isTarget) {
-                if (isRPTargetVolume(volume) && volume.getVirtualArray().getId().equals(virtualArray)) {
+                if (isRPTargetVolume(parentVolume) && parentVolume.getVirtualArray().getId().equals(virtualArray)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {

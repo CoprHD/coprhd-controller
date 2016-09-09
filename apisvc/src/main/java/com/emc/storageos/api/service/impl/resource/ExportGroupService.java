@@ -3148,7 +3148,7 @@ public class ExportGroupService extends TaskResourceService {
                     exportGroup.getId(), Joiner.on(",").join(boToLabelMap.values()));
             ValidatorConfig vc = new ValidatorConfig();
             vc.setCoordinator(_coordinator);
-            if (vc.validationEnabled()) {
+            if (vc.isValidationEnabled()) {
                 throw APIException.badRequests.exportGroupContainsMountedVolumes(exportGroup.getId(),
                     Joiner.on(",").join(boToLabelMap.values()));
             }

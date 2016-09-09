@@ -502,4 +502,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationVolumeError(String volumeName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
 }

@@ -3451,13 +3451,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
             childVolumeGroupsToBeAddedToParentGroup.addAll(childVolumeGroupsToBeAdded);
         }
-        Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = _helper.getExistingSGNamesFromArray(storage);
-        Set<String> existingGroupNames = new HashSet<>();
-        for (Set<String> groupNames : allStorageGroups.values()) {
-            existingGroupNames.addAll(groupNames);
-        }
         // Avoid duplicate names for the Cascaded VolumeGroup
-        parentGroupName = _helper.generateGroupName(existingGroupNames, parentGroupName);
+        parentGroupName = _helper.generateGroupName(_helper.getExistingStorageGroupsFromArray(storage), parentGroupName);
         CIMObjectPath cascadedGroupPath = createCascadedVolumeGroup(storage, parentGroupName, childVolumeGroupsToBeAddedToParentGroup,
                 taskCompleter);
 
@@ -3505,7 +3500,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
 
         _log.info("{} Groups generated based on grouping volumes by fast policy", policyToVolumeGroup.size());
-        Map<StorageGroupPolicyLimitsParam, Set<String>> existingGroupNames = _helper.getExistingSGNamesFromArray(storage);
         /** Grouped Volumes based on Fast Policy */
         for (Entry<StorageGroupPolicyLimitsParam, Collection<VolumeURIHLU>> policyToVolumeGroupEntry : policyToVolumeGroup.asMap()
                 .entrySet()) {
@@ -3561,6 +3555,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             childVolumeGroupsToBeAddedToParentGroup.addAll(childVolumeGroupsToBeAdded);
         }
+
+        // Avoid duplicate names for the Cascaded VolumeGroup
+        parentGroupName = _helper.generateGroupName(_helper.getExistingStorageGroupsFromArray(storage), parentGroupName);
         CIMObjectPath cascadedGroupPath = createCascadedVolumeGroup(storage, parentGroupName, childVolumeGroupsToBeAddedToParentGroup,
                 taskCompleter);
 
@@ -4815,15 +4812,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
     private String generateNewNameForPhantomSG(StorageSystem storage, String childGroupName,
             StorageGroupPolicyLimitsParam phantomStorageGroupPolicyLimitsParam) {
         String phantomStorageGroupName = childGroupName + "_" + phantomStorageGroupPolicyLimitsParam;
-
-        // get all storage group names in storage system to use for checking duplicate
-        Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = _helper.getExistingSGNamesFromArray(storage);
-        Set<String> existingGroupNames = new HashSet<>();
-        for (Set<String> groupNames : allStorageGroups.values()) {
-            existingGroupNames.addAll(groupNames);
-        }
         // if generated name is duplicated in storage, append number to the end of the name
-        return _helper.generateGroupName(existingGroupNames, phantomStorageGroupName);
+        return _helper.generateGroupName(_helper.getExistingStorageGroupsFromArray(storage), phantomStorageGroupName);
     }
 
     /**
@@ -4870,14 +4860,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         String baseStorageGroupName = customConfigHandler.getComputedCustomConfigValue(storageGroupCustomTemplateName,
                 storage.getSystemType(), sgDataSource);
 
-        // get all storage group names in storage system to use for checking duplicate
-        Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = _helper.getExistingSGNamesFromArray(storage);
-        Set<String> existingGroupNames = new HashSet<>();
-        for (Set<String> groupNames : allStorageGroups.values()) {
-            existingGroupNames.addAll(groupNames);
-        }
         // if generated name is duplicated in storage, append number to the end of the name
-        return _helper.generateGroupName(existingGroupNames, baseStorageGroupName);
+        return _helper.generateGroupName(_helper.getExistingStorageGroupsFromArray(storage), baseStorageGroupName);
     }
 
     /**

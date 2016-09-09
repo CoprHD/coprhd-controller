@@ -292,6 +292,7 @@ StorageSystemType.netappc=NetApp Cluster-mode
 StorageSystemType.vplex=EMC VPLEX
 StorageSystemType.hds=Hitachi
 StorageSystemType.ibmxiv=IBM XIV
+StorageSystemType.hp3par=HPE 3PAR
 StorageSystemType.openstack=Third-party block
 StorageSystemType.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.scaleioapi=ScaleIO Gateway
@@ -2201,6 +2202,7 @@ systemType.isilon=EMC Isilon
 systemType.netapp=NetApp 7-mode
 systemType.netappc=NetApp Cluster-mode
 systemType.xtremio=EMC XtremIO
+systemType.hp3par=HPE 3PAR
 
 storagePoolAssignment.automatic=Automatic
 storagePoolAssignment.manual=Manual

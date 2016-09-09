@@ -40,7 +40,6 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
-import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
@@ -701,8 +700,18 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
         }
 
-        log.info("Number of deleted clusters: " + deletedClusters.size()
-                + ". These clusters will remain in our database and must be deleted manually.");
+        // delete clusters that don't contain any hosts, don't have any exports, and don't have any pending events
+        for (URI clusterId : deletedClusters) {
+            List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+            if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
+                    && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
+                Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
+                info("Deactivating Cluster: " + clusterId);
+                ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+            } else {
+                info("Unable to delete cluster " + clusterId);
+            }
+        }
 
     }
 

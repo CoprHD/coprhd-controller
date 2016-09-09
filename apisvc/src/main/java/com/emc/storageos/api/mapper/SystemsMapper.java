@@ -458,6 +458,7 @@ public class SystemsMapper {
 		to.setDriverClassName(from.getDriverClassName());
         to.setIsSecretKey(from.getIsSecretKey());
         to.setInstallStatus(from.getInstallStatus());
+        to.setDriverFileName(from.getDriverFileName());
 
 		return to;
 	}

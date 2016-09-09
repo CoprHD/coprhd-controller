@@ -30,8 +30,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String driverClassName;
     private boolean isSecretKey = false;
     private String installStatus;
+    private String driverFileName;
 
     public StorageSystemTypeRestRep() {
+    }
+
+    @XmlElement(name = "driver_file_name")
+    public String getDriverFileName() {
+        return driverFileName;
+    }
+
+    public void setDriverFileName(String driverFileName) {
+        this.driverFileName = driverFileName;
     }
 
     @XmlElement(name = "install_status")

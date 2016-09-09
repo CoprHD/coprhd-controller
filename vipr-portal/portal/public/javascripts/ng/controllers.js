@@ -69,10 +69,6 @@ angular.module("portalApp").controller({
             vpoolHAJournalVirtualPool: {
                 path: routes.BlockVirtualPools_listHaRpJournalVPoolsJson(),
                 depend: ['vpool.haJournalVArray']
-            },
-            placementPolicy: {
-            	path: routes.BlockVirtualPools_listPlacementPolicy(),
-            	depend: ['vpool.systemType']
             }
         };
 
@@ -98,6 +94,16 @@ angular.module("portalApp").controller({
             event.preventDefault();
         };
 
+        $scope.myChange = function(value) {
+        	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
+        	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
+        	if((nonequalList.indexOf(value)<0)||(equalList.indexOf(value)==-1)) {
+        		$('#vpool_placementPolicy').val('0').prop('selected',true);
+        		$('#vpool_placementPolicy').change();
+        	}
+        	
+        }
+        
         $scope.saveRecoverPointCopy = function(rpCopy, event) {
             function find(options, id) {
                 var name = $scope.none;

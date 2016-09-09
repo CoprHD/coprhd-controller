@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.SanUtils;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -110,6 +111,8 @@ public class AixHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
+        } catch (DeviceControllerException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to list FC Ports, skipping");
         }
@@ -125,6 +128,8 @@ public class AixHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
+        } catch (DeviceControllerException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("Failed to list iSCSI Ports, skipping");
         }

@@ -29,8 +29,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String sslPort;
     private String driverClassName;
     private boolean isSecretKey = false;
+    private String installStatus;
 
     public StorageSystemTypeRestRep() {
+    }
+
+    @XmlElement(name = "install_status")
+    public String getInstallStatus() {
+        return installStatus;
+    }
+
+    public void setInstallStatus(String installStatus) {
+        this.installStatus = installStatus;
     }
 
     /**

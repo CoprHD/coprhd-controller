@@ -91,8 +91,9 @@ public class DriverService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StorageSystemTypeRestRep install(StorageSystemTypeAddParam addParam) {
         StorageSystemType type = map(addParam);
+        type.setInstallStatus("Installing");
         dbClient.createObject(type);
-        
+
         String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
         DriverInfo2 info = new DriverInfo2(coordinator.queryConfiguration(DriverInfo2.CONFIG_ID, DriverInfo2.CONFIG_ID));
         info.setInitNode(localNode);

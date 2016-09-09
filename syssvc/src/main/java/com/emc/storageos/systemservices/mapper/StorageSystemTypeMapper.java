@@ -65,9 +65,7 @@ public class StorageSystemTypeMapper {
         type.setIsOnlyMDM(param.getIsOnlyMDM());
         type.setIsElementMgr(param.getIsElementMgr());
         type.setIsSecretKey(param.getIsSecretKey());
-        // Here set to installing, will set to completed when finished
-        // No done yet
-        type.setInstallStatus("Installing");
+        
         return type;
     }
 

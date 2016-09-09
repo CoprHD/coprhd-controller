@@ -65,7 +65,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateC
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
@@ -722,7 +721,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         if (!CollectionUtils.isEmpty(sharedMaskNames)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                             errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s.", initiatorURI,
+                                    String.format(" Initiator %s is shared between other Export Masks  %s.",
                                             normalizedName, Joiner.on(", ").join(sharedMaskNames)));
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);

@@ -76,8 +76,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, StorageSystemType.class, "id");
         StorageSystemType storageType = queryResource(id);
         ArgValidator.checkEntity(storageType, id, isIdEmbeddedInURL(id));
-        StorageSystemTypeRestRep storageTypeRest = new StorageSystemTypeRestRep();
-        return map(storageType, storageTypeRest);
+        return map(storageType);
     }
 
     /**

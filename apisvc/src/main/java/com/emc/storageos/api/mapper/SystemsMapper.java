@@ -439,27 +439,6 @@ public class SystemsMapper {
 		return to;
 	}
 
-	public static StorageSystemTypeRestRep map(StorageSystemType from, StorageSystemTypeRestRep to) {
-		if (from == null) {
-			return null;
-		}
-		to.setStorageTypeName(from.getStorageTypeName());
-		to.setMetaType(from.getMetaType());
-		to.setIsSmiProvider(from.getIsSmiProvider());
-		to.setStorageTypeId(from.getStorageTypeId());
-		to.setStorageTypeDispName(from.getStorageTypeDispName());
-		to.setIsDefaultSsl(from.getIsDefaultSsl());
-		to.setIsDefaultMDM(from.getIsDefaultMDM());
-		to.setIsOnlyMDM(from.getIsOnlyMDM());
-		to.setIsElementMgr(from.getIsElementMgr());
-		to.setNonSslPort(from.getNonSslPort());
-		to.setSslPort(from.getSslPort());
-		to.setDriverClassName(from.getDriverClassName());
-        to.setIsSecretKey(from.getIsSecretKey());
-
-		return to;
-	}
-
 	public static StorageSystemTypeRestRep map(StorageSystemType from) {
 		if (from == null) {
 			return null;
@@ -478,6 +457,7 @@ public class SystemsMapper {
 		to.setSslPort(from.getSslPort());
 		to.setDriverClassName(from.getDriverClassName());
         to.setIsSecretKey(from.getIsSecretKey());
+        to.setInstallStatus(from.getInstallStatus());
 
 		return to;
 	}

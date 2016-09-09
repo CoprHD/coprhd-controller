@@ -1128,6 +1128,26 @@ public class ExportMaskUtils {
     }
 
     /**
+     * Is this export mask a backend mask for VPLEX or RP?
+     * 
+     * @param dbClient
+     *            db client
+     * @param exportMask
+     *            export mask
+     * @return true if RP/VPLEX mask, false otherwise
+     */
+    public static boolean isBackendExportMask(DbClient dbClient, ExportMask exportMask) {
+        Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, exportMask);
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
+            if (initiators != null) {
+                return areBackendInitiators(initiators);
+            }
+        }
+        return false;
+    }
+
+    /**
      * Find a set of ExportMasks to which the given Initiators belong.
      *
      * @param dbClient [IN] - For accessing DB

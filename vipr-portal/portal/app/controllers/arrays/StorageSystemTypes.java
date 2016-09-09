@@ -8,38 +8,24 @@ package controllers.arrays;
 import static controllers.Common.backToReferrer;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.ws.rs.core.MediaType;
-
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.SystemsMapper;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.multipart.FormDataMultiPart;
-import com.sun.jersey.multipart.MultiPart;
-import com.sun.jersey.multipart.file.FileDataBodyPart;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
-import models.StorageProviderTypes;
 import models.datatable.StorageSystemTypeDataTable;
 import models.datatable.StorageSystemTypeDataTable.StorageSystemTypeInfo;
 import play.data.binding.As;
@@ -48,7 +34,6 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
-import util.BourneUtil;
 import util.MessagesUtils;
 import util.StorageSystemTypeUtils;
 import util.datatable.DataTablesSupport;

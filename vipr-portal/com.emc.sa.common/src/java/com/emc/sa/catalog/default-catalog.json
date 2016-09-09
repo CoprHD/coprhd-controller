@@ -545,6 +545,7 @@
       "title": "block.vcenter.title",
       "image": "icon_VMware.png",
       "description": "block.vcenter.description",
+      "applicableto":"EMMET",
       "services": [
         {
           "image": "icon_provision_VMware_add.png",
@@ -625,6 +626,7 @@
 	  "title": "clusterservices.title",
 	  "image": "icon_compute_cluster.png",
 	  "description": "clusterservices.description",
+	  "applicableto":"EMMET",
 	  "services": [
 	    {
 	      "image": "icon_compute_cluster_add.png",

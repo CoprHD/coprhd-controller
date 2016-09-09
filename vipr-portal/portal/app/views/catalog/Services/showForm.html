@@ -74,7 +74,7 @@
           <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
       </div>
     
-      <form ng-if="showForm" id="serviceForm" action="@{catalog.Orders.submitOrder()}" method="post" class="form-horizontal" ng-controller="ServiceFormCtrl">
+      <form ng-if="showForm" id="serviceForm" name="serviceForm" action="@{catalog.Orders.submitOrder()}" method="post" class="form-horizontal" ng-controller="ServiceFormCtrl">
           #{authenticityToken /}
           <input type="hidden" name="serviceId" value="{{service.id}}"/>
           <input type="hidden" name="return" value="{{returnAddress}}"/>
@@ -97,8 +97,8 @@
             </div>
           </div>
   
-   		  
-   		    <collapse title="&{'scheduler.title'}">
+  		  #{if service.recurringAllowed}	
+   		  <collapse title="&{'scheduler.title'}">
    		          <div class="form-group">
 				     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
 				     <div class="col-sm-6 controls">
@@ -112,7 +112,8 @@
 				   </div>
 				   
   		       	   #{Services.scheduler /}
-  		    </collapse> 
+  		  </collapse> 
+  		  #{/if}
   		  
   		  
           <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">

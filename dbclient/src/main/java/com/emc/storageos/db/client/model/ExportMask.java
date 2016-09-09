@@ -275,9 +275,11 @@ public class ExportMask extends DataObject {
     }
 
     public void removeVolumes(List<URI> volumes) {
-        for (URI uri : volumes) {
-            _volumes.remove(uri.toString());
-            // TODO: Remove user added volumes
+        if (_volumes != null) {
+            for (URI uri : volumes) {
+                _volumes.remove(uri.toString());
+                // TODO: Remove user added volumes
+            }
         }
     }
 
@@ -646,6 +648,13 @@ public class ExportMask extends DataObject {
         if (_existingVolumes == null) {
             _existingVolumes = new StringMap();
         }
+        /**
+         * Cleared the existing volume's wwns from ViPR to clear the stale information.
+         * For ex: all the existing volumes will be added in existingVolumes list.
+         * Outside vipr if someone removed the volume/s from Mask, ViPR should clear the stale.
+         * Impact of the stale volume's wwn will be like, Can not export the same volume through ViPR and can not delete the mask from vipr
+         */
+        _existingVolumes.clear();
         for (String wwn : volumeWWNs.keySet()) {
             String normalizedWWN = BlockObject.normalizeWWN(wwn);
             if (!_existingVolumes.containsKey(normalizedWWN) &&
@@ -971,5 +980,14 @@ public class ExportMask extends DataObject {
                 collectionString(_userAddedInitiators),
                 collectionString(_existingInitiators),
                 _zoningMap);
+    }
+
+    @Override
+    public String forDisplay() {
+        if (_maskName != null && !_maskName.isEmpty()) {
+            return String.format("%s (%s)", _maskName, _id);
+        } else {
+            return super.forDisplay();
+        }
     }
 }

@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.NetworkLite;
@@ -422,7 +423,12 @@ public class RecoverPointScheduler implements Scheduler {
             URI existingStoragePoolId = null;
             // If this is a change vpool operation, the source has already been placed and there is only 1
             // valid source pool, the existing one. Get that pool and add it to the list.
-            if (RPHelper.isVPlexVolume(vpoolChangeVolume)) {
+            if (RPHelper.isVPlexVolume(vpoolChangeVolume, dbClient)) {
+                if (null == vpoolChangeVolume.getAssociatedVolumes() || vpoolChangeVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", vpoolChangeVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(vpoolChangeVolume.forDisplay());
+                }
                 for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
                     Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
                     if (assocVol.getVirtualArray().equals(varray.getId())) {
@@ -1098,7 +1104,7 @@ public class RecoverPointScheduler implements Scheduler {
         Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolsMap = getVplexTargetMatchingPools(tgtVarrays,
                 srcVpool, project, capabilities, vpoolChangeVolume);
 
-        rpProtectionRecommendaton = createMetroPointRecommendations(srcVarray, tgtVarrays, srcVpool, haVarray, haVpool,
+        rpProtectionRecommendaton = createRPProtectionRecommendationForMetroPoint(srcVarray, tgtVarrays, srcVpool, haVarray, haVpool,
                 capabilities, candidatePrimaryPools, candidateSecondaryPools,
                 tgtVarrayStoragePoolsMap,
                 vpoolChangeVolume, project);
@@ -1130,7 +1136,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param candidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @return list of Recommendation objects to satisfy the request
      */
-    protected RPProtectionRecommendation createMetroPointRecommendations(VirtualArray varray,
+    private RPProtectionRecommendation createRPProtectionRecommendationForMetroPoint(VirtualArray varray,
             List<VirtualArray> protectionVarrays, VirtualPool vpool, VirtualArray haVarray,
             VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities,
             List<StoragePool> candidateActiveSourcePools, List<StoragePool> candidateStandbySourcePools,
@@ -1216,9 +1222,14 @@ public class RecoverPointScheduler implements Scheduler {
         Recommendation changeVpoolSourceRecommendation = new Recommendation();
         Recommendation changeVpoolStandbyRecommendation = new Recommendation();
         
-        if (isChangeVpool) {            
+        if (isChangeVpool) {
             // If this is a change vpool operation, the source has already been placed and there is only 1
             // valid pool, the existing ones for active and standby. This is just to used to pass through the placement code.
+            if (null == vpoolChangeVolume.getAssociatedVolumes() || vpoolChangeVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", vpoolChangeVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(vpoolChangeVolume.forDisplay());
+            }
             for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
                 Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
                 if (assocVol.getVirtualArray().equals(varray.getId())) {
@@ -1320,13 +1331,14 @@ public class RecoverPointScheduler implements Scheduler {
                 // Iterate over the associated storage systems
                 for (String primaryAssociatedStorageSystem : primaryAssociatedStorageSystems) {
                     rpProtectionRecommendation.setProtectionDevice(primaryProtectionSystem.getId());
+                    _log.info(String.format("RP Placement : Build MetroPoint Active Recommendation..."));
                     RPRecommendation sourceRec = buildSourceRecommendation(primaryAssociatedStorageSystem, varray, vpool,
                             primaryProtectionSystem, sourcePool,
                             capabilities, satisfiedSourceVolCount, placementStatus,
                             vpoolChangeVolume, false);
                     if (sourceRec == null) {
                         // No source placement found for the primaryAssociatedStorageSystem, so continue.
-                        _log.info(String.format("RP Placement : Primary solution not found using [%s], continuing...",
+                        _log.warn(String.format("RP Placement : Could not create MetroPoint Active Recommendation using [%s], continuing...",
                                 primaryAssociatedStorageSystem));
                         continue;
                     }
@@ -1334,11 +1346,14 @@ public class RecoverPointScheduler implements Scheduler {
                     URI primarySourceStorageSystemURI = sourceRec.getVirtualVolumeRecommendation().getVPlexStorageSystem();
 
                     if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
+                        _log.info(String.format("RP Placement : Build MetroPoint Active Journal Recommendation..."));
                         RPRecommendation activeJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                 sourceRec.getInternalSiteName(), vpool.getJournalSize(),
                                 activeJournalVarray, activeJournalVpool, primaryProtectionSystem,
                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, false);
                         if (activeJournalRecommendation == null) {
+                            // No source journal placement found, so continue.
+                            _log.warn(String.format("RP Placement : Could not create MetroPoint Active Journal Recommendation, continuing..."));
                             continue;
                         }
                         rpProtectionRecommendation.setSourceJournalRecommendation(activeJournalRecommendation);
@@ -1448,6 +1463,7 @@ public class RecoverPointScheduler implements Scheduler {
 
                                 sortedSecondaryAssociatedStorageSystems.addAll(sameAsPrimary);
                                 for (String secondaryAssociatedStorageSystem : sortedSecondaryAssociatedStorageSystems) {
+                                    _log.info(String.format("RP Placement : Build MetroPoint Standby Recommendation..."));
                                     RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(
                                             secondaryAssociatedStorageSystem,
                                             haVarray, haVpool,
@@ -1455,18 +1471,24 @@ public class RecoverPointScheduler implements Scheduler {
                                             secondaryPlacementStatus,
                                             null, true);
                                     if (secondaryRpRecommendation == null) {
-                                        // No source placement found for the secondaryAssociatedStorageSystem, so continue.
-                                        _log.info(String.format("RP Placement : HA solution not found using %s, continuing with "
-                                                + "other storage pool/storage system", secondaryAssociatedStorageSystem));
+                                        // No standby placement found for the secondaryAssociatedStorageSystem, so continue.
+                                        _log.warn(String.format("RP Placement : Could not create MetroPoint Standby Recommendation using [%s], continuing...",
+                                                secondaryAssociatedStorageSystem));                                                                                
                                         continue;
                                     }
 
                                     if (rpProtectionRecommendation.getStandbyJournalRecommendation() == null) {
+                                        _log.info(String.format("RP Placement : Build MetroPoint Standby Journal Recommendation..."));
                                         RPRecommendation standbyJournalRecommendation = buildJournalRecommendation(
                                                 rpProtectionRecommendation,
                                                 secondarySourceInternalSiteName, vpool.getJournalSize(),
                                                 standbyJournalVarray, standbyJournalVpool, primaryProtectionSystem,
                                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, true);
+                                        if (standbyJournalRecommendation == null) {
+                                            // No standby journal placement found, so continue.
+                                            _log.warn(String.format("RP Placement : Could not create MetroPoint Standby Journal Recommendation, continuing..."));
+                                            continue;
+                                        }
                                         rpProtectionRecommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
                                     }
                                     sourceRec.setHaRecommendation(secondaryRpRecommendation);
@@ -1495,7 +1517,7 @@ public class RecoverPointScheduler implements Scheduler {
                         }
 
                         if (!secondaryRecommendationSolution) {
-                            _log.info("RP Placement : Unabled to find MetroPoint secondary cluster placement recommendation that "
+                            _log.info("RP Placement : Unable to find MetroPoint secondary cluster placement recommendation that "
                                     + "jives with primary cluster recommendation.  Need to find a new primary recommendation.");
                             // Exhausted all the secondary pool URIs. Need to find another primary solution.
                             break;
@@ -1648,7 +1670,8 @@ public class RecoverPointScheduler implements Scheduler {
      * @return a map of VPLEX to StoragePool
      */
     private Map<String, List<StoragePool>> getRPConnectedVPlexStoragePools(Map<String, List<StoragePool>> vplexStoragePoolMap) {
-        Map<String, List<StoragePool>> poolsToReturn = vplexStoragePoolMap;
+        Map<String, List<StoragePool>> poolsToReturn = new HashMap<String, List<StoragePool>>(); 
+        poolsToReturn.putAll(vplexStoragePoolMap);
         if (vplexStoragePoolMap != null) {
             // Narrow down the list of candidate VPLEX storage systems/pools to those
             // that are RP connected.
@@ -1812,6 +1835,11 @@ public class RecoverPointScheduler implements Scheduler {
             // existing storage pools to pass to the RP Scheduler.
             Volume sourceBackingVolume = null;
             Volume haBackingVolume = null;
+            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
             for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                 URI associatedVolumeURI = URI.create(associatedVolumeId);
                 Volume backingVolume = dbClient.queryObject(Volume.class, associatedVolumeURI);
@@ -1852,6 +1880,11 @@ public class RecoverPointScheduler implements Scheduler {
     private boolean verifyStoragePoolAvailability(VirtualPool vpool, Volume existingVolume) {
         if (existingVolume.isVPlexVolume(dbClient)) { 
             // Have to check the backing volumes for VPLEX
+            if (null == existingVolume.getAssociatedVolumes() || existingVolume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", existingVolume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(existingVolume.forDisplay());
+            }
             int matchedPools = 0;
             for (String backingVolumeId : existingVolume.getAssociatedVolumes()) {
                 Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
@@ -2183,7 +2216,12 @@ public class RecoverPointScheduler implements Scheduler {
             // these recs and they are invoked one at a time even
             // in a multi-volume request.
             vplexRec.setResourceCount(1);
-            
+
+            if (null == volume.getAssociatedVolumes() || volume.getAssociatedVolumes().isEmpty()) {
+                _log.error("VPLEX volume {} has no backend volumes.", volume.forDisplay());
+                throw InternalServerErrorException.
+                    internalServerErrors.noAssociatedVolumesForVPLEXVolume(volume.forDisplay());
+            }
             for (String backingVolumeId : volume.getAssociatedVolumes()) {
                 Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                 if (backingVolume.getVirtualArray().equals(volume.getVirtualArray())) {
@@ -2225,7 +2263,7 @@ public class RecoverPointScheduler implements Scheduler {
             }
             rec.setVirtualVolumeRecommendation(vplexRec);
         }
-        
+
         return rec;
     }
 
@@ -2252,7 +2290,12 @@ public class RecoverPointScheduler implements Scheduler {
             // TODO: need to update code below to look like the stuff Bharath added for multiple resources
             long sourceVolumesRequiredCapacity = getSizeInKB(capabilities.getSize() * capabilities.getResourceCount());
             
-            if (RPHelper.isVPlexVolume(sourceVolume)) {
+            if (RPHelper.isVPlexVolume(sourceVolume, dbClient)) {
+                if (null == sourceVolume.getAssociatedVolumes() || sourceVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", sourceVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(sourceVolume.forDisplay());
+                }
                 for (String backingVolumeId : sourceVolume.getAssociatedVolumes()) {
                     Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                     StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2282,7 +2325,7 @@ public class RecoverPointScheduler implements Scheduler {
                     vpool.getJournalSize(), capabilities.getResourceCount());
             long sourceJournalVolumesRequiredCapacity = getSizeInKB(sourceJournalSizePerPolicy);
                         
-            if (RPHelper.isVPlexVolume(sourceJournal)) {
+            if (RPHelper.isVPlexVolume(sourceJournal, dbClient)) {
                 for (String backingVolumeId : sourceJournal.getAssociatedVolumes()) {
                     Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                     StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2319,7 +2362,7 @@ public class RecoverPointScheduler implements Scheduler {
                     // Target volumes will be the same size as the source
                     long targetVolumeRequiredCapacity = getSizeInKB(capabilities.getSize());
                     
-                    if (RPHelper.isVPlexVolume(targetVolume)) {
+                    if (RPHelper.isVPlexVolume(targetVolume, dbClient)) {
                         for (String backingVolumeId : targetVolume.getAssociatedVolumes()) {
                             Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                             StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2352,7 +2395,7 @@ public class RecoverPointScheduler implements Scheduler {
                                     capabilities.getResourceCount());
                     long targetJournalVolumeRequiredCapacity = getSizeInKB(targetJournalSizePerPolicy);
                     
-                    if (RPHelper.isVPlexVolume(targetJournalVolume)) {
+                    if (RPHelper.isVPlexVolume(targetJournalVolume, dbClient)) {
                         for (String backingVolumeId : targetJournalVolume.getAssociatedVolumes()) {
                             Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                             StoragePool backingVolumePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
@@ -2528,7 +2571,12 @@ public class RecoverPointScheduler implements Scheduler {
                 throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
             }
             
-            if (RPHelper.isVPlexVolume(existingJournalVolume)) {
+            if (RPHelper.isVPlexVolume(existingJournalVolume, dbClient)) {
+                if (null == existingJournalVolume.getAssociatedVolumes() || existingJournalVolume.getAssociatedVolumes().isEmpty()) {
+                    _log.error("VPLEX volume {} has no backend volumes.", existingJournalVolume.forDisplay());
+                    throw InternalServerErrorException.
+                        internalServerErrors.noAssociatedVolumesForVPLEXVolume(existingJournalVolume.forDisplay());
+                }
                 URI backingVolumeURI = URI.create(existingJournalVolume.getAssociatedVolumes().iterator().next());
                 Volume backingVolume = dbClient.queryObject(Volume.class, backingVolumeURI);
                 journalStoragePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());

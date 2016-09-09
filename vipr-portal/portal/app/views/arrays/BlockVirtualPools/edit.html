@@ -258,7 +258,7 @@
           <input-text></input-text>
         </control-group>
 
-        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}'">
+        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
           <control-group v-field='vpool.maxContinuousCopies'>
             <input-text ng-disabled="vpool.expandable"></input-text>
           </control-group>

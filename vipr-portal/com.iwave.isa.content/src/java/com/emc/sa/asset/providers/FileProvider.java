@@ -6,6 +6,7 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -793,11 +795,16 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("fileExportedFilesystem")
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem) {
         List<AssetOption> options = Lists.newArrayList();
-        List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        options.add(new AssetOption("!nodir", "No Sub Directory"));
-        for (FileSystemExportParam export : exports) {
-            if (export.getSubDirectory() != null) {
-                options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
+        List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, true, null);
+        for (ExportRule export : exports) {
+            AssetOption tempOption;
+            if (StringUtils.isEmpty(getSubDir(ctx, export))) {
+                tempOption = new AssetOption("!No subdirectory", "No subdirectory");
+            } else {
+                tempOption = new AssetOption(getSubDir(ctx, export), getSubDir(ctx, export));
+            }
+            if (!options.contains(tempOption)) {
+                options.add(tempOption);
             }
         }
         AssetOptionsUtils.sortOptionsByKey(options);
@@ -808,18 +815,15 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "fileExportedFilesystem", "subDirectory" })
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
-        List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        if (subDirectory.equalsIgnoreCase("!nodir")) {
-            for (FileSystemExportParam export : exports) {
-                if (export.getSubDirectory().isEmpty()) {
-                    options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
-                }
-            }
-        } else {
-            for (FileSystemExportParam export : exports) {
-                if (export.getSubDirectory().equalsIgnoreCase(subDirectory)) {
-                    options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
-                }
+        String subDir = subDirectory;
+        if ("!No subdirectory".equalsIgnoreCase(subDir)) {
+            subDir = null;
+        }
+        List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, false, subDir);
+        for (ExportRule rule : exports) {
+            List<String> securityTypes = Arrays.asList(rule.getSecFlavor().split("\\s*,\\s*"));
+            for (String sec : securityTypes) {
+                options.add(new AssetOption(sec, sec));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
@@ -830,7 +834,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("linuxFileHost")
     public List<AssetOption> getNFSMountsForHost(AssetOptionsContext ctx, URI host) {
         List<AssetOption> options = Lists.newArrayList();
-        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsHostMounts(host.toString());
+        List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsMountsByHost(host);
         for (MountInfo mountInfo : hostMounts) {
             String mountString = mountInfo.getMountString();
             options.add(new AssetOption(mountString, getDisplayMount(ctx, mountInfo)));
@@ -844,16 +848,25 @@ public class FileProvider extends BaseAssetOptionsProvider {
         StringBuffer strMount = new StringBuffer();
 
         String subDirPath = "";
-        if (mount.getSubDirectory() != null && !mount.getSubDirectory().equalsIgnoreCase("!nodir")) {
+        if (!StringUtils.isEmpty(mount.getSubDirectory())) {
             subDirPath = "/" + mount.getSubDirectory();
         }
         String fsName = api(ctx).fileSystems().get(mount.getFsId()).getName();
         strMount.append(mount.getMountPath())
                 .append("(")
-                .append(mount.getSecurityType()).append(",")
+                .append(mount.getSecurityType()).append(", ")
                 .append(fsName)
                 .append(subDirPath).append(")");
 
         return strMount.toString();
+    }
+
+    private String getSubDir(AssetOptionsContext ctx, ExportRule export) {
+        FileShareRestRep fs = api(ctx).fileSystems().get(export.getFsID());
+        String subDir = export.getExportPath().replace(fs.getMountPath(), "");
+        if (subDir.startsWith("/")) {
+            subDir = subDir.replaceFirst("/", "");
+        }
+        return subDir;
     }
 }

@@ -43,12 +43,14 @@ public class ScaleIOHelper {
     }
 
     public static void updateSnapshotWithSnapshotVolumeResult(DbClient dbClient, BlockObject snapshot, String systemId,
-            String nativeId) throws IOException {
+            String nativeId, StorageSystem storage) throws IOException {
         snapshot.setNativeId(nativeId);
         snapshot.setWWN(generateWWN(systemId, nativeId));
         snapshot.setDeviceLabel(snapshot.getLabel());
         if (snapshot instanceof BlockSnapshot) {
-            ((BlockSnapshot) snapshot).setIsSyncActive(true);
+            BlockSnapshot snap = (BlockSnapshot) snapshot;
+            snap.setIsSyncActive(true);
+            snap.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, snap));
         }
         if (snapshot instanceof Volume) {
             // This BlockObject is a full copy volume, so we need to set
@@ -60,10 +62,10 @@ public class ScaleIOHelper {
 
     public static void updateSnapshotsWithSnapshotMultiVolumeResult(DbClient dbClient,
             List<BlockSnapshot> blockSnapshots, String systemId,
-            Map<String, String> snapNameIdMap, String groupId) throws IOException {
+            Map<String, String> snapNameIdMap, String groupId, StorageSystem storage) throws IOException {
         for (BlockSnapshot snapshot : blockSnapshots) {
             String nativeId = snapNameIdMap.get(snapshot.getLabel());
-            updateSnapshotWithSnapshotVolumeResult(dbClient, snapshot, systemId, nativeId);
+            updateSnapshotWithSnapshotVolumeResult(dbClient, snapshot, systemId, nativeId, storage);
             snapshot.setSnapsetLabel(groupId);
         }
     }

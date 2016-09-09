@@ -6,22 +6,46 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Hashtable;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 
 /**
  * Utility class to capture common code and functionality
  */
 public class ExternalDeviceUtils {
-    
+
+    private static final Logger _log = LoggerFactory.getLogger(ExternalDeviceUtils.class);
+    private static StorageDriverManager driverManager;
+
+    private static synchronized StorageDriverManager getDriverManager() {
+        if (driverManager == null) {
+            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        }
+        return driverManager;
+    }
     /**
      * Updates the ViPR volume from the passed, newly created external device clone.
      * 
@@ -126,5 +150,93 @@ public class ExternalDeviceUtils {
         StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
         ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
                 volumeURIs, dbClient);
+    }
+
+    /**
+     * Refresh connections to driver managed providers.
+     *
+     * @param dbClient db client
+     * @return list of connected providers
+     */
+    public static List<URI> refreshProviderConnections(DbClient dbClient) {
+        List<StorageProvider> externalProviders = new ArrayList<>();
+        List<URI> externalProvidersUris = new ArrayList<>();
+
+        try {
+            driverManager = getDriverManager();
+            Collection<String> externalDeviceProviderTypes = driverManager.getStorageProvidersMap().values();
+            _log.info("Processing external provider types: {}", externalDeviceProviderTypes);
+
+            String simulatorProviderType = driverManager.getStorageProvidersMap().get(StorageDriverManager.SIMULATOR);
+            for (String providerType : externalDeviceProviderTypes) {
+                if (!providerType.equals(simulatorProviderType)) {
+                    // skip simulator provider
+                    externalProviders.addAll(CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            dbClient, providerType));
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Failed to refresh connections for external providers.", e);
+            return externalProvidersUris;
+        }
+
+        for (StorageProvider storageProvider : externalProviders) {
+            try {
+                // Makes sure external provider is reachable
+                checkProviderConnection(storageProvider);
+                storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.name());
+                externalProvidersUris.add(storageProvider.getId());
+                _log.info("Storage Provider {}/{} is reachable", storageProvider.getLabel(), storageProvider.getIPAddress());
+            } catch (Exception e) {
+                storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.name());
+                _log.error("Storage Provider {}/{} is not reachable", storageProvider.getLabel(), storageProvider.getIPAddress(), e);
+            } finally {
+                dbClient.updateObject(storageProvider);
+            }
+        }
+        return externalProvidersUris;
+    }
+
+
+    /**
+     * Check connection to external provider by opening sftp session to it.
+     *
+     * @param storageProvider storage provider
+     * @throws JSchException
+     * @throws SftpException
+     * @throws IOException
+     */
+    private static void checkProviderConnection(StorageProvider storageProvider)
+            throws JSchException, SftpException, IOException {
+
+        // Adopted from CinderUtils.
+        final Integer timeout = 10000;           // in milliseconds
+        final Integer connectTimeout = 10000;    // in milliseconds
+        final String STRICT_HOST_KEY_CHECKING = "StrictHostKeyChecking";
+        final String NO = "no";
+        ChannelSftp sftp = null;
+        Session session = null;
+        try {
+            JSch jsch = new JSch();
+            session = jsch.getSession(storageProvider.getUserName(),
+                    storageProvider.getIPAddress(),
+                    storageProvider.getPortNumber());
+            session.setPassword(storageProvider.getPassword());
+            Hashtable<String, String> config = new Hashtable<String, String>();
+            config.put(STRICT_HOST_KEY_CHECKING, NO);
+            session.setConfig(config);
+            session.connect(timeout);
+            _log.debug("Session Connected...");
+            Channel channel = session.openChannel("sftp");
+            sftp = (ChannelSftp) channel;
+            sftp.connect(connectTimeout);
+        } finally {
+            if (sftp != null) {
+                sftp.disconnect(); // disconnect will automatically close channel
+            }
+            if (session != null) {
+                session.disconnect(); // disconnect will automatically close session
+            }
+        }
     }
 }

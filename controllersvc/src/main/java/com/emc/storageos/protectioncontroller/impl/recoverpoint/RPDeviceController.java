@@ -4554,8 +4554,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Changing personalities means that the source was on "Copy Name A" and it's now on "Copy Name B":
         // 1. a. Any previous TARGET volume that matches the copy name of the incoming volume is now a SOURCE volume
-        // b. That voume needs its RP Targets volumes list filled-in as well; it's all of the devices that are
-        // the same replication set name that aren't the new SOURCE volume itself.
+        //    b. That volume needs its RP Target volumes list filled-in as well; it's all of the devices that are
+        //       the same replication set name that aren't the new SOURCE volume itself.
         // 2. All SOURCE volumes are now TARGET volumes and their RP Target lists need to be null'd out
         //
         for (URI protectionVolumeID : volumeIDs) {
@@ -4586,7 +4586,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                protectionVolume.getRpTargets().clear();
+                protectionVolume.setRpTargets(new StringSet());
                 _dbClient.updateObject(protectionVolume);
             } else if (!protectionVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " is a target that remains a target");

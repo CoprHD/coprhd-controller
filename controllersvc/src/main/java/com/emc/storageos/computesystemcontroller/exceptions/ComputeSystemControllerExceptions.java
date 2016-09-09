@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.computesystemcontroller.exceptions;
 
+import java.net.URI;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -113,6 +115,9 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException clusterHasVms(final String cluster);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException illegalInitiator(final URI host, final String initiator, final URI initiatorHost);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerTimeoutException timeoutWaitingForMOTerminalState(final String moDn, final String currentState,

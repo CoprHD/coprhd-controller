@@ -103,10 +103,10 @@ public class HpuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 Initiator initiator;
                 String wwpn = SanUtils.normalizeWWN(hba.getWwpn());
                 if (findInitiatorByPort(oldInitiators, wwpn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, wwpn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, wwpn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, wwpn);
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
@@ -118,10 +118,10 @@ public class HpuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (String iqn : hpux.listIQNs()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }

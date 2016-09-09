@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemDialogProperties;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryVersionValidator;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -267,7 +268,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return null;
     }
 
-    protected Initiator getOrCreateInitiator(List<Initiator> initiators, String port) {
+    protected Initiator getOrCreateInitiator(URI hostId, List<Initiator> initiators, String port) {
         Initiator initiator = findInitiatorByPort(initiators, port);
         if (initiator == null) {
             initiator = new Initiator();
@@ -275,6 +276,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             initiator.setLabel(EndpointUtility.changeCase(port));
         } else {
             initiators.remove(initiator);
+        }
+
+        if (!NullColumnValueGetter.isNullURI(initiator.getHost()) && !initiator.getHost().equals(hostId)) {
+            throw ComputeSystemControllerException.exceptions.illegalInitiator(hostId, initiator.getInitiatorPort(), initiator.getHost());
         }
         initiator.setIsManualCreation(false);
         return initiator;

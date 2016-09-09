@@ -3997,6 +3997,10 @@ recoverpoint_export_host_setup()
         WWNN3=`nwwn D7`
         PWWN4=`pwwn D8`
         WWNN4=`nwwn D8`
+        PWWN5="30:02:42:74:E2:26:D5:A1"
+        WWNN5="40:02:42:74:E2:26:D5:A1"
+        PWWN6="30:02:42:74:E2:26:D6:A1"
+        WWNN6="40:02:42:74:E2:26:D6:A1"
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
     elif [ "${vpool}" = "rp${rptype}_crr" ]; then
         PWWN1=`pwwn E5`
@@ -4007,6 +4011,10 @@ recoverpoint_export_host_setup()
         WWNN3=`nwwn E7`
         PWWN4=`pwwn E8`
         WWNN4=`nwwn E8`
+        PWWN5="30:02:42:74:E2:26:E5:A1"
+        WWNN5="40:02:42:74:E2:26:E5:A1"
+        PWWN6="30:02:42:74:E2:26:E6:A1"
+        WWNN6="40:02:42:74:E2:26:E6:A1"
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
     elif [ "${vpool}" = "rp${rptype}_clr" ]; then
         PWWN1=`pwwn F5`
@@ -4017,6 +4025,10 @@ recoverpoint_export_host_setup()
         WWNN3=`nwwn F7`
         PWWN4=`pwwn F8`
         WWNN4=`nwwn F8`
+        PWWN5="30:02:42:74:E2:26:F5:A1"
+        WWNN5="40:02:42:74:E2:26:F5:A1"
+        PWWN6="30:02:42:74:E2:26:F6:A1"
+        WWNN6="40:02:42:74:E2:26:F6:A1"
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
@@ -4031,11 +4043,17 @@ recoverpoint_export_host_setup()
         run initiator create ${RP_HOSTNAME}1 FC ${PWWN3} --node ${WWNN3}
         run initiator create ${RP_HOSTNAME}2 FC ${PWWN4} --node ${WWNN4}      
 
+        run initiator create ${RP_HOSTNAME}1 FC ${PWWN5} --node ${WWNN5}
+        run initiator create ${RP_HOSTNAME}2 FC ${PWWN6} --node ${WWNN6}
+
         run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
         run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}  
 
         run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN3}
         run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_12 ${PWWN4}
+
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
     else
         run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
         run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     

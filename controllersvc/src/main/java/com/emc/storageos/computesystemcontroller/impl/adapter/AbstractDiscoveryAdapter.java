@@ -279,7 +279,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         }
 
         if (!NullColumnValueGetter.isNullURI(initiator.getHost()) && !initiator.getHost().equals(hostId)) {
-            throw ComputeSystemControllerException.exceptions.illegalInitiator(hostId, initiator.getInitiatorPort(), initiator.getHost());
+            Host host = dbClient.queryObject(Host.class, hostId);
+            Host initiatorHost = dbClient.queryObject(Host.class, initiator.getHost());
+            throw ComputeSystemControllerException.exceptions.illegalInitiator(host != null ? host.getLabel() : hostId.toString(),
+                    initiator.getInitiatorPort(), initiatorHost != null ? initiatorHost.getLabel() : initiator.getHost().toString());
         }
         initiator.setIsManualCreation(false);
         return initiator;

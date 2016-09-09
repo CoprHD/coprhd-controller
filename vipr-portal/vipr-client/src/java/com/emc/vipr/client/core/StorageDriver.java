@@ -4,10 +4,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
+import javax.ws.rs.core.MediaType;
+
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
+import com.sun.jersey.multipart.FormDataMultiPart;
+import com.sun.jersey.multipart.file.FileDataBodyPart;
 
 public class StorageDriver {
 
@@ -22,7 +26,9 @@ public class StorageDriver {
     }
 
     public StorageSystemTypeAddParam upload(File f, String name) throws FileNotFoundException {
-        return client.post(StorageSystemTypeAddParam.class, new FileInputStream(f),
-                String.format(PathConstants.STORAGE_DRIVER_STORE_AND_PARSE_URL, name));
+        String path = String.format(PathConstants.STORAGE_DRIVER_STORE_AND_PARSE_URL, name);
+        final FormDataMultiPart multiPart = new FormDataMultiPart();
+        multiPart.bodyPart(new FileDataBodyPart("driver", f, MediaType.APPLICATION_OCTET_STREAM_TYPE));
+        return client.postMultiPart(StorageSystemTypeAddParam.class, multiPart, path);
     }
 }

@@ -202,5 +202,5 @@ public class PathConstants {
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
     public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver/install";
-    public static final String STORAGE_DRIVER_STORE_AND_PARSE_URL = "/storagedriver/storeandparse?filename=%s";
+    public static final String STORAGE_DRIVER_STORE_AND_PARSE_URL = "/storagedriver/formstoreparse?filename=%s";
 }

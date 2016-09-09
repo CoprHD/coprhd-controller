@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -37,6 +38,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
+import com.sun.jersey.multipart.FormDataParam;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -103,7 +105,36 @@ public class DriverService {
     }
 
     /**
-     * Upload JAR file, return parsed meta data, including storing path
+     * Upload driver jar file as form data
+     * @param uploadedInputStream
+     * @param name
+     * @return
+     * @throws IOException
+     */
+    @POST
+    @Path("formstoreparse/")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public StorageSystemTypeAddParam formStoreParse(@FormDataParam("driver") InputStream uploadedInputStream,
+            @QueryParam("filename") String name) throws IOException {
+        File f = new File(UPLOAD_DEVICE_DRIVER + name);
+        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
+        int bytesRead = 0;
+        while (true) {
+            byte[] buffer = new byte[0x10000];
+            bytesRead = uploadedInputStream.read(buffer);
+            if (bytesRead == -1) {
+                break;
+            }
+            os.write(buffer, 0, bytesRead);
+        }
+        uploadedInputStream.close();
+        os.close();
+
+        String tmpFilePath = f.getName();
+        return map(this.parseDriver(tmpFilePath), tmpFilePath);
+    }
+    /**
+     * Upload JAR file, return parsed meta data, including storing path: Save this API for vipr-cli
      */
     @POST
     @Path("storeandparse/")
@@ -130,64 +161,6 @@ public class DriverService {
         String tmpFilePath = f.getName();
         return map(this.parseDriver(tmpFilePath), tmpFilePath);
     }
-//======================= OLD implementation ==========================
-    @POST
-    @Path("upload/")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response installDriver(@Context HttpServletRequest request, @QueryParam("filename") String name) throws Exception {
-        log.info("upload driver ...");
-        InputStream driver = request.getInputStream();
-        File f = new File(UPLOAD_DEVICE_DRIVER + name);
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
-        int bytesRead = 0;
-        while (true) {
-            byte[] buffer = new byte[0x10000];
-            bytesRead = driver.read(buffer);
-            if (bytesRead == -1) {
-                break;
-            }
-            os.write(buffer, 0, bytesRead);
-        }
-        driver.close();
-        os.close();
-        
-        // update meta data, set usable false for now
-        StorageSystemType type = new StorageSystemType();
-        URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-        type.setId(ssTyeUri);
-        type.setStorageTypeId(ssTyeUri.toString());
-
-        type.setStorageTypeName("typename");
-        type.setMetaType("block");
-        type.setDriverClassName("driver class");
-        type.setStorageTypeDispName("display_name");
-        type.setNonSslPort("1234");
-        type.setSslPort("4321");
-
-        type.setIsSmiProvider(false);
-        type.setIsDefaultSsl(true);
-        type.setIsDefaultMDM(false);
-        type.setIsOnlyMDM(false);
-        type.setIsElementMgr(false);
-        type.setIsSecretKey(false);
-        type.setDriverFileName(name);
-
-        dbClient.createObject(type);
-        
-        // set target info
-        String localNode = coordinatorExt.getNodeEndpointForSvcId(service.getId()).toString();
-        DriverInfo2 info = new DriverInfo2(coordinator.queryConfiguration(DriverInfo2.CONFIG_ID, DriverInfo2.CONFIG_ID));
-        info.setInitNode(localNode);
-        if (info.getDrivers() == null) {
-            info.setDrivers(new ArrayList<String>());
-        }
-        info.getDrivers().add(name);
-        coordinator.persistServiceConfiguration(info.toConfiguration());
-        log.info("set target info successfully");
-        return Response.ok().build();
-    }
 
     @GET
     @Path("internal/download/")
@@ -197,20 +170,7 @@ public class DriverService {
         InputStream in = new FileInputStream(UPLOAD_DEVICE_DRIVER + "/" + name);
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
-    
-    // add another internal API, the last node will access to delete tmp file who finished downloading
 
-
-
-
-
-
-
-
-// ----------- internal private methods
-    /*
-     * Stub
-     */
     private StorageSystemType parseDriver(String path) {
         StorageSystemType type = new StorageSystemType();
         URI ssTyeUri = URIUtil.createId(StorageSystemType.class);

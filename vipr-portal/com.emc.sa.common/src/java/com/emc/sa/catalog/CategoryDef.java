@@ -14,6 +14,7 @@ public class CategoryDef {
     public String image;
     public String version;
     public String description;
+    public String applicableto;
     public List<CategoryDef> categories;
     public List<ServiceDef> services;
 

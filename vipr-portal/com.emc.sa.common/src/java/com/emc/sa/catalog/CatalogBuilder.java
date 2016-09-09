@@ -29,6 +29,8 @@ import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigr
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -104,6 +106,11 @@ public class CatalogBuilder {
         category.setCatalogCategoryId(parentId);
         category.setSortedIndex(sortedIndexCounter++);
         category.setVersion(def.version);
+        if (null != def.applicableto) {
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            category.setTag(tagSet);
+            tagSet.add(new ScopedLabel("source", def.applicableto));
+        }
         models.save(category);
 
         NamedURI myId = new NamedURI(category.getId(), category.getLabel());

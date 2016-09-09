@@ -97,6 +97,7 @@
       "title": "block.title",
       "image": "icon_host.png",
       "description": "block.description",
+      "applicableto":"EMMET",
       "services": [
         {
           "image": "icon_array_host_add.png",

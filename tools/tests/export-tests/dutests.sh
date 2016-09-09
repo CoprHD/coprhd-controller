@@ -3048,7 +3048,7 @@ test_22() {
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
-	exit
+	return
     fi
 
     # Create a new vplex volume that we can migrate
@@ -3101,7 +3101,7 @@ test_23() {
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
-	exit
+        return
     fi
 
     randval=${RANDOM}

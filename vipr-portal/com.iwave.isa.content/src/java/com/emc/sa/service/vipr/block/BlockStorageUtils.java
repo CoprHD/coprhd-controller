@@ -258,12 +258,16 @@ public class BlockStorageUtils {
      * @return true or false if the volume is a VMFS Datastore
      */
     public static boolean isVolumeVMFSDatastore(BlockObjectRestRep blockObject) {
-        Set<String> volumeTags = blockObject.getTags();
-        Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+        if (blockObject != null) {
+            Set<String> volumeTags = blockObject.getTags();
+            if (volumeTags != null) {
+                Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
 
-        for (String tag : parsedTags.keySet()) {
-            if (tag != null && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
-                return true;
+                for (String tag : parsedTags.keySet()) {
+                    if (tag != null && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+                        return true;
+                    }
+                }
             }
         }
 

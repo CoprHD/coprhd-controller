@@ -103,8 +103,9 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("adType", AuthSourceType.ad);
 
         renderArgs.put("ldapType", AuthSourceType.ldap);
-        renderArgs.put("keyStoneType", AuthSourceType.keystone);
-        renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
+        //to remove SOFO feature 
+        //renderArgs.put("keyStoneType", AuthSourceType.keystone);
+        //renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
         renderArgs.put("defaultInterval", DEFAULT_INTERVAL_DELAY);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
         renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
@@ -541,7 +542,7 @@ public class LDAPsources extends ViprResourceController {
                             MessagesUtils.get("ldapSources.synchronizationInterval.integerRequired"));
                 }
             }
-
+            /* To remove SOfo feature
         	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
 
             if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {
@@ -558,7 +559,7 @@ public class LDAPsources extends ViprResourceController {
             }
 
             validateLDAPGroupProperties(fieldName);
-        	}
+        	} */
         }
 
         private void validateLDAPGroupProperties(String fieldName) {

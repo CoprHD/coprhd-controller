@@ -32,8 +32,11 @@ import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OrderMapper {
+    private static Logger log = LoggerFactory.getLogger(OrderMapper.class.getName());
 
     private static final String ENCRYPTED_FIELD_MASK = "**********";
 
@@ -81,6 +84,7 @@ public class OrderMapper {
         if (from.getScheduledEventId() != null) {
             to.setScheduledEventId(from.getScheduledEventId());
         }
+        log.info("order has get scheduled time {}", from.getScheduledTime());
         if (from.getScheduledTime() != null) {
             to.setScheduledTime(from.getScheduledTime());
         }

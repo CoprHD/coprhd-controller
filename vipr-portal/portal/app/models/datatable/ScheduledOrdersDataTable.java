@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 
+import play.Logger;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
 import util.OrderUtils;
@@ -82,9 +83,7 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
                 this.executionWindow = MessagesUtils.get("scheduledOrders.nextExecutionWindow");
             }
 
-            GregorianCalendar geoCal = new GregorianCalendar();
-
-            if (this.scheduledTime != null) {
+            if (o.getScheduledTime() != null) {
                 this.scheduledTime = o.getScheduledTime().getTime().getTime();
             }
         }

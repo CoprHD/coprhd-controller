@@ -990,9 +990,12 @@ vplex_setup() {
 	return
     fi
 
-    secho "Discovering Brocade SAN Switch ..."
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    sleep 30
+    isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+    if [ $isNetworkDiscovered -eq 0 ]; then
+        secho "Discovering Brocade SAN Switch ..."
+        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        sleep 30
+    fi
 
     secho "Discovering VPLEX Storage Assets"
     storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
@@ -2169,6 +2172,12 @@ test_12() {
     expname=${EXPORT_GROUP_NAME}t12
     volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
+    # Check to make sure we're running VPLEX only
+    if [ "${SS: 0:-1}" != "vplex" ]; then
+        echo "test_12 only runs on VPLEX.  Bypassing for ${SS}."
+        return
+    fi
+
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
@@ -3200,7 +3209,7 @@ test_24() {
     # Verify the mask has the new initiator in it
     verify_export ${expname}1 ${HOST1} 2 2
 
-    # Remove the volume from the export group
+    # Remove the vipr volume from the export group
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
 
     # Verify the volume is removed
@@ -3209,23 +3218,32 @@ test_24() {
     # Verify the zone names, as we know them, are still on the switch
     verify_zones ${FC_ZONE_A:7} exists
 
-    # Now remove the initiator from the export mask
+    # Now add back the other vipr volume to the mask
+    runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+
+    # Verify the volume is added
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the hijack volume from the export mask
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
-    # Make sure it deleted the volume
-    verify_export ${expname}1 ${HOST1} 2 0
+    # Make sure it removed the volume
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Now let Vipr delete the export group.
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure we end clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Verify there are no zones on the switch
+    # Unfortuantely zones are left because after we remove the 1st vipr volume and have only the hijack
+    # volume remaining in the mask, it becomes an existing volume when the 2nd vipr volume
+    # is added back into the mask.
+    #verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
-
-    # The mask is out of our control at this point, delete mask
-    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
-
-    # Make sure the mask is gone
-    verify_export ${expname}1 ${HOST1} gone
 
     # Delete the zones
     delete_zones

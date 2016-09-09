@@ -862,7 +862,9 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    if [ "${SIM}" = 0 ]; then
+       run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    fi
 
     common_setup
 

@@ -40,7 +40,7 @@ delete_mask() {
 	# Put it back into the optimized SG?
 
 	# Delete storage group
-	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage
+	echo "y" | /opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage
     fi
 }
 

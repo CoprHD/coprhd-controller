@@ -22,6 +22,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -107,16 +108,17 @@ public class DriverService {
     /**
      * Upload driver jar file as form data
      * @param uploadedInputStream
-     * @param name
+     * @param filename
      * @return
      * @throws IOException
      */
     @POST
-    @Path("formstoreparse/")
+    @Path("formstoreparse/{filename}")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StorageSystemTypeAddParam formStoreParse(@FormDataParam("driver") InputStream uploadedInputStream,
-            @QueryParam("filename") String name) throws IOException {
-        File f = new File(UPLOAD_DEVICE_DRIVER + name);
+            @PathParam("filename") URI filename) throws IOException {
+        File f = new File(UPLOAD_DEVICE_DRIVER + filename);
         OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
         int bytesRead = 0;
         while (true) {

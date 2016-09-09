@@ -25,10 +25,10 @@ public class StorageDriver {
         client.post(StorageSystemTypeRestRep.class, input, PathConstants.STORAGE_DRIVER_INSTALL_URL);
     }
 
-    public StorageSystemTypeAddParam upload(File f, String name) throws FileNotFoundException {
-        String path = String.format(PathConstants.STORAGE_DRIVER_STORE_AND_PARSE_URL, name);
+    public StorageSystemTypeAddParam upload(File f, String filename) throws FileNotFoundException {
         final FormDataMultiPart multiPart = new FormDataMultiPart();
         multiPart.bodyPart(new FileDataBodyPart("driver", f, MediaType.APPLICATION_OCTET_STREAM_TYPE));
-        return client.postMultiPart(StorageSystemTypeAddParam.class, multiPart, path);
+        return client.postMultiPart(StorageSystemTypeAddParam.class, multiPart,
+                PathConstants.STORAGE_DRIVER_STORE_AND_PARSE_URL, filename);
     }
 }

@@ -86,15 +86,9 @@ public class ServiceCatalog extends Controller {
         // roles and ACLs of every catalog, different users will have different views.
         String cacheKey = SERVICE_CATALOG + "." + tenantId + "." + Security.getUserInfo().getIdentifier();
         Map<String, CategoryDef> catalog = (Map<String, CategoryDef>) Cache.get(cacheKey);
-        if (catalog == null) {
-            Logger.debug("Creating catalog cache for " + cacheKey);
-
-            catalog = createCatalog(tenantId, source);
-            Cache.set(cacheKey, catalog, CATALOG_EXPIRE);
-        }
-        else {
-            Logger.debug("Using catalog from cache for " + cacheKey);
-        }
+        /*Removing catalog caching for this task since it caches the key and doesnt refresh on URL change*/
+        Logger.debug("Creating catalog cache for " + cacheKey);
+        catalog = createCatalog(tenantId, source);
         return catalog;
     }
 

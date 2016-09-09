@@ -722,7 +722,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         if (!CollectionUtils.isEmpty(sharedMaskNames)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                             errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s.", initiatorURI,
+                                    String.format(" Initiator %s is shared between other Export Masks  %s.",
                                             normalizedName, Joiner.on(", ").join(sharedMaskNames)));
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);

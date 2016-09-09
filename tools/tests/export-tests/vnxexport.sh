@@ -172,6 +172,8 @@ setup() {
     sleep 10
     SMISPASS=0
 	
+    #Disable validation check
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false	
     runcmd smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     while [ ${SMISPASS} -eq 0 ]
       do
@@ -1197,6 +1199,8 @@ deletevols() {
 }
 
 cleanup() {
+   #Enable validation check
+   syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
    for id in `export_group list project | grep YES | awk '{print $5}'`
    do
       runcmd export_group delete ${id} > /dev/null

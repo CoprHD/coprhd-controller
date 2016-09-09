@@ -94,7 +94,7 @@ angular.module("portalApp").controller({
             event.preventDefault();
         };
 
-        $scope.myChange = function(value) {
+        $scope.disablePlacementPolicy = function(value) {
         	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
         	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
         	if((nonequalList.indexOf(value)<0)||(equalList.indexOf(value)==-1)) {

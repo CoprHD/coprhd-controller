@@ -516,7 +516,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         if (!apiClient.isUnityClient()) {
             VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
             wwn = snap.getPromotedWWN();
-            ;
         } else {
             Snap snap = apiClient.getSnapshot(snapId);
             wwn = snap.getAttachedWWN();

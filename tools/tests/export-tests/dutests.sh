@@ -772,9 +772,7 @@ vnx_setup() {
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
+    run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
@@ -829,9 +827,7 @@ vmax2_setup() {
     setup_varray
 
     run storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
+    run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
@@ -864,9 +860,7 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
+    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 

@@ -323,7 +323,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
         debug("getting source block volumes (project=%s)", project);
-        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project);
+        FilterChain<VolumeRestRep> filters = new BlockObjectMountPointFilter().not();
+        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project, filters);
         return createVolumeOptions(null, volumes);
     }
 
@@ -348,6 +349,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // Filter volumes that are not RP Metadata
         List<URI> volumeIds = getExportedVolumeIds(ctx, project);
         FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
+        filter.and(new BlockObjectMountPointFilter().not());
         List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
         return createVolumeWithVarrayOptions(client, volumes);
     }
@@ -3442,6 +3444,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         @Override
         public boolean accept(BlockObjectRestRep blockObject) {
             return BlockStorageUtils.isVolumeVMFSDatastore(blockObject);
+        }
+    }
+
+    /**
+     * MountPoint filter for block objects.
+     */
+    private static class BlockObjectMountPointFilter extends DefaultResourceFilter<VolumeRestRep> {
+        @Override
+        public boolean accept(VolumeRestRep blockObject) {
+            return BlockStorageUtils.isVolumeMounted(blockObject);
         }
     }
 

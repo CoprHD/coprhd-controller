@@ -639,6 +639,14 @@ volume_group_wait_for_tasks()
                 cmd="$VIPRCLI_CMD snapshot tasks -cg $cg -project $project -tenant $tenant -hostname $BOURNE_IPADDR"
                 wait_for_tasks $cmd
             done
+
+            volumes=`volume_group_get_volumes_in_volumegroup ${1}`
+            for volume in ${volumes//,/ }
+            do
+                volume_name=`volume_group_get_volume_name_from_id ${volume}`
+                cmd="$VIPRCLI_CMD snapshot tasks -volume $volume_name -project $project -tenant $tenant -hostname $BOURNE_IPADDR"
+                wait_for_tasks $cmd
+            done
         elif [[ $2 == "snapshotsession" ]]; then
             # viprcli does not support getting tasks for snapshot session objects so all we can do is sleep
             sleep 20
@@ -667,6 +675,43 @@ wait_for_tasks()
     done
 }
 
+#
+# get the volume name from the id
+#
+volume_group_get_volume_name_from_id()
+{
+    volume=${1}
+    file1=/tmp/vols$$one.out
+    file2=/tmp/vols$$two.out
+    volume show $volume >> $file1
+    grep "urn:storageos:BlockConsistencyGroup" $file1 | grep name | awk -F: '{print substr($0,index($0,$2))}' >> $file2
+    grep "name" $file1 | awk -F: '{print substr($0,index($0,$2))}' >> $file2
+    volume_name=`cat ${file2}`
+    volume_name="${volume_name//\"}"
+    volume_name="${volume_name//,}"
+    rm $file1 $file2
+    echo ${volume_name}
+}
+
+#
+# gets all volumes from the volume group
+#
+volume_group_get_volumes_in_volumegroup()
+{
+    group=$1
+
+    file1=/tmp/getvols$$one.out
+    file2=/tmp/getvols$$two.out
+    volume_group_show_volumes $group >> $file1
+    grep "urn:storageos:Volume" $file1 | grep id | awk -F: '{print substr($0,index($0,$2))}' >> $file2
+    volume=`cat ${file2}`
+    rm $file1 $file2
+
+    volume="${volume//\"}"
+    volume="${volume//,}"
+
+    echo $volume
+}
 
 #
 # gets one project from the volume group

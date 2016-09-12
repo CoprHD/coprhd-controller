@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -70,6 +71,12 @@ public class ActionableEventExecutor {
         if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
+            Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+            if (oldCluster != null) {
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsRemovedFromCluster",
+                        host.getLabel(),
+                        oldCluster.getLabel()));
+            }
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
@@ -81,6 +88,11 @@ public class ActionableEventExecutor {
                 && !NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
             // Non-clustered host being added to a cluster
+            Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+            if (newCluster != null) {
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsAddedToCluster", host.getLabel(),
+                        newCluster.getLabel()));
+            }
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
                 List<BlockObjectDetails> affectedVolumes = getBlockObjectDetails(hostId, eg.getVolumes());
@@ -93,6 +105,12 @@ public class ActionableEventExecutor {
                 && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                         || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
             // Clustered host being moved to another cluster
+            Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+            Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+            if (newCluster != null && oldCluster != null) {
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
+                        oldCluster.getLabel(), newCluster.getLabel()));
+            }
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
@@ -297,6 +315,7 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
         }
         return result;
@@ -319,6 +338,8 @@ public class ActionableEventExecutor {
         Host host = _dbClient.queryObject(Host.class, hostId);
         VcenterDataCenter datacenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterId);
         if (host != null && datacenter != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDetails", host.getLabel(),
+                    datacenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;
@@ -357,6 +378,8 @@ public class ActionableEventExecutor {
         Host host = _dbClient.queryObject(Host.class, hostId);
         VcenterDataCenter datacenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterId);
         if (host != null && datacenter != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDetails", host.getLabel(),
+                    datacenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;

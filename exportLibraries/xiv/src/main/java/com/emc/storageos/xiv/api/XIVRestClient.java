@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.services.restutil.StandardRestClient;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;

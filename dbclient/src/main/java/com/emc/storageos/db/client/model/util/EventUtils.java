@@ -42,6 +42,9 @@ public class EventUtils {
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
 
+    private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
+            EventCode.HOST_INITIATOR_DELETE);
+
     public enum EventCode {
         HOST_CLUSTER_CHANGE("101"),
         HOST_INITIATOR_ADD("102"),
@@ -81,7 +84,11 @@ public class EventUtils {
             String warning,
             DataObject resource, Collection<URI> affectedResources, String approveMethod, Object[] approveParameters,
             String declineMethod, Object[] declineParameters) {
-        ActionableEvent duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId());
+        ActionableEvent duplicateEvent = null;
+        if (!ALLOWED_DUPLICATE_EVENTS.contains(eventCode)) {
+            duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId());
+        }
+
         if (duplicateEvent != null) {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");

@@ -141,10 +141,10 @@ public class ExportMaskUtils {
     }
 
     /**
-     * Returns a list of ExportMasks that are for a specified storage-system.
+     * Returns a list of ExportMasks that are for a specified Storage System.
      *
-     * @param dbClient - database client.
-     * @param ssysURI - the StorageSystem URI; if NULL returns ALL ExportMasks
+     * @param dbClient - reference to the database client
+     * @param ssysURI - the StorageSystem URI
      * @return List<ExportMask> -- an empty list is returned if there are no matches.
      */
     public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {

@@ -5,7 +5,6 @@
 package com.emc.storageos.index.client;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 import com.emc.storageos.db.client.model.DataObject;
 
@@ -15,10 +14,10 @@ public interface IndexClient {
      * import data into index server
      * 
      * @param clazz object type
-     * @param objects object list
-     * @return total numbers of records imported
+     * @param object object
+     * @return true if import successfully
      */
-    public <T extends DataObject> int importData(Class<T> clazz, Iterator<T> objects);
+    public <T extends DataObject> boolean importRecords(Class<T> clazz, T object) throws Exception;
 
     /**
      * query from index server
@@ -30,11 +29,6 @@ public interface IndexClient {
      * @return uris
      */
     public <T extends DataObject> IndexQueryResult query(Class<T> clazz, String queryString, int pageSize, int pageNumber);
-
-    /**
-     * Connect to the indexing server
-     */
-    public void start();
 
     /**
      * Disconnect from the indexing server

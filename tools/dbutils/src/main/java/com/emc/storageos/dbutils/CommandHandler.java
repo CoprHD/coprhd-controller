@@ -46,7 +46,6 @@ import com.emc.storageos.db.client.model.Encrypt;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.index.client.IndexClient;
 import com.emc.storageos.index.client.IndexQueryResult;
 import com.emc.storageos.index.client.impl.IndexClientImpl;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
@@ -223,35 +222,90 @@ public abstract class CommandHandler {
         }
 
         @SuppressWarnings("unchecked")
-        private <T extends DataObject> void dataImport(DBClient client) throws IOException {
-            Iterator<T> objects;
+        private <T extends DataObject> void dataImport(DBClient client) throws Exception {
+            long indexTime = 0;
+            long dbTime = 0;
 
-            InternalDbClientImpl _dbClient = client.getDbClient();
+            long startTime = System.currentTimeMillis();
+
+            long t3 = System.currentTimeMillis();
+            Iterator<T> objects;
+            InternalDbClientImpl dbClient = client.getDbClient();
             Class clazz = client.getClassFromCFName(cfName);
             if (clazz == null) {
                 return;
             }
 
-            long startTime = System.currentTimeMillis();
             List<URI> uris = null;
-            uris = _dbClient.queryByType(clazz, true);
+            uris = dbClient.queryByType(clazz, true);
             if (uris == null || !uris.iterator().hasNext()) {
                 System.out.println("No records found");
                 return;
             }
+            objects = dbClient.queryIterativeObjects(clazz, uris);
+            long t4 = System.currentTimeMillis();
+            dbTime = t4 - t3 + dbTime;
 
-            objects = _dbClient.queryIterativeObjects(clazz, uris);
+            long t1 = System.currentTimeMillis();
+            IndexClientImpl indexclient = new IndexClientImpl();
+            indexclient.init(clazz);
+            long t2 = System.currentTimeMillis();
+            indexTime = t2 - t1 + indexTime;
 
-            IndexClient indexclient = new IndexClientImpl();
-            indexclient.start();
             System.out.println("Index server start!");
-            int countAll = indexclient.importData(clazz, objects);
+            int countAll = 0;
+            while (objects.hasNext()) {
+
+                t3 = System.currentTimeMillis();
+                T object = objects.next();
+                t4 = System.currentTimeMillis();
+                dbTime = t4 - t3 + dbTime;
+
+                t1 = System.currentTimeMillis();
+                boolean success = indexclient.importRecords(clazz, object);
+                t2 = System.currentTimeMillis();
+                indexTime = t2 - t1 + indexTime;
+
+                if (success) {
+                    countAll++;
+                    System.out.println(countAll);
+                }
+            }
+
+            t1 = System.currentTimeMillis();
+            indexclient.commit();
             indexclient.stop();
+            t2 = System.currentTimeMillis();
+            indexTime = t2 - t1 + indexTime;
+
             long stopTime = System.currentTimeMillis();
             long time = stopTime - startTime;
-            System.out.println("It takes " + time + " ms to import " + countAll + " records.");
+            System.out.println("Total number:" + countAll + " Total time:" + time + " ms");
+            System.out.println("Time for index:" + indexTime + " ms");
+            System.out.println("Time for db:" + dbTime + " ms");
         }
 
+    }
+
+    public static class CleanIndexHandler extends CommandHandler {
+
+        public CleanIndexHandler(String[] args) {
+            cfName = args[args.length - 1];
+        }
+
+        @Override
+        public void process(DBClient client) throws Exception {
+            Class clazz = client.getClassFromCFName(cfName);
+            if (clazz == null) {
+                return;
+            }
+
+            IndexClientImpl indexclient = new IndexClientImpl();
+            indexclient.init(clazz);
+            System.out.println("Index server start!");
+            indexclient.deleteAllData(clazz);
+            indexclient.stop();
+        }
     }
 
     public static class ListHandler extends CommandHandler {
@@ -415,8 +469,8 @@ public abstract class CommandHandler {
         private DbClientImpl dbclientimpl;
 
         public IndexQueryHandler(String[] args) {
-            cfName = args[1];
-            query = args;
+            cfName = "Volume";
+            // query = args;
         }
 
         @SuppressWarnings("unchecked")
@@ -428,32 +482,54 @@ public abstract class CommandHandler {
                 return;
             }
 
-            queryString = (query[2]);
-            pageSize = Integer.parseInt(query[3]);
-            pageNumber = Integer.parseInt(query[4]);
+            // queryString = (query[2]);
+            // pageSize = Integer.parseInt(query[3]);
+            // pageNumber = Integer.parseInt(query[4]);
 
-            long startTime = System.currentTimeMillis();
-            IndexClient indexClient = new IndexClientImpl();
-            indexClient.start();
+            List<Long> timeUtil = new ArrayList<Long>();
+            List<IndexQueryResult> resultUtil = new ArrayList<IndexQueryResult>();
+            List<Integer> numberUtil = new ArrayList<Integer>();
+            for (int i = 0; i < 20; i++) {
+                IndexClientImpl indexClient = new IndexClientImpl();
+                indexClient.init(clazz);
+                IndexQueryResult indexQueryResult;
 
-            IndexQueryResult indexQueryResult;
-            indexQueryResult = indexClient.query(clazz, queryString, pageSize, pageNumber);
-            List<URI> uris;
-            uris = indexQueryResult.getUris();
-            for (URI uri : uris) {
-                DataObject object = dbclientimpl.queryObject(uri);
-                printBeanProperties(clazz, object);
+                long startTime = System.currentTimeMillis();
+                pageSize = 10;
+                pageNumber = (int) (Math.random() * 10000);
+                System.out.println(pageNumber);
+                numberUtil.add(pageNumber);
+                indexQueryResult = indexClient.query(clazz, queryString, pageSize, pageNumber);
+                List<URI> uris;
+
+                uris = indexQueryResult.getUris();
+                for (URI uri : uris) {
+                    DataObject object = dbclientimpl.queryObject(uri);
+                    printBeanProperties(clazz, object);
+                }
+                indexClient.stop();
+
+                long stopTime = System.currentTimeMillis();
+                long time = stopTime - startTime;
+                timeUtil.add(time);
+                resultUtil.add(indexQueryResult);
+
+                StringBuilder queryResult = new StringBuilder();
+                queryResult.append("Query string is " + queryString + "\n");
+                queryResult.append("Total number is: " + indexQueryResult.getTotalNum() +
+                        " Page size is: " + pageSize + " Current page is: "
+                        + pageNumber + " Time taken:" + time + " ms");
+                System.out.println(queryResult.toString());
             }
-            indexClient.stop();
 
-            long stopTime = System.currentTimeMillis();
-            long time = stopTime - startTime;
-            StringBuilder queryResult = new StringBuilder();
-            queryResult.append("Query string is " + queryString + "\n");
-            queryResult.append("Total number is " + indexQueryResult.getTotalNum() +
-                    " page size is: " + pageSize + " page number is: "
-                    + pageNumber + " Time taken:" + time + " ms");
-            System.out.println(queryResult.toString());
+            System.out.println("************************statistics***************************");
+            long totalTime = 0;
+            for (int i = 0; i < timeUtil.size(); i++) {
+                totalTime += timeUtil.get(i);
+                System.out.println("Query " + (i + 1) + ": Total number:" + resultUtil.get(i).getTotalNum() + " Page size:" + pageSize
+                        + " Current page:" + numberUtil.get(i) + " Time taken:" + timeUtil.get(i) + " ms:");
+            }
+            System.out.println("Average time:" + totalTime / timeUtil.size() + " ms");
         }
 
         private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)

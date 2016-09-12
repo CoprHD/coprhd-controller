@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.dbutils.CommandHandler.CheckDBHandler;
+import com.emc.storageos.dbutils.CommandHandler.CleanIndexHandler;
 import com.emc.storageos.dbutils.CommandHandler.CountHandler;
 import com.emc.storageos.dbutils.CommandHandler.DeleteHandler;
 import com.emc.storageos.dbutils.CommandHandler.DependencyHandler;
@@ -43,6 +44,7 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     private enum Command {
+        CLEANINDEX,
         INDEXQUERY,
         IMPORT,
         LIST,
@@ -108,6 +110,7 @@ public class Main {
                 Command.LIST.name().toLowerCase(), TYPE_EVENTS, TYPE_STATS, TYPE_AUDITS);
         System.out.printf("\t%s <Volume> \t import data%n", Command.IMPORT.name().toLowerCase());
         System.out.printf("\t%s <Volume> <queryString> <pageSize> <pageNumber> \t query data%n", Command.INDEXQUERY.name().toLowerCase());
+        System.out.printf("\t%s <Volume> \t clean index%n", Command.CLEANINDEX.name().toLowerCase());
         System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>%n", Command.DELETE.name().toLowerCase());
         System.out
                 .printf("\t\t%s <file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n",
@@ -236,6 +239,10 @@ public class Main {
             boolean result = false;
 
             switch (cmd) {
+                case CLEANINDEX:
+                    _client.init();
+                    handler = new CleanIndexHandler(args);
+                    break;
                 case INDEXQUERY:
                     _client.init();
                     handler = new IndexQueryHandler(args);

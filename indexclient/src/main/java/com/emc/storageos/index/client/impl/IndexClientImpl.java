@@ -9,12 +9,10 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +38,7 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Encrypt;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.index.client.IndexClient;
 import com.emc.storageos.index.client.IndexQueryResult;
@@ -51,28 +50,83 @@ public class IndexClientImpl implements IndexClient {
     private CloudSolrClient solrClient;
 
     public IndexClientImpl() {
-        String zkHostString = "10.247.101.118:2181,10.247.101.149:2181,10.247.101.177:2181,10.247.101.183:2181,10.247.101.184:2181";
+        String zkHostString = "10.247.101.186:2181,10.247.101.178:2181,10.247.101.179:2181,10.247.97.92:2181,10.247.97.93:2181";
         solrClient = new CloudSolrClient.Builder().withZkHost(zkHostString).build();
+        solrClient.connect();
+        log.info("Index Client starts");
     }
 
-    @Override
-    public <T extends DataObject> int importData(Class<T> clazz, Iterator<T> objects) {
-        int countAll = 0;
+    public <T extends DataObject> void init(Class<T> clazz) {
         String collectionName = clazz.getName();
         createCollection(collectionName);
-
         List<String> fieldNames = getIndexedFields(clazz);
         addSchema(collectionName, fieldNames);
         solrClient.setDefaultCollection(collectionName);
+    }
 
+    @Override
+    public <T extends DataObject> boolean importRecords(Class<T> clazz, T object) throws Exception {
+        boolean success = true;
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("id", object.getId().toString());
+
+        BeanInfo bInfo;
         try {
-            countAll = importRecords(clazz, objects);
-            log.info("{} records added", countAll);
-            solrClient.commit();
-        } catch (Exception e) {
-            log.error("Failed to import data e=", e);
+            bInfo = Introspector.getBeanInfo(clazz);
+        } catch (IntrospectionException ex) {
+            log.error("Unexpected exception getting bean info", ex);
+            throw new RuntimeException("Unexpected exception getting bean info", ex);
         }
-        return countAll;
+
+        PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
+        Object objValue;
+        Class type;
+
+        for (PropertyDescriptor pd : pds) {
+            if (pd.getName().equals("class") || pd.getName().equals("id")) {
+                continue;
+            }
+
+            Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
+            if (encryptAnnotation != null) {
+                continue;
+            }
+
+            type = pd.getPropertyType();
+            if (String.class != type) {
+                continue;
+            }
+
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            String objKey;
+            if (nameAnnotation == null) {
+                objKey = pd.getName();
+            } else {
+                objKey = nameAnnotation.value();
+            }
+
+            objValue = pd.getReadMethod().invoke(object);
+            if (objValue == null) {
+                continue;
+            }
+
+            if (isEmptyStr(objValue)) {
+                continue;
+            }
+            doc.addField(objKey, objValue.toString());
+        }
+        solrClient.add(doc);
+        return success;
+    }
+
+    public void commit() {
+        try {
+            solrClient.commit();
+        } catch (SolrServerException e) {
+            log.error("Commit failed", e);
+        } catch (IOException e) {
+            log.error("Commit failed", e);
+        }
     }
 
     @Override
@@ -86,7 +140,6 @@ public class IndexClientImpl implements IndexClient {
         query.setFields("id");
         query.setStart((pageNumber - 1) * pageSize);
         query.setRows(pageSize);
-        query.addSort("id", SolrQuery.ORDER.asc);
         QueryResponse response;
         IndexQueryResult resultSets = null;
 
@@ -104,14 +157,10 @@ public class IndexClientImpl implements IndexClient {
             log.error("Query failed", e);
         } catch (URISyntaxException e) {
             log.error("Generate URI failed", e);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
         return resultSets;
-    }
-
-    @Override
-    public void start() {
-        solrClient.connect();
-        log.info("Index Client starts");
     }
 
     public void createCollection(String collectionName) {
@@ -127,8 +176,8 @@ public class IndexClientImpl implements IndexClient {
         ModifiableSolrParams params = new ModifiableSolrParams();
         params.set("action", CollectionParams.CollectionAction.CREATE.toString());
         params.set("numShards", 5);
-        params.set("replicationFactor", 5);
-        params.set("maxShardsPerNode", 1);
+        params.set("replicationFactor", 3);
+        params.set("maxShardsPerNode", 3);
         params.set("collection.configName", "myconf");
         params.set("name", collectionName);
 
@@ -176,61 +225,6 @@ public class IndexClientImpl implements IndexClient {
         log.info("Schema is added");
     }
 
-    private <T extends DataObject> int importRecords(Class<T> clazz, Iterator<T> objects)
-            throws Exception {
-        boolean success = true;
-        int countAll = 0;
-        while (objects.hasNext()) {
-            T object = objects.next();
-            success = importBeanProperties(clazz, object);
-            if (success) {
-                countAll++;
-            }
-        }
-        return countAll;
-    }
-
-    private <T extends DataObject> boolean importBeanProperties(Class<T> clazz, T object)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, SolrServerException, IOException {
-        SolrInputDocument doc = new SolrInputDocument();
-        doc.addField("id", object.getId().toString());
-        boolean success = true;
-        BeanInfo bInfo;
-        try {
-            bInfo = Introspector.getBeanInfo(clazz);
-        } catch (IntrospectionException ex) {
-            log.error("Unexpected exception getting bean info", ex);
-            throw new RuntimeException("Unexpected exception getting bean info", ex);
-        }
-
-        PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
-        Object objValue;
-        Class type;
-        for (PropertyDescriptor pd : pds) {
-            if (pd.getName().equals("class") || pd.getName().equals("id")) {
-                continue;
-            }
-            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
-            String objKey;
-            if (nameAnnotation != null) {
-                objKey = nameAnnotation.value();
-
-                objValue = pd.getReadMethod().invoke(object);
-                if (objValue == null) {
-                    continue;
-                }
-
-                if (isEmptyStr(objValue)) {
-                    continue;
-                }
-                doc.addField(objKey, objValue.toString());
-            }
-        }
-
-        solrClient.add(doc);
-        return success;
-    }
-
     private boolean isEmptyStr(Object objValue) {
         if (!(objValue instanceof String)) {
             return false;
@@ -241,5 +235,17 @@ public class IndexClientImpl implements IndexClient {
     @Override
     public void stop() throws IOException {
         solrClient.close();
+    }
+
+    public void deleteAllData(Class clazz) {
+        String collectionName = clazz.getName();
+        solrClient.setDefaultCollection(collectionName);
+        try {
+            solrClient.deleteByQuery("*:*");
+        } catch (SolrServerException e) {
+            log.info("Failed to delete data in Solr.", e);
+        } catch (IOException e) {
+            log.info("Failed to delete data in Solr.", e);
+        }
     }
 }

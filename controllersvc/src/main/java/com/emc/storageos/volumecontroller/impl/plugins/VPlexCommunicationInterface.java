@@ -702,9 +702,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     // this volume is contained in at least one export mask that is non-RP
                                     nonRpExported = true;
                                 }
-                            }
 
-                            persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, false);
+                                persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, false);
+                            }
                         }
 
                         // If this mask isn't RP, then this volume is exported to a host/cluster/initiator or VPLEX. Mark

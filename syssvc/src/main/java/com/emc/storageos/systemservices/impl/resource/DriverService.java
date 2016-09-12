@@ -247,7 +247,7 @@ public class DriverService {
 
         // set meta type
         String metaType = metaData.getProperty(STORAGE_META_TYPE);
-        if (isValidMetaType(metaType)) {
+        if (!isValidMetaType(metaType)) {
             throw new RuntimeException("Storage meta type can't be null, and could only be among block/file/block_and_file/object");
         }
         addParam.setMetaType(metaType);

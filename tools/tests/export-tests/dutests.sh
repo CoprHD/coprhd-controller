@@ -23,7 +23,7 @@
 # - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
 # - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
-#set -x
+#set +x
 
 Usage()
 {
@@ -790,7 +790,9 @@ vnx_setup() {
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    # Can no longer do this since network discovers where the ports are
+    #run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    storageport $VNXB_NATIVEGUID list --v | grep FABRIC
 
     common_setup
 

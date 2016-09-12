@@ -824,8 +824,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 for (Map.Entry<URI, List<URI>> entry : existingMasksToRemoveInitiator.entrySet()) {
                     ExportMask mask = _dbClient.queryObject(ExportMask.class, entry.getKey());
                     List<URI> initiatorsToRemove = entry.getValue();
-
-                    if (initiatorsToRemove.size() >= ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient).size()) {
+                    Set<String> allInitiators = ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient);
+                    List<Initiator> initiatorObjectsToRemove = _dbClient.queryObject(Initiator.class, initiatorsToRemove);
+                    List<String> initiatorPortNamesToRemove = new ArrayList<>(
+                            Collections2.transform(initiatorObjectsToRemove, CommonTransformerFunctions.fctnInitiatorToPortName()));
+                    allInitiators.removeAll(initiatorPortNamesToRemove);
+                    if (allInitiators.isEmpty()) {
                         masksGettingRemoved.add(mask.getId());
                         // For this case, we are attempting to remove all the
                         // initiators in the mask. This means that we will have to

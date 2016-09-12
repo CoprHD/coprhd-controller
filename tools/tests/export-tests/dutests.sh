@@ -992,10 +992,6 @@ vplex_setup() {
 	return
     fi
 
-    secho "Discovering Brocade SAN Switch ..."
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    sleep 30
-
     secho "Discovering VPLEX Storage Assets"
     storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
     run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex

@@ -11,13 +11,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -41,9 +43,7 @@ import com.emc.storageos.coordinator.client.model.DriverInfo2;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
-import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -70,6 +70,7 @@ public class DriverService {
     private static final String NON_SSL_PORT = "non_ssl_port";
     private static final String SSL_PORT = "ssl_port";
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
+    private static final Set<String> VALID_META_TYPES = new HashSet<String>(Arrays.asList(new String[] {"block", "file", "block_and_file", "object"}));
 
     private CoordinatorClient coordinator;
     private Service service;
@@ -246,7 +247,7 @@ public class DriverService {
 
         // set meta type
         String metaType = metaData.getProperty(STORAGE_META_TYPE);
-        if (metaType == null || Enum.valueOf(META_TYPE.class, metaType) == null) {
+        if (isValidMetaType(metaType)) {
             throw new RuntimeException("Storage meta type can't be null, and could only be among block/file/block_and_file/object");
         }
         addParam.setMetaType(metaType);
@@ -273,5 +274,11 @@ public class DriverService {
         }
 
         return addParam;
+    }
+    private boolean isValidMetaType(String metaType) {
+        if (metaType == null) {
+            return false;
+        }
+        return VALID_META_TYPES.contains(metaType);
     }
 }

@@ -85,8 +85,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         _dbClient = dbc;
     }
     
-    public void setCimConnectionFactory(CIMConnectionFactory connectionFactory) {
-        _connectionFactory = connectionFactory;
+    public void setConnectionFactory(CIMConnectionFactory cimConnectionFactory) {
+        _connectionFactory = cimConnectionFactory;
     }
 
     /**

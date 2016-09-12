@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.oe;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationRunnerTask;
+import com.emc.sa.service.vipr.oe.gson.OEJson;
 
 import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
@@ -165,17 +166,17 @@ public String OEParser(final String pattern) throws Exception
             System.out.print("Global Input param");
             Map<String, String> str = obj.getInputParams();
 
-            ArrayList<Step> steps = obj.getSteps();
-            HashMap<String, Step> stepsHash = new HashMap<String, Step>();
-            for (Step step : steps)
+            ArrayList<OEJson.Step> steps = obj.getSteps();
+            HashMap<String, OEJson.Step> stepsHash = new HashMap<String, OEJson.Step>();
+            for (OEJson.Step step : steps)
             {
                 stepsHash.put(step.getStepId(), step);
             }
 
-            Step step = stepsHash.get("Start");
+            OEJson.Step step = stepsHash.get("Start");
 
-            Next next = step.getNext();
-            String next1 = next.Default;
+            OEJson.Next next = step.getNext();
+            String next1 = next.getDefault();
             while(!next1.equals("END"))
             {
                 step = stepsHash.get(next1);
@@ -224,9 +225,9 @@ public String OEParser(final String pattern) throws Exception
                         }
                     }
 
-                    Next n = step.getNext();
+                    OEJson.Next n = step.getNext();
                     //TODO evaluate condition
-                    next1 = n.Default;
+                    next1 = n.getDefault();
                     System.out.println("Next step" + next);
                     System.out.print("SuccessCritera" + step.getSuccessCritera() + "\n");
 
@@ -254,143 +255,7 @@ public String OEParser(final String pattern) throws Exception
             //send back the result
             return pattern;
         }
-    private class OEJson {
-            String WorkflowName;
-            Map<String, String> inputParams;
-            ArrayList<Step> Steps;
 
-            public String getWorkflowName() {
-                return WorkflowName;
-            }
-
-            public void setWorkflowName(String workflowName) {
-                WorkflowName = workflowName;
-            }
-
-            public Map<String, String> getInputParams() {
-                return inputParams;
-            }
-
-            public void setInputParams(Map<String, String> inputParams) {
-                this.inputParams = inputParams;
-            }
-
-            public ArrayList<Step> getSteps() {
-                return Steps;
-            }
-
-            public void setSteps(ArrayList<Step> steps) {
-                this.Steps = steps;
-            }
-        }
-
-        public class Step {
-            String StepId;
-            String OpName;
-            String Description;
-            String Type;
-            Map<String, String> inputParams;
-            Map<String, String> inputFromOtherSteps;
-            ArrayList<String> output;
-            String SuccessCritera;
-            Next Next;
-
-            public String getStepId() {
-                return StepId;
-            }
-
-            public void setStepId(String stepId) {
-                StepId = stepId;
-            }
-
-            public String getOpName() {
-                return OpName;
-            }
-
-            public void setOpName(String opName) {
-                OpName = opName;
-            }
-
-            public String getDescription() {
-                return Description;
-            }
-
-            public void setDescription(String description) {
-                Description = description;
-            }
-
-            public String getType() {
-                return Type;
-            }
-
-            public void setType(String type) {
-                Type = type;
-            }
-
-            public Map<String, String> getInputParams() {
-                return inputParams;
-            }
-
-            public void setInputParams(Map<String, String> inputparams) {
-                this.inputParams = inputparams;
-            }
-
-            public Map<String, String> getInputFromOtherSteps() {
-                return inputFromOtherSteps;
-            }
-
-            public void setInputFromOtherSteps(Map<String, String> inputFromOtherSteps) {
-                this.inputFromOtherSteps = inputFromOtherSteps;
-            }
-
-            public ArrayList<String> getOutput() {
-                return output;
-            }
-
-            public void setOutput(ArrayList<String> output) {
-                this.output = output;
-            }
-
-
-              public String getSuccessCritera() {
-                return SuccessCritera;
-            }
-
-            public void setSuccessCritera(String successCritera) {
-                SuccessCritera = successCritera;
-            }
-
-            public Next getNext() {
-
-               return Next;
-            }
-
-            public void setNext(Next next) {
-                this.Next = next;
-            }
-        }
-
-        private class Next {
-
-            String Default;
-            String condition;
-
-            public String getDefault() {
-                return Default;
-            }
-
-            public void setDefault(String aDefault) {
-                Default = aDefault;
-            }
-
-            public String getCondition() {
-                return condition;
-            }
-
-            public void setCondition(String condition) {
-                this.condition = condition;
-            }
-        }
 
         HashMap<String, Map<String, String>> inputPerStep = new HashMap<String, Map<String, String>>();
         HashMap<String, Map<String, String>> outputPerStep = new HashMap<String, Map<String, String>>();

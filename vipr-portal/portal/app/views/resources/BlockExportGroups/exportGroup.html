@@ -52,18 +52,12 @@
             <thead>
               <tr>
                 <th>&{'resources.cluster'}</th>
-                <th class="actions">&{'resources.actions'}</th>
               </tr>
             </thead>
             <tbody>
             #{list items:exportGroup.clusters, as:'cluster'}
               <tr>
                 <td>${cluster.name}</td>
-                <td class="actions">
-                  <a href="@{removeCluster(exportGroup.id, cluster.id)}"  onclick="return confirm('&{'resources.exportgroup.cluster.remove.confirm'}')" 
-                  class='btn btn-xs btn-danger'
-                  >&{'button.remove'}</a>                
-                </td>
               </tr>
             #{/list}
             </tbody>
@@ -80,7 +74,6 @@
                 <th>&{'resources.host.hostname'}</th>
                 <th>&{'resources.host.type'}</th>
                 <th>&{'resources.host.osversion'}</th>
-                <th class="actions">&{'resources.actions'}</th>
               </tr>
             </thead>
             <tbody>            
@@ -90,11 +83,6 @@
                 <td>${host.hostName}</td>
                 <td>${host.type}</td>
                 <td>${host.osVersion}</td>
-                <td class="actions">
-                  <a href="@{removeHost(exportGroup.id, host.id)}" onclick="return confirm('&{'resources.exportgroup.host.remove.confirm'}')" 
-                  class='btn btn-xs btn-danger'
-                  >&{'button.remove'}</a>                
-                </td>
               </tr>
             #{/list}
             </tbody>
@@ -111,7 +99,6 @@
                 <th>&{'resources.initiator.port'}</th>
                 <th>&{'resources.initiator.host'}</th>
                 <th>&{'resources.initiator.cluster'}</th>
-                <th class="actions">&{'resources.actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -121,11 +108,6 @@
                 <td>${initiator.initiatorPort}</td>
                 <td>${initiator.hostName}</td>
                 <td>${initiator.clusterName}</td>
-                <td class="actions">
-                  <a href="@{removeInitiator(exportGroup.id, initiator.id)}" onclick="return confirm('&{'resources.exportgroup.initiator.remove.confirm'}')" 
-                  class='btn btn-xs btn-danger'
-                  >&{'button.remove'}</a>
-                </td>
               </tr>
             #{/list}
             </tbody>
@@ -157,7 +139,7 @@
                               dataTable:snapshotDataTable,
                               cssClass:'editableRows',
                               options: options,
-                              source: @blockSnapshotJson(exportGroup.id)}                  
+                              source: @blockSnapshotJson(exportGroup.id)}
             #{/DataTable.table}       
 
           </fieldset>  
@@ -171,6 +153,8 @@
     
 </div>
 
+
+
 <script type="text/javascript">
 
   function renderLink(o, val) {
@@ -179,15 +163,15 @@
   }
   
   function renderVolumeActions(o, val) {
-    var url = #{jsAction @removeVolume(':exportGroupId', ':volumeId') /};
-    return '<a href="' + url({exportGroupId : '${exportGroup.id}', volumeId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.volume.remove.confirm'}\')">&{'button.remove'}</a>';    
+	    var url = #{jsAction @removeVolume(':exportGroupId', ':volumeId') /};
+	    return '<a href="' + url({exportGroupId : '${exportGroup.id}', volumeId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.volume.remove.confirm'}\')">&{'button.remove'}</a>';    
   }
-  
+
   function renderSnapshotActions(o,val) {
-  	var url = #{jsAction @removeSnapshot(':exportGroupId',':snapshotId') /};
-  	return '<a href="'+ url({exportGroupId : '${exportGroup.id}', snapshotId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.snapshot.remove.confirm'}\')">&{'button.remove'}</a>';
+		var url = #{jsAction @removeSnapshot(':exportGroupId',':snapshotId') /};
+		return '<a href="'+ url({exportGroupId : '${exportGroup.id}', snapshotId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.snapshot.remove.confirm'}\')">&{'button.remove'}</a>';
   }
-  
+
   function renderSnapshotLink(o, val) {
       var url = #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId') /};
       return "<a href='" + url({snapshotId: o.aData.id}) + "'><img src='/public/img/assets/Snapshot.png' style='width: 32px;'/> " + val + "</a>";

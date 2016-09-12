@@ -8,9 +8,9 @@ import java.util.List;
 
 import com.emc.hpux.command.ListRDisksCommand;
 import com.emc.hpux.model.RDisk;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.command.CommandException;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class FindDevicePathForVolume extends RetryableCommandTask<String, CommandException> {
 
@@ -26,7 +26,7 @@ public class FindDevicePathForVolume extends RetryableCommandTask<String, Comman
     protected String tryExecute() {
         List<RDisk> devices = executeCommand(new ListRDisksCommand());
         for (RDisk device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device.getDevicePath();
             }
         }

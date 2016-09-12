@@ -51,6 +51,8 @@ import assetoptions
 import catalog
 import executionwindow
 import order
+import event
+import task
 import socket
 import storageprovider
 import virtualdatacenter
@@ -72,6 +74,7 @@ import ipsecmanager
 import snapshotsession
 import schedulepolicy
 import objectuser
+import schedevent
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -144,6 +147,8 @@ assetoptions.assetoptions_parser(module_parsers, common_parser)
 catalog.catalog_parser(module_parsers, common_parser)
 executionwindow.executionwindow_parser(module_parsers, common_parser)
 order.order_parser(module_parsers, common_parser)
+task.task_parser(module_parsers, common_parser)
+event.event_parser(module_parsers, common_parser)
 virtualpool.vpool_parser(module_parsers, common_parser)
 tenant.tenant_parser(module_parsers, common_parser)
 project.project_parser(module_parsers, common_parser)
@@ -187,6 +192,7 @@ ipsecmanager.ipsec_parser(module_parsers, common_parser)
 snapshotsession.snapshotsession_parser(module_parsers, common_parser)
 schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 objectuser.objectuser_parser(module_parsers, common_parser)
+schedevent.schedule_event_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -216,4 +222,3 @@ except SOSError as e:
 except (EOFError, KeyboardInterrupt):
     sys.stderr.write("\nUser terminated request\n")
     sys.exit(SOSError.CMD_LINE_ERR)
-

@@ -25,7 +25,8 @@ public class CatalogServiceCommonParam {
     private Integer maxSize;
     private URI catalogCategory;
     private List<CatalogServiceFieldParam> catalogServiceFields;
-
+    private Boolean recurringAllowed;
+    
     @XmlElement(name = "catalog_category")
     public URI getCatalogCategory() {
         return catalogCategory;
@@ -132,4 +133,12 @@ public class CatalogServiceCommonParam {
         this.catalogServiceFields = catalogServiceFields;
     }
 
+    @XmlElement(name = "recurring_allowed")
+    public Boolean getRecurringAllowed() {
+        return recurringAllowed;
+    }
+
+    public void setRecurringAllowed(Boolean recurringAllowed) {
+        this.recurringAllowed = recurringAllowed;
+    }
 }

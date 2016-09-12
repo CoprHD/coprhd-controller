@@ -27,6 +27,7 @@ import com.emc.sa.service.linux.tasks.CreateDirectory;
 import com.emc.sa.service.linux.tasks.DeleteDirectory;
 import com.emc.sa.service.linux.tasks.FindHBAs;
 import com.emc.sa.service.linux.tasks.FindIScsiInitiators;
+import com.emc.sa.service.linux.tasks.FindIScsiSessions;
 import com.emc.sa.service.linux.tasks.FindLunz;
 import com.emc.sa.service.linux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.linux.tasks.FindMultiPathEntriesForMountPoint;
@@ -159,6 +160,21 @@ public class LinuxSupport {
                 }
             }
         }
+
+        if (connections == 0) {
+            List<IScsiSession> iScsiSessions = findIScsiSessions(initiators);
+            for (IScsiSession session : iScsiSessions) {
+                String sourceIqn = session.getIfaceInitiatorName();
+                if (session.getTarget() != null) {
+                    String targetIqn = session.getTarget().getIqn();
+                    if (targetPorts.contains(targetIqn)) {
+                        logInfo("linux.support.connected", sourceIqn, targetIqn);
+                        connections++;
+                    }
+                }
+            }
+        }
+
         if (connections == 0) {
             Object[] detailArgs = new Object[] { volume.getId(), buildInitiatorsString(initiators) };
             Object[] messageArgs = new Object[] { sourceIqns, targetIqns };
@@ -229,6 +245,10 @@ public class LinuxSupport {
 
     public List<IScsiHost> findIScsiIInitiators(Collection<Initiator> ports) {
         return execute(new FindIScsiInitiators(BlockStorageUtils.getPortNames(ports)));
+    }
+
+    public List<IScsiSession> findIScsiSessions(Collection<Initiator> ports) {
+        return execute(new FindIScsiSessions(BlockStorageUtils.getPortNames(ports)));
     }
 
     public void rescanHBAs(List<HBAInfo> hbas) {
@@ -389,6 +409,17 @@ public class LinuxSupport {
 
     public void checkForFileSystemCompatibility(String fsType) {
         execute(new CheckForFileSystemCompatibility(fsType));
+    }
+
+    /**
+     * Method to setup rollbacks for mounting a Linux volume
+     * @param volume to be mounted
+     * @param mountPoint of the original mount
+     */
+    public void addMountExpandRollback(BlockObjectRestRep volume, MountPoint mountPoint) {
+        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), mountPoint.getPath()));
+        addRollback(new MountPath(mountPoint.getPath()));
+        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), mountPoint.getFsType(), mountPoint.getOptions()));
     }
 
     public void resizeVolume(BlockObjectRestRep volume, Double newSizeInGB) {

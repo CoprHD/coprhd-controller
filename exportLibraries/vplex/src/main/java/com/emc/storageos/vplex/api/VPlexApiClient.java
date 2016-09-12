@@ -760,15 +760,16 @@ public class VPlexApiClient {
      * tracking parameter.
      * 
      * @param viewName The name of the storage view to be deleted.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param viewFound An out parameter indicating whether or
      *            not the storage view was actually found on
      *            the VPLEX device during this process.
      * 
      * @throws VPlexApiException When an error occurs deleting the storage view.
      */
-    public void deleteStorageView(String viewName, Boolean[] viewFound) throws VPlexApiException {
+    public void deleteStorageView(String viewName, String clusterName, Boolean[] viewFound) throws VPlexApiException {
         s_logger.info("Request for storage view deletion on VPlex at {}", _baseURI);
-        _exportMgr.deleteStorageView(viewName, viewFound);
+        _exportMgr.deleteStorageView(viewName, clusterName, viewFound);
         s_logger.info("Storage view was found for deletion: {}", viewFound[0]);
     }
 
@@ -777,16 +778,17 @@ public class VPlexApiClient {
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param initiatorPortInfo The port information for the initiators to be
      *            added.
      * 
      * @throws VPlexApiException When an error occurs adding the initiators.
      */
-    public void addInitiatorsToStorageView(String viewName,
+    public void addInitiatorsToStorageView(String viewName, String clusterName,
             List<PortInfo> initiatorPortInfo) throws VPlexApiException {
         s_logger.info("Request to add initiators to storage view on VPlex at {}",
                 _baseURI);
-        _exportMgr.addInitiatorsToStorageView(viewName, initiatorPortInfo);
+        _exportMgr.addInitiatorsToStorageView(viewName, clusterName, initiatorPortInfo);
     }
 
     /**
@@ -794,16 +796,17 @@ public class VPlexApiClient {
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param initiatorPortInfo The port information for the initiators to be
      *            removed.
      * 
      * @throws VPlexApiException When an error occurs removing the initiators.
      */
-    public void removeInitiatorsFromStorageView(String viewName,
+    public void removeInitiatorsFromStorageView(String viewName, String clusterName,
             List<PortInfo> initiatorPortInfo) throws VPlexApiException {
         s_logger.info("Request to remove initiators from storage view on VPlex at {}",
                 _baseURI);
-        _exportMgr.removeInitiatorsFromStorageView(viewName, initiatorPortInfo);
+        _exportMgr.removeInitiatorsFromStorageView(viewName, clusterName, initiatorPortInfo);
     }
 
     /**
@@ -836,6 +839,8 @@ public class VPlexApiClient {
      * Adds the virtual volumes with the passed names to the storage view with
      * the passed name.
      * 
+     * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param virtualVolumeMap Map of virtual volume names to LUN ID.
      * 
      *            NOTE: If you want VPlex to pick the LUN ID pass
@@ -847,28 +852,30 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs adding the virtual
      *             volumes.
      */
-    public VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName,
+    public VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName, String clusterName,
             Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
         s_logger.info("Request to add virtual volumes to storage view on VPlex at {}",
                 _baseURI);
-        return _exportMgr.addVirtualVolumesToStorageView(viewName, virtualVolumeMap);
+        return _exportMgr.addVirtualVolumesToStorageView(viewName, clusterName, virtualVolumeMap);
     }
 
     /**
      * Removes the virtual volumes with the passed names from the storage view
      * with the passed name.
      * 
+     * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param virtualVolumeNames The names of the virtual volumes to be removed.
      * 
      * @throws VPlexApiException When an error occurs removing the virtual
      *             volumes.
      */
-    public void removeVirtualVolumesFromStorageView(String viewName,
+    public void removeVirtualVolumesFromStorageView(String viewName, String clusterName,
             List<String> virtualVolumeNames) throws VPlexApiException {
         s_logger.info(
                 "Request to remove virtual volumes from storage view on VPlex at {}",
                 _baseURI);
-        _exportMgr.removeVirtualVolumesFromStorageView(viewName, virtualVolumeNames);
+        _exportMgr.removeVirtualVolumesFromStorageView(viewName, clusterName, virtualVolumeNames);
     }
 
     /**
@@ -1232,10 +1239,9 @@ public class VPlexApiClient {
     }
 
     public VPlexVirtualVolumeInfo upgradeVirtualVolumeToDistributed(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
-            String transferSize) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, String clusterId, String transferSize) throws VPlexApiException {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
-                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId, transferSize);
+                virtualVolume, newRemoteVolume, discoveryRequired, clusterId, transferSize);
     }
 
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)
@@ -1716,14 +1722,14 @@ public class VPlexApiClient {
 
     /**
      * This method collapses the one legged device for the passed virtual volume device.
-     * After this device will change back to local device.
      * 
-     * @param sourceDeviceName source device name
+     * @param sourceDeviceNameOrPath source device name or path
+     * @param collapseType "local" or "distributed" or "collapse-by-path"
      * @throws VPlexApiException
      */
-    public void deviceCollapse(String sourceDeviceName) throws VPlexApiException {
-        s_logger.info("Request to collpase device {}", _baseURI);
-        _virtualVolumeMgr.deviceCollapse(sourceDeviceName);
+    public void deviceCollapse(String sourceDeviceNameOrPath, String collapseType) throws VPlexApiException {
+        s_logger.info("Request to collapse device {} with collapse type {}", sourceDeviceNameOrPath, collapseType);
+        _virtualVolumeMgr.deviceCollapse(sourceDeviceNameOrPath, collapseType);
     }
 
     /**
@@ -1881,4 +1887,59 @@ public class VPlexApiClient {
             }                
         }
     }
+    /**
+     * Updates the read-only flag in a ConsistencyGroup.
+     * @param cgName -- Consistency group name
+     * @param clusterName - Cluster name for CG
+     * @param isDistributed - True if the CG is a distributed CG in both clusters
+     * @param isReadOnly -- Set up read-only
+     */
+    public void updateConsistencyGroupReadOnly(String cgName, String clusterName, boolean isDistributed,
+            boolean isReadOnly) {
+        s_logger.info("Request to update consistency group read-only on VPlex at {}",
+                _baseURI);
+        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();
+        Iterator<VPlexClusterInfo> clusterInfoIter = clusterInfoList.iterator();
+        if (!isDistributed) {
+            while (clusterInfoIter.hasNext()) {
+                VPlexClusterInfo clusterInfo = clusterInfoIter.next();
+                if (!clusterInfo.getName().equals(clusterName)) {
+                    clusterInfoIter.remove();
+                }
+            }
+        }
+        _cgMgr.setConsistencyGroupReadOnly(cgName, clusterInfoList, isReadOnly);
+    }
+
+    /**
+     * Gets information for the target FE ports on the cluster with the passed
+     * name.
+     * 
+     * @param clusterName The name of the cluster.
+     * 
+     * @return A list of VPlexTargetInfo instances specifying the target
+     *         information.
+     * 
+     * @throws VPlexApiException When an error occurs getting the target
+     *             information for the cluster.
+     */
+    public List<VPlexTargetInfo> getTargetInfoForCluster(String clusterName)
+            throws VPlexApiException {
+        s_logger.info("Request to get target port info for cluster {}", clusterName);
+        return getDiscoveryManager().getTargetInfoForCluster(clusterName);
+    }
+
+    /**
+     * Gets all the detailed Storage View infos for the give VPLEX cluster.
+     * 
+     * @param clusterName name of the VPLEX cluster to look at, or you can send
+     *            a wildcard (*) to get info from both clusters.
+     * @return list of all Storage View infos for a given VPLEX instance
+     * @throws VPlexApiException
+     */
+    public List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName) throws VPlexApiException {
+        s_logger.info("Request to get storage view info for cluster {}", clusterName);
+        return getDiscoveryManager().getStorageViewsForCluster(clusterName);
+    }
+
 }

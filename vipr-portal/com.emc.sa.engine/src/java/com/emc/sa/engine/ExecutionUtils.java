@@ -4,6 +4,7 @@
  */
 package com.emc.sa.engine;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -12,8 +13,6 @@ import java.util.Map;
 import java.util.MissingResourceException;
 
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.inject.Injector;
 import com.emc.sa.model.dao.ModelClient;
@@ -24,9 +23,11 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.google.common.collect.Maps;
 
 public class ExecutionUtils {
@@ -51,7 +52,13 @@ public class ExecutionUtils {
         context.setOrder(order);
         context.setModelClient(modelClient);
         context.setExecutionState(state);
-
+        
+        URI scheduledEventId = order.getScheduledEventId();
+        if (scheduledEventId != null) {
+        	ScheduledEvent event = modelClient.findById(ScheduledEvent.class, scheduledEventId);
+        	context.setScheduledEvent(event);
+        }
+        
         CatalogService catalogService = modelClient.catalogServices().findById(order.getCatalogServiceId());
         context.setServiceName(catalogService.getLabel());
         List<OrderParameter> orderParameters = modelClient.orderParameters().findByOrderId(order.getId());
@@ -76,15 +83,8 @@ public class ExecutionUtils {
 
     protected static <T> T execute(ExecutionTask<T> task, ExecutionContext context) throws ExecutionException {
         ExecutionTaskLog log = context.logCurrentTask(task);
-        // Executing if order not in a paused state. If paused, poll while waiting for order to go into executing state
-        String orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
         long startTime = System.currentTimeMillis();
         try {
-            while (OrderStatus.PAUSED.name().equalsIgnoreCase(orderStatus)) {
-                Thread.sleep(1000);
-                // requery order to get its updated status
-                orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
-            }
 
             injectValues(task, context);
             T result = task.executeTask();

@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -86,6 +87,9 @@ public class ZkCmdHandler implements Watcher {
 
     public void rollbackDataRevision() throws Exception {
         DrUtil drUtil = new DrUtil(ZKUtil.getCoordinatorClient());
+        if (!precheckForRollback(drUtil)) {
+            return;
+        }
         LocalRepository localRepository = LocalRepository.getInstance();
         PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
         String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
@@ -114,6 +118,32 @@ public class ZkCmdHandler implements Watcher {
         Properties newConfig = new Properties();
         newConfig.load(new ByteArrayInputStream(zk.getData(DR_CONFIG_PATH, null, null)));
         System.out.println(newConfig);
+    }
+
+    /**
+     * @return true if pre-check passed for rollback, otherwise return false
+     */
+    private boolean precheckForRollback(DrUtil drUtil) {
+        if(!drUtil.isStandby()) {
+            log.warn("Rollback is only allowed on standby site, current site is Active site, skip rollback");
+            System.out.println("Rollback is only allowed on standby site, current site is Active site, skip rollback");
+            return false;
+        }
+
+        String activeSiteId = drUtil.getActiveSite().getUuid();
+        if (!StringUtils.isEmpty(activeSiteId) && drUtil.getSiteNetworkState(activeSiteId).getNetworkHealth() != NetworkHealth.BROKEN) {
+            log.warn("Rollback is only allowed when Active site is lost, Active site is alive now, skip rollback");
+            System.out.println("Rollback is only allowed when Active site is lost, Active site is alive now, skip rollback");
+            return false;
+        }
+
+        if(!drUtil.isAllSyssvcUp()) {
+            log.warn("Rollback is only allowed when all syssvcs are online, there's offline syssvc now, skip rollback");
+            System.out.println("Rollback is only allowed when all syssvcs are online, there's offline syssvc now, skip rollback");
+            return false;
+        }
+
+        return true;
     }
 
     private void assureNodeExist(String path) throws Exception{

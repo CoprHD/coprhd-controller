@@ -139,6 +139,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_DONE = "done";
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
+    public static final String ATTRIBUTE_CG_READ_ONLY = "read-only";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
     public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
@@ -192,11 +193,13 @@ public class VPlexApiConstants {
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
     public static final String LOCAL_DEVICE = "local";
+    public static final String DISTRIBUTED_DEVICE = "distributed";
     public static final int LOCAL_BACKEND_VOLUME_COUNT = 1;
     public static final int DISTRIBUTED_BACKEND_VOLUME_COUNT = 2;
 
     // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
+    public static final String VOLUME_WWN_PREFIX_T2 = "VPD83T2:";
 
     // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
@@ -323,9 +326,26 @@ public class VPlexApiConstants {
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
 
+    // VPLEX API error response fragment used to check Consistency Group read-only flag not supported
+    public static final String CG_READ_ONLY_INVALID_ATTRIBUTE = "Invalid attribute 'read-only'";
+    public static final String CG_CANNOT_MAKE_READ_ONLY = "Cannot make a consistency-group read-only";
+    // Reason given to user
+    public static final String CG_READ_ONLY_ATTRIBUTE_NOT_SUPPORTED = "Consistency Group read-only attribute is not supported";
+
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
-    
+
     // The value returned by VPLEX when the volume has no expandable capacity.
     public static final String NO_EXPANDABLE_CAPACITY = "0B";
+
+    // Match string for device name when a Storage Volume is not used (either claimed or unclaimed)
+    public static final String STORAGE_VOLUME_NOT_IN_USE = "Storage-volume.*is not in use.*";
+
+    // used to indicate the device collapse command should just use the
+    // given path instead of trying to locate a device component
+    public static final String COLLAPSE_BY_PATH = "collapse-by-path";
+    
+    // Constants used when renaming a resource fails.
+    public static final int RENAME_RESOURCE_MAX_TRIES = 10;
+    public static final int RENAME_RESOURCE_SLEEP_TIME_MS = 2000;    
 }

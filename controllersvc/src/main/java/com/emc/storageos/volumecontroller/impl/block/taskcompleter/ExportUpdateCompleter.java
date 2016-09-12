@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -91,6 +92,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 case ready:
                     operation.ready();
                     break;
+                case suspended_no_error:
+                    operation.suspendedNoError();
+                    break;
+                case suspended_error:
+                    operation.suspendedError(coded);
+                    break;
                 default:
                     break;
             }
@@ -99,7 +106,11 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup);
             }
-            dbClient.persistObject(exportGroup);
+            if (exportGroup != null && exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
+                _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
+                exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+            }
+            dbClient.updateObject(exportGroup);
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

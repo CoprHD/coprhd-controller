@@ -3,12 +3,12 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-
-
     <!-- <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
+    
+    <bean id="dellsc" class="com.emc.storageos.driver.dellsc.DellSCStorageDriver"/>
 
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
         <property name="networkDeviceController" ref="networkDeviceController"/>
@@ -25,8 +25,25 @@
              <map>
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
+                <entry key="providersystem" value-ref="storageDriverSimulator"/>
+                <entry key="driverprovider" value-ref="storageDriverSimulator"/>
+                <entry key="hp3par" value-ref="hp3Par"/>
+                <entry key="dellscprovider" value-ref="dellsc"/>
+                <entry key="dellscsystem" value-ref="dellsc"/>
+            </map>
+        </property>
+        <property name="capabilityDefinitions">
+            <map>
+                <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
+                <entry key="deduplication" value-ref="deduplicationCapabilityDefinition"/>
             </map>
         </property>
     </bean>
-
+    
+    <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
+    </bean>
+    <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
+    </bean>
+    <bean id="deduplicationCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition">
+    </bean>
 </beans>

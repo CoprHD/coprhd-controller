@@ -31,6 +31,8 @@ import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
+import com.emc.storageos.vnxe.models.Feature;
+import com.emc.storageos.vnxe.models.Feature.FeatureStateEnum;
 import com.emc.storageos.vnxe.models.FileSystemParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaConfigParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaCreateParam;
@@ -110,6 +112,7 @@ import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
 import com.emc.storageos.vnxe.requests.FcPortRequests;
+import com.emc.storageos.vnxe.requests.FeatureRequest;
 import com.emc.storageos.vnxe.requests.FileInterfaceListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
 import com.emc.storageos.vnxe.requests.FileSystemListRequest;
@@ -296,6 +299,17 @@ public class VNXeApiClient {
         HostRequest req = new HostRequest(_khClient, hostId);
         return req.get();
 
+    }
+
+    /**
+     * Get hostLun based on hostLun id
+     *
+     * @param hostlunId
+     * @return HostLun
+     */
+    public HostLun getHostLun(String hostlunId) {
+        HostLunRequests req = new HostLunRequests(_khClient);
+        return req.getHostLun(hostlunId);
     }
 
     public String getNetBios() {
@@ -493,6 +507,9 @@ public class VNXeApiClient {
 
         if (nfsShareId == null) {
             // not found, new export
+            if (!isUnityClient()) {
+                shareParm.setDefaultAccess(NFSShareDefaultAccessEnum.NONE);
+            }
             NfsShareCreateParam nfsShareCreateParm = new NfsShareCreateParam();
             nfsShareCreateParm.setName(shareName);
             nfsShareCreateParm.setPath(path);
@@ -1259,8 +1276,14 @@ public class VNXeApiClient {
             lunModifyParam.setLun(new VNXeBase(lunID));
             lunModifyParamList.add(lunModifyParam);
             param.setLunModify(lunModifyParamList);
-            LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
-            job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
+            if (isUnityClient()) {
+                ConsistencyGroupRequests cgRequest = new ConsistencyGroupRequests(_khClient);
+                job = cgRequest.modifyConsistencyGroupAsync(lunGroupID, param);
+
+            } else {
+                LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
+                job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
+            }
 
         } else if (vnxeLun.getType() == STANDALONE_LUN_TYPE) {
             BlockLunRequests req = new BlockLunRequests(_khClient);
@@ -1871,13 +1894,31 @@ public class VNXeApiClient {
     }
 
     public boolean isFASTVPEnabled() {
-        FastVPRequest req = new FastVPRequest(_khClient);
-        List<FastVP> fastVP = req.get();
-        if (fastVP != null && !fastVP.isEmpty()) {
-            return true;
-        } else {
-            return false;
+
+        boolean result = false;
+        try {
+            if (_khClient.isUnity()) {
+                FeatureRequest req = new FeatureRequest(_khClient, VNXeConstants.FASTVP_FEATURE);
+                Feature fastVP = req.get();
+                if (fastVP != null && fastVP.getState() == FeatureStateEnum.FeatureStateEnabled.getValue()) {
+                    result = true;
+                } else {
+                    _logger.info("FASTVP is disabled");
+                    result = false;
+                }
+            } else {
+                FastVPRequest req = new FastVPRequest(_khClient);
+                List<FastVP> fastVP = req.get();
+                if (fastVP != null && !fastVP.isEmpty()) {
+                    result = true;
+                }
+
+            }
+        } catch (Exception e) {
+            result = false;
         }
+        _khClient.setFastVPEnabled(result);
+        return result;
     }
 
     public VNXeLun getLunByLunGroup(String lunGroupId, String lunName) {
@@ -2004,7 +2045,7 @@ public class VNXeApiClient {
      * given host name and initiators, find/create hosts/initiators in the
      * 
      * @param hostInitiators
-     * @return 
+     * @return
      */
     private VNXeBase prepareHostsForExport(List<VNXeHostInitiator> hostInitiators) {
 
@@ -2021,7 +2062,7 @@ public class VNXeApiClient {
             if (existingInit != null && existingInit.getParentHost() != null) {
                 hostId = existingInit.getParentHost().getId();
 
-            } else if (existingInit != null)  {
+            } else if (existingInit != null) {
                 existingNoHostInits.add(existingInit);
             } else {
                 notExistingInits.add(init);
@@ -2057,10 +2098,21 @@ public class VNXeApiClient {
                 initCreateParam.setInitiatorWWNorIqn(newInit.getInitiatorId());
             }
             HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
-            req.createHostInitiator(initCreateParam);
+            try {
+                req.createHostInitiator(initCreateParam);
+            } catch (VNXeException e) {
+                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the host
+                // initiator with the created host, it would throw error, saying the initiator exists. ignore the error.
+                String message = e.getMessage();
+                if (message != null && message.contains(VNXeConstants.INITIATOR_EXISITNG)) {
+                    _logger.info("The initiator exists. Ignore the error.");
+                } else {
+                    throw e;
+                }
+            }
 
         }
-        
+
         for (VNXeHostInitiator exitInit : existingNoHostInits) {
             HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
             VNXeBase host = new VNXeBase(hostId);
@@ -2840,9 +2892,10 @@ public class VNXeApiClient {
         req.createHostInitiator(initCreateParam);
 
     }
-    
+
     /**
      * Check if the lun exists in the array
+     * 
      * @param lunId
      * @return
      */

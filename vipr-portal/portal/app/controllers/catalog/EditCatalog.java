@@ -167,7 +167,8 @@ public class EditCatalog extends ServiceCatalog {
     }
 
     private static void addExecutionWindowsToRenderArgs() {
-        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows();
+        // Query windows by current chosen tenant id. By default it's home tenant.
+        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows( URI.create(Models.currentAdminTenant()) );
         renderArgs.put("executionWindows", executionWindows);
     }
 
@@ -581,7 +582,7 @@ public class EditCatalog extends ServiceCatalog {
         public String defaultExecutionWindowId;
 
         public List<AclEntryForm> aclEntries = Lists.newArrayList();
-
+        
         @CheckWith(ServiceFieldsCheck.class)
         public List<ServiceFieldForm> serviceFields = Lists.newArrayList();
 
@@ -611,7 +612,6 @@ public class EditCatalog extends ServiceCatalog {
             if (service.getDefaultExecutionWindow() != null) {
                 this.defaultExecutionWindowId = service.getDefaultExecutionWindow().getId().toString();
             }
-
             this.serviceFields.clear();
 
             List<CatalogServiceFieldRestRep> catalogServiceFields = service.getCatalogServiceFields();
@@ -708,7 +708,6 @@ public class EditCatalog extends ServiceCatalog {
             else {
                 commonParam.setDefaultExecutionWindow(null);
             }
-
             for (ServiceFieldForm serviceFieldForm : this.serviceFields) {
                 CatalogServiceFieldParam fieldParam = new CatalogServiceFieldParam();
                 serviceFieldForm.writeTo(fieldParam);

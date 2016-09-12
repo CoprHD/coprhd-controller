@@ -283,7 +283,7 @@ public class VNXFileCommApi {
                 Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
                 if (existingMounts.get(fileShare.getName()) == null) {
                     String mountCmdArgs = sshApi.formatMountCmd(dataMover.getAdapterName(), fileShare.getName(), fileShare.getMountPath());
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
                     _log.info("filesystem mount is successful for filesystem: {} mount path: {}", fileShare.getName(),
                             fileShare.getMountPath());
                 }
@@ -594,7 +594,7 @@ public class VNXFileCommApi {
                         String unMountCmd = sshApi.formatUnMountCmd(dataMover.getAdapterName(), fs.getMountPath(), "NFS");
                         _log.info("Unmount FS {}", unMountCmd);
                         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
-                        result = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, unMountCmd);
+                        result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, unMountCmd);
                     }
                 } else {
                     _log.info("No need to Unmount FS {} since there is no mount info", fs.getMountPath());
@@ -637,7 +637,7 @@ public class VNXFileCommApi {
                 Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
                 if (existingMounts.get(fs.getName()) == null) {
                     String mountCmdArgs = sshApi.formatMountCmd(dataMover.getAdapterName(), fs.getName(), fs.getMountPath());
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
                 }
 
                 for (TreeQuota quota : quotaDirs) {
@@ -927,7 +927,7 @@ public class VNXFileCommApi {
                 if (!result.isCommandSuccess()) {
                     if (firstExport) {
                         data = sshApi.formatUnMountCmd(moverOrVdmName, fs.getMountPath(), "NFS");
-                        XMLApiResult unmountResult = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
+                        XMLApiResult unmountResult = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
                         if (!unmountResult.isCommandSuccess()) {
                             _log.warn("Unmounting the file system {} failed due to {}", fs.getId(), unmountResult.getMessage());
                         } else {
@@ -979,14 +979,14 @@ public class VNXFileCommApi {
                 if (sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).containsKey(exportPath)) {
                     // Delete the Export.
                     String data = sshApi.formatDeleteNfsExportCmd(dataMover.getAdapterName(), exportPath);
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                 }
                 // umount root directory should once, again umount operation on same directory fails
                 // we check for any exports and share exists and then run umount operation
                 if (result.isCommandSuccess() && getVNXFSDependencies(args.getFs(), false) <= 1) {
                     // Delete the mount
                     String data = sshApi.formatUnMountCmd(dataMover.getAdapterName(), mountPath, "NFS");
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
                 }
                 sshApi.clearConnParams();
             } else {
@@ -1013,14 +1013,14 @@ public class VNXFileCommApi {
                 sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                 if (sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).containsKey(exportPath)) {
                     String data = sshApi.formatDeleteNfsExportCmd(dataMover.getAdapterName(), exportPath);
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                 }
 
                 // Delete the Snapshot mount, only if No depending exports, shares for that snapshot.
                 if (result.isCommandSuccess() && getVNXFSDependencies(args.getFs(), true) <= 1) {
                     // Delete the mount
                     String data = sshApi.formatUnMountCmd(dataMover.getAdapterName(), exportPath, "NFS");
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
                 }
                 sshApi.clearConnParams();
 
@@ -1089,14 +1089,14 @@ public class VNXFileCommApi {
 
                     if (sshApi.getNFSExportsForPath(dataMover.getAdapterName(), mntPoint).containsKey(mntPoint)) {
                         String data = sshApi.formatDeleteNfsExportCmd(dataMover.getAdapterName(), mntPoint);
-                        result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+                        result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                     }
 
                     // As we already removed the export entry from Map, Check for any other dependents.
                     if (result.isCommandSuccess() && getVNXFSDependencies(args.getFs(), false) < 1) {
                         // Delete the mount
                         String data = sshApi.formatUnMountCmd(dataMover.getAdapterName(), fsMountPath, "NFS");
-                        result = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
+                        result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
                     }
                     sshApi.clearConnParams();
 
@@ -1114,7 +1114,7 @@ public class VNXFileCommApi {
                     }
                     sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                     String data = sshApi.formatExportCmd(dataMover.getAdapterName(), vnxExports, null, null);
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                     sshApi.clearConnParams();
                     if (result.isCommandSuccess()) {
                         result.setCommandSuccess();
@@ -1147,13 +1147,13 @@ public class VNXFileCommApi {
 
                 if (sshApi.getNFSExportsForPath(dataMover.getAdapterName(), mntPoint).containsKey(mntPoint)) {
                     String data = sshApi.formatDeleteNfsExportCmd(dataMover.getAdapterName(), mntPoint);
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                 }
 
                 if (result.isCommandSuccess() && getVNXFSDependencies(fileshare, true) <= 1) {
                     // Delete the mount
                     String data = sshApi.formatUnMountCmd(dataMover.getAdapterName(), fileExport.getMountPoint(), "NFS");
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
                 }
 
                 sshApi.clearConnParams();
@@ -1229,7 +1229,7 @@ public class VNXFileCommApi {
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
             String data = sshApi.formatDeleteShareCmd(moverOrVdmName, shareName, netBios);
             _log.info("doDeleteShare command {}", data);
-            result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+            result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
             FileShare fileShare = null;
             if (!args.getFileOperation()) {
                 Snapshot snapshot = _dbClient.queryObject(Snapshot.class, args.getSnapshotId());
@@ -1243,7 +1243,7 @@ public class VNXFileCommApi {
                 // Delete the mount
                 data = sshApi.formatUnMountCmd(moverOrVdmName, mountPoint, "CIFS");
                 _log.info("Unmount filesystem command {}", data);
-                result = sshApi.executeSsh(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
+                result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, data);
             }
 
             sshApi.clearConnParams();
@@ -1340,6 +1340,24 @@ public class VNXFileCommApi {
         }
 
         return result;
+    }
+
+    public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
+            boolean isVirtualProvisioned) throws VNXException {
+    	// get the data mover
+    	boolean isMounted = false;
+        StorageHADomain dataMover = this.getDataMover(fileShare);
+        if (null != dataMover) {
+            sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+            Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
+            if (existingMounts.get(fileShare.getName()) == null) {
+            	isMounted = true;
+            } else {
+            	isMounted = false;
+            }
+        } 
+        _log.info("expandFS for fileName{} and isMountRequired {}", fileShare.getName(), String.valueOf(isMounted));
+    	return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
     }
 
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)

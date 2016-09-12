@@ -110,7 +110,7 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
                         ProtectionSystem rpSystem = dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
                         if (rpSystem != null) {
                             // Unlock the CG based on this volume
-                            if (locker.releaseLock(lockedName)) {
+                            if (locker.releasePersistentLock(lockedName, _opId)) {
                                 _logger.info("Released lock: " + lockedName);
                                 lockedName = null;
                                 break;
@@ -159,7 +159,7 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
                 if (rpSystem != null && protectionSet != null && rpSystem.getInstallationId() != null && protectionSet.getLabel() != null) {
                     // Unlock the CG based on this volume
                     String lockName = rpSystem.getInstallationId() + LOCK_SEPARATOR + protectionSet.getLabel();
-                    if (locker.acquireLock(lockName, 5)) {
+                    if (locker.acquirePersistentLock(lockName, _opId, 5)) {
                         _logger.info("Acquired lock: " + lockName);
                         lockedName = lockName;
                         return true;

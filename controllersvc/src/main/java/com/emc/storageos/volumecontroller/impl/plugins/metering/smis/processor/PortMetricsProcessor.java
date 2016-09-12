@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
@@ -367,7 +368,9 @@ public class PortMetricsProcessor {
         Double portMetricDouble = portPercentBusy;
 
         // compute port cpu busy if applicable
-        if (type == DiscoveredDataObject.Type.vmax || type == DiscoveredDataObject.Type.vnxblock) {
+        if (type == DiscoveredDataObject.Type.vmax ||
+                type == DiscoveredDataObject.Type.vnxblock ||
+                type == DiscoveredDataObject.Type.vplex) {
             StorageHADomain haDomain = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
             StringMap cpuMap = haDomain.getMetrics();
 
@@ -579,8 +582,8 @@ public class PortMetricsProcessor {
     }
 
     /**
-     * Compute storage system's average port metrics. The answer is in percent.
-     * This is averaged over all the usable ports.
+     * Compute storage system's average port metrics. The answer is in percent. This is averaged over all the usable ports.
+     * For XtremIO, it is StorageHADomain's CPU usage metrics. Port metrics are not available to collect.
      * 
      * @param storageSystemURI -- URI for the storage system.
      * @return -- A percent busy from 0 to 100%.
@@ -591,35 +594,73 @@ public class PortMetricsProcessor {
         double usablePortCount = 0;
         Double storageSystemPortsMetrics = null;
         if (storageDevice != null) {
+            if (!DiscoveredDataObject.Type.xtremio.name().equals(storageDevice.getSystemType())) {
 
-            URIQueryResultList storagePortURIs = new URIQueryResultList();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystemURI),
-                    storagePortURIs);
-            List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
+                URIQueryResultList storagePortURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystemURI),
+                        storagePortURIs);
+                List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
 
-            if (!metricsValid(storagePorts)) {
-                // The metrics are not valid for this array. Log it and return 50.0%.
-                _log.info(String.format("Port metrics not valid for array %s (%s), using 50.0 percent for array metric",
-                        storageDevice.getLabel(), storageSystemURI.toString()));
-                return 50.0;
-            }
-
-            // compute sum of all usable port metrics
-            for (StoragePort storagePort : storagePorts) {
-                // if port is usable, compute its port metrics
-                if (isPortUsable(storagePort, false)) {
-                    portMetricsSum += MetricsKeys.getDouble(MetricsKeys.portMetric, storagePort.getMetrics());
-                    usablePortCount++;
+                if (!metricsValid(storagePorts)) {
+                    // The metrics are not valid for this array. Log it and return 50.0%.
+                    _log.info(String.format("Port metrics not valid for array %s (%s), using 50.0 percent for array metric",
+                            storageDevice.getLabel(), storageSystemURI.toString()));
+                    // clear the previous value
+                    storageDevice.setAveragePortMetrics(-1.0);
+                    _dbClient.updateObject(storageDevice);
+                    return 50.0;
                 }
+
+                // compute sum of all usable port metrics
+                for (StoragePort storagePort : storagePorts) {
+                    // if port is usable, compute its port metrics
+                    if (isPortUsable(storagePort, false)) {
+                        portMetricsSum += MetricsKeys.getDouble(MetricsKeys.portMetric, storagePort.getMetrics());
+                        usablePortCount++;
+                    }
+                }
+
+                storageSystemPortsMetrics = (Double.compare(usablePortCount, 0) == 0) ? 0.0 : portMetricsSum / usablePortCount;
+                _log.info(String.format("Array %s metric %f", storageDevice.getLabel(), storageSystemPortsMetrics));
+
+                // persisted into storage system object for later retrieval
+                storageDevice.setAveragePortMetrics(storageSystemPortsMetrics);
+                _dbClient.persistObject(storageDevice);
+
+            } else {
+
+                // For XtremIO, it is StorageHADomain's CPU usage metrics
+                URIQueryResultList storageHADomainURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStorageHADomainConstraint(storageSystemURI),
+                        storageHADomainURIs);
+                List<StorageHADomain> storageHADomains = _dbClient.queryObject(StorageHADomain.class, storageHADomainURIs);
+
+                if (!isMetricsValid(storageHADomains)) {
+                    // The metrics are not valid for this array. Log it and return 50.0%.
+                    _log.info(String.format("CPU usage metrics not valid for array %s (%s), using 50.0 percent for array metric",
+                            storageDevice.getLabel(), storageSystemURI.toString()));
+                    // clear the previous value
+                    storageDevice.setAveragePortMetrics(-1.0);
+                    _dbClient.updateObject(storageDevice);
+                    return 50.0;
+                }
+
+                // compute sum of all CPU usages
+                for (StorageHADomain storageHADomain : storageHADomains) {
+                    if (!storageHADomain.getInactive()) {
+                        portMetricsSum += MetricsKeys.getDouble(MetricsKeys.avgCpuPercentBusy, storageHADomain.getMetrics());
+                        usablePortCount++;
+                    }
+                }
+
+                storageSystemPortsMetrics = (Double.compare(usablePortCount, 0) == 0) ? 0.0 : portMetricsSum / usablePortCount;
+                _log.info(String.format("Array %s CPU usage %f", storageDevice.getLabel(), storageSystemPortsMetrics));
+
+                // persisted into storage system object for later retrieval
+                storageDevice.setAveragePortMetrics(storageSystemPortsMetrics);
+                _dbClient.updateObject(storageDevice);
+
             }
-
-            storageSystemPortsMetrics = (Double.compare(usablePortCount, 0) == 0) ? 0.0 : portMetricsSum / usablePortCount;
-            _log.info(String.format("Array %s metric %f", storageDevice.getLabel(), storageSystemPortsMetrics));
-
-            // persisted into storage system object for later retrieval
-            storageDevice.setAveragePortMetrics(storageSystemPortsMetrics);
-            _dbClient.persistObject(storageDevice);
-
         }
 
         // if no usable port, return null. Otherwise compute average.
@@ -814,6 +855,37 @@ public class PortMetricsProcessor {
     }
 
     /**
+     * Determines if all the storage HADomains have valid (dynamic) metrics. If so
+     * returns true; other returns false, which would cause static usage
+     * data to be used for metric.
+     * 
+     * @param candidateAdapters - List<StorageHADomain>
+     * @return boolean true if all storage HADomains have valid metrics
+     */
+    public boolean isMetricsValid(List<StorageHADomain> candidateAdapters) {
+        if (candidateAdapters == null || candidateAdapters.isEmpty()) {
+            return false;
+        }
+        StorageHADomain firstAdapter = candidateAdapters.iterator().next();
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, firstAdapter.getStorageDeviceURI());
+
+        // if port metrics allocation is disabled, than ports metrics are not used for allocation.
+        if (!isPortMetricsAllocationEnabled(DiscoveredDataObject.Type.valueOf(system.getSystemType()))) {
+            return false;
+        }
+
+        Long currentTime = System.currentTimeMillis();
+        for (StorageHADomain adapter : candidateAdapters) {
+            Long lastProcessingTime = MetricsKeys.getLong(MetricsKeys.lastProcessingTime, adapter.getMetrics());
+            if (lastProcessingTime == 0 /* no sample received */
+                    || (currentTime - lastProcessingTime) > MAX_SAMPLE_AGE_MSEC) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * convenient method to check whether given storage port is usable to compute port metric
      * 
      * @param storagePort
@@ -822,6 +894,17 @@ public class PortMetricsProcessor {
     public boolean isPortUsable(StoragePort storagePort) {
         return isPortUsable(storagePort, true);
     }
+
+    /**
+     * Overloaded method for isPortUsable for No Network use case
+     *  
+     * @param storagePort
+     * @param vArrays
+     * @return TRUE or FALSE
+     */
+	public boolean isPortUsable(StoragePort storagePort, Set<String> vArrays) {
+		return isPortUsable(storagePort, vArrays, true);
+	}
 
     private boolean isPortUsable(StoragePort storagePort, boolean doLogging) {
         boolean usable = false;
@@ -859,6 +942,48 @@ public class PortMetricsProcessor {
         }
         return usable;
     }
+
+	private boolean isPortUsable(StoragePort storagePort, Set<String> vArrays, boolean doLogging) {
+		boolean usable = false;
+
+		if (storagePort != null
+				&& CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storagePort.getCompatibilityStatus())
+				&& !storagePort.getInactive()
+				&& DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
+
+			StoragePort.TransportType storagePortTransportType = TransportType.valueOf(storagePort.getTransportType());
+			if (storagePortTransportType == TransportType.FC || storagePortTransportType == TransportType.IP) {
+				if (storagePort.getPortType().equals(StoragePort.PortType.frontend.name())) {
+					// must be registered
+					if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
+						// Must be associated with a Network
+						if (URIUtil.isValid(storagePort.getNetwork())) {
+							// must not be OperationalStatus.NOT_OK
+							if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
+								usable = true;
+							} else {
+								if (doLogging) {
+									_log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
+								}
+							}
+						} else {
+							if (doLogging) {
+								_log.info("StoragePort has no Network association: "
+										+ storagePort.getNativeGuid());
+							}
+						}
+					}
+					else {
+						if (doLogging) {
+							_log.info("StoragePort not REGISTERED: " + storagePort.getNativeGuid());
+						}
+					}
+				}
+			}
+		}
+		return usable;
+	}
+
 
     /**
      * Updates the static port usage parameters for a set of ports.
@@ -1360,8 +1485,10 @@ public class PortMetricsProcessor {
         if (StorageSystem.Type.vnxblock.equals(systemType) || StorageSystem.Type.vnxfile.equals(systemType)
                 || StorageSystem.Type.vnxe.equals(systemType)) {
             name = StorageSystem.Type.vnxblock.name();
-        } else if (!StorageSystem.Type.vmax.equals(systemType) && !StorageSystem.Type.hds.equals(systemType)) {
-            // for other system type besides vnx, vmax, hds are categorirzed as "other_arrays"
+        } else if (!StorageSystem.Type.vmax.equals(systemType) &&
+                !StorageSystem.Type.hds.equals(systemType) &&
+                !StorageSystem.Type.vplex.equals(systemType)) {
+            // System types other than vnx, vmax, hds, and vplex are categorized as "other_arrays"
             name = "other_arrays";
         }
         return name;
@@ -1436,7 +1563,8 @@ public class PortMetricsProcessor {
         // if before and after lists are not the same, implied one of the port allocation disqualification status
         // has changed. Then, invoke pool matcher
         if (!disqualifiedPortAfterCompute.equals(disqualifiedPortBeforeCompute)) {
-            ImplicitPoolMatcher.matchStorageSystemPoolsToVPools(storageSystem.getId(), _dbClient, _coordinator);
+            StringBuffer errorMessage = new StringBuffer();
+            ImplicitPoolMatcher.matchStorageSystemPoolsToVPools(storageSystem.getId(), _dbClient, _coordinator, errorMessage);
         }
     }
 

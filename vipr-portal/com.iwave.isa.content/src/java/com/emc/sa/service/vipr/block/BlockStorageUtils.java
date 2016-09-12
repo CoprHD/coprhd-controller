@@ -11,9 +11,9 @@ import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
-import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -42,6 +41,8 @@ import org.apache.log4j.Logger;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSession;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
@@ -77,6 +78,7 @@ import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotSessionsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
+import com.emc.sa.service.vipr.block.tasks.GetBlockContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -96,12 +98,15 @@ import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
+import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
+import com.emc.sa.service.vipr.tasks.GetActionableEvents;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
@@ -166,6 +171,10 @@ public class BlockStorageUtils {
         return execute(new GetHost(hostId));
     }
 
+    public static void checkEvents(URI resourceId) {
+        execute(new GetActionableEvents(resourceId));
+    }
+
     public static Cluster getCluster(URI clusterId) {
         if (NullColumnValueGetter.isNullURI(clusterId)) {
             return null;
@@ -221,11 +230,75 @@ public class BlockStorageUtils {
     private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
     }
+    
+    private static List<BlockMirrorRestRep> getBlockContinuousCopies(List<URI> uris, URI parentId) {
+        return execute(new GetBlockContinuousCopies(uris, parentId));
+    }
+    
+    /**
+     * Verify that list of volume doesn't contain any dependencies (snapshot, full copies, continuous copy)
+     *
+     * @param volumeIds of the volumes to validate dependencies
+     */
+    public static void verifyVolumeDependencies(List<URI> volumeIds, URI projectId) {
+        List<URI> allBlockResources = Lists.newArrayList(volumeIds);
+        for (URI volumeId : volumeIds) {
+            BlockObjectRestRep volume = getVolume(volumeId);
+            allBlockResources.addAll(getSrdfTargetVolumes(volume));
+            allBlockResources.addAll(getRpTargetVolumes(volume));
+        }
 
+        execute(new VerifyVolumeDependencies(allBlockResources, projectId));
+    }
+
+    /**
+     * Return true of false if a given volume is a VMFS datastore.
+     *
+     * @param blockObject to validate
+     * @return true or false if the volume is a VMFS Datastore
+     */
+    public static boolean isVolumeVMFSDatastore(BlockObjectRestRep blockObject) {
+        if (blockObject != null) {
+            Set<String> volumeTags = blockObject.getTags();
+            if (volumeTags != null) {
+                Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+
+                for (String tag : parsedTags.keySet()) {
+                    if (tag != null && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Retrieve a list of block resources based on the resource ids provided. This will gather
+     * the appropriate resources based on the resource type of the ids provided.
+     *
+     * @param resourceIds of the resources to retrieve.
+     * @return list of block resources
+     */
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
+        return getBlockResources(resourceIds, null);
+    }
+
+    /**
+     * Retrieve a list of block resources based on the resource ids provided. This will gather
+     * the appropriate resources based on the resource type of the ids provided.
+     *
+     * @param resourceIds of the resources to retrieve.
+     * @param parentId of a continuous copy. This will be null for all other resource types.
+     * @return list of block resources
+     */
+
+    public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds, URI parentId) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         List<URI> blockVolumes = new ArrayList<URI>();
         List<URI> blockSnapshots = new ArrayList<URI>();
+        List<URI> blockContinuousCopies = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
             ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
             switch (volumeType) {
@@ -235,12 +308,16 @@ public class BlockStorageUtils {
                 case BLOCK_SNAPSHOT:
                     blockSnapshots.add(resourceId);
                     break;
+                case BLOCK_CONTINUOUS_COPY:
+                    blockContinuousCopies.add(resourceId);
+                    break;
                 default:
                     break;
             }
         }
         blockResources.addAll(getVolumes(blockVolumes));
         blockResources.addAll(getBlockSnapshots(blockSnapshots));
+        blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
         return blockResources;
     }
 
@@ -298,14 +375,15 @@ public class BlockStorageUtils {
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
+        addRollback(new DeactivateVolumes(volumeIds, VolumeDeleteTypeEnum.FULL));
         return volumeIds;
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId) {
+            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new CreateBlockVolume(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId));
+                count, baseVolumeName, consistencyGroupId, computeResource));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
@@ -731,6 +809,26 @@ public class BlockStorageUtils {
             VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getSrdfRep().getSRDFTargetVolumes()) {
+                    targetVolumes.add(targetVolume.getId());
+                }
+            }
+        }
+
+        return targetVolumes;
+    }
+
+    /**
+     * Return a list of target RP volume for a given block object
+     *
+     * @param blockObject to retrieve target from
+     * @return a list of RP target volumes for specified block object
+     */
+    public static List<URI> getRpTargetVolumes(BlockObjectRestRep blockObject) {
+        List<URI> targetVolumes = Lists.newArrayList();
+        if (blockObject instanceof VolumeRestRep) {
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+                for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getRpRep().getRpTargets()) {
                     targetVolumes.add(targetVolume.getId());
                 }
             }
@@ -1293,6 +1391,21 @@ public class BlockStorageUtils {
     }
     
     /**
+     * returns true if the passed in volume is a RP target volume
+     * 
+     * @param vol
+     * @return
+     */
+    public static boolean isRPTargetVolume(VolumeRestRep volume) {
+        if (isRPVolume(volume)
+                && volume.getProtection().getRpRep().getPersonality() != null
+                && volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("TARGET")) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
      * gets the vplex primary/source backing volume for a vplex virtual volume
      * 
      * @param client
@@ -1325,13 +1438,9 @@ public class BlockStorageUtils {
         NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
         NamedVolumesList volumesToUse = new NamedVolumesList();
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
-            VolumeRestRep volume = client.blockVolumes().get(volumeId);
-            VolumeRestRep parentVolume = volume;
-            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
-                volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
-            }
+            VolumeRestRep parentVolume = client.blockVolumes().get(volumeId);
             if (isTarget) {
-                if (volume.getVirtualArray().getId().equals(virtualArray)) {
+                if (isRPTargetVolume(parentVolume) && parentVolume.getVirtualArray().getId().equals(virtualArray)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {

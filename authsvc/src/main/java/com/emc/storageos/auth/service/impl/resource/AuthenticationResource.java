@@ -16,7 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
+import java.util.regex.Matcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -83,6 +83,9 @@ public class AuthenticationResource {
     private static final String FORM_INVALID_AUTH_TOKEN_ERROR = "Remote VDC token has either expired or was issued to a local user that is restricted to their home VDC only.  Please relogin.";
     private static final String FORM_LOGIN_POST_NO_SERVICE_ERROR = "The POST request to formlogin does not have service query parameter";
     private static final String SERVICE_URL_FORMAT_ERROR = "The provided service URI has invalid format";
+
+    private static final String LOGIN_BANNER_KEY = "system_login_banner";
+
 
     private static String _cachedLoginPagePart1;
     private static String _cachedLoginPagePart2;
@@ -960,7 +963,11 @@ public class AuthenticationResource {
         }
 
         sbFinal.append("\" ");
-        sbFinal.append(error == null ? _cachedLoginPagePart2 : _cachedLoginPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
+        String loginBannerString = Matcher.quoteReplacement(_passwordUtils.getConfigProperty(LOGIN_BANNER_KEY));
+        String _cachedLoginPagePart2Tmp = "";
+        _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll(Matcher.quoteReplacement("\\\\n"), "<br>");
+
+        sbFinal.append(error == null ? _cachedLoginPagePart2Tmp : _cachedLoginPagePart2Tmp.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
 
     }
@@ -1000,6 +1007,10 @@ public class AuthenticationResource {
         String passwordRuleInfo = MessageFormat.format(FORM_INFO_ENT, getPasswordChangePromptRule());
         _log.info("password rule info: \n" + passwordRuleInfo);
         String newPart2 = _cachedChangePasswordPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, passwordRuleInfo + "$1");
+
+        String loginBannerString = Matcher.quoteReplacement(_passwordUtils.getConfigProperty(LOGIN_BANNER_KEY));
+        newPart2 = newPart2.replaceAll(LOGIN_BANNER_KEY, loginBannerString).replaceAll(Matcher.quoteReplacement("\\\\n"), "<br>");
+
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
     }

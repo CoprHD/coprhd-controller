@@ -251,6 +251,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             String fsId = args.getFs().getNativeId();
+            String fsName = args.getFsName();
             String permission = exp.getPermissions();
 
             String path = "/";
@@ -339,7 +340,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         path += subdirName;
                     }
 
-                    String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
+                    String shareName = VNXeUtils.buildNfsShareName(fsName, subdirName);
 
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
@@ -356,7 +357,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
                 } else {
                     String snapId = args.getSnapNativeId();
-                    String shareName = VNXeUtils.buildNfsShareName(snapId, path);
+                    String snapName = args.getSnapshotName();
+                    String shareName = VNXeUtils.buildNfsShareName(snapName, path);
                     job = apiClient.createNfsShareForSnap(snapId, roClients, rwClients, rootClients, access, path, shareName, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
@@ -1076,7 +1078,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
                 } else {
 
-                    shareName = VNXeUtils.buildNfsShareName(args.getSnapNativeId(), path);
+                    shareName = VNXeUtils.buildNfsShareName(args.getSnapshotName(), path);
 
                     if (isDeleteRule) {
                         job = apiClient.deleteNfsShareForSnapshot(rule.getDeviceExportId());
@@ -1270,43 +1272,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         return BiosCommandResult.createErrorResult(error);
                     }
                 }
-                FileShareExport fsExport = null;
-                if (args.getFileObjExports() != null) {
-                    Collection<FileExport> expList = args.getFileObjExports().values();
-                    Iterator<FileExport> it = expList.iterator();
-                    FileExport exp = null;
-                    while (it.hasNext()) {
-                        exp = it.next();
-                        fsExport = new FileShareExport(exp);
-                        if (fsExport != null) {
-                            String vnxeShareId = fsExport.getIsilonId();
-                            _logger.info("Delete UnityExport id {} for path {}",
-                                    vnxeShareId, fsExport.getPath());
-                            if (isFile) {
-                                String fsId = args.getFs().getNativeId();
-                                job = apiClient.removeNfsShare(vnxeShareId, fsId);
-                            } else {
-                                job = apiClient.deleteNfsShareForSnapshot(vnxeShareId);
-                            }
-                            if (job != null) {
-                                if (isFile) {
-                                    completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
-                                } else {
-                                    completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
-                                }
 
-                                VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
-                                        completer, fsExport, fsExport.getPath(), isFile);
-                                ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
-                            } else {
-                                _logger.error("No job returned from exportFileSystem");
-                                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
-                                        "No Job returned from deleteFileSystem");
-                                return BiosCommandResult.createErrorResult(error);
-                            }
-                        }
-                    }
-                }
             } else if (subDir != null && !subDir.isEmpty()) {
                 // Filter for a specific Sub Directory export
                 _logger.info("Deleting all subdir exports rules at ViPR and  sub directory export at device {}", subDir);
@@ -1638,7 +1604,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy" , "Unity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy", "Unity"));
     }
 
     @Override

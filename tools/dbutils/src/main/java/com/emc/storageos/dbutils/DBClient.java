@@ -470,7 +470,7 @@ public class DBClient {
     private static class AuditQueryResult implements TimeSeriesQueryResult<AuditLog> {
         //Should guarantee of synchronization
         private StringBuffer buffer = new StringBuffer("<audits>");
-        private AtomicInteger recCount = new AtomicInteger(1);
+        private AtomicInteger recCount = new AtomicInteger(0);
         private String filename = null;
 
         AuditQueryResult(String filename) {

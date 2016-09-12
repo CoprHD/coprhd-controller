@@ -720,16 +720,16 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
-
+        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+            return taskList;
         }
 
         for (Volume volume : volumes) {
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
         }
-        return createTasksForVolumes(vpool, volumes, taskId);
+        return taskList;
     }
 
     private Predicate<URI> isMirrorInactivePredicate() {

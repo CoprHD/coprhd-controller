@@ -7236,7 +7236,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // to add the copy to the list of copies for the source VPLEX volume.
                 // We only do this when the copy is successfully completed.
                 URI srcVplexVolumeURI = vplexVolume.getAssociatedSourceVolume();
-                if (srcVplexVolumeURI != null) {
+                if (!NullColumnValueGetter.isNullURI(srcVplexVolumeURI)) {
                     // Note that the associated source volume will be null if
                     // this is just a standard import of a non-VPLEX volume. It
                     // will be set in the case we use the import workflow to

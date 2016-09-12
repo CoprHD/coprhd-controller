@@ -1239,7 +1239,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
-        TaskList taskList = new TaskList();
+        TaskList taskList = createTasksForVolumes(vpool, Arrays.asList(volume), taskId);
 
         String transferSpeed = null;
         ArrayList<Volume> volumes = new ArrayList<Volume>();
@@ -1333,10 +1333,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
-        
-        taskList.getTaskList().addAll(
-                createTasksForVolumes(vpool, Arrays.asList(volume), taskId).getTaskList());
-        
+
         return taskList;
     }
 
@@ -1348,9 +1345,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         TaskList taskList = new TaskList();
 
-        // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
+
+        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), volumeVirtualPool, vpool,
+                _dbClient, notSuppReasonBuff) ||
+                VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volumes.get(0), volumeVirtualPool, vpool,
+                        _dbClient, notSuppReasonBuff)) {
+            taskList = createTasksForVolumes(vpool, volumes, taskId);
+            checkCommonVpoolUpdates(volumes, vpool, taskId);
+            return taskList;
         }
 
         // Check if any of the volumes passed is a VPLEX volume

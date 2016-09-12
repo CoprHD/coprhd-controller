@@ -5,12 +5,15 @@
 package com.emc.sa.asset.providers;
 
 import static com.emc.vipr.client.core.filters.CompatibilityFilter.INCOMPATIBLE;
+import static com.emc.vipr.client.core.filters.DiscoveryStatusFilter.COMPLETE;
 import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +31,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -39,6 +43,7 @@ import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.HostTypeFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -87,7 +92,7 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     protected List<HostRestRep> listEsxHostsByDatacenter(AssetOptionsContext context, URI datacenterId) {
-        return api(context).hosts().getByDataCenter(datacenterId);
+        return api(context).hosts().getByDataCenter(datacenterId, HostTypeFilter.ESX.and(REGISTERED).and(INCOMPATIBLE.not()).and(COMPLETE));
     }
 
     protected List<String> listFileDatastoresByProjectAndDatacenter(AssetOptionsContext context, URI projectId,
@@ -119,7 +124,50 @@ public class VMWareProvider extends BaseHostProvider {
     @AssetDependencies({ "datacenter", "blockStorageType" })
     public List<AssetOption> getEsxHosts(AssetOptionsContext context, URI datacenter, String storageType) {
         debug("getting esxHosts (datacenter=%s)", datacenter);
-        return getHostOrClusterOptions(context, listEsxHostsByDatacenter(context, datacenter), storageType);
+
+        List<HostRestRep> esxHosts = listEsxHostsByDatacenter(context, datacenter);
+
+        filterClusterHosts(context, datacenter, storageType, esxHosts);
+
+        return getHostOrClusterOptions(context, esxHosts, storageType);
+    }
+
+    /**
+     * Filter out hosts in the cluster when other hosts in that cluster have failed discovery or
+     * are incompatible.
+     * 
+     * @param context
+     *            asset context
+     * @param datacenter
+     *            data center
+     * @param storageType
+     *            storage type (exclusive or shared)
+     * @param esxHosts
+     *            list of all esx hosts that are discovered and compatible
+     */
+    private void filterClusterHosts(AssetOptionsContext context, URI datacenter, String storageType, List<HostRestRep> esxHosts) {
+        // Gather all ESX hosts that didn't match the filter
+        if (esxHosts != null && !esxHosts.isEmpty() && storageType.equalsIgnoreCase(BlockProvider.SHARED_STORAGE.toString())) {
+            List<HostRestRep> misfitEsxHosts = api(context).hosts().getByDataCenter(datacenter,
+                    HostTypeFilter.ESX.and(REGISTERED.not()).or(INCOMPATIBLE).or(COMPLETE.not()));
+            Set<URI> misfitEsxClusterIds = new HashSet<>();
+            if (misfitEsxHosts != null && !misfitEsxHosts.isEmpty()) {
+                for (HostRestRep misfitEsxHost : misfitEsxHosts) {
+                    if (misfitEsxHost.getCluster() != null && !NullColumnValueGetter.isNullURI(misfitEsxHost.getCluster().getId())) {
+                        misfitEsxClusterIds.add(misfitEsxHost.getCluster().getId());
+                    }
+                }
+
+                Iterator<HostRestRep> esxHostIter = esxHosts.iterator();
+                while (esxHostIter.hasNext()) {
+                    HostRestRep esxHost = esxHostIter.next();
+                    if (esxHost.getCluster() != null && !NullColumnValueGetter.isNullURI(esxHost.getCluster().getId())
+                            && misfitEsxClusterIds.contains(esxHost.getCluster().getId())) {
+                        esxHostIter.remove();
+                    }
+                }
+            }
+        }
     }
 
     @Asset("datastore")

@@ -152,7 +152,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     }
 
     /**
-     * Finds the exports by namw.
+     * Finds the exports by name.
      *
      * @param name
      *            Name to search for.

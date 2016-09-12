@@ -350,10 +350,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 volURIs, migrationURIs, volumeToOldVpoolsMap, volumeToNewVpoolsMap, taskId);
 
         try {
-            if (true) {
-                throw new Exception("Forced Exception");
-            }
-            
             // Validate the volume identities before proceeding
             validator.volumeURIs(volURIs, true, true, ValCk.ID, ValCk.VPLEX);
             

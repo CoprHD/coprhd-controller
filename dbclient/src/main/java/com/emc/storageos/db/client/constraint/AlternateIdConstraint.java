@@ -61,6 +61,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.Workflow;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -663,6 +664,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getWorkflowByOrchTaskId(String orchTaskId) {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
+        }
+        
+        public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
+            DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);
         }
 
         public static AlternateIdConstraint getRpSourceVolumeByTarget(String targetVolumeId) {

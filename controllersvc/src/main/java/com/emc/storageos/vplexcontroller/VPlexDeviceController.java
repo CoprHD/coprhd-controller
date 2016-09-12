@@ -154,7 +154,9 @@ import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -181,7 +183,6 @@ import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
-import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.emc.storageos.workflow.WorkflowTaskCompleter;
 import com.google.common.base.Joiner;
@@ -3228,9 +3229,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
                     List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
-                    List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
-                    List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-                    validator.vplex().exportMaskDelete(vplex, exportMask, volumeURIs, initiators).validate();
+                    List<Initiator> initiators = new ArrayList<>();
+                    if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                        initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
+                    }
+
+                    ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                    ctx.setStorage(vplex);
+                    ctx.setExportMask(exportMask);
+                    ctx.setBlockObjects(volumeURIs, _dbClient);
+                    ctx.setInitiators(initiators);
+                    validator.exportMaskDelete(ctx).validate();
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
                     _log.info("removing this export mask from VPLEX: " + exportMask.getMaskName());
@@ -3806,10 +3816,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
-        Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class,
+        if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+            Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class,
                 URIUtil.toURIList(exportMask.getInitiators()), true);
-        while (initItr.hasNext()) {
-            initiators.add(initItr.next());
+            while (initItr.hasNext()) {
+                initiators.add(initItr.next());
+            }
         }
         StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
         validator.removeVolumes(vplex, exportMask.getId(), initiators).validate();
@@ -4519,7 +4531,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(vplex);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -4639,7 +4656,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (volumeURIList.isEmpty()) {
                         _log.warn("volume URI list for validating remove initiators is empty...");
                     }
-                    validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+                    ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                    ctx.setStorage(vplex);
+                    ctx.setExportMask(exportMask);
+                    ctx.setBlockObjects(volumeURIList, _dbClient);
+                    validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
                             vplex, workflow, exportGroup, exportMask, initsToRemove,
@@ -5147,7 +5168,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(vplex);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -5898,6 +5924,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void validateVPlexVolume(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
         Volume vplexVolume = null;
         try {
+            // Skip this if validation disabled
+            ValidatorConfig validatorConfig = new ValidatorConfig();
+            validatorConfig.setCoordinator(coordinator);
+            if (!validatorConfig.isValidationEnabled()) {
+                WorkflowStepCompleter.stepSucceeded(stepId, "Validations not enabled");
+                return;
+            }
+            
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -6658,9 +6692,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // Execute this sub workflow.
-                    DeleteMigrationSourcesCallback wfCallback = new DeleteMigrationSourcesCallback();
-                    subWorkflow.executePlan(completer, "Deleted migration sources", wfCallback,
-                            new Object[] { stepId }, null, null);
+                    subWorkflow.executePlan(completer, "Deleted migration sources");
                     // Mark this workflow as created/executed so we don't do it again on retry/resume
                     WorkflowService.getInstance().markWorkflowBeenCreated(stepId, workflowKey);
                 }
@@ -6677,45 +6709,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // successfully committed migration. We don't want rollback,
             // so we return success.
             WorkflowStepCompleter.stepSucceded(stepId);
-        }
-    }
-
-    /**
-     * Callback handler for the delete migrations source sub workflow. The
-     * handler is informed when the workflow completes at which point we simply
-     * update the workflow step step state in the main workflow.
-     */
-    @SuppressWarnings("serial")
-    public static class DeleteMigrationSourcesCallback implements
-            Workflow.WorkflowCallbackHandler, Serializable {
-
-        /**
-         * {@inheritDoc}
-         *
-         * @throws WorkflowException
-         */
-        @Override
-        public void workflowComplete(Workflow workflow, Object[] args) throws WorkflowException {
-            _log.info("Delete migration workflow completed.");
-
-            // Get the WorkflowState
-            WorkflowState state = workflow.getWorkflowStateFromSteps();
-
-            // Support SUSPEND_NO_ERROR (which is resumable) in this sub-workflow
-            if (state == WorkflowState.SUSPENDED_NO_ERROR) {
-                WorkflowStepCompleter.stepSuspendedNoError(args[0].toString());
-            } else if (state == WorkflowState.SUSPENDED_ERROR) {
-                _log.error(
-                        "Migration delete original sources sub-workflow suspended with error, but top-level workflow will not be set to suspended.");
-                WorkflowStepCompleter.stepSuspendedError(args[0].toString(), null);
-            } else {
-                // Simply update the workflow step in the main workflow that caused
-                // the sub workflow to execute. The delete migration sources sub
-                // workflow is a cleanup step after a successfully committed
-                // migration. We don't want rollback, so we return success
-                // regardless of the result after the sub workflow has completed.
-                WorkflowStepCompleter.stepSucceded(args[0].toString());
-            }
         }
     }
 
@@ -7236,7 +7229,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // to add the copy to the list of copies for the source VPLEX volume.
                 // We only do this when the copy is successfully completed.
                 URI srcVplexVolumeURI = vplexVolume.getAssociatedSourceVolume();
-                if (srcVplexVolumeURI != null) {
+                if (!NullColumnValueGetter.isNullURI(srcVplexVolumeURI)) {
                     // Note that the associated source volume will be null if
                     // this is just a standard import of a non-VPLEX volume. It
                     // will be set in the case we use the import workflow to

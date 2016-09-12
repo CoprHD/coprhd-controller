@@ -189,7 +189,7 @@ class Host(object):
     def update(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, newlabel, autodiscovery,
-               bootvolume, project):
+               bootvolume, project, updateExports=True):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -255,6 +255,9 @@ class Host(object):
             path = tenant + "/" + project + "/" + bootvolume
             volume_id = Volume(self.__ipAddr, self.__port).volume_query(path)
             request['boot_volume'] = volume_id
+
+        if(updateExports is not None):
+            hostUri = hostUri + "?update_exports=" + updateExports
 
         restapi = Host.URI_HOST_DETAILS.format(hostUri)
 
@@ -1099,6 +1102,11 @@ def update_parser(subcommand_parsers, common_parser):
                             dest='project',
                             metavar='<project>')
 
+    update_parser.add_argument('-updateExports', '-updateEx',
+                            help="Updates the exports during host update",
+                            dest='updateExports',
+                            default='true',
+                            choices=['true', 'false'])
 
     update_parser.set_defaults(func=host_update)
 
@@ -1139,7 +1147,7 @@ def host_update(args):
                            args.newosversion, args.newcluster,
                            args.newdatacenter, args.vcentername,
                            args.newlabel, args.autodiscovery,
-                           args.bootvolume, args.project)
+                           args.bootvolume, args.project, args.updateExports)
     except SOSError as e:
         common.format_err_msg_and_raise("update",
                                         "host", e.err_text, e.err_code)

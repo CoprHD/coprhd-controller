@@ -4,24 +4,26 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
+import static com.google.common.collect.Collections2.transform;
+
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
-import static com.google.common.collect.Collections2.transform;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given

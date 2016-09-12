@@ -1104,7 +1104,7 @@ public class RecoverPointScheduler implements Scheduler {
         Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolsMap = getVplexTargetMatchingPools(tgtVarrays,
                 srcVpool, project, capabilities, vpoolChangeVolume);
 
-        rpProtectionRecommendaton = createMetroPointRecommendations(srcVarray, tgtVarrays, srcVpool, haVarray, haVpool,
+        rpProtectionRecommendaton = createRPProtectionRecommendationForMetroPoint(srcVarray, tgtVarrays, srcVpool, haVarray, haVpool,
                 capabilities, candidatePrimaryPools, candidateSecondaryPools,
                 tgtVarrayStoragePoolsMap,
                 vpoolChangeVolume, project);
@@ -1136,7 +1136,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param candidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @return list of Recommendation objects to satisfy the request
      */
-    protected RPProtectionRecommendation createMetroPointRecommendations(VirtualArray varray,
+    private RPProtectionRecommendation createRPProtectionRecommendationForMetroPoint(VirtualArray varray,
             List<VirtualArray> protectionVarrays, VirtualPool vpool, VirtualArray haVarray,
             VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities,
             List<StoragePool> candidateActiveSourcePools, List<StoragePool> candidateStandbySourcePools,
@@ -1331,13 +1331,14 @@ public class RecoverPointScheduler implements Scheduler {
                 // Iterate over the associated storage systems
                 for (String primaryAssociatedStorageSystem : primaryAssociatedStorageSystems) {
                     rpProtectionRecommendation.setProtectionDevice(primaryProtectionSystem.getId());
+                    _log.info(String.format("RP Placement : Build MetroPoint Active Recommendation..."));
                     RPRecommendation sourceRec = buildSourceRecommendation(primaryAssociatedStorageSystem, varray, vpool,
                             primaryProtectionSystem, sourcePool,
                             capabilities, satisfiedSourceVolCount, placementStatus,
                             vpoolChangeVolume, false);
                     if (sourceRec == null) {
                         // No source placement found for the primaryAssociatedStorageSystem, so continue.
-                        _log.info(String.format("RP Placement : Primary solution not found using [%s], continuing...",
+                        _log.warn(String.format("RP Placement : Could not create MetroPoint Active Recommendation using [%s], continuing...",
                                 primaryAssociatedStorageSystem));
                         continue;
                     }
@@ -1345,11 +1346,14 @@ public class RecoverPointScheduler implements Scheduler {
                     URI primarySourceStorageSystemURI = sourceRec.getVirtualVolumeRecommendation().getVPlexStorageSystem();
 
                     if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
+                        _log.info(String.format("RP Placement : Build MetroPoint Active Journal Recommendation..."));
                         RPRecommendation activeJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                 sourceRec.getInternalSiteName(), vpool.getJournalSize(),
                                 activeJournalVarray, activeJournalVpool, primaryProtectionSystem,
                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, false);
                         if (activeJournalRecommendation == null) {
+                            // No source journal placement found, so continue.
+                            _log.warn(String.format("RP Placement : Could not create MetroPoint Active Journal Recommendation, continuing..."));
                             continue;
                         }
                         rpProtectionRecommendation.setSourceJournalRecommendation(activeJournalRecommendation);
@@ -1459,6 +1463,7 @@ public class RecoverPointScheduler implements Scheduler {
 
                                 sortedSecondaryAssociatedStorageSystems.addAll(sameAsPrimary);
                                 for (String secondaryAssociatedStorageSystem : sortedSecondaryAssociatedStorageSystems) {
+                                    _log.info(String.format("RP Placement : Build MetroPoint Standby Recommendation..."));
                                     RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(
                                             secondaryAssociatedStorageSystem,
                                             haVarray, haVpool,
@@ -1466,18 +1471,24 @@ public class RecoverPointScheduler implements Scheduler {
                                             secondaryPlacementStatus,
                                             null, true);
                                     if (secondaryRpRecommendation == null) {
-                                        // No source placement found for the secondaryAssociatedStorageSystem, so continue.
-                                        _log.info(String.format("RP Placement : HA solution not found using %s, continuing with "
-                                                + "other storage pool/storage system", secondaryAssociatedStorageSystem));
+                                        // No standby placement found for the secondaryAssociatedStorageSystem, so continue.
+                                        _log.warn(String.format("RP Placement : Could not create MetroPoint Standby Recommendation using [%s], continuing...",
+                                                secondaryAssociatedStorageSystem));                                                                                
                                         continue;
                                     }
 
                                     if (rpProtectionRecommendation.getStandbyJournalRecommendation() == null) {
+                                        _log.info(String.format("RP Placement : Build MetroPoint Standby Journal Recommendation..."));
                                         RPRecommendation standbyJournalRecommendation = buildJournalRecommendation(
                                                 rpProtectionRecommendation,
                                                 secondarySourceInternalSiteName, vpool.getJournalSize(),
                                                 standbyJournalVarray, standbyJournalVpool, primaryProtectionSystem,
                                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, true);
+                                        if (standbyJournalRecommendation == null) {
+                                            // No standby journal placement found, so continue.
+                                            _log.warn(String.format("RP Placement : Could not create MetroPoint Standby Journal Recommendation, continuing..."));
+                                            continue;
+                                        }
                                         rpProtectionRecommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
                                     }
                                     sourceRec.setHaRecommendation(secondaryRpRecommendation);
@@ -1506,7 +1517,7 @@ public class RecoverPointScheduler implements Scheduler {
                         }
 
                         if (!secondaryRecommendationSolution) {
-                            _log.info("RP Placement : Unabled to find MetroPoint secondary cluster placement recommendation that "
+                            _log.info("RP Placement : Unable to find MetroPoint secondary cluster placement recommendation that "
                                     + "jives with primary cluster recommendation.  Need to find a new primary recommendation.");
                             // Exhausted all the secondary pool URIs. Need to find another primary solution.
                             break;
@@ -2134,8 +2145,11 @@ public class RecoverPointScheduler implements Scheduler {
         for (VirtualArray protectionVarray : protectionVarrays) {
             
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
-            VirtualPool targetVpool = protectionSettings.get(protectionVarray.getId()) != null ? dbClient.queryObject(VirtualPool.class,
-                    protectionSettings.get(protectionVarray.getId()).getVirtualPool()) : vpool;
+            // if the target vpool is not set, it defaults to the source vpool
+            VirtualPool targetVpool = vpool;
+            if (protectionSettings.get(protectionVarray.getId()) != null && protectionSettings.get(protectionVarray.getId()).getVirtualPool() != null) {
+                targetVpool = dbClient.queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getVirtualPool());
+            }
             
             RPRecommendation targetRecommendation = 
                     buildRpRecommendationFromExistingVolume(targetVolume, targetVpool, capabilities, null);

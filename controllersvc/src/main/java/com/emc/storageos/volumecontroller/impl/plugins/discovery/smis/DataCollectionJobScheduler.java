@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1028,6 +1029,9 @@ public class DataCollectionJobScheduler {
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.ceph.name()),
                 _dbClient));
+
+        // process providers managed by SB SDK drivers
+        activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
 
         return activeProviderURIs;
     }

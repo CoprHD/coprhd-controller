@@ -17,6 +17,7 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
+import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
@@ -369,5 +370,13 @@ public class ApiClientTest {
     public void modifyHlu() {
         apiClient.modifyHostLunHlu("Host_20", "Host_20_sv_189_prod", 0);
 
+    }
+
+    @Test
+    public void getAllRepSessions() {
+        List<ReplicationSession> sessions = apiClient.getAllReplicationSessions();
+        for (ReplicationSession session : sessions) {
+            System.out.println(session.getReplicationResourceType().name());
+        }
     }
 }

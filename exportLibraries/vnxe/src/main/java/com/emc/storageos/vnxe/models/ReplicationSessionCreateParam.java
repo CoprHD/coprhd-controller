@@ -5,7 +5,7 @@
 
 package com.emc.storageos.vnxe.models;
 
-public class ReplicationSessionCreateParam {
+public class ReplicationSessionCreateParam extends ParamBase {
     private String srcResourceId;
     private String dstResourceId;
     private int maxTimeOutOfSync;
@@ -21,33 +21,35 @@ public class ReplicationSessionCreateParam {
     }
 
     public String getDstResourceId() {
-         return dstResourceId;
+        return dstResourceId;
     }
+
     public void setDstResourceId(String dstResourceId) {
-         this.dstResourceId = dstResourceId;
+        this.dstResourceId = dstResourceId;
     }
 
     public RemoteSystem getRemoteSystem() {
-          return remoteSystem;
-     }
-     public void setRemoteSystem(RemoteSystem remoteSystem) {
-         this.remoteSystem = remoteSystem;
-     }
+        return remoteSystem;
+    }
 
-     public int getMaxTimeOutOfSync() {
-         return maxTimeOutOfSync;
-     }
- 
-     public void setMaxTimeOutOfSync(int maxTimeOutOfSync) {
-         this.maxTimeOutOfSync = maxTimeOutOfSync;
-     }
-    
-     public boolean getAutoInitiate(){
-         return this.autoInitiate;
-     }
+    public void setRemoteSystem(RemoteSystem remoteSystem) {
+        this.remoteSystem = remoteSystem;
+    }
 
-     public void setAutoInitiate(boolean autoInitiate){
-         this.autoInitiate = autoInitiate;
-     }
+    public int getMaxTimeOutOfSync() {
+        return maxTimeOutOfSync;
+    }
+
+    public void setMaxTimeOutOfSync(int maxTimeOutOfSync) {
+        this.maxTimeOutOfSync = maxTimeOutOfSync;
+    }
+
+    public boolean getAutoInitiate() {
+        return this.autoInitiate;
+    }
+
+    public void setAutoInitiate(boolean autoInitiate) {
+        this.autoInitiate = autoInitiate;
+    }
 
 }

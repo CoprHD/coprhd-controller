@@ -594,7 +594,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 // This loop will determine a list of volumes to update per export mask
                 Map<URI, List<URI>> existingMasksToRemoveInitiator = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> existingMasksToRemoveVolumes = new HashMap<URI, List<URI>>();
-                Map<URI, List<URI>> existingMasksToCoexistInitiators = new HashMap<URI, List<URI>>();
                 for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
                     URI initiatorURI = portNameToInitiatorURI.get(entry.getKey());
                     if (initiatorURI == null || !initiatorURIs.contains(initiatorURI)) {
@@ -834,7 +833,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         _log.info(String.format("mask %s has removed all "
                                 + "initiators, we are going to delete the mask from the "
                                 + "array", mask.getMaskName()));
-                        errorMessage.append(String.format("Mask %s will be removed from array. ", mask.forDisplay()));
                         List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(mask);
                         List<URI> maskInitiatorURIs = Lists.newArrayList(
                                 Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null),

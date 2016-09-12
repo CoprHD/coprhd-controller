@@ -218,28 +218,32 @@ public class DellSCUtil {
     }
 
     /**
-     * @param api
-     * @param scPort
-     * @param storagePort
-     * @return
+     * Gets a StoragePort object for an ScControllerPort.
+     *
+     * @param api The API connection.
+     * @param scPort The ScControllerPort.
+     * @return The StoragePort.
      */
-    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort, StoragePort storagePort) {
-        StoragePort port = storagePort;
-        if (port == null) {
-            port = new StoragePort();
-        }
+    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort) {
+        return getStoragePortForControllerPort(api, scPort, null);
+    }
+
+    /**
+     * Gets a StoragePort object for an ScControllerPort.
+     *
+     * @param api The API connection.
+     * @param scPort The ScControllerPort.
+     * @param haZone The fault domain name.
+     * @return The StoragePort.
+     */
+    public StoragePort getStoragePortForControllerPort(StorageCenterAPI api, ScControllerPort scPort, String haZone) {
+        StoragePort port = new StoragePort();
 
         port.setNativeId(scPort.instanceId);
         port.setStorageSystemId(scPort.scSerialNumber);
 
         // Get the port configuration
-        String haZone = "";
-        ScFaultDomain[] faultDomains = api.getControllerPortFaultDomains(scPort.instanceId);
-        if (faultDomains.length > 0) {
-            // API returns list, but currently only one fault domain per port allowed
-            haZone = faultDomains[0].name;
-        }
-        port.setPortHAZone(haZone);
+        port.setPortHAZone(getHaZone(api, scPort, haZone));
 
         if (ScControllerPort.FC_TRANSPORT_TYPE.equals(scPort.transportType)) {
             setFCPortInfo(api, scPort, port);
@@ -260,6 +264,28 @@ public class DellSCUtil {
     }
 
     /**
+     * Gets the HA zone name.
+     * 
+     * @param api The API connection.
+     * @param scPort The ScControllerPort.
+     * @param hazone The zone name if known.
+     * @return The zone name.
+     */
+    private String getHaZone(StorageCenterAPI api, ScControllerPort scPort, String hazone) {
+        if (hazone != null && !hazone.isEmpty()) {
+            return hazone;
+        }
+        String haZone = "";
+        ScFaultDomain[] faultDomains = api.getControllerPortFaultDomains(scPort.instanceId);
+        if (faultDomains.length > 0) {
+            // API returns list, but currently only one fault domain per port allowed
+            haZone = faultDomains[0].name;
+        }
+
+        return haZone;
+    }
+
+    /**
      * Sets FC specific info for a port.
      *
      * @param api The API connection.
@@ -272,7 +298,8 @@ public class DellSCUtil {
 
         ScControllerPortFibreChannelConfiguration portConfig = api.getControllerPortFCConfig(
                 scPort.instanceId);
-        port.setPortNetworkId(scPort.wwn);
+        port.setPortNetworkId(formatWwn(scPort.wwn));
+        port.setEndPointID(port.getPortNetworkId());
         port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
         port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
         port.setPortSubGroup(String.format("%s", portConfig.slot));
@@ -293,9 +320,9 @@ public class DellSCUtil {
         ScControllerPortIscsiConfiguration portConfig = api.getControllerPortIscsiConfig(
                 scPort.instanceId);
         port.setEndPointID(scPort.iscsiName);
-        port.setIpAddress(portConfig.ipAddress);
+        port.setIpAddress(scPort.iscsiIpAddress);
         port.setPortNetworkId(scPort.iscsiName);
-        port.setNetworkId(portConfig.getNetwork());
+        port.setNetworkId(scPort.getNetwork());
         port.setPortSpeed(SizeUtil.speedStrToGigabits(portConfig.speed));
         port.setPortGroup(String.format("%s", portConfig.homeControllerIndex));
         port.setPortSubGroup(String.format("%s", portConfig.slot));
@@ -425,5 +452,24 @@ public class DellSCUtil {
         storageSystem.setProtocols(protocols);
 
         return storageSystem;
+    }
+
+    /**
+     * Gets a formatted WWN.
+     *
+     * @param wwn The raw WWN.
+     * @return The formatted WWN.
+     */
+    public String formatWwn(String wwn) {
+        if (wwn == null || wwn.length() != 16) {
+            return wwn;
+        }
+
+        List<String> parts = new ArrayList<>();
+        for (int i = 0; i < wwn.length(); i += 2) {
+            parts.add(wwn.substring(i, i + 2).toUpperCase());
+        }
+
+        return String.join(":", parts);
     }
 }

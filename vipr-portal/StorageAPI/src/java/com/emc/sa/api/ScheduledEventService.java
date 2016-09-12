@@ -468,6 +468,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         // TODO: update execution window when admin change it in catalog service
 
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
+        scheduledEvent.setEventType(scheduleInfo.getReoccurrence() == 1? ScheduledEventType.ONCE:ScheduledEventType.REOCCURRENCE);
         client.save(scheduledEvent);
 
         log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());

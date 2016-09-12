@@ -27,6 +27,26 @@ public class StorageSystemTypeAddParam {
     private String driverClassName;
     private boolean isSecretKey = false;
     private String driverFilePath;
+    private String providerName;
+    private String providerDispName;
+
+    @XmlElement(name = "provider_name")
+    public String getProviderName() {
+        return providerName;
+    }
+
+    public void setProviderName(String providerName) {
+        this.providerName = providerName;
+    }
+
+    @XmlElement(name = "provider_display_name")
+    public String getProviderDispName() {
+        return providerDispName;
+    }
+
+    public void setProviderDispName(String providerDispName) {
+        this.providerDispName = providerDispName;
+    }
 
     @XmlElement(name = "driver_file_path")
     public String getDriverFilePath() {

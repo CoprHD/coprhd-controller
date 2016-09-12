@@ -491,8 +491,9 @@ public class ExportUtils {
                             removeSet.add(volumeURI);
                         }
                     }
-                    List<URI> volumeURIs = new ArrayList<>(removeSet);
-                    exportGroup.removeVolumes(volumeURIs);
+                    // We do not need to remove volume reference from EG from here as ExportGroupUpdateCompleter will do the same.
+                    // List<URI> volumeURIs = new ArrayList<>(removeSet);
+                    // exportGroup.removeVolumes(volumeURIs);
                 }
             }
 

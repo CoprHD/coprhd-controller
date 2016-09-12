@@ -6648,18 +6648,17 @@ common_setup()
     tenant_setup
 
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
+            # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
+        if [ $QUICK -eq 0  -a "${VPLEX_QUICK_PARAM}" != "quick" -a "${RP_QUICK_PARAM}" != "quick" -a "${XIO_QUICK_PARAM}" != quick ]; then
+            secho "Turning on DISCOVER_SAN because we are testing physical"
+            DISCOVER_SAN=1
+        fi
 
-        # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
-	if [ $QUICK -eq 0  -a "${VPLEX_QUICK_PARAM}" != "quick" -a "${RP_QUICK_PARAM}" != "quick" -a "${XIO_QUICK_PARAM}" != quick ]; then
-	    secho "Turning on DISCOVER_SAN because we are testing physical"
-	    DISCOVER_SAN=1
-	fi
-
-	# RecoverPoint doesn't need zone setup, it uses its own zone setup
-	if [ "${SS}" != "recoverpoint" ]; then
-	  zone_setup
-	  run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
-	fi
+        # RecoverPoint doesn't need zone setup, it uses its own zone setup
+        if [ "${SS}" != "recoverpoint" ]; then
+          zone_setup
+          run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+        fi
     fi
 
     project_setup
@@ -6667,16 +6666,16 @@ common_setup()
     secho "Project id of $PROJECT is $projectid."
 
     if [ "${SS}" != "recoverpoint" ]; then
-	ROOT_TENANT=`tenant root|tail -1`
-	if [ "${RP_INGESTTESTS}" = "0" ]; then
-	    secho "Setup ACLs on neighborhood for $TENANT"
-	    run neighborhood allow $NH $TENANT
-	    run neighborhood allow $NH2 $TENANT
-	    run neighborhood allow $NH $ROOT_TENANT
-	    run neighborhood allow $NH2 $ROOT_TENANT
-	    secho "Setup hosts and clusters for $TENANT"
-	    host_setup
-	fi
+        ROOT_TENANT=`tenant root|tail -1`
+        if [ "${RP_INGESTTESTS}" = "0" ]; then
+            secho "Setup ACLs on neighborhood for $TENANT"
+            run neighborhood allow $NH $TENANT
+            run neighborhood allow $NH2 $TENANT
+            run neighborhood allow $NH $ROOT_TENANT
+            run neighborhood allow $NH2 $ROOT_TENANT
+            secho "Setup hosts and clusters for $TENANT"
+            host_setup
+        fi
     fi
 }
 

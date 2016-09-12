@@ -109,21 +109,14 @@ public class ControllerLockingServiceTest extends CoordinatorTestBase{
                             log.info(": {} ------ client: starts loop ------");
                             log.info(": {} client trying to acquire lock");
                             String clientName = Thread.currentThread().getName();
-                            Thread.sleep(5);
                             boolean bLockActionResult =  impl.acquireLock(lockName, 10);
-                            Thread.sleep(5);
-                            if (bLockActionResult) {
-                                log.info(": request succeeded. doing work {}", clientName);
-                                Thread.sleep(10);
-                                log.info(": work done. releasing lock");
-                                bLockActionResult = impl.releaseLock(lockName);
-                                Assert.assertTrue(bLockActionResult);
-                                log.info(": lock release status: {};released lock", bLockActionResult);
-                                Thread.sleep(10);
-                            } else {
-                                log.info(": {} request failed. retrying.");
-                                Thread.sleep(5);
-                            }
+                            Assert.assertTrue(bLockActionResult);
+                            log.info(": request succeeded. doing work {}", clientName);
+                            Thread.sleep(2000);
+                            log.info(": work done. releasing lock");
+                            bLockActionResult = impl.releaseLock(lockName);
+                            Assert.assertTrue(bLockActionResult);
+                            log.info(": lock release status: {};released lock", bLockActionResult);
                         } catch (InterruptedException e) {
                             // Ignore this.
                         } catch (Exception e) {
@@ -133,7 +126,7 @@ public class ControllerLockingServiceTest extends CoordinatorTestBase{
                 }
             });
         }
-        clients.awaitTermination(30, TimeUnit.SECONDS);
+        clients.awaitTermination(60, TimeUnit.SECONDS);
         log.info("*** testAcquireReleaseLockMultiThread end");
     }
     

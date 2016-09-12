@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.services.restutil.StandardRestClient;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -65,12 +66,14 @@ public class XIVRestClient extends StandardRestClient {
     private static String HOST_URL = "/xiv/v2/:{0}/hosts";
     private static String HOST_PORT_URL = "/xiv/v2/:{0}/host_ports";
     private static String VOLUME_URL = "/xiv/v2/:{0}/volumes";
+    private static String SNAPSHOT_URL = "/xiv/v2/:{0}/snapshots";
     private static String EXPORT_VOLUME_URL = "/xiv/v2/:{0}/vol_maps";
     private static String EXPORT_VOLUME_INSTANCE_URL = EXPORT_VOLUME_URL + "/:{1}:{2}:{3}";
     private static String CLUSTER_INSTANCE_URL = CLUSTER_URL + INSTANCE_URL;
     private static String HOST_INSTANCE_URL = HOST_URL + INSTANCE_URL;
     private static String HOST_PORT_INSTANCE_URL = HOST_PORT_URL + "/:{1}:{2}:{3}";
     private static String VOLUME_INSTANCE_URL = VOLUME_URL + INSTANCE_URL;
+    private static String SNAPSHOT_INSTANCE_URL = SNAPSHOT_URL + INSTANCE_URL;
 
     private static String DELETE_BODY = "{\"request\":[{\"action\":\"delete\"}]}";
     private static String CLUSTER_CREATE_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"name\":\"{0}\"'}}']'}'";
@@ -529,17 +532,19 @@ public class XIVRestClient extends StandardRestClient {
      * @param exportName Cluster name/Host name to where volume is exported
      * @param volumeName Name of the volume to be exported
      * @param lunID LUN number to be assigned
+     * @param isSnapshot 
      * @return True if Volume is already exported to a specific Cluster. Else false.
      * @throws Exception Exception Exception Exception If error occurs during execution
      */
     public boolean exportVolume(final String xivSystem, final String exportType, final String exportName, final String volumeName,
-            final String lunID) throws Exception {
+            final String lunID, final boolean isSnapshot) throws Exception {
         
-        //Check if Volume is present on Array before proceeding.
-        //checkAvailability(MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volumeName));
+        final String instanceURL = isSnapshot ? SNAPSHOT_INSTANCE_URL : VOLUME_INSTANCE_URL;
+        //Check if Volume/snapshot is present on Array before proceeding.
+        checkAvailability(MessageFormat.format(instanceURL, xivSystem, volumeName));
         
-        boolean isAvailable = false;//findAvailability(
-                //MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));
+        boolean isAvailable = findAvailability(
+                MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));
         if (isAvailable) {
             _log.info("Volume {} already already exported to {} {} on XIV {}. Skipping Export!", volumeName, exportType, exportName,
                     xivSystem);
@@ -550,7 +555,6 @@ public class XIVRestClient extends StandardRestClient {
             } else {
                 body = MessageFormat.format(EXPORT_VOLUME_TO_HOST_BODY, exportName, volumeName, lunID);
             }
-            _log.info("Export Volume to Host request Body : " + body);
             ResponseValidator failureStatus = executePOSTRequest(xivSystem, MessageFormat.format(EXPORT_VOLUME_URL, xivSystem), body);
 
             if (failureStatus.isFailed()) {

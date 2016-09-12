@@ -70,7 +70,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     private DbClient _dbClient;
     
-    private CIMConnectionFactory _cimConnection = null;
+    private CIMConnectionFactory _connectionFactory;
 
     private static final String ERROR = "error";
     private static final String READY = "ready";
@@ -86,7 +86,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     }
     
     public void setCimConnectionFactory(CIMConnectionFactory connectionFactory) {
-        _cimConnection = connectionFactory;
+        _connectionFactory = connectionFactory;
     }
 
     /**
@@ -1044,7 +1044,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public void doConnect(StorageSystem storage) {
         try {
-            _cimConnection.getConnection(storage);
+            _connectionFactory.getConnection(storage);
         } catch (Exception e) {
             throw new IllegalStateException("No cim connection for " + storage.getIpAddress(), e);
         }

@@ -11,7 +11,8 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 public class ReplicationSession extends VNXeBase {
     private String name;
     private String srcResourceId;
-    private String dstResourceId;;
+    private String dstResourceId;
+    private ReplicationEndpointResourceTypeEnum replicationResourceType;
     private int maxTimeOutOfSync;
     private VNXeBase remoteSystem;
     private ReplicationSessionReplicationRoleEnum localRole;
@@ -32,12 +33,21 @@ public class ReplicationSession extends VNXeBase {
         this.srcResourceId = srcResourceId;
     }
 
-     public String getDstResourceId() {
-         return dstResourceId;
-     }
-     public void setDstResourceId(String dstResourceId) {
-         this.dstResourceId = dstResourceId;
-     }
+    public String getDstResourceId() {
+        return dstResourceId;
+    }
+
+    public void setDstResourceId(String dstResourceId) {
+        this.dstResourceId = dstResourceId;
+    }
+
+    public ReplicationEndpointResourceTypeEnum getReplicationResourceType() {
+        return replicationResourceType;
+    }
+
+    public void setReplicationResourceType(ReplicationEndpointResourceTypeEnum replicationResourceType) {
+        this.replicationResourceType = replicationResourceType;
+    }
 
     public ReplicationSessionReplicationRoleEnum getLocalRole() {
         return localRole;
@@ -63,4 +73,18 @@ public class ReplicationSession extends VNXeBase {
         this.maxTimeOutOfSync = maxTimeOutOfSync;
     }
 
+    public static enum ReplicationEndpointResourceTypeEnum {
+        FILESYSTEM(1), CONSISTENCYGROUP(2), VMWAREFS(3), VMWAREISCSI(4), LUN(8), NAS_SERVER(10);
+
+        private int type;
+
+        private ReplicationEndpointResourceTypeEnum(int type) {
+            this.type = type;
+        }
+
+        @org.codehaus.jackson.annotate.JsonValue
+        public int getValue() {
+            return this.type;
+        }
+    }
 }

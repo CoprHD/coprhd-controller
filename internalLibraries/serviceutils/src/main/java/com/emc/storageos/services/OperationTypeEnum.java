@@ -516,6 +516,8 @@ public enum OperationTypeEnum {
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
     
+    CREATE_FILE_POLICY_PROFILE("FilePolicyProfileCreated", "", "create policy profile."),
+    
     /* Filesystem Mount Operations*/
     
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),

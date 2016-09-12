@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.FilePolicyProfile;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ObjectNamespace;
@@ -87,6 +88,8 @@ import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.auth.RoleAssignments;
+import com.emc.storageos.model.file.FilePolicyProfileParam;
+import com.emc.storageos.model.file.FilePolicyProfileRestRep;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterCreateParam;
@@ -1468,11 +1471,11 @@ public class TenantsService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public SchedulePolicyResp createFilePolicyProfile(@PathParam("id") URI id, PolicyParam param) {
-        SchedulePolicyResp schedulePolicyResp = createPolicy(id, param);
-        auditOp(OperationTypeEnum.CREATE_SCHEDULE_POLICY, true, null, param.getPolicyName(),
-                id.toString(), schedulePolicyResp.getId().toString());
-        return schedulePolicyResp;
+    public FilePolicyProfileRestRep createFilePolicyProfile(@PathParam("id") URI id, FilePolicyProfileParam param) {
+    	FilePolicyProfileRestRep policyProfileResp = createPolicyProfile(id, param);
+        auditOp(OperationTypeEnum.CREATE_FILE_POLICY_PROFILE, true, null, param.getProfileName(),
+                id.toString(), policyProfileResp.getId().toString());
+        return policyProfileResp;
     }
 
     /**
@@ -1485,60 +1488,44 @@ public class TenantsService extends TaggedResource {
      * @return No data returned in response body
      * @throws BadRequestException
      */
-    public SchedulePolicyResp createPolicy(URI id, PolicyParam param) {
+    public FilePolicyProfileRestRep createPolicyProfile(URI id, FilePolicyProfileParam param) {
         TenantOrg tenant = getTenantById(id, true);
 
         // Make policy name as mandatory field
-        ArgValidator.checkFieldNotNull(param.getPolicyName(), "policyName");
+        ArgValidator.checkFieldNotNull(param.getProfileName(), "profileName");
 
         // Check for duplicate policy name
-        if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()) {
-            checkForDuplicateName(param.getPolicyName(), SchedulePolicy.class);
+        if (param.getProfileName() != null && !param.getProfileName().isEmpty()) {
+            checkForDuplicateName(param.getProfileName(), FilePolicyProfile.class);
         }
 
-        // check schedule policy type is valid or not
-        if (!ArgValidator.isValidEnum(param.getPolicyType(), SchedulePolicyType.class)) {
-            throw APIException.badRequests.invalidSchedulePolicyType(param.getPolicyType());
-        }
 
-        _log.info("Schedule policy creation started -- ");
-        SchedulePolicy schedulePolicy = new SchedulePolicy();
+        _log.info("file policy profile creation started -- ");
+        FilePolicyProfile policyProfile = new FilePolicyProfile();
         StringBuilder errorMsg = new StringBuilder();
 
-        // Validate Schedule policy parameters
-        boolean isValidSchedule = SchedulePolicyService.validateSchedulePolicyParam(param.getPolicySchedule(), schedulePolicy, errorMsg);
-        if (!isValidSchedule && errorMsg != null && errorMsg.length() > 0) {
-            _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
-            throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
+       //<TODO> - validate the profile parameters!!!
+        if(param.getVirtualPool() != null) {
+        	policyProfile.setVirtualPool(new NamedURI(URI.create(param.getVirtualPool()), param.getProfileName()));
         }
-
-        // Validate snapshot expire parameters
-        boolean isValidSnapshotExpire = false;
-        if (param.getSnapshotExpire() != null) {
-            // check snapshot expire type is valid or not
-            String expireType = param.getSnapshotExpire().getExpireType();
-            if (!ArgValidator.isValidEnum(expireType, SnapshotExpireType.class)) {
-                _log.error(
-                        "Invalid schedule snapshot expire type {}. Valid Snapshot expire types are hours, days, weeks, months and never",
-                        expireType);
-                throw APIException.badRequests.invalidScheduleSnapshotExpireType(expireType);
-            }
-            isValidSnapshotExpire = SchedulePolicyService.validateSnapshotExpireParam(param.getSnapshotExpire());
-            if (!isValidSnapshotExpire) {
-                int expireTime = param.getSnapshotExpire().getExpireValue();
-                int minExpireTime = 2;
-                int maxExpireTime = 10;
-                _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
-                        expireTime, minExpireTime, maxExpireTime);
-                throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
-            }
-        } else {
-            if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.file_snapshot.toString())) {
-                errorMsg.append("Required parameter snapshot_expire was missing or empty");
-                _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
-                throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
-            }
+        
+        if(param.getApplyAt() != null) {
+        	policyProfile.setApplyAt(param.getApplyAt());
         }
+        
+        if (param.getAssociatedProjects() != null && !param.getAssociatedProjects().isEmpty()) {
+        	StringSet projects = new StringSet();
+        	projects.addAll(param.getAssociatedProjects());
+        	policyProfile.setAssociateProjects(projects);
+        } 
+        
+        if (param.getAssociatePolicies() != null && !param.getAssociatedProjects().isEmpty()) {
+        	StringSet projects = new StringSet();
+        	projects.addAll(param.getAssociatedProjects());
+        	policyProfile.setAssociateProjects(projects);
+        }
+        
+        
 
         if (isValidSchedule) {
             schedulePolicy.setId(URIUtil.createId(SchedulePolicy.class));

@@ -767,17 +767,19 @@ public class VPlexControllerUtils {
     }
 
     /**
-     * Method to clean ExportMask stale instances from ViPR db if any stale EM available.
+     * Cleans stale instances of ExportMasks from the database.  A stale instance is
+     * one which no longer exists as a storage view on the VPLEX and also contains
+     * no more user added volumes.
      *
-     * @param storage the storage
-     * @param maskNamesFromArray Mask Names collected from Array for the set of initiator names
-     * @param initiatorNames initiator names
+     * @param dbClient a reference to the database client
+     * @param vplexUri the VPLEX system URI
      */
     public static void cleanStaleExportMasks(DbClient dbClient, URI vplexUri) {
 
         log.info("starting clean up of stale export masks for vplex {}", vplexUri);
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasksForStorageSystem(dbClient, vplexUri);
 
+        // get a VPLEX API client for this VPLEX URI
         VPlexApiClient client = null;
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplexUri, dbClient);
@@ -799,7 +801,7 @@ public class VPlexControllerUtils {
             svNames.add(sv.getName());
         }
 
-        // create collections to hold any stale data we find, for clean up at the end
+        // create collections to hold any stale data we find, for clean up all at once at the very end
         Set<ExportMask> staleExportMasks = new HashSet<ExportMask>();
         Map<ExportGroup, Set<ExportMask>> exportGroupToStaleMaskMap = new HashMap<ExportGroup, Set<ExportMask>>();
         Map<URI, ExportGroup> exportGroupUriMap = new HashMap<URI, ExportGroup>();
@@ -812,11 +814,11 @@ public class VPlexControllerUtils {
                 // native id will be set on ingested export masks, however, and we should check it, in case the same
                 // storage view name is used on both vplex clusters.  
                 // greenfield VPLEX ExportMasks will always have unique mask names on both clusters (prefixed by V1_ or V2_),
-                // so for greenfield export masks, we can just mask names if the native id property is not set.
+                // so for greenfield export masks, we can check mask names if the native id property is not set.
                 boolean noNativeIdMatch = (null != exportMask.getNativeId()) && !svNativeIds.contains(exportMask.getNativeId());
                 boolean noMaskNameMatch = (null != exportMask.getMaskName()) && !svNames.contains(exportMask.getMaskName());
                 if (noNativeIdMatch || noMaskNameMatch) {
-                    log.info("Export Mask {} is not found on VPLEX", exportMask.getMaskName());
+                    log.info("ExportMask {} is not found on VPLEX", exportMask.getMaskName());
                     // if any user added volumes are still present, we will not do anything with this export mask
                     boolean hasActiveVolumes = false;
                     if (exportMask.hasAnyUserAddedVolumes()) {
@@ -830,7 +832,7 @@ public class VPlexControllerUtils {
                         }
                     }
                     if (hasActiveVolumes) {
-                        log.warn("Export Mask {} has active user added volumes, so will not remove from database.", 
+                        log.warn("ExportMask {} has active user added volumes, so will not remove from database.", 
                                 exportMask.forDisplay());
                         continue;
                     }
@@ -863,7 +865,7 @@ public class VPlexControllerUtils {
                                 exportGroupToStaleMaskMap.put(exportGroup, new HashSet<ExportMask>());
                             }
                             exportGroupToStaleMaskMap.get(exportGroup).add(exportMask);
-                            log.info("Stale Export Mask {} will be removed from Export Group {}", 
+                            log.info("Stale ExportMask {} will be removed from ExportGroup {}", 
                                     exportMask.getMaskName(), exportGroup.getLabel());
                         }
                     }
@@ -873,12 +875,12 @@ public class VPlexControllerUtils {
 
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
-            log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
+            log.info("Deleted {} stale ExportMasks from database.", staleExportMasks.size());
             if (!CollectionUtils.isEmpty(exportGroupToStaleMaskMap.keySet())) {
                 for (Entry<ExportGroup, Set<ExportMask>> entry : exportGroupToStaleMaskMap.entrySet()) {
                     ExportGroup exportGroup = entry.getKey();
                     for (ExportMask exportMask : entry.getValue()) {
-                        log.info("Removing Export Mask {} from ExportGroup {}",
+                        log.info("Removing ExportMask {} from ExportGroup {}",
                                 exportMask.getMaskName(), exportGroup.getLabel());
                         exportGroup.removeExportMask(exportMask.getId());
                     }

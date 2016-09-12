@@ -259,7 +259,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 String hlu = volURIHLU.getHLU();
                 _logger.info(String.format("hlu %s", hlu));
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-                String nativeId = blockObject.getNativeId();
                 VNXeExportResult result = null;
                 Integer newhlu = -1;
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
@@ -268,26 +267,22 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
                 // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
                 // with the same nativeGUID, then export the snapshot.
-                String nativeGuid = blockObject.getNativeGuid(); 
-                List<BlockSnapshot> snapshots = null;
+                BlockObject snapshot = findSnapshotByInternalVolume(blockObject); 
                 boolean isVplexVolumeFromSnap = false;
                 URI vplexBackendVol = null;
-                if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
-                        URIUtil.isType(volUri, Volume.class)) {
-                    snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
-                    if (snapshots != null && !snapshots.isEmpty()) {
-                        blockObject = (BlockObject)snapshots.get(0);
-                        exportMask.addVolume(volUri, newhlu);
-                        isVplexVolumeFromSnap = true;
-                        vplexBackendVol = volUri;
-                        volUri = blockObject.getId();
-                    }
+                if (snapshot != null) {
+                    blockObject = snapshot;
+                    exportMask.addVolume(volUri, newhlu);
+                    isVplexVolumeFromSnap = true;
+                    vplexBackendVol = volUri;
+                    volUri = blockObject.getId();
                 }
                 String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
                     VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
+                String nativeId = blockObject.getNativeId();
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
@@ -340,26 +335,21 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-                String nativeId = blockObject.getNativeId();
                 // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
                 // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
                 // with the same nativeGUID, then unexport the snapshot.
-                String nativeGuid = blockObject.getNativeGuid(); 
-                List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-                if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
-                        URIUtil.isType(volUri, Volume.class)) {
-                    snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
-                    if (snapshots != null && !snapshots.isEmpty()) {
-                        blockObject = (BlockObject)snapshots.get(0);
-                        exportMask.removeVolume(volUri);
-                        volUri = blockObject.getId();
-                    }
+                BlockObject snapshot = findSnapshotByInternalVolume(blockObject);
+                if (snapshot != null) {
+                    blockObject = (BlockObject)snapshot;
+                    exportMask.removeVolume(volUri);
+                    volUri = blockObject.getId();
                 }
                 String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
                     VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
+                String nativeId = blockObject.getNativeId();
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, vnxeInitiators);
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
@@ -527,6 +517,25 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         blockObj.setWWN(wwn);
         _dbClient.updateObject(blockObj);
         return wwn;
+    }
+    
+    /**
+     * Find the corresponding blocksnapshot with the same nativeGUID as the internal volume
+     * 
+     * @param volume The block objct of the internal volume
+     * @return The snapshot blockObject. return null if there is no corresponding snapshot.
+     */
+    private BlockObject findSnapshotByInternalVolume(BlockObject volume) {
+        BlockObject snap = null;
+        String nativeGuid = volume.getNativeGuid();
+        if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
+                URIUtil.isType(volume.getId(), Volume.class) ) {
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
+            if (snapshots != null && !snapshots.isEmpty()) {
+                snap = (BlockObject)snapshots.get(0);
+            }
+        }
+        return snap;
     }
 
 }

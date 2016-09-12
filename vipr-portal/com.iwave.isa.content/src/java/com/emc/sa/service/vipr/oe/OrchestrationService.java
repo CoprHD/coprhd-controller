@@ -9,19 +9,23 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationRunnerTask;
 import com.emc.sa.service.vipr.oe.gson.OEJson;
 
+import java.io.FileReader;
 import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.google.gson.Gson;
 import java.lang.reflect.Type;
 import java.util.*;
+import org.slf4j.LoggerFactory;
+import com.google.gson.stream.JsonReader;
 
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
 
     Map<String, Object> params = null;
     String oeOrderJson;
-    
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
+ 
     @Override
 	public void precheck() throws Exception {
 
@@ -43,7 +47,7 @@ public class OrchestrationService extends ViPRService {
 	public void execute() throws Exception {
 		
 	    ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
-                    final String json = "{ \n" +
+/*                    final String json = "{ \n" +
                     "   \"WorkflowName\":\"SampleWorkflow\", \n" +
                     "   \"inputParams\": \n" +
                     "      {\"volumeName\" : \"\",\"numOfVolume\": \"1\"}\n" +
@@ -134,12 +138,12 @@ public class OrchestrationService extends ViPRService {
                     "         \n" +
                     "      }\n" +
                     "   ]\n" +
-                    "}";
+                    "}";*/
             // Get from Context
             //Thread th = new Thread(new WFExecutor(json));
             //th.start();
             System.out.print("calling parser");
-            OEParser(json);
+            OEParser();
 
 	    
 	    // how to queue/start a task in ViPR (start OE RUnner like this?)
@@ -155,13 +159,14 @@ public class OrchestrationService extends ViPRService {
 	  //          "completed successfully.  Response was: " + workflowResponse);
 	}
 
-public String OEParser(final String pattern) throws Exception
+public void OEParser() throws Exception
         {
-            System.out.print("in parser");
+            logger.info("in parser");
 
 
             Gson gson = new Gson();
-            OEJson obj = gson.fromJson(pattern, OEJson.class);
+	    JsonReader reader = new JsonReader(new FileReader("/data/OEJsosn.json"));
+            OEJson obj = gson.fromJson(reader, OEJson.class);
 
             System.out.print("Global Input param");
             Map<String, String> str = obj.getInputParams();
@@ -180,12 +185,11 @@ public String OEParser(final String pattern) throws Exception
             while(!next1.equals("END"))
             {
                 step = stepsHash.get(next1);
-                System.out.println("StepId" + step.getStepId() + "\n");
-
-                    System.out.print("OpName" + step.getOpName() + "\n");
-                    System.out.print("Description" + step.getDescription() + "\n");
-                    System.out.print("Type" + step.getType() + "\n");
-                    System.out.println("Input param for the Step");
+		logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
+                logger.info("OpName:{}",step.getOpName());
+                logger.info("Description {}",step.getDescription());
+                logger.info("Type:{}", step.getType());
+		logger.info("Input param for the Step");
                     Map<String, String> input = step.getInputParams();
                     System.out.print(input);
                     Map<String, String> finalInput = new HashMap<String, String>();
@@ -197,15 +201,14 @@ public String OEParser(final String pattern) throws Exception
                         Iterator it = keyset.iterator();
                         while (it.hasNext()) {
                             String key = it.next().toString();
-                            System.out.println("Key" + key);
-                            System.out.print("Value" + input.get(key));
+                            logger.info("Key {}", key);
+                            logger.info("Value {}",input.get(key));
                         }
                     }
 
 
-                    System.out.println("Input from other Steps");
                     input = step.getInputFromOtherSteps();
-                System.out.print(input);
+                    logger.info("Input from other Steps{}", input);
 
                 if (input != null) {
                     finalInput.putAll(input);
@@ -218,25 +221,23 @@ public String OEParser(final String pattern) throws Exception
                     }
                 }
 
-                    System.out.print("output");
                     if (step.getOutput() != null) {
                         for (String out : step.getOutput()) {
-                            System.out.println(out);
+                    		logger.info("outputi: {}", out);
                         }
                     }
 
                     OEJson.Next n = step.getNext();
-                    //TODO evaluate condition
                     next1 = n.getDefault();
-                    System.out.println("Next step" + next);
-                    System.out.print("SuccessCritera" + step.getSuccessCritera() + "\n");
+                    logger.info("Next step: {}", next);
+                    logger.info("SuccessCritera: {}", step.getSuccessCritera());
 
                     finalInput.putAll(str);
                     inputPerStep.put(step.getStepId(), finalInput);
 
                 if (step.getType().equals("REST") || step.getType().equals("ViPR REST"))
                 {
-			System.out.println("Running REST");
+			logger.info("Running REST Step:{}, inputPerStep:{}", step, inputPerStep);
                     //RunREST run = new RunREST();
                     //Map<String, String> result = run.runREST(step, inputPerStep, getModelClient(), getClient());
 
@@ -244,7 +245,7 @@ public String OEParser(final String pattern) throws Exception
                 }
                 else
                 {
-			System.out.println("Running Ansible");
+			logger.info("Running AnsibleStep:{}, inputPerStep:{}", step, inputPerStep);
                     //RunAnsible run = new RunAnsible();
                     //Map<String, String> result = run.runAnsible(step, inputPerStep);
 
@@ -253,7 +254,7 @@ public String OEParser(final String pattern) throws Exception
             }
 
             //send back the result
-            return pattern;
+            return;
         }
 
 

@@ -1966,7 +1966,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         VPlexControllerUtils.cleanStaleExportMasks(_dbClient, vplexURI);
         _log.info("TIMER: clean stale export masks took {} ms", new Date().getTime() - startAssembly);
 
-
         StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         ExportGroup exportGroup = getDataObject(ExportGroup.class, export, _dbClient);
 

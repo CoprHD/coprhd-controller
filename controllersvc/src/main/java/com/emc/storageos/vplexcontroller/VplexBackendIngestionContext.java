@@ -63,6 +63,7 @@ public class VplexBackendIngestionContext {
     
     protected final DbClient _dbClient;
     private final UnManagedVolume _unmanagedVirtualVolume;
+    private final String _originalVolumeLabel;
 
     private boolean _discoveryInProgress = false;
     private boolean _ingestionInProgress = false;
@@ -100,6 +101,7 @@ public class VplexBackendIngestionContext {
         this._unmanagedVirtualVolume = unManagedVolume;
         this._dbClient = dbClient;
         this._tracker = new BackendDiscoveryPerformanceTracker();
+        this._originalVolumeLabel = unManagedVolume.getLabel();
     }
 
     /**
@@ -286,7 +288,7 @@ public class VplexBackendIngestionContext {
      * @return a friendly label for the virtual volume
      */
     private String getFriendlyLabel() {
-        String friendlyLabel = _unmanagedVirtualVolume.getLabel();
+        String friendlyLabel = _originalVolumeLabel;
 
         boolean hasBackendMirror = unmanagedMirrors != null && !unmanagedMirrors.isEmpty();
         if (_unmanagedVirtualVolume.getLabel() == null || _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL1) ||
@@ -306,9 +308,9 @@ public class VplexBackendIngestionContext {
                 if (null != backendVol) {
                     String baseLabel = backendVol.getLabel();
 
-                    if (null != _unmanagedVirtualVolume.getLabel()) {
+                    if (null != _originalVolumeLabel && !_originalVolumeLabel.isEmpty()) {
                         // put the existing virtual volume label inside parentheses for reference
-                        friendlyLabel = baseLabel + " (" + _unmanagedVirtualVolume.getLabel() + ")";
+                        friendlyLabel = baseLabel + " (" + _originalVolumeLabel + ")";
                     } else {
                         friendlyLabel = baseLabel;
                     }
@@ -316,7 +318,8 @@ public class VplexBackendIngestionContext {
             }
         }
 
-        _logger.info("Determined friendly label to be {} for UnManagedVolume {}", friendlyLabel, _unmanagedVirtualVolume.forDisplay());
+        _logger.info("Determined friendly label to be {} for UnManagedVolume {}", 
+                friendlyLabel, _unmanagedVirtualVolume.forDisplay());
         return friendlyLabel;
     }
 

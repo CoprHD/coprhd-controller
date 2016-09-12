@@ -191,7 +191,7 @@ public class DriverService {
     }
 
     private StorageSystemTypeAddParam parseDriver(String path) throws Exception {
-        ZipFile zipFile = new ZipFile(path);
+        ZipFile zipFile = new ZipFile(UPLOAD_DEVICE_DRIVER + path);
         Enumeration<? extends ZipEntry> entries = zipFile.entries();
         Properties metaData = new Properties();
         while(entries.hasMoreElements()){

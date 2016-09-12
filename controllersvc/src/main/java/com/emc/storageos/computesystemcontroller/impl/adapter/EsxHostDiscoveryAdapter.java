@@ -56,6 +56,10 @@ import com.vmware.vim25.mo.HostSystem;
 @Component
 public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
+    // VMWare KB 1006250: The UUID of a host can be non unique on White box hardware.
+    // This is a known non-unique UUID
+    private static String KNOWN_DUPLICATE_UUID = "03000200-0400-0500-0006-000700080009";
+
     /**
      * Create helper API instance of VCenter to traverse tree structure of mob.
      * 
@@ -184,6 +188,9 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
+                    if (KNOWN_DUPLICATE_UUID.equalsIgnoreCase(uuid)) {
+                        info("Host " + hostSystem.getName() + " contains a known non-unique UUID");
+                    }
                     // search host by uuid in VIPR if host already discovered
                     targetHost = findHostByUuid(uuid);
                     checkDuplicateHost(host, targetHost);
@@ -333,10 +340,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         .getPortWorldWideName());
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, port) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, port);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, port);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, port);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, port);
                 }
                 discoverInitiator(targetHost, initiator,
                         (HostFibreChannelHba) hba);
@@ -344,10 +351,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 String iqn = ((HostInternetScsiHba) hba).getIScsiName();
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, iqn);
                 }
                 discoverInitiator(targetHost, initiator,
                         (HostInternetScsiHba) hba);

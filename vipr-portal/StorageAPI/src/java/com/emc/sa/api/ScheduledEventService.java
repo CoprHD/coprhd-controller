@@ -201,6 +201,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
             }
             return;
+        } else if (scheduleInfo.getReoccurrence() > ScheduleInfo.MAX_REOCCURRENCE ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
         if (scheduleInfo.getCycleFrequency() < 1 ) {
@@ -466,6 +468,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         // TODO: update execution window when admin change it in catalog service
 
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
+        scheduledEvent.setEventType(scheduleInfo.getReoccurrence() == 1? ScheduledEventType.ONCE:ScheduledEventType.REOCCURRENCE);
         client.save(scheduledEvent);
 
         log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());

@@ -517,6 +517,11 @@ public class StorageScheduler implements Scheduler {
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(sourceStorageSystem.getId().toString());
             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+        } else if (capabilities.getExcludedStorageDevice() != null) {
+            StorageSystem excludedStorageSystem = capabilities.getExcludedStorageDevice();
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(excludedStorageSystem.getId().toString());
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.exclude_storage_system.name(), storageSystemSet);            
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection

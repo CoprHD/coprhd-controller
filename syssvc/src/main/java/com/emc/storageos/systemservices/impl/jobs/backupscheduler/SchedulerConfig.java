@@ -405,12 +405,11 @@ public class SchedulerConfig {
             RepositoryInfo target = coordinator.getTargetInfo(RepositoryInfo.class);
             SoftwareVersion targetVersion = target.getCurrentVersion();
             SoftwareVersion currentVersion = new LocalRepository().getRepositoryInfo().getCurrentVersion();
-            log.info("lby current version={} target version={}", currentVersion, targetVersion);
+            log.info("The current version={} target version={}", currentVersion, targetVersion);
             if (!currentVersion.equals(targetVersion)) {
                 log.info("The current version is NOT equals to target version");
                 return true;
             }
-            log.info("currentVer equals target ver");
         }catch (Exception e ) {
             log.error("Failed to get versions e=", e);
             return true; // failed to read data from zk, so no need to do backup at this time

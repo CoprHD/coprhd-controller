@@ -152,10 +152,10 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     }
 
     /**
-     * Finds the exports associated with a host.
+     * Finds the exports by namw.
      *
-     * @param hostId
-     *            the ID of the host.
+     * @param name
+     *            Name to search for.
      * @param projectId
      *            the ID of the project to restrict exports to, or null for no restriction
      * @param varrayId

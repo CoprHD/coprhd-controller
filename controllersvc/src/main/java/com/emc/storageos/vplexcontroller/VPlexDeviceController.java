@@ -11450,7 +11450,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create steps to migrate the backend volumes.
             String lastStep = waitFor;
             URI cgURI = null;
-            // Wither application support, one VPLEX CG could have multiple replication groups from the same local system.
+            // With application support, one VPLEX CG could have multiple replication groups from the same local system.
             // The localSystemToRemoveCG map key is storagesystemUri, value is the list of replication group names to be removed.
             Map<URI, Set<String>> localSystemsToRemoveCG = new HashMap<URI, Set<String>>();
             List<VolumeDescriptor> vplexMigrateVolumes = VolumeDescriptor.filterByType(

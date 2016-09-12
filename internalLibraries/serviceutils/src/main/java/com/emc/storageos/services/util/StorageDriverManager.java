@@ -25,6 +25,7 @@ public class StorageDriverManager implements ApplicationContextAware {
 
     public static final String EXTERNAL_STORAGE_DEVICE = "externalBlockStorageDevice";
     public static final String STORAGE_DRIVER_MANAGER = "storageDriverManager";
+    public static final String SIMULATOR = "Simulator";
     private static Logger log = LoggerFactory.getLogger(StorageDriverManager.class);
 
     private static ApplicationContext _context;

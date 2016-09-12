@@ -795,11 +795,16 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("fileExportedFilesystem")
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem) {
         List<AssetOption> options = Lists.newArrayList();
-        List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        options.add(new AssetOption("!nodir", "No Sub Directory"));
-        for (FileSystemExportParam export : exports) {
-            if (export.getSubDirectory() != null) {
-                options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
+        List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, true, null);
+        for (ExportRule export : exports) {
+            AssetOption tempOption;
+            if (StringUtils.isEmpty(getSubDir(ctx, export))) {
+                tempOption = new AssetOption("!No subdirectory", "No subdirectory");
+            } else {
+                tempOption = new AssetOption(getSubDir(ctx, export), getSubDir(ctx, export));
+            }
+            if (!options.contains(tempOption)) {
+                options.add(tempOption);
             }
         }
         AssetOptionsUtils.sortOptionsByKey(options);
@@ -811,7 +816,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
         String subDir = subDirectory;
-        if ("!nodir".equalsIgnoreCase(subDir)) {
+        if ("!No subdirectory".equalsIgnoreCase(subDir)) {
             subDir = null;
         }
         List<ExportRule> exports = api(ctx).fileSystems().getExport(fileExportedFilesystem, false, subDir);
@@ -843,16 +848,25 @@ public class FileProvider extends BaseAssetOptionsProvider {
         StringBuffer strMount = new StringBuffer();
 
         String subDirPath = "";
-        if (mount.getSubDirectory() != null && !mount.getSubDirectory().equalsIgnoreCase("!nodir")) {
+        if (!StringUtils.isEmpty(mount.getSubDirectory())) {
             subDirPath = "/" + mount.getSubDirectory();
         }
         String fsName = api(ctx).fileSystems().get(mount.getFsId()).getName();
         strMount.append(mount.getMountPath())
                 .append("(")
-                .append(mount.getSecurityType()).append(",")
+                .append(mount.getSecurityType()).append(", ")
                 .append(fsName)
                 .append(subDirPath).append(")");
 
         return strMount.toString();
+    }
+
+    private String getSubDir(AssetOptionsContext ctx, ExportRule export) {
+        FileShareRestRep fs = api(ctx).fileSystems().get(export.getFsID());
+        String subDir = export.getExportPath().replace(fs.getMountPath(), "");
+        if (subDir.startsWith("/")) {
+            subDir = subDir.replaceFirst("/", "");
+        }
+        return subDir;
     }
 }

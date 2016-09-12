@@ -3251,6 +3251,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 + "but no errors were encountered.");
                     }
                 }
+                
+                _log.info("Marking export mask for deletion from Vipr: " + exportMask.getMaskName());
+                _dbClient.markForDeletion(exportMask);
 
                 // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
                 // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that

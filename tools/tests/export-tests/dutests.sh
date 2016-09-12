@@ -395,6 +395,7 @@ load_zones() {
     if [ $? -ne 0 ]; then
 	echo "ERROR: Could not determine the zones that were created"
     fi
+    echo "    load_zones: " $zones
 }
 
 # Verify the zones exist (or don't exist)
@@ -411,6 +412,23 @@ verify_zones() {
       elif [ $? -eq 0 -a "${check}" = "gone" ]; then
 	  echo "ERROR: Expected to not find zone ${zone} but it is there."
       fi
+    done
+}
+
+# Cleans zones and zone referencese ($1=fabricId, $2=host)
+clean_zones() {
+    fabricid=$1
+    load_zones $2
+    delete_zones
+    zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
+"
+/^id: / { uri=\$2; }
+/zoneName/ { name = \$3; print uri, name; }
+" | grep host1 | awk -e ' { print $1; }')
+    echo "Deleting FCZoneReferences"  $zoneUris
+    for uri in $zoneUris
+    do
+        /opt/storageos/bin/dbutils delete FCZoneReference $uri
     done
 }
 
@@ -3177,8 +3195,10 @@ test_24() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Verify there are no zones on the switch
-    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    ## Verify there are no zones on the switch
+    #verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    # Just clean the zones. Previous tests paid no attention to zoning.
+    clean_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
@@ -3481,7 +3501,7 @@ then
    done
 else
    # Passing tests:
-    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 
     do
       reset_system_props
       test_${num}

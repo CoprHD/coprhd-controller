@@ -340,7 +340,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 // with the same nativeGUID, then unexport the snapshot.
                 BlockObject snapshot = findSnapshotByInternalVolume(blockObject);
                 if (snapshot != null) {
-                    blockObject = (BlockObject)snapshot;
+                    blockObject = snapshot;
                     exportMask.removeVolume(volUri);
                     volUri = blockObject.getId();
                 }

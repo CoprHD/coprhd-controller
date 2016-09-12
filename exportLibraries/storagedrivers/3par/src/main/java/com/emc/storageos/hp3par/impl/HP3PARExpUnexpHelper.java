@@ -512,6 +512,8 @@ public class HP3PARExpUnexpHelper {
                         		// gracefully exit, nothing to be done
                         		_log.info("3PARDriver: Already unexported, exiting gracefully" + message);
                         	}
+                        	
+                        	driverLockManager.releaseLock(exportPath);	
                         } else {// lock
                         	 _log.error("3PARDriver:unexportVolumesFromInitiators error: could not acquire thread lock");
                              throw new HP3PARException(

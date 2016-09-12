@@ -36,13 +36,20 @@ public class ExcludeStorageSystemsMatcher extends AttributeMatcher {
             Map<String, Object> attributeMap, StringBuffer errorMessage) {
         // We only allow pools that are not on the excluded systems.
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
-        Set<String> excludedSystemIds = (Set<String>) attributeMap.get(Attributes.exclude_storage_system.toString());
-        Iterator<StoragePool> poolIterator = pools.iterator();
-        while (poolIterator.hasNext()) {
-            StoragePool pool = poolIterator.next();
-            if (!excludedSystemIds.contains(pool.getStorageDevice().toString())) {
-                matchedPools.add(pool);
+        Set<String> excludedSystemIds = null;
+        Object attrObj = attributeMap.get(Attributes.exclude_storage_system.toString());
+        if (attrObj != null) {
+            excludedSystemIds = (Set<String>) attrObj;
+            Iterator<StoragePool> poolIterator = pools.iterator();
+            while (poolIterator.hasNext()) {
+                StoragePool pool = poolIterator.next();
+                if (!excludedSystemIds.contains(pool.getStorageDevice().toString())) {
+                    matchedPools.add(pool);
+                }
             }
+        } else {
+            // No exclusions, so all match.
+            matchedPools.addAll(pools);
         }
         _logger.info("{} Storage pools matching after filtering excluded storage systems.", matchedPools.size());
         

@@ -23,7 +23,7 @@
 # - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
 # - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
-#set -x
+#set +x
 
 Usage()
 {
@@ -790,7 +790,9 @@ vnx_setup() {
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    # Can no longer do this since network discovers where the ports are
+    #run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    storageport $VNXB_NATIVEGUID list --v | grep FABRIC
 
     common_setup
 
@@ -836,17 +838,18 @@ vmax2_setup() {
     echo "Setting up SMIS for VMAX2"
     storage_password=$SMIS_PASSWD
 
-    run smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
+    run smisprovider create VMAX2-PROVIDER $VMAX2_DUTEST_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
-    run storagepool update $VMAX2_NATIVEGUID --type block --volume_type THIN_ONLY
-    run storagepool update $VMAX2_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THICK_ONLY
 
+    FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     setup_varray
 
-    run storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX2_DUTEST_NATIVEGUID --nhadd $NH --type block
     if [ "${SIM}" = "1" ]; then
-       run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+       run storageport update $VMAX2_DUTEST_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
     fi
 
     common_setup
@@ -862,7 +865,7 @@ vmax2_setup() {
 	--expandable true                       \
 	--neighborhoods $NH                    
 
-    run cos update block $VPOOL_BASE --storage ${VMAX2_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${VMAX2_DUTEST_NATIVEGUID}
 }
 
 vmax3_setup() {
@@ -1272,7 +1275,7 @@ setup() {
         fi    
 
 	if [ "${SS}" = "vmax2" ]; then
-	    VMAX_SMIS_IP=${VMAX2_SMIS_IP}
+	    VMAX_SMIS_IP=${VMAX2_DUTEST_SMIS_IP}
 	fi
 
         echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg

@@ -22,10 +22,8 @@ import javax.cim.CIMObjectPath;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
 import static com.google.common.collect.Collections2.transform;
@@ -62,7 +60,6 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
      * <ol>
      *     <li>Associated mask is under ViPR management</li>
      *     <li>Both masks must be contained within the same ExportGroup</li>
-     *     <li>Both masks must reference the same StorageSystem</li>
      *     <li>Both masks must reference the same set of Initiators</li>
      * </ol>
      *
@@ -92,12 +89,6 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         }
 
         List<ExportMask> masks = getMasks(maskURI, assocMaskURI);
-
-        // Both masks must reference the same StorageSystem
-        if (differentStorageSystemsBetweenMasks(masks)) {
-            logFailure("masks do not share a common storage system");
-            return false;
-        }
 
         URI groupURI = getExportGroupURI(maskURI);
         URI assocGroupURI = getExportGroupURI(assocMaskURI);
@@ -204,14 +195,6 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         ExportMask first = iterator.next();
         ExportMask second = iterator.next();
         return StringSetUtil.areEqual(first.getInitiators(), second.getInitiators());
-    }
-
-    private boolean differentStorageSystemsBetweenMasks(Collection<ExportMask> exportMasks) {
-        Set<URI> storageSystems = new HashSet<>();
-        for (ExportMask exportMask : exportMasks) {
-            storageSystems.add(exportMask.getStorageDevice());
-        }
-        return storageSystems.size() != 1;
     }
 
     private void logFailure(String reason) {

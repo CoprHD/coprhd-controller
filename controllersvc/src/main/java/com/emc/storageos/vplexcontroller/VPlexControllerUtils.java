@@ -547,8 +547,11 @@ public class VPlexControllerUtils {
                         exportMask, storageView, portNameMapEntryCount);
                 log.error(message);
                 if (null == storageView) {
-                    log.error("storage view {} could not be found on vplex device", exportMask.getMaskName());
-                    cleanStaleExportMasks(dbClient, exportMask.getStorageDevice());
+                    if (null != exportMask) {
+                        log.error(String.format("storage view %s could not be found on VPLEX device %s", 
+                                exportMask.getMaskName(), exportMask.getStorageDevice()));
+                        cleanStaleExportMasks(dbClient, exportMask.getStorageDevice());
+                    }
                     throw new IllegalArgumentException("storage view could not be found on vplex device; " + message 
                             + "; any stale export masks have been removed, so you may retry the operation");
                 } else {

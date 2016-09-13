@@ -181,7 +181,8 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         getDbClient().queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(maskURI),
                 result);
 
-        if (!result.isEmpty()) {
+        Iterator<URI> iterator = result.iterator();
+        if (iterator.hasNext()) {
             return result.iterator().next();
         }
         return null;

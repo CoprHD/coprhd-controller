@@ -5,7 +5,8 @@
 
 package com.emc.storageos.volumecontroller.impl;
 
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -16,14 +17,13 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
-import com.google.common.collect.Maps;
 
 public class ControllerLockingServiceImpl implements ControllerLockingService {
     private static final Logger log = LoggerFactory.getLogger(ControllerLockingServiceImpl.class);
 
     private CoordinatorClient _coordinator;
 
-    private final ConcurrentMap<String, InterProcessLock> lockMap = Maps.newConcurrentMap();
+    private ThreadLocal<Map<String, InterProcessLock>> locks = new ThreadLocal<Map<String, InterProcessLock>>(); 
 
     /**
      * Sets coordinator
@@ -35,7 +35,7 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
     }
     
     @Override
-    public synchronized boolean acquireLock(String lockName, long seconds) {
+    public boolean acquireLock(String lockName, long seconds) {
         if (lockName == null || lockName.isEmpty()) {
             return false;
         }
@@ -50,15 +50,18 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
     }
 
     @Override
-    public synchronized boolean releaseLock(String lockName) {
+    public boolean releaseLock(String lockName) {
         if (lockName == null || lockName.isEmpty()) {
             return false;
         }
         try {
             InterProcessLock lock = getInterProcessLock(lockName);
             lock.release();
-            if (!lock.isAcquiredInThisProcess()) {
-                lockMap.remove(lockName);     
+            synchronized(this) {
+                if (!lock.isAcquiredInThisProcess()) {
+                    Map<String, InterProcessLock> lockMap = locks.get();
+                    lockMap.remove(lockName);     
+                }
             }
             log.info("Released lock: " + lockName);
             return true;
@@ -75,6 +78,11 @@ public class ControllerLockingServiceImpl implements ControllerLockingService {
      * @return InterProcessLock instance
      */
     private InterProcessLock getInterProcessLock(String lockName) {
+        Map<String, InterProcessLock> lockMap = locks.get();
+        if (lockMap == null) {
+            lockMap = new WeakHashMap<String, InterProcessLock>();
+            locks.set(lockMap);
+        }
         if (lockMap.containsKey(lockName)) {
             return lockMap.get(lockName);
         }

@@ -614,12 +614,20 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
                 if (volume.getConsistencyGroup() != null) {
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
-                    // Only perform native CG operations if the CG is not for RecoverPoint alone. If the
-                    // CG is for RecoverPoint alone, there are no native array artifacts to cleanup/remove.
-                    if (cg != null && cg.getTypes() != null &&
-                            !(cg.getTypes().size() == 1 && cg.checkForType(BlockConsistencyGroup.Types.RP))) {
+                    boolean recoverPointOnlyCG = ((cg != null) 
+                                                    && (cg.getTypes() != null) 
+                                                    && (cg.getTypes().size() == 1) 
+                                                    && cg.checkForType(BlockConsistencyGroup.Types.RP));                    
+                    if (recoverPointOnlyCG) {
+                        // If this CG is for RecoverPoint alone and it's VNX we may 
+                        // need to clean up native snapshots before deletion.
                         if (storageSystem.deviceIsType(Type.vnxblock)) {
-                            cleanupAnyGroupBackupSnapshots(storageSystem, volume);
+                            cleanupAnyBackupSnapshots(storageSystem, volume);
+                        }
+                    } else {
+                        // Only perform native CG operations if the CG is not for RecoverPoint alone.
+                        if (storageSystem.deviceIsType(Type.vnxblock)) {
+                            cleanupAnyGroupBackupSnapshots(storageSystem, volume);                            
                         }
                         removeVolumeFromConsistencyGroup(storageSystem, volume);
                     }

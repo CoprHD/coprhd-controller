@@ -725,6 +725,9 @@ prerun_setup() {
     then
 	array_ip=${VNXB_IP}
 	FC_ZONE_A=FABRIC_vplex154nbr2
+    elif [ "${SS}" = "vmax2" ]
+    then
+        FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
 
     # All export operations orchestration go through the same entry-points
@@ -746,10 +749,10 @@ prerun_setup() {
     else
 	# VPLEX-specific entrypoints
 	exportCreateDeviceStep=VPlexDeviceController.createStorageView
-	exportAddVolumesDeviceStep=VPlexDeviceController.exportMaskAddVolumes
-	exportRemoveVolumesDeviceStep=VPlexDeviceController.storageViewRemoveVolumes
-	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
-	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
+	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
+	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
+	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
+	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
 	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
 }
@@ -786,7 +789,6 @@ vnx_setup() {
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
-    FC_ZONE_A=FABRIC_vplex154nbr2
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
@@ -844,7 +846,6 @@ vmax2_setup() {
     run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THICK_ONLY
 
-    FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     setup_varray
 
     run storagepool update $VMAX2_DUTEST_NATIVEGUID --nhadd $NH --type block
@@ -3008,11 +3009,11 @@ test_21() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
 
     if [ $? -ne 0 ]; then
-	    echo "export group command failed outright"
-	    exit;
-	fi
+	echo "export group command failed outright"
+	exit;
+    fi
 
-	# Show the result of the export group command for now (show the task and WF IDs)
+    # Show the result of the export group command for now (show the task and WF IDs)
     echo $resultcmd
 
     # Parse results (add checks here!  encapsulate!)
@@ -3469,6 +3470,9 @@ then
     shift 2;
 fi
 
+# setup required by all runs, even ones where setup was already done.
+prerun_setup;
+
 if [ ${setup} -eq 1 ]
 then
     setup
@@ -3486,9 +3490,6 @@ then
     docleanup=1;
     shift
 fi
-
-# setup required by all runs, even ones where setup was already done.
-prerun_setup;
 
 # If there's a last parameter, take that
 # as the name of the test to run

@@ -119,6 +119,7 @@ public class ActionableEventExecutor {
      * @param vCenterDataCenterId the vcenter datacenter id to set
      * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
      *            datastores
+     * @param eventId the event id
      * @return task for updating export groups
      */
     public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter, URI eventId) {
@@ -200,6 +201,7 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param initiatorId the initiator to add
+     * @param eventId the event id
      * @return task for adding an initiator
      */
     public TaskResourceRep addInitiator(URI initiatorId, URI eventId) {
@@ -255,6 +257,7 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param initiatorId the initiator to remove
+     * @param eventId the event id
      * @return task for removing an initiator
      */
     public TaskResourceRep removeInitiator(URI initiatorId, URI eventId) {
@@ -279,6 +282,7 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param hostId the host to unassign
+     * @param eventId the event id
      * @return task for updating host
      */
     public TaskResourceRep hostVcenterUnassign(URI hostId, URI eventId) {
@@ -333,6 +337,7 @@ public class ActionableEventExecutor {
      * @param datacenterId the datacenter the host is moving to
      * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
      *            datastores
+     * @param eventId the event id
      * @return task for updating export groups
      */
 
@@ -371,6 +376,7 @@ public class ActionableEventExecutor {
      * @param datacenterId the datacenter the host is moving to
      * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
      *            datastores
+     * @param eventId the event id
      * @return task for updating export groups
      */
 
@@ -481,9 +487,10 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param host the host that is unassigned from vCenter
+     * @param eventId the event id
      * @return task
      */
-    public TaskResourceRep hostVcenterUnassignDecline(URI host) {
+    public TaskResourceRep hostVcenterUnassignDecline(URI host, URI eventId) {
         return null;
     }
 
@@ -508,9 +515,10 @@ public class ActionableEventExecutor {
      * @param clusterId the cluster the host is moving to
      * @param datacenterId the datacenter the host is moving to
      * @param isVcenter if true, will perform vCenter operations
+     * @param eventId the event id
      * @return task
      */
-    public TaskResourceRep hostVcenterChangeDecline(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+    public TaskResourceRep hostVcenterChangeDecline(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter, URI eventId) {
         return null;
     }
 
@@ -538,9 +546,10 @@ public class ActionableEventExecutor {
      * @param clusterId the cluster the host is moving to
      * @param datacenterId the datacenter the host is moving to
      * @param isVcenter if true, will perform vCenter operations
+     * @param eventId the event id
      * @return task
      */
-    public TaskResourceRep hostDatacenterChangeDecline(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
+    public TaskResourceRep hostDatacenterChangeDecline(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter, URI eventId) {
         return null;
     }
 
@@ -568,9 +577,10 @@ public class ActionableEventExecutor {
      * @param clusterId the cluster the host is moving to
      * @param vCenterDataCenterId the datacenter the host is moving to
      * @param isVcenter if true, will perform vCenter operations
+     * @param eventId the event id
      * @return task
      */
-    public TaskResourceRep hostClusterChangeDecline(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
+    public TaskResourceRep hostClusterChangeDecline(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter, URI eventId) {
         return null;
     }
 
@@ -595,9 +605,10 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param initiator the initiator to remove
+     * @param eventId the event id
      * @return task
      */
-    public TaskResourceRep removeInitiatorDecline(URI initiator) {
+    public TaskResourceRep removeInitiatorDecline(URI initiator, URI eventId) {
         return null;
     }
 
@@ -618,9 +629,10 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param initiator the initiator to add
+     * @param eventId the event id
      * @return task
      */
-    public TaskResourceRep addInitiatorDecline(URI initiator) {
+    public TaskResourceRep addInitiatorDecline(URI initiator, URI eventId) {
         return null;
     }
 

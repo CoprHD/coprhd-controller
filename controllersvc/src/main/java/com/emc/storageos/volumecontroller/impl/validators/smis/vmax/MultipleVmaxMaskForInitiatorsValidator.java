@@ -92,16 +92,13 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
 
         URI groupURI = getExportGroupURI(maskURI);
         URI assocGroupURI = getExportGroupURI(assocMaskURI);
-        // Both masks must be contained within the same ExportGroup
+        // If the mask's export groups are different
         if (groupURI == null || !groupURI.equals(assocGroupURI)) {
-            logFailure("masks belong to different export groups");
-            return false;
-        }
-
-        // Both masks must reference the same set of Initiators
-        if (exportMasksHaveMatchingInitiators(masks)) {
-            logFailure("masks do not share the same initiators");
-            return false;
+            // ...and both masks reference the same set of Initiators
+            if (exportMasksHaveMatchingInitiators(masks)) {
+                logFailure("masks share the same initiators but exist in different export groups");
+                return false;
+            }
         }
 
         return true;

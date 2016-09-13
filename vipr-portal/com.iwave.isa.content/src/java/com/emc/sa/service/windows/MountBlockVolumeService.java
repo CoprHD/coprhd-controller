@@ -46,6 +46,7 @@ public class MountBlockVolumeService extends WindowsService {
         mountBlockVolumeHelpers = MountBlockVolumeHelper.createHelpers(windowsSystems, extractCapacityInBytes(volume));
         verifyClusterConfiguration();
         for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelpers) {
+            mountBlockVolumeHelper.verifyMountConfiguration(volume);
             mountBlockVolumeHelper.precheck();
         }
     }

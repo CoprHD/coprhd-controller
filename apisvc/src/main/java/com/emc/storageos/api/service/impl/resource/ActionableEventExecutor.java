@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -66,6 +67,20 @@ public class ActionableEventExecutor {
             return Lists.newArrayList("Host has been deleted");
         }
         URI oldClusterURI = host.getCluster();
+
+        Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+        Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        if (newCluster != null && oldCluster != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
+                    oldCluster.getLabel(), newCluster.getLabel()));
+        } else if (newCluster == null && oldCluster != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsRemovedFromCluster",
+                    host.getLabel(),
+                    oldCluster.getLabel()));
+        } else if (newCluster != null && oldCluster == null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsAddedToCluster", host.getLabel(),
+                    newCluster.getLabel()));
+        }
 
         if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && NullColumnValueGetter.isNullURI(clusterId)
@@ -167,6 +182,8 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDetails",
+                    initiator.getInitiatorPort()));
             List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
 
             for (ExportGroup export : exportGroups) {
@@ -234,6 +251,8 @@ public class ActionableEventExecutor {
 
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDetails",
+                    initiator.getInitiatorPort()));
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
                     Lists.newArrayList(initiator));
 
@@ -297,6 +316,7 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
         }
         return result;
@@ -319,6 +339,8 @@ public class ActionableEventExecutor {
         Host host = _dbClient.queryObject(Host.class, hostId);
         VcenterDataCenter datacenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterId);
         if (host != null && datacenter != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDetails", host.getLabel(),
+                    datacenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;
@@ -357,6 +379,8 @@ public class ActionableEventExecutor {
         Host host = _dbClient.queryObject(Host.class, hostId);
         VcenterDataCenter datacenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterId);
         if (host != null && datacenter != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDetails", host.getLabel(),
+                    datacenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;

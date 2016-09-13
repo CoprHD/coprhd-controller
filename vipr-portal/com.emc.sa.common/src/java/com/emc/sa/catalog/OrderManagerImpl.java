@@ -123,7 +123,7 @@ public class OrderManagerImpl implements OrderManager {
                     // Set schedule time to
                     // either 1) the next execution window starting time
                     // or     2) the current time if it is in current execution window
-                    ExecutionWindow executionWindow = client.findById(order.getExecutionWindowId().getURI());
+                    ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
                     ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
                     order.setScheduledTime(helper.getScheduledTime());
                     order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());

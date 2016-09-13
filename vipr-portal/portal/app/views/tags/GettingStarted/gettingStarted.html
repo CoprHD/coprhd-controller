@@ -72,6 +72,9 @@
                             <div class="guide-textpanel">
                                 <h4>&{'gettingStarted.licenses.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.licenses.text'}</p>
+                                #{if flash.error}
+                                    <p class="guide-error">&{'gettingStarted.licenses.error'}</p>
+                                #{/}
                                 <div class="action-btn">
                                     <button ng-show="completedSteps == currentStep-1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.licenses.button'}</button>
                                     <div ng-show="currentStep > completedSteps + 1" class="guide-textpanel">

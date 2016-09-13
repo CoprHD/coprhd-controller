@@ -646,8 +646,6 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
                     dbClient.updateObject(host);
                     ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, host.getCluster(), host.getId());
-                    ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
-                            cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
                 }
             } else if (!NullColumnValueGetter.isNullURI(change.getNewDatacenter())) {
                 VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());

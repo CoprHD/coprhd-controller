@@ -63,6 +63,7 @@ import static util.RoleAssignmentUtils.putTenantRoleAssignmentChanges;
 @Restrictions({ @Restrict("ROOT_TENANT_ADMIN"), @Restrict("HOME_TENANT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class Tenants extends ViprResourceController {
     protected static final String UNKNOWN = "tenants.unknown";
+
     protected static final String UPDATED = "keystoneProvider.updated";
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String INTERVAL_ERROR = "ldapSources.synchronizationInterval.integerRequired";
@@ -72,7 +73,7 @@ public class Tenants extends ViprResourceController {
 
     public static void list() {
         TenantsDataTable dataTable = new TenantsDataTable();
-        renderArgs.put("sources", TenantSource.options(TenantSource.TENANTS_SOURCE_ALL, TenantSource.TENANTS_SOURCE_LOCAL, TenantSource.TENANTS_SOURCE_OS));
+       /*  For Sofo renderArgs.put("sources", TenantSource.options(TenantSource.TENANTS_SOURCE_ALL, TenantSource.TENANTS_SOURCE_LOCAL, TenantSource.TENANTS_SOURCE_OS));
         renderArgs.put("currentSource", Models.currentSource());
         if (isKeystoneAuthnProviderCreated()) {
             AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
@@ -85,7 +86,7 @@ public class Tenants extends ViprResourceController {
             renderArgs.put("osTenantsToAdd", new KeystoneSynchronizationTenantsDataTable());
             renderArgs.put("osTenantsToRemove", new KeystoneSynchronizationTenantsDataTable());
             render(dataTable, keystoneProvider);
-        }
+        }  */
         render(dataTable);
     }
 
@@ -106,21 +107,23 @@ public class Tenants extends ViprResourceController {
         List<TenantsDataTable.Tenant> tenants = Lists.newArrayList();
         List<TenantOrgRestRep> subtenants;
         UserInfo user = Security.getUserInfo();
-        String source = Models.currentSource();
+        //For Sofo String source = Models.currentSource();
 
         if (Security.isRootTenantAdmin() || Security.isSecurityAdmin()) {
             TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-            if (source.equals(TenantSource.getTenantSource(rootTenant.getUserMappings())) ||
+            /*For Sofo if (source.equals(TenantSource.getTenantSource(rootTenant.getUserMappings())) ||
                 source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
                 tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
-            }
+            }*/
+            tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
             subtenants = TenantUtils.getSubTenants(rootTenant.getId());
         } else if (Security.isHomeTenantAdmin()) {
-            TenantOrgRestRep userTenant = TenantUtils.getUserTenant();
+        	/*For SofoTenantOrgRestRep userTenant = TenantUtils.getUserTenant();
             if (source.equals(TenantSource.getTenantSource(userTenant.getUserMappings())) ||
                 source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
                 tenants.add(new TenantsDataTable.Tenant(userTenant, true));
-            }
+            }*/
+            tenants.add(new TenantsDataTable.Tenant(TenantUtils.getUserTenant(), true));
             subtenants = getViprClient().tenants().getByIds(user.getSubTenants());
         } else {
             subtenants = getViprClient().tenants().getByIds(user.getSubTenants());
@@ -129,8 +132,8 @@ public class Tenants extends ViprResourceController {
         for (TenantOrgRestRep tenant : subtenants) {
             boolean admin = Security.isRootTenantAdmin() || user.hasSubTenantRole(tenant.getId().toString(), Security.TENANT_ADMIN)
                     || Security.isSecurityAdmin();
-            if (admin && (source.equals(TenantSource.getTenantSource(tenant.getUserMappings())) ||
-                          source.equals(TenantSource.TENANTS_SOURCE_ALL)))  {
+            if (admin /* For Sofo && (source.equals(TenantSource.getTenantSource(tenant.getUserMappings())) ||
+                          source.equals(TenantSource.TENANTS_SOURCE_ALL))*/)  {
                 tenants.add(new TenantsDataTable.Tenant(tenant, admin));
             }
         }

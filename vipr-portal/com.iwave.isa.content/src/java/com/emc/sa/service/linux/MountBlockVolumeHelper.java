@@ -18,6 +18,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.LinuxSystemCLI;
@@ -63,6 +64,12 @@ public class MountBlockVolumeHelper {
         linuxSupport.verifyMountPoint(mountPoint);
         usePowerPath = linuxSupport.checkForMultipathingSoftware();
         linuxSupport.checkForFileSystemCompatibility(fsType);
+    }
+
+    public void verifyMountConfiguration(BlockObjectRestRep volume) {
+        if (BlockStorageUtils.isVolumeMounted(volume) && doFormat) {
+            ExecutionUtils.fail("failTask.verifyMountConfiguration", volume.getName(), volume.getName());
+        }
     }
 
     public void refreshStorage(List<? extends BlockObjectRestRep> volumes) {

@@ -2408,6 +2408,7 @@ public class VPlexApiDiscoveryManager {
                 }
 
             } catch (Exception e) {
+                s_logger.error("Exception encountered: ", e);
                 throw VPlexApiException.exceptions.errorProcessingVirtualVolumeInformation(e.getLocalizedMessage());
             }
         } else {

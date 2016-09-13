@@ -260,16 +260,6 @@ public class SchedulerDataManager {
                         continue;
                     }
 
-                    if (!order.getExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
-                        // check if the order is expired
-                        ExecutionWindow window = models.findById(order.getExecutionWindowId().getURI());
-                        if (isExpiredOrder(order, window)) {
-                            order.setOrderStatus(OrderStatus.ERROR.name());
-                            models.save(order);
-                            continue;
-                        }
-                    }
-
                     // lock a order if tenant is active and window is matched.
                     boolean matchesTenant = activeTenants.contains(order.getTenant());
                     if (matchesTenant && !isLocked(order) && canRunInWindow(order, windows)) {

@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -67,13 +68,28 @@ public class ActionableEventExecutor {
         }
         URI oldClusterURI = host.getCluster();
 
+        Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+        Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        if (newCluster != null && oldCluster != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
+                    oldCluster.getLabel(), newCluster.getLabel()));
+        } else if (newCluster == null && oldCluster != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsRemovedFromCluster",
+                    host.getLabel(),
+                    oldCluster.getLabel()));
+        } else if (newCluster != null && oldCluster == null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsAddedToCluster", host.getLabel(),
+                    newCluster.getLabel()));
+        }
+
         if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result.addAll(getVolumes(hostId, export.getVolumes(), false));
+                    List<BlockObjectDetails> affectedVolumes = getBlockObjectDetails(hostId, export.getVolumes());
+                    result.addAll(getVolumeDetails(affectedVolumes, false));
                 }
             }
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -82,7 +98,8 @@ public class ActionableEventExecutor {
             // Non-clustered host being added to a cluster
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result.addAll(getVolumes(hostId, eg.getVolumes(), true));
+                List<BlockObjectDetails> affectedVolumes = getBlockObjectDetails(hostId, eg.getVolumes());
+                result.addAll(getVolumeDetails(affectedVolumes, true));
             }
 
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -94,12 +111,14 @@ public class ActionableEventExecutor {
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
-                    result.addAll(getVolumes(hostId, export.getVolumes(), false));
+                    List<BlockObjectDetails> affectedVolumes = getBlockObjectDetails(hostId, export.getVolumes());
+                    result.addAll(getVolumeDetails(affectedVolumes, false));
                 }
             }
             exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
-                result.addAll(getVolumes(hostId, eg.getVolumes(), true));
+                List<BlockObjectDetails> affectedVolumes = getBlockObjectDetails(hostId, eg.getVolumes());
+                result.addAll(getVolumeDetails(affectedVolumes, true));
             }
         }
 
@@ -163,6 +182,8 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDetails",
+                    initiator.getInitiatorPort()));
             List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
 
             for (ExportGroup export : exportGroups) {
@@ -181,7 +202,8 @@ public class ActionableEventExecutor {
                     }
 
                     if (update) {
-                        result.addAll(getVolumes(initiator.getHost(), export.getVolumes(), true));
+                        List<BlockObjectDetails> volumeDetails = getBlockObjectDetails(initiator.getHost(), export.getVolumes());
+                        result.addAll(getVolumeInitiatorDetails(volumeDetails, true));
                     }
                 }
             }
@@ -229,6 +251,8 @@ public class ActionableEventExecutor {
 
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDetails",
+                    initiator.getInitiatorPort()));
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
                     Lists.newArrayList(initiator));
 
@@ -236,7 +260,8 @@ public class ActionableEventExecutor {
                 List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
                 // Only update if the list as changed
                 if (updatedInitiators.remove(initiatorId)) {
-                    result.addAll(getVolumes(initiator.getHost(), export.getVolumes(), false));
+                    List<BlockObjectDetails> volumeDetails = getBlockObjectDetails(initiator.getHost(), export.getVolumes());
+                    result.addAll(getVolumeInitiatorDetails(volumeDetails, false));
                 }
             }
         }
@@ -291,6 +316,7 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
         }
         return result;
@@ -313,6 +339,8 @@ public class ActionableEventExecutor {
         Host host = _dbClient.queryObject(Host.class, hostId);
         VcenterDataCenter datacenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterId);
         if (host != null && datacenter != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDetails", host.getLabel(),
+                    datacenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;
@@ -351,6 +379,8 @@ public class ActionableEventExecutor {
         Host host = _dbClient.queryObject(Host.class, hostId);
         VcenterDataCenter datacenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterId);
         if (host != null && datacenter != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDetails", host.getLabel(),
+                    datacenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, clusterId, datacenterId, isVcenter));
         }
         return result;
@@ -381,8 +411,8 @@ public class ActionableEventExecutor {
         return volumeIds;
     }
 
-    private List<String> getVolumes(URI hostId, StringMap volumes, boolean gainAccess) {
-        List<String> result = Lists.newArrayList();
+    private List<BlockObjectDetails> getBlockObjectDetails(URI hostId, StringMap volumes) {
+        List<BlockObjectDetails> result = Lists.newArrayList();
         Set<String> hostVolumes = Sets.newHashSet();
 
         for (Entry<String, String> volume : volumes.entrySet()) {
@@ -413,13 +443,63 @@ public class ActionableEventExecutor {
                 projectName = projectObj.getLabel();
             }
 
-            result.add("Host will" + (gainAccess ? " gain " : " lose ") + "access to volume: Project "
-                    + (projectName == null ? "N/A" : projectName) + " " + (volumeName == null ? "N/A" : volumeName)
-                    + " ID: " + blockURI);
+            result.add(new BlockObjectDetails(blockURI, projectName, volumeName));
         }
         return result;
     }
 
+    /**
+     * Creates human readable output when an initiator is added or removed
+     * 
+     * @param affectedVolumes the list of affected volumes
+     * @param addPath if true, initiator is being added, else the initiator is being removed
+     * @return list of volume details
+     */
+    private List<String> getVolumeInitiatorDetails(List<BlockObjectDetails> affectedVolumes, boolean addPath) {
+        List<String> result = Lists.newArrayList();
+        for (BlockObjectDetails details : affectedVolumes) {
+            String projectName = details.getProjectName();
+            String volumeName = details.getVolumeName();
+            URI blockURI = details.getBlockURI();
+            if (addPath) {
+                result.add(
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded", (projectName == null ? "N/A" : projectName),
+                                (volumeName == null ? "N/A" : volumeName), blockURI));
+            } else {
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathRemoved",
+                        (projectName == null ? "N/A" : projectName),
+                        (volumeName == null ? "N/A" : volumeName), blockURI));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Creates human readable output when access to a volume is affected
+     * 
+     * @param affectedVolumes the list of affected volumes
+     * @param gainAccess if true, host is gaining access to a volume, else access is being removed
+     * @return list of volume details
+     */
+    private List<String> getVolumeDetails(List<BlockObjectDetails> affectedVolumes, boolean gainAccess) {
+        List<String> result = Lists.newArrayList();
+        for (BlockObjectDetails details : affectedVolumes) {
+            String projectName = details.getProjectName();
+            String volumeName = details.getVolumeName();
+            URI blockURI = details.getBlockURI();
+            if (gainAccess) {
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostGainAccess",
+                        (projectName == null ? "N/A" : projectName),
+                        (volumeName == null ? "N/A" : volumeName), blockURI));
+            } else {
+                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostLoseAccess",
+                        (projectName == null ? "N/A" : projectName),
+                        (volumeName == null ? "N/A" : volumeName), blockURI));
+            }
+        }
+        return result;
+    }
+    
     /**
      * Decline method that is invoked when the hostVcenterUnassign event is declined
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
@@ -573,6 +653,34 @@ public class ActionableEventExecutor {
      */
     public List<String> addInitiatorDeclineDetails(URI initiator) {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
+    }
+    
+    /**
+     * Inner class to hold details for a block object that are used to display actionable event details
+     *
+     */
+    class BlockObjectDetails {
+        private URI blockURI;
+        private String projectName;
+        private String volumeName;
+
+        public BlockObjectDetails(URI blockURI, String projectName, String volumeName) {
+            this.blockURI = blockURI;
+            this.projectName = projectName;
+            this.volumeName = volumeName;
+        }
+
+        public URI getBlockURI() {
+            return this.blockURI;
+        }
+
+        public String getProjectName() {
+            return this.projectName;
+        }
+
+        public String getVolumeName() {
+            return this.volumeName;
+        }
     }
 
 }

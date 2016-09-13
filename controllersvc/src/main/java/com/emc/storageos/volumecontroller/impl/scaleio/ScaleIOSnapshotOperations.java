@@ -55,7 +55,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(),
                     blockSnapshot.getLabel(), systemId);
             String nativeId = result.getVolumeIdList().get(0);
-            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, blockSnapshot, systemId, nativeId);
+            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, blockSnapshot, systemId, nativeId, storage);
             dbClient.persistObject(blockSnapshot);
             ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
             taskCompleter.ready(dbClient);
@@ -88,7 +88,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             List<String> nativeIds = result.getVolumeIdList();
             Map<String, String> snapNameIdMap = scaleIOHandle.getVolumes(nativeIds);
             ScaleIOHelper.updateSnapshotsWithSnapshotMultiVolumeResult(dbClient, blockSnapshots, systemId, snapNameIdMap,
-                    result.getSnapshotGroupId());
+                    result.getSnapshotGroupId(), storage);
             dbClient.persistObject(blockSnapshots);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));

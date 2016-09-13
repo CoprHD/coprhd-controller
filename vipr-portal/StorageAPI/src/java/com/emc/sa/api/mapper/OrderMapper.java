@@ -13,14 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.uimodels.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 
-import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
-import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderParameter;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -37,7 +34,6 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderMapper {
-
     private static final String ENCRYPTED_FIELD_MASK = "**********";
 
     public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
@@ -83,6 +79,9 @@ public class OrderMapper {
         }
         if (from.getScheduledEventId() != null) {
             to.setScheduledEventId(from.getScheduledEventId());
+        }
+        if (from.getScheduledTime() != null) {
+            to.setScheduledTime(from.getScheduledTime());
         }
         return to;
     }
@@ -145,6 +144,12 @@ public class OrderMapper {
             newObject.setScheduledEventId(param.getScheduledEventId());
             if (param.getScheduledTime() != null) {
                 newObject.setScheduledTime(ScheduleTimeHelper.convertStrToCalendar(param.getScheduledTime()));
+            }
+
+            if (param.getExecutionWindow() == null) {
+                newObject.setExecutionWindowId(null);
+            } else {
+                newObject.setExecutionWindowId(new NamedURI(param.getExecutionWindow(), "ExecutionWindow"));
             }
         }
 

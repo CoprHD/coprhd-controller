@@ -112,7 +112,7 @@ public class DellSCStorageDriver extends DefaultStorageDriver implements BlockSt
                     storageProvider.getProviderHost(),
                     storageProvider.getPortNumber(),
                     storageProvider.getUsername(),
-                    storageProvider.getPassword());
+                    storageProvider.getPassword(), false);
             LOG.info("Connection to {} validated", storageProvider.getProviderHost());
             return true;
         } catch (StorageCenterAPIException e) {

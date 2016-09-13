@@ -51,6 +51,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -123,6 +124,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -132,8 +134,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
-import com.emc.storageos.services.util.StorageDriverManager;
-import com.emc.storageos.services.util.TimeUtils;
 
 @Path("/block/consistency-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN,
@@ -700,6 +700,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 clazz);
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));
+        
+        List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(consistencyGroupId, _dbClient);
+        
+        // if any of the source volumes are in an application, replica management must be done via the application
+        for (Volume srcVol : volumes) {
+            if (srcVol.getApplication(_dbClient) != null) {
+                return new SnapshotList();
+            }
+        }
 
         SnapshotList list = new SnapshotList();
         List<URI> snapshotsURIs = new ArrayList<URI>();
@@ -2023,6 +2032,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+        
+        // if any of the source volumes are in an application, replica management must be done via the application
+        for (Volume srcVol : cgVolumes) {
+            if (srcVol.getApplication(_dbClient) != null) {
+                return new NamedVolumesList();
+            }
+        }
 
         // Cycle over the volumes in the consistency group and
         // get the full copies for each volume in the group.
@@ -2325,6 +2341,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!consistencyGroup.checkForType(Types.RP)) {
             // Attempt to do protection link management on unprotected CG
             throw APIException.badRequests.consistencyGroupMustBeRPProtected(consistencyGroupId);
+        }
+
+        if (op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()) && !NullColumnValueGetter.isNullURI(consistencyGroupId)) {
+            ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, consistencyGroupId);
         }
 
         // Catch any attempts to use an invalid access mode

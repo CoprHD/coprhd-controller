@@ -165,8 +165,9 @@ arrayhelper() {
 	;;
 	delete_export_mask)
     masking_view_name=$3
-    ig_name=$4
-	arrayhelper_delete_export_mask $operation $serial_number $masking_view_name $ig_name
+    sg_name=$4
+    ig_name=$5
+	arrayhelper_delete_export_mask $operation $serial_number $masking_view_name $sg_name $ig_name
 	;;
     delete_mask)
         pattern=$4
@@ -302,11 +303,12 @@ arrayhelper_delete_export_mask() {
     operation=$1
     serial_number=$2
     masking_view_name=$3
-    ig_name=$4
+    sg_name=$4
+    ig_name=$5
 
     case $SS in
     vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $masking_view_name $ig_name
+         runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -1276,7 +1278,7 @@ test_1() {
     echot "Test 1 DU Check Begins"
     expname=${EXPORT_GROUP_NAME}t1
 
-    # Turn on suspend of export after orchestration
+    # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
@@ -1305,7 +1307,7 @@ test_1() {
     
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # Turn on suspend of export after orchestration
+    # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command
@@ -1522,7 +1524,7 @@ test_4() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportDeleteOrchStep}
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
@@ -1602,7 +1604,7 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -1696,7 +1698,7 @@ test_6() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
@@ -2102,7 +2104,7 @@ test_11() {
 test_12() {
     echot "Test 12: Volume gets reclaimed outside of ViPR"
     expname=${EXPORT_GROUP_NAME}t12
-    volname="${HOST1}-dutest-oktodelete-t12"
+    volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
@@ -2218,6 +2220,10 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
+# Currently failing for:
+# 1) VPLEX - COP-25238
+# 2) XIO   - COP-25240
+#
 # Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
 #
 # Basic Use Case for single host, single volume
@@ -2233,7 +2239,7 @@ test_13() {
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
-    expname=${EXPORT_GROUP_NAME}t14
+    expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -2251,7 +2257,7 @@ test_14() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Create another volume that we will inventory-only delete
-    volname="${HOST1}-dutest-oktodelete-t14"
+    volname="${HOST1}-dutest-oktodelete-t14-${RANDOM}"
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created
@@ -2295,8 +2301,8 @@ test_14() {
     echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
     fail task follow $task
 
-    # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 2 2
+    # Verify that ViPR rollback removed only the initiator that was previously added
+    verify_export ${expname}1 ${HOST1} 1 2
 
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2305,7 +2311,7 @@ test_14() {
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Verify the volume was removed
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 1 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -2630,7 +2636,7 @@ test_18() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+    set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -2712,7 +2718,7 @@ test_19() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
@@ -2847,7 +2853,7 @@ test_20() {
     verify_export ${expname}1 ${HIJACK_MV} 1 2
 
     # Delete the masking view
-    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${HIJACK_MV} "${HIJACK_MV}_${SERIAL_NUMBER: -3}_IG"
+    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${HIJACK_MV} "noop" "${HIJACK_MV}_${SERIAL_NUMBER: -3}_IG"
 
     # Verify the out-of-management mask
     run verify_export ${expname}1 ${HIJACK_MV} gone
@@ -2860,6 +2866,104 @@ test_20() {
 
     # Verify the volume was removed
     verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 21
+#
+# Summary: (VMAX) Remove Initiator: Tests to make sure an initiator shared by an out-of-management MV is not removed.
+#
+# Basic Use Case for single host, two volumes
+# 1. ViPR creates 2 volumes, 1 host export
+# 2. ViPR asked to remove initiator from the export group, but is paused after orchestration
+# 3. Customer creates a new MV outside of ViPR with shared initiators
+# 4. Remove initiator workflow is resumed
+# 5. Verify the operation fails
+# 6. Delete the mask from outside of ViPR
+# 7. Attempt operation again, succeeds
+test_21() {
+    echot "Test 21: (VMAX) Remove initiator removes initiator when IG is shared by out-of-management masking view"
+    expname=${EXPORT_GROUP_NAME}t20
+    HIJACK_MV=hijack_test21_${RANDOM}
+
+    # Check to make sure we're running VMAX only
+    if [ "${SS: 0:-1}" != "vmax" ]; then
+	echo "test_21 only runs on VMAX.  Bypassing for ${SS}."
+	return
+    fi
+
+    # Make sure we start clean; no masking views on the array
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HIJACK_MV} gone
+
+    # Create the mask with 2 volumes
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	    echo "export group command failed outright"
+	    exit;
+	fi
+
+	# Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Get the device ID of 2nd volume
+    device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
+
+    HOST1_CSG="${HOST1}_${SERIAL_NUMBER: -3}_CSG"
+    PWWN=`echo ${H2PI1} | sed 's/://g'`
+    HOST1_IG="${HOST1}_${SERIAL_NUMBER: -3}_IG"
+    arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${HOST1_IG} ${HIJACK_MV}
+
+    # Verify the new mask has both volumes in it
+    verify_export ${expname}1 ${HIJACK_MV} 2 1
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail
+    echo "*** Following the export_group update task to verify it fails"
+    fail task follow $task
+
+    # Verify the masks are unchanged
+    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HIJACK_MV} 2 1
+
+    # Delete the masking view (it will have a cascaded IG)
+    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${HIJACK_MV} "${HIJACK_MV}_${SERIAL_NUMBER: -3}_SG" "${HIJACK_MV}_${SERIAL_NUMBER: -3}_CIG"
+
+    # Verify the out-of-management mask
+    verify_export ${expname}1 ${HIJACK_MV} gone
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Run the export group command to remove the initiator from the mask again
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+    # Verify the initiator was removed
+    verify_export ${expname}1 ${HOST1} 1 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1

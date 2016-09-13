@@ -573,11 +573,21 @@ public class SchemaUtil {
     }
 
     /**
-     * Checks all required CF's against keyspace definition. Any missing
-     * CF's are created on the fly.
-     *
+     * Don't require all nodes online, just require there's only one Cassandra
+     * schema version across current cluster
      */
     public void checkCf() throws InterruptedException, ConnectionException {
+        checkCf(false);
+    }
+
+    /**
+     * Checks all required CF's against keyspace definition. Any missing
+     * CF's are created on the fly.
+     * Note: it will require all nodes are online and converge at target Cassandra schema version
+     * if parameter waitAllNodesConverge is true, otherwise, only require there's only one schema
+     * version across current cluster.
+     */
+    public void checkCf(boolean waitAllNodesConverge) throws InterruptedException, ConnectionException {
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Cluster cluster = clientContext.getCluster();
 
@@ -670,7 +680,11 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaAgreement(latestSchemaVersion, _statusChecker.getClusterNodeCount());
+            if (waitAllNodesConverge) {
+                clientContext.waitForSchemaAgreement(latestSchemaVersion, _statusChecker.getClusterNodeCount());
+            } else {
+                clientContext.waitForSchemaAgreement(latestSchemaVersion, -1);
+            }
         }
     }
 
@@ -831,6 +845,7 @@ public class SchemaUtil {
         org.setCreationTime(Calendar.getInstance());
         org.setInactive(false);
         dbClient.createObject(org);
+        _log.info("The root tenant {} has been inserted", org.getId());
     }
 
     private String getBootstrapLockName() {

@@ -49,7 +49,7 @@
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem() || smisProvider.interfaceType === 'ibmxiv'">
+      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem()" ng-disabled="isProviderXIV()">
         <boolean-checkbox></boolean-checkbox>
       </control-group>
 
@@ -91,23 +91,23 @@
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'">
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'">
         <input-text></input-text>
       </control-group>
 
-	  <control-group v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+	  <control-group v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'">
         <input-text></input-text>
       </control-group>
             
-      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'">
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'">
         <input-password></input-password>
       </control-group>      
       
@@ -118,7 +118,6 @@
 <script>
 $(document).ready(function() {
 	disableInterfaceType();
-	disableRequired();
 });
 
 function disableInterfaceType() {
@@ -128,16 +127,4 @@ function disableInterfaceType() {
 	}
 }
 
-function disableRequired() {
-	var editMode = #{get 'editMode'/};
-	if(editMode) {	
-		$('#smisProvider_hyperScaleUserControlGroup').removeClass('required');
-		$('#smisProvider_hyperScalePasswordControlGroup').removeClass('required');
-		$('#smisProvider_hyperScaleConfPasswdControlGroup').removeClass('required');
-		$('#smisProvider_hyperScaleHostControlGroup').removeClass('required');
-		$('#smisProvider_hyperScalePortControlGroup').removeClass('required');
-		window.setInterval(disableRequired,500);
-	}
-	
-}
 </script>

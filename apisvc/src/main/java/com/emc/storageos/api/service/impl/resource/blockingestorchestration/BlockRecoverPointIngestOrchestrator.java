@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
@@ -627,7 +628,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             for (DataObject updatedObject : updatedObjects) {
                 if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
                         || updatedObject instanceof BlockSnapshotSession
-                        || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {
+                        || (updatedObject instanceof Volume && 
+                                !NullColumnValueGetter.isNullURI( ((Volume) updatedObject).getAssociatedSourceVolume() ))) {
                     _logger.info("Clearing internal volume flag of replica {} of RP volume ", updatedObject.getLabel());
                     updatedObject.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
@@ -639,7 +641,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            if (RPHelper.isVPlexVolume(volume) && volumeContext instanceof RpVplexVolumeIngestionContext) {
+            if (RPHelper.isVPlexVolume(volume, _dbClient) && volumeContext instanceof RpVplexVolumeIngestionContext) {
                 VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                         .getVplexVolumeIngestionContext();
                 StringSet associatedVolumes = vplexVolumeContext.getAssociatedVolumeIds(volume);

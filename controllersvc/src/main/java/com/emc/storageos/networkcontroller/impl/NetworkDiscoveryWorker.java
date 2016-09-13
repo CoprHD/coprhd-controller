@@ -573,7 +573,7 @@ public class NetworkDiscoveryWorker {
             StringMap endpoints = currentNetwork.getEndpointsMap();
             _log.info("Endpoints of given VSAN {}/{} in network {}: {}", currentNetworkId, currentNetworkWwn,
                 networkSystem.getLabel(), endpoints);
-            // How to determine it's transit VSAN: 1. More than one network system has the network.
+            // How to determine it's a transit VSAN: 1. More than one network system have the same network.
             if (currentNetwork != null && currentNetwork.getNetworkSystems().size() > 1) {
                 _log.info("Network id={} is a transit VSAN", currentNetworkId);
                 transitNetworks.add(currentNetworkId);
@@ -583,6 +583,7 @@ public class NetworkDiscoveryWorker {
         }
         // 2. Check if there is transit VSAN. Continue only when there is.
         if (transitNetworks.isEmpty()) {
+            _log.info("No transit VSAN is found and return directly.");
             return;
         }
         // 3. Get localNetworks, remoteRoutedNetworks and routedNetworks. If there is transit VSAN, all the local
@@ -625,53 +626,84 @@ public class NetworkDiscoveryWorker {
         }
     }
 
+    /**
+     * Generate logging output for given network details.
+     * @param prefix
+     * @param network
+     */
     private void dumpRoutedNetworks(String prefix, Network network) {
         StringBuffer sb = new StringBuffer();
         sb.append(prefix + ":");
-        sb.append("label=" + network.getLabel() + ",");
+        sb.append("label = " + network.getLabel() + ", ");
         if (network.getRoutedNetworks() != null) {
             for (String str : network.getRoutedNetworks()) {
-                sb.append(",routed=" + str);
+                sb.append(", routed = " + str);
             }
         } else {
-            sb.append(",routed=null" );
+            sb.append(", routed = null");
         }
         _log.info(sb.toString());
     }
 
-    private List<Network> getRemoteRoutedNetworks(String currentNetworkSystemId, List<Network> networks, Set<String> transitNetworks) {
+    /**
+     * Get the remote routed networks of the given network system.
+     *
+     * @param currentNetworkSystemId The current network system ID.
+     * @param allNetworks All networks list.
+     * @param transitNetworks Transit networks list.
+     * @return remote routed networks list.
+     */
+    private List<Network> getRemoteRoutedNetworks(String currentNetworkSystemId, List<Network> allNetworks,
+                                                  Set<String> transitNetworks) {
         List<Network> remoteRoutedNetworks = new ArrayList<Network>();
-        Set<String> connectedSystems = new HashSet<String>();
-        for (Network network : networks) {
-            if (transitNetworks.contains(network.getNativeId()) && network.getNetworkSystems()!=null) {
+        Set<String> connectedNetworkSystems = new HashSet<String>();
+        // 1. Find the connected network systems including the current network system.
+        for (Network network : allNetworks) {
+            if (network.getNetworkSystems() != null && transitNetworks.contains(network.getNativeId())) {
                 for (String networkSystem : network.getNetworkSystems()) {
                     if (!networkSystem.equals(currentNetworkSystemId)) {
-                        connectedSystems.add(networkSystem);
+                        connectedNetworkSystems.add(networkSystem);
                     }
                 }
             }
         }
-        for (Network network : networks) {
-            String connectSystem = getConnectedSystem(currentNetworkSystemId, connectedSystems, network);
-            if (NullColumnValueGetter.isNotNullValue(connectSystem)) {
+        // 2. Find the remote routed networks of the current network system.
+        for (Network network : allNetworks) {
+            if (isRemoteRoutedNetwork(network, currentNetworkSystemId, connectedNetworkSystems)) {
                 remoteRoutedNetworks.add(network);
             }
         }
         return remoteRoutedNetworks;
     }
 
-    private String getConnectedSystem(String selfSystemId, Set<String> connectedSystems, Network network) {
-        if (network.getNetworkSystems() == null) {
-            return null;
-        }
-        for (String networkSystem : network.getNetworkSystems()) {
-            if (selfSystemId!=networkSystem && connectedSystems.contains(networkSystem)) {
-                return networkSystem;
+    /**
+     * Check if the given network is a remote routed network of the current network system. If it belongs to
+     * a connected network system which is not the current network system, it is a remote routed network.
+     *
+     * @param network The given network.
+     * @param currentNetworkSystemId The current network system ID.
+     * @param connectedNetworkSystems The connected network systems list.
+     * @return true/false
+     */
+    private boolean isRemoteRoutedNetwork(Network network, String currentNetworkSystemId,
+                                          Set<String> connectedNetworkSystems) {
+        if (network.getNetworkSystems() != null) {
+            for (String networkSystem : network.getNetworkSystems()) {
+                if (networkSystem != currentNetworkSystemId && connectedNetworkSystems.contains(networkSystem)) {
+                    return true;
+                }
             }
         }
-        return null;
+        return false;
     }
 
+    /**
+     * Get all the networks belongs to the given network system.
+     *
+     * @param networkSystem
+     * @param allNetworks
+     * @return
+     */
     private List<Network> getLocalNetworks(NetworkSystem networkSystem, List<Network> allNetworks) {
         List<Network> realNetworks = new ArrayList<Network>();
         for (Network network : allNetworks) {
@@ -682,14 +714,21 @@ public class NetworkDiscoveryWorker {
         }
         return realNetworks;
     }
-    
+
+    /**
+     * Get the network by the given fabric ID. If not found, throw an "IllegalArgumentException" exception.
+     *
+     * @param networks
+     * @param fabricId
+     * @return
+     */
     private Network getNetworkByNativeId(List<Network> networks, String fabricId) {
         for (Network network : networks) {
             if (network.getNativeId().equals(fabricId)) {
                 return network;
             }
         }
-        return null;
+        throw new IllegalArgumentException(MessageFormat.format("The given fabricId '{0}' cannot be found.", fabricId));
     }
 
     /**

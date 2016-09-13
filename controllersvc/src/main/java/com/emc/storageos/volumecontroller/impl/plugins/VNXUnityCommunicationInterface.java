@@ -54,6 +54,7 @@ import com.emc.storageos.vnxe.models.Health;
 import com.emc.storageos.vnxe.models.PoolTier;
 import com.emc.storageos.vnxe.models.RaidGroup;
 import com.emc.storageos.vnxe.models.RaidTypeEnum;
+import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
@@ -430,6 +431,18 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
     }
 
+    private List<VirtualNAS> discoverNasReplicationAssociations(StorageSystem viprStorageSystem, VNXeApiClient client) {
+        List<ReplicationSession> repSessions = client.getAllReplicationSessions();
+        List<VirtualNAS> nasList = new ArrayList<VirtualNAS>();
+        for (ReplicationSession session : repSessions) {
+            VirtualNAS dstNas = findvNasByNativeId(viprStorageSystem, session.getDstResourceId());
+            dstNas.setSourceVirtualNas(findvNasByNativeId(viprStorageSystem, session.getSrcResourceId()).getId());
+            nasList.add(dstNas);
+        }
+        _logger.info("discoverNasReplicationAssociations - no of associations {}", nasList.size());
+        return nasList;
+    }
+
     private StorageSystem discoverStorageSystemInfo(VNXeApiClient client, AccessProfile accessProfile,
             VNXeStorageSystem system, Boolean isFASTVPEnabled, StorageSystem viprStorageSystem) {
         if (system != null) {
@@ -579,8 +592,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             }
 
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(), (double) totalTime
-                    / (double) 1000));
+            _logger.info(
+                    String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(), (double) totalTime
+                            / (double) 1000));
         }
     }
 
@@ -719,7 +733,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
                             diskTypes.add(disk.getDiskTechnologyEnum().name());
-                        } 
+                        }
                     }
                 }
                 pool.setSupportedDriveTypes(diskTypes);
@@ -808,12 +822,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 _logger.debug("Null data mover in list of port groups.");
                 continue;
             }
-            if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
-                    || nasServer.getIsReplicationDestination()) {
-                _logger.debug("Found a replication destination NasServer");
-                continue;
-            }
-
             if (nasServer.getIsSystem()) {
                 // skip system nasServer
                 continue;
@@ -918,7 +926,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             vNas.setProtocols(protocols);
             vNas.setNasState(VirtualNasState.LOADED.name());
             vNas.setCifsServersMap(cifsServersMap);
-
+            if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
+                    || nasServer.getIsReplicationDestination()) {
+                _logger.debug("Found a replication destination NasServer");
+                vNas.setIsReplicationDestination(true);
+            }
         }
 
         // Persist the NAS servers!!!
@@ -931,7 +943,10 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             _logger.info("discoverNasServers - new VirtualNAS servers size {}", newVirtualNas.size());
             _dbClient.createObject(newVirtualNas);
         }
-
+        List<VirtualNAS> nasList = discoverNasReplicationAssociations(system, client);
+        if (!nasList.isEmpty()) {
+            _dbClient.updateObject(nasList);
+        }
         if (isBothSupported) {
             arraySupportedProtocols.add(StorageProtocol.File.NFS.name());
             arraySupportedProtocols.add(StorageProtocol.File.CIFS.name());

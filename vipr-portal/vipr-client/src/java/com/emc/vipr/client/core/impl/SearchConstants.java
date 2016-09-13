@@ -17,4 +17,5 @@ public class SearchConstants {
     public static final String HOST_PARAM = "host";
     public static final String TENANT_PARAM = "tenant";
     public static final String DISCOVER_VCENTER = "discover_vcenter";
+    public static final String UPDATE_EXPORTS = "update_exports";
 }

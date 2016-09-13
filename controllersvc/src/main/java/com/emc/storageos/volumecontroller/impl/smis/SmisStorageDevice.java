@@ -73,7 +73,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.CloneOperations;
-import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.MetaVolumeOperations;
@@ -104,7 +103,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchron
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
@@ -130,16 +128,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private SRDFOperations _srdfOperations;
     private SmisStorageDevicePreProcessor _smisStorageDevicePreProcessor;
     private FindProviderFactory findProviderFactory;
-    private ControllerLockingService _locker;
-    private ValidatorFactory validator;
-
-    public void setValidator(ValidatorFactory validator) {
-        this.validator = validator;
-    }
-
-    public void setLocker(final ControllerLockingService locker) {
-        this._locker = locker;
-    }
 
     public void setCimObjectPathFactory(final CIMObjectPathFactory cimObjectPathFactory) {
         _cimPath = cimObjectPathFactory;

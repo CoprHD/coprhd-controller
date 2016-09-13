@@ -4,19 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
-import static com.google.common.collect.Collections2.transform;
-
-import java.util.Collection;
-import java.util.Set;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -26,6 +13,17 @@ import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValid
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import java.util.Collection;
+import java.util.Set;
+
+import static com.google.common.collect.Collections2.transform;
 
 /**
  * Abstract template class for comparing a set of ExportMask-related database values against hardware values.
@@ -34,8 +32,10 @@ import com.google.common.collect.Sets;
  */
 public abstract class AbstractExportMaskValidator extends AbstractSMISValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
+    public static final String FIELD_INITIATORS = "initiators";
+    public static final String FIELD_VOLUMES = "volumes";
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
 
     private final StorageSystem storage;
     private final ExportMask exportMask;
@@ -58,7 +58,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
         // we have tighter tolerances and need to run refresh.
         if (getConfig().validationRefreshEnabled()) {
             // Refresh the provider's view of the storage system
-            getHelper().callRefreshSystem(storage);
+            getEmcRefreshSystemInvoker().invoke(storage);
         }
 
         Set<String> database = getDatabaseResources();

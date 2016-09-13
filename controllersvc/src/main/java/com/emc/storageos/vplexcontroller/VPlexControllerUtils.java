@@ -8,9 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +45,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
@@ -569,7 +566,7 @@ public class VPlexControllerUtils {
                 }
             }
             List<String> viprInits = new ArrayList<String>();
-            if (exportMask.getInitiators() != null) {
+            if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
                 List<Initiator> inits = dbClient.queryObject(Initiator.class, URIUtil.toURIList(exportMask.getInitiators()));
                 for (Initiator init : inits) {
                     viprInits.add(Initiator.normalizePort(init.getInitiatorPort()));
@@ -590,16 +587,18 @@ public class VPlexControllerUtils {
 
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
-            List<String> initiatorsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorIdsToAdd = new ArrayList<Initiator>();
+            List<String> initiatorPortsToAdd = new ArrayList<String>();
+            List<Initiator> initiatorsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
+                Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
                 if (!exportMask.hasExistingInitiator(normalizedPort) &&
-                        !exportMask.hasUserInitiator(normalizedPort)) {
-                    initiatorsToAdd.add(normalizedPort);
-                    Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
-                    if (existingInitiator != null) {
-                        initiatorIdsToAdd.add(existingInitiator);
+                        (!exportMask.hasUserInitiator(normalizedPort) ||
+                                !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
+                                        : NullColumnValueGetter.getNullURI().toString()))) {
+                    initiatorPortsToAdd.add(normalizedPort);
+                    if (knownInitiator != null) {
+                        initiatorsToAdd.add(knownInitiator);
                     }
                     addInitiators = true;
                 }
@@ -713,7 +712,7 @@ public class VPlexControllerUtils {
 
             log.info(
                     String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}%n",
-                            name, Joiner.on(',').join(initiatorsToAdd),
+                            name, Joiner.on(',').join(initiatorPortsToAdd),
                             Joiner.on(',').join(initiatorsToRemove), 
                             Joiner.on(',').join(initiatorsToRemoveFromExisting)));
             log.info(
@@ -736,10 +735,10 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorIdsToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorsToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
-                exportMask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
-                exportMask.addInitiators(initiatorIdsToAdd);
+                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortsToAdd);
+                exportMask.addInitiators(initiatorsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);

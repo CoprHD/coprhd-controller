@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.URIUtil;
@@ -200,6 +201,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
             }
             return;
+        } else if (scheduleInfo.getReoccurrence() > ScheduleInfo.MAX_REOCCURRENCE ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
         if (scheduleInfo.getCycleFrequency() < 1 ) {
@@ -217,7 +220,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                if (scheduleInfo.getSectionsInCycle() == null || scheduleInfo.getSectionsInCycle().size() != 1) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -226,7 +229,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 }
                 break;
             case WEEKLY:
-                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                if (scheduleInfo.getSectionsInCycle() == null || scheduleInfo.getSectionsInCycle().size() != 1) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
@@ -237,7 +240,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             case DAILY:
             case HOURLY:
             case MINUTELY:
-                if (!scheduleInfo.getSectionsInCycle().isEmpty()) {
+                if (scheduleInfo.getSectionsInCycle() != null && !scheduleInfo.getSectionsInCycle().isEmpty()) {
                     throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
                 }
                 break;
@@ -317,9 +320,20 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @throws Exception
      */
     private ScheduledEvent createScheduledEvent(StorageOSUser user, URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
+        URI executionWindow = null;     // INFINITE execution window
         if (catalogService.getExecutionWindowRequired()) {
-            ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-            String msg = match(param.getScheduleInfo(), executionWindow);
+            if (catalogService.getDefaultExecutionWindowId() == null ||
+                catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
+                List<URI> executionWindows =
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExecutionWindowTenantIdIdConstraint(tenantId.toString()));
+                Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                executionWindow = getNextExecutionWindow(executionWindows, currTime);
+            } else {
+                executionWindow = catalogService.getDefaultExecutionWindowId().getURI();
+            }
+
+            ExecutionWindow window = client.findById(executionWindow);
+            String msg = match(param.getScheduleInfo(), window);
             if (!msg.isEmpty()) {
                 throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
@@ -329,6 +343,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         param.getOrderCreateParam().setScheduledEventId(scheduledEventId);
         Calendar scheduledTime = ScheduleTimeHelper.getFirstScheduledTime(param.getScheduleInfo());
         param.getOrderCreateParam().setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(scheduledTime));
+        param.getOrderCreateParam().setExecutionWindow(executionWindow);
 
         OrderRestRep restRep = orderService.createOrder(param.getOrderCreateParam());
 
@@ -344,8 +359,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             newObject.setEventStatus(ScheduledEventStatus.APPROVED);
         }
         newObject.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getScheduleInfo().serialize()), UTF_8));
-        if (catalogService.getExecutionWindowRequired()) {
-            newObject.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+        if (executionWindow != null) {
+            newObject.setExecutionWindowId(new NamedURI(executionWindow, "ExecutionWindow"));
         }
         newObject.setLatestOrderId(restRep.getId());
         newObject.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
@@ -425,10 +440,21 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @throws Exception
      */
     private ScheduledEvent updateScheduledEvent(ScheduledEvent scheduledEvent, ScheduleInfo scheduleInfo) throws Exception{
+        URI executionWindow = null;     // INFINITE execution window
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(scheduledEvent.getCatalogServiceId());
         if (catalogService.getExecutionWindowRequired()) {
-            ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-            String msg = match(scheduleInfo, executionWindow);
+            if (catalogService.getDefaultExecutionWindowId() == null ||
+                catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
+                List<URI> executionWindows =
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExecutionWindowTenantIdIdConstraint(scheduledEvent.getTenant()));
+                Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                executionWindow = getNextExecutionWindow(executionWindows, currTime);
+            } else {
+                executionWindow = catalogService.getDefaultExecutionWindowId().getURI();
+            }
+
+            ExecutionWindow window = client.findById(executionWindow);
+            String msg = match(scheduleInfo, window);
             if (!msg.isEmpty()) {
                 throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
@@ -439,12 +465,10 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         order.setScheduledTime(scheduledTime);
         client.save(order);
 
-        if (catalogService.getExecutionWindowRequired()) {
-            scheduledEvent.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
-        }
         // TODO: update execution window when admin change it in catalog service
 
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
+        scheduledEvent.setEventType(scheduleInfo.getReoccurrence() == 1? ScheduledEventType.ONCE:ScheduledEventType.REOCCURRENCE);
         client.save(scheduledEvent);
 
         log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());
@@ -525,5 +549,25 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         // deactivate the scheduled event
         client.delete(scheduledEvent);
         return Response.ok().build();
+    }
+
+
+    public URI getNextExecutionWindow(Collection<URI> windows, Calendar time) {
+        Calendar nextWindowTime = null;
+        URI nextWindow = null;
+        for (URI window : windows) {
+            ExecutionWindow executionWindow = _dbClient.queryObject(ExecutionWindow.class, window);
+            if (executionWindow == null) continue;
+
+            ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
+            Calendar windowTime = helper.calculateNext(time);
+            if (nextWindowTime == null || nextWindowTime.after(windowTime)) {
+                nextWindowTime = windowTime;
+                nextWindow = window;
+            }
+        }
+
+        return nextWindow;
+
     }
 }

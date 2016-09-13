@@ -499,7 +499,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String FAILOVER_FILE_MIRRORS_STEP_DESC = "failover MirrorFileShare Link";
     private static final String RESYNC_MIRROR_FILESHARE_STEP_DESC = "resync MirrorFileShare Link";
     private static final String START_MIRROR_FILESHARE_STEP_DES = "start MirrorFileShare Link";
-    private static final String CANCEL_MIRROR_FILESHARE_STEP_DES = "start MirrorFileShare Link";
+    private static final String CANCEL_MIRROR_FILESHARE_STEP_DES = "cancel previous Resync task";
 
     public void doFailBackMirrorSessionWF(URI systemURI, URI fsURI, String taskId) {
         log.info("start doFailBackMirrorSession operation");

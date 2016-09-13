@@ -1571,7 +1571,7 @@ public class VPlexApiClient {
      * Returns a VPlexVirtualVolumeInfo object for the given virtual volume name
      * and context path.  An attempt will first be made to get the virtual volume
      * directly by its path, but if that fails, this method will do the old "search
-     * the entire vplex method.  If still no volume is found, it will return null.
+     * the entire VPLEX" process.  If still no volume is found, it will return null.
      * 
      * @param virtualVolumeName the virtual volume name
      * @param virtualVolumePath the virtual volume path
@@ -1584,7 +1584,8 @@ public class VPlexApiClient {
             try {
                 vvinfo = getVirtualVolumeByPath(virtualVolumePath);
             } catch (Exception ex) {
-                s_logger.warn("find virtual volume by path failed: ", ex);
+                s_logger.warn("Didn't find virtual volume by path at {}, will check by name {}", 
+                        virtualVolumePath, virtualVolumeName);
             }
         }
         if (null == vvinfo && (null != virtualVolumeName && !virtualVolumeName.isEmpty())) {

@@ -255,7 +255,7 @@ public class BlockFullCopyUtils {
      * @param fullCopyVolume A reference to a volume.
      */
     public static void verifyVolumeIsFullCopy(Volume fullCopyVolume) {
-        if (fullCopyVolume.getAssociatedSourceVolume() == null) {
+        if (NullColumnValueGetter.isNullURI(fullCopyVolume.getAssociatedSourceVolume())) {
             throw APIException.badRequests.protectionOnlyFullCopyVolumesCanBeActivated();
         }
     }

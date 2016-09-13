@@ -340,10 +340,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         .getPortWorldWideName());
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, port) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, port);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, port);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, port);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, port);
                 }
                 discoverInitiator(targetHost, initiator,
                         (HostFibreChannelHba) hba);
@@ -351,10 +351,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 String iqn = ((HostInternetScsiHba) hba).getIScsiName();
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(targetHost.getId(), oldInitiators, iqn);
                 }
                 discoverInitiator(targetHost, initiator,
                         (HostInternetScsiHba) hba);

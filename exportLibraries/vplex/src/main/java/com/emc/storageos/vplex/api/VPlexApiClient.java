@@ -85,8 +85,6 @@ public class VPlexApiClient {
     private String _vplexSessionId = null;
 
     // caching of some almost-static VPLEX info for performance improvement
-    private long cacheLastRefreshed = 0;
-    private static final long CACHE_TIMEOUT = 3600000; // 60 minutes
     private static final Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
     private static final List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
 
@@ -201,11 +199,8 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
-        long timeRightNow = System.currentTimeMillis();
-        if (timeRightNow > (cacheLastRefreshed + CACHE_TIMEOUT)) {
-            vplexClusterInfoLiteCache.clear();
+        if (vplexClusterInfoLiteCache.isEmpty()) {
             vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
-            cacheLastRefreshed = timeRightNow;
             s_logger.info("refreshed lightweight cluster info list is " + vplexClusterInfoLiteCache.toString());
         }
 
@@ -1328,14 +1323,11 @@ public class VPlexApiClient {
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
     public Map<String, String> getClusterIdToNameMap() {
-        long timeRightNow = System.currentTimeMillis();
-        if (timeRightNow > (cacheLastRefreshed + CACHE_TIMEOUT)) {
-            vplexClusterIdToNameCache.clear();
+        if (vplexClusterIdToNameCache.isEmpty()) {
             List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
             for (VPlexClusterInfo clusterInfo : clusterInfos) {
                 vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
             }
-            cacheLastRefreshed = timeRightNow;
             s_logger.info("refreshed cluster id to name map is " + vplexClusterIdToNameCache.toString());
         }
 
@@ -2005,4 +1997,8 @@ public class VPlexApiClient {
         return getDiscoveryManager().getStorageViewsForCluster(clusterName, true);
     }
 
+    public void clearCaches() {
+        vplexClusterIdToNameCache.clear();
+        vplexClusterInfoLiteCache.clear();
+    }
 }

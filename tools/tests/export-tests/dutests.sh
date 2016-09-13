@@ -33,6 +33,9 @@ Usage()
     exit 2
 }
 
+# Extra debug output
+DUTEST_DEBUG=${DUTEST_DEBUG:-0}
+
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
 
@@ -395,7 +398,9 @@ load_zones() {
     if [ $? -ne 0 ]; then
 	echo "ERROR: Could not determine the zones that were created"
     fi
-    echo "    load_zones: " $zones
+    if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	secho "load_zones: " $zones
+    fi
 }
 
 # Verify the zones exist (or don't exist)
@@ -436,16 +441,20 @@ clean_zones() {
 delete_zones() {
     for zone in ${zones}
     do
-        echo "deleteing zone ${zone}"
-    	zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1
-	if [ $? -ne 0 ]; then
-	    echo "zones not deleted"
-	fi
-	echo "activating fabric ${fabricid}"
-	zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1
-	if [ $? -ne 0 ]; then
-	    echo "fabric not activated"
-	fi
+      if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	  secho "deleteing zone ${zone}"
+      fi
+      zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1
+      if [ $? -ne 0 ]; then
+	  secho "zones not deleted"
+      fi
+      if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	  echo "sactivating fabric ${fabricid}"
+      fi
+      zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1
+      if [ $? -ne 0 ]; then
+	  secho "fabric not activated"
+      fi
     done
 }
 

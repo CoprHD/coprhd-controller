@@ -13,6 +13,8 @@ public class RemoteSystem extends VNXeBase {
     private String model;
     private String serialNumber;
     private String managementAddress;
+    private ReplicationCapabilityEnum connectionType;
+    private String username;
 
     public String getName() {
         return name;
@@ -30,12 +32,13 @@ public class RemoteSystem extends VNXeBase {
         this.model = model;
     }
 
-     public String getSerialNumber() {
-         return serialNumber;
-     }
-     public void setSerialNumber(String serialNumber) {
-         this.serialNumber = serialNumber;
-     }
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
 
     public String getManagementAddress() {
         return managementAddress;
@@ -45,4 +48,19 @@ public class RemoteSystem extends VNXeBase {
         this.managementAddress = managementAddress;
     }
 
+    public ReplicationCapabilityEnum getConnectionType() {
+        return connectionType;
+    }
+
+    public void setConnectionType(ReplicationCapabilityEnum connectionType) {
+        this.connectionType = connectionType;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 }

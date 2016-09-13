@@ -62,10 +62,11 @@ import com.emc.storageos.vnxe.models.NfsShareModifyParam;
 import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
 import com.emc.storageos.vnxe.models.RemoteSystem;
-import com.emc.storageos.vnxe.models.RemoteSystemCreateParam;
+import com.emc.storageos.vnxe.models.RemoteSystemParam;
+import com.emc.storageos.vnxe.models.ReplicationCapabilityEnum;
 import com.emc.storageos.vnxe.models.ReplicationParam;
 import com.emc.storageos.vnxe.models.ReplicationSession;
-import com.emc.storageos.vnxe.models.ReplicationSessionCreateParam;
+import com.emc.storageos.vnxe.models.ReplicationSessionParam;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.SnapCreateParam;
 import com.emc.storageos.vnxe.models.StorageResource;
@@ -2101,7 +2102,8 @@ public class VNXeApiClient {
             try {
                 req.createHostInitiator(initCreateParam);
             } catch (VNXeException e) {
-                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the host
+                // For ESX hosts, even if we could not get the initiators when we query them, when we try to create the
+                // host
                 // initiator with the created host, it would throw error, saying the initiator exists. ignore the error.
                 String message = e.getMessage();
                 if (message != null && message.contains(VNXeConstants.INITIATOR_EXISITNG)) {
@@ -2828,7 +2830,8 @@ public class VNXeApiClient {
     /**
      * Get consistency group native Id by its name
      * 
-     * @param cgName consistency group name
+     * @param cgName
+     *            consistency group name
      * @return consistency group native Id
      */
     public String getConsistencyGroupIdByName(String cgName) {
@@ -2840,9 +2843,12 @@ public class VNXeApiClient {
     /**
      * Modify host lun HLU
      * 
-     * @param hostId Host Id
-     * @param hostLunId HostLun Id
-     * @param hlu The new hlu value
+     * @param hostId
+     *            Host Id
+     * @param hostLunId
+     *            HostLun Id
+     * @param hlu
+     *            The new hlu value
      */
     public void modifyHostLunHlu(String hostId, String hostLunId, int hlu) {
         HostRequest req = new HostRequest(_khClient, hostId);
@@ -2860,7 +2866,8 @@ public class VNXeApiClient {
     /**
      * Get Initiator using its iqn or wwn
      * 
-     * @param wwn wwn or iqn
+     * @param wwn
+     *            wwn or iqn
      * @return host initiator instance
      */
     public VNXeHostInitiator getInitiatorByWWN(String wwn) {
@@ -2904,58 +2911,118 @@ public class VNXeApiClient {
         return req.checkLunExists(lunId);
     }
 
-     /**
-      * get all replication sessions
-      */
-     public List<ReplicationSession> getAllReplicationSessions() {
-         _logger.info("getting all replication sessions");
-         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
-         return req.get();
+    /**
+     * get all replication sessions
+     */
+    public List<ReplicationSession> getAllReplicationSessions() {
+        _logger.info("getting all replication sessions");
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.get();
 
-     }
-     
-     public void createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,String remoteSystemId){
-         _logger.info("Creating new replication session:");
-         ReplicationSessionCreateParam createParam = new ReplicationSessionCreateParam();
-         if (remoteSystemId == null){
-              createParam.setSrcResourceId(srcResourceId);
-              createParam.setDstResourceId(dstResourceId);
-              createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
-              createParam.setAutoInitiate(true);
-         } else {
-              RemoteSystem remoteSystem = getRemoteSystem(remoteSystemId);
-              createParam.setRemoteSystem(remoteSystem);
-              //createParam.setSrcSPAInterface(srcSPAInterface);
-              //createParam.setSrcSPBInterface(srcSPBInterface);
-              //createParam.setDstSPAInterface(dstSPAInterface);
-              //createParam.setDstSPBInterface(dstSPBInterface);
-         }
-         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
-         req.createReplicationSession(createParam);
-     }
+    }
 
-     public RemoteSystem getRemoteSystem(String remoteSystemId){
-         _logger.info("getting remote system by id");
-         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
-         return req.get(remoteSystemId);
-     }
+    public VNXeCommandJob createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,
+            String remoteSystemId) {
+        _logger.info("Creating new replication session:");
+        ReplicationSessionParam createParam = new ReplicationSessionParam();
+        if (remoteSystemId == null) {
+            createParam.setSrcResourceId(srcResourceId);
+            createParam.setDstResourceId(dstResourceId);
+            createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
+            createParam.setAutoInitiate(true);
+        } else {
+            RemoteSystem remoteSystem = getRemoteSystem(remoteSystemId);
+            createParam.setRemoteSystem(remoteSystem);
+        }
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.createReplicationSession(createParam);
+    }
 
-     public List<RemoteSystem> getAllRemoteSystems() {
-         _logger.info("getting all remote systems");
-         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
-         return req.get();
-     }
+    public VNXeCommandJob modifyReplicationSession(String id, int maxTimeOutOfSync) {
+        ReplicationSessionParam param = new ReplicationSessionParam();
+        param.setMaxTimeOutOfSync(maxTimeOutOfSync);
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.modifyReplicationSession(id, param);
+    }
 
-     public void createRemoteSystem(String ipAddress, String userName, String password){
-         _logger.info("Creating new remote system");
-         RemoteSystemCreateParam createParam = new RemoteSystemCreateParam();
-         createParam.setManagementAddress(ipAddress);
-         createParam.setRemoteUsername(userName);
-         createParam.setRemotePassword(password);
-         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
-         req.createRemoteSystem(createParam);
-     }
+    public VNXeCommandResult deleteReplicationSession(String id) {
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.deleteReplicationSession(id);
+    }
 
-         
+    public VNXeCommandJob resumeReplicationSession(String id, boolean forceFullCopy) {
+        ReplicationSessionParam param = new ReplicationSessionParam();
+        param.setForceFullCopy(forceFullCopy);
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.resumeReplicationSession(id, param);
+    }
 
+    public VNXeCommandJob pauseReplicationSession(String id) {
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.pauseReplicationSession(id);
+    }
+
+    public VNXeCommandJob syncReplicationSession(String id) {
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.syncReplicationSession(id);
+    }
+
+    public VNXeCommandJob failoverReplicationSession(String id, boolean sync) {
+        ReplicationSessionParam param = new ReplicationSessionParam();
+        param.setSync(sync);
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.failoverReplicationSession(id, param);
+    }
+
+    public VNXeCommandJob failbackReplicationSession(String id, boolean forceFullCopy) {
+        ReplicationSessionParam param = new ReplicationSessionParam();
+        param.setForceFullCopy(forceFullCopy);
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.failbackReplicationSession(id, param);
+    }
+
+    public RemoteSystem getRemoteSystem(String remoteSystemId) {
+        _logger.info("getting remote system by id");
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.get(remoteSystemId);
+    }
+
+    public List<RemoteSystem> getAllRemoteSystems() {
+        _logger.info("getting all remote systems");
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.get();
+    }
+
+    public VNXeCommandJob createRemoteSystem(String ipAddress, String userName, String password) {
+        _logger.info("Creating new remote system");
+        RemoteSystemParam createParam = new RemoteSystemParam();
+        createParam.setManagementAddress(ipAddress);
+        createParam.setRemoteUsername(userName);
+        createParam.setRemotePassword(password);
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.createRemoteSystem(createParam);
+    }
+
+    public VNXeCommandJob modifyRemoteSystem(String id, String ipAddress, String userName, String password) {
+        _logger.info("modifying remote system");
+        RemoteSystemParam param = new RemoteSystemParam();
+        param.setManagementAddress(ipAddress);
+        param.setUsername(userName);
+        param.setPassword(password);
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.modifyRemoteSystem(id, param);
+    }
+
+    public VNXeCommandJob verifyRemoteSystem(String id, ReplicationCapabilityEnum connectionType) {
+        _logger.info("verifying remote system");
+        RemoteSystemParam param = new RemoteSystemParam();
+        param.setConnectionType(connectionType);
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.verifyRemoteSystem(id, param);
+    }
+
+    public VNXeCommandResult deleteRemoteSystem(String id) {
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.deleteRemoteSystem(id);
+    }
 }

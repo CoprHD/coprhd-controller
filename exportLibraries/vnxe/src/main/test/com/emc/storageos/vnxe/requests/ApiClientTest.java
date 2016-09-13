@@ -129,7 +129,7 @@ public class ApiClientTest {
         }
     }
 
-    @Test
+    // @Test
     public void createLun() {
         String name = "tyu-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
@@ -259,7 +259,7 @@ public class ApiClientTest {
 
     }
 
-    @Test
+    // @Test
     public void getSystem() {
         VNXeStorageSystem system = apiClient.getStorageSystem();
         System.out.println(system.getModel());
@@ -375,8 +375,10 @@ public class ApiClientTest {
     @Test
     public void getAllRepSessions() {
         List<ReplicationSession> sessions = apiClient.getAllReplicationSessions();
+        System.out.println("List start");
         for (ReplicationSession session : sessions) {
             System.out.println(session.getReplicationResourceType().name());
         }
+        System.out.println("List end");
     }
 }

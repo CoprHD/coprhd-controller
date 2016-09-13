@@ -5,32 +5,20 @@
 package com.emc.storageos.volumecontroller.impl.vnxunity;
 
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
-import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class VNXUnityMirrorOperations extends VNXUnityOperations implements FileMirrorOperations {
     private static final Logger _log = LoggerFactory.getLogger(VNXUnityMirrorOperations.class);
-
 
     /**
      * Create Mirror between source and target fileshare
@@ -56,10 +44,10 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
                 // Zero RPO value means policy has to be started manually-NO Schedule
                 schedule = "";
             } else {
-                //TODO
+                // TODO
             }
         }
-        //TODO:
+        // TODO:
         _log.info("Creating File Share Mirror Link");
         if (cmdResult.getCommandSuccess()) {
             completer.ready(dbClient);
@@ -72,7 +60,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     public void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-  //TODO
+            // TODO
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(dbClient);
             } else {
@@ -85,7 +73,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     public void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName)
             throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
-//TODO
+        // TODO
         if (cmdResult.getCommandSuccess()) {
             completer.ready(dbClient);
         } else if (cmdResult.getCommandPending()) {
@@ -100,7 +88,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     public void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-   //TODO
+            // TODO
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(dbClient);
             } else {
@@ -114,7 +102,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
-//TODO
+            // TODO
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(dbClient);
             } else if (cmdResult.getCommandPending()) {
@@ -126,13 +114,13 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     }
 
     @Override
-    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer)
+    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName)
             throws DeviceControllerException {
         FileShare sourceFileShare = dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         BiosCommandResult cmdResult = null;
-//TODO
+        // TODO
         if (cmdResult.getCommandSuccess()) {
-           completer.ready(dbClient);
+            completer.ready(dbClient);
         } else {
             completer.error(dbClient, cmdResult.getServiceCoded());
         }
@@ -143,11 +131,11 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             throws DeviceControllerException {
         FileShare targetFileShare = dbClient.queryObject(FileShare.class, target);
         BiosCommandResult cmdResult = null;
-//TODO
+        // TODO
 
         // Check if mirror policy exists on target system if yes, delete it..
         if (cmdResult.getCommandSuccess()) {
-             completer.ready(dbClient);
+            completer.ready(dbClient);
         } else {
             completer.error(dbClient, cmdResult.getServiceCoded());
         }
@@ -157,7 +145,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     public void failoverMirrorFileShareLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String policyName)
             throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
-//TODO
+        // TODO
         if (cmdResult.getCommandSuccess()) {
             completer.ready(dbClient);
         } else if (cmdResult.getCommandPending()) {
@@ -168,11 +156,10 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
     }
 
     @Override
-    public void
-            resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target,
-                    TaskCompleter completer, String policyName) {
+    public void resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target,
+            TaskCompleter completer, String policyName) {
         BiosCommandResult cmdResult = null;
-//TODO
+        // TODO
         if (cmdResult.getCommandSuccess()) {
             completer.ready(dbClient);
         } else if (cmdResult.getCommandPending()) {
@@ -182,16 +169,15 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         }
     }
 
-     @Override
-     public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
+    @Override
+    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
-     //TODO
-     }
+        // TODO
+    }
 
-     @Override
-     public  void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
-             throws DeviceControllerException {
-//TODO
-     }
-  
+    @Override
+    public void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException {
+        // TODO
+    }
 }

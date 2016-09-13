@@ -460,7 +460,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
 
             // Update the connection status of SMI-S provider!!
-            
+            updateSmisConnection(accessProfile);
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemId.toString());

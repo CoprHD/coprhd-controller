@@ -22,7 +22,7 @@ delete_mask() {
     serial_number=$1
     pattern=$2
 
-    echo "y" | /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern} -noprompt
     if [ $? -ne 0 ]; then
 	echo "no mask found."
     fi
@@ -40,7 +40,7 @@ delete_mask() {
 	# Put it back into the optimized SG?
 
 	# Delete storage group
-	echo "y" | /opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage
+	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage -noprompt
     fi
 }
 
@@ -61,7 +61,7 @@ add_volume_to_mask() {
 	sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
 
         # Remove the volume from the storage group it is in
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id} -noprompt
     fi
 
     # Add it to the storage group ViPR knows about
@@ -70,7 +70,7 @@ add_volume_to_mask() {
     sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
 
     # Add the volume into the storage group we specify with the pattern
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id add dev ${device_id}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id add dev ${device_id} -noprompt
 
     # Ensure the provider is updated
     verify_export_via_provider ${serial_number} ${pattern} none `expr ${num_luns} + 1`
@@ -87,7 +87,7 @@ remove_volume_from_mask() {
     # Add it to the storage group ViPR knows about
     sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_SG | tail -1 | cut -c1-31`
     sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id} -noprompt
 
     # Ensure the provider is updated
     verify_export_via_provider ${serial_number} ${pattern} none `expr ${num_luns} - 1`
@@ -107,7 +107,7 @@ add_initiator_to_mask() {
 	echo "Initiator group ${pattern}_IG was not found.  Not able to add to it."
     else
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn} -noprompt
     fi
 
     # Ensure the provider is updated
@@ -128,7 +128,7 @@ remove_initiator_from_mask() {
 	echo "Initiator group ${pattern}_IG was not found.  Not able to add to it."
     else
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG remove -wwn ${pwwn}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG remove -wwn ${pwwn} -noprompt
     fi
 
     # Ensure the provider is updated
@@ -367,18 +367,18 @@ create_export_mask() {
         IG="${NAME}_CIG"
         echo "=== symaccess -sid ${SID} create -type initiator -name ${IG}"
         /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG}
-        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on"
-        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on
-        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}"
-        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN}
+        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} set consistent_lun on -noprompt
+        echo "=== symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN} -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type initiator -name ${IG} add -ig ${PWWN} -noprompt
 
         # Replace CIG or IG with PG
         PG=`echo ${PWWN} | sed -E "s/[CIG]+$/PG/"`
         echo "Generated PG name ${PG}"
     else
         IG="${NAME}_IG"
-        echo "=== symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}"
-        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN}
+        echo "=== symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN} -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type initiator -name ${IG} -wwn ${PWWN} -noprompt
     fi
 
     # Test if we were passed devIds or a CSG/SG name
@@ -398,18 +398,18 @@ create_export_mask() {
         optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
         if [[ ! -z "${optimized// }" ]]; then
             current_sg=`symaccess -sid ${SID} list -type storage -dev $dev_id -v | grep "Storage Group Name" | tail -n1 | awk '{ print $5 }'`
-            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id"
-            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id
+            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id -noprompt"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${current_sg} remove devs $dev_id -noprompt
         fi
 
-        echo "=== symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id"
-        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id
+        echo "=== symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id -noprompt"
+        /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create -type storage -name ${CSG} devs $dev_id -noprompt
     fi
 
     echo "Hijacking port group ${PG}"
 
-    echo "=== symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}"
-    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG}
+    echo "=== symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG} -noprompt"
+    /opt/emc/SYMCLI/bin/symaccess -sid ${SID} create view -name ${NAME} -sg $CSG -pg ${PG} -ig ${IG} -noprompt
 
     # Verify that the mask has been created on the provider
     verify_export_via_provider $SID $NAME exists
@@ -432,8 +432,8 @@ delete_export_mask() {
 
         optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
         if [[ ! -z "${optimized// }" ]]; then
-            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id"
-            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id
+            echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id -noprompt"
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_i -nopromptd
         fi
     else
         echo "=== Skipping storage group deletion because 'noop' was passed"

@@ -1722,37 +1722,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             if (providerUriList.iterator().hasNext()) {
                 StorageProvider storageProvider = dbClient.queryObject(StorageProvider.class,
                         providerUriList.iterator().next());
-
-                // get driver for the provider
-                BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
-                String username = storageProvider.getUserName();
-                String password = storageProvider.getPassword();
-                String hostName = storageProvider.getIPAddress();
-                Integer providerPortNumber = storageProvider.getPortNumber();
-                String providerType = storageProvider.getInterfaceType();
-                Boolean useSsl = storageProvider.getUseSSL();
-                String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
-                        providerType, hostName, providerPortNumber, username, useSsl);
-                _log.info(msg);
-
-                com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
-                        new com.emc.storageos.storagedriver.model.StorageProvider();
-                // initialize driver provider
-                driverProvider.setProviderHost(hostName);
-                driverProvider.setPortNumber(providerPortNumber);
-                driverProvider.setUsername(username);
-                driverProvider.setPassword(password);
-                driverProvider.setUseSSL(useSsl);
-                driverProvider.setProviderType(providerType);
-
-                isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+                isConnectionValid = validateStorageProviderConnection(storageProvider);
             } else {
                String msg = String.format("Cannot find provider with ID: %s ", providerID);
             }
         } catch (Exception ex) {
             _log.error(
-                    "Problem in checking provider live connection with IP address and port: {}/{} due to: ",
+                    "Problem in checking provider live connection with IP address and port: {}:{} due to: ",
                     ipAddress, portNumber, ex);
+        }
+        return isConnectionValid;
+    }
+
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        boolean isConnectionValid = false;
+        try {
+            // call driver to validate provider connection
+            // get driver for the provider
+            BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
+            String username = storageProvider.getUserName();
+            String password = storageProvider.getPassword();
+            String hostName = storageProvider.getIPAddress();
+            Integer providerPortNumber = storageProvider.getPortNumber();
+            String providerType = storageProvider.getInterfaceType();
+            Boolean useSsl = storageProvider.getUseSSL();
+            String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
+                    providerType, hostName, providerPortNumber, username, useSsl);
+            _log.info(msg);
+
+            com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
+                    new com.emc.storageos.storagedriver.model.StorageProvider();
+            // initialize driver provider
+            driverProvider.setProviderHost(hostName);
+            driverProvider.setPortNumber(providerPortNumber);
+            driverProvider.setUsername(username);
+            driverProvider.setPassword(password);
+            driverProvider.setUseSSL(useSsl);
+            driverProvider.setProviderType(providerType);
+
+            isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+        } catch (Exception ex) {
+            _log.error("Problem in checking connection of provider {} due to: ", storageProvider.getLabel(), ex);
         }
         return isConnectionValid;
     }

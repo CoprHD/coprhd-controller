@@ -245,9 +245,12 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
      * @param validators    List of AbstractSMISValidator instances
      */
     private void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
+        EMCRefreshSystemInvoker emcRefreshSystem = new OneTimeEMCRefreshSystem(helper);
+
         for (AbstractSMISValidator validator : validators) {
             validator.setFactory(this);
             validator.setLogger(logger);
+            validator.setEmcRefreshSystemInvoker(emcRefreshSystem);
         }
     }
 

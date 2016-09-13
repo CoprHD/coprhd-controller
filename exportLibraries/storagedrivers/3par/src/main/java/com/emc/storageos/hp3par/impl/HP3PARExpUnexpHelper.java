@@ -251,7 +251,7 @@ public class HP3PARExpUnexpHelper {
                                 }
 
                                 task.setStatus(DriverTask.TaskStatus.READY);
-                                _log.info("3PARDriver: Already exported, exiting" + message);
+                                _log.info("3PARDriver: Already exported, exiting " + message);
                             }
                         }
 

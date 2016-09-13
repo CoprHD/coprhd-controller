@@ -68,15 +68,23 @@ public class ActionableEventExecutor {
         }
         URI oldClusterURI = host.getCluster();
 
+        Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+        Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        if (newCluster != null && oldCluster != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
+                    oldCluster.getLabel(), newCluster.getLabel()));
+        } else if (newCluster == null && oldCluster != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsRemovedFromCluster",
+                    host.getLabel(),
+                    oldCluster.getLabel()));
+        } else if (newCluster != null && oldCluster == null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsAddedToCluster", host.getLabel(),
+                    newCluster.getLabel()));
+        }
+
         if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
-            Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
-            if (oldCluster != null) {
-                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsRemovedFromCluster",
-                        host.getLabel(),
-                        oldCluster.getLabel()));
-            }
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
@@ -88,11 +96,6 @@ public class ActionableEventExecutor {
                 && !NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
             // Non-clustered host being added to a cluster
-            Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
-            if (newCluster != null) {
-                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetailsAddedToCluster", host.getLabel(),
-                        newCluster.getLabel()));
-            }
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, clusterId);
             for (ExportGroup eg : exportGroups) {
                 List<BlockObjectDetails> affectedVolumes = getBlockObjectDetails(hostId, eg.getVolumes());
@@ -105,12 +108,6 @@ public class ActionableEventExecutor {
                 && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                         || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
             // Clustered host being moved to another cluster
-            Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
-            Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
-            if (newCluster != null && oldCluster != null) {
-                result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
-                        oldCluster.getLabel(), newCluster.getLabel()));
-            }
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getSharedExports(_dbClient, oldClusterURI);
             for (ExportGroup export : exportGroups) {
                 if (export != null) {
@@ -185,6 +182,8 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDetails",
+                    initiator.getInitiatorPort()));
             List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, initiator.getHost().toString());
 
             for (ExportGroup export : exportGroups) {
@@ -252,6 +251,8 @@ public class ActionableEventExecutor {
 
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         if (initiator != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDetails",
+                    initiator.getInitiatorPort()));
             List<ExportGroup> exportGroups = ComputeSystemControllerImpl.getExportGroups(_dbClient, initiator.getId(),
                     Lists.newArrayList(initiator));
 

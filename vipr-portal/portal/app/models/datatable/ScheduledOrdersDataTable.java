@@ -5,8 +5,12 @@
 package models.datatable;
 
 import java.net.URI;
+import java.time.ZonedDateTime;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
+import play.Logger;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
 import util.OrderUtils;
@@ -26,7 +30,7 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
         super(Models.currentAdminTenant());
         alterColumn("submittedBy").setVisible(true);
         addColumn("executionWindowId").hidden().setSearchable(false);
-        addColumn("executionWindow");
+        addColumn("scheduledTime").setRenderFunction("render.localDate");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
     }
@@ -63,6 +67,7 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
     public static class ScheduledOrderInfo extends OrderInfo {
         public String executionWindowId;
         public String executionWindow;
+        public Long scheduledTime;
 
         public ScheduledOrderInfo(OrderRestRep o) {
             super(o);
@@ -76,6 +81,10 @@ public class ScheduledOrdersDataTable extends OrderDataTable {
             }
             else {
                 this.executionWindow = MessagesUtils.get("scheduledOrders.nextExecutionWindow");
+            }
+
+            if (o.getScheduledTime() != null) {
+                this.scheduledTime = o.getScheduledTime().getTime().getTime();
             }
         }
     }

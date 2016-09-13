@@ -3973,23 +3973,6 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Check if the volume is a vplex volume
-     * 
-     * @param volume The volume to be checked
-     * @return true or false
-     */
-    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
-        boolean result = false;
-        URI storageUri = volume.getStorageController();
-        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
-        String systemType = storage.getSystemType();
-        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
-            result = true;
-        }
-        return result;
-    }
-
-    /**
      * Gets all clones for the given set name and volume group.
      * 
      * @param cloneSetName
@@ -4006,7 +3989,7 @@ public class VolumeGroupService extends TaskResourceService {
             while (iter.hasNext()) {
                 Volume vol = iter.next();
                 URI sourceId = getSourceIdForFullCopy(vol);
-                if (sourceId != null) {
+                if (!NullColumnValueGetter.isNullURI(sourceId)) {
                     Volume sourceVol = _dbClient.queryObject(Volume.class, sourceId);
                     if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
                             && sourceVol.getVolumeGroupIds().contains(volumeGroupId.toString())) {

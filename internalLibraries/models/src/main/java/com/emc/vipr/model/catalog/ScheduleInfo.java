@@ -39,6 +39,8 @@ public class ScheduleInfo implements Serializable {
     public static final String FULL_DAYTIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final String FULL_DAY_FORMAT = "yyyy-MM-dd";
 
+    public static final int MAX_REOCCURRENCE = 100;  // valid range for reoccurrence is [0 .. 100]
+
     // start hour and minute of the date
     private Integer hourOfDay;        // [0..23)
     private Integer minuteOfHour;    // [0..59)

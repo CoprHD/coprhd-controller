@@ -45,7 +45,7 @@ public class ServiceCatalog extends Controller {
         Map<String, CategoryDef> catalog = getCatalog(Models.currentAdminTenant(), source);
         Map<String, List<BreadCrumb>> breadcrumbs = createBreadCrumbs(catalog);
         TenantSelector.addRenderArgs();
-        render(catalog, breadcrumbs);
+        render(catalog, breadcrumbs, source);
     }
 
     public static void docCategory(String categoryId) {

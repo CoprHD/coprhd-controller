@@ -42,7 +42,7 @@
   #{/set}
 
   #{set 'breadcrumbs'}
-    #{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@catalog.ServiceCatalog.view(), visible:true /}
+    #{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@catalog.ServiceCatalog.view(), visible:true, source:source /}
   #{/set}
 
   <div class="container">
@@ -140,3 +140,4 @@
       
   </div>
 #{/if}
+

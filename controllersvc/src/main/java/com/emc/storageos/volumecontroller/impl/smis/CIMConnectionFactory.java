@@ -196,7 +196,8 @@ public class CIMConnectionFactory {
                 StorageSystem.class, allStorageSystemsURIList);
         for (StorageSystem storageSystem : allStorageSystemList) {
             if (null != storageSystem &&
-                    Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
+                    Type.vnxfile.toString().equals(storageSystem.getSystemType()) && 
+                    ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(storageSystem.getSmisConnectionStatus())) {
                 CimConnection cimConnection = getConnection(storageSystem);
                 if (null == cimConnection) {
                     _log.error("No CIMOM connection found for ip/port {}",

@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
@@ -76,6 +77,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     private static final String READY = "ready";
 
     private static int BYTESPERMB = 1048576;
+    private static final int MAX_RETRIES = 3;
 
     public VNXFileStorageDeviceXML() {
         this._controllerID = 4002;
@@ -1043,11 +1045,29 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public void doConnect(StorageSystem storage) {
-        try {
-            _connectionFactory.getConnection(storage);
-        } catch (Exception e) {
-            throw new IllegalStateException("No cim connection for " + storage.getIpAddress(), e);
-        }
+    	int reTryTimes = 0;
+    	boolean successSmisConnection = false;
+    	String connectionStatus = ConnectionStatus.NOTCONNECTED.toString();
+    	
+    	do {
+    		try {
+    			if(_connectionFactory.getConnection(storage) != null ) {
+    				successSmisConnection = true;
+    				break;
+    			}
+
+    		} catch (Exception e) {
+    			_log.error("Fail to connect to storage provider {} port {}", storage.getSmisProviderIP(),
+    					storage.getSmisPortNumber());
+    		}
+    	} while (reTryTimes++ < MAX_RETRIES);
+    	
+    	// Update the storage system's SMIS provider connection status!!!
+    	if(successSmisConnection) {
+    		connectionStatus = ConnectionStatus.CONNECTED.toString();
+    	} 
+    	storage.setSmisConnectionStatus(connectionStatus);
+    	_dbClient.updateObject(storage);
     }
 
     @Override

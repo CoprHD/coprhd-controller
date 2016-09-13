@@ -19,10 +19,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.nas.vnxfile.xmlapi.TreeQuota;
+import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -40,6 +44,7 @@ import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -62,6 +67,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Namespace;
 import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
+import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileCollectionException;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.util.VersionChecker;
@@ -82,6 +88,7 @@ import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileExecutor;
+import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
@@ -111,6 +118,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final Long TBsINKB = 1073741824L;
+    private static final int MAX_RETRIES = 3;
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
 
@@ -451,6 +459,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // For existing virtual nas ports!!
             StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
 
+            // Update the connection status of SMI-S provider!!
+            
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemId.toString());
@@ -3673,6 +3683,43 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         reqAttributeMap.put(VNXFileConstants.URI, getServerUri(profile));
         reqAttributeMap.put(VNXFileConstants.AUTHURI, getLoginUri(profile));
         return reqAttributeMap;
+    }
+    
+    /**
+     * Upadates the connection status of SMI-S Provider, based on AccessProfile
+     * 
+     * @param accessProfile
+     *            : AccessProfile for the providers
+     */
+    private void updateSmisConnection(AccessProfile accessProfile) {
+
+     	int reTryTimes = 0;
+    	boolean successSmisConnection = false;
+    	String connectionStatus = ConnectionStatus.NOTCONNECTED.toString();
+    	
+    	final CIMConnectionFactory connectionFactory = (CIMConnectionFactory) accessProfile
+    			.getCimConnectionFactory();
+    	StorageSystem storage = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+
+    	do {
+    		try {
+    			if(connectionFactory.getConnection(storage) != null ) {
+    				successSmisConnection = true;
+    				break;
+    			}
+
+    		} catch (Exception e) {
+    			_logger.error("Fail to connect to storage provider {} port {}", storage.getSmisProviderIP(),
+    					      storage.getSmisPortNumber());
+    		}
+    	} while (reTryTimes++ < MAX_RETRIES);
+
+    	// Update the storage system's SMIS provider connection status!!!
+    	if(successSmisConnection) {
+    		connectionStatus = ConnectionStatus.CONNECTED.toString();
+    	} 
+    	storage.setSmisConnectionStatus(connectionStatus);
+    	_dbClient.updateObject(storage);
     }
 
     /**

@@ -174,7 +174,8 @@ public class VPlexApiClient {
 
     /**
      * Gets detailed information about the VPLEX clusters, including storage
-     * volume information.
+     * volume information.  This method will always call the VPLEX API to get
+     * the very latest info, bypassing the local cluster info cache.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
@@ -186,7 +187,13 @@ public class VPlexApiClient {
     }
 
     /**
-     * Gets information about the VPLEX clusters.
+     * Gets information about the VPLEX clusters. The "lite" version
+     * fetches all information except for the deep storage volume information,
+     * which is a very expensive call only needed in certain cases.  If that 
+     * information is needed, use VPlexApiClient.getClusterInformationDetails.
+     * 
+     * Additionally this "lite" method will retrieve the cluster info from a 
+     * local cache in order to improve performance.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
@@ -256,9 +263,12 @@ public class VPlexApiClient {
     }
 
     /**
-     * Gets the Storage Views in a Vplex System.
+     * Gets the fully-detailed VPLEX storage view information, including detailed initiator
+     * data.  The initiator data can require a lot of extra processing, so if this information
+     * is not needed by the caller, VPlexApiClient.getStorageViewsLite may be a sufficient and
+     * much faster option.
      * 
-     * @return A list of VPlexStorageViewInfo specifying the info for the VPlex storage views.
+     * @return A list of VPlexStorageViewInfo specifying the info for the VPLEX storage views.
      * 
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
@@ -269,11 +279,15 @@ public class VPlexApiClient {
     }
 
     /**
-     * Gets the Storage Views in a VPLEX System without some details (faster in certain cases).
+     * Gets a "lite" version of the VPLEX storage view data with only the top level properties
+     * included to improve performance. This means that the storage view info objects will not
+     * include detailed initiator information (which is very expensive to populate, requiring
+     * many VPLEX API calls).  If the initiator information is needed, use the
+     * VPlexApiClient.getStorageViewDetails method instead.
      * 
-     * @return A list of VPlexStorageViewInfo specifying the info for the VPlex storage views.
+     * @return A list of VPlexStorageViewInfo specifying the info for the VPLEX storage views.
      * 
-     * @throws VPlexApiException If a VPlex request returns a failed status or
+     * @throws VPlexApiException If a VPLEX request returns a failed status or
      *             an error occurs processing the response.
      */
     public List<VPlexStorageViewInfo> getStorageViewsLite() throws VPlexApiException {

@@ -97,7 +97,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         this.mirrorOperations = mirrorOperations;
     }
 
-
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
             FileDeviceInputOutput fileInOut) throws ControllerException {
@@ -240,7 +239,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1618,8 +1617,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "Unity"));
     }
- 
-    //File Replication Operations
+
+    // File Replication Operations
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
@@ -1632,8 +1631,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.cancelMirrorFileShareLink(system, target, completer);
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        mirrorOperations.cancelMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
     }
 
     @Override
@@ -1661,7 +1660,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
     }
 
-
     @Override
     public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
@@ -1669,14 +1667,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-       
+
         mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
     @Override
     public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
             String devSpecificPolicyName) {
-       
         mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
     }
 
@@ -1705,7 +1702,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         completer.ready(dbClient);
     }
 
-     /**
+    /**
      * rollback the filesystem
      * 
      * @param system
@@ -1719,7 +1716,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return this.doDeleteFS(system, fileInputOutput);
     }
 
-     private FileDeviceInputOutput prepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
+    private FileDeviceInputOutput prepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
         FileDeviceInputOutput args = new FileDeviceInputOutput();
         boolean isFile = false;
         args.setOpId(opId);
@@ -1739,11 +1736,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return args;
     }
 
-     @Override
+    @Override
     public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-
-
-
 }

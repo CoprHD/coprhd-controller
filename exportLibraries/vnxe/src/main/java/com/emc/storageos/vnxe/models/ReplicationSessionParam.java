@@ -5,12 +5,14 @@
 
 package com.emc.storageos.vnxe.models;
 
-public class ReplicationSessionCreateParam extends ParamBase {
+public class ReplicationSessionParam extends ParamBase {
     private String srcResourceId;
     private String dstResourceId;
     private int maxTimeOutOfSync;
     private boolean autoInitiate;
     private RemoteSystem remoteSystem = null;
+    private boolean forceFullCopy; // not for create
+    private boolean sync; // not for create
 
     public String getSrcResourceId() {
         return srcResourceId;
@@ -52,4 +54,19 @@ public class ReplicationSessionCreateParam extends ParamBase {
         this.autoInitiate = autoInitiate;
     }
 
+    public boolean isForceFullCopy() {
+        return forceFullCopy;
+    }
+
+    public void setForceFullCopy(boolean forceFullCopy) {
+        this.forceFullCopy = forceFullCopy;
+    }
+
+    public boolean isSync() {
+        return sync;
+    }
+
+    public void setSync(boolean sync) {
+        this.sync = sync;
+    }
 }

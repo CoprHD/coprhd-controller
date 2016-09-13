@@ -195,7 +195,7 @@ public class InitiatorService extends TaskResourceService {
 
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+            controller.removeInitiatorFromExport(NullColumnValueGetter.getNullURI(), initiator.getHost(), initiator.getId(), taskId);
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);

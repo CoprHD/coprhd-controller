@@ -148,6 +148,13 @@ public class ExportMaskUtils {
      * @return List<ExportMask> -- an empty list is returned if there are no matches.
      */
     public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
+
+        // NOTE for release 3.5:
+        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
+        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
+        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
+        // -beachn
+
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
         if (!URIUtil.isValid(ssysURI)) {
             _log.warn("invalid URI: {}", ssysURI);

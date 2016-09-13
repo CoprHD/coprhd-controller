@@ -1432,8 +1432,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             // Succeed here, to allow other rollbacks to run
             if (null != completer) {
                 completer.ready(dbClient);
+            } else {
+                // Should be in else clause as completer will update step state.
+                WorkflowStepCompleter.stepSucceded(opId);
             }
-            WorkflowStepCompleter.stepSucceded(opId);
             return false;
         }
         return true;
@@ -1703,8 +1705,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         } finally {
             if (completer != null) {
                 completer.ready(dbClient);
+            } else {
+                // Should be in else clause as completer will mark the step complete
+                WorkflowStepCompleter.stepSucceded(opId);
             }
-            WorkflowStepCompleter.stepSucceded(opId);
         }
         return true;
     }

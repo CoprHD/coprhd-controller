@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +73,8 @@ import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -806,6 +805,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddToReplicationGroup(
                     storageSystem, consistencyGroup, replicationGroupName, addVolumesList, taskCompleter);
+            // This needs evaluation as device implementation is likely to use completer to set step state.
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

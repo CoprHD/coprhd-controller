@@ -1963,6 +1963,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         volumes, completer);
             }
             doSuccessTask(Volume.class, volumeURIs, opId);
+            // Maybe needs to go in an else clause as device may use completer to set step state.
             WorkflowStepCompleter.stepSucceded(opId);
             _log.info(exitLogMsgBuilder.toString());
         } catch (InternalException e) {
@@ -2665,6 +2666,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
                 deleteMirror(storage, mirrorURIsToRollback, isCG, taskId);
             }
+            // Maybe move to else clause as deleteMirror will use completer to set state. Needs evaluation.
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
             _log.error(String.format("rollbackMirror Failed - Array:%s, Mirror:%s", storage, Joiner.on("\t").join(mirrorList)));
@@ -5240,6 +5242,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSelectedSnapshot(storageObj, snapshot, completer);
+            // Completers are used in at least some cases to update step state. Needs to be evaluated for each device implementation.
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {

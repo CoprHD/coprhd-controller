@@ -2851,6 +2851,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             enableImageForSnapshots(rpSystemId, device, new ArrayList<URI>(snapshots.keySet()), token);
 
             // Update the workflow state.
+            // I think this OK. The BlockSnapshotActivateCompleter used by method enableImageForSnapshots
+            // does not call super.complete, so the workflow step should not be updated. However, this is
+            // ripe for a regression if someone updates the completer.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
             stepFailed(token, e, "enableImageAccessStep");
@@ -2887,7 +2890,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     stepId);
 
             // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(stepId);
+            // Does not appear necessary as the BlockSnapshotDeactivateCompleter used by
+            // method disableImageForSnapshots does call super.complete to update the step
+            // status.
+            //WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             return stepFailed(stepId, e, "enableImageAccessStepRollback");
         }
@@ -3070,7 +3076,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             boolean setSnapshotSyncActive = true;
             disableImageForSnapshots(rpSystemId, snapshots, isRollback, setSnapshotSyncActive, token);
             // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(token);
+            // Does not appear necessary as the BlockSnapshotDeactivateCompleter used by
+            // method disableImageForSnapshots does call super.complete to update the step
+            // status.
+            //WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
             _log.error(String.format("snapshotDisableImageAccessSingleStep Failed - Protection System: %s", String.valueOf(rpSystemId)));
             return stepFailed(token, e, "snapshotDisableImageAccessSingleStep");
@@ -3138,7 +3147,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots), false, false, token);
 
             // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(token);
+            // Does not appear necessary as the BlockSnapshotDeactivateCompleter used by
+            // method disableImageForSnapshots does call super.complete to update the step
+            // status.
+            //WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
             _log.error(String.format("disableImageAccessStep Failed - Protection System: %s, export group: %s", String.valueOf(rpSystemId),
                     String.valueOf(exportGroupURI)));
@@ -3196,7 +3208,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             disableImageForSnapshots(rpSystemId, snapshots, isRollback, false, token);
 
             // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(token);
+            // Does not appear necessary as the BlockSnapshotDeactivateCompleter used by
+            // method disableImageForSnapshots does call super.complete to update the step
+            // status.
+            //WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
             _log.error(String.format("disableImageAccessSingleStep Failed - Protection System: %s, export group: %s",
                     String.valueOf(rpSystemId), String.valueOf(exportGroupURI)));
@@ -5107,6 +5122,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
             }
+            // Does not appear necessary when path to method constructSnapshotObjectFromBookmark
+            // is taken as the BlockSnapshotCreateCompleter used by the method does call super.complete 
+            // to update the step status. Maybe move up to else clause. Has to be evaluated.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (RecoverPointException e) {
             _log.error("create bookmark step failed with a RecoverPoint exception: ", e);
@@ -5808,7 +5826,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             completer.ready(_dbClient);
 
             // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(opId);
+            // Does not look necessary. Completer will update state.
+            // WorkflowStepCompleter.stepSucceded(opId);
 
             return true;
 

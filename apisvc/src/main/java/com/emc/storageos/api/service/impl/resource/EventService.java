@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -220,7 +221,9 @@ public class EventService extends TaggedResource {
             Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, eventMethod.getArgs());
+            Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
+            parameters[parameters.length - 1] = event.getId();
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             event.setEventStatus(eventStatus);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());

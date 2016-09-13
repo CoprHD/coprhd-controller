@@ -184,7 +184,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Initiator initiator : newInitiators) {
                 uris.add(initiator.getId());
             }
-            controller.addInitiatorsToExport(host.getId(), uris, taskId);
+            controller.addInitiatorsToExport(NullColumnValueGetter.getNullURI(), host.getId(), uris, taskId);
         }
     }
 
@@ -197,7 +197,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Initiator initiator : oldInitiators) {
                 uris.add(initiator.getId());
             }
-            controller.removeInitiatorsFromExport(host.getId(), uris, taskId);
+            controller.removeInitiatorsFromExport(NullColumnValueGetter.getNullURI(), host.getId(), uris, taskId);
         }
     }
 
@@ -210,7 +210,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI, false);
+            controller.addHostsToExport(NullColumnValueGetter.getNullURI(), hostIds, clusterURI, taskId, oldClusterURI, false);
         }
     }
 
@@ -223,7 +223,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.removeHostsFromExport(hostIds, clusterURI, false, NullColumnValueGetter.getNullURI(), taskId);
+            controller.removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostIds, clusterURI, false,
+                    NullColumnValueGetter.getNullURI(), taskId);
         }
     }
 

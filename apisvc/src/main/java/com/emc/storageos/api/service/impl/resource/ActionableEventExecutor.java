@@ -121,7 +121,7 @@ public class ActionableEventExecutor {
      *            datastores
      * @return task for updating export groups
      */
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter, URI eventId) {
         Host hostObj = _dbClient.queryObject(Host.class, hostId);
         URI oldClusterURI = hostObj.getCluster();
         String taskId = UUID.randomUUID().toString();
@@ -133,19 +133,19 @@ public class ActionableEventExecutor {
                 && NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
             // Remove host from shared export
-            computeController.removeHostsFromExport(Arrays.asList(hostId), oldClusterURI, isVcenter, vCenterDataCenterId, taskId);
+            computeController.removeHostsFromExport(eventId, Arrays.asList(hostId), oldClusterURI, isVcenter, vCenterDataCenterId, taskId);
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {
             // Non-clustered host being added to a cluster
-            computeController.addHostsToExport(Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
+            computeController.addHostsToExport(eventId, Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(clusterId)
                 && !oldClusterURI.equals(clusterId)
                 && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                         || ComputeSystemHelper.isClusterInExport(_dbClient, clusterId))) {
             // Clustered host being moved to another cluster
-            computeController.addHostsToExport(Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
+            computeController.addHostsToExport(eventId, Arrays.asList(hostId), clusterId, taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
             ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
@@ -202,7 +202,7 @@ public class ActionableEventExecutor {
      * @param initiatorId the initiator to add
      * @return task for adding an initiator
      */
-    public TaskResourceRep addInitiator(URI initiatorId) {
+    public TaskResourceRep addInitiator(URI initiatorId, URI eventId) {
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
         Host host = _dbClient.queryObject(Host.class, initiator.getHost());
 
@@ -212,7 +212,7 @@ public class ActionableEventExecutor {
 
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
-            computeController.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+            computeController.addInitiatorsToExport(eventId, initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {
             // No updates were necessary, so we can close out the task.
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
@@ -257,7 +257,7 @@ public class ActionableEventExecutor {
      * @param initiatorId the initiator to remove
      * @return task for removing an initiator
      */
-    public TaskResourceRep removeInitiator(URI initiatorId) {
+    public TaskResourceRep removeInitiator(URI initiatorId, URI eventId) {
         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
 
         String taskId = UUID.randomUUID().toString();
@@ -265,7 +265,7 @@ public class ActionableEventExecutor {
                 ResourceOperationTypeEnum.DELETE_INITIATOR);
 
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiatorId.toString())) {
-            computeController.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+            computeController.removeInitiatorFromExport(eventId, initiator.getHost(), initiator.getId(), taskId);
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);
@@ -281,8 +281,8 @@ public class ActionableEventExecutor {
      * @param hostId the host to unassign
      * @return task for updating host
      */
-    public TaskResourceRep hostVcenterUnassign(URI hostId) {
-        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true);
+    public TaskResourceRep hostVcenterUnassign(URI hostId, URI eventId) {
+        return hostClusterChange(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true, eventId);
     }
 
     /**
@@ -336,8 +336,8 @@ public class ActionableEventExecutor {
      * @return task for updating export groups
      */
 
-    public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter);
+    public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter, URI eventId) {
+        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter, eventId);
     }
 
     /**
@@ -374,10 +374,10 @@ public class ActionableEventExecutor {
      * @return task for updating export groups
      */
 
-    public TaskResourceRep hostVcenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter);
+    public TaskResourceRep hostVcenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter, URI eventId) {
+        return hostClusterChange(hostId, clusterId, datacenterId, isVcenter, eventId);
     }
-    
+
     private Set<String> getHostVolumes(URI hostId) {
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
         Set<String> volumeIds = Sets.newHashSet();
@@ -475,7 +475,7 @@ public class ActionableEventExecutor {
         }
         return result;
     }
-    
+
     /**
      * Decline method that is invoked when the hostVcenterUnassign event is declined
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
@@ -496,7 +496,8 @@ public class ActionableEventExecutor {
      */
     public List<String> hostVcenterUnassignDeclineDetails(URI hostId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDeclineDetails", host.getLabel()));
+        return Lists
+                .newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -525,7 +526,8 @@ public class ActionableEventExecutor {
      */
     public List<String> hostVcenterChangeDeclineDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDeclineDetails", host.getLabel()));
+        return Lists
+                .newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterChangeDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -554,7 +556,8 @@ public class ActionableEventExecutor {
      */
     public List<String> hostDatacenterChangeDeclineDetails(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDeclineDetails", host.getLabel()));
+        return Lists.newArrayList(
+                ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -583,7 +586,8 @@ public class ActionableEventExecutor {
      */
     public List<String> hostClusterChangeDeclineDetails(URI hostId, URI clusterId, URI vCenterDataCenterId, boolean isVcenter) {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDeclineDetails", host.getLabel()));
+        return Lists
+                .newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDeclineDetails", host.getLabel()));
     }
 
     /**
@@ -630,7 +634,7 @@ public class ActionableEventExecutor {
     public List<String> addInitiatorDeclineDetails(URI initiator) {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
     }
-    
+
     /**
      * Inner class to hold details for a block object that are used to display actionable event details
      *

@@ -93,9 +93,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         // however, we only want to do this if the actual volume has yet to
                         // be created on the array. We check for a native GUID for
                         // the volume. If not set, the volume has not yet been created.
-                        if ((!volume.isVPlexVolume(dbClient))
+                        if ((volume != null) && (!volume.isVPlexVolume(dbClient))
                                 && (volume.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT))
-                                && (NullColumnValueGetter.isNullValue(volume.getNativeGuid()))) {
+                                && (NullColumnValueGetter.isNullValue(volume.getNativeGuid()))
+                                && (!volume.getInactive())) {
                             volume.setInactive(true);
                             volumesToUpdate.add(volume);
                         }

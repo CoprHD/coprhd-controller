@@ -3199,10 +3199,11 @@ test_24() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    ## Verify there are no zones on the switch
-    #verify_no_zones ${FC_ZONE_A:7} ${HOST1}
     # Just clean the zones. Previous tests paid no attention to zoning.
     clean_zones ${FC_ZONE_A:7} ${HOST1}
+
+    ## Verify there are no zones on the switch
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
@@ -3291,6 +3292,9 @@ test_25() {
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
+
+    # Just clean the zones. Previous tests paid no attention to zoning.
+    clean_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Verify there are no zones on the switch
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}

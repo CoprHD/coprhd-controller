@@ -275,6 +275,29 @@ public class BlockStorageUtils {
     }
 
     /**
+     * Return true of false if a given volume is mounted.
+     *
+     * @param blockObject to validate
+     * @return true or false if the volume is mounted
+     */
+    public static boolean isVolumeMounted(BlockObjectRestRep blockObject) {
+        if (blockObject != null) {
+            Set<String> volumeTags = blockObject.getTags();
+            if (volumeTags != null) {
+                Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+
+                for (String tag : parsedTags.keySet()) {
+                    if (tag != null && tag.startsWith(KnownMachineTags.getHostMountPointTagName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Retrieve a list of block resources based on the resource ids provided. This will gather
      * the appropriate resources based on the resource type of the ids provided.
      *

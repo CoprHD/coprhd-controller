@@ -84,12 +84,10 @@ public class EventUtils {
             String warning,
             DataObject resource, Collection<URI> affectedResources, String approveMethod, Object[] approveParameters,
             String declineMethod, Object[] declineParameters) {
-        ActionableEvent duplicateEvent = null;
-        if (!ALLOWED_DUPLICATE_EVENTS.contains(eventCode)) {
-            duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId());
-        }
+        ActionableEvent duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId());
 
-        if (duplicateEvent != null) {
+        if (duplicateEvent != null && !(ALLOWED_DUPLICATE_EVENTS.contains(eventCode)
+                && duplicateEvent.getAffectedResources().equals(getAffectedResources(affectedResources)))) {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());

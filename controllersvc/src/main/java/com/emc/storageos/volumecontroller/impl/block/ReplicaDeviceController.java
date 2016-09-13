@@ -805,12 +805,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddToReplicationGroup(
                     storageSystem, consistencyGroup, replicationGroupName, addVolumesList, taskCompleter);
-            // This needs evaluation as device implementation is likely to use completer to set step state.
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(_dbClient, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            if (taskCompleter != null) {
+                // Task completer will update step state if it exists.
+                taskCompleter.error(_dbClient, serviceError);
+            } else {
+                // Otherwise, update step state here.
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
+            }
             return false;
         }
         return true;

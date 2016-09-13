@@ -731,8 +731,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
+        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+            return taskList;
         }
         throw APIException.methodNotAllowed.notSupported();
     }

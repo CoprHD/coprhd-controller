@@ -36,6 +36,12 @@ public class VirtualNAS extends NASServer {
     // place holder for the Parent NAS server the Data Mover
     private URI parentNasUri;
 
+    // whether this vnas is a replication destination remote or local
+    private boolean isReplicationDestination = false;
+
+    // source vNas if replication destination, null if not
+    private URI sourceVirtualNas;
+
     @Name("project")
     public URI getProject() {
         return project;
@@ -101,6 +107,27 @@ public class VirtualNAS extends NASServer {
     public void setParentNasUri(URI parentNasUri) {
         this.parentNasUri = parentNasUri;
         setChanged("parentNasUri");
+    }
+
+    @Name("isReplicationDestination")
+    public boolean getIsReplicationDestination() {
+        return isReplicationDestination;
+    }
+
+    public void setIsReplicationDestination(boolean isReplicationDestination) {
+        this.isReplicationDestination = isReplicationDestination;
+        setChanged("isReplicationDestination");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
+    @Name("sourceVirtualNas")
+    public URI getSourceVirtualNas() {
+        return sourceVirtualNas;
+    }
+
+    public void setSourceVirtualNas(URI sourceVirtualNas) {
+        this.sourceVirtualNas = sourceVirtualNas;
+        setChanged("sourceVirtualNas");
     }
 
     // Defines different States of the Virtual NAS server.

@@ -3486,12 +3486,19 @@ public class BlockService extends TaskResourceService {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
             _log.error(errorMsg, e);
-            for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-                volumeTask.setState(Operation.Status.error.name());
-                volumeTask.setMessage(errorMsg);
-                _dbClient.updateTaskOpStatus(Volume.class, volumeTask
-                        .getResource().getId(), taskId,
-                        new Operation(Operation.Status.error.name(), errorMsg));
+            if (!taskList.getTaskList().isEmpty()) {
+                for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+                    volumeTask.setState(Operation.Status.error.name());
+                    volumeTask.setMessage(errorMsg);
+                    _dbClient.updateTaskOpStatus(Volume.class, volumeTask
+                            .getResource().getId(), taskId,
+                            new Operation(Operation.Status.error.name(), errorMsg));
+                }
+            } else {
+                for (Volume volume : volumes) {
+                    _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskId,
+                            new Operation(Operation.Status.error.name(), errorMsg));
+                }
             }
             throw e;
         }

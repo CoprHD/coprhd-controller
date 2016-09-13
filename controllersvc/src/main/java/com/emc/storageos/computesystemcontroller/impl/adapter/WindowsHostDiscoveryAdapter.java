@@ -167,10 +167,10 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (FibreChannelHBA hba : windows.listFibreChannelHBAs()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, hba.getPortWWN()) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, hba.getPortWWN());
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, hba.getPortWWN());
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
@@ -185,10 +185,10 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (String iqn : windows.listIScsiInitiators()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }

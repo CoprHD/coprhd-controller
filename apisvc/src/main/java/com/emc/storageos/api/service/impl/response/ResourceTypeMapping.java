@@ -17,6 +17,7 @@
  */
 package com.emc.storageos.api.service.impl.response;
 
+import static com.emc.storageos.model.ResourceTypeEnum.ACTIONABLE_EVENT;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
@@ -25,7 +26,10 @@ import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_CATEGORY;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_IMAGE;
 import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_SERVICE;
+import static com.emc.storageos.model.ResourceTypeEnum.CATALOG_SERVICE_FIELD;
 import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
@@ -85,6 +89,7 @@ import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -140,7 +145,10 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -217,6 +225,10 @@ public class ResourceTypeMapping {
         classMapping.put(STORAGE_SYSTEM_TYPE, StorageSystemType.class);
         classMapping.put(CATALOG_SERVICE, CatalogService.class);
         classMapping.put(ORDER, Order.class);
+        classMapping.put(CATALOG_CATEGORY, CatalogCategory.class);
+        classMapping.put(CATALOG_SERVICE_FIELD, CatalogServiceField.class);
+        classMapping.put(CATALOG_IMAGE, CatalogImage.class);
+        classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

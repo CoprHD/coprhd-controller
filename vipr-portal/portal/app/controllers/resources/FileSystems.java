@@ -1033,11 +1033,6 @@ public class FileSystems extends ResourceController {
         listAcl(fileSystem, shareName);
 
     }
-    
-   
-    
-    
-   
 
     /**
      * This static class holds the form data for the ACL page.

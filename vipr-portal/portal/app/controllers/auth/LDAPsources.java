@@ -106,11 +106,11 @@ public class LDAPsources extends ViprResourceController {
         //to remove SOFO feature 
         //renderArgs.put("keyStoneType", AuthSourceType.keystone);
         //renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
-        renderArgs.put("defaultInterval", DEFAULT_INTERVAL_DELAY);
+        //renderArgs.put("defaultInterval", DEFAULT_INTERVAL_DELAY);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
         renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
-        renderArgs.put("tenants", new LDAPSourcesTenantsDataTable());
+        //renderArgs.put("tenants", new LDAPSourcesTenantsDataTable());
     }
 
     /**
@@ -201,7 +201,7 @@ public class LDAPsources extends ViprResourceController {
             list();
         }
 
-        authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
+        //For SOFO authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
         edit(new LDAPsourcesForm(authnProvider));
     }
 
@@ -230,8 +230,10 @@ public class LDAPsources extends ViprResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
+        ldapSources.save();
+        flash.success(MessagesUtils.get(SAVED, ldapSources.name));
 
-        AuthnProviderRestRep authnProvider = ldapSources.save();
+        /* For Sofo AuthnProviderRestRep authnProvider = ldapSources.save();
         authProviderName = ldapSources.name;
 
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
@@ -239,7 +241,7 @@ public class LDAPsources extends ViprResourceController {
         if (ldapSources.autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
             renderArgs.put("showDialog", "true");
             edit(new LDAPsourcesForm(authnProvider));
-        }
+        } */
 
         list();
     }
@@ -337,7 +339,7 @@ public class LDAPsources extends ViprResourceController {
             this.disable = ldapSources.getDisable();
             this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
             this.tenantsSynchronizationOptions = Lists.newArrayList(ldapSources.getTenantsSynchronizationOptions());
-            this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
+            //For Sofo this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -369,9 +371,10 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
-            if (this.autoRegCoprHDNImportOSProjects) {
+            param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
+            /* For Sofo if (this.autoRegCoprHDNImportOSProjects) {
                 param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
-            }
+            } */
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));
 
@@ -420,13 +423,14 @@ public class LDAPsources extends ViprResourceController {
         }
 
         private TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
-            Set<String> newValues;
+        	Set<String> newValues = Sets.newHashSet(parseMultiLineInput(this.tenantsSynchronizationOptions.get(0)));
+            /* For Sofo Set<String> newValues;
             if (this.tenantsSynchronizationOptions != null) {
                 newValues = Sets.newHashSet(this.tenantsSynchronizationOptions);
                 newValues.add(this.synchronizationInterval);
             } else {
                 newValues = Sets.newHashSet(this.synchronizationInterval);
-            }
+            } */
 
             Set<String> oldValues = provider.getTenantsSynchronizationOptions();
 
@@ -498,14 +502,16 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
-            if (this.autoRegCoprHDNImportOSProjects) {
+            param.getTenantsSynchronizationOptions().addAll(this.tenantsSynchronizationOptions);
+            param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
+            /* For Sofo if (this.autoRegCoprHDNImportOSProjects) {
                 if (tenantsSynchronizationOptions != null) {
                     param.setTenantsSynchronizationOptions((Sets.newHashSet(this.tenantsSynchronizationOptions)));
                 } else {
                     param.setTenantsSynchronizationOptions(Sets.<String> newHashSet());
                 }
                 param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
-            }
+            } */
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);
@@ -534,6 +540,7 @@ public class LDAPsources extends ViprResourceController {
                 Validation.required(fieldName + ".managerPassword", this.managerPassword);
             }
 
+            /* To remove SOfo feature
             if (this.autoRegCoprHDNImportOSProjects ) {
                 Validation.required(fieldName + ".synchronizationInterval", this.synchronizationInterval);
                 if (!StringUtils.isNumeric(this.synchronizationInterval) ||
@@ -542,7 +549,7 @@ public class LDAPsources extends ViprResourceController {
                             MessagesUtils.get("ldapSources.synchronizationInterval.integerRequired"));
                 }
             }
-            /* To remove SOfo feature
+
         	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
 
             if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {

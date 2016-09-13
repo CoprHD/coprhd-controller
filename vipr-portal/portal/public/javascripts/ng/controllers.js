@@ -1589,6 +1589,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
                 eraseCookie(cookieKey);
                 return;
+            } else {
+                eraseCookie(dataCookieKey);
             }
         }
 

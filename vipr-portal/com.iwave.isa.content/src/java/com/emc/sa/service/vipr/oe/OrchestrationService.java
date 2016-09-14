@@ -4,10 +4,11 @@
  */
 package com.emc.sa.service.vipr.oe;
 
-import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationRunnerTask;
-
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
@@ -16,40 +17,56 @@ import com.emc.sa.engine.service.Service;
 public class OrchestrationService extends ViPRService {
 
     Map<String, Object> params = null;
-    String oeOrderJson;
-    
-    @Override
-	public void precheck() throws Exception {
 
-	    // get input params from order form
+    @Override
+    public void precheck() throws Exception {
+
+        // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
 
         // validate input params to insure service will run
+
+        // add a proxy token that OE can use to login to ViPR API
+        params.put("ProxyToken", ExecutionUtils.currentContext().
+                getExecutionState().getProxyToken());
+
+    }
+
+    @Override
+    public void execute() throws Exception {
+
+        ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
+
+        List<URI> tasksStartedByOe = new ArrayList<>();  //  tasks started by steps in OE
         
-		// add a proxy token that OE can use to login to ViPR API
-		params.put("ProxyToken", ExecutionUtils.currentContext().
-				getExecutionState().getProxyToken());
-		
-		// merge params into Workflow Definition JSON to make  Order JSON
-		oeOrderJson = OrchestrationUtils.makeOrderJson(params);
-		
-	}
+        // start workflow
 
-	@Override
-	public void execute() throws Exception {
-		
-	    ExecutionUtils.currentContext().logInfo("Starting Orchestration Engine Workflow");
-	    
-	    // how to queue/start a task in ViPR (start OE RUnner like this?)
-		String workflowResponse =
-				ViPRExecutionUtils.execute(new OrchestrationRunnerTask(oeOrderJson));
+        String[] steps = new String[]{"Step1","Step2","Step3"};  // fake steps for test
+       
+        for(String step: steps) {  // loop over steps
+            
+            ExecutionUtils.currentContext().logInfo("Starting OrchestrationEngine Step: '" + step + "'");
 
-		// how to fail workflow: throw exception:
-	    if(workflowResponse == null ) {
-	        throw new IllegalStateException("Workflow did not return any response.");
-	    }
+            // execute step and get results
+            OrchestrationRunnerTask oeTask = new OrchestrationRunnerTask(step);         
+            execute(oeTask);
+            String stepResults = oeTask.getResult();
+            
+            List<URI> newViprTasks = OrchestrationUtils.updateOrder(stepResults,getClient());  // check results from step
+            tasksStartedByOe.addAll(newViprTasks);
+            
+        }
 
-	    ExecutionUtils.currentContext().logInfo("Orchestration Engine Workflow " +
-	            "completed successfully.  Response was: " + workflowResponse);
-	} 
+        // workflow ends
+
+        OrchestrationUtils.waitForViprTasks(tasksStartedByOe, getClient());
+
+        boolean success = true; // result of workflow execution
+        if(!success) {  // test result
+            throw new IllegalStateException("Not implemented.");  // order fails
+        }
+
+        ExecutionUtils.currentContext().logInfo("Orchestration Engine Workflow " +
+                "completed successfully.");
+    } 
 } 

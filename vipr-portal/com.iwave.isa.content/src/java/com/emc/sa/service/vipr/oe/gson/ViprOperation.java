@@ -1,7 +1,5 @@
 package com.emc.sa.service.vipr.oe.gson;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,12 +19,12 @@ public class ViprOperation {
     public void setTask(ViprTask[] task) {
         this.task = task;
     }
-    
-    public List<URI> getTaskIds() throws URISyntaxException {
-        List<URI> idList = new ArrayList<>();
+
+    public List<String> getTaskIds() {
+        List<String> idList = new ArrayList<>();
         if (task != null) {
             for(ViprTask oneTask : task) {
-                idList.add(new URI(oneTask.getId()));
+                idList.add(oneTask.getId());
             }
         }
         return idList;

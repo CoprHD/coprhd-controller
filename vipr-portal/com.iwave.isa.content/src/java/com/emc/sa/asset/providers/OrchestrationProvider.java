@@ -4,7 +4,6 @@
  */
 package com.emc.sa.asset.providers;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,10 +17,7 @@ import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.oe.gson.AssetOptionPair;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -34,8 +30,6 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     private static final String ASSET_NAMESPACE_TAG = "oe";
     private static final String ASSET_TAG = "all";
     private String thisAssetType = "";
-
-    private OrchestrationEngineRestClient restClient;
 
     // constants
     private static final int OE_WORKFLOW_CHECK_INTERVAL = 1; // secs
@@ -52,20 +46,6 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
      * menu, then ten drop-downs will take 30 secs to process (and browser
      * may timeout).
      */
-
-    public OrchestrationProvider() {
-        OrchestrationEngineRestClientFactory factory = new OrchestrationEngineRestClientFactory();
-        factory.setMaxConnections(100);
-        factory.setMaxConnectionsPerHost(100);
-        factory.setNeedCertificateManager(false);
-        factory.setSocketConnectionTimeoutMs(3600000);
-        factory.setConnectionTimeoutMs(3600000);
-        factory.init();
-        String endpoint = OrchestrationUtils.OE_SCHEME + "://" +
-                OrchestrationUtils.OE_SERVER + ":" + OrchestrationUtils.OE_SERVERPORT;
-        restClient = (OrchestrationEngineRestClient) factory.getRESTClient(URI.create(endpoint),
-                OrchestrationUtils.USER, OrchestrationUtils.PASSWORD, true);
-    }
 
     @Override
     public boolean isAssetTypeSupported(String assetTypeName) {
@@ -159,8 +139,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         
         // Start the OE workflow to get options
         info("OE Provider calling " + apiUrl + "with body " + makePostBody());
-        String workflowResponse = OrchestrationUtils.makeRestCall(apiUrl,
-                makePostBody(),restClient);
+        String workflowResponse = null; // TODO: get response
 
         info("Started Orchestration Engine Workflow");
 
@@ -169,7 +148,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         while ( !isWorkflowSuccess(workflowResponse) ) {
             sleep(OE_WORKFLOW_CHECK_INTERVAL);
             // get updated WF reponse 
-            workflowResponse = OrchestrationUtils.makeRestCall("/path/to/get/wf/status",restClient);
+            workflowResponse = null; // TODO: get response
             if( isFailed(workflowResponse) || isTimedOut(++intervals) ) {
                 error("Orchestration Engine workflow timed out.");
                 return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
@@ -180,14 +159,15 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         return jsonToOptions(optionListJson);       
     }
 
-    private boolean isWorkflowSuccess(String workflowResponse) {
-        // test response to see if WF has finished successfully
+    private boolean isFailed(String workflowResponse) {
+        // TODO Auto-generated method stub
         return false;
     }
 
-    private boolean isFailed(String workflowResponse) {
-    	return OrchestrationUtils.isWorkflowFailed(workflowResponse);
-	}
+    private boolean isWorkflowSuccess(String workflowResponse) {
+        // TODO Auto-generated method stub
+        return true;
+    }
 
     private boolean isTimedOut(int intervals) {
         return (intervals * OE_WORKFLOW_CHECK_INTERVAL) >= 

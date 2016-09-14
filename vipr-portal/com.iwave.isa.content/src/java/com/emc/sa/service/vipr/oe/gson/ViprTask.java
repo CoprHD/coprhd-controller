@@ -7,7 +7,7 @@ public class ViprTask {
     private ViprResource resource;
     private String state;
     private String op_id;
-    
+
     public String getName() {
         return name;
     }

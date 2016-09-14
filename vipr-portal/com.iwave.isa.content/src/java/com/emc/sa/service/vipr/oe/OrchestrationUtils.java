@@ -1,59 +1,30 @@
 package com.emc.sa.service.vipr.oe;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.io.IOUtils;
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.gson.AffectedResource;
-import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
-import com.emc.sa.service.vipr.oe.gson.WorkflowDefinition;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.sun.jersey.api.client.ClientResponse;
 
 //TODO: move log messages to separate file (for internationalization)
 
 public class OrchestrationUtils {
 
     //TODO: externalize these values:
-    private static final int OE_WORKFLOW_CHECK_INTERVAL = 10; // secs
-    private static final int OE_WORKFLOW_CHECK_TIMEOUT = 600; // secs
     private static final int TASK_CHECK_TIMEOUT = 3600;  // mins
     private static final int TASK_CHECK_INTERVAL = 10; // secs
 
-
-    // TODO: move these hard-coded strings out
-    public static final String USER = "root";
-    public static final String PASSWORD = "ChangeMe1!";
-    public static final String OE_SCHEME = "http"; // include, else URI.resolve(..) fails
-    public static final String OE_SERVER = "localhost";
-    public static final String OE_SERVERPORT = "9090";
-
-    public static final String OE_API_NODE = "/api/1.1/nodes";
-
     private static final Gson gson = new Gson();
-
-    public static boolean isTimedOut(int intervals) {
-        return (intervals * OE_WORKFLOW_CHECK_INTERVAL) >= 
-                OE_WORKFLOW_CHECK_TIMEOUT;
-    }
-
-    public static String makePostBody(Map<String, Object> params, 
-            String workflowName, List<String> playbookNameList) {
-        // make post body as needed
-        return null;
-    }
 
     public static void sleep(int i) {
         try {
@@ -64,113 +35,8 @@ public class OrchestrationUtils {
         } 
     }
 
-    public static boolean isWorkflowRunning(String workflowResponse) {
-        // parse response and determine result
-        return false;
-    }
-
-    public static boolean isWorkflowFailed(String workflowResponse) {
-        // parse response and determine result
-        return false;
-    }
-
-    public static String getFailedWorkflowErrors(String workflowResponse) {
-        StringBuffer errMsg = new StringBuffer();
-        if(isWorkflowFailed(workflowResponse)) { 
-            errMsg.append("Workflow failed.  Response was '" + workflowResponse);
-        }   
-        return errMsg.toString();
-    }
-
-    public static void updateAffectedResources(ViprOperation viprOperation) {
-        if(viprOperation != null) {
-            StringSet currentResources = ExecutionUtils.currentContext().
-                    getExecutionState().getAffectedResources();
-            for(ViprTask viprTask:viprOperation.getTask()) { 
-                if(!currentResources.contains(viprTask.getResource().getId())) {
-                    currentResources.add(viprTask.getResource().getId());
-                }
-            }
-        }
-    }
-
-    public static void updateAffectedResources(AffectedResource[] affectedResources) {
-        if(affectedResources != null) {
-            StringSet currentResources = ExecutionUtils.currentContext().
-                    getExecutionState().getAffectedResources();
-            for(AffectedResource affectedResource : affectedResources) {
-                if(!currentResources.contains(affectedResource.getId())) {  
-                    ExecutionUtils.currentContext().logInfo("Adding " +
-                            " completed resource '" + 
-                            affectedResource.getName() + "'");
-                    currentResources.add(affectedResource.getId());
-                }
-            }
-        }
-    }
-
-    public static ViprOperation parseViprTasks(String workflowResponse) {
-        // When ViPR API returns Task(s), return them (in a ViPR Operation)
-        try {
-            // see if result contains array of Tasks
-            ViprOperation o = gson.fromJson(workflowResponse,ViprOperation.class);
-            if(o.isValid()) {
-                return o;
-            }
-            // see if response was a single Task
-            ViprTask t = gson.fromJson(workflowResponse,ViprTask.class);
-            if(t.isValid()) {
-                return new ViprOperation(t);
-            }
-            return null;
-        } catch(JsonSyntaxException e) {
-            return null;
-        }
-    }
-
-    public static AffectedResource[] parseResourceList(String taskResult) {
-        try {
-            AffectedResource[] rArray = gson.fromJson(taskResult,AffectedResource[].class);
-            for(AffectedResource r : rArray) {
-                if(!r.isValid()) {
-                    return null;
-                }
-            }
-            return rArray;
-        } catch(JsonSyntaxException e) {
-            return null;
-        }
-    }
-
-    public static OeStatusMessage parseOeStatusMessage(String workflowResponse) {
-        OeStatusMessage oeStatusMessage = null;
-        try {
-            oeStatusMessage = gson.fromJson(workflowResponse,OeStatusMessage.class);
-        } catch(JsonSyntaxException e) {
-            return null;
-        }
-        return oeStatusMessage.isValid() ? oeStatusMessage : null;
-    }
-
-    public static List<TaskResourceRep> locateTasksInVipr(ViprOperation viprOperation, ViPRCoreClient client) {
-        // given a response from OE representing an Operation with Tasks started by 
-        // a OE workflow task, find corresponding tasks running in ViPR
-        // (this is useful in cases like: a volume(s) was created from a OE workflow
-        //  using the ViPR API, and now you want to find the tasks running in ViPR
-        //  that corresponds to it/them.)  
-        try {
-            return client.tasks().getByIds(viprOperation.getTaskIds());
-        }
-        catch (URISyntaxException e) {
-            ExecutionUtils.currentContext().logInfo("Warning: there was a " +
-                    "problem locating tasks in ViPR that were initiated in " +
-                    "the Orchestration Engine.  (Task IDs from OE are not valid.  " + 
-                    e.getMessage());
-            return new ArrayList<TaskResourceRep>();
-        }  
-    }
-
     public static void waitForViprTasks(List<URI> tasksStartedByOe, ViPRCoreClient client) {
+
         if( tasksStartedByOe.isEmpty()) {
             return;
         }  
@@ -198,53 +64,96 @@ public class OrchestrationUtils {
 
             if( (System.currentTimeMillis() - startTime)
                     > TASK_CHECK_TIMEOUT*60*1000 ) {
-                throw new IllegalStateException("Task(s) started by Orchestration Engine " +
-                        "timed out.");
+                throw new IllegalStateException("Timed out waiting for Task(s) started " +
+                    "by Orchestration Engine to complete.");
             }
         }
     }
 
-    public static String makeRestCall(String uriString, OrchestrationEngineRestClient restClient) {
-        return makeRestCall(uriString,null,restClient);
-    }
-
-    public static String makeRestCall(String uriString, String postBody,
-            OrchestrationEngineRestClient restClient) {
-
-        ClientResponse response = null;
-        if(postBody == null) {
-            response = restClient.get(URI.create(uriString));
-        } else {
-            response = restClient.post(URI.create(uriString),postBody);
+    public static List<URI> updateOrder(String results,ViPRCoreClient client) {
+        try {   // is result a List of Tasks?
+            ViprOperation viprOperation = gson.fromJson(results,ViprOperation.class);
+            if(viprOperation != null && viprOperation.isValid()) {
+                OrchestrationUtils.updateAffectedResources(viprOperation);
+                return OrchestrationUtils.updateNewTasks(viprOperation, client);
+            }
+        } catch(JsonSyntaxException e) {
+            // could not parse JSON as list of Tasks
         }
 
-        String responseString = null;
+        try {   // is result a single Task?
+            ViprTask task = gson.fromJson(results,ViprTask.class);
+            if(task != null && task.isValid()) {
+                OrchestrationUtils.updateAffectedResources(task);
+                URI taskId = updateNewTask(task,client);
+                return (taskId != null) ? Collections.singletonList(taskId) : Collections.emptyList();
+            }
+        } catch(JsonSyntaxException e) {
+            // could not parse JSON as a Task
+        }
+
+        // could not parse.  Treat as text message and log it
+        ExecutionUtils.currentContext().logInfo(results);
+        return Collections.emptyList();
+    }
+
+    public static void updateAffectedResources(ViprOperation viprOperation) {
+        if(viprOperation != null) {
+            for(ViprTask viprTask:viprOperation.getTask()) { 
+                updateAffectedResources(viprTask);
+            }
+        }
+    }
+
+    public static void updateAffectedResources(ViprTask viprTask) {
+        StringSet currentResources = ExecutionUtils.currentContext().
+                getExecutionState().getAffectedResources();
+        if(!currentResources.contains(viprTask.getResource().getId())) {
+            currentResources.add(viprTask.getResource().getId());
+        }
+    }
+    
+    private static List<URI> updateNewTasks(ViprOperation viprOperation, ViPRCoreClient client) {
+        List<URI> urisToReturn = new ArrayList<>();
+        for(String taskId : viprOperation.getTaskIds() ) {
+            URI uriOfAddedTask = addOrderIdTag(taskId,client);
+             if(uriOfAddedTask != null) {
+                 urisToReturn.add(uriOfAddedTask);
+            }
+        }
+        return urisToReturn;
+    }
+    
+    private static URI updateNewTask(ViprTask viprTask, ViPRCoreClient client) {
+        return addOrderIdTag(viprTask.getId(),client);
+    }
+
+    private static URI addOrderIdTag(String task, ViPRCoreClient client) {
+        Order order = ExecutionUtils.currentContext().getOrder();
+        if (order == null) {
+            ExecutionUtils.currentContext().logWarn("OE was unable to associate a task started " +
+                    "by OE to this order.  Could not locate Order.");
+            return null;
+        }      
         try {
-            responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");
-        } catch (IOException e) {
-            ExecutionUtils.currentContext().logError("Error getting response " +
-                    "from Orchestration Engine for: " + uriString + " :: "+ e.getMessage());
-            e.printStackTrace();
+            URI taskUri = new URI(task);
+            if (order.getId() != null) {
+                MachineTagUtils.setTaskOrderIdTag(client, taskUri, order.getId().toString());
+            }
+            MachineTagUtils.setTaskOrderNumberTag(client, taskUri, order.getOrderNumber());
+            return taskUri;
         }
-        return responseString;
+        catch(ServiceErrorException e) {
+            ExecutionUtils.currentContext().logWarn("OE was unable to associate a task started " +
+                    "by OE to this order.  Task ID is '" + task + "'  " + e.getMessage());
+            return null;
+        }
+        catch (URISyntaxException e) {
+            ExecutionUtils.currentContext().logWarn("OE was unable to associate a task started " +
+                    "by OE to this order.  The Task ID was not a valid URI.  Task ID is '" + 
+                    task + "'  " + e.getMessage());
+            return null;
+        }
     }
-
-    public static String makeOrderJson(Map<String, Object> params) {
-
-        // get workflow ID from input params (it must be associated with the Service and passed in)
-        String workflowDefinitionId = params.get("workflow").toString();
-
-        String workflowDefinition = null; // use ID to get definition from DB
-
-        // temporarily insert test JSON here until DB calls are ready (Shane is doing DB work)
-        workflowDefinition = "{\"workflow\": \"test JSON Workflow Goes Here\"}";
-
-        WorkflowDefinition workflowObj = gson.fromJson(workflowDefinition,WorkflowDefinition.class);
-
-        // add code here to insert values of parameters into object model of workflow
-        // TODO:  insert params
-
-        return gson.toJson(workflowObj);  // return JSON
-    }
-
 }
+

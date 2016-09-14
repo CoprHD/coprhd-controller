@@ -1963,7 +1963,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         volumes, completer);
             }
             doSuccessTask(Volume.class, volumeURIs, opId);
-            // Maybe needs to go in an else clause as device may use completer to set step state.
+            // We do need to mark the step complete here as the implementation of 
+            // doUntagVolumes for the various BlockStorageDevice derived classes
+            // does not use the completer to update the step state when the request
+            // is successful.
             WorkflowStepCompleter.stepSucceded(opId);
             _log.info(exitLogMsgBuilder.toString());
         } catch (InternalException e) {
@@ -2093,10 +2096,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
+            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-                WorkflowStepCompleter.stepFailed(opId, serviceError);
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);

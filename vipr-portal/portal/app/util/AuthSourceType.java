@@ -5,5 +5,5 @@
 package util;
 
 public enum AuthSourceType {
-    ad, ldap; //removed keystone 
+    ad, ldap; //to remove SOFO feature  keystone 
 }

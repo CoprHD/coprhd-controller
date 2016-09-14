@@ -107,14 +107,14 @@ public class Port {
      * @return the wwpn
      */
     public String getWwpn() {
-        return wwpn;
+        return  wwpn != null ? wwpn.replace(".", ":") : wwpn;
     }
 
     /**
      * @param wwpn the wwpn to set
      */
     public void setWwpn(String wwpn) {
-        this.wwpn = wwpn != null ? wwpn.replace(".", ":") : wwpn;
+        this.wwpn = wwpn;
     }
 
     /**

@@ -146,7 +146,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      * Update the export group data.
      * 
      * @param exportGroup the export group to be updated.
-     * @param dbClient TODO
+     * @param dbClient {@link DbClient}
      */
     private void updateExportGroup(ExportGroup exportGroup, DbClient dbClient) {
         if (_addedInitiators != null) {
@@ -190,6 +190,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         cleanStaleClusterReferences(exportGroup, dbClient);
     }
 
+    /**
+     * Cleans stale mask references from export group instance
+     * 
+     * @param exportGroup {@link ExportGroup}
+     * @param dbClient {@link DbClient}
+     */
     private void cleanStaleMaskReferences(ExportGroup exportGroup, DbClient dbClient) {
         // Clean stale export mask references from ExportGroup.
         StringSet exportMasks = exportGroup.getExportMasks();
@@ -224,6 +230,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         }
     }
 
+    /**
+     * Cleans stale initiator references from export group instance
+     * 
+     * @param exportGroup {@link ExportGroup}
+     * @param dbClient {@link DbClient}
+     */
     private void cleanStaleInitiatorReferences(ExportGroup exportGroup, DbClient dbClient) {
         StringSet exportGroupInitiators = exportGroup.getInitiators();
         if (!CollectionUtils.isEmpty(exportGroupInitiators) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
@@ -240,11 +252,17 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 Collection<URI> staleInitiatorURIS = Collections2.transform(staleInitiators,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIS));
-                _log.info("Stale initiators {} will be removed from Export Group {}", staleInitiators, exportGroup.getId());
+                _log.info("Stale initiators {} will be removed from Export Group {}", staleInitiatorURIS, exportGroup.getId());
             }
         }
     }
 
+    /**
+     * Cleans stale host references from export group instance
+     * 
+     * @param exportGroup {@link ExportGroup}
+     * @param dbClient {@link DbClient}
+     */
     private void cleanStaleHostReferences(ExportGroup exportGroup, DbClient dbClient) {
         StringSet exportGroupInitiators = exportGroup.getInitiators();
         if (!CollectionUtils.isEmpty(exportGroup.getHosts()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
@@ -261,11 +279,17 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 Collection<URI> staleHostURIs = Collections2.transform(staleHosts,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 exportGroup.removeHosts(new ArrayList<>(staleHostURIs));
-                _log.info("Stale host references {} will be removed from Export Group {}", staleHosts, exportGroup.getId());
+                _log.info("Stale host references {} will be removed from Export Group {}", staleHostURIs, exportGroup.getId());
             }
         }
     }
 
+    /**
+     * Cleans stale cluster references from export group instance
+     * 
+     * @param exportGroup {@link ExportGroup}
+     * @param dbClient {@link DbClient}
+     */
     private void cleanStaleClusterReferences(ExportGroup exportGroup, DbClient dbClient) {
         StringSet exportGroupInitiators = exportGroup.getInitiators();
         if (!CollectionUtils.isEmpty(exportGroup.getClusters()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {

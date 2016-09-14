@@ -234,12 +234,11 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
 
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
-            exportMask = refreshExportMask(array, device, exportMask);
+            //exportMask = refreshExportMask(array, device, exportMask);
 
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
                 // Fetch the Initiators
-                _log.info("****************************" + " Export Mask Native Id : " + exportMask.getNativeId() + " @@@@@@@@@@@@@@@");
                 List<URI> initiatorURIs = new ArrayList<URI>();
                 List<Initiator> initiators = new ArrayList<Initiator>();
                 for (String initiatorId : exportMask.getInitiators()) {
@@ -254,6 +253,11 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
+                }
+                
+                if (exportMask.getNativeId() != null) {
+                    exportMask.setNativeId("");
+                    _dbClient.updateAndReindexObject(exportMask);
                 }
 
                 // The default completer passed in is for add volume, create correct one

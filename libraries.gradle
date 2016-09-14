@@ -458,7 +458,8 @@ ext {
     ]
 
     nimbusoidc = [
-        "net.minidev:json-smart:1.3.1",
+        "net.minidev:json-smart:1.1.1",
+        "com.nimbusds:lang-tag:1.4",
         "com.nimbusds:oauth2-oidc-sdk:3.4.1",
         "com.nimbusds:nimbus-jose-jwt:4.23"
     ]

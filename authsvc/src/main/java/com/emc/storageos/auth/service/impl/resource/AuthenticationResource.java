@@ -1361,6 +1361,8 @@ public class AuthenticationResource {
 
         _log.info("Requesting token for code {}", code);
         HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
+        //_log.info("Response is {}", tokenHTTPResp.getContent());
+	_log.info("Response is {}, {}", tokenHTTPResp.getContent().substring(777), tokenHTTPResp.getContent().length());
         TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
         _log.info("Token response is {}", tokenHTTPResp.getContent());
 
@@ -1368,8 +1370,6 @@ public class AuthenticationResource {
             ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();
             throw new RuntimeException(error.getDescription());
         }
-
-        JSONAware
 
         return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
     }

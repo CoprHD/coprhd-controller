@@ -8,6 +8,7 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -217,7 +218,7 @@ public class InitiatorService extends TaskResourceService {
             throw APIException.badRequests.initiatorNotCreatedManuallyAndCannotBeDeleted();
         }
 
-        ArgValidator.checkReference(Initiator.class, id, checkForDelete(initiator));
+        ArgValidator.checkReference(Initiator.class, id, checkForDelete(initiator, Arrays.asList(new Class[] { Initiator.class })));
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
@@ -229,6 +230,11 @@ public class InitiatorService extends TaskResourceService {
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);
+
+            Initiator associatedInitiator = com.emc.storageos.util.ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+            if (associatedInitiator != null) {
+                _dbClient.markForDeletion(initiator);
+            }
         }
 
         auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,

@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 public class InitiatorCompleter extends ComputeSystemCompleter {
 
@@ -55,7 +56,11 @@ public class InitiatorCompleter extends ComputeSystemCompleter {
 
             if (deactivateOnComplete && status.equals(Status.ready)) {
                 Initiator initiator = dbClient.queryObject(Initiator.class, id);
+                Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
                 dbClient.markForDeletion(initiator);
+                if (associatedInitiator != null) {
+                    dbClient.markForDeletion(associatedInitiator);
+                }
                 _logger.info("Initiator marked for deletion: " + this.getId());
             }
         }

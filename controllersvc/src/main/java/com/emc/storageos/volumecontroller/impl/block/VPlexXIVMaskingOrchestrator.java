@@ -229,6 +229,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys,
                     LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
+            
+            _log.info("****************************" + " Export Mask Native Id : " + exportMask.getNativeId() + " @@@@@@@@@@@@@@@");
 
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());

@@ -706,14 +706,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (URIUtil.isType(uri, FileShare.class)) {
             completer = new FileWorkflowCompleter(uri, taskId);
 
-            stepDescription = String.format("Deleting file system : %s share : %s  ACLs: %s", uri, shareName);
-            successMessage = String.format("Deleting file system : %s share : %s  ACLs: %s finished successfully", uri, shareName);
+            stepDescription = String.format("Deleting file system : %s share : %s  ACLs", uri, shareName);
+            successMessage = String.format("Deleting file system : %s share : %s ACLs finished successfully", uri, shareName);
             opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL.getName();
 
         } else {
             completer = new FileSnapshotWorkflowCompleter(uri, taskId);
-            stepDescription = String.format("Deleting file system snapshot : %s share: %s  ACLs: %s", uri, shareName);
-            successMessage = String.format("Deleting file system snapshot : %s share: %s  ACLs: %s finished successfully", uri, shareName);
+            stepDescription = String.format("Deleting file system snapshot : %s share: %s ACLs", uri, shareName);
+            successMessage = String.format("Deleting file system snapshot : %s share: %s ACLs: finished successfully", uri, shareName);
             opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL.getName();
         }
         try {
@@ -724,7 +724,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     storage, args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error(String.format("Deleting file system snapshot : %s share: %s  ACLs: %s failed.", uri, shareName), ex);
+            s_logger.error(String.format("Deleting file system snapshot : %s share: %s ACLs failed.", uri, shareName), ex);
             ServiceError serviceError = DeviceControllerException.errors.deleteShareACLFailed(uri.toString(), opName, ex);
             completer.error(s_dbClient, this._locker, serviceError);
         }

@@ -201,7 +201,7 @@ public class LDAPsources extends ViprResourceController {
             list();
         }
 
-        //For SOFO authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
+        //to remove SOFO feature  authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
         edit(new LDAPsourcesForm(authnProvider));
     }
 
@@ -233,7 +233,7 @@ public class LDAPsources extends ViprResourceController {
         ldapSources.save();
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
 
-        /* For Sofo AuthnProviderRestRep authnProvider = ldapSources.save();
+        /*to remove SOFO feature  AuthnProviderRestRep authnProvider = ldapSources.save();
         authProviderName = ldapSources.name;
 
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
@@ -339,7 +339,7 @@ public class LDAPsources extends ViprResourceController {
             this.disable = ldapSources.getDisable();
             this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
             this.tenantsSynchronizationOptions = Lists.newArrayList(ldapSources.getTenantsSynchronizationOptions());
-            //For Sofo this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
+            //to remove SOFO feature  this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -372,7 +372,7 @@ public class LDAPsources extends ViprResourceController {
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
-            /* For Sofo if (this.autoRegCoprHDNImportOSProjects) {
+            /*to remove SOFO feature  if (this.autoRegCoprHDNImportOSProjects) {
                 param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
             } */
             param.setManagerDn(this.managerDn);
@@ -424,7 +424,7 @@ public class LDAPsources extends ViprResourceController {
 
         private TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
         	Set<String> newValues = Sets.newHashSet(parseMultiLineInput(this.tenantsSynchronizationOptions.get(0)));
-            /* For Sofo Set<String> newValues;
+            /*to remove SOFO feature  Set<String> newValues;
             if (this.tenantsSynchronizationOptions != null) {
                 newValues = Sets.newHashSet(this.tenantsSynchronizationOptions);
                 newValues.add(this.synchronizationInterval);
@@ -501,7 +501,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            /* For Sofo param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            /*to remove SOFO feature  param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             param.getTenantsSynchronizationOptions().addAll(this.tenantsSynchronizationOptions);
             param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
             if (this.autoRegCoprHDNImportOSProjects) {
@@ -566,7 +566,7 @@ public class LDAPsources extends ViprResourceController {
             }
 
             validateLDAPGroupProperties(fieldName);
-        	//To remove SOfo  } 
+        	// to remove SOFO feature   } 
         }
 
         private void validateLDAPGroupProperties(String fieldName) {

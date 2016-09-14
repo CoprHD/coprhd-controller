@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -95,6 +96,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestParams;
@@ -147,7 +149,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCom
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDeactivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
@@ -3126,9 +3127,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("exportGroupDelete export mask URIs: " + exportMaskUris);
                 _log.info("exportGroupDelete volume URIs: " + volumeUris);
                 String zoningStep = workflow.createStepId();
-                ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskUris, zoningStep);
+                List<NetworkZoningParam> zoningParams = NetworkZoningParam.convertExportMasksToNetworkZoningParam(export, exportMaskUris, _dbClient);
                 Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportMasksDeleteMethod(
-                        export, exportMaskUris, volumeUris, zoneTaskCompleter);
+                        zoningParams, volumeUris);
                 workflow.createStep(ZONING_STEP,
                         String.format("Delete ExportMasks %s for VPlex %s", export, vplex),
                         storageViewStepId, nullURI, "network-system",
@@ -3255,13 +3256,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 + "but no errors were encountered.");
                     }
                 }
-
-                // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
-                // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that
-                // when the zone step is complete.
-                _log.info(
-                        String.format("ExportMask %s will not be deleted by this step; unzoning step will delete the ExportMask",
-                                exportMask.getId().toString()));
+                
+                _log.info("Marking export mask for deletion from Vipr: " + exportMask.getMaskName());
+                _dbClient.markForDeletion(exportMask);
 
                 _log.info("updating ExportGroups containing this ExportMask");
                 List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
@@ -3691,13 +3688,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 removeInitiatorMethod, removeInitiatorRollbackMethod, null);
 
                         // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
+                        List<NetworkZoningParam> zoningParams = 
+                            	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                            			exportURI, exportMaskURIs, _dbClient);
                         previousStep = workflow.createStep(
                                 ZONING_STEP,
                                 "Zoning subtask for export-group: " + exportURI,
                                 previousStep, NullColumnValueGetter.getNullURI(),
                                 "network-system", _networkDeviceController.getClass(),
-                                _networkDeviceController.zoneExportRemoveVolumesMethod(exportURI,
-                                        exportMaskURIs, volumeURIs), 
+                                _networkDeviceController.zoneExportRemoveVolumesMethod(zoningParams, volumeURIs), 
                                 null, workflow.createStepId());
 
                         // Create a step to fire the completer removing initiators.
@@ -3709,6 +3708,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
+                    List<NetworkZoningParam> zoningParams = 
+                        	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                        			exportURI, exportMaskURIs, _dbClient);
                     hasSteps = true;
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
@@ -3721,8 +3723,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             "Zoning subtask for export-group: " + exportURI,
                             previousStep, NullColumnValueGetter.getNullURI(),
                             "network-system", _networkDeviceController.getClass(),
-                            _networkDeviceController.zoneExportRemoveVolumesMethod(exportURI,
-                                    exportMaskURIs, volumeURIs),
+                            _networkDeviceController.zoneExportRemoveVolumesMethod(
+                                    zoningParams, volumeURIs),
                             null, workflow.createStepId());
 
                 }
@@ -4826,6 +4828,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     if (!volumeURIList.isEmpty()) {
                         _log.info("there are some volumes that need to be removed: " + volumeURIList);
+                        List<NetworkZoningParam> zoningParams = 
+                        	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                        			exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
 
                         // just doing a direct call to VplexApiClient here because enabling
                         // single StorageView volume remove would require a change to the
@@ -4837,7 +4842,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         List<URI> exportMaskURIs = new ArrayList<URI>();
                         exportMaskURIs.add(exportMask.getId());
                         String stepId = UUID.randomUUID().toString();
-                        _networkDeviceController.zoneExportRemoveVolumes(exportGroup.getId(), exportMaskURIs,
+                        _networkDeviceController.zoneExportRemoveVolumes(zoningParams,
                                 volumeURIList, stepId);
                     }
                 }
@@ -5104,7 +5109,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (ExportMask exportMask : exportMasks) {
                 maskToInitiatorsMap.put(exportMask.getId(), initiatorURIs);
             }
-            _networkDeviceController.zoneExportRemoveInitiators(exportURI, maskToInitiatorsMap, stepId);
+            List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+            		convertExportMaskInitiatorMapsToNetworkZoningParam(exportURI, maskToInitiatorsMap, _dbClient);
+            _networkDeviceController.zoneExportRemoveInitiators(zoningParams, stepId);
         } catch (Exception ex) {
             _log.error("Exception removing initator: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_INITIATOR_WORKFLOW_STEP.getName();

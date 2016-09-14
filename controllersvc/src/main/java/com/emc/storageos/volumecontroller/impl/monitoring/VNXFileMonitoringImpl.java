@@ -67,16 +67,28 @@ public class VNXFileMonitoringImpl implements IMonitoringStorageSystem {
 
             String storageSystemURI = monitoringJob.getId().toString();
             addVNXFileStorageSystemIntoCache(storageSystemURI, callback);
-            /**
-             * Delete existing stale subscriptions and make new subscription
-             */
-            boolean isSuccess = makeVNXFileSubscription(storageSystemURI);
+            StorageSystem storageDevice = null;
+            
+            try {
+                storageDevice = _dbClient.queryObject(StorageSystem.class, URI.create(storageSystemURI));
+            } catch (DatabaseException e) {
+                _logger.error(e.getMessage(), e);
+            }
+            
+            // Make VNXFile subscription, only for connected SMIS providers!!
+            if (isCompatibleDevice(storageSystemURI) &&
+            		isSMISProviderConnected(storageSystemURI)) {
+            	/**
+            	 * Delete existing stale subscriptions and make new subscription
+            	 */
+            	boolean isSuccess = makeVNXFileSubscription(storageSystemURI);
 
-            if (!isSuccess) {
-                _logger.debug("VNX File:{} subscription is not successful.", storageSystemURI);
-                addVNXFailedSubscription(storageSystemURI);
-            } else {
-                _logger.info("Successfully subscribed with vnxfile's smi-s provider for indication");
+            	if (!isSuccess) {
+            		_logger.debug("VNX File:{} subscription is not successful.", storageSystemURI);
+            		addVNXFailedSubscription(storageSystemURI);
+            	} else {
+            		_logger.info("Successfully subscribed with vnxfile's smi-s provider for indication");
+            	}
             }
         }
         _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());

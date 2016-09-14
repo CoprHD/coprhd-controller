@@ -110,7 +110,7 @@ public class CIMConnectionFactory {
              * Check cimConnection already exist for vnxfile, if not create new one
              */
             if (StorageSystem.Type.vnxfile.name().equals(storageDevice.getSystemType())) {
-                connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP(), storageDevice.getPortNumber());
+                connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber());
             } else {
                 connection = getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber().toString());
             }
@@ -220,9 +220,14 @@ public class CIMConnectionFactory {
     		_log.error("No CIMOM connection found for ip/port {}",
     				ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
     						storageSystem.getSmisPortNumber()));
-    		recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
-    				STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
-    				storageSystem.getId());
+    		if(storageSystem.getSmisConnectionStatus() == null || ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
+    				storageSystem.getSmisConnectionStatus())) {
+    			recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
+    					STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+    					storageSystem.getId());
+    		}
+    		storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
+    		_dbClient.updateObject(storageSystem);
     		// No need to add connection, as getConnection() called from any thread would create it.
     		return false;
     	}
@@ -238,7 +243,7 @@ public class CIMConnectionFactory {
     			storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
     			_dbClient.updateObject(storageSystem);
     		}
-    		_connectionManager.removeConnection(storageSystem.getSmisProviderIP(), storageSystem.getPortNumber());
+    		_connectionManager.removeConnection(storageSystem.getSmisProviderIP(), storageSystem.getSmisPortNumber());
     		_log.info("Removed invalid connection for smis {} from connectionManager",
     				ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
     						storageSystem.getSmisPortNumber()));

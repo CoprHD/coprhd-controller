@@ -3835,9 +3835,9 @@ ResourceType.VOLUME=Volume
 ResourceType.EXPORT_GROUP=Export Group
 
 storageSystemTypes.list.title=Storage System Types
-storageSystemTypes.create.title=Add New Storage System Type
+storageSystemTypes.create.title=Install New Storage Driver
 storageSystemTypes.edit.title=Edit Storage System Type
-storageSystemTypes.add.title=Enter all information needed for Storage System Type
+storageSystemTypes.add.title=Please confirm information parsed from metadata.properties file inside driver jar file
 storageSystemTypes.deleteConfirm=Are you sure you want to delete the selected Storage System Type?
 storageSystemTypes.name=Storage Name
 storageSystemTypes.storageTypeId=Id

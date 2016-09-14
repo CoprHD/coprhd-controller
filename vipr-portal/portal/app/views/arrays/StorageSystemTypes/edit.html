@@ -50,28 +50,42 @@
         <!--control-group v-field="storageSystemTypes.isProvider">
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
         </control-group-->
-
-        #{field 'storageSystemTypes.metaType'}
-            %{
-                field.required = true
-            }%
-            #{Form.inputTextControlGroup field:field /}
-        #{/field}
         <!--control-group v-field="storageSystemTypes.useSSL">
             <boolean-checkbox v-default-value="false"></boolean-checkbox>
         </control-group-->
-        #{field 'storageSystemTypes.useSSL'}
-          %{
-            field.required = false
-          }%
-          #{Form.inputTextControlGroup field:field /}
-        #{/field}
         #{field 'storageSystemTypes.isProvider'}
           %{
             field.required = false
           }%
           #{Form.inputTextControlGroup field:field /}
         #{/field}
+        #{if storageSystemTypes.isProvider}
+            #{field 'storageSystemTypes.providerName'}
+              %{
+                field.required = false
+              }%
+              #{Form.inputTextControlGroup field:field /}
+            #{/field}
+            #{field 'storageSystemTypes.providerDispName'}
+              %{
+                field.required = false
+              }%
+              #{Form.inputTextControlGroup field:field /}
+            #{/field}
+        #{/if}
+        #{field 'storageSystemTypes.metaType'}
+            %{
+                field.required = true
+            }%
+            #{Form.inputTextControlGroup field:field /}
+        #{/field}
+        #{field 'storageSystemTypes.useSSL'}
+          %{
+            field.required = false
+          }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+        
 	    #{field 'storageSystemTypes.portNumber'}
 	      %{
 	        field.required = false
@@ -90,20 +104,7 @@
 	      }%
 	      #{Form.inputTextControlGroup field:field /}
 	    #{/field}
-        #{if storageSystemTypes.isProvider}
-            #{field 'storageSystemTypes.providerName'}
-              %{
-                field.required = false
-              }%
-              #{Form.inputTextControlGroup field:field /}
-            #{/field}
-            #{field 'storageSystemTypes.providerDispName'}
-              %{
-                field.required = false
-              }%
-              #{Form.inputTextControlGroup field:field /}
-            #{/field}
-        #{/if}
+        
 	    #{field 'storageSystemTypes.driverFilePath'}
           <input type="hidden" name="${field.name}" value="${driverFilePath}">
         #{/field}

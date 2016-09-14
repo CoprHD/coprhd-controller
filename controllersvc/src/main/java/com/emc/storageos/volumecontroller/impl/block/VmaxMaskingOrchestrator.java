@@ -65,7 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateC
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -83,7 +83,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
     public static final String CUSTOM_CONFIG_HANDLER = "customConfigHandler";
-    private ValidatorConfig config;
 
     static {
         INITIATOR_FIELDS.add("clustername");
@@ -484,13 +483,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         StringBuffer errorMessage = new StringBuffer();
         logExportGroup(exportGroup, storageURI);
-        boolean isValidationEnabled = config.isValidationEnabled();
+        
         try {
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
                     token);
-
+            Initiator firstInitiator = _dbClient.queryObject(Initiator.class, initiatorURIs.get(0));
+            // No need to validate the orchestrator level validation for vplex/rp. Hence ignoring validation for vplex/rp initiators.
+            boolean isValidationNeeded = validatorConfig.isValidationEnabled() && !VPlexControllerUtils.isVplexInitiator(firstInitiator, _dbClient)
+                    && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(firstInitiator));
+            _log.info("Orchestration level validation needed : {}", isValidationNeeded);
             InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
             // Populate a map of volumes on the storage device associated with this ExportGroup
@@ -527,7 +530,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // This loop will determine a list of volumes to update per export mask
                 Map<URI, List<URI>> existingMasksToRemoveInitiator = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> existingMasksToRemoveVolumes = new HashMap<URI, List<URI>>();
-                Map<URI, List<URI>> existingMasksToCoexistInitiators = new HashMap<URI, List<URI>>();
                 for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
                     URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
                     if (initiatorURI == null || !initiatorURIs.contains(initiatorURI)) {
@@ -717,14 +719,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         if (!CollectionUtils.isEmpty(sharedMaskNames)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                             errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s.", initiatorURI,
+                                    String.format(" Initiator %s is shared between other Export Masks  %s.",
                                             normalizedName, Joiner.on(", ").join(sharedMaskNames)));
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
                     // CTRL-8846 fix : Compare against all the initiators
-                    List<URI> allMaskInitiators = ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
-                    allMaskInitiators.removeAll(initiatorsToRemove);
+                    Set<String> allMaskInitiators = ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient);
+                    List<Initiator> removableInitiatorList = _dbClient.queryObject(Initiator.class, initiatorsToRemove);
+                    List<String> portNames = new ArrayList<>(
+                            Collections2.transform(removableInitiatorList, CommonTransformerFunctions.fctnInitiatorToPortName()));
+                    allMaskInitiators.removeAll(portNames);
                     if (allMaskInitiators.isEmpty()) {
                         masksGettingRemoved.add(mask.getId());
                         // For this case, we are attempting to remove all the
@@ -733,8 +738,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("mask %s has removed all "
                                 + "initiators, mask will be deleted from the array.. ",
                                 mask.getMaskName()));
-                        errorMessage.append(String.format("Mask %s would have deleted from the array. ",
-                                mask.forDisplay()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
@@ -775,8 +778,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> volumesToRemove = entry.getValue();
                     List<URI> initiatorsToRemove = existingMasksToRemoveInitiator.get(mask.getId());
                     if (initiatorsToRemove != null) {
-                        List<URI> initiatorsInExportMask = StringSetUtil.stringSetToUriList(mask.getInitiators());
-                        initiatorsInExportMask.removeAll(initiatorsToRemove);
+                        Set<String> initiatorsInExportMask = ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient);
+                        List<Initiator> removableInitiatorList = _dbClient.queryObject(Initiator.class, initiatorsToRemove);
+                        List<String> portNames = new ArrayList<>(
+                                Collections2.transform(removableInitiatorList, CommonTransformerFunctions.fctnInitiatorToPortName()));
+                        initiatorsInExportMask.removeAll(portNames);
                         if (!initiatorsInExportMask.isEmpty()) {
                             // There are still some initiators in this ExportMask
                             _log.info(String.format("ExportMask %s would have remaining initiators {%s} that require access to {%s}. " +
@@ -791,8 +797,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             CommonTransformerFunctions.FCTN_URI_TO_STRING);
                     List<String> exportMaskVolumeURIStrings = new ArrayList<String>(mask.getVolumes().keySet());
                     exportMaskVolumeURIStrings.removeAll(volumesToRemoveURIStrings);
+                    
+                    boolean hasExistingVolumes = !CollectionUtils.isEmpty(mask.getExistingVolumes()); 
                     List<? extends BlockObject> boList = BlockObject.fetchAll(_dbClient, volumesToRemove);
-                    if (exportMaskVolumeURIStrings.isEmpty()) {
+                    if (!hasExistingVolumes && exportMaskVolumeURIStrings.isEmpty()) {
                         _log.info(
                                 String.format("All the volumes (%s) from mask %s will be removed, so will have to remove the whole mask. ",
                                         Joiner.on(", ").join(volumesToRemove), mask.getMaskName()));
@@ -825,15 +833,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     }
                 }
-                for (Map.Entry<URI, List<URI>> entry : existingMasksToCoexistInitiators.entrySet()) {
-                    // this was a co-exist initiator - We need to remove any zone references and
-                    // we assume the initiator was removed from the DB and clean it
-                    ExportMaskUtils.removeMaskCoexistInitiators(dbModelClient, entry.getKey(), entry.getValue());
-                }
+                
             }
             _log.warn("Error Message {}", errorMessage);
 
-            if (isValidationEnabled && StringUtils.hasText(errorMessage)) {
+            if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
                         storage.forDisplay(),
                         errorMessage.toString());
@@ -2416,9 +2420,5 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes)
                 throws Exception {
         }
-    }
-
-    public void setConfig(ValidatorConfig config) {
-        this.config = config;
     }
 }

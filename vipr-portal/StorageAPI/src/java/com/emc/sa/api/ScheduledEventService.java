@@ -201,9 +201,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
             }
             return;
+        } else if (scheduleInfo.getReoccurrence() > ScheduleInfo.MAX_REOCCURRENCE ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
-        if (scheduleInfo.getCycleFrequency() < 1 ) {
+        if (scheduleInfo.getCycleFrequency() < 1
+                || scheduleInfo.getCycleFrequency() > ScheduleInfo.MAX_CYCLE_FREQUENCE ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
         }
 
@@ -466,6 +469,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         // TODO: update execution window when admin change it in catalog service
 
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
+        scheduledEvent.setEventType(scheduleInfo.getReoccurrence() == 1? ScheduledEventType.ONCE:ScheduledEventType.REOCCURRENCE);
         client.save(scheduledEvent);
 
         log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());
@@ -557,7 +561,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             if (executionWindow == null) continue;
 
             ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
-            Calendar windowTime = helper.calculateNext(time);
+            Calendar windowTime = helper.calculateCurrentOrNext(time);
             if (nextWindowTime == null || nextWindowTime.after(windowTime)) {
                 nextWindowTime = windowTime;
                 nextWindow = window;

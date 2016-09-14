@@ -1045,7 +1045,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public void doConnect(StorageSystem storage) {
-    	int reTryTimes = 0;
+    	/*int reTryTimes = 0;
     	boolean successSmisConnection = false;
     	String connectionStatus = ConnectionStatus.NOTCONNECTED.toString();
     	
@@ -1067,7 +1067,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     		connectionStatus = ConnectionStatus.CONNECTED.toString();
     	} 
     	storage.setSmisConnectionStatus(connectionStatus);
-    	_dbClient.updateObject(storage);
+    	_dbClient.updateObject(storage);*/
     }
 
     @Override

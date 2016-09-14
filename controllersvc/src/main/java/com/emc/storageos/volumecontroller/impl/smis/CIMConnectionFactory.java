@@ -198,50 +198,67 @@ public class CIMConnectionFactory {
             if (null != storageSystem &&
                     Type.vnxfile.toString().equals(storageSystem.getSystemType()) && 
                     ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(storageSystem.getSmisConnectionStatus())) {
-                CimConnection cimConnection = getConnection(storageSystem);
-                if (null == cimConnection) {
-                    _log.error("No CIMOM connection found for ip/port {}",
-                            ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
-                                    storageSystem.getSmisPortNumber()));
-                    recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
-                            STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
-                            storageSystem.getId());
-                    // No need to add connection, as getConnection() called from any thread would create it.
-                    continue;
-                }
-                if (!checkConnectionliveness(cimConnection)) {
-                    // If the provider is in NOTCONNECTED state, generating failure event &
-                    // changing connection status for storagesystem
-                    if (null != storageSystem.getSmisConnectionStatus() &&
-                            ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
-                                    storageSystem.getSmisConnectionStatus())) {
-                        recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
-                                STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
-                                storageSystem.getId());
-                        storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
-                        _dbClient.persistObject(storageSystem);
-                    }
-                    _connectionManager.removeConnection(storageSystem.getSmisProviderIP(), storageSystem.getPortNumber());
-                    _log.info("Removed invalid connection for smis {} from connectionManager",
-                            ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
-                                    storageSystem.getSmisPortNumber()));
-                }
-                else {
-                    // If the provider is in CONNECTED state, generating success event &
-                    // changing connection status for storagesystem
-                    if (null != storageSystem.getSmisConnectionStatus() &&
-                            ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
-                                    storageSystem.getSmisConnectionStatus())) {
-                        recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,
-                                STORAGE_PROVIDER_UP_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
-                                storageSystem.getId());
-                        storageSystem.setSmisConnectionStatus(ConnectionStatus.CONNECTED.toString());
-                        _dbClient.persistObject(storageSystem);
-                    }
-                }
+            	verifyVnXFileConnection(storageSystem);
             }
         }
     }
+    
+    /**
+     * Creates valid CIMConnection instances and removes invalid cimConnection instances from connectionManager 
+     * for vnxfile StorageSystem's smis provider
+     * 1. Check if the connection is valid one using liveliness check
+     * 2. If the connection can communicate smis provider do nothing
+     * 3. else remove connection from _connectionManager
+     * 
+     * @throws IOException
+     * @throws ConnectionManagerException
+     */
+    public boolean verifyVnXFileConnection(StorageSystem storageSystem) throws IOException, ConnectionManagerException {
+
+    	CimConnection cimConnection = getConnection(storageSystem);
+    	if (null == cimConnection) {
+    		_log.error("No CIMOM connection found for ip/port {}",
+    				ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
+    						storageSystem.getSmisPortNumber()));
+    		recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
+    				STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+    				storageSystem.getId());
+    		// No need to add connection, as getConnection() called from any thread would create it.
+    		return false;
+    	}
+    	if (!checkConnectionliveness(cimConnection)) {
+    		// If the provider is in NOTCONNECTED state, generating failure event &
+    		// changing connection status for storagesystem
+    		if (null != storageSystem.getSmisConnectionStatus() &&
+    				ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
+    						storageSystem.getSmisConnectionStatus())) {
+    			recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
+    					STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+    					storageSystem.getId());
+    			storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
+    			_dbClient.updateObject(storageSystem);
+    		}
+    		_connectionManager.removeConnection(storageSystem.getSmisProviderIP(), storageSystem.getPortNumber());
+    		_log.info("Removed invalid connection for smis {} from connectionManager",
+    				ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
+    						storageSystem.getSmisPortNumber()));
+    		return false;
+    	}
+    	else {
+    		// If the provider is in CONNECTED state, generating success event &
+    		// changing connection status for storagesystem
+    		if (storageSystem.getSmisConnectionStatus() == null || ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
+    						storageSystem.getSmisConnectionStatus())) {
+    			recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,
+    					STORAGE_PROVIDER_UP_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
+    					storageSystem.getId());
+    			storageSystem.setSmisConnectionStatus(ConnectionStatus.CONNECTED.toString());
+    			_dbClient.updateObject(storageSystem);
+    		}
+    		return true;
+    	}
+    }
+
 
     /**
      * This will be an indication to the ConnectionManager that we need the connection to remain alive

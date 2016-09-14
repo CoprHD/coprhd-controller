@@ -460,7 +460,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
 
             // Update the connection status of SMI-S provider!!
-            updateSmisConnection(accessProfile);
+            verifySmisConnection(accessProfile);
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemId.toString());
@@ -3691,20 +3691,16 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * @param accessProfile
      *            : AccessProfile for the providers
      */
-    private void updateSmisConnection(AccessProfile accessProfile) {
+    private void verifySmisConnection(AccessProfile accessProfile) {
 
-     	int reTryTimes = 0;
-    	boolean successSmisConnection = false;
-    	String connectionStatus = ConnectionStatus.NOTCONNECTED.toString();
-    	
+     	int reTryTimes = 0;    	
     	final CIMConnectionFactory connectionFactory = (CIMConnectionFactory) accessProfile
     			.getCimConnectionFactory();
     	StorageSystem storage = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
 
     	do {
     		try {
-    			if(connectionFactory.getConnection(storage) != null ) {
-    				successSmisConnection = true;
+    			if(connectionFactory.verifyVnXFileConnection(storage) ) {
     				break;
     			}
 
@@ -3713,13 +3709,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     					      storage.getSmisPortNumber());
     		}
     	} while (reTryTimes++ < MAX_RETRIES);
-
-    	// Update the storage system's SMIS provider connection status!!!
-    	if(successSmisConnection) {
-    		connectionStatus = ConnectionStatus.CONNECTED.toString();
-    	} 
-    	storage.setSmisConnectionStatus(connectionStatus);
-    	_dbClient.updateObject(storage);
     }
 
     /**

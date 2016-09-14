@@ -13,7 +13,8 @@ scripts {
 }
 
 dependencies {
-    compile library(guava),
+    compile     library(nimbusoidc),
+		library(guava),
             library(jetty),
             library(apache_cassandra),
             library(spring),
@@ -26,7 +27,6 @@ dependencies {
 			library(httpclient4),
             library(jersey),
             library(commons_codec),
-            library(nimbusoidc),
 
             project(":dbsvc"),
             project(":security"),

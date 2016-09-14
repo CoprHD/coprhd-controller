@@ -46,7 +46,7 @@
 		<property name="resource">
 			<set>
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthenticationResource">
-                    <property name="oidcProviderAddr" value="lglw7227.lss.emc.com:58080"/>
+                    <property name="oidcProviderAddr" value="lglw7227.lss.emc.com:58080/SSO"/>
                 </bean>
                 <bean class="com.emc.storageos.auth.service.impl.resource.PrincipalValidatorResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.ReloadProviderResource" />

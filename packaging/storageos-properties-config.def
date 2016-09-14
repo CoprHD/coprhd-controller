@@ -2940,7 +2940,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "true", 
+        value : "false", 
     },
     {
         key : "artificial_failure",

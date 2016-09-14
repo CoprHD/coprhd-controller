@@ -95,6 +95,10 @@ angular.module("portalApp").controller({
         };
 
         $scope.disablePlacementPolicy = function(value) {
+        	/*
+        	 * When value does not belong to nonequalList or belongs to equalList, 
+        	 * ie. value is not XTREMIO, VMAX, Unity, VnxBlock or value is "vplex_local","vplex_distributed","rp", "srdf"
+        	 */
         	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
         	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
         	if((nonequalList.indexOf(value)<0)||(equalList.indexOf(value)==-1)) {

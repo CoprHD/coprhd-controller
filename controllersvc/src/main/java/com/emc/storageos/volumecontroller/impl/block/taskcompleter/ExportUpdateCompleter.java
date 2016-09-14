@@ -194,6 +194,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         // Clean stale export mask references from ExportGroup.
         StringSet exportMasks = exportGroup.getExportMasks();
         if (!CollectionUtils.isEmpty(exportMasks)) {
+            List<URI> staleMasks = new ArrayList<>();
             StringSet exportGroupInitiators = exportGroup.getInitiators();
             for (String mask : exportMasks) {
                 boolean isStaleMask = false;
@@ -213,11 +214,13 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     }
                 }
                 if (isStaleMask) {
-                    exportGroup.removeExportMask(mask);
-                    _log.info("Stale mask {} will be removed from Export Group {}", mask, exportGroup.getId());
+                    staleMasks.add(maskURI);
+                    _log.info("Stale mask {} will be removed from Export Group {}", maskURI, exportGroup.getId());
                 }
             }
-
+            if (!CollectionUtils.isEmpty(staleMasks)) {
+                exportGroup.removeExportMasks(staleMasks);
+            }
         }
     }
 

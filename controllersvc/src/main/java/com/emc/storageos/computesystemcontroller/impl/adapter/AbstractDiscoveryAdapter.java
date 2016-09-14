@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemDialogProperties;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryVersionValidator;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -266,7 +267,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         return null;
     }
 
-    protected Initiator getOrCreateInitiator(List<Initiator> initiators, String port) {
+    protected Initiator getOrCreateInitiator(URI hostId, List<Initiator> initiators, String port) {
         Initiator initiator = findInitiatorByPort(initiators, port);
         if (initiator == null) {
             initiator = new Initiator();
@@ -274,6 +275,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             initiator.setLabel(EndpointUtility.changeCase(port));
         } else {
             initiators.remove(initiator);
+        }
+
+        if (!NullColumnValueGetter.isNullURI(initiator.getHost()) && !initiator.getHost().equals(hostId)) {
+            Host host = dbClient.queryObject(Host.class, hostId);
+            Host initiatorHost = dbClient.queryObject(Host.class, initiator.getHost());
+            throw ComputeSystemControllerException.exceptions.illegalInitiator(host != null ? host.forDisplay() : hostId.toString(),
+                    initiator.getInitiatorPort(), initiatorHost != null ? initiatorHost.forDisplay() : initiator.getHost().toString());
         }
         initiator.setIsManualCreation(false);
         return initiator;
@@ -638,8 +646,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
                     dbClient.updateObject(host);
                     ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, host.getCluster(), host.getId());
-                    ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
-                            cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
+                    if (cluster != null) {
+                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, host.getId(),
+                                cluster != null ? cluster.getVcenterDataCenter() : NullColumnValueGetter.getNullURI());
+                    }
                 }
             } else if (!NullColumnValueGetter.isNullURI(change.getNewDatacenter())) {
                 VcenterDataCenter currentDatacenter = dbClient.queryObject(VcenterDataCenter.class, change.getNewDatacenter());

@@ -837,6 +837,13 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         _log.info("Initiator - Storageport assignments: {}", assignments);
     }
 
+    /**
+     * Gets the associated initiator from the map of assignments.
+     * 
+     * @param initiator
+     * @param assignments the map of initiator - storage ports
+     * @return the associated initiator
+     */
     private Initiator getAssociatedInitiator(Initiator initiator, Map<Initiator, List<StoragePort>> assignments) {
 
         Set<Initiator> initiators = assignments.keySet();
@@ -883,6 +890,15 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         return new HashMap<Initiator, List<StoragePort>>();
     }
 
+    /**
+     * Assigns the storage ports to associated initiator
+     * 
+     * @param initiator the initiator. Storage ports of this initiator will be assigned to its associated initiator iff associated initiator
+     *            is present in the map of assignments.
+     * @param assignedPorts the storage ports to be assigned
+     * @param assignments the map of initiator - storage ports
+     * @param initiatorList the list of initiators
+     */
     private void assignPortsToAssociatedInitiator(Initiator initiator, List<StoragePort> assignedPorts,
             Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
 
@@ -899,6 +915,15 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
     }
 
+    /**
+     * Assigns the storage ports to the initiator passed from associated initiator iff associated initiator is in the map of assignments.
+     * 
+     * @param initiator the initiator to which storage ports are assigned.
+     * @param assignments the map of assignments
+     * @param initiatorList if initiator is assigned, then it will be removed from this list so that it won't be considered in the next
+     *            iteration.
+     * @return true is assigned, false otherwise
+     */
     private boolean assignPortsToInitiatorFromAssociatedInitiator(Initiator initiator,
             Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
 

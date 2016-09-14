@@ -237,6 +237,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
                 // Fetch the Initiators
+                _log.info("****************************" + " Export Mask Native Id : " + exportMask.getNativeId() + " @@@@@@@@@@@@@@@");
                 List<URI> initiatorURIs = new ArrayList<URI>();
                 List<Initiator> initiators = new ArrayList<Initiator>();
                 for (String initiatorId : exportMask.getInitiators()) {

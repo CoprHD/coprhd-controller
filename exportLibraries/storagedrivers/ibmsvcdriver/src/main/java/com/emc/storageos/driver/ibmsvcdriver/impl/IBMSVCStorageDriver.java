@@ -384,7 +384,7 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 
             if (resultAllHost.isSuccess()) {
 
-				_log.info(String.format("Queried all host information.\n"));
+				_log.info(String.format("Queried all host information.%n"));
 
 				for (IBMSVCHost host : resultAllHost.getHostList()) {
 
@@ -393,7 +393,7 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 
 					if (resultHostInitiator.isSuccess()) {
 
-						_log.info(String.format("Queried host initiator for host Id %s.\n",
+						_log.info(String.format("Queried host initiator for host Id %s.%n",
 								resultHostInitiator.getHostId()));
 
 						Set<Initiator> hostInitiatorSet = new HashSet<>();
@@ -818,7 +818,10 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
         IBMSVCAddVdiskAccessResult addVdiskAccessResult = IBMSVCCLI.addVdiskAccess(connection, volumeID, iogrps);
 
         if(!addVdiskAccessResult.isSuccess()){
-            throw new IBMSVCDriverException("Failed to add vDisk Acess - " + addVdiskAccessResult.getErrorString());
+            //throw new IBMSVCDriverException("Failed to add vDisk Access - " + addVdiskAccessResult.getErrorString());
+            // TODO: Check what to do when vDisk access fails. This fails if IO_GRP has nodeCount 0.
+            // Host may be associated with that IO Group
+            _log.warn("Failed to add vDisk Access - " + addVdiskAccessResult.getErrorString());
         }
 
     }

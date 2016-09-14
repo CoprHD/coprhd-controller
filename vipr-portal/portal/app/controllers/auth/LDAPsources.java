@@ -501,10 +501,10 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            /* For Sofo param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             param.getTenantsSynchronizationOptions().addAll(this.tenantsSynchronizationOptions);
             param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
-            /* For Sofo if (this.autoRegCoprHDNImportOSProjects) {
+            if (this.autoRegCoprHDNImportOSProjects) {
                 if (tenantsSynchronizationOptions != null) {
                     param.setTenantsSynchronizationOptions((Sets.newHashSet(this.tenantsSynchronizationOptions)));
                 } else {
@@ -550,7 +550,7 @@ public class LDAPsources extends ViprResourceController {
                 }
             }
 
-        	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
+        	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {*/
 
             if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {
                 Validation.addError(fieldName + ".searchFilter",
@@ -566,7 +566,7 @@ public class LDAPsources extends ViprResourceController {
             }
 
             validateLDAPGroupProperties(fieldName);
-        	} */
+        	//To remove SOfo  } 
         }
 
         private void validateLDAPGroupProperties(String fieldName) {

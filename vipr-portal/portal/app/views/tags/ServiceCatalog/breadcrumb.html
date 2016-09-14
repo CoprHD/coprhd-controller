@@ -10,9 +10,7 @@
 <ul class="breadcrumb breadcrumb-navbar" data-id="${activeItem?.id}" data-path="${activeItem?.path}" data-parent="${parentItem?.id}" #{if !visible}style="display:none"#{/if}>
   #{list items, as:'item'}
     #{if item_isLast}<li class="active">${item.title}</li>#{/if}
-    #{else}
-    	<li><a href="${baseUrl}#${item.path}">${item.title}</a>#{if !item_isLast}<span class="divider"></span>#{/if}</li>
-    #{/else}    
+    #{else}<li><a href="${baseUrl}#${item.path}">${item.title}</a>#{if !item_isLast}<span class="divider"></span>#{/if}</li>#{/else}    
   #{/list}
   #{doBody/}
 </ul>

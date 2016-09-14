@@ -49,6 +49,6 @@ $(document).ready(function() {
 
 <div id="catalog" class="catalog">
   #{list items:catalog.values(), as:'category'}
-    #{ServiceCatalog.category category:category, source:source/}
+    #{ServiceCatalog.category category:category /}
   #{/list}
 </div>

@@ -45,10 +45,6 @@ public class OrchestrationService extends ViPRService {
         params.put("ProxyToken", ExecutionUtils.currentContext().
                 getExecutionState().getProxyToken());
         
-        // add a proxy token that OE can use to login to ViPR API
-        params.put("ProxyToken", ExecutionUtils.currentContext().
-                getExecutionState().getProxyToken());
-        
     }
 
 	@Override

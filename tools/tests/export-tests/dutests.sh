@@ -430,11 +430,13 @@ clean_zones() {
 /^id: / { uri=\$2; }
 /zoneName/ { name = \$3; print uri, name; }
 " | grep host1 | awk -e ' { print $1; }')
-    echo "Deleting FCZoneReferences"  $zoneUris
-    for uri in $zoneUris
-    do
-        /opt/storageos/bin/dbutils delete FCZoneReference $uri
-    done
+    if [ "${zoneUris}" != "" ]; then
+	secho "Deleting FCZoneReferences" $zoneUris
+	for uri in $zoneUris
+	do
+	  /opt/storageos/bin/dbutils delete FCZoneReference $uri > /dev/null
+	done
+    fi
 }
 
 # Deletes the zones returned by load_zones
@@ -444,14 +446,14 @@ delete_zones() {
       if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	  secho "deleteing zone ${zone}"
       fi
-      zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1
+      zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1 > /dev/null
       if [ $? -ne 0 ]; then
 	  secho "zones not deleted"
       fi
       if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	  echo "sactivating fabric ${fabricid}"
       fi
-      zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1
+      zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
       if [ $? -ne 0 ]; then
 	  secho "fabric not activated"
       fi
@@ -3133,13 +3135,18 @@ test_22() {
 # This tests top-level workflow suspension for the migration workflow with CGs
 #
 test_23() {
-    echot "Test 23 suspend resume migration with CGs"
+    echot "Test 23 (VPLEX) Suspend resume migration with CGs"
     expname=${EXPORT_GROUP_NAME}t23
 
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
         return
+    fi
+
+    if [ "${VPLEX_MODE}" = "distributed" ]; then
+	echo "This test is reserved for vplex local as distributed mode uses the same code path"
+	return
     fi
 
     randval=${RANDOM}

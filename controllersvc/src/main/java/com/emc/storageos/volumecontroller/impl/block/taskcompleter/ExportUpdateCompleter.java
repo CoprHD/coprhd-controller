@@ -226,14 +226,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
 
     private void cleanStaleInitiatorReferences(ExportGroup exportGroup, DbClient dbClient) {
         StringSet exportGroupInitiators = exportGroup.getInitiators();
-        if (!CollectionUtils.isEmpty(exportGroupInitiators)) {
+        if (!CollectionUtils.isEmpty(exportGroupInitiators) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
             Set<String> allMaskInitiators = new HashSet<>();
-            if (!CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
-                for (String mask : exportGroup.getExportMasks()) {
-                    ExportMask maskObj = dbClient.queryObject(ExportMask.class, URI.create(mask));
-                    if (maskObj != null && !CollectionUtils.isEmpty(maskObj.getInitiators())) {
-                        allMaskInitiators.addAll(maskObj.getInitiators());
-                    }
+            for (String mask : exportGroup.getExportMasks()) {
+                ExportMask maskObj = dbClient.queryObject(ExportMask.class, URI.create(mask));
+                if (maskObj != null && !CollectionUtils.isEmpty(maskObj.getInitiators())) {
+                    allMaskInitiators.addAll(maskObj.getInitiators());
                 }
             }
             // Stale initiators = EG intiators - all initiators available in all the eg.masks
@@ -248,16 +246,14 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     }
 
     private void cleanStaleHostReferences(ExportGroup exportGroup, DbClient dbClient) {
-        if (!CollectionUtils.isEmpty(exportGroup.getHosts())) {
-            StringSet exportGroupInitiators = exportGroup.getInitiators();
+        StringSet exportGroupInitiators = exportGroup.getInitiators();
+        if (!CollectionUtils.isEmpty(exportGroup.getHosts()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
             Set<String> egHosts = new HashSet<>();
-            if (!CollectionUtils.isEmpty(exportGroupInitiators)) {
-                Collection<Initiator> initiators = Collections2.transform(exportGroupInitiators,
-                        CommonTransformerFunctions.fctnStringToInitiator(dbClient));
-                for (Initiator initiator : initiators) {
-                    if (initiator.getHost() != null) {
-                        egHosts.add(initiator.getHost().toString());
-                    }
+            Collection<Initiator> initiators = Collections2.transform(exportGroupInitiators,
+                    CommonTransformerFunctions.fctnStringToInitiator(dbClient));
+            for (Initiator initiator : initiators) {
+                if (initiator.getHost() != null) {
+                    egHosts.add(initiator.getHost().toString());
                 }
             }
             Set<String> staleHosts = Sets.difference(exportGroup.getHosts(), egHosts);
@@ -271,16 +267,14 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     }
 
     private void cleanStaleClusterReferences(ExportGroup exportGroup, DbClient dbClient) {
-        if (!CollectionUtils.isEmpty(exportGroup.getClusters())) {
-            StringSet exportGroupInitiators = exportGroup.getInitiators();
+        StringSet exportGroupInitiators = exportGroup.getInitiators();
+        if (!CollectionUtils.isEmpty(exportGroup.getClusters()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
             Set<String> egClusterURIs = new HashSet<>();
-            if (!CollectionUtils.isEmpty(exportGroupInitiators)) {
-                Collection<Host> hosts = Collections2.transform(exportGroup.getHosts(),
-                        CommonTransformerFunctions.fctnStringToHost(dbClient));
-                for (Host host : hosts) {
-                    if (host.getCluster() != null) {
-                        egClusterURIs.add(host.getCluster().toString());
-                    }
+            Collection<Host> hosts = Collections2.transform(exportGroup.getHosts(),
+                    CommonTransformerFunctions.fctnStringToHost(dbClient));
+            for (Host host : hosts) {
+                if (host.getCluster() != null) {
+                    egClusterURIs.add(host.getCluster().toString());
                 }
             }
             Set<String> staleClusters = Sets.difference(exportGroup.getClusters(), egClusterURIs);

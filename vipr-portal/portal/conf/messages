@@ -3726,6 +3726,7 @@ resources.filesystem.quota.name=Name
 resources.filesystem.quota.security=Security Style
 resources.filesystem.quota.lock=Read/Write Cache Enable
 resources.filesystem.quota.size=Size
+resources.filesystem.quota.size.invalid.value=Please input correct Integer value, special characters not allowed
 resources.filesystem.quota.softLimit=Soft Limit (%%)
 resources.filesystem.quota.notificationLimit=Advisory Limit (%%)
 resources.filesystem.quota.softGrace=Soft Grace (Days)

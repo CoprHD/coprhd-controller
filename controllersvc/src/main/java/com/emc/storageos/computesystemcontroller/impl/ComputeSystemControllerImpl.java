@@ -374,7 +374,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void addInitiatorToExport(URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
-        addInitiatorsToExport(NullColumnValueGetter.getNullURI(), hostId, uris, taskId);
+        addInitiatorsToExport(hostId, uris, taskId);
     }
 
     @Override
@@ -1988,5 +1988,36 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+    }
+
+    @Override
+    public void addInitiatorsToExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        addInitiatorsToExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+    }
+
+    @Override
+    public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException {
+        removeInitiatorFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        removeInitiatorsFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException {
+        addHostsToExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, taskId, oldCluster, isVcenter);
+
+    }
+
+    @Override
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
+            throws ControllerException {
+        removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
+
     }
 }

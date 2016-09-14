@@ -189,7 +189,9 @@ public class DbConsistencyCheckerHelper {
                 .prepareQuery(indexAndCf.cf);
 
         OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
-                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
+                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
+                .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build())
+                .execute();
 
         for (Row<String, IndexColumnName> row : result.getResult()) {
             ColumnList<IndexColumnName> columns = row.getColumns();

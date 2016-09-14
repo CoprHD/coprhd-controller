@@ -70,6 +70,9 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -1822,6 +1825,22 @@ public class RPHelper {
                 newStyleJournals.add(journalVol);
             }
         }
+        
+        // For some platforms volume names with blank spaces are not allowed. 
+        // If the varray and/or CG name has spaces they may have been removed from
+        // the volume label. If this is the case, we would not have added them
+        // to the new style journal list. If the list is empty, try again with
+        // the blank spaces removed from the journal name prefix.
+        if (newStyleJournals.isEmpty()) {
+            journalPrefix = journalPrefix.replaceAll("\\s+","");
+            for (Volume journalVol : existingJournals) {
+                String volName = journalVol.getLabel();
+                if (volName != null && volName.length() >= journalPrefix.length() &&
+                        volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+                    newStyleJournals.add(journalVol);
+                }
+            }
+        }
 
         // calculate the largest index
         int largest = 0;
@@ -2287,6 +2306,99 @@ public class RPHelper {
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Validate the CG before performing destructive operations.
+     * If additional volumes appear in the RP CG on the hardware, this method returns false
+     * Clerical errors (such as missing DB entries) result in an Exception
+     * 
+     * @param dbClient
+     *            dbclient
+     * @param system
+     *            protection system
+     * @param cgId
+     *            BlockConsistencyGroup ID
+     * @param volumes
+     *            list of volumes
+     * @return true if CG is what we expect on the hardware, false otherwise
+     */
+    public static boolean validateCGForDelete(DbClient dbClient, ProtectionSystem system, URI cgId, Set<URI> volumes) {
+        _log.info("validateCGForDelete {} - start", system.getId());
+
+        // Retrieve all of the RP CGs, their RSets, and their volumes
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+        Set<GetCGsResponse> cgList = rp.getAllCGs();
+        if (cgList == null || cgList.isEmpty()) {
+            String errMsg = "Could not retrieve CGs from the RPA to perform validation."; 
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Grab all of the source volumes from the CG according to ViPR
+        List<Volume> srcVolumes = RPHelper.getCgVolumes(dbClient, cgId, PersonalityTypes.SOURCE.toString());
+        if (srcVolumes == null || srcVolumes.isEmpty()) {
+            String errMsg = "Could not retrieve volumes from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Get the protection set ID from the first source volume. All volumes will have the same pset ID.
+        URI psetId = srcVolumes.get(0).getProtectionSet().getURI();
+        if (NullColumnValueGetter.isNullURI(psetId)) {
+            String errMsg = "Could not retrieve protection set ID from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Get the protection set, which is required to get the CG ID on the RPA
+        ProtectionSet pset = dbClient.queryObject(ProtectionSet.class, psetId);
+        if (pset == null) {
+            String errMsg = "Could not retrieve protection set from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Pre-populate the wwn fields for comparisons later.
+        List<String> srcVolumeWwns = new ArrayList<>();
+        for (Volume srcVolume : srcVolumes) {
+            srcVolumeWwns.add(srcVolume.getWWN());
+        }
+        
+        // This loop finds the CG on the hardware from the list of all CGs. Ignores all CGs that don't match our ID.
+        for (GetCGsResponse cgResponse : cgList) {
+            // Compare the stored CG ID (unique per RP System, doesn't change even if CG name changes)
+            if (Long.parseLong(pset.getProtectionId()) != cgResponse.getCgId()) {
+                continue;
+            }
+
+            // Make sure we have rsets before we continue. If the CG has no RSets on the hardware, throw
+            if (cgResponse.getRsets() == null || cgResponse.getRsets().isEmpty()) {
+                String errMsg = "Could not retrieve replication sets from the hardware to perform validation";
+                throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+            }
+            
+            // Find one of our volumes
+            for (GetRSetResponse rsetResponse : cgResponse.getRsets()) {
+                
+                // Make sure we have volumes in the RSet before we continue
+                if (rsetResponse == null || rsetResponse.getVolumes() == null || rsetResponse.getVolumes().isEmpty()) {
+                    String errMsg = "Could not retrieve the volumes in the replication set from the hardware to perform validation";
+                    throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+                }
+            
+                // Check all of the volumes in the replication set. At least ONE volume needs to match one of our source
+                // volumes. An RSet contains one source (or an active and stand-by source) and multiple targets. Our
+                // list of WWNs is the list of source volumes we know about.
+                for (GetVolumeResponse volumeResponse : rsetResponse.getVolumes()) {
+                    // This hardware volume should be represented in the list of srcVolumes
+                    if (!srcVolumeWwns.contains(volumeResponse.getWwn())) {
+                        _log.warn(
+                                "Found at least one volume that isn't in our list of source volumes {}, therefore we can not delete the entire CG.",
+                                volumeResponse.getWwn());
+                        return false;
+                    }
+                }
+            }
+        }
+        _log.info("validateCGForDelete {} - end", system.getId());
         return true;
     }
 }

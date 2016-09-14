@@ -134,12 +134,12 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Gets the base URL for NFS mounts for a host: <tt>/file/filesystems/mounts</tt>
+     * Gets the base URL for NFS mounts for a host: <tt>/compute/hosts/{id}/filesystem-mounts</tt>
      * 
      * @return the NFS mounts URL.
      */
     protected String getNfsHostMountsUrl() {
-        return "/file/filesystems/mounts";
+        return "/compute/hosts/{id}/filesystem-mounts";
     }
 
     @Override
@@ -884,19 +884,17 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Gets the NFS mounts for the given host by ID.
+     * Gets the NFS mounts for the given host
      * <p>
-     * API Call: <tt>GET /file/filesystems/mounts/?host</tt>
+     * API Call: <tt>GET /compute/hosts/{id}/filesystem-mounts</tt>
      * 
      * @param id
-     *            the ID of the file system.
-     * @return the list of NFS mounts for the given file system.
+     *            the ID of the host.
+     * @return the list of NFS mounts for the host.
      */
-    public List<MountInfo> getNfsHostMounts(String id) {
+    public List<MountInfo> getNfsMountsByHost(URI id) {
         MountInfoList response;
-        Properties queryParam = new Properties();
-        queryParam.setProperty("host", id);
-        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), queryParam, id);
+        response = client.get(MountInfoList.class, getNfsHostMountsUrl(), id);
         return defaultList(response.getMountList());
     }
 }

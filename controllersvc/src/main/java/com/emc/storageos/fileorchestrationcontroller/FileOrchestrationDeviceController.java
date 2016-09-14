@@ -104,10 +104,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String RESTORE_FILESYSTEM_SNAPSHOT_METHOD = "restoreFS";
     private static final String DELETE_FILESYSTEM_SNAPSHOT_METHOD = "delete";
     private static final String DELETE_FILESYSTEM_SHARE_ACLS_METHOD = "deleteShareACLs";
+    private static final String DELETE_FILESYSTEM_EXPORT_METHOD = "deleteExportRules";
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String VERIFY_MOUNT_DEPENDENCIES_METHOD = "verifyMountDependencies";
-    private static final String IS_EXPORT_MOUNTED_METHOD = "isExportMounted";
+    private static final String CHECK_IF_EXPORT_IS_MOUNTED = "CheckIfExportIsMounted";
 
     /*
      * (non-Javadoc)
@@ -179,7 +180,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * (FileShare, FileMirroring). This method is responsible for creating
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
      * 
-     * @param filesystems
+     * @param fs
+     * @param fileDescriptors
      * @param taskId
      * @throws ControllerException
      */
@@ -632,7 +634,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             } else if (URIUtil.isType(uri, FileShare.class)) {
                 // Check if the export is mounted and throw an error if mounted
                 Object[] args = new Object[] { uri, subDirs, allDirs };
-                waitFor = _fileDeviceController.createMethod(workflow, waitFor, IS_EXPORT_MOUNTED_METHOD, null,
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, CHECK_IF_EXPORT_IS_MOUNTED, null,
                         "Checking if the export is mounted", storage, args);
             }
             Object[] args = new Object[] { storage, uri, allDirs, subDirs };
@@ -823,6 +825,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         String stepDescription = null;
+        MirrorFileFailoverTaskCompleter failoverCompleter = null;
         try {
 
             FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
@@ -837,8 +840,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             s_logger.info("Generating steps for Failover File System to Target");
             String failoverStep = workflow.createStepId();
-            MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(sourceFileShare.getId(),
-                    targetFileShare.getId(), failoverStep);
+
+            List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
+            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep,
+                    targetFileShare.getStorageDevice());
+            stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
+
             stepDescription = String.format("Failover source file System : %s to target system : %s.", sourceFileShare.getName(),
                     targetFileShare.getName());
             Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };
@@ -1156,7 +1163,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 // Creating new map since FSExportMap key contains path+sec+user
                 HashMap<String, FileExport> sourceFileExportMap = FileOrchestrationUtils.getFileExportMap(sourceNFSExports);
                 HashMap<String, FileExport> targetFileExportMap = FileOrchestrationUtils.getFileExportMap(targetNFSExports);
-
+                String waitFor = null;
+                // Check for export to create on target
                 for (String exportPath : sourceFileExportMap.keySet()) {
                     if (exportPath.equals(sourceFileShare.getPath())) {
                         if (targetFileExportMap.get(targetFileShare.getPath()) == null) {
@@ -1171,7 +1179,30 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
                 }
                 if (!targetNFSExportstoCreate.isEmpty()) {
-                    createNFSExportOnTarget(workflow, systemTarget, targetNFSExportstoCreate, nfsPort, targetFileShare, sourceFileShare);
+                    waitFor = createNFSExportOnTarget(workflow, systemTarget, targetNFSExportstoCreate, nfsPort, targetFileShare,
+                            sourceFileShare);
+                }
+
+                // Check for export to delete on target
+                for (String exportPath : targetFileExportMap.keySet()) {
+
+                    String stepDescription = String.format("deleting NFS export : %s", exportPath);
+                    String exportdeletionStep = workflow.createStepId();
+                    if (exportPath.equals(targetFileShare.getPath())) {
+                        if (sourceFileExportMap.get(sourceFileShare.getPath()) == null) {
+                            Object[] args = new Object[] { systemTarget, targetFileShare.getId(), false, null };
+                            waitFor = _fileDeviceController.createMethod(workflow, waitFor, DELETE_FILESYSTEM_EXPORT_METHOD,
+                                    exportdeletionStep, stepDescription, systemTarget, args);
+                        }
+                    } else {
+                        ArrayList<String> subdirName = new ArrayList<String>();
+                        subdirName.add(exportPath.split(targetFileShare.getPath())[1]);
+                        if (sourceFileExportMap.get(sourceFileShare.getPath() + subdirName.get(0)) == null) {
+                            Object[] args = new Object[] { systemTarget, targetFileShare.getId(), false, subdirName.get(0).substring(1) };
+                            waitFor = _fileDeviceController.createMethod(workflow, waitFor, DELETE_FILESYSTEM_EXPORT_METHOD,
+                                    exportdeletionStep, stepDescription, systemTarget, args);
+                        }
+                    }
                 }
             }
             String successMessage = String.format(
@@ -1270,41 +1301,43 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         targetExportRules = targetExportRuleMap.get(targetFileShare.getPath() + subDir);
                         params.setSubDir(subDir.substring(1));
                     }
+                    if (sourceExportRules != null && targetExportRules != null) {
+                        srcExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(sourceExportRules);
+                        trgtExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(targetExportRules);
 
-                    srcExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(sourceExportRules);
-                    trgtExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(targetExportRules);
+                        FileOrchestrationUtils.checkForExportRuleToAdd(sourceFileShare, targetFileShare, srcExportRuleSecFlvMap,
+                                trgtExportRuleSecFlvMap, exportRulesToAdd);
 
-                    FileOrchestrationUtils.checkForExportRuleToAdd(sourceFileShare, targetFileShare, srcExportRuleSecFlvMap,
-                            trgtExportRuleSecFlvMap, exportRulesToAdd);
+                        FileOrchestrationUtils.checkForExportRuleToDelete(srcExportRuleSecFlvMap, trgtExportRuleSecFlvMap,
+                                exportRulesToDelete);
 
-                    FileOrchestrationUtils.checkForExportRuleToDelete(srcExportRuleSecFlvMap, trgtExportRuleSecFlvMap, exportRulesToDelete);
+                        sourceExportRules.removeAll(exportRulesToAdd);
+                        targetExportRules.removeAll(exportRulesToDelete);
+                        srcExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(sourceExportRules);
+                        trgtExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(targetExportRules);
 
-                    sourceExportRules.removeAll(exportRulesToAdd);
-                    targetExportRules.removeAll(exportRulesToDelete);
-                    srcExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(sourceExportRules);
-                    trgtExportRuleSecFlvMap = FileOrchestrationUtils.getExportRuleSecFlvMap(targetExportRules);
+                        FileOrchestrationUtils.checkForExportRuleToModify(srcExportRuleSecFlvMap, trgtExportRuleSecFlvMap,
+                                exportRulesToModify);
 
-                    FileOrchestrationUtils.checkForExportRuleToModify(srcExportRuleSecFlvMap, trgtExportRuleSecFlvMap,
-                            exportRulesToModify);
+                        if (!exportRulesToAdd.isEmpty()) {
+                            ExportRules addExportRules = new ExportRules();
+                            addExportRules.setExportRules(exportRulesToAdd);
+                            params.setExportRulesToAdd(addExportRules);
+                        }
+                        if (!exportRulesToDelete.isEmpty()) {
+                            ExportRules deleteExportRules = new ExportRules();
+                            deleteExportRules.setExportRules(exportRulesToDelete);
+                            params.setExportRulesToDelete(deleteExportRules);
+                        }
+                        if (!exportRulesToModify.isEmpty()) {
+                            ExportRules modifyExportRules = new ExportRules();
+                            modifyExportRules.setExportRules(exportRulesToModify);
+                            params.setExportRulesToModify(modifyExportRules);
+                        }
 
-                    if (!exportRulesToAdd.isEmpty()) {
-                        ExportRules addExportRules = new ExportRules();
-                        addExportRules.setExportRules(exportRulesToAdd);
-                        params.setExportRulesToAdd(addExportRules);
-                    }
-                    if (!exportRulesToDelete.isEmpty()) {
-                        ExportRules deleteExportRules = new ExportRules();
-                        deleteExportRules.setExportRules(exportRulesToDelete);
-                        params.setExportRulesToDelete(deleteExportRules);
-                    }
-                    if (!exportRulesToModify.isEmpty()) {
-                        ExportRules modifyExportRules = new ExportRules();
-                        modifyExportRules.setExportRules(exportRulesToModify);
-                        params.setExportRulesToModify(modifyExportRules);
-                    }
-
-                    if (params.retrieveAllExports() != null && !params.retrieveAllExports().isEmpty()) {
-                        updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
+                        if (params.retrieveAllExports() != null && !params.retrieveAllExports().isEmpty()) {
+                            updateFSExportRulesOnTarget(workflow, systemTarget, targetFileShare, exportPath, params);
+                        }
                     }
                 }
             }
@@ -1322,9 +1355,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
-    private static void createNFSExportOnTarget(Workflow workflow, URI systemTarget, List<FileExport> nfsExportsToCreate,
+    private static String createNFSExportOnTarget(Workflow workflow, URI systemTarget, List<FileExport> nfsExportsToCreate,
             StoragePort nfsPort, FileShare targetFileShare, FileShare sourceFileShare) {
-
+        String waitFor = null;
         for (FileExport nfsExport : nfsExportsToCreate) {
 
             FileShareExport fileNFSExport = new FileShareExport(nfsExport.getClients(), nfsExport.getSecurityType(),
@@ -1343,9 +1376,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String stepDescription = String.format("creating NFS export : %s", fileNFSExport.getMountPath());
             String exportCreationStep = workflow.createStepId();
             Object[] args = new Object[] { systemTarget, targetFileShare.getId(), Arrays.asList(fileNFSExport) };
-            _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportCreationStep, stepDescription,
-                    systemTarget, args);
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, CREATE_FILESYSTEM_EXPORT_METHOD, exportCreationStep,
+                    stepDescription, systemTarget, args);
         }
+        return waitFor;
     }
 
     private static void createCIFSShareOnTarget(Workflow workflow, URI systemTarget, List<SMBFileShare> smbShares, StoragePort cifsPort,
@@ -1399,5 +1433,4 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep,
                 stepDescription, systemTarget, args);
     }
-
 }

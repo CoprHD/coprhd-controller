@@ -87,14 +87,14 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
      * @return          true, if the status is ready or the volumes were added despite error status.
      */
     private boolean shouldUpdateDatabase(Operation.Status status) {
-        return wereVolumesAdded() || status == Operation.Status.ready;
+        return status == Operation.Status.ready || wereVolumesAdded();
     }
 
     private boolean wereVolumesAdded() {
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
+        Object context = WorkflowService.getInstance().loadStepData(getOpId());
 
-        if (context != null) {
-            List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
+        if (context != null && context instanceof ExportOperationContext) {
+            List<ExportOperationContext.ExportOperationContextOperation> operations = ((ExportOperationContext)context).getOperations();
 
             if (operations != null) {
                 for (ExportOperationContext.ExportOperationContextOperation operation : operations) {

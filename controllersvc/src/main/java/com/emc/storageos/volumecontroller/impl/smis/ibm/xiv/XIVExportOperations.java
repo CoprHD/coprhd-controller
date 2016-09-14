@@ -203,9 +203,9 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
             }
 
-            Host host = _dbClient.queryObject(Host.class, initiatorList.get(0)
-                    .getHost());
-            String label = host.getLabel();
+//            Host host = _dbClient.queryObject(Host.class, initiatorList.get(0)
+//                    .getHost());
+            String label = initiatorList.get(0).getHostName();
 
             // no matched initiator on array side, now try to find host with the given name
             if (controllerInst == null) {
@@ -266,11 +266,11 @@ public class XIVExportOperations implements ExportMaskOperations {
             if (controllerInst != null) {
                 String elementName = CIMPropertyFactory.getPropertyValue(controllerInst, SmisConstants.CP_ELEMENT_NAME);
                 // set host tag is needed
-                if (label.equals(elementName)) {
-                    _helper.unsetTag(host, storage.getSerialNumber());
-                } else {
-                    _helper.setTag(host, storage.getSerialNumber(), elementName);
-                }
+//                if (label.equals(elementName)) {
+//                    _helper.unsetTag(host, storage.getSerialNumber());
+//                } else {
+//                    _helper.setTag(host, storage.getSerialNumber(), elementName);
+//                }
 
                 CIMObjectPath controller = controllerInst.getObjectPath();
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class,

@@ -117,21 +117,19 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
+                // Completer is called here, but the completer will update the snapshot status map and the snap was
+                // just marked inactive and updated. Is that an issue?
                 _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
-
         } catch (VNXeException e) {
             _log.error("Delete volume snapshot got the exception", e);
             taskCompleter.error(_dbClient, e);
-
         } catch (Exception ex) {
             _log.error("Delete volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
-
         }
-
     }
 
     @Override
@@ -151,18 +149,16 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                                     storage.getId(), taskCompleter)));
                 }
             }
-
+            // This looks broken. Not only is the completer never called, bit the group snaps
+            // are not marked inactive as is done in the case for deleteSingleVolumeSnap.
         } catch (VNXeException e) {
             _log.error("Delete group snapshot got the exception", e);
             taskCompleter.error(_dbClient, e);
-
         } catch (Exception ex) {
             _log.error("Delete group snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeletGroupSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
-
         }
-
     }
 
     @Override

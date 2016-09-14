@@ -189,6 +189,8 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
                 _dbClient.persistObject(snap);
+                // Completer is called here, but the completer will update the snapshot status map and the snap was
+                // just marked inactive and updated. Is that an issue?
                 taskCompleter.ready(_dbClient);
             } else {
                 // Perhaps, it's already been deleted or was deleted on the array.
@@ -197,6 +199,8 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
                 _dbClient.persistObject(snap);
+                // Completer is called here, but the completer will update the snapshot status map and the snap was
+                // just marked inactive and updated. Is that an issue?
                 taskCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
@@ -314,10 +318,14 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     _log.info(String.format("vnxDeleteGroupSnapshots -- deleting snapshot %s", snap.getId().toString()));
                     if (!deleteConsistencyGroupSnapshot(storage, snap, taskCompleter)) {
                         // Delete has failed, it would have called complete task
+                        // This seems very bizarre to me. We get a failure deleting snapshots in the group,
+                        // the task completer error method is called, but we go on ahead and keep deleting snaps?
                         hadDeleteFailure = true;
                     }
                 }
             }
+            // Further we only mark snaps inactive if there was no failure. Well what about the
+            // ones that succeeded prior to the failure?
             if (!hadDeleteFailure) {
                 // Set inactive=true for all snapshots in the snaps set
                 for (BlockSnapshot snap : snaps) {
@@ -325,6 +333,8 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     snap.setIsSyncActive(false);
                     _dbClient.persistObject(snap);
                 }
+                // Completer is called here, but the completer will update the snapshot status map and the snap was
+                // just marked inactive and updated. Is that an issue?
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {

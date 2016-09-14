@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
@@ -96,15 +95,14 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             snap.setInactive(true);
             snap.setIsSyncActive(false);
             _dbClient.updateObject(snap);
+            // Completer is called here, but the completer will update the snapshot status map and the snap was
+            // just marked inactive and updated. Is that an issue?
             taskCompleter.ready(_dbClient);
-
         } catch (Exception ex) {
             log.error("Delete volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
-
         }
-
     }
     
     @Override
@@ -158,14 +156,11 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateCGSnapshot", errorMsg);
                 taskCompleter.error(_dbClient, error);
             }
-
         } catch (Exception ex) {
             log.error("Create volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateCGSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
-
         }
-
     }
 
     @Override

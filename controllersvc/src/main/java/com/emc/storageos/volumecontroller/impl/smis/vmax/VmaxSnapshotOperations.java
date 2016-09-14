@@ -257,6 +257,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
                 _dbClient.updateObject(snap);
+                // Completer is called here, but the completer will update the snapshot status map and the snap was
+                // just marked inactive and updated. Is that an issue?
                 taskCompleter.ready(_dbClient);
             } else {
                 // Perhaps, it's already been deleted or was deleted on the array.
@@ -265,6 +267,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
                 _dbClient.updateObject(snap);
+                // Completer is called here, but the completer will update the snapshot status map and the snap was
+                // just marked inactive and updated. Is that an issue?
                 taskCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
@@ -574,6 +578,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 it.setIsSyncActive(false);
                 _dbClient.persistObject(it);
             }
+            // Completer is called here, but the completer will update the snapshot status map and the snap was
+            // just marked inactive and updated. Is that an issue?
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             String message = String.format("Generic exception when trying to delete snapshots from consistency group array %s",

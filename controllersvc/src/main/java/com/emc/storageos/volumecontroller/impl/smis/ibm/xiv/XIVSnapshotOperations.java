@@ -196,6 +196,9 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
             snap.setInactive(true);
             snap.setIsSyncActive(false);
             _dbClient.persistObject(snap);
+            // Completer is called here, but the completer will update the snapshot status map and the snap was
+            // just marked inactive and updated. Is that an issue?
+
             taskCompleter.ready(_dbClient);
         } catch (WBEMException e) {
             String message = String.format(
@@ -379,6 +382,8 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
                 snap.setIsSyncActive(false);
                 _dbClient.persistObject(snap);
             }
+            // Completer is called here, but the completer will update the snapshot status map and the snap was
+            // just marked inactive and updated. Is that an issue?
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             String message = String

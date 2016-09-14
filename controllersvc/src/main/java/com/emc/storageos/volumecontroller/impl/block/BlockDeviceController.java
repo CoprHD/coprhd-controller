@@ -2092,11 +2092,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
+            // Removed. Should be done by via completer
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-                WorkflowStepCompleter.stepFailed(opId, serviceError);
+                // Removed. Redundant, done by completer.
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);

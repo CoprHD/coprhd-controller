@@ -237,6 +237,9 @@ public class HDSProtectionOperations {
                     snapshotObj.getStorageController(), taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(deleteSnapshotJob);
         }
+        // If this path is taken then the snapshot will not be made inactive and the completer
+        // will not be called. This may be OK as this path may never be taken. However,if it
+        // can happen, then this is broken.
         log.info("Snapshot deletion operation completed successfully");
     }
 

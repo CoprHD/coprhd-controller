@@ -81,7 +81,7 @@
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
     </bean>
-       
+
     <bean id="tokenManager" class="com.emc.storageos.auth.impl.CassandraTokenManager"/>
     <bean id="interVDCTokenCacheHelper" class="com.emc.storageos.security.geo.InterVDCTokenCacheHelper"/>
     <bean id="tokenEncoder" class="com.emc.storageos.security.authentication.Base64TokenEncoder" init-method="managerInit"/>

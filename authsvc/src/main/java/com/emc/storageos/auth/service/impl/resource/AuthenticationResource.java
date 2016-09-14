@@ -22,10 +22,12 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.model.password.PasswordChangeParam;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
@@ -49,6 +51,7 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.StringUtil;
+import org.json.simple.JSONAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,7 +123,10 @@ public class AuthenticationResource {
     private RequestedTokenHelper tokenNotificationHelper;
 
     @Autowired
-    private String oidcProviderAddr;
+    private CoordinatorClient coordinator;
+
+    // TODO
+    private String oidcProviderAddr = "lglw7227.lss.emc.com:58080/SSO";
 
     static {
         _cacheControl = new CacheControl();
@@ -1295,8 +1301,15 @@ public class AuthenticationResource {
             authnProvider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", oidcProviderAddr) );
             authnProvider.setOidcClientId("vipr1");
             authnProvider.setOidcTokenUrl( String.format("http://%s/oidc/token", oidcProviderAddr) );
+            
+            authnProvider.setOidcCallBackUrl( String.format("https://%s:4443/oidccb", getVIP()) );
         }
         return authnProvider;
+    }
+
+    private String getVIP() {
+        PropertyInfo props = coordinator.getPropertyInfo();
+        return props.getProperty("network_vip");
     }
 
     @GET    @Path("/oidccb")
@@ -1355,6 +1368,8 @@ public class AuthenticationResource {
             ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();
             throw new RuntimeException(error.getDescription());
         }
+
+        JSONAware
 
         return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
     }

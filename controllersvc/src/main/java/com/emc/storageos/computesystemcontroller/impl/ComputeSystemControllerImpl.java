@@ -367,7 +367,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     @Override
     public void addInitiatorToExport(URI hostId, URI initId, String taskId) throws ControllerException {
-        List<URI> uris = Lists.newArrayList(initId);
+        List<URI> uris = getInitiatorPair(initId);
         addInitiatorsToExport(hostId, uris, taskId);
     }
 
@@ -392,7 +392,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     @Override
     public void removeInitiatorFromExport(URI hostId, URI initId, String taskId) throws ControllerException {
-        List<URI> uris = Lists.newArrayList(initId);
+        List<URI> uris = getInitiatorPair(initId);
         removeInitiatorsFromExport(hostId, uris, taskId);
     }
 
@@ -1795,5 +1795,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+    }
+
+    private List<URI> getInitiatorPair(URI initiator) {
+
+        Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+        List<URI> uris = null;
+        if (associatedInitiator != null) {
+            uris = Lists.newArrayList(initiator, associatedInitiator.getId());
+        } else {
+            uris = Lists.newArrayList(initiator);
+        }
+        return uris;
     }
 }

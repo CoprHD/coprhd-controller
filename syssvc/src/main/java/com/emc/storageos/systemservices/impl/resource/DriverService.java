@@ -241,7 +241,7 @@ public class DriverService {
         } else {
             // a provider
             addParam.setIsSmiProvider(true);
-            addParam.setProviderDispName(providerName);
+            addParam.setProviderName(providerName);
             addParam.setProviderDispName(providerDispName);
         }
 

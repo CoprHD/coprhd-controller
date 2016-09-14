@@ -179,6 +179,8 @@ public class StorageSystemTypes extends ViprResourceController {
         public Boolean isProvider = false;
         
         public Boolean isSecretKey = false;
+        public String providerName;
+        public String providerDispName;
 
         public StorageSystemTypeForm() {
         }
@@ -196,6 +198,8 @@ public class StorageSystemTypes extends ViprResourceController {
             this.isOnlyMDM = params.getIsOnlyMDM();
             this.isElementMgr = params.getIsElementMgr();
             this.isSecretKey = params.getIsSecretKey();
+            this.providerName = params.getProviderName();
+            this.providerDispName = params.getProviderDispName();
         }
 
         public StorageSystemTypeForm(StorageSystemTypeRestRep storageSysType) {
@@ -246,8 +250,10 @@ public class StorageSystemTypes extends ViprResourceController {
             addParams.setMetaType(metaType);
             addParams.setDriverClassName(driverClassName);
 
-            if (isProvider != null) {
-                addParams.setIsSmiProvider(isProvider);
+            if (isProvider != null && isProvider == true) {
+                addParams.setIsSmiProvider(true);
+                addParams.setProviderName(providerName);
+                addParams.setProviderDispName(providerDispName);
             } else {
                 addParams.setIsSmiProvider(false);
             }

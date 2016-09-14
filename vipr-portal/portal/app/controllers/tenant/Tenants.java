@@ -73,7 +73,7 @@ public class Tenants extends ViprResourceController {
 
     public static void list() {
         TenantsDataTable dataTable = new TenantsDataTable();
-       /*  For Sofo renderArgs.put("sources", TenantSource.options(TenantSource.TENANTS_SOURCE_ALL, TenantSource.TENANTS_SOURCE_LOCAL, TenantSource.TENANTS_SOURCE_OS));
+       /* to remove SOFO feature  renderArgs.put("sources", TenantSource.options(TenantSource.TENANTS_SOURCE_ALL, TenantSource.TENANTS_SOURCE_LOCAL, TenantSource.TENANTS_SOURCE_OS));
         renderArgs.put("currentSource", Models.currentSource());
         if (isKeystoneAuthnProviderCreated()) {
             AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
@@ -107,18 +107,18 @@ public class Tenants extends ViprResourceController {
         List<TenantsDataTable.Tenant> tenants = Lists.newArrayList();
         List<TenantOrgRestRep> subtenants;
         UserInfo user = Security.getUserInfo();
-        //For Sofo String source = Models.currentSource();
+        //to remove SOFO feature  String source = Models.currentSource();
 
         if (Security.isRootTenantAdmin() || Security.isSecurityAdmin()) {
             TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-            /*For Sofo if (source.equals(TenantSource.getTenantSource(rootTenant.getUserMappings())) ||
+            /* to remove SOFO feature  if (source.equals(TenantSource.getTenantSource(rootTenant.getUserMappings())) ||
                 source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
                 tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
             }*/
             tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
             subtenants = TenantUtils.getSubTenants(rootTenant.getId());
         } else if (Security.isHomeTenantAdmin()) {
-        	/*For SofoTenantOrgRestRep userTenant = TenantUtils.getUserTenant();
+        	/*to remove SOFO feature TenantOrgRestRep userTenant = TenantUtils.getUserTenant();
             if (source.equals(TenantSource.getTenantSource(userTenant.getUserMappings())) ||
                 source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
                 tenants.add(new TenantsDataTable.Tenant(userTenant, true));
@@ -132,7 +132,7 @@ public class Tenants extends ViprResourceController {
         for (TenantOrgRestRep tenant : subtenants) {
             boolean admin = Security.isRootTenantAdmin() || user.hasSubTenantRole(tenant.getId().toString(), Security.TENANT_ADMIN)
                     || Security.isSecurityAdmin();
-            if (admin /* For Sofo && (source.equals(TenantSource.getTenantSource(tenant.getUserMappings())) ||
+            if (admin /* to remove SOFO feature  && (source.equals(TenantSource.getTenantSource(tenant.getUserMappings())) ||
                           source.equals(TenantSource.TENANTS_SOURCE_ALL))*/)  {
                 tenants.add(new TenantsDataTable.Tenant(tenant, admin));
             }

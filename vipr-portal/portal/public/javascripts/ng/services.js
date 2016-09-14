@@ -102,6 +102,7 @@ angular.module("services", []).directive({
             },
             link: function(scope, element, attrs) {
                 var item = scope.item, type = null, tagAttrs = {}, validation = item.validation || {};
+                
                 if (item.type == "text") {
                     type = '<input-text>';
                     tagAttrs = {'maxlength': validation.max || 1024}; //Maximum length of an OrderParameter is 1024
@@ -129,7 +130,17 @@ angular.module("services", []).directive({
                 } else if (item.type == 'choice') {
                     type = '<select-many>';
                     // TODO: support for select many 'choice'
-                } else if (item.type.match(/^assetType\./)) {
+                }else if(item.type=='hidden'){ 
+                	type = '<hidden>';
+                	item.required = false;
+                	tagAttrs["name"] = item.label;
+                	 var controlGroup = $('hidden[name="'+ item.label +'"]').parents('.form-group');
+                	 controlGroup.hide();
+                     setTimeout(function(){var externalParam = $('hidden[name="'+ item.label +'"]').parents('.form-group');
+                      		if(externalParam != null){
+                      			externalParam.hide();
+                     	 	 }}, 500);
+                }else if (item.type.match(/^assetType\./)) {
                 	if (item.select == 'field') {
                 		type = '<input-text>';
                 	}

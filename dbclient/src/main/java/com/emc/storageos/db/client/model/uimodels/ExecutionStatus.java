@@ -7,7 +7,9 @@ package com.emc.storageos.db.client.model.uimodels;
 public enum ExecutionStatus {
     NONE,
     PRECHECK,
+    PRELAUNCH,
     EXECUTE,
+    POSTLAUNCH,
     ROLLBACK,
     COMPLETED,
     FAILED;

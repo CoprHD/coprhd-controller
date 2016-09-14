@@ -7,16 +7,38 @@ package com.emc.sa.engine.service;
 import java.util.Collection;
 
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+
 import org.apache.log4j.Logger;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Param;
+import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
+import com.emc.sa.engine.extension.ExternalTaskParams;
 
-public abstract class AbstractExecutionService implements ExecutionService {
+
+
+public abstract class AbstractExecutionService implements ExecutionService, ExternalTaskExecutor {
     private Logger log;
     private OrderStatus completedOrderStatus = OrderStatus.SUCCESS;
+    
+	//@Param("externalParam")
+	protected String externalParam;
+	
+	//@Param("extendClass")
+	protected String extendClass;	
 
-    @Override
+	//@Param("extendMethods")
+	protected String extendMethods;	
+
+	protected ExternalTaskApdapterInterface genericExtensionTask;
+
+	@Override
+	public void setGenericExtensionTask(ExternalTaskApdapterInterface genericExtensionTask) {
+		this.genericExtensionTask = genericExtensionTask;
+	}
+	
+	@Override
     public void init() throws Exception {
     }
 
@@ -31,7 +53,6 @@ public abstract class AbstractExecutionService implements ExecutionService {
     protected <T> T execute(ExecutionTask<T> task) {
         return ExecutionUtils.execute(task);
     }
-
     protected void addAffectedResource(String resourceId) {
         ExecutionUtils.currentContext().getExecutionState().getAffectedResources().add(resourceId);
     }

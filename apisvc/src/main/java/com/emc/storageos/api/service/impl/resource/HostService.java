@@ -849,7 +849,7 @@ public class HostService extends TaskResourceService {
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+            controller.addInitiatorToExport(initiator.getHost(), initiator.getId(), taskId);
         } else {
             // No updates were necessary, so we can close out the task.
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);

@@ -149,7 +149,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCom
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDeactivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
@@ -3257,13 +3256,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 
                 _log.info("Marking export mask for deletion from Vipr: " + exportMask.getMaskName());
                 _dbClient.markForDeletion(exportMask);
-
-                // The ExportMask object is needed for unzoning operations that are likely executed in future steps,
-                // therefore deleting the ExportMask here is premature. The ZoneDeleteCompleter will take care of that
-                // when the zone step is complete.
-                _log.info(
-                        String.format("ExportMask %s will not be deleted by this step; unzoning step will delete the ExportMask",
-                                exportMask.getId().toString()));
 
                 _log.info("updating ExportGroups containing this ExportMask");
                 List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);

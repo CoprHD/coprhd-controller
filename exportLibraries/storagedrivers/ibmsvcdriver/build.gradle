@@ -1,0 +1,10 @@
+dependencies {
+    compile project(":storagedriver"),
+            library(slf4j),
+            library(commons_lang),
+            "commons-collections:commons-collections:3.2.1",
+			library(jsch),
+			library(log4j),
+			//library(apache_log4j_extras),
+			library(guava)
+}

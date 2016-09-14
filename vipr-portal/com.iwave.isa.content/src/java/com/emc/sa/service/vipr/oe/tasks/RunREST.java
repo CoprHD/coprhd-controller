@@ -27,8 +27,14 @@ public class RunREST extends ViPRExecutionTask<String>
 
 {
     private OrchestrationEngineRestClient restClient;
+   OEJson.Step step;
+    HashMap<String, Map<String, String>> input;
+    ModelClient modelClient;
+    String opName;
+    String postBody = null;
+    String uri;
 
-    public RunREST() {
+    public RunREST(String uri, String postBody) {
 
 
         //init rest client
@@ -44,25 +50,23 @@ public class RunREST extends ViPRExecutionTask<String>
         String endpoint = "http://localhost:4443";
         restClient = (OrchestrationEngineRestClient) factory.
                 getRESTClient(URI.create(endpoint), "root", "ChangeMe1!", true);
-
+        this.uri = uri;
+        this.postBody = postBody;
     }
 
     @Override
-    public String executeTask() throws Exception {
-        return super.executeTask();
-    }
-
-    public final Map<String, String> runREST(OEJson.Step step, HashMap<String, Map<String, String>> input, ModelClient modelClient, ViPRCoreClient client)
+    public String executeTask() throws Exception 
     {
+	String RESTresult = null;
         if (step.getType().equals("ViPR REST")) {
 
-            List<NamedElementQueryResultList.NamedElement> results = modelClient.findByAlternateId(RESTApiFormat.class, "RESTOp", "createvolume");
+    //        List<NamedElementQueryResultList.NamedElement> results = modelClient.findByAlternateId(RESTApiFormat.class, "RESTOp", "createvolume");
 
-            for(NamedElementQueryResultList.NamedElement result : results) {
-                RESTApiFormat restapiformat = modelClient.findById(RESTApiFormat.class, result.getId());
-                String RESTformat = restapiformat.getRESTFormat();
-                makeRestCall(RESTformat);
-            }
+   //         for(NamedElementQueryResultList.NamedElement result : results) {
+    //            RESTApiFormat restapiformat = modelClient.findById(RESTApiFormat.class, result.getId());
+      //          String RESTformat = restapiformat.getRESTFormat();
+		RESTresult = makeRestCall(uri, postBody);
+        //    }
 
         } else {
             //Parse and get the API
@@ -70,12 +74,8 @@ public class RunREST extends ViPRExecutionTask<String>
 
         //strore result to ViPR DB
 
-        return null;
+        return RESTresult;
     }
-    private String makeRestCall(String uriString) {
-        return makeRestCall(uriString,null);
-    }
-
     private String makeRestCall(String uriString, String postBody) {
         info("OE request uri: " + uriString);
 
@@ -100,5 +100,4 @@ public class RunREST extends ViPRExecutionTask<String>
                 responseString + " using API call " + uriString);
         return responseString;
     }
-
 }

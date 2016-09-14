@@ -13,11 +13,14 @@ import java.util.List;
 
 import com.emc.sa.service.vipr.oe.gson.OEJson;
 
+import java.io.BufferedReader;
 import java.io.FileReader;
 
 import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.vipr.oe.tasks.RunAnsible;
+import com.emc.sa.service.vipr.oe.tasks.RunREST;
 import com.google.gson.Gson;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -31,6 +34,11 @@ public class OrchestrationService extends ViPRService {
 
     String oeOrderJson;
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
+
+    //TODO Hardcocded POST Body:
+
+    public static final String CREATE_URI = "https://localhost:4443/block/volumes";
+    public static final String DELETE_URI = "https://localhost:4443/block/volumes/{id}/deactivate";
  
 
     @Override
@@ -166,7 +174,7 @@ public class OrchestrationService extends ViPRService {
 public void OEParser() throws Exception
         {
             logger.info("in parser");
-
+	    String uri=null;
 
             Gson gson = new Gson();
 	    JsonReader reader = new JsonReader(new FileReader("/data/OEJsosn.json"));
@@ -184,16 +192,27 @@ public void OEParser() throws Exception
 
             OEJson.Step step = stepsHash.get("Start");
 
-            OEJson.Next next = step.getNext();
-            String next1 = next.getDefault();
+            String next1 = step.getNext().getDefault();
             
             List<URI> tasksStartedByOe = new ArrayList<>();  //  tasks started by steps in OE
             
             while(!next1.equals("END"))
             {
                 step = stepsHash.get(next1);
+		ExecutionUtils.currentContext().logInfo("Orchestration Engine Running " +
+                    "Step: " + step.getStepId() + ":" + step);
 		logger.info("executing Step Id: {} of Type: {}", step.getStepId(), step.getType());
                 logger.info("OpName:{}",step.getOpName());
+
+           logger.info("OpName:{}", step.getOpName());
+            //TODO GET from DB
+            if (step.getOpName().equals("createVolume"))
+                uri = CREATE_URI;
+
+            if (step.getOpName().equals("deleteVolume"))
+                uri = DELETE_URI;
+
+
                 logger.info("Description {}",step.getDescription());
                 logger.info("Type:{}", step.getType());
 		logger.info("Input param for the Step");
@@ -235,29 +254,47 @@ public void OEParser() throws Exception
                     }
 
                     OEJson.Next n = step.getNext();
-                    next1 = n.getDefault();
-                    logger.info("Next step: {}", next);
-                    logger.info("SuccessCritera: {}", step.getSuccessCritera());
 
                     finalInput.putAll(str);
+            String result;
                     inputPerStep.put(step.getStepId(), finalInput);
+            if (step.getType().equals("REST API") || step.getType().equals("ViPR REST API"))
+            {
 
-                if (step.getType().equals("REST") || step.getType().equals("ViPR REST"))
-                {
-			logger.info("Running REST Step:{}, inputPerStep:{}", step, inputPerStep);
-                    //RunREST run = new RunREST();
-                    //Map<String, String> result = run.runREST(step, inputPerStep, getModelClient(), getClient());
+                logger.info("Running REST Step:{}, inputPerStep:{}", step, inputPerStep);
+                String post_body = createPOSTBody(step.getOpName());
+
+                result = ViPRExecutionUtils.execute(new RunREST( uri, post_body));
+                //RunREST run = new RunREST();
+                //result = run.runREST(step, inputPerStep, getModelClient(), getClient());
+
+                //parse result
+                //outputPerStep.put(step.getStepId(), result);
+
+
+            } else {
+                logger.info("Running AnsibleStep:{}, inputPerStep:{}", step, inputPerStep);
+                result = ViPRExecutionUtils.execute(new RunAnsible());
+                //RunAnsible run = new RunAnsible();
+                //Map<String, String> result = run.runAnsible(step, inputPerStep);
+
+                //outputPerStep.put(step.getStepId(), result);
+            }
+           next1 = findNext(result, step);
+            if (next1 == null) {
+                ExecutionUtils.currentContext().logError("Orchestration Engine failed to run Workflow " +
+                        "Step: " + step.getStepId() + ":" + step + "result:" + result);
+                break;
+            }
+
+            ExecutionUtils.currentContext().logError("Orchestration Engine successfully ran " +
+                    "Step: " + step.getStepId() + ":" + step + "result:" + result);
+
+            logger.info("Next step: {}", next1);
+            logger.info("SuccessCritera: {}", step.getSuccessCritera());
+
 
                     //outputPerStep.put(step.getStepId(), result);
-                }
-                else
-                {
-			logger.info("Running AnsibleStep:{}, inputPerStep:{}", step, inputPerStep);
-                    //RunAnsible run = new RunAnsible();
-                    //Map<String, String> result = run.runAnsible(step, inputPerStep);
-
-                    //outputPerStep.put(step.getStepId(), result);
-                }
 
                 String stepResults = null; // TODO: change to:  outputPerStep.get(step.getStepId());
 
@@ -271,6 +308,40 @@ public void OEParser() throws Exception
             //send back the result
             return;
         }
+                /*
+                * Evaluate Success Criteria. If failed
+                * Check "Next" -> "condition" go to that step
+                * If condition not specified for failuer case, WF END
+                * If successful, Go to Default in "Next"
+                *
+                 */
+    private String findNext(String result, OEJson.Step step)
+    {
+        OEJson.Next n = step.getNext();
+        return n.getDefault();
+    }
+
+
+    //TODO For now read from file. Impl: Read from DB and merge with input
+    private String createPOSTBody(String opName) throws Exception
+    {
+        BufferedReader br = new BufferedReader(new FileReader("creteVolume.json"));
+        try {
+            StringBuilder sb = new StringBuilder();
+            String line = br.readLine();
+
+            while (line != null) {
+                sb.append(line);
+                sb.append(System.lineSeparator());
+                line = br.readLine();
+            }
+            String everything = sb.toString();
+            return everything;
+        } finally {
+            br.close();
+        }
+
+    }
 
         HashMap<String, Map<String, String>> inputPerStep = new HashMap<String, Map<String, String>>();
         HashMap<String, Map<String, String>> outputPerStep = new HashMap<String, Map<String, String>>();

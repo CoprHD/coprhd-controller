@@ -787,6 +787,23 @@ public class ExportGroupService extends TaskResourceService {
             if (param.getInitiators().getRemove() != null) {
                 for (URI uri : param.getInitiators().getRemove()) {
                     newInitiators.remove(uri);
+                    Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(uri, _dbClient);
+                    if (associatedInitiator != null) {
+                        newInitiators.remove(associatedInitiator.getId());
+                    }
+                }
+            }
+            if (param.getInitiators().getAdd() != null) {
+                _log.info("Checking if the list of initiators have their respective asscociated initiators..");
+                for (URI uri : param.getInitiators().getAdd()) {
+                    Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(uri, _dbClient);
+                    if (associatedInitiator != null) {
+                        URI associatedInitiatorId = associatedInitiator.getId();
+                        _log.info("Initiator pair: {} <--> {}", uri, associatedInitiatorId);
+                        if (!newInitiators.contains(associatedInitiatorId)) {
+                            newInitiators.add(associatedInitiatorId);
+                        }
+                    }
                 }
             }
             if (param.getInitiators().getAdd() != null) {
@@ -794,6 +811,7 @@ public class ExportGroupService extends TaskResourceService {
                 URI initiatorHostUri = getInitiatorExportGroupHost(exportGroup);
                 for (URI uri : param.getInitiators().getAdd()) {
                     Initiator initiator = queryObject(Initiator.class, uri, true);
+
                     if (exportGroup.forInitiator()) {
                         if (initiatorHostUri == null) {
                             initiatorHostUri = initiator.getHost();

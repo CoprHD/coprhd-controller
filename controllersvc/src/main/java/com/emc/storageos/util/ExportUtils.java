@@ -1626,6 +1626,15 @@ public class ExportUtils {
         return null;
     }
 
+    public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
+        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+        if (initiator != null && !initiator.getInactive()) {
+            return getAssociatedInitiator(initiator, dbClient);
+        }
+
+        return null;
+    }
+
     public static Initiator getAssociatedInitiator(String endpoint, DbClient dbClient) {
         Initiator associatedInitiator = null;
         Initiator initiator = getInitiator(endpoint, dbClient);

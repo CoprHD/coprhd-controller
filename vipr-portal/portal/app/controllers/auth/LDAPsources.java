@@ -110,7 +110,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
         renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
-        //renderArgs.put("tenants", new LDAPSourcesTenantsDataTable());
+        renderArgs.put("tenants", new LDAPSourcesTenantsDataTable());
     }
 
     /**

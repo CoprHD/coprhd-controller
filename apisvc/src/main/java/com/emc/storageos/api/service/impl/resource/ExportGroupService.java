@@ -827,9 +827,7 @@ public class ExportGroupService extends TaskResourceService {
                     if (associatedInitiator != null) {
                         URI associatedInitiatorId = associatedInitiator.getId();
                         _log.info("Initiator pair: {} <--> {}", uri, associatedInitiatorId);
-                        if (!newInitiators.contains(associatedInitiatorId)) {
-                            newInitiators.add(associatedInitiatorId);
-                        }
+                        param.getInitiators().getAdd().add(associatedInitiatorId);
                     }
                 }
             }

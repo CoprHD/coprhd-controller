@@ -71,17 +71,8 @@ public class Services extends Controller {
      * @param source TODO
      */
     public static void showForm(String serviceId) {
-        String[] data = StringUtils.split(serviceId, ",");
-        String serviceID,source;
-        if (data.length==2) {
-            serviceID = data[0];
-            source = data[1];
-            renderArgs.put("source", source);
-        } else {
-            serviceID = serviceId;
-        }
         TenantSelector.addRenderArgs();
-        CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceID));
+        CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         List<CatalogServiceFieldRestRep> serviceFields = service.getCatalogServiceFields();
 
         // If serviceDescriptor is null render another template that spells out the problem for the user.

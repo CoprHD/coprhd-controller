@@ -33,7 +33,7 @@ $(document).ready(function() {
 #{set 'breadcrumbs'}
 <div id="breadcrumbs">
   #{list breadcrumbs.values(), as:'items'}
-    #{ServiceCatalog.breadcrumb items:items, source:source/}
+    #{ServiceCatalog.breadcrumb items:items /}
   #{/list}
 </div>
 #{/set}

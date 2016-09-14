@@ -1,15 +1,11 @@
 %{
   service = _service
   editable = _editable == true
-  source = _source
+  
 }%
 
-#{if source}
-<li class="catalog-item service-item" data-id='["${service.id}","${source}"]' data-name="${service.name}" data-title="${service.title}">
-#{/if}
-#{else}
+
 <li class="catalog-item service-item" data-id="${service.id}" data-name="${service.name}" data-title="${service.title}">
-#{/else}
   <div class="panel panel-default">
     <div class="panel-heading catalog-title">
       <h3 class="panel-title">${service.title}</h3>

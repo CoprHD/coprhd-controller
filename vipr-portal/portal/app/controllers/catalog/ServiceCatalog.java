@@ -5,6 +5,7 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static com.emc.vipr.client.impl.Constants.EMMET_COOKIE;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -19,6 +20,7 @@ import org.apache.commons.lang.StringUtils;
 import play.Logger;
 import play.cache.Cache;
 import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Util;
 import play.mvc.With;
 import util.CatalogCategoryUtils;
@@ -40,6 +42,7 @@ import controllers.util.Models;
 public class ServiceCatalog extends Controller {
     private static final String SERVICE_CATALOG = "SERVICE_CATALOG";
     private static final String CATALOG_EXPIRE = "10min";
+    private static final String EMMET = "EMMET";
 
     public static void view(String source) {
         Map<String, CategoryDef> catalog = getCatalog(Models.currentAdminTenant(), source);
@@ -86,9 +89,22 @@ public class ServiceCatalog extends Controller {
         // roles and ACLs of every catalog, different users will have different views.
         String cacheKey = SERVICE_CATALOG + "." + tenantId + "." + Security.getUserInfo().getIdentifier();
         Map<String, CategoryDef> catalog = (Map<String, CategoryDef>) Cache.get(cacheKey);
-        /*Removing catalog caching for this task since it caches the key and doesnt refresh on URL change*/
-        Logger.debug("Creating catalog cache for " + cacheKey);
-        catalog = createCatalog(tenantId, source);
+        if(source!=null) {
+            response.setCookie(EMMET_COOKIE, source);
+        }
+        Http.Cookie cookie = request.cookies.get(EMMET_COOKIE);
+        if(cookie!=null && source == null) {
+            source = EMMET;
+        }
+        if (catalog == null || cookie == null) {
+            Logger.debug("Creating catalog cache for " + cacheKey);
+
+            catalog = createCatalog(tenantId, source);
+            Cache.set(cacheKey, catalog, CATALOG_EXPIRE);
+        }
+        else {
+            Logger.debug("Using catalog from cache for " + cacheKey);
+        }
         return catalog;
     }
 

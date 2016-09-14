@@ -74,4 +74,5 @@ _gen_startup_mode() {
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-var.xml      $(_get_dbvar_props)
 _genconfig_exec _gen_template           /opt/storageos/conf/db-jmx-var.xml  $(_get_db_jmx_props)
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-conf.yaml    $(_get_dbconf_props)
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-tool-conf.yaml    $(_get_dbconf_props)
 _gen_startup_mode

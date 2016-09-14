@@ -156,6 +156,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -3228,9 +3229,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
                     List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
-                    List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
-                    List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-                    validator.vplex().exportMaskDelete(vplex, exportMask, volumeURIs, initiators).validate();
+                    List<Initiator> initiators = new ArrayList<>();
+                    if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                        initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
+                    }
+
+                    ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                    ctx.setStorage(vplex);
+                    ctx.setExportMask(exportMask);
+                    ctx.setBlockObjects(volumeURIs, _dbClient);
+                    ctx.setInitiators(initiators);
+                    validator.exportMaskDelete(ctx).validate();
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
                     _log.info("removing this export mask from VPLEX: " + exportMask.getMaskName());
@@ -3806,10 +3816,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
-        Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class,
+        if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+            Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class,
                 URIUtil.toURIList(exportMask.getInitiators()), true);
-        while (initItr.hasNext()) {
-            initiators.add(initItr.next());
+            while (initItr.hasNext()) {
+                initiators.add(initItr.next());
+            }
         }
         StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
         validator.removeVolumes(vplex, exportMask.getId(), initiators).validate();
@@ -4519,7 +4531,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(vplex);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -4639,7 +4656,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (volumeURIList.isEmpty()) {
                         _log.warn("volume URI list for validating remove initiators is empty...");
                     }
-                    validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+                    ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                    ctx.setStorage(vplex);
+                    ctx.setExportMask(exportMask);
+                    ctx.setBlockObjects(volumeURIList, _dbClient);
+                    validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
                             vplex, workflow, exportGroup, exportMask, initsToRemove,
@@ -5147,7 +5168,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(vplex);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, _dbClient);
+            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -7203,7 +7229,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // to add the copy to the list of copies for the source VPLEX volume.
                 // We only do this when the copy is successfully completed.
                 URI srcVplexVolumeURI = vplexVolume.getAssociatedSourceVolume();
-                if (srcVplexVolumeURI != null) {
+                if (!NullColumnValueGetter.isNullURI(srcVplexVolumeURI)) {
                     // Note that the associated source volume will be null if
                     // this is just a standard import of a non-VPLEX volume. It
                     // will be set in the case we use the import workflow to

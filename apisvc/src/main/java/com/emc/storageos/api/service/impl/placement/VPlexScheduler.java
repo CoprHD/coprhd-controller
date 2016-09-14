@@ -278,11 +278,15 @@ public class VPlexScheduler implements Scheduler {
 
         _log.info("Found {} Matching pools for VirtualArray for the Mirror", allMatchingPools.size());
 
-        if (CollectionUtils.isEmpty(allMatchingPools)) {
-            StringBuffer errorMessage = new StringBuffer();
-            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
-                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
-            }
+        // If the attribute matcher framework returns an error, then throw that error.
+        // Otherwise, even when there are no pools, let the code return the empty list
+        // of recommendations which is handled by the caller. This code was added for
+        // COP-17666, but resulted in a regression captured by COP-25216. Therefore,
+        // we now only throw an exception if there is an actual error set by a matcher.
+        // If there is no error, returning the empty list will result in the previous
+        // message being displayed.
+        StringBuffer errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+        if ((CollectionUtils.isEmpty(allMatchingPools)) && (errorMessage != null) && (errorMessage.length() != 0)) {
             throw APIException.badRequests.noStoragePools(srcVarray.getLabel(), srcVpool.getLabel(), errorMessage.toString());
         }
 
@@ -902,40 +906,23 @@ public class VPlexScheduler implements Scheduler {
             URI storageSystemURI, URI excludeStorageSystemURI, VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
 
-        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
-        Iterator<StoragePool> storagePoolIter = storagePools.iterator();
-        while (storagePoolIter.hasNext()) {
-            StoragePool storagePool = storagePoolIter.next();
-            StringSet storagePoolNHs = storagePool.getTaggedVirtualArrays();
-            if ((storagePoolNHs == null)
-                    || (!storagePoolNHs.contains(varray.getId().toString()))
-                    || ((storageSystemURI != null) && (!storageSystemURI.toString()
-                            .equals(storagePool.getStorageDevice().toString())))
-                    || ((excludeStorageSystemURI != null) && (excludeStorageSystemURI.toString()
-                            .equals(storagePool.getStorageDevice().toString())))) {
-                storagePoolIter.remove();
-            }
+        // If a specific storage system is specified, then enable the storage system matcher
+        // to filter for pools only on that system.
+        if (storageSystemURI != null) {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, storageSystem);
+        } else if (excludeStorageSystemURI != null) {
+            // Otherwise, if an excluded system is provided, enable the exclude storage
+            // system matcher to filter out pools on the excluded system. Note that there
+            // should never be an excluded system when a specific storage system to match
+            // is passed.
+            StorageSystem excludeStorageSystem = _dbClient.queryObject(StorageSystem.class, excludeStorageSystemURI);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.EXCLUDED_STORAGE_SYSTEM, excludeStorageSystem);            
         }
-
+        
+        // Now call the block scheduler to get the matching storage pools.
+        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
         return storagePools;
-    }
-
-    /**
-     * Gets all storage pools in the passed varray, satisfying the passed
-     * CoS and capable of holding a resource of the requested size. Calls out
-     * too getMatchingPools to filter the storagepools to those on the storage system
-     * with the passed URI, when the passed storage system is not null.
-     * 
-     * @param virtualArray
-     * @param storageSystemURI
-     * @param virtualPool
-     * @param capabilities
-     * @return
-     */
-    protected List<StoragePool> getMatchingPools(VirtualArray virtualArray,
-            URI storageSystemURI, VirtualPool virtualPool,
-            List<StoragePool> storagePools) {
-        return getMatchingPools(virtualArray, storageSystemURI, virtualPool, storagePools);
     }
 
     /**

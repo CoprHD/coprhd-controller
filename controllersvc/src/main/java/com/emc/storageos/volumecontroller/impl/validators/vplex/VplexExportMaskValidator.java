@@ -73,10 +73,10 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
         } catch (Exception ex) {
             if (storageView == null) {
                 // Not finding the storage view is not an error, so delete can be idempotent
-                log.info(String.format("Storage View %s cannot be located on VPLEX", id));
+                log.warn(String.format("Storage View %s cannot be located on VPLEX", id));
                 return false;
             }
-            log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
+            log.error("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
             if (getValidatorConfig().isValidationEnabled()) {
                 throw DeviceControllerException.exceptions.unexpectedCondition(
                         "Unexpected exception validating ExportMask: " + ex.getMessage());

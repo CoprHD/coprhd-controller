@@ -5,6 +5,7 @@
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.core.impl.SearchConstants.TENANT_PARAM;
+import static com.emc.vipr.client.core.impl.SearchConstants.UPDATE_EXPORTS;
 import static com.emc.vipr.client.core.impl.SearchConstants.VALIDATE_CONNECTION_PARAM;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
@@ -226,6 +227,34 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      */
     public Task<HostRestRep> update(URI id, HostUpdateParam input) {
         return update(id, input, Boolean.FALSE);
+    }
+
+    /**
+     * Updates a host by ID.
+     * <p>
+     * API Call: <tt>PUT /compute/hosts/{id}?validate_connection={validateConnection}&amp;update_exports={updateExports}</tt>
+     * 
+     * @param id
+     *            the ID of the host to update.
+     * @param input
+     *            the update configuration.
+     * @param validateConnection
+     *            if true, also validate the host connection
+     * @param updateExports
+     *            if true, will also update host exports.
+     */
+    public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection, boolean updateExports) {
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+        if (validateConnection) {
+            uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
+        }
+
+        if (updateExports) {
+            uriBuilder.queryParam(UPDATE_EXPORTS, Boolean.TRUE);
+        } else {
+            uriBuilder.queryParam(UPDATE_EXPORTS, Boolean.FALSE);
+        }
+        return putTaskURI(input, uriBuilder.build(id));
     }
 
     public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection) {

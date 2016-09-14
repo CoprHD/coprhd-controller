@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 
 /**
  * Top-level factory class for building {@link Validator} instances.
@@ -112,9 +113,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
-            Collection<Initiator> initiatorList) {
-        return getSystemValidator(storage).exportMaskDelete(storage, exportMask, volumeURIList, initiatorList);
+    public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).exportMaskDelete(ctx);
     }
 
     @Override
@@ -129,13 +129,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
-        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList);
-    }
-
-    @Override
-    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiators) {
-        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList, initiators);
+    public Validator removeInitiators(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).removeInitiators(ctx);
     }
 
     @Override

@@ -21,6 +21,10 @@ public class KnownMachineTags {
         return MOUNTPOINT + "-" + hostId;
     }
 
+    public static String getHostMountPointTagName() {
+        return MOUNTPOINT;
+    }
+
     public static String getVMFSDatastoreTagName(URI hostId) {
         return VMFS_DATASTORE + "-" + hostId;
     }

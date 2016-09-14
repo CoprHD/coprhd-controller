@@ -11,10 +11,6 @@
 		$(param).hide();
 	}
 
-	function displayLog(){
-		  console.log("calling value 1");
-	}
-	  
 	function addValidationMessage(controlGrp,msg){
 			controlGrp.addClass('has-error');
 		     $('.help-inline', controlGrp).text(msg);
@@ -50,7 +46,6 @@
 		}
 	  
 	  function validateQuotaSize(quotaSizeField,url,authToken){
-		  console.log("loading Quota field id:"+quotaSizeField);
 
 		   $("#" + quotaSizeField).on('change',function(){
 			   var data = {
@@ -74,7 +69,6 @@
 	  }
 	
 	  $(document).ready(function() {
-		  console.log(" Loading Quota Page");
 		  validateQuotaSize('quota_size','@{validateQuotaSize}','${session.authenticityToken}');
 	  });
 	

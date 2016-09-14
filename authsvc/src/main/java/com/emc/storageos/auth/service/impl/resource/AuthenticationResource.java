@@ -51,7 +51,6 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.StringUtil;
-import org.json.simple.JSONAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1301,7 +1300,7 @@ public class AuthenticationResource {
             authnProvider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", oidcProviderAddr) );
             authnProvider.setOidcClientId("vipr1");
             authnProvider.setOidcTokenUrl( String.format("http://%s/oidc/token", oidcProviderAddr) );
-            
+
             authnProvider.setOidcCallBackUrl( String.format("https://%s:4443/oidccb", getVIP()) );
         }
         return authnProvider;
@@ -1332,10 +1331,14 @@ public class AuthenticationResource {
         }
     }
 
-    private StorageOSUserDAO populateUserInfo(String idToken) {
+    private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {
+
+        JSONObject jsonIdToken = JWSObject.parse(idToken).getPayload().toJSONObject();
+
         StorageOSUserDAO userInfo = new StorageOSUserDAO();
         // TODO: parse user info from token id
         // TODO: will get real tenant and group
+        userInfo.setUserName("admin");
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         userInfo.setTenantId(rootTenant.getId().toString());
         userInfo.addGroup("SIMON@SECQE.COM");
@@ -1361,6 +1364,7 @@ public class AuthenticationResource {
 
         _log.info("Requesting token for code {}", code);
         HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
+        _log.info("Response is {}, {}", tokenHTTPResp.getContent().charAt(777), tokenHTTPResp.getContent().length());
         TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
         _log.info("Token response is {}", tokenHTTPResp.getContent());
 
@@ -1368,8 +1372,6 @@ public class AuthenticationResource {
             ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();
             throw new RuntimeException(error.getDescription());
         }
-
-        JSONAware
 
         return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
     }

@@ -89,7 +89,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
         log.info("Initiating Vplex Volume validation: " + volumeId);
         VPlexVirtualVolumeInfo vvinfo = null;
         try {
-            vvinfo = client.findVirtualVolumeAndUpdateInfo(virtualVolume.getDeviceLabel());
+            vvinfo = client.findVirtualVolume(virtualVolume.getDeviceLabel(), virtualVolume.getNativeId());
         } catch (VPlexApiException ex) {
             log.info(ex.getMessage());
         }

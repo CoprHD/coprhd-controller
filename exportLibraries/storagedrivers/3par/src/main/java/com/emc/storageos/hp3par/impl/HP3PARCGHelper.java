@@ -122,6 +122,7 @@ public class HP3PARCGHelper {
 		try {
 
 			Boolean readOnly = true;
+			int noOfSnaps = snapshots.size();
 
 			// get Vipr generated Snapshot name
 			for (VolumeSnapshot snap : snapshots) {
@@ -136,7 +137,12 @@ public class HP3PARCGHelper {
 				}
 
 				String generatedSnapshotName = snap.getDisplayName();
+				if (noOfSnaps > 1) {
 				VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-";
+				}
+				else {
+					VVsetSnapshotName = generatedSnapshotName;
+				}
 				_log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ", VVsetSnapshotName);
 				break;
 

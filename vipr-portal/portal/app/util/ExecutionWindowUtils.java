@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 
+import controllers.util.Models;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
@@ -67,7 +68,7 @@ public class ExecutionWindowUtils {
     }
 
     public static ExecutionWindowRestRep getNextExecutionWindow(Calendar time) {
-        return getNextExecutionWindow(ExecutionWindowUtils.getExecutionWindows(), time);
+        return getNextExecutionWindow(ExecutionWindowUtils.getExecutionWindows( URI.create(Models.currentAdminTenant()) ), time);
     }
 
     public static ExecutionWindowRestRep getActiveExecutionWindow(Collection<ExecutionWindowRestRep> windows, Calendar time) {

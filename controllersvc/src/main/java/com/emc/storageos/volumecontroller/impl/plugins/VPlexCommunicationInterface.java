@@ -195,6 +195,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Storage System scanCache before scanning:" + scanCache);
             scanManagedSystems(client, mgmntServer, scanCache);
             s_logger.info("Storage System scanCache after scanning:" + scanCache);
+
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
@@ -354,7 +358,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, StorageSystemViewObject> scanCache) throws VPlexCollectionException {
         try {
             // Get the cluster info.
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -616,7 +620,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             s_logger.info("updating cluster id info");
             // Get the cluster information
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -690,11 +694,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         Map<String, String> backendVolumeGuidToVvolGuidMap = new HashMap<String, String>();
 
         try {
-            // set batch size for persisting unmanaged volumes
-            Map<String, String> props = accessProfile.getProps();
-            if (null != props && null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
-                BATCH_SIZE = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
-            }
 
             long timer = System.currentTimeMillis();
             Map<String, String> volumesToCgs = new HashMap<String, String>();
@@ -835,9 +834,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     nonRpExported = true;
                                 }
                             }
-
-                            persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, false);
                         }
+
+                        persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, false);
 
                         // If this mask isn't RP, then this volume is exported to a host/cluster/initiator or VPLEX. Mark
                         // this as a convenience to ingest features.
@@ -1410,15 +1409,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
     private void persistUnManagedVolumes(List<UnManagedVolume> unManagedVolumesToCreate,
             List<UnManagedVolume> unManagedVolumesToUpdate, boolean flush) {
+
         if (null != unManagedVolumesToCreate) {
-            if (flush || (unManagedVolumesToCreate.size() > BATCH_SIZE)) {
+            if (flush || (unManagedVolumesToCreate.size() >= BATCH_SIZE)) {
                 _partitionManager.insertInBatches(unManagedVolumesToCreate,
                         BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
                 unManagedVolumesToCreate.clear();
             }
         }
         if (null != unManagedVolumesToUpdate) {
-            if (flush || (unManagedVolumesToUpdate.size() > BATCH_SIZE)) {
+            if (flush || (unManagedVolumesToUpdate.size() >= BATCH_SIZE)) {
                 _partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
                         BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
                 unManagedVolumesToUpdate.clear();
@@ -1470,7 +1470,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             if (!volumesToBeDeleted.isEmpty()) {
                 _partitionManager.updateAndReIndexInBatches(volumesToBeDeleted,
-                        Constants.DEFAULT_PARTITION_SIZE, _dbClient, UNMANAGED_VOLUME);
+                        BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
             }
         }
     }
@@ -1776,15 +1776,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private void persistUnManagedExportMasks(List<UnManagedExportMask> unManagedExportMasksToCreate,
             List<UnManagedExportMask> unManagedExportMasksToUpdate, boolean flush) {
+
         if (null != unManagedExportMasksToCreate) {
-            if (flush || (unManagedExportMasksToCreate.size() > BATCH_SIZE)) {
+            if (flush || (unManagedExportMasksToCreate.size() >= BATCH_SIZE)) {
                 _partitionManager.insertInBatches(unManagedExportMasksToCreate,
                         BATCH_SIZE, _dbClient, UNMANAGED_EXPORT_MASK);
                 unManagedExportMasksToCreate.clear();
             }
         }
         if (null != unManagedExportMasksToUpdate) {
-            if (flush || (unManagedExportMasksToUpdate.size() > BATCH_SIZE)) {
+            if (flush || (unManagedExportMasksToUpdate.size() >= BATCH_SIZE)) {
                 _partitionManager.updateInBatches(unManagedExportMasksToUpdate,
                         BATCH_SIZE, _dbClient, UNMANAGED_EXPORT_MASK);
                 unManagedExportMasksToUpdate.clear();
@@ -1945,6 +1946,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allPorts, null, _dbClient, _coordinator, null);
+
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemURI.toString());

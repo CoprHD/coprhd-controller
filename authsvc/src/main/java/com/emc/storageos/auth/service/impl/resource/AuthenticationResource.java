@@ -47,6 +47,7 @@ import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
+import net.minidev.json.JSONObject;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -1334,14 +1335,15 @@ public class AuthenticationResource {
     private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {
 
         JSONObject jsonIdToken = JWSObject.parse(idToken).getPayload().toJSONObject();
+        _log.info("the user info: {}, {}", (String) jsonIdToken.get("sub"), (String) jsonIdToken.get("http:/www.watch4net.com/openid/roles"));
 
         StorageOSUserDAO userInfo = new StorageOSUserDAO();
+        userInfo.setUserName( (String) jsonIdToken.get("sub") );
         // TODO: parse user info from token id
         // TODO: will get real tenant and group
-        userInfo.setUserName("admin");
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         userInfo.setTenantId(rootTenant.getId().toString());
-        userInfo.addGroup("SIMON@SECQE.COM");
+        userInfo.addGroup( (String) jsonIdToken.get("http:/www.watch4net.com/openid/roles") );
         return userInfo;
     }
 
@@ -1364,9 +1366,8 @@ public class AuthenticationResource {
 
         _log.info("Requesting token for code {}", code);
         HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
-        _log.info("Response is {}, {}", tokenHTTPResp.getContent().charAt(777), tokenHTTPResp.getContent().length());
-        TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
         _log.info("Token response is {}", tokenHTTPResp.getContent());
+        TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
 
         if (tokenResponse instanceof TokenErrorResponse) {
             ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();

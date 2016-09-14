@@ -138,7 +138,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                             Initiator.class, ContainmentConstraint.Factory
                                     .getContainedObjectsConstraint(
                                             initiatorList.get(0).getHost(),
-                                            Initiator.class, "host"));
+                                            Initiator.class, "hostname"));
             for (Initiator initiator : allInitiators) {
                 String normalizedPortName = Initiator.normalizePort(initiator
                         .getInitiatorPort());

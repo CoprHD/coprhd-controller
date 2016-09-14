@@ -136,7 +136,7 @@ public class XIVExportOperations implements ExportMaskOperations {
             // if an HBA get moved from one host to another, it need to be removed on array side manually
             URIQueryResultList uris = new URIQueryResultList();
             _dbClient.queryByConstraint(
-                    ContainmentConstraint.Factory.getContainedObjectsConstraint(initiatorList.get(0).getHost(), Initiator.class, "hostname"), uris);
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(initiatorList.get(0).getHost(), Initiator.class, "host"), uris);
             Iterator<?> objs = _dbClient.queryIterativeObjects(Initiator.class, uris);
             while (objs.hasNext()) {
                 DataObject obj = (DataObject) objs.next();
@@ -147,7 +147,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                             Initiator.class, ContainmentConstraint.Factory
                                     .getContainedObjectsConstraint(
                                             initiatorList.get(0).getHost(),
-                                            Initiator.class, "hostname"));
+                                            Initiator.class, "host"));
             for (Initiator initiator : allInitiators) {
                 String normalizedPortName = Initiator.normalizePort(initiator
                         .getInitiatorPort());

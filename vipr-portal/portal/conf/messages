@@ -3338,6 +3338,7 @@ resources.event=Event
 resources.events.approved=Approved
 resources.events.pending=Pending
 resources.events.declined=Declined
+resources.events.failed=Failed
 resources.events.total=Total
 resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event

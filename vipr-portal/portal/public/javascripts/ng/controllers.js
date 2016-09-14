@@ -917,6 +917,7 @@ angular.module("portalApp").controller("summaryCountCtrl", function($scope, $htt
     $scope.pending = 0;
     $scope.error = 0;
     $scope.ready = 0;
+    $scope.failed = 0;
     $scope.dataReady = false;
 
     var poller = function() {
@@ -925,7 +926,8 @@ angular.module("portalApp").controller("summaryCountCtrl", function($scope, $htt
                     $scope.pending = countSummary.pending;
                     $scope.error = countSummary.error;
                     $scope.ready = countSummary.ready;
-                    $scope.total = countSummary.pending + countSummary.error + countSummary.ready;
+                    $scope.failed = countSummary.failed;
+                    $scope.total = countSummary.pending + countSummary.error + countSummary.ready + countSummary.failed;
                     $scope.dataReady = true;
 
                     $timeout(poller, 5000);

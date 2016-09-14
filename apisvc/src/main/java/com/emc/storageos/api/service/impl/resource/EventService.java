@@ -121,7 +121,8 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
         }
 
@@ -262,7 +263,8 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
         }
 
@@ -353,6 +355,7 @@ public class EventService extends TaggedResource {
         int approved = 0;
         int declined = 0;
         int pending = 0;
+        int failed = 0;
         Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(ActionableEvent.class, "tenant",
                 tenantId.toString(), "eventStatus");
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
@@ -366,12 +369,14 @@ public class EventService extends TaggedResource {
                 approved++;
             } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())) {
                 declined++;
+            } else if (entry.getValue().equals(ActionableEvent.Status.failed.name())) {
+                failed++;
             } else {
                 pending++;
             }
         }
 
-        return new EventStatsRestRep(pending, approved, declined);
+        return new EventStatsRestRep(pending, approved, declined, failed);
     }
 
     @Override

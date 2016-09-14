@@ -4812,7 +4812,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + " (" + initsStillInExportGroup + ")");
             boolean noMoreInits = hostInitiatorURIs
                     .size() >= (initsStillInExportGroup.size() + initiatorsAlreadyRemovedFromExportGroup.size());
-            if (noMoreInits) {
+            if (noMoreInits && !exportMask.hasAnyExistingInitiators()) {
 
                 _log.info("this means there will be no more initiators present in "
                         + "export group {} for export mask {}", exportGroup.getLabel(), exportMask.getMaskName());
@@ -4984,25 +4984,35 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 // Pre Darth CoprHD used to create ExportMask per host in database even if multiple host share same
-                // storage
-                // view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CoprHD reused it.
-                // Normally when CoprHD creates storageview on VPLEX its for a host, so when user request to remove host
-                // from the export group then we would go and delete whole storageview, if storage view was pre existing
-                // then we only remove all volumes from the storage view. Now if Storage view is preexisting and its for
-                // multiple host then we don't want to remove volume(s) from the VPLEX storageview as other host in the
-                // storage
-                // view will loose those volumes as well, so if a storage view is shared and its not the last the host
-                // in
-                // CoprHD then we will only remove those volumes from CoprHD ExportMask and its association to the
-                // export group.
+                // storage view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CoprHD reused
+                // it. Normally when CoprHD creates storageview on VPLEX its for a host, so when user request to remove
+                // host from the export group then we would go and delete whole storageview, if storage view was pre
+                // existing then we only remove all volumes from the storage view. Now if Storage view is preexisting
+                // and it's for multiple hosts, then we don't want to remove volume(s) from the VPLEX storageview as
+                // other host in the storage view will lose those volumes as well. So if a storage view is shared
+                // and it's not the last the host in CoprHD, then we will only remove those volumes from CoprHD
+                // ExportMask and its association to the export group.
                 // So now volume(s) will only be removed when last host removal request is made from CoprHD.
                 // This code to get SharedStorageView is for backward compatibility for multiple export masks created in
-                // CoprHD
-                // for the same storagew view on VPLEX before Darth release.
+                // CoprHD for the same storagew view on VPLEX before Darth release.
                 Map<String, Set<ExportMask>> sharedExportMask = VPlexUtil.getSharedStorageView(exportGroup, vplex.getId(), _dbClient);
-                if (sharedExportMask.containsKey(exportMask.getMaskName())) {
+                if (exportMask.hasAnyExistingInitiators()) {
+                    _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
+                            exportMask.getMaskName());
+                    // since we are removing all initiators, go ahead and
+                    // remove the export mask from this export group
+                    _log.info("removing ExportMask {} from ExportGroup {}", exportMask.getId(), exportGroup.getId());
+                    exportGroup.removeExportMask(exportMask.getId());
+                    _dbClient.updateObject(exportGroup);
+
+                    // If this mask isn't being used by another export group, we can delete it from the DB
+                    if (!sharedExportMask.containsKey(exportMask.getMaskName())) {
+                        _dbClient.markForDeletion(exportMask);
+                    }
+                } else if (sharedExportMask.containsKey(exportMask.getMaskName())) {
                     _log.info("Multiple Export mask share same stoarge view %s hence volumes will only be removed in the database. ",
                             exportMask.getMaskName());
+
                     Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
                     // Determine the virtual volume names.
                     List<String> blockObjectNames = new ArrayList<String>();
@@ -5034,7 +5044,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient.updateObject(exportGroup);
 
                 } else {
-
                     _log.info("creating a remove volumes workflow step with " + exportMask.getMaskName()
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumes.values()));
 

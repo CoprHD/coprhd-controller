@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
@@ -133,6 +134,14 @@ public class XIVExportOperations implements ExportMaskOperations {
             // while there is a host with initiator i2 and i3 on ViPR side,
             // we will not be able to match the two hosts if there is common initiator(s)
             // if an HBA get moved from one host to another, it need to be removed on array side manually
+            URIQueryResultList uris = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(initiatorList.get(0).getHost(), Initiator.class, "hostname"), uris);
+            Iterator<?> objs = _dbClient.queryIterativeObjects(Initiator.class, uris);
+            while (objs.hasNext()) {
+                DataObject obj = (DataObject) objs.next();
+                _log.info("############################ : " + obj.getLabel());
+            }
             List<Initiator> allInitiators = CustomQueryUtility
                     .queryActiveResourcesByConstraint(_dbClient,
                             Initiator.class, ContainmentConstraint.Factory

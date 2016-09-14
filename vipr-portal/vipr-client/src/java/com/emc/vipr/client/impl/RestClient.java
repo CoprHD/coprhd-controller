@@ -17,6 +17,13 @@ import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.Properties;
 
+
+
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+
+import java.io.File;
+
 public class RestClient {
     private ClientConfig config;
     private URI apiBaseUri;
@@ -231,5 +238,17 @@ public class RestClient {
 
     public <T> T getURI(GenericType<T> responseType, URI uri) {
         return resource(uri).get(responseType);
+    }
+    
+    
+    public <T> T postWithXML(Class<T> responseType, String filePath, String path) {
+    	final WebResource service = client.resource(UriBuilder.fromUri(path).build());
+    	com.sun.jersey.api.client.WebResource.Builder builder = service.type(MediaType.APPLICATION_XML);
+    	builder = builder.accept(MediaType.TEXT_PLAIN);
+    	builder = builder.header(HttpHeaders.AUTHORIZATION, "HEADER");
+
+    	File file = new File(filePath);
+    	builder = builder.entity(file);
+        return builder.post(responseType);
     }
 }

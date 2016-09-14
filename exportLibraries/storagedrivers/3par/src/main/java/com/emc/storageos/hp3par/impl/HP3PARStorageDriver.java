@@ -127,12 +127,28 @@ public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockSt
 				cg.setDeviceLabel(objectId);
 				_log.info("3PARDriver: getStorageObject leaving ");
 				return (T) cg;
+			} else if (StoragePool.class.getSimpleName().equals(type.getSimpleName())) {
+			    CPGMember cpgResult = null;
+			    cpgResult = hp3parApi.getCPGDetails(objectId);
+			    StoragePool sp = new StoragePool();
+
+			    sp.setNativeId(cpgResult.getName()); 
+			    sp.setTotalCapacity((cpgResult.getUsrUsage().getTotalMiB().longValue()
+			            + cpgResult.getSAUsage().getTotalMiB().longValue()
+			            + cpgResult.getSDUsage().getTotalMiB().longValue()) * HP3PARConstants.KILO_BYTE);
+			    sp.setSubscribedCapacity((cpgResult.getUsrUsage().getUsedMiB().longValue()
+			            + cpgResult.getSAUsage().getUsedMiB().longValue()
+			            + cpgResult.getSDUsage().getUsedMiB().longValue()) * HP3PARConstants.KILO_BYTE);
+			    sp.setFreeCapacity(sp.getTotalCapacity() - sp.getSubscribedCapacity());
+			    _log.info("3PARDriver: StoragePool getStorageObject leaving ");
+			    return (T) sp;
 			}
 		} catch (Exception e) {
 			String msg = String.format("3PARDriver: Unable to get Stroage Object for id %s; Error: %s.\n", objectId,
 					e.getMessage());
 			_log.error(msg);
 			e.printStackTrace();
+			_log.error(CompleteError.getStackTrace(e));
 			return (T) null;
 		}
 		return null;

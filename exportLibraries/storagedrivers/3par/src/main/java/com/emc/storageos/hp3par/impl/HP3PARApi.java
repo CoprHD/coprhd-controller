@@ -134,7 +134,6 @@ public class HP3PARApi {
         String authToken = null;
         ClientResponse clientResp = null;
         String body= "{\"user\":\"" + user + "\", \"password\":\"" + password + "\"}";
-        _log.info("3PARDriver: getAuthToken body is {}", body);
 
         try {
             clientResp = _client.post_json(_baseUrl.resolve(URI_LOGIN), body);
@@ -173,7 +172,6 @@ public class HP3PARApi {
         String authToken = null;
         ClientResponse clientResp = null;
         String body= "{\"user\":\"" + _user + "\", \"password\":\"" + _password + "\"}";
-        _log.info("3PARDriver: getAuthToken body is {}", body);
 
         try {
             clientResp = _client.post_json(_baseUrl.resolve(URI_LOGIN), body);

@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -62,7 +63,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void createExportMask(StorageSystem storage, URI exportMask,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} createExportMask START...", storage.getSerialNumber());
 
         VNXeApiClient apiClient = getVnxeClient(storage);
@@ -95,8 +96,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     result = apiClient.exportLun(nativeId, initiators, newhlu);
                     mask.addVolume(volUri, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    result = apiClient.exportSnap(nativeId, initiators, null);
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                    if (BlockObject.checkForRP(_dbClient, volUri)) {
+                        _logger.info(String.format(
+                                "BlockObject %s is a RecoverPoint bookmark.  Exporting associated lun %s instead of snap.",
+                                volUri, nativeId));
+                        result = apiClient.exportLun(nativeId, initiators, newhlu);
+                    } else {
+                        result = apiClient.exportSnap(nativeId, initiators, null);
+                        setSnapWWN(apiClient, blockObject, nativeId);
+                    }
                     mask.addVolume(volUri, result.getHlu());
                 }
             }
@@ -160,7 +168,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     public void deleteExportMask(StorageSystem storage, URI exportMaskUri,
             List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} deleteExportMask START...", storage.getSerialNumber());
 
         try {
@@ -200,8 +208,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, initiators);
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    apiClient.unexportSnap(nativeId, initiators);
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                    if (BlockObject.checkForRP(_dbClient, volUri)) {
+                        _logger.info(String.format(
+                                "BlockObject %s is a RecoverPoint bookmark.  Un-exporting associated lun %s instead of snap.",
+                                volUri, nativeId));
+                        apiClient.unexportLun(nativeId, initiators);
+                    } else {
+                        apiClient.unexportSnap(nativeId, initiators);
+                        setSnapWWN(apiClient, blockObject, nativeId);
+                    }
                 }
                 // update the exportMask object
                 exportMask.removeVolume(volUri);
@@ -232,7 +247,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     @Override
     public void addVolumes(StorageSystem storage, URI exportMaskUri,
             VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} addVolume START...", storage.getSerialNumber());
         try {
             _logger.info("addVolumes: Export mask id: {}", exportMaskUri);
@@ -258,24 +273,42 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 String hlu = volURIHLU.getHLU();
                 _logger.info(String.format("hlu %s", hlu));
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-                String nativeId = blockObject.getNativeId();
                 VNXeExportResult result = null;
                 Integer newhlu = -1;
                 if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
                     newhlu = Integer.valueOf(hlu);
+                }
+                // COP-25254 this method could be called when create vplex volumes from snapshot. in this case
+                // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
+                // with the same nativeGUID, then export the snapshot.
+                BlockObject snapshot = findSnapshotByInternalVolume(blockObject); 
+                boolean isVplexVolumeFromSnap = false;
+                URI vplexBackendVol = null;
+                if (snapshot != null) {
+                    blockObject = snapshot;
+                    exportMask.addVolume(volUri, newhlu);
+                    isVplexVolumeFromSnap = true;
+                    vplexBackendVol = volUri;
+                    volUri = blockObject.getId();
                 }
                 String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
                     VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
+                String nativeId = blockObject.getNativeId();
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
                     result = apiClient.exportSnap(nativeId, vnxeInitiators, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                    String snapWWN = setSnapWWN(apiClient, blockObject, nativeId);
+                    if (isVplexVolumeFromSnap) {
+                        Volume backendVol = _dbClient.queryObject(Volume.class, vplexBackendVol);
+                        backendVol.setWWN(snapWWN);
+                        _dbClient.updateObject(backendVol);                        
+                    }
                 }
 
             }
@@ -293,7 +326,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     @Override
     public void removeVolumes(StorageSystem storage, URI exportMaskUri,
             List<URI> volumes, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} removeVolumes: START...", storage.getSerialNumber());
 
         try {
@@ -316,12 +349,21 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-                String nativeId = blockObject.getNativeId();
+                // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
+                // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
+                // with the same nativeGUID, then unexport the snapshot.
+                BlockObject snapshot = findSnapshotByInternalVolume(blockObject);
+                if (snapshot != null) {
+                    blockObject = snapshot;
+                    exportMask.removeVolume(volUri);
+                    volUri = blockObject.getId();
+                }
                 String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
                 if (cgName != null && !processedCGs.contains(cgName)) {
                     processedCGs.add(cgName);
                     VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
                 }
+                String nativeId = blockObject.getNativeId();
                 if (URIUtil.isType(volUri, Volume.class)) {
                     apiClient.unexportLun(nativeId, vnxeInitiators);
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
@@ -426,7 +468,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             throw DeviceControllerException.exceptions.invalidObjectNull();
         }
         try {
-            for (Initiator initiator : initiators) {   
+            for (Initiator initiator : initiators) {
                 mask.removeFromExistingInitiators(initiator);
                 mask.removeFromUserCreatedInitiators(initiator);
             }
@@ -468,17 +510,16 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
     /**
      * set snap wwn after export/unexport. if a snap is not exported to any host, its wwn is null
-     * 
+     *
      * @param apiClient
      * @param blockObj
      * @param snapId
      */
-    private void setSnapWWN(VNXeApiClient apiClient, BlockObject blockObj, String snapId) {
+    private String setSnapWWN(VNXeApiClient apiClient, BlockObject blockObj, String snapId) {
         String wwn = null;
         if (!apiClient.isUnityClient()) {
             VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
             wwn = snap.getPromotedWWN();
-            ;
         } else {
             Snap snap = apiClient.getSnapshot(snapId);
             wwn = snap.getAttachedWWN();
@@ -489,6 +530,26 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
         blockObj.setWWN(wwn);
         _dbClient.updateObject(blockObj);
+        return wwn;
+    }
+    
+    /**
+     * Find the corresponding blocksnapshot with the same nativeGUID as the internal volume
+     * 
+     * @param volume The block objct of the internal volume
+     * @return The snapshot blockObject. return null if there is no corresponding snapshot.
+     */
+    private BlockObject findSnapshotByInternalVolume(BlockObject volume) {
+        BlockObject snap = null;
+        String nativeGuid = volume.getNativeGuid();
+        if (NullColumnValueGetter.isNotNullValue(nativeGuid) &&
+                URIUtil.isType(volume.getId(), Volume.class) ) {
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, nativeGuid);
+            if (snapshots != null && !snapshots.isEmpty()) {
+                snap = (BlockObject)snapshots.get(0);
+            }
+        }
+        return snap;
     }
 
 }

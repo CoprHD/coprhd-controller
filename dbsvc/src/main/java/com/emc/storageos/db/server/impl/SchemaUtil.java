@@ -845,6 +845,7 @@ public class SchemaUtil {
         org.setCreationTime(Calendar.getInstance());
         org.setInactive(false);
         dbClient.createObject(org);
+        _log.info("The root tenant {} has been inserted", org.getId());
     }
 
     private String getBootstrapLockName() {

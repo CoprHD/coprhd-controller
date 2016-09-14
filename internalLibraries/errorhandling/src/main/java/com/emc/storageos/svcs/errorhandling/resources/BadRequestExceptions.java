@@ -3110,4 +3110,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExecuteOperationWhilePendingEvent(final String string);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException deactivateRPTargetNotSupported(final String string);
 }

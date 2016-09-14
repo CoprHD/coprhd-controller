@@ -6,22 +6,49 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
  * Utility class to capture common code and functionality
  */
 public class ExternalDeviceUtils {
-    
+
+    private static final Logger _log = LoggerFactory.getLogger(ExternalDeviceUtils.class);
+    private static final String EXTERNAL_DEVICE = "externalBlockStorageDevice";
+    private static StorageDriverManager driverManager;
+    private static ExternalBlockStorageDevice externalDevice;
+
+    private static synchronized StorageDriverManager getDriverManager() {
+        if (driverManager == null) {
+            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        }
+        return driverManager;
+    }
+
+    private static synchronized ExternalBlockStorageDevice getExternalDevice() {
+        if (externalDevice == null) {
+            externalDevice = (ExternalBlockStorageDevice) ControllerServiceImpl.getBean(EXTERNAL_DEVICE);
+        }
+        return externalDevice;
+    }
+
     /**
      * Updates the ViPR volume from the passed, newly created external device clone.
      * 
@@ -126,5 +153,53 @@ public class ExternalDeviceUtils {
         StorageSystem dbSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
         ExternalBlockStorageDevice.updateStoragePoolCapacity(dbPool, dbSystem,
                 volumeURIs, dbClient);
+    }
+
+    /**
+     * Refresh connections to driver managed providers.
+     *
+     * @param dbClient db client
+     * @return list of connected providers
+     */
+    public static List<URI> refreshProviderConnections(DbClient dbClient) {
+        List<StorageProvider> externalProviders = new ArrayList<>();
+        List<URI> externalProvidersUris = new ArrayList<>();
+
+        try {
+            // get providers managed by drivers
+            driverManager = getDriverManager();
+            Collection<String> externalDeviceProviderTypes = driverManager.getStorageProvidersMap().values();
+            _log.info("Processing external provider types: {}", externalDeviceProviderTypes);
+
+            for (String providerType : externalDeviceProviderTypes) {
+                externalProviders.addAll(CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                        dbClient, providerType));
+            }
+        } catch (Exception e) {
+            _log.error("Failed to refresh connections for external providers.", e);
+            return externalProvidersUris;
+        }
+
+        for (StorageProvider storageProvider : externalProviders) {
+            try {
+                // Make sure external provider is connected
+                String providerIpAddress = storageProvider.getIPAddress();
+                Integer providerPortNumber = storageProvider.getPortNumber();
+                if (getExternalDevice().validateStorageProviderConnection(providerIpAddress, providerPortNumber)) {
+                    storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.name());
+                    externalProvidersUris.add(storageProvider.getId());
+                    _log.info("Storage Provider {}/{}:{} is reachable", storageProvider.getLabel(), providerIpAddress, providerPortNumber);
+                } else {
+                    storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.name());
+                    _log.error("Storage Provider {}/{}:{} is not reachable", storageProvider.getLabel(), providerIpAddress, providerPortNumber);
+                }
+            } catch (Exception e) {
+                storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.name());
+                _log.error("Storage Provider {}/{}:{} is not reachable", storageProvider.getLabel(), storageProvider.getIPAddress(), storageProvider.getPortNumber(), e);
+            } finally {
+                dbClient.updateObject(storageProvider);
+            }
+        }
+        return externalProvidersUris;
     }
 }

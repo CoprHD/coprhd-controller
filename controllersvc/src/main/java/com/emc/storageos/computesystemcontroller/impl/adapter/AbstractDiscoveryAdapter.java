@@ -223,8 +223,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.removeHostsFromExport(hostIds, clusterURI, false,
-                    NullColumnValueGetter.getNullURI(), taskId);
+            controller.removeHostsFromExport(hostIds, clusterURI, false, NullColumnValueGetter.getNullURI(), taskId);
         }
     }
 

@@ -1266,8 +1266,13 @@ public class NetworkDeviceController implements NetworkController {
         NetworkFCContext context = new NetworkFCContext();
         boolean status = false;
         try {
-        	URI exportGroupId = zoningParams.get(0).getExportGroupId();
-        	URI virtualArray = zoningParams.get(0).getVirtualArray();
+            if (zoningParams.isEmpty()) {
+                _log.info("zoningParams is empty, returning");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return true;
+            }
+            URI exportGroupId = zoningParams.get(0).getExportGroupId();
+            URI virtualArray = zoningParams.get(0).getVirtualArray();
             if (!checkZoningRequired(stepId, virtualArray)) {
                 return true;
             }
@@ -1466,10 +1471,15 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportRemoveInitiators(
     		List<NetworkZoningParam> zoningParams,
             String stepId) throws ControllerException {
+        if (zoningParams.isEmpty()) {
+            _log.info("zoningParams is empty, returning");
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return true;
+        }
         NetworkFCContext context = new NetworkFCContext();
         boolean status = false;
         URI exportGroupId = zoningParams.get(0).getExportGroupId();
-    	URI virtualArray = zoningParams.get(0).getVirtualArray();
+        URI virtualArray = zoningParams.get(0).getVirtualArray();
         _log.info(String.format("Entering zoneExportRemoveInitiators for ExportGroup: %s",
                 zoningParams.get(0).getExportGroupDisplay()));
         try {

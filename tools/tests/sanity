@@ -3579,6 +3579,21 @@ rp_vpool_setup()
     fi
 }
 
+rp_network_setup()
+{
+    if [ $DISCOVER_SAN -eq 1 ]; then
+        # Do once
+        nsys=`networksystem list | wc -l`
+        [ "$nsys" -gt 0 ] && return;
+
+        #Discover the Brocade SAN switch.
+        secho "RecoverPoint network setup"
+        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        secho "Sleeping 30 seconds..."
+        sleep 30
+    fi
+}
+
 rp_varray_setup()
 {
     secho 'RecoverPoint varray setup'
@@ -3974,46 +3989,46 @@ recoverpoint_export_host_setup()
     rptype=${2}
 
     if [ "${vpool}" = "rp${rptype}_cdp" ]; then
-        PWWN1=`pwwn A1`
-        WWNN1=`nwwn A1`
-        PWWN2=`pwwn A2`
-        WWNN2=`nwwn A2`
-        PWWN3=`pwwn A3`
-        WWNN3=`nwwn A3`
-        PWWN4=`pwwn A4`
-        WWNN4=`nwwn A4`
-        PWWN5=`pwwn A5`
-        WWNN5=`nwwn A5`
-        PWWN6=`pwwn A6`
-        WWNN6=`nwwn A6`
+        PWWN1=`pwwn D5`
+        WWNN1=`nwwn D5`
+        PWWN2=`pwwn D6`
+        WWNN2=`nwwn D6`
+        PWWN3=`pwwn D7`
+        WWNN3=`nwwn D7`
+        PWWN4=`pwwn D8`
+        WWNN4=`nwwn D8`
+        PWWN5="30:02:42:74:E2:26:D5:A1"
+        WWNN5="40:02:42:74:E2:26:D5:A1"
+        PWWN6="30:02:42:74:E2:26:D6:A1"
+        WWNN6="40:02:42:74:E2:26:D6:A1"
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
     elif [ "${vpool}" = "rp${rptype}_crr" ]; then
-        PWWN1=`pwwn B1`
-        WWNN1=`nwwn B1`
-        PWWN2=`pwwn B2`
-        WWNN2=`nwwn B2`
-        PWWN3=`pwwn B3`
-        WWNN3=`nwwn B3`
-        PWWN4=`pwwn B4`
-        WWNN4=`nwwn B4`
-        PWWN5=`pwwn B5`
-        WWNN5=`nwwn B5`
-        PWWN6=`pwwn B6`
-        WWNN6=`nwwn B6`
+        PWWN1=`pwwn E5`
+        WWNN1=`nwwn E5`
+        PWWN2=`pwwn E6`
+        WWNN2=`nwwn E6`
+        PWWN3=`pwwn E7`
+        WWNN3=`nwwn E7`
+        PWWN4=`pwwn E8`
+        WWNN4=`nwwn E8`
+        PWWN5="30:02:42:74:E2:26:E5:A1"
+        WWNN5="40:02:42:74:E2:26:E5:A1"
+        PWWN6="30:02:42:74:E2:26:E6:A1"
+        WWNN6="40:02:42:74:E2:26:E6:A1"
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
     elif [ "${vpool}" = "rp${rptype}_clr" ]; then
-        PWWN1=`pwwn C1`
-        WWNN1=`nwwn C1`
-        PWWN2=`pwwn C2`
-        WWNN2=`nwwn C2`
-        PWWN3=`pwwn C3`
-        WWNN3=`nwwn C3`
-        PWWN4=`pwwn C4`
-        WWNN4=`nwwn C4`
-        PWWN5=`pwwn C5`
-        WWNN5=`nwwn C5`
-        PWWN6=`pwwn C6`
-        WWNN6=`nwwn C6`
+        PWWN1=`pwwn F5`
+        WWNN1=`nwwn F5`
+        PWWN2=`pwwn F6`
+        WWNN2=`nwwn F6`
+        PWWN3=`pwwn F7`
+        WWNN3=`nwwn F7`
+        PWWN4=`pwwn F8`
+        WWNN4=`nwwn F8`
+        PWWN5="30:02:42:74:E2:26:F5:A1"
+        WWNN5="40:02:42:74:E2:26:F5:A1"
+        PWWN6="30:02:42:74:E2:26:F6:A1"
+        WWNN6="40:02:42:74:E2:26:F6:A1"
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
@@ -5335,6 +5350,7 @@ recoverpoint_simulator_setup()
 recoverpoint_common_setup()
 {
     project_setup
+    rp_network_setup
     rp_varray_setup
     rp_storage_setup
     rp_port_setup
@@ -6632,18 +6648,17 @@ common_setup()
     tenant_setup
 
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
+            # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
+        if [ $QUICK -eq 0  -a "${VPLEX_QUICK_PARAM}" != "quick" -a "${RP_QUICK_PARAM}" != "quick" -a "${XIO_QUICK_PARAM}" != quick ]; then
+            secho "Turning on DISCOVER_SAN because we are testing physical"
+            DISCOVER_SAN=1
+        fi
 
-        # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
-	if [ $QUICK -eq 0  -a "${VPLEX_QUICK_PARAM}" != "quick" -a "${RP_QUICK_PARAM}" != "quick" -a "${XIO_QUICK_PARAM}" != quick ]; then
-	    secho "Turning on DISCOVER_SAN because we are testing physical"
-	    DISCOVER_SAN=1
-	fi
-
-	# RecoverPoint doesn't need zone setup, it uses its own zone setup
-	if [ "${SS}" != "recoverpoint" ]; then
-	  zone_setup
-	  run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
-	fi
+        # RecoverPoint doesn't need zone setup, it uses its own zone setup
+        if [ "${SS}" != "recoverpoint" ]; then
+          zone_setup
+          run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+        fi
     fi
 
     project_setup
@@ -6651,16 +6666,16 @@ common_setup()
     secho "Project id of $PROJECT is $projectid."
 
     if [ "${SS}" != "recoverpoint" ]; then
-	ROOT_TENANT=`tenant root|tail -1`
-	if [ "${RP_INGESTTESTS}" = "0" ]; then
-	    secho "Setup ACLs on neighborhood for $TENANT"
-	    run neighborhood allow $NH $TENANT
-	    run neighborhood allow $NH2 $TENANT
-	    run neighborhood allow $NH $ROOT_TENANT
-	    run neighborhood allow $NH2 $ROOT_TENANT
-	    secho "Setup hosts and clusters for $TENANT"
-	    host_setup
-	fi
+        ROOT_TENANT=`tenant root|tail -1`
+        if [ "${RP_INGESTTESTS}" = "0" ]; then
+            secho "Setup ACLs on neighborhood for $TENANT"
+            run neighborhood allow $NH $TENANT
+            run neighborhood allow $NH2 $TENANT
+            run neighborhood allow $NH $ROOT_TENANT
+            run neighborhood allow $NH2 $ROOT_TENANT
+            secho "Setup hosts and clusters for $TENANT"
+            host_setup
+        fi
     fi
 }
 
@@ -12517,10 +12532,14 @@ rpunity_tests()
     run blockconsistencygroup create $PROJECT $RP_UNITY_CONSISTENCY_GROUP
     run volume create $RP_UNITY_VOLUME $PROJECT $NH rpunity_cdp $RP_VOLUME_SIZE --consistencyGroup $RP_UNITY_CONSISTENCY_GROUP --count=1
     # Failover Test
-    recoverpoint_failover_test ${RP_UNITY_VOLUME} $RP_UNITY_VOLUME-target-${NH}
+    #recoverpoint_failover_test ${RP_UNITY_VOLUME} $RP_UNITY_VOLUME-target-${NH}
     
     # CG Failover/Swap Test
-    recoverpoint_cg_failover_test ${RP_UNITY_CONSISTENCY_GROUP} ${RP_UNITY_VOLUME} ${NH} $RP_UNITY_VOLUME-target-${NH} ${NH}
+    #recoverpoint_cg_failover_test ${RP_UNITY_CONSISTENCY_GROUP} ${RP_UNITY_VOLUME} ${NH} $RP_UNITY_VOLUME-target-${NH} ${NH}
+
+    # Bookmark Export Tests
+    rp_tgt_varrays=("${NH}")
+    recoverpoint_export_bookmark_tests ${RP_UNITY_VOLUME} ${NH} ${rp_tgt_varrays} rpunity_cdp "unity"
    
     run volume delete $PROJECT/${RP_UNITY_VOLUME} --wait
 

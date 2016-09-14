@@ -1091,6 +1091,14 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     $scope.isElementManagerType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.elementManagerStorageProviderList);
     }
+    
+    $scope.isProviderXIV = function() {
+    	var interfaceType = $scope.smisProvider.interfaceType;
+    	if (interfaceType == "ibmxiv") {
+    		$('#smisProvider_useSSLControlGroup').find('input').attr('disabled', true);
+    		$('input[name="smisProvider.useSSL"]').removeAttr('disabled');
+    	}
+    }
 });
 
 angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http, $sce, $cookies, translate) {
@@ -1581,6 +1589,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
                 eraseCookie(cookieKey);
                 return;
+            } else {
+                eraseCookie(dataCookieKey);
             }
         }
 

@@ -27,6 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
@@ -128,6 +129,12 @@ public class MountBlockVolumeHelper {
             logInfo("win.mount.block.volume.mount.path");
             windows.verifyMountPointHostDriveIsMounted(mountPoint, assignedMountpoints);
             windows.verifyMountPointIsNotShared(mountPoint);
+        }
+    }
+
+    public void verifyMountConfiguration(BlockObjectRestRep volume) {
+        if (BlockStorageUtils.isVolumeMounted(volume) && doFormat) {
+            ExecutionUtils.fail("failTask.verifyMountConfiguration", volume.getName(), volume.getName());
         }
     }
 

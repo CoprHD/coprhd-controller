@@ -26,6 +26,7 @@ dependencies {
 			library(httpclient4),
             library(jersey),
             library(commons_codec),
+            library(nimbusoidc),
 
             project(":dbsvc"),
             project(":security"),

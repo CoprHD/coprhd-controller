@@ -5,10 +5,7 @@
 package com.emc.storageos.auth.service.impl.resource;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+import java.net.*;
 import java.security.Principal;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -21,15 +18,33 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.db.client.model.AuthnProvider;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.model.password.PasswordChangeParam;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
 import com.emc.storageos.services.util.SecurityUtils;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.oauth2.sdk.*;
+import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
+import com.nimbusds.oauth2.sdk.auth.Secret;
+import com.nimbusds.oauth2.sdk.http.HTTPResponse;
+import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.id.State;
+import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
+import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
+import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -51,6 +66,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.geo.RequestedTokenHelper;
+
+import static com.emc.storageos.model.file.NfsACE.NfsUserType.group;
 
 /**
  * Main resource class for all authentication api
@@ -96,9 +113,14 @@ public class AuthenticationResource {
     private static String HEADER_PRAGMA = "Pragma";
     private static String HEADER_PRAGMA_VALUE = "no-cache";
 
+    private static AuthnProvider authnProvider = null;
+
     private static CacheControl _cacheControl = null;
     @Autowired
     private RequestedTokenHelper tokenNotificationHelper;
+
+    @Autowired
+    private String oidcProviderAddr;
 
     static {
         _cacheControl = new CacheControl();
@@ -1241,5 +1263,103 @@ public class AuthenticationResource {
         _log.debug("Updated service = " + newService);
 
         return URI.create(newService);
+    }
+
+    @GET
+    @Path("/oidcauth")
+    public Response oidcAuthRequest(@QueryParam("resource_uri") String resourceURI) {
+        try {
+            State state = new State(resourceURI);
+            AuthenticationRequest req = new AuthenticationRequest(
+                    null, // url to provider
+                    new ResponseType(ResponseType.Value.CODE),
+                    Scope.parse("openid email profile address"),
+                    new ClientID(getAuthnProivder().getOidcClientId()),
+                    URI.create(getAuthnProivder().getOidcCallBackUrl()), // redirect uri
+                    state,
+                    null // nonce
+            );
+
+            URI authLocation = buildAuthLocation(req);
+            return Response.temporaryRedirect(authLocation).build();
+        } catch (Exception e) {
+            _log.error("", e);
+            throw new RuntimeException("Fail to generate auth req", e);
+        }
+    }
+
+    private AuthnProvider getAuthnProivder() {
+        if (authnProvider == null) {
+            authnProvider = new AuthnProvider();
+            authnProvider.setJwksUrl( String.format("http://%s/oidc/jwks.json", oidcProviderAddr) );
+            authnProvider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", oidcProviderAddr) );
+            authnProvider.setOidcClientId("vipr1");
+            authnProvider.setOidcTokenUrl( String.format("http://%s/oidc/token", oidcProviderAddr) );
+        }
+        return authnProvider;
+    }
+
+    @GET    @Path("/oidccb")
+    public Response oidcAuthCallback(@Context HttpServletRequest request,
+                                     @Context HttpServletResponse servletResponse,
+                                     @QueryParam("code") String code,
+                                     @QueryParam("state") String relaystate) {
+
+        try {
+            String idToken = requestToken(code);
+            validateToken(idToken);
+            StorageOSUserDAO userInfo = populateUserInfo(idToken);
+            String viprToken = _tokenManager.getToken(userInfo);
+            LoginStatus loginStatus = new LoginStatus(userInfo.getUserName(), viprToken, true);
+            // suppose relaystate is service
+            return buildLoginResponse(relaystate, null, true, true, loginStatus, request);
+        } catch (Exception e) {
+            _log.error("", e);
+            throw new RuntimeException("", e);
+        }
+    }
+
+    private StorageOSUserDAO populateUserInfo(String idToken) {
+        StorageOSUserDAO userInfo = new StorageOSUserDAO();
+        // TODO: parse user info from token id
+        // TODO: will get real tenant and group
+        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+        userInfo.setTenantId(rootTenant.getId().toString());
+        userInfo.addGroup("SIMON@SECQE.COM");
+        return userInfo;
+    }
+
+    private void validateToken(String idToken) throws Exception {
+        // load JWKS. TODO: store key locally
+        JWKSet jwkeys = JWKSet.load( new URL( getAuthnProivder().getJwksUrl() ) );
+        jwkeys.getKeys().get(0);
+
+        // Verify id token
+        JWSObject jwsIDToken = JWSObject.parse(idToken);
+        JWSVerifier verifier = new RSASSAVerifier((RSAKey) jwkeys.getKeys().get(0));
+        _log.info("id token verify is {}", jwsIDToken.verify(verifier));
+    }
+
+    private String requestToken(String code) throws Exception {
+        TokenRequest tokenReq = new TokenRequest(
+                URI.create(getAuthnProivder().getOidcTokenUrl()),
+                new ClientSecretBasic(new ClientID(getAuthnProivder().getOidcClientId()), new Secret("anysecret")),
+                new AuthorizationCodeGrant(new AuthorizationCode(code), URI.create( getAuthnProivder().getOidcCallBackUrl() ) ) );
+
+        _log.info("Requesting token for code {}", code);
+        HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
+        TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
+        _log.info("Token response is {}", tokenHTTPResp.getContent());
+
+        if (tokenResponse instanceof TokenErrorResponse) {
+            ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();
+            throw new RuntimeException(error.getDescription());
+        }
+
+        return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
+    }
+
+    private URI buildAuthLocation(AuthenticationRequest req) throws Exception {
+        return URI.create(String.format("%s?%s", getAuthnProivder().getOidcAuthorizeUrl(), req.toQueryString()));
     }
 }

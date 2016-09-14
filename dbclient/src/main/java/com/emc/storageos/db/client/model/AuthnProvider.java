@@ -50,6 +50,56 @@ public class AuthnProvider extends DataObject {
     private StringMap keys;
     private StringSet _groupObjectClassNames;
     private StringSet _groupMemberAttributeTypeNames;
+    private String oidcClientId;
+    private String oidcCallBackUrl;
+    private String oidcTokenUrl;
+    private String oidcAuthorizeUrl;
+    private String jwksUrl;
+
+    @Name("clientid")
+    public String getOidcClientId() {
+        return oidcClientId;
+    }
+
+    public void setOidcClientId(String oidcClientId) {
+        this.oidcClientId = oidcClientId;
+    }
+
+    @Name("cburl")
+    public String getOidcCallBackUrl() {
+        return oidcCallBackUrl;
+    }
+
+    public void setOidcCallBackUrl(String oidcCallBackUrl) {
+        this.oidcCallBackUrl = oidcCallBackUrl;
+    }
+
+    @Name("tokenurl")
+    public String getOidcTokenUrl() {
+        return oidcTokenUrl;
+    }
+
+    public void setOidcTokenUrl(String oidcTokenUrl) {
+        this.oidcTokenUrl = oidcTokenUrl;
+    }
+
+    @Name("authurl")
+    public String getOidcAuthorizeUrl() {
+        return oidcAuthorizeUrl;
+    }
+
+    public void setOidcAuthorizeUrl(String oidcAuthorizeUrl) {
+        this.oidcAuthorizeUrl = oidcAuthorizeUrl;
+    }
+
+    @Name("jwksurl")
+    public String getJwksUrl() {
+        return jwksUrl;
+    }
+
+    public void setJwksUrl(String jwksUrl) {
+        this.jwksUrl = jwksUrl;
+    }
 
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {

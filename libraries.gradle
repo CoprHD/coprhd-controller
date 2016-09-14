@@ -468,4 +468,9 @@ ext {
     ceph = [
         "com.ceph:rados:0.3.0"
     ]
+
+    nimbusoidc = [
+        "com.nimbusds:oauth2-oidc-sdk:3.4.1",
+        "com.nimbusds:nimbus-jose-jwt:4.23"
+    ]
 }

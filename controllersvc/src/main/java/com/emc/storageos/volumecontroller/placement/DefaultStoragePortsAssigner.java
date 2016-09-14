@@ -648,7 +648,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 int alreadyAssigned = 0;
                 List<StoragePort> assignedPorts = assignments.get(initiator);
                 if (assignedPorts != null) {
-                    // assignPortsToAssociatedInitiator(initiator, assignedPorts, assignments, entry.getValue());
                     alreadyAssigned = assignedPorts.size();
                     if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
                         _log.info(String.format("Assignments sufficient for initiator %s (%s)",

@@ -24,13 +24,11 @@ public class HostCompleter extends ComputeSystemCompleter {
     private URI eventId;
 
     public HostCompleter(URI id, boolean deactivateOnComplete, String opId) {
-        super(Host.class, id, deactivateOnComplete, opId);
-        this.eventId = NullColumnValueGetter.getNullURI();
+        this(NullColumnValueGetter.getNullURI(), id, deactivateOnComplete, opId);
     }
 
     public HostCompleter(List<URI> ids, boolean deactivateOnComplete, String opId) {
-        super(Host.class, ids, deactivateOnComplete, opId);
-        this.eventId = NullColumnValueGetter.getNullURI();
+        this(NullColumnValueGetter.getNullURI(), ids, deactivateOnComplete, opId);
     }
 
     public HostCompleter(URI eventId, URI id, boolean deactivateOnComplete, String opId) {

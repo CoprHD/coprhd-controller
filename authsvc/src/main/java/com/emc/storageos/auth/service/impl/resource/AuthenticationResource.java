@@ -9,10 +9,7 @@ import java.net.*;
 import java.security.Principal;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.regex.Matcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -22,10 +19,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.auth.idp.OIDCAuthenticationManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.password.PasswordChangeParam;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.password.Password;
@@ -33,21 +29,10 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
 import com.emc.storageos.services.util.SecurityUtils;
-import com.nimbusds.jose.JWSObject;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.oauth2.sdk.*;
-import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
-import com.nimbusds.oauth2.sdk.auth.Secret;
-import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
-import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
-import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
-import net.minidev.json.JSONObject;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -60,7 +45,6 @@ import com.emc.storageos.auth.AuthenticationManager;
 import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.auth.impl.CassandraTokenManager;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.security.authentication.RequestProcessingUtils;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
@@ -69,8 +53,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.geo.RequestedTokenHelper;
-
-import static com.emc.storageos.model.file.NfsACE.NfsUserType.group;
 
 /**
  * Main resource class for all authentication api
@@ -1280,8 +1262,8 @@ public class AuthenticationResource {
                     null, // url to provider
                     new ResponseType(ResponseType.Value.CODE),
                     Scope.parse("openid email profile address"),
-                    new ClientID(getAuthnProivder().getOidcClientId()),
-                    URI.create(getAuthnProivder().getOidcCallBackUrl()), // redirect uri
+                    new ClientID(getAuthnProvider().getOidcClientId()),
+                    URI.create(getAuthnProvider().getOidcCallBackUrl()), // redirect uri
                     state,
                     null // nonce
             );
@@ -1294,7 +1276,7 @@ public class AuthenticationResource {
         }
     }
 
-    private AuthnProvider getAuthnProivder() {
+    private AuthnProvider getAuthnProvider() {
         if (authnProvider == null) {
             authnProvider = new AuthnProvider();
             authnProvider.setJwksUrl( String.format("http://%s/oidc/jwks.json", oidcProviderAddr) );
@@ -1303,6 +1285,10 @@ public class AuthenticationResource {
             authnProvider.setOidcTokenUrl( String.format("http://%s/oidc/token", oidcProviderAddr) );
 
             authnProvider.setOidcCallBackUrl( String.format("https://%s:4443/oidccb", getVIP()) );
+
+            String[] domains = new String[] {"secqe.com"};
+            StringSet domainSet = new StringSet(Arrays.asList(domains));
+            authnProvider.setDomains(domainSet);
         }
         return authnProvider;
     }
@@ -1319,9 +1305,8 @@ public class AuthenticationResource {
                                      @QueryParam("state") String relaystate) {
 
         try {
-            String idToken = requestToken(code);
-            validateToken(idToken);
-            StorageOSUserDAO userInfo = populateUserInfo(idToken);
+            OIDCAuthenticationManager authMgr = new OIDCAuthenticationManager(_permissionsHelper, _dbClient, getAuthnProvider());
+            StorageOSUserDAO userInfo = authMgr.authenticate(code);
             String viprToken = _tokenManager.getToken(userInfo);
             LoginStatus loginStatus = new LoginStatus(userInfo.getUserName(), viprToken, true);
             // suppose relaystate is service
@@ -1332,52 +1317,7 @@ public class AuthenticationResource {
         }
     }
 
-    private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {
-
-        JSONObject jsonIdToken = JWSObject.parse(idToken).getPayload().toJSONObject();
-        _log.info("the user info: {}, {}", (String) jsonIdToken.get("sub"), (String) jsonIdToken.get("http:/www.watch4net.com/openid/roles"));
-
-        StorageOSUserDAO userInfo = new StorageOSUserDAO();
-        userInfo.setUserName( (String) jsonIdToken.get("sub") );
-        // TODO: parse user info from token id
-        // TODO: will get real tenant and group
-        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
-        userInfo.setTenantId(rootTenant.getId().toString());
-        userInfo.addGroup( (String) jsonIdToken.get("http:/www.watch4net.com/openid/roles") );
-        return userInfo;
-    }
-
-    private void validateToken(String idToken) throws Exception {
-        // load JWKS. TODO: store key locally
-        JWKSet jwkeys = JWKSet.load( new URL( getAuthnProivder().getJwksUrl() ) );
-        jwkeys.getKeys().get(0);
-
-        // Verify id token
-        JWSObject jwsIDToken = JWSObject.parse(idToken);
-        JWSVerifier verifier = new RSASSAVerifier((RSAKey) jwkeys.getKeys().get(0));
-        _log.info("id token verify is {}", jwsIDToken.verify(verifier));
-    }
-
-    private String requestToken(String code) throws Exception {
-        TokenRequest tokenReq = new TokenRequest(
-                URI.create(getAuthnProivder().getOidcTokenUrl()),
-                new ClientSecretBasic(new ClientID(getAuthnProivder().getOidcClientId()), new Secret("anysecret")),
-                new AuthorizationCodeGrant(new AuthorizationCode(code), URI.create( getAuthnProivder().getOidcCallBackUrl() ) ) );
-
-        _log.info("Requesting token for code {}", code);
-        HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
-        _log.info("Token response is {}", tokenHTTPResp.getContent());
-        TokenResponse tokenResponse = OIDCTokenResponseParser.parse(tokenHTTPResp);
-
-        if (tokenResponse instanceof TokenErrorResponse) {
-            ErrorObject error = ((TokenErrorResponse) tokenResponse).getErrorObject();
-            throw new RuntimeException(error.getDescription());
-        }
-
-        return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
-    }
-
     private URI buildAuthLocation(AuthenticationRequest req) throws Exception {
-        return URI.create(String.format("%s?%s", getAuthnProivder().getOidcAuthorizeUrl(), req.toQueryString()));
+        return URI.create(String.format("%s?%s", getAuthnProvider().getOidcAuthorizeUrl(), req.toQueryString()));
     }
 }

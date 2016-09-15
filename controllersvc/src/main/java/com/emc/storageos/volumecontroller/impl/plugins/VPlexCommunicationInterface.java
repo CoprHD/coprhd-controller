@@ -446,6 +446,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         } else {
                             s_logger.warn(message);
                             s_logger.warn("Auto upgrade is allowed, will attempt to automatically upgrade to Metro");
+
+                            // we have to persist the new serial number so that the storage port name generator
+                            // works, but we need to save the old serial number so that we can roll back if necessary
+                            String oldSerialNumber = vplex.getSerialNumber();
+                            vplex.setSerialNumber(systemSerialNumber);
+                            _dbClient.updateObject(vplex);
+
                             if (null == vplex.getSmisProviderIP()) {
                                 s_logger.info("The provider information was nulled out by a previous upgrade attempt, resetting");
                                 // this data will be transient unless the upgrade process completes
@@ -474,7 +481,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 vplex.setLabel(systemNativeGUID);
                             }
                             vplex.setNativeGuid(systemNativeGUID);
-                            vplex.setSerialNumber(systemSerialNumber);
                             // clear the assembly id collection, which will be updated by discoverClusterIdentification
                             vplex.setVplexAssemblyIdtoClusterId(new StringMap());
                             // update the assembly id map in the VPLEX storage system object
@@ -488,9 +494,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             List<StoragePort> storagePorts = ControllerUtils.getSystemPortsOfSystem(_dbClient, vplex.getId());
                             for (StoragePort storagePort : storagePorts) {
                                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, storagePort);
+                                s_logger.info("autoUpgradePortsMap: setting native guid {} on storage port {}", nativeGuid, storagePort.forDisplay());
                                 storagePort.setNativeGuid(nativeGuid);
                                 storagePort.setLabel(nativeGuid);
-                                autoUpgradePortsMap.put(nativeGuid, storagePort);
+                                autoUpgradePortsMap.put(storagePort.getPortNetworkId(), storagePort);
                             }
 
                             boolean doPersist = true;
@@ -509,7 +516,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     // storage ports would have been updated by the discoverPorts method
                                     // but we still need to update the vplex object
                                     _dbClient.updateObject(vplex);
-                                } 
+                                } else {
+                                    // we failed, so we want to set the serial number back to the old 
+                                    // serial number that was set above on the copy in the database
+                                    StorageSystem databaseVplex = _dbClient.queryObject(StorageSystem.class, vplex.getId());
+                                    databaseVplex.setSerialNumber(oldSerialNumber);
+                                    _dbClient.updateObject(databaseVplex);
+                                }
                             }
                         }
                     }
@@ -2001,6 +2014,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      *
      * @param client The VPlex API client.
      * @param vplexStorageSystem A reference to the VPlex storage system.
+     * @param autoUpgradePortsMap a map of port wwns to StoragePorts from the
+     *            original cluster in a local to metro auto upgrade situation
      *
      * @throws VPlexCollectionException When an error occurs discovering the
      *             VPlex ports.
@@ -2167,6 +2182,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      *
      * @param vplexStorageSystem A reference to the port's storage system.
      * @param portInfo The port information.
+     * @param autoUpgradePortsMap a map of port wwns to StoragePorts from the
+     *            original cluster in a local to metro auto upgrade situation
      *
      * @return The found StoragePort instance, or null if not found.
      *
@@ -2178,9 +2195,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         String portWWN = WWNUtility.getWWNWithColons(portInfo.getPortWwn());
         String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 vplexStorageSystem, portWWN, NativeGUIDGenerator.PORT);
-        if (null != autoUpgradePortsMap && autoUpgradePortsMap.containsKey(portNativeGuid)) {
-            s_logger.info("Found port {} in the auto upgrade ports map", portNativeGuid);
-            return autoUpgradePortsMap.get(portNativeGuid);
+        if (null != autoUpgradePortsMap && autoUpgradePortsMap.containsKey(portWWN)) {
+            s_logger.info("Found port {} in the auto upgrade ports map", portWWN);
+            return autoUpgradePortsMap.get(portWWN);
         }
         s_logger.info("Looking for port {} in database", portNativeGuid);
         URIQueryResultList queryResults = new URIQueryResultList();

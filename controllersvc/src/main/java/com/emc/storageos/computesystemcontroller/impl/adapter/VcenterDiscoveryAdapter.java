@@ -504,6 +504,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
             URI oldDatacenterURI = target.getVcenterDataCenter();
             URI newDatacenterURI = targetDatacenter.getId();
+            boolean isDatacenterChanged = false;
             info("Discovering host " + target.getLabel() + " (" + target.getId() + ")");
             if (NullColumnValueGetter.isNullURI(oldDatacenterURI) || (!NullColumnValueGetter.isNullURI(newDatacenterURI)
                     && newDatacenterURI.toString().equalsIgnoreCase(oldDatacenterURI.toString()))) {
@@ -511,6 +512,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         + targetDatacenter.getTenant() + " for host " + target.getLabel());
                 target.setVcenterDataCenter(targetDatacenter.getId());
                 target.setTenant(targetDatacenter.getTenant());
+            } else {
+                isDatacenterChanged = true;
             }
             target.setDiscoverable(true);
 
@@ -555,7 +558,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 boolean isClusterChanged = NullColumnValueGetter.isNullURI(oldClusterURI) ? !NullColumnValueGetter.isNullURI(targetCluster)
                         : targetCluster != null && !oldClusterURI.toString().equals(targetCluster.toString());
 
-                if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
+                if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged || isDatacenterChanged) {
                     changes.add(new HostStateChange(target, oldClusterURI, targetCluster, oldInitiators, addedInitiators, oldDatacenterURI,
                             newDatacenterURI));
                 }

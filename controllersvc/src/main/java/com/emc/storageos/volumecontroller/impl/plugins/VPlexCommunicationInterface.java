@@ -193,6 +193,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Storage System scanCache before scanning:" + scanCache);
             scanManagedSystems(client, mgmntServer, scanCache);
             s_logger.info("Storage System scanCache after scanning:" + scanCache);
+
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
@@ -352,7 +356,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, StorageSystemViewObject> scanCache) throws VPlexCollectionException {
         try {
             // Get the cluster info.
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -483,7 +487,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             // Get the cluster information
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -1810,6 +1814,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allPorts, null, _dbClient, _coordinator, null);
+
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemURI.toString());

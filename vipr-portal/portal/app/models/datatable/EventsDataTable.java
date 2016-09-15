@@ -26,9 +26,9 @@ public class EventsDataTable extends DataTable {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
             addColumn("resourceName").hidden();
         }
-        addColumn("name");
+        addColumn("name").setRenderFunction("render.actionableEvent");
         addColumn("eventStatus");
-        addColumn("id").setRenderFunction("render.actionableEvent");
+        addColumn("id").hidden();
         addColumn("creationTime").setRenderFunction("render.localDate");
         setDefaultSort("creationTime", "desc");
         sortAllExcept("id");

@@ -48,6 +48,8 @@ import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSession;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.GetFullCopyList;
+import com.emc.sa.service.vipr.block.tasks.AddClusterToExport;
+import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
@@ -68,6 +70,7 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
 import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
 import com.emc.sa.service.vipr.block.tasks.FindBlockVolumeHlus;
+import com.emc.sa.service.vipr.block.tasks.FindEmptyExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingCluster;
@@ -230,11 +233,11 @@ public class BlockStorageUtils {
     private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
     }
-    
+
     private static List<BlockMirrorRestRep> getBlockContinuousCopies(List<URI> uris, URI parentId) {
         return execute(new GetBlockContinuousCopies(uris, parentId));
     }
-    
+
     /**
      * Verify that list of volume doesn't contain any dependencies (snapshot, full copies, continuous copy)
      *
@@ -265,6 +268,29 @@ public class BlockStorageUtils {
 
                 for (String tag : parsedTags.keySet()) {
                     if (tag != null && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Return true of false if a given volume is mounted.
+     *
+     * @param blockObject to validate
+     * @return true or false if the volume is mounted
+     */
+    public static boolean isVolumeMounted(BlockObjectRestRep blockObject) {
+        if (blockObject != null) {
+            Set<String> volumeTags = blockObject.getTags();
+            if (volumeTags != null) {
+                Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+
+                for (String tag : parsedTags.keySet()) {
+                    if (tag != null && tag.startsWith(KnownMachineTags.getHostMountPointTagName())) {
                         return true;
                     }
                 }
@@ -315,9 +341,15 @@ public class BlockStorageUtils {
                     break;
             }
         }
-        blockResources.addAll(getVolumes(blockVolumes));
-        blockResources.addAll(getBlockSnapshots(blockSnapshots));
-        blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
+        if (!blockVolumes.isEmpty()) {
+            blockResources.addAll(getVolumes(blockVolumes));
+        }
+        if (!blockSnapshots.isEmpty()) {
+            blockResources.addAll(getBlockSnapshots(blockSnapshots));
+        }
+        if (!blockContinuousCopies.isEmpty()) {
+            blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
+        }
         return blockResources;
     }
 
@@ -351,6 +383,10 @@ public class BlockStorageUtils {
 
     public static List<ExportGroupRestRep> findExportsContainingHost(URI host, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
+    }
+
+    public static ExportGroupRestRep findEmptyExportsByName(String name, URI projectId, URI varrayId) {
+        return execute(new FindEmptyExportByName(name, projectId, varrayId));
     }
 
     public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
@@ -447,6 +483,18 @@ public class BlockStorageUtils {
         Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus, minPaths, maxPaths,
                 pathsPerInitiator));
         addRollback(new RemoveBlockResourcesFromExport(exportId, volumeIds));
+        addAffectedResource(task);
+    }
+
+    public static void addHostToExport(URI exportId, URI host, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        Task<ExportGroupRestRep> task = execute(new AddHostToExport(exportId, host, minPaths, maxPaths, pathsPerInitiator));
+        addRollback(new DeactivateBlockExport(exportId));
+        addAffectedResource(task);
+    }
+
+    public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths, pathsPerInitiator));
+        addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(task);
     }
 
@@ -1011,6 +1059,12 @@ public class BlockStorageUtils {
         return false;
     }
 
+    public static boolean isEmptyExport(ExportGroupRestRep exportGroup) {
+        boolean hasVolumes = exportGroup.getVolumes() != null && !exportGroup.getVolumes().isEmpty();
+        boolean hasInitiators = exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty();
+        return !hasInitiators && !hasVolumes;
+    }
+
     /**
      * Get the project id off a {@link BlockObjectRestRep}
      */
@@ -1110,7 +1164,7 @@ public class BlockStorageUtils {
         public URI hostId;
         @Param(value = HLU, required = false)
         public Integer hlu;
-        
+
         @Param(value = MIN_PATHS, required = false)
         protected Integer minPaths;
 
@@ -1121,11 +1175,11 @@ public class BlockStorageUtils {
         protected Integer pathsPerInitiator;
 
         @Override
-		public String toString() {
-			String parent = super.toString();
-			return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
-					+ maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
-		}
+        public String toString() {
+            String parent = super.toString();
+            return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
+            + maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
+        }
 
         @Override
         public Map<String, Object> getParams() {
@@ -1376,11 +1430,11 @@ public class BlockStorageUtils {
 
         return stripped;
     }
-    
+
     public static boolean isRPVolume(VolumeRestRep volume) {
         return (volume.getProtection() != null && volume.getProtection().getRpRep() != null);
     }
-    
+
     public static boolean isRPSourceVolume(VolumeRestRep volume) {
         if (isRPVolume(volume)
                 && volume.getProtection().getRpRep().getPersonality() != null
@@ -1389,10 +1443,10 @@ public class BlockStorageUtils {
         }
         return false;
     }
-    
+
     /**
      * returns true if the passed in volume is a RP target volume
-     * 
+     *
      * @param vol
      * @return
      */
@@ -1404,10 +1458,10 @@ public class BlockStorageUtils {
         }
         return false;
     }
-    
+
     /**
      * gets the vplex primary/source backing volume for a vplex virtual volume
-     * 
+     *
      * @param client
      * @param vplexVolume
      * @return
@@ -1424,7 +1478,7 @@ public class BlockStorageUtils {
         }
         return null;
     }
-    
+
     public static NamedVolumesList getVolumesBySite(ViPRCoreClient client, String virtualArrayId, URI applicationId) {
         boolean isTarget = false;
         URI virtualArray = null;

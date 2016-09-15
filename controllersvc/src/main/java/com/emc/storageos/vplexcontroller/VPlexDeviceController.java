@@ -314,7 +314,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESTORE_RESYNC_RB_METHOD_NAME = "rollbackRestoreResync";
     private static final String EXPORT_MASK_DELETE_METHOD_NAME = "exportMaskDelete";
     private static final String EXPORT_MASK_CREATE_METHOD_NAME = "exportMaskCreate";
-    // private static final String ZONE_REMOVE_INITIATOR_METHOD_NAME = "zoneRemoveInitiatorStep";
     private static final String WAIT_ON_REBUILD_METHOD_NAME = "waitOnRebuild";
     private static final String RESTORE_FROM_FC_METHOD_NAME = "restoreFromFullCopy";
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
@@ -4742,10 +4741,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info(String.format("will be removing targets %s for host %s",
                 targetURIs.toString(), hostURI.toString()));
 
-//        // Create s Step to remove the SAN Zones for this Initiator.
-//        Workflow.Method removeZoneMethod = zoneRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
-//                hostInitiatorURIs);
-
         // What is about to happen...
         //
         // 1. if all the initiators in the storage view are getting removed
@@ -5102,52 +5097,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void fireTaskCompleter(TaskCompleter completer, String stepId) {
         completer.ready(_dbClient);
     }
-
-//    /**
-//     * Creates the workflow execute method to remove zone for the initiators.
-//     *
-//     * @param vplexURI
-//     *            URI of the VPlex storage system
-//     * @param exportURI
-//     *            URI of the export group
-//     * @param initiatorURIs
-//     *            The list of initiators URI
-//     *
-//     * @return A reference to the created workflow method.
-//     */
-//    private Workflow.Method zoneRemoveInitiatorsMethod(URI vplexURI, URI exportURI,
-//            List<URI> initiatorURIs) {
-//        return new Workflow.Method(ZONE_REMOVE_INITIATOR_METHOD_NAME, vplexURI, exportURI,
-//                initiatorURIs);
-//    }
-
-//    /**
-//     * Workflow step to remove zones for an initiator. Calls NetworkDeviceController.
-//     * TODO: This will be moved there.
-//     *
-//     * @param exportURI
-//     * @param initiatorURIs
-//     * @throws WorkflowException
-//     */
-//    public void zoneRemoveInitiatorStep(URI vplexURI, URI exportURI,
-//            List<URI> initiatorURIs, String stepId) throws WorkflowException {
-//        try {
-//            ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
-//            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
-//            Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
-//            for (ExportMask exportMask : exportMasks) {
-//                maskToInitiatorsMap.put(exportMask.getId(), initiatorURIs);
-//            }
-//            List<NetworkZoningParam> zoningParams = NetworkZoningParam.
-//            		convertExportMaskInitiatorMapsToNetworkZoningParam(exportURI, maskToInitiatorsMap, _dbClient);
-//            _networkDeviceController.zoneExportRemoveInitiators(zoningParams, stepId);
-//        } catch (Exception ex) {
-//            _log.error("Exception removing initator: " + ex.getMessage(), ex);
-//            String opName = ResourceOperationTypeEnum.DELETE_INITIATOR_WORKFLOW_STEP.getName();
-//            ServiceError serviceError = VPlexApiException.errors.zoneRemoveInitiatorStepFailed(opName, ex);
-//            WorkflowStepCompleter.stepFailed(stepId, serviceError);
-//        }
-//    }
 
     /**
      * Returns the workflow method for storageViewRemoveInitiators.

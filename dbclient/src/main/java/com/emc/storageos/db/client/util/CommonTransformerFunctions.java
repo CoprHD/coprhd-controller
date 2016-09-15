@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -74,6 +75,21 @@ public class CommonTransformerFunctions {
                             URI.create(uriStr));
                 }
                 return initiator;
+            }
+        };
+    }
+
+    public static Function<String, Host>
+            fctnStringToHost(final DbClient dbClient) {
+        return new Function<String, Host>() {
+            @Override
+            public Host apply(String uriStr) {
+                Host host = null;
+                if (uriStr != null && !uriStr.isEmpty()) {
+                    host = dbClient.queryObject(Host.class,
+                            URI.create(uriStr));
+                }
+                return host;
             }
         };
     }

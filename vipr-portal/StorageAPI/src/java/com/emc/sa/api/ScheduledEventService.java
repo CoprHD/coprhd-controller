@@ -561,7 +561,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             if (executionWindow == null) continue;
 
             ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
-            Calendar windowTime = helper.calculateNext(time);
+            Calendar windowTime = helper.calculateCurrentOrNext(time);
             if (nextWindowTime == null || nextWindowTime.after(windowTime)) {
                 nextWindowTime = windowTime;
                 nextWindow = window;

@@ -133,6 +133,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.OrderScheduleTimeCallback"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeThinlyProvisionedMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolDedupCapableMigration"/>
             </list>
         </entry>
     </util:map>

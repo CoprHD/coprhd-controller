@@ -10,6 +10,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,8 +28,10 @@ import com.emc.storageos.api.service.impl.resource.utils.ProjectUtility;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -56,6 +59,7 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.collect.Sets;
 
 /**
  * StorageScheduler service for block and file storage. StorageScheduler is done
@@ -227,7 +231,7 @@ public class FileStorageScheduler implements Scheduler {
             URI vArrayURI, VirtualPool vPool, List<Recommendation> poolRecommendations) {
 
         List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
-        List<StoragePort> ports = getAssociatedStoragePorts(vNAS);
+        List<StoragePort> ports = getAssociatedStoragePorts(vNAS, vArrayURI);
 
         List<URI> storagePortURIList = new ArrayList<URI>();
         for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
@@ -597,13 +601,14 @@ public class FileStorageScheduler implements Scheduler {
     }
 
     /**
-     * Get list of associated storage ports of VNAS server
+     * Get list of associated storage ports of VNAS server which are part of given virtual array.
      * 
      * @param vNAS
+     * @param vArrayURI virtual array 
      * @return spList
      * 
      */
-    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS) {
+    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS,  URI vArrayURI) {
 
         StringSet spIdSet = vNAS.getStoragePorts();
 
@@ -613,17 +618,18 @@ public class FileStorageScheduler implements Scheduler {
                 spURIList.add(URI.create(id));
             }
         }
-
+        
         List<StoragePort> spList = _dbClient.queryObject(StoragePort.class,
-                spURIList);
+        		spURIList);
 
         if (spIdSet != null && !spList.isEmpty()) {
             for (Iterator<StoragePort> iterator = spList.iterator(); iterator
                     .hasNext();) {
                 StoragePort storagePort = iterator.next();
-
                 if (storagePort.getInactive()
                         || storagePort.getTaggedVirtualArrays() == null
+                        || !storagePort.getTaggedVirtualArrays().contains(
+                        		vArrayURI.toString())
                         || !RegistrationStatus.REGISTERED.toString()
                                 .equalsIgnoreCase(
                                         storagePort.getRegistrationStatus())

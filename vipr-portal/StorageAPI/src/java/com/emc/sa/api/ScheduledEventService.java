@@ -201,9 +201,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
             }
             return;
+        } else if (scheduleInfo.getReoccurrence() > ScheduleInfo.MAX_REOCCURRENCE ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
-        if (scheduleInfo.getCycleFrequency() < 1 ) {
+        if (scheduleInfo.getCycleFrequency() < 1
+                || scheduleInfo.getCycleFrequency() > ScheduleInfo.MAX_CYCLE_FREQUENCE ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
         }
 
@@ -320,7 +323,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     private ScheduledEvent createScheduledEvent(StorageOSUser user, URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         URI executionWindow = null;     // INFINITE execution window
         if (catalogService.getExecutionWindowRequired()) {
-            if (catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
+            if (catalogService.getDefaultExecutionWindowId() == null ||
+                catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
                 List<URI> executionWindows =
                         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExecutionWindowTenantIdIdConstraint(tenantId.toString()));
                 Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -437,10 +441,21 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
      * @throws Exception
      */
     private ScheduledEvent updateScheduledEvent(ScheduledEvent scheduledEvent, ScheduleInfo scheduleInfo) throws Exception{
+        URI executionWindow = null;     // INFINITE execution window
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(scheduledEvent.getCatalogServiceId());
         if (catalogService.getExecutionWindowRequired()) {
-            ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-            String msg = match(scheduleInfo, executionWindow);
+            if (catalogService.getDefaultExecutionWindowId() == null ||
+                catalogService.getDefaultExecutionWindowId().equals(ExecutionWindow.NEXT)) {
+                List<URI> executionWindows =
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExecutionWindowTenantIdIdConstraint(scheduledEvent.getTenant()));
+                Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                executionWindow = getNextExecutionWindow(executionWindows, currTime);
+            } else {
+                executionWindow = catalogService.getDefaultExecutionWindowId().getURI();
+            }
+
+            ExecutionWindow window = client.findById(executionWindow);
+            String msg = match(scheduleInfo, window);
             if (!msg.isEmpty()) {
                 throw APIException.badRequests.scheduleInfoNotMatchWithExecutionWindow(msg);
             }
@@ -454,6 +469,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         // TODO: update execution window when admin change it in catalog service
 
         scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
+        scheduledEvent.setEventType(scheduleInfo.getReoccurrence() == 1? ScheduledEventType.ONCE:ScheduledEventType.REOCCURRENCE);
         client.save(scheduledEvent);
 
         log.info("Updated a scheduledEvent {}:{}", scheduledEvent.getId(), scheduleInfo.toString());
@@ -545,7 +561,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             if (executionWindow == null) continue;
 
             ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
-            Calendar windowTime = helper.calculateNext(time);
+            Calendar windowTime = helper.calculateCurrentOrNext(time);
             if (nextWindowTime == null || nextWindowTime.after(windowTime)) {
                 nextWindowTime = windowTime;
                 nextWindow = window;

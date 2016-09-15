@@ -22,7 +22,7 @@ delete_mask() {
     serial_number=$1
     pattern=$2
 
-    echo "y" | /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern} -noprompt
     if [ $? -ne 0 ]; then
 	echo "no mask found."
     fi
@@ -40,7 +40,7 @@ delete_mask() {
 	# Put it back into the optimized SG?
 
 	# Delete storage group
-	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage
+	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage -noprompt
     fi
 }
 
@@ -107,7 +107,7 @@ add_initiator_to_mask() {
 	echo "Initiator group ${pattern}_IG was not found.  Not able to add to it."
     else
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn} 
     fi
 
     # Ensure the provider is updated
@@ -136,8 +136,26 @@ remove_initiator_from_mask() {
 }
 
 delete_volume() {
-    echo "Delete volume for VMAX not yet supported";
-    sleep 30
+    serial_number=$1
+    devid=$2
+    /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} not_ready ${devid} -noprompt
+    
+    # Assume VMAX3 if there is an Optimized group...
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -v | grep "ViPR_Optimized"
+    if [ $? -eq 0 ]; then
+        # Check if the volume is in there...
+        OPTIMIZEDSG=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -devs ${devid} -v \
+            | grep "Storage Group Name" | grep "Optimized"  | awk -F:  '{ print $2 }' | sed -E 's/\s//'`
+        if [ ! -z ${OPTIMIZEDSG// } ]; then
+            /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name ${OPTIMIZEDSG} remove dev ${devid}
+        fi
+        /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} free -all -devs ${devid} -noprompt
+    else
+        /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "unmap dev ${devid};" commit -noprompt
+        /opt/emc/SYMCLI/bin/symdev -sid ${serial_number} -dev ${devid} unbind -noprompt
+    fi
+    /opt/emc/SYMCLI/bin/symconfigure -sid ${serial_number} -cmd "delete dev ${devid};" commit -noprompt
+    exit 0;
 }
 
 verify_export_prechecks() {
@@ -415,7 +433,7 @@ delete_export_mask() {
         optimized=`symaccess -sid ${SID} list -type storage -v | grep Optimized | awk '{ print $5 }'`
         if [[ ! -z "${optimized// }" ]]; then
             echo "=== /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id"
-            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_id
+            /opt/emc/SYMCLI/bin/symaccess -sid ${SID} -type storage -name ${optimized} add devs $dev_i
         fi
     else
         echo "=== Skipping storage group deletion because 'noop' was passed"

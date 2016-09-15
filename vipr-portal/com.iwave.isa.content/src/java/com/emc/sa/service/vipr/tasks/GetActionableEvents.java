@@ -40,7 +40,7 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
                 events = models.actionableEvents().findPendingByAffectedResources(host.getId());
                 if (!events.isEmpty()) {
                     ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {},
-                            new Object[] { host.getId(), getEventOutput(events) });
+                            new Object[] { host.getLabel(), getEventOutput(events) });
 
                 }
             }
@@ -59,6 +59,6 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
         for (ActionableEvent event : events) {
             result.add(event.forDisplay());
         }
-        return Joiner.on(",").join(result);
+        return Joiner.on("\n").join(result);
     }
 }

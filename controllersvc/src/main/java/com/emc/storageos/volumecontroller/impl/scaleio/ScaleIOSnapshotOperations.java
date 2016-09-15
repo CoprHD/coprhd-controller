@@ -172,6 +172,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             for (StoragePool pool : pools) {
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
             }
+            taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteGroupSnapshots",

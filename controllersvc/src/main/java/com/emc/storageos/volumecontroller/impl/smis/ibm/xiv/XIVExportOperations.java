@@ -206,10 +206,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                 label = host.getLabel();
             }else {
                 label = initiatorList.get(0).getHostName();
-            }
-            
-            //String label = host.getLabel();
-            
+            }              
 
             // no matched initiator on array side, now try to find host with the given name
             if (controllerInst == null) {
@@ -799,8 +796,6 @@ public class XIVExportOperations implements ExportMaskOperations {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,
                     mask);
-            _log.info("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-            _log.info("CIM Instance : " + instance);
             if (instance != null) {
                 StringBuilder builder = new StringBuilder();
                 String name = CIMPropertyFactory.getPropertyValue(instance,
@@ -1303,7 +1298,7 @@ public class XIVExportOperations implements ExportMaskOperations {
             _log.debug("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
         } else {
-            _log.info("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
+            _log.debug("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
             refreshSMISExportMask(storage, mask);
         }
         return mask;

@@ -253,6 +253,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(dbClient, serviceError);
         }
+
     }
 
     @Override

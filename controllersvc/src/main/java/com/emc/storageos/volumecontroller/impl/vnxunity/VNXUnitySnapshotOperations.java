@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
@@ -156,8 +157,8 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
                 log.error(errorMsg);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateCGSnapshot", errorMsg);
                 taskCompleter.error(_dbClient, error);
-
             }
+
         } catch (Exception ex) {
             log.error("Create volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateCGSnapshot", ex.getMessage());

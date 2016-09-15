@@ -183,7 +183,7 @@ arrayhelper() {
 	arrayhelper_verify_export $operation $serial_number $masking_view_name $*
 	;;
     *)
-        echo "ERROR: Invalid operation $operation specified to arrayhelper."
+        echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
 	exit
 	;;
     esac
@@ -207,7 +207,7 @@ arrayhelper_create_export_mask_operation() {
 	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -236,7 +236,7 @@ arrayhelper_volume_mask_operation() {
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -265,7 +265,7 @@ arrayhelper_initiator_mask_operation() {
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -293,7 +293,7 @@ arrayhelper_delete_volume() {
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -314,7 +314,7 @@ arrayhelper_delete_export_mask() {
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -342,7 +342,7 @@ arrayhelper_delete_mask() {
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -370,7 +370,7 @@ arrayhelper_verify_export() {
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -385,7 +385,7 @@ verify_no_zones() {
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
     if [ $? -eq 0 ]; then
-	echo "ERROR: Found zones on the switch associated with host ${host}."
+	echo -e "\e[91mERROR\e[0m: Found zones on the switch associated with host ${host}."
     fi
 }
 
@@ -395,7 +395,7 @@ load_zones() {
     host=$1
     zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
     if [ $? -ne 0 ]; then
-	echo "ERROR: Could not determine the zones that were created"
+	echo -e "\e[91mERROR\e[0m: Could not determine the zones that were created"
     fi
     if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	secho "load_zones: " $zones
@@ -412,9 +412,9 @@ verify_zones() {
       echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
       zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
       if [ $? -ne 0 -a "${check}" = "exists" ]; then
-	  echo "ERROR: Expected to find zone ${zone} but did not."
+	  echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
       elif [ $? -eq 0 -a "${check}" = "gone" ]; then
-	  echo "ERROR: Expected to not find zone ${zone} but it is there."
+	  echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
       fi
     done
 }
@@ -430,10 +430,9 @@ clean_zones() {
 /zoneName/ { name = \$3; print uri, name; }
 " | grep host1 | awk -e ' { print $1; }')
     if [ "${zoneUris}" != "" ]; then
-	secho "Deleting FCZoneReferences" $zoneUris
 	for uri in $zoneUris
 	do
-	  /opt/storageos/bin/dbutils delete FCZoneReference $uri > /dev/null
+	  runcmd /opt/storageos/bin/dbutils delete FCZoneReference $uri
 	done
     fi
 }
@@ -445,10 +444,22 @@ delete_zones() {
       if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	  secho "deleteing zone ${zone}"
       fi
-      zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1 > /dev/null
+
+      # Delete zones that were returned by load_zones
+      runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone}
       if [ $? -ne 0 ]; then
 	  secho "zones not deleted"
       fi
+
+      echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
+      fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone}`
+      if [ $? -eq 0 ]; then
+	  for zonename in ${fabriczones}
+	  do
+	    runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zonename}
+	  done	    
+      fi
+
       if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	  echo "sactivating fabric ${fabricid}"
       fi
@@ -695,6 +706,11 @@ setup_provider() {
 login() {
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
+}
+
+prerun_setup() {
+    # Convenience, clean up known artifacts
+    cleanup_previous_run_artifacts
 
     echo "Seeing if there's an existing base of volumes"
     BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
@@ -723,11 +739,6 @@ login() {
        fi
 
     fi
-}
-
-prerun_setup() {
-    # Convenience, clean up known artifacts
-    cleanup_previous_run_artifacts
 
     if [ "${SS}" = "vnx" ]
     then
@@ -3381,7 +3392,7 @@ cleanup_previous_run_artifacts() {
       runcmd export_group delete ${id} > /dev/null
    done
 
-   for id in `volume list $PROJECT | grep YES | grep hijack | awk '{print $5}'`
+   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
    do
       echo "Deleting old volume: ${id}"
       runcmd volume delete ${id} --wait > /dev/null

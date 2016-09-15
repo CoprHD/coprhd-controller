@@ -24,7 +24,7 @@
       }
     },
     
-    readOnlyApplication: {
+    readOnly: {
       type: "boolean",
       initialValue: "false",
       required: "false",

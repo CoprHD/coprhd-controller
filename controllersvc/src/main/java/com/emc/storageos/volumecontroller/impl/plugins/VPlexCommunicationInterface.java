@@ -357,35 +357,17 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private void scanManagedSystems(VPlexApiClient client, StorageProvider mgmntServer,
             Map<String, StorageSystemViewObject> scanCache) throws VPlexCollectionException {
         try {
-            // Get the cluster info.
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
 
-            // Get the cluster assembly identifiers and form the
-            // system serial number based on these identifiers.
-            StringBuilder systemSerialNumber = new StringBuilder();
-            List<String> clusterAssembyIds = new ArrayList<String>();
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                String assemblyId = clusterInfo.getTopLevelAssembly();
-                if (null == assemblyId || VPlexApiConstants.NULL_ATT_VAL.equals(assemblyId) || assemblyId.isEmpty()) {
-                    throw VPlexCollectionException.exceptions
-                            .failedScanningManagedSystemsNullAssemblyId(
-                                    mgmntServer.getIPAddress(), clusterInfo.getName());
-                }
-                clusterAssembyIds.add(assemblyId);
-                if (systemSerialNumber.length() != 0) {
-                    systemSerialNumber.append(ASSEMBY_DELIM);
-                }
-                systemSerialNumber.append(assemblyId);
-            }
-
+            List<String> clusterAssemblyIds = new ArrayList<String>();
+            String systemSerialNumber = getSystemSerialNumber(client, mgmntServer, clusterAssemblyIds);
             // Get the native GUID for the system using the constructed
             // serial number.
             String systemNativeGUID = NativeGUIDGenerator.generateNativeGuid(
-                    mgmntServer.getInterfaceType(), systemSerialNumber.toString());
+                    mgmntServer.getInterfaceType(), systemSerialNumber);
             s_logger.info("Scanned VPLEX system {}", systemNativeGUID);
 
             // Check for potential cluster hardware changes from local to metro, or vice versa 
-            checkForClusterHardwareChange(clusterAssembyIds, systemNativeGUID, systemSerialNumber.toString(), client, scanCache, mgmntServer);
+            checkForClusterHardwareChange(clusterAssemblyIds, systemNativeGUID, systemSerialNumber, client, scanCache, mgmntServer);
 
             // Determine if the VPLEX system was already scanned by another
             // VPLEX management server by checking the scan cache. If not,
@@ -404,7 +386,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             systemViewObj.setDeviceType(mgmntServer.getInterfaceType());
             systemViewObj.addprovider(mgmntServer.getId().toString());
             systemViewObj.setProperty(StorageSystemViewObject.SERIAL_NUMBER,
-                    systemSerialNumber.toString());
+                    systemSerialNumber);
             systemViewObj.setProperty(StorageSystemViewObject.STORAGE_NAME, systemNativeGUID);
             scanCache.put(systemNativeGUID, systemViewObj);
         } catch (Exception e) {
@@ -1892,6 +1874,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             // VPLEX must also be compatible.
             StorageProvider activeProvider = _dbClient.queryObject(StorageProvider.class,
                     vplexStorageSystem.getActiveProviderURI());
+
+            String serialNumber = getSystemSerialNumber(client, activeProvider, null);
+            if (!vplexStorageSystem.getSerialNumber().equals(serialNumber)) {
+                s_logger.error(String.format("The VPLEX serial number unexpectedly changed from %s to %s.", 
+                        vplexStorageSystem.getSerialNumber(), serialNumber));
+                throw VPlexApiException.exceptions.vplexSerialNumberChanged(vplexStorageSystem.getSerialNumber(), serialNumber);
+            }
+
             vplexStorageSystem.setFirmwareVersion(activeProvider.getVersionString());
             vplexStorageSystem.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
 
@@ -2385,6 +2375,43 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 return StoragePort.OperationalStatus.NOT_OK.name();
             }
         }
+    }
+
+    /**
+     * Returns the system serial number for a VPlexApiClient instance.
+     * 
+     * @param client the VPLEX API client to check
+     * @param storageProvider the Storage Provider for the VPLEX
+     * @param clusterAssemblyIds if non-null, the assembly ids will be added to this collection
+     * @return the formatted system serial number
+     * 
+     * @throws VPlexCollectionException
+     */
+    private String getSystemSerialNumber(VPlexApiClient client, 
+            StorageProvider storageProvider, List<String> clusterAssemblyIds) throws VPlexCollectionException {
+        // Get the cluster info.
+        List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
+
+        // Get the cluster assembly identifiers and form the
+        // system serial number based on these identifiers.
+        StringBuilder systemSerialNumber = new StringBuilder();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            String assemblyId = clusterInfo.getTopLevelAssembly();
+            if (null == assemblyId || VPlexApiConstants.NULL_ATT_VAL.equals(assemblyId) || assemblyId.isEmpty()) {
+                throw VPlexCollectionException.exceptions
+                        .failedScanningManagedSystemsNullAssemblyId(
+                                storageProvider.getIPAddress(), clusterInfo.getName());
+            }
+            if (null != clusterAssemblyIds) {
+                clusterAssemblyIds.add(assemblyId);
+            }
+            if (systemSerialNumber.length() != 0) {
+                systemSerialNumber.append(ASSEMBY_DELIM);
+            }
+            systemSerialNumber.append(assemblyId);
+        }
+
+        return systemSerialNumber.toString();
     }
 
     /**

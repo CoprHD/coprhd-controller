@@ -838,4 +838,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexClusterConfigurationChangedFromLocalToMetro(final String localAssemblyId, final String systemNativeGuid);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexSerialNumberChanged(final String oldSerialNumber, final String newSerialNumber);
 }

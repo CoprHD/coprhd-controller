@@ -466,6 +466,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             s_logger.warn("Auto upgrade is allowed, will attempt to automatically upgrade to Metro");
                             if (null == vplex.getSmisProviderIP()) {
                                 s_logger.info("The provider information was nulled out by a previous upgrade attempt, resetting");
+                                // this data will be transient unless the upgrade process completes
                                 vplex.setActiveProviderURI(mgmntServer.getId());
                                 StringSet providers = new StringSet();
                                 providers.add(mgmntServer.getId().toString());
@@ -474,8 +475,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 vplex.setSmisPortNumber(mgmntServer.getPortNumber());
                                 vplex.setSmisUserName(mgmntServer.getUserName());
                                 vplex.setSmisPassword(mgmntServer.getPassword());
-                                // if the upgrade process fails, the DataCollectionJobConsumer will null all this out again, which is good
-                                _dbClient.updateObject(vplex);
                             }
                             StorageSystemViewObject systemViewObject = scanCache.get(vplex.getNativeGuid());
                             if (null == systemViewObject) {

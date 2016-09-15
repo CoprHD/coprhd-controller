@@ -4892,7 +4892,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (!initiatorsToRemove.isEmpty()) {
                 lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
                         exportMask, initiatorsToRemove, targetURIs, lastStep,
-                        removeAllInits);
+                        removeAllInits, hostURI);
 
                 doFireCompleter = true;
             } else {
@@ -4906,7 +4906,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // this is just a simple initiator removal, so just do it...
             lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
                     exportMask, hostInitiatorURIs, targetURIs, lastStep,
-                    removeAllInits);
+                    removeAllInits, hostURI);
         }
 
         if (doFireCompleter) {
@@ -4949,12 +4949,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param removeAllInits
      *            a flag indicating whether all initiators
      *            for the containing host are being removed at once
+     * @param computeResourceId
+     *            compute resource
      * @return a workflow step id
      */
     private String handleInitiatorRemoval(StorageSystem vplex,
             Workflow workflow, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> hostInitiatorURIs, List<URI> targetURIs, String zoneStep,
-            boolean removeAllInits) {
+            boolean removeAllInits, URI computeResourceId) {
         _log.info("these initiators are being marked for removal from export mask {}: {}",
                 exportMask.getMaskName(), CommonTransformerFunctions.collectionToString(hostInitiatorURIs));
         String viewStep;
@@ -4996,7 +4998,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // This code to get SharedStorageView is for backward compatibility for multiple export masks created in
                 // CoprHD for the same storagew view on VPLEX before Darth release.
                 Map<String, Set<ExportMask>> sharedExportMask = VPlexUtil.getSharedStorageView(exportGroup, vplex.getId(), _dbClient);
-                if (exportMask.hasAnyExistingInitiators()) {
+                if (ExportUtils.checkIfAnyExistingInitiatorsNotInCommputeResource(exportMask, computeResourceId, _dbClient)) {
                     _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
                             exportMask.getMaskName());
                     // since we are removing all initiators, go ahead and

@@ -20,6 +20,11 @@
 TMPFILE1=/tmp/verify-${RANDOM}
 TMPFILE2=$TMPFILE1-error
 
+delete_mask() {
+    pattern=$1
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method delete_mask -params "${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
+}
+
 add_volume_to_mask() {
     device_id=$1
     pattern=$2
@@ -124,9 +129,12 @@ elif [ "$1" = "remove_initiator_from_mask" ]; then
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2
+elif [ "$1" = "delete_mask" ]; then
+    shift
+    delete_mask $1 $2
 elif [ "$1" = "verify_export" ]; then
     shift
     verify_export $*
 else
-    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
+    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_mask | delete_volume | verify_export] {params}"
 fi

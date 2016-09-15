@@ -970,6 +970,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             try {
                 _log.info("Calling getInstance, attempt {}", retryCount);
                 instance = client.getInstance(objectPath, propagated, includeClassOrigin, propertyList);
+                _log.info("@@@@@@@@@@@@@ Instance Info @@@@@@@@@@@" + instance);
             } catch (WBEMException e) {
                 if (CIM_BAD_REQUEST.equals(e.getMessage())) {
                     if (retryCount < CIM_MAX_RETRY_COUNT) {

@@ -393,7 +393,7 @@ public class ComputeSystemHelper {
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getProject(), FileShare.class, "project");
-        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())){
+        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())) {
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getTenant(), FileShare.class, "tenant");
         }
@@ -470,12 +470,38 @@ public class ComputeSystemHelper {
             }
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
-                if (hasConnectivityToSystem(storageSystem, varrays, initiator, dbClient)) {
+                if (doesInitiatorPairHasConnectivity(storageSystem, varrays, initiator, dbClient)) {
                     validInitiators.add(initiator);
                 }
             }
         }
         return validInitiators;
+    }
+
+    /**
+     * Checks if at least one of the initiators in the pair is reachable to the storage system.
+     * 
+     * @param storageSystem
+     * @param varrays
+     * @param initiator
+     * @return true if initiator port or associated initiator port is reachable to storage system; false otherwise
+     */
+    public static boolean doesInitiatorPairHasConnectivity(StorageSystem storageSystem,
+            List<URI> varrays,
+            Initiator initiator, DbClient dbClient) {
+
+        boolean hasConnectivity = false;
+
+        _log.info("Validating port connectivity for initiator: ({})", initiator.getInitiatorPort());
+        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator, dbClient);
+        if (!hasConnectivity) {
+            Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+            if (pairedInitiator != null) {
+                _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
+                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator, dbClient);
+            }
+        }
+        return hasConnectivity;
     }
 
     /**
@@ -608,10 +634,10 @@ public class ComputeSystemHelper {
             return;
         }
 
-        if(!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
+        if (!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
                 isDataCenterInUse(dbClient, dataCenter.getId())) {
-            //Since vCenterDataCenter contains some exports,
-            //dont allow the update.
+            // Since vCenterDataCenter contains some exports,
+            // dont allow the update.
             Set<String> tenants = new HashSet<String>();
             tenants.add(dataCenter.getTenant().toString());
             throw APIException.badRequests.cannotRemoveTenant("vCenterDataCenter", dataCenter.getLabel(), tenants);

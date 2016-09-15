@@ -5001,16 +5001,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (ExportUtils.checkIfAnyExistingInitiatorsNotInComputeResource(exportMask, computeResourceId, _dbClient)) {
                     _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
                             exportMask.getMaskName());
-                    // since we are removing all initiators, go ahead and
-                    // remove the export mask from this export group
-                    _log.info("removing ExportMask {} from ExportGroup {}", exportMask.getId(), exportGroup.getId());
-                    exportGroup.removeExportMask(exportMask.getId());
-                    _dbClient.updateObject(exportGroup);
-
-                    // If this mask isn't being used by another export group, we can delete it from the DB
-                    if (!sharedExportMask.containsKey(exportMask.getMaskName())) {
-                        _dbClient.markForDeletion(exportMask);
-                    }
                 } else if (sharedExportMask.containsKey(exportMask.getMaskName())) {
                     _log.info("Multiple Export mask share same stoarge view %s hence volumes will only be removed in the database. ",
                             exportMask.getMaskName());
@@ -5036,6 +5026,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
                     }
+
+                    // TODO: COP-25485 We need fix all places where VPLEX orchestration is prematurely updating the EM
+                    // and EG objects. Completers should be doing this work. Currently operations like the below set
+                    // will cause DB inconsistency if the operation execution fails.
+                    //
+                    // This is only ONE example of this practice. The entire module should be scrubbed.
                     _dbClient.updateObject(exportMask);
                     _log.info("successfully removed " + blockObjectNames + " from exportmask " + exportMask.getMaskName()
                             + " in ViPR database only.");

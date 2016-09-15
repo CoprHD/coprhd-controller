@@ -167,9 +167,9 @@ public class InitiatorService extends TaskResourceService {
      * associate a Host initiator to another.
      * 
      * @param id the URN of a ViPR initiator
-     * @param updateParam the parameter containing the new attributes
+     * @param associatedId the URN of a ViPR paired initiator
      * @prereq none
-     * @brief Update initiator.
+     * @brief associate a Host initiator to another.
      * @return the details of the updated host initiator.
      * @throws DatabaseException when a DB error occurs
      */
@@ -192,7 +192,45 @@ public class InitiatorService extends TaskResourceService {
             _dbClient.updateObject(pairInitiator);
             auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
                     initiator.auditParameters());
+        } else {
+            throw APIException.badRequests.initiatorPortNotValid();
         }
+        return map(queryObject(Initiator.class, id, false));
+    }
+
+    /**
+     * Dissociate a Host initiator to another.
+     * 
+     * @param id the URN of a ViPR initiator
+     * @param dissociatedId he URN of a ViPR paired initiator
+     * @prereq none
+     * @brief Dissociate a Host initiator to another.
+     * @return the details of the updated host initiator.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @PUT
+    @Path("/{id}/dissociate/{dissociatedId}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public InitiatorRestRep dissociateInitiator(@PathParam("id") URI id,
+            @PathParam("dissociatedId") URI dissociatedId) throws DatabaseException {
+
+        if (id.compareTo(dissociatedId) == 0) {
+            APIException.badRequests.dissociateInitiatorMismatch(id, dissociatedId);
+        }
+        Initiator initiator = queryObject(Initiator.class, id, true);
+        Initiator pairInitiator = queryObject(Initiator.class, dissociatedId, true);
+        if (pairInitiator != null && initiator != null) {
+            initiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
+            pairInitiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
+            _dbClient.updateObject(initiator);
+            _dbClient.updateObject(pairInitiator);
+            auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
+                    initiator.auditParameters());
+        } else {
+            throw APIException.badRequests.initiatorPortNotValid();
+        }
+
         return map(queryObject(Initiator.class, id, false));
     }
 

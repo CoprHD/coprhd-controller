@@ -799,6 +799,8 @@ public class XIVExportOperations implements ExportMaskOperations {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,
                     mask);
+            _log.info("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            _log.info("CIM Instance : " + instance);
             if (instance != null) {
                 StringBuilder builder = new StringBuilder();
                 String name = CIMPropertyFactory.getPropertyValue(instance,
@@ -1301,7 +1303,7 @@ public class XIVExportOperations implements ExportMaskOperations {
             _log.debug("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
         } else {
-            _log.debug("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
+            _log.info("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
             refreshSMISExportMask(storage, mask);
         }
         return mask;

@@ -385,7 +385,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Scanned VPLEX system {}", systemNativeGUID);
 
             // Check for potential cluster hardware changes from local to metro, or vice versa 
-            checkForClusterHardwareChange(clusterAssembyIds, systemNativeGUID, systemSerialNumber.toString(), client, scanCache);
+            checkForClusterHardwareChange(clusterAssembyIds, systemNativeGUID, systemSerialNumber.toString(), client, scanCache, mgmntServer);
 
             // Determine if the VPLEX system was already scanned by another
             // VPLEX management server by checking the scan cache. If not,
@@ -425,10 +425,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param systemSerialNumber the storage system serial number
      * @param client the VPLEX api client
      * @param scanCache the scan cache
+     * @param mgmntServer the StorageProvider
      * @throws Exception if an error occurred
      */
     private void checkForClusterHardwareChange(List<String> clusterAssembyIds, String systemNativeGUID, 
-            String systemSerialNumber, VPlexApiClient client, Map<String, StorageSystemViewObject> scanCache) throws Exception {
+            String systemSerialNumber, VPlexApiClient client, Map<String, StorageSystemViewObject> scanCache,
+            StorageProvider mgmntServer) throws Exception {
         // we need to ensure the discovered storage system is not a result
         // of a hardware reconfiguration from local to metro, or vice versa
         s_logger.info("clusterAssembyIds is " + clusterAssembyIds);
@@ -461,6 +463,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             }
                         } else {
                             s_logger.warn(message);
+                            s_logger.warn("Auto upgrade is allowed, will attempt to automatically upgrade to Metro");
+                            if (null == vplex.getSmisProviderIP()) {
+                                s_logger.info("The provider information was nulled out by a previous upgrade attempt, resetting");
+                                vplex.setActiveProviderURI(mgmntServer.getId());
+                                StringSet providers = new StringSet();
+                                providers.add(mgmntServer.getId().toString());
+                                vplex.setProviders(providers);
+                                vplex.setSmisProviderIP(mgmntServer.getIPAddress());
+                                vplex.setSmisPortNumber(mgmntServer.getPortNumber());
+                                vplex.setSmisUserName(mgmntServer.getUserName());
+                                vplex.setSmisPassword(mgmntServer.getPassword());
+                                // if the upgrade process fails, the DataCollectionJobConsumer will null all this out again, which is good
+                                _dbClient.updateObject(vplex);
+                            }
                             StorageSystemViewObject systemViewObject = scanCache.get(vplex.getNativeGuid());
                             if (null == systemViewObject) {
                                 systemViewObject = new StorageSystemViewObject();

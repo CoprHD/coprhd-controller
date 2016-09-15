@@ -201,12 +201,14 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
             }
 
-            String label;
-            if(host != null){
-                label = host.getLabel();
-            }else {
-                label = initiatorList.get(0).getHostName();
-            }
+//            String label;
+//            if(host != null){
+//                label = host.getLabel();
+//            }else {
+//                label = initiatorList.get(0).getHostName();
+//            }
+            
+            String label = host.getLabel();
             
 
             // no matched initiator on array side, now try to find host with the given name

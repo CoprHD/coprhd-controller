@@ -4812,7 +4812,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + " (" + initsStillInExportGroup + ")");
             boolean noMoreInits = hostInitiatorURIs
                     .size() >= (initsStillInExportGroup.size() + initiatorsAlreadyRemovedFromExportGroup.size());
-            if (noMoreInits && !exportMask.hasAnyExistingInitiators()) {
+            if (noMoreInits && !ExportUtils.checkIfAnyExistingInitiatorsNotInCommputeResource(exportMask, hostURI, _dbClient)) {
 
                 _log.info("this means there will be no more initiators present in "
                         + "export group {} for export mask {}", exportGroup.getLabel(), exportMask.getMaskName());

@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -36,6 +37,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -1658,5 +1660,60 @@ public class ExportUtils {
         }
 
         _log.info("Export Mask cleanup activity done");
+    }
+
+    /**
+     * Determines if any of the initiators in the existing initiator list do NOT belong to the
+     * compute resource sent in. This is useful when trying to determine the proper export operation.
+     * 
+     * @param exportMask
+     *            export mask
+     * @param computeResourceId
+     *            host or cluster
+     * @param _dbClient
+     *            dbclient
+     * @return true if any of the existing initiators aren't in the compute resource. false otherwise.
+     */
+    public static boolean checkIfAnyExistingInitiatorsNotInCommputeResource(ExportMask exportMask, URI computeResourceId,
+            DbClient _dbClient) {
+        // Assertions
+        if (exportMask == null || NullColumnValueGetter.isNullURI(computeResourceId) || _dbClient == null) {
+            _log.error("Invalid argument sent to method.");
+            throw DeviceControllerException.exceptions.invalidObjectNull();
+        }
+
+        // You need existing initiator in order to have one not be in a compute resource, so start there.
+        if (exportMask.hasAnyExistingInitiators()) {
+            // This will give us any existing initiator that controller knows about in the DB.
+            List<Initiator> existingKnownInitiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
+
+            if (existingKnownInitiators != null) {
+                // Collect the compute resources IDs associated with the sent-in compute resource
+                // (which could be a cluster, so we need the hosts)
+                List<URI> computeResources = new ArrayList<>();
+                computeResources.add(computeResourceId);
+
+                // If this is a cluster, get all of the host IDs in that cluster
+                if (URIUtil.isType(computeResourceId, Cluster.class)) {
+                    final List<Host> hosts = CustomQueryUtility
+                            .queryActiveResourcesByConstraint(_dbClient, Host.class,
+                                    AlternateIdConstraint.Factory.getHostsByClusterId(computeResourceId.toString()));
+                    if (hosts != null) {
+                        computeResources.addAll(URIUtil.toUris(hosts));
+                    }
+                }
+
+                // Now check to see if any of the existing initiators belong to hosts in our list.
+                // If not, return false because one initiator is not in our compute resource.
+                for (Initiator existingKnownInitiator : existingKnownInitiators) {
+                    if (!NullColumnValueGetter.isNullURI(existingKnownInitiator.getHost()) &&
+                            (!computeResources.contains(existingKnownInitiator.getHost()))) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

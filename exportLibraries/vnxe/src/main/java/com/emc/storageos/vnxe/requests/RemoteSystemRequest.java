@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.models.RemoteSystem;
 import com.emc.storageos.vnxe.models.RemoteSystemParam;
+import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
@@ -62,9 +63,9 @@ public class RemoteSystemRequest extends KHRequests<RemoteSystem> {
      * @return VNXeCommandJob
      */
 
-    public VNXeCommandResult createRemoteSystem(RemoteSystemParam param) {
+    public VNXeCommandJob createRemoteSystem(RemoteSystemParam param) {
         _url = URL;
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
     /**
@@ -76,9 +77,9 @@ public class RemoteSystemRequest extends KHRequests<RemoteSystem> {
      *            RemoteSystemParam
      * @return VNXeCommandJob
      */
-    public VNXeCommandResult modifyRemoteSystem(String id, RemoteSystemParam param) {
+    public VNXeCommandJob modifyRemoteSystem(String id, RemoteSystemParam param) {
         _url = URL_INSTANCE + id;
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
     /**
@@ -104,9 +105,9 @@ public class RemoteSystemRequest extends KHRequests<RemoteSystem> {
      *            id of the remote system
      * @return VNXeCommandJob
      */
-    public VNXeCommandResult verifyRemoteSystem(String id, RemoteSystemParam param) {
+    public VNXeCommandJob verifyRemoteSystem(String id, RemoteSystemParam param) {
         _url = URL_INSTANCE + id + ACTION_VERIFY;
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
     /**

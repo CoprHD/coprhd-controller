@@ -2942,15 +2942,32 @@ public class VNXeApiClient {
 
     }
 
-    public VNXeCommandResult createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,
-            RemoteSystem remoteSystem) {
+    /**
+     * get replication session for id
+     */
+    public ReplicationSession getReplicationSessionById(String id) {
+        _logger.info("getting replication sessions for source and target");
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.get(id);
+
+    }
+
+    public ReplicationSession getReplicationSessionByName(String sessionName) {
+        _logger.info("getting replication sessions by Name");
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.getByName(sessionName);
+    }
+
+    public VNXeCommandJob createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,
+            RemoteSystem remoteSystem, String name) {
         _logger.info("Creating new replication session:");
         ReplicationSessionParam createParam = new ReplicationSessionParam();
         if (remoteSystem == null) {
             createParam.setSrcResourceId(srcResourceId);
             createParam.setDstResourceId(dstResourceId);
             createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
-            createParam.setAutoInitiate(true);
+            createParam.setName(name);
+            createParam.setAutoInitiate(false);
         } else {
             createParam.setRemoteSystem(remoteSystem);
         }
@@ -2958,7 +2975,7 @@ public class VNXeApiClient {
         return req.createReplicationSession(createParam);
     }
 
-    public VNXeCommandResult modifyReplicationSession(String id, int maxTimeOutOfSync) {
+    public VNXeCommandJob modifyReplicationSession(String id, int maxTimeOutOfSync) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setMaxTimeOutOfSync(maxTimeOutOfSync);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
@@ -2970,31 +2987,31 @@ public class VNXeApiClient {
         return req.deleteReplicationSession(id);
     }
 
-    public VNXeCommandResult resumeReplicationSession(String id, boolean forceFullCopy) {
+    public VNXeCommandJob resumeReplicationSession(String id, boolean forceFullCopy) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setForceFullCopy(forceFullCopy);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.resumeReplicationSession(id, param);
     }
 
-    public VNXeCommandResult pauseReplicationSession(String id) {
+    public VNXeCommandJob pauseReplicationSession(String id) {
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.pauseReplicationSession(id);
     }
 
-    public VNXeCommandResult syncReplicationSession(String id) {
+    public VNXeCommandJob syncReplicationSession(String id) {
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.syncReplicationSession(id);
     }
 
-    public VNXeCommandResult failoverReplicationSession(String id, boolean sync) {
+    public VNXeCommandJob failoverReplicationSession(String id, boolean sync) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setSync(sync);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.failoverReplicationSession(id, param);
     }
 
-    public VNXeCommandResult failbackReplicationSession(String id, boolean forceFullCopy) {
+    public VNXeCommandJob failbackReplicationSession(String id, boolean forceFullCopy) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setForceFullCopy(forceFullCopy);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
@@ -3013,7 +3030,7 @@ public class VNXeApiClient {
         return req.get();
     }
 
-    public VNXeCommandResult createRemoteSystem(String ipAddress, String userName, String password) {
+    public VNXeCommandJob createRemoteSystem(String ipAddress, String userName, String password) {
         _logger.info("Creating new remote system");
         RemoteSystemParam createParam = new RemoteSystemParam();
         createParam.setManagementAddress(ipAddress);
@@ -3023,7 +3040,7 @@ public class VNXeApiClient {
         return req.createRemoteSystem(createParam);
     }
 
-    public VNXeCommandResult modifyRemoteSystem(String id, String ipAddress, String userName, String password) {
+    public VNXeCommandJob modifyRemoteSystem(String id, String ipAddress, String userName, String password) {
         _logger.info("modifying remote system");
         RemoteSystemParam param = new RemoteSystemParam();
         param.setManagementAddress(ipAddress);
@@ -3033,7 +3050,7 @@ public class VNXeApiClient {
         return req.modifyRemoteSystem(id, param);
     }
 
-    public VNXeCommandResult verifyRemoteSystem(String id, ReplicationCapabilityEnum connectionType) {
+    public VNXeCommandJob verifyRemoteSystem(String id, ReplicationCapabilityEnum connectionType) {
         _logger.info("verifying remote system");
         RemoteSystemParam param = new RemoteSystemParam();
         param.setConnectionType(connectionType);
@@ -3051,4 +3068,5 @@ public class VNXeApiClient {
         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
         return req.getBySerial(serial);
     }
+
 }

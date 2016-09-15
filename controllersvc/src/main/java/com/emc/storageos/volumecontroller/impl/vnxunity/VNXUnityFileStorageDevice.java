@@ -1652,7 +1652,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
+        BiosCommandResult.createErrorResult(DeviceControllerErrors.vnxe.operationNotSupported("stop mirror link", "Unity"));
     }
 
     @Override
@@ -1667,7 +1667,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-
         mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
@@ -1738,6 +1737,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.operationNotSupported();
+        mirrorOperations.failbackMirrorFileShareLink(system, target, completer,
+                dbClient.queryObject(FileShare.class, target.getParentFileShare()).getLabel());
     }
 }

@@ -17,6 +17,7 @@ import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
 import com.emc.storageos.vnxe.models.ReplicationSessionParam;
+import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
@@ -75,15 +76,15 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
         return fileSessions;
     }
 
-    public VNXeCommandResult createReplicationSession(ReplicationSessionParam param) {
+    public VNXeCommandJob createReplicationSession(ReplicationSessionParam param) {
         _queryParams = null;
         _url = URL;
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
-    public VNXeCommandResult modifyReplicationSession(String id, ReplicationSessionParam param) {
+    public VNXeCommandJob modifyReplicationSession(String id, ReplicationSessionParam param) {
         _url = URL_INSTANCE + id;
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
     public VNXeCommandResult deleteReplicationSession(String id) {
@@ -95,29 +96,29 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
         return result;
     }
 
-    public VNXeCommandResult resumeReplicationSession(String id, ReplicationSessionParam param) {
+    public VNXeCommandJob resumeReplicationSession(String id, ReplicationSessionParam param) {
         _url = URL_INSTANCE + id + ACTION + "resume";
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
-    public VNXeCommandResult pauseReplicationSession(String id) {
+    public VNXeCommandJob pauseReplicationSession(String id) {
         _url = URL_INSTANCE + id + ACTION + "pause";
-        return postRequestSync(null);
+        return postRequestAsync(null);
     }
 
-    public VNXeCommandResult syncReplicationSession(String id) {
+    public VNXeCommandJob syncReplicationSession(String id) {
         _url = URL_INSTANCE + id + ACTION + "sync";
-        return postRequestSync(null);
+        return postRequestAsync(null);
     }
 
-    public VNXeCommandResult failoverReplicationSession(String id, ReplicationSessionParam param) {
+    public VNXeCommandJob failoverReplicationSession(String id, ReplicationSessionParam param) {
         _url = URL_INSTANCE + id + ACTION + "failover";
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
-    public VNXeCommandResult failbackReplicationSession(String id, ReplicationSessionParam param) {
+    public VNXeCommandJob failbackReplicationSession(String id, ReplicationSessionParam param) {
         _url = URL_INSTANCE + id + ACTION + "failback";
-        return postRequestSync(param);
+        return postRequestAsync(param);
     }
 
     public ReplicationSession get(String sourceId, String targetId) {
@@ -125,6 +126,16 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
         queryParams.add(VNXeConstants.FILTER,
                 VNXeConstants.SOURCE_RESOURCE + "\"" + sourceId + "\"" + " and " + VNXeConstants.TARGET_RESOURCE + "\"" + targetId + "\"");
+        setQueryParameters(queryParams);
+        _url = URL;
+        List<ReplicationSession> sessions = getDataForObjects(ReplicationSession.class);
+        return sessions.get(0);
+    }
+
+    public ReplicationSession getByName(String name) {
+        _queryParams = null;
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + name + "\"");
         setQueryParameters(queryParams);
         _url = URL;
         List<ReplicationSession> sessions = getDataForObjects(ReplicationSession.class);

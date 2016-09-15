@@ -1674,7 +1674,7 @@ public class ExportUtils {
      *            dbclient
      * @return true if any of the existing initiators aren't in the compute resource. false otherwise.
      */
-    public static boolean checkIfAnyExistingInitiatorsNotInCommputeResource(ExportMask exportMask, URI computeResourceId,
+    public static boolean checkIfAnyExistingInitiatorsNotInComputeResource(ExportMask exportMask, URI computeResourceId,
             DbClient _dbClient) {
         // Assertions
         if (exportMask == null || NullColumnValueGetter.isNullURI(computeResourceId) || _dbClient == null) {

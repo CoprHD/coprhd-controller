@@ -4812,7 +4812,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + " (" + initsStillInExportGroup + ")");
             boolean noMoreInits = hostInitiatorURIs
                     .size() >= (initsStillInExportGroup.size() + initiatorsAlreadyRemovedFromExportGroup.size());
-            if (noMoreInits && !ExportUtils.checkIfAnyExistingInitiatorsNotInCommputeResource(exportMask, hostURI, _dbClient)) {
+            if (noMoreInits && !ExportUtils.checkIfAnyExistingInitiatorsNotInComputeResource(exportMask, hostURI, _dbClient)) {
 
                 _log.info("this means there will be no more initiators present in "
                         + "export group {} for export mask {}", exportGroup.getLabel(), exportMask.getMaskName());
@@ -4998,7 +4998,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // This code to get SharedStorageView is for backward compatibility for multiple export masks created in
                 // CoprHD for the same storagew view on VPLEX before Darth release.
                 Map<String, Set<ExportMask>> sharedExportMask = VPlexUtil.getSharedStorageView(exportGroup, vplex.getId(), _dbClient);
-                if (ExportUtils.checkIfAnyExistingInitiatorsNotInCommputeResource(exportMask, computeResourceId, _dbClient)) {
+                if (ExportUtils.checkIfAnyExistingInitiatorsNotInComputeResource(exportMask, computeResourceId, _dbClient)) {
                     _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
                             exportMask.getMaskName());
                     // since we are removing all initiators, go ahead and

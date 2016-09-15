@@ -450,7 +450,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 _log.info("There are export masks for this group. Adding initiators.");
                 // Loop through all the exports and add the initiators to those masks on
                 // the storage system that were created by Bourne and are still active.
-                for (ExportMask exportMask : exportMasks) {                   
+                for (ExportMask exportMask : exportMasks) {
                     if (exportMask != null && !exportMask.getInactive()
                             && exportMask.getStorageDevice().equals(storageURI)
                             && exportMask.getCreatedBySystem()) {
@@ -594,7 +594,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 // This loop will determine a list of volumes to update per export mask
                 Map<URI, List<URI>> existingMasksToRemoveInitiator = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> existingMasksToRemoveVolumes = new HashMap<URI, List<URI>>();
-                Map<URI, List<URI>> existingMasksToCoexistInitiators = new HashMap<URI, List<URI>>();
                 for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
                     URI initiatorURI = portNameToInitiatorURI.get(entry.getKey());
                     if (initiatorURI == null || !initiatorURIs.contains(initiatorURI)) {
@@ -824,8 +823,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 for (Map.Entry<URI, List<URI>> entry : existingMasksToRemoveInitiator.entrySet()) {
                     ExportMask mask = _dbClient.queryObject(ExportMask.class, entry.getKey());
                     List<URI> initiatorsToRemove = entry.getValue();
-
-                    if (initiatorsToRemove.size() >= ExportUtils.getExportMaskAllInitiators(mask, _dbClient).size()) {
+                    Set<String> allInitiators = ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient);
+                    List<Initiator> initiatorObjectsToRemove = _dbClient.queryObject(Initiator.class, initiatorsToRemove);
+                    List<String> initiatorPortNamesToRemove = new ArrayList<>(
+                            Collections2.transform(initiatorObjectsToRemove, CommonTransformerFunctions.fctnInitiatorToPortName()));
+                    allInitiators.removeAll(initiatorPortNamesToRemove);
+                    if (allInitiators.isEmpty()) {
                         masksGettingRemoved.add(mask.getId());
                         // For this case, we are attempting to remove all the
                         // initiators in the mask. This means that we will have to
@@ -834,7 +837,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         _log.info(String.format("mask %s has removed all "
                                 + "initiators, we are going to delete the mask from the "
                                 + "array", mask.getMaskName()));
-                        errorMessage.append(String.format("Mask %s will be removed from array. ", mask.forDisplay()));
                         List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(mask);
                         List<URI> maskInitiatorURIs = Lists.newArrayList(
                                 Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null),
@@ -972,7 +974,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 List<ExportMask> exportMasksToDelete = new ArrayList<ExportMask>();
                 List<URI> volumesToZoneRemoveVolumes = new ArrayList<URI>();
                 List<ExportMask> tempMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask tempMask : tempMasks) {                   
+                for (ExportMask tempMask : tempMasks) {
                     _log.info(String.format("Checking mask %s", tempMask.getMaskName()));
                     if (!tempMask.getInactive()
                             && tempMask.getStorageDevice().equals(storageURI)) {
@@ -1207,7 +1209,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 List<ExportMask> exportMasksToZoneRemoveVolumes = new ArrayList<ExportMask>();
                 Set<URI> volumesToZoneRemoveVolumes = new HashSet<URI>();
                 List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask exportMask : exportMasks) {                 
+                for (ExportMask exportMask : exportMasks) {
                     taskCompleter.setMask(exportMask.getId());
                     _log.info(String.format("Checking mask %s", exportMask.getMaskName()));
                     if (!exportMask.getInactive()

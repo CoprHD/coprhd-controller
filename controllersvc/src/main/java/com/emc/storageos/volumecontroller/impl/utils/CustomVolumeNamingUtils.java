@@ -129,7 +129,7 @@ public class CustomVolumeNamingUtils {
             }
             
             // Find and rename the volume on the VPLEX and in ViPR.
-            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexVolume.getDeviceLabel());
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexVolume.getDeviceLabel(), vplexVolume.getNativeId());
             vvInfo = renameVolumeOnVPlex(vvInfo, newVolumeName, client);
             vplexVolume.setNativeId(vvInfo.getPath());
             vplexVolume.setNativeGuid(vvInfo.getPath());

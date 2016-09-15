@@ -66,7 +66,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -531,7 +530,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // This loop will determine a list of volumes to update per export mask
                 Map<URI, List<URI>> existingMasksToRemoveInitiator = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> existingMasksToRemoveVolumes = new HashMap<URI, List<URI>>();
-                Map<URI, List<URI>> existingMasksToCoexistInitiators = new HashMap<URI, List<URI>>();
                 for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
                     URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
                     if (initiatorURI == null || !initiatorURIs.contains(initiatorURI)) {
@@ -727,8 +725,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
                     // CTRL-8846 fix : Compare against all the initiators
-                    List<URI> allMaskInitiators = ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
-                    allMaskInitiators.removeAll(initiatorsToRemove);
+                    Set<String> allMaskInitiators = ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient);
+                    List<Initiator> removableInitiatorList = _dbClient.queryObject(Initiator.class, initiatorsToRemove);
+                    List<String> portNames = new ArrayList<>(
+                            Collections2.transform(removableInitiatorList, CommonTransformerFunctions.fctnInitiatorToPortName()));
+                    allMaskInitiators.removeAll(portNames);
                     if (allMaskInitiators.isEmpty()) {
                         masksGettingRemoved.add(mask.getId());
                         // For this case, we are attempting to remove all the
@@ -737,8 +738,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         _log.info(String.format("mask %s has removed all "
                                 + "initiators, mask will be deleted from the array.. ",
                                 mask.getMaskName()));
-                        errorMessage.append(String.format("Mask %s would have deleted from the array. ",
-                                mask.forDisplay()));
                         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
                         exportMasks.add(mask);
                         previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
@@ -779,8 +778,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> volumesToRemove = entry.getValue();
                     List<URI> initiatorsToRemove = existingMasksToRemoveInitiator.get(mask.getId());
                     if (initiatorsToRemove != null) {
-                        List<URI> initiatorsInExportMask =  ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
-                        initiatorsInExportMask.removeAll(initiatorsToRemove);
+                        Set<String> initiatorsInExportMask = ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient);
+                        List<Initiator> removableInitiatorList = _dbClient.queryObject(Initiator.class, initiatorsToRemove);
+                        List<String> portNames = new ArrayList<>(
+                                Collections2.transform(removableInitiatorList, CommonTransformerFunctions.fctnInitiatorToPortName()));
+                        initiatorsInExportMask.removeAll(portNames);
                         if (!initiatorsInExportMask.isEmpty()) {
                             // There are still some initiators in this ExportMask
                             _log.info(String.format("ExportMask %s would have remaining initiators {%s} that require access to {%s}. " +

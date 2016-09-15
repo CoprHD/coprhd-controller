@@ -11,6 +11,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExceptionContext;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 
 /**
@@ -27,6 +28,7 @@ public abstract class AbstractXtremIOValidator implements Validator {
     protected final ExportMask exportMask;
     protected boolean errorOnMismatch = true;
     protected String id = null; // identifying string for ExportMask
+    private ExceptionContext exceptionContext;
 
     public AbstractXtremIOValidator(StorageSystem storage, ExportMask exportMask) {
         this.storage = storage;
@@ -62,13 +64,19 @@ public abstract class AbstractXtremIOValidator implements Validator {
         this.errorOnMismatch = errorOnMismatch;
     }
 
+    public void setExceptionContext(ExceptionContext exceptionContext) {
+        this.exceptionContext = exceptionContext;
+    }
+
     public void checkForErrors() {
-        if (getLogger().hasErrors() && errorOnMismatch) {
-            if (getConfig().isValidationEnabled()) {
-                throw DeviceControllerException.exceptions.validationError(
-                        "Export Mask", getLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
-            }
+        if (errorOnMismatch && getLogger().hasErrors() && shouldThrowException()) {
+            throw DeviceControllerException.exceptions.validationError(
+                    "Export Mask", getLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
         }
+    }
+
+    private boolean shouldThrowException() {
+        return getConfig().isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 
 }

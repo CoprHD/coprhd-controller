@@ -65,6 +65,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -467,9 +468,10 @@ public class DBClient {
     }
 
     private static class AuditQueryResult implements TimeSeriesQueryResult<AuditLog> {
-        private StringBuilder builder = new StringBuilder("<audits>");
+        //Should guarantee of synchronization
+        private StringBuffer buffer = new StringBuffer("<audits>");
+        private AtomicInteger recCount = new AtomicInteger(0);
         private String filename = null;
-        private int recCount = 0;
 
         AuditQueryResult(String filename) {
             this.filename = filename;
@@ -479,15 +481,15 @@ public class DBClient {
         public void data(AuditLog data, long insertionTimeMs) {
             BuildXML<AuditLog> xmlBuilder = new BuildXML<AuditLog>();
             String xml = xmlBuilder.writeAsXML(data, "audit");
-            builder.append(xml);
-            ++recCount;
+            buffer.append(xml);
+            recCount.addAndGet(1);
         }
 
         @Override
         public void done() {
-            builder.append("</audits>");
+            buffer.append("</audits>");
             XMLWriter writer = new XMLWriter();
-            writer.writeXMLToFile(builder.toString(), filename);
+            writer.writeXMLToFile(buffer.toString(), filename);
             BuildXML.count = 0;
             System.out.println(" -> Querying For audits completed and count of the audits found are : " + recCount);
         }

@@ -837,5 +837,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     public void failbackMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName)
             throws DeviceControllerException {
         // Not directly supported by Isilon
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 }

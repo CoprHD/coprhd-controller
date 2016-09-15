@@ -54,10 +54,12 @@ public class HostCompleter extends ComputeSystemCompleter {
                         host.setProvisioningStatus(Host.ProvisioningJobStatus.ERROR.toString());
                         dbClient.persistObject(host);
                     }
-                    ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
-                    if (event != null) {
-                        event.setEventStatus(ActionableEvent.Status.failed.name());
-                        dbClient.updateObject(event);
+                    if (!NullColumnValueGetter.isNullURI(eventId)) {
+                        ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
+                        if (event != null) {
+                            event.setEventStatus(ActionableEvent.Status.failed.name());
+                            dbClient.updateObject(event);
+                        }
                     }
                     dbClient.error(Host.class, id, getOpId(), coded);
                     break;

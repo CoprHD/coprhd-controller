@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -40,10 +41,12 @@ public class InitiatorCompleter extends ComputeSystemCompleter {
             switch (status) {
                 case error:
                     dbClient.error(Initiator.class, this.getId(), getOpId(), coded);
-                    ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
-                    if (event != null) {
-                        event.setEventStatus(ActionableEvent.Status.failed.name());
-                        dbClient.updateObject(event);
+                    if (!NullColumnValueGetter.isNullURI(eventId)) {
+                        ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
+                        if (event != null) {
+                            event.setEventStatus(ActionableEvent.Status.failed.name());
+                            dbClient.updateObject(event);
+                        }
                     }
                     break;
                 default:

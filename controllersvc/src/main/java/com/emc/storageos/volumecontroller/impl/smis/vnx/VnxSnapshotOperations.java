@@ -314,10 +314,16 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     _log.info(String.format("vnxDeleteGroupSnapshots -- deleting snapshot %s", snap.getId().toString()));
                     if (!deleteConsistencyGroupSnapshot(storage, snap, taskCompleter)) {
                         // Delete has failed, it would have called complete task
+                        // TBD - Remove this comment
+                        // This seems incorrect to me. We get a failure deleting snapshots in the group,
+                        // the task completer error method is called, but we go on ahead and keep deleting snaps?
                         hadDeleteFailure = true;
                     }
                 }
             }
+            // TBD - Remove this comment
+            // Further we only mark snaps inactive if there was no failure. Well what about the
+            // ones that succeeded prior to the failure? Does this need to be addressed as a separate issue?
             if (!hadDeleteFailure) {
                 // Set inactive=true for all snapshots in the snaps set
                 for (BlockSnapshot snap : snaps) {

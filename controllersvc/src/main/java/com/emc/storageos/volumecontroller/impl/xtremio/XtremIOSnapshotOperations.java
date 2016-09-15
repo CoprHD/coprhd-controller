@@ -220,8 +220,6 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             snapshotObj.setIsSyncActive(false);
             snapshotObj.setInactive(true);
             dbClient.updateObject(snapshotObj);
-            // Completer is called here, but the completer will update the snapshot status map and the snap was
-            // just marked inactive and updated. Is that an issue?
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot deletion failed", e);
@@ -249,8 +247,6 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 snap.setInactive(true);
                 dbClient.updateObject(snap);
             }
-            // Completer is called here, but the completer will update the snapshot status map and the snap was
-            // just marked inactive and updated. Is that an issue?            
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot deletion failed", e);

@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
+import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.api.HDSApiExportManager;
@@ -38,6 +39,7 @@ import com.emc.storageos.hds.model.FreeLun;
 import com.emc.storageos.hds.model.HostStorageDomain;
 import com.emc.storageos.hds.model.Path;
 import com.emc.storageos.hds.model.ReplicationInfo;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorCreateCompleter;
@@ -236,11 +238,15 @@ public class HDSProtectionOperations {
             HDSJob deleteSnapshotJob = new HDSDeleteSnapshotJob(asyncTaskMessageId,
                     snapshotObj.getStorageController(), taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(deleteSnapshotJob);
+            log.info("Snapshot deletion operation completed successfully");
+        } else {
+            // This path should never be taken as the HDS client should always return
+            // the asynchronous task id. If it does not, this will be treated as an
+            // error.
+            log.error("Unexpected null asynchronous task id from HDS client call to delete volume snapshot.");
+            ServiceCoded sc = DeviceControllerExceptions.hds.nullAsyncTaskIdForDeleteSnapshot(snapshotObj.forDisplay());
+            taskCompleter.error(dbClient, sc);
         }
-        // If this path is taken then the snapshot will not be made inactive and the completer
-        // will not be called. This may be OK as this path may never be taken. However,if it
-        // can happen, then this is broken.
-        log.info("Snapshot deletion operation completed successfully");
     }
 
     /**

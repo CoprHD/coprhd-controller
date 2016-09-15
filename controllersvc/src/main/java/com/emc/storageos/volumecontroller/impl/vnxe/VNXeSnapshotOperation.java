@@ -21,6 +21,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
@@ -30,6 +32,7 @@ import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
@@ -117,8 +120,6 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                // Completer is called here, but the completer will update the snapshot status map and the snap was
-                // just marked inactive and updated. Is that an issue?
                 _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
@@ -147,10 +148,25 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                     ControllerServiceImpl.enqueueJob(
                             new QueueJob(new VNXeBlockDeleteSnapshotJob(job.getId(),
                                     storage.getId(), taskCompleter)));
+                } else {
+                    // Should not take this path, but treat as an error if we do
+                    // happen to get a null job due to some error in the client.
+                    _log.error("Unexpected null job from VNXe client call to delete group snapshot.");
+                    ServiceCoded sc = DeviceControllerExceptions.vnxe.nullJobForDeleteGroupSnapshot(snapshotObj.forDisplay(),
+                            snapshotObj.getReplicationGroupInstance());
+                    taskCompleter.error(_dbClient, sc);                    
                 }
+            } else {
+                // Treat as in the single volume snapshot case and presume
+                // the group snapshot has already been deleted.
+                List<BlockSnapshot> grpSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
+                for (BlockSnapshot grpSnapshot : grpSnapshots) {
+                    grpSnapshot.setInactive(true);
+                    grpSnapshot.setIsSyncActive(false);
+                }
+                _dbClient.updateObject(grpSnapshots);
+                taskCompleter.ready(_dbClient);
             }
-            // This looks broken. Not only is the completer never called, bit the group snaps
-            // are not marked inactive as is done in the case for deleteSingleVolumeSnap.
         } catch (VNXeException e) {
             _log.error("Delete group snapshot got the exception", e);
             taskCompleter.error(_dbClient, e);

@@ -685,10 +685,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 // This means, the snapshot is not present on the back-end device
                 log.info(String.format("Snapshot %s already deleted: ", snapshot.getNativeId()));
                 snapshot.setInactive(true);
-                dbClient.persistObject(snapshot);
-                // The problem with doing this is here that the completer updates the status map of the snapshot
-                // but we have just marked it inactive. Also, just can't call WorkflowStepCompleter here as other
-                // things are done like updating the parent volume status map and recording the event and audit log.
+                dbClient.updateObject(snapshot);
                 taskCompleter.ready(dbClient);
             }
 

@@ -1573,8 +1573,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 dbClient.updateObject(blockSnapshot);
                 String msg = String.format("deleteVolumeSnapshot -- Deleted snapshot: %s .", task.getMessage());
                 _log.info(msg);
-                // Completer is called here, but the completer will update the snapshot status map and the snap was
-                // just marked inactive and updated. Is that an issue?
                 taskCompleter.ready(dbClient);
             } else {
                 String errorMsg = String.format("doDeleteSnapshot -- Failed to delete snapshot: %s .", task.getMessage());
@@ -1587,11 +1585,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             dbClient.updateObject(blockSnapshot);
             String msg = String.format("deleteVolumeSnapshot -- Deleted snapshot: %s .", blockSnapshot.getId());
             _log.info(msg);
-            // Completer is called here, but the completer will update the snapshot status map and the snap was
-            // just marked inactive and updated. Is that an issue?
             taskCompleter.ready(dbClient);
         }
-        // Removed. This would have resulted in multiple calls to ready and calls to ready even if there was an error.
     }
 
     private void deleteGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> groupSnapshots,
@@ -1621,8 +1616,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             dbClient.updateObject(groupSnapshots);
             String msg = String.format("deleteGroupSnapshots -- Deleted group snapshot: %s .", task.getMessage());
             _log.info(msg);
-            // Completer is called here, but the completer will update the snapshot status map and the snap was
-            // just marked inactive and updated. Is that an issue?
             taskCompleter.ready(dbClient);
         } else {
             String errorMsg = String.format("doDeleteSnapshot -- Failed to delete group snapshot: %s .", task.getMessage());

@@ -138,14 +138,9 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
             if (blockSnapshot != null) {
                 blockSnapshot.setInactive(true);
-                dbClient.persistObject(blockSnapshot);
+                dbClient.updateObject(blockSnapshot);
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
             }
-            // Completer is called here, but the completer will update the snapshot status map and the snap was
-            // just marked inactive and updated. Is that an issue?
-            // 
-            // Also, note that if an exception occurs updating pool capacity, the result will be
-            // an error, even though the snapshot was successfully deleted.
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
@@ -171,18 +166,12 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
                 poolsToUpdate.add(parent.getPool());
                 groupSnapshot.setInactive(true);
             }
-            dbClient.persistObject(groupSnapshots);
+            dbClient.updateObject(groupSnapshots);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
             for (StoragePool pool : pools) {
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
             }
-            // Completer is called here, but the completer will update the snapshot status map and the snap was
-            // just marked inactive and updated. Is that an issue?
-            // 
-            // Also, note that if an exception occurs updating pool capacity, the result will be
-            // an error, even though the snapshot was successfully deleted.
-            taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteGroupSnapshots",

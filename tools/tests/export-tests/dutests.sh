@@ -2191,7 +2191,7 @@ test_11() {
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
-    # Invoke failure in the step desired (experimental; emphasis on the "mental")
+    # Invoke failure in the step desired
     set_artificial_failure failure_001_early_in_add_volume_to_mask
 
     # Resume the workflow
@@ -2207,7 +2207,7 @@ test_11() {
     # Remove the volume from the mask
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
-    # Verify the mask has the new volume in it (this will fail if rollback removed it)
+    # Verify the mask has the new volume removed
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Delete the export group
@@ -3568,10 +3568,11 @@ else
    done
 fi
 
-   echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-   echo `date`
-   echo `git status | grep 'On branch'`
+echo There were $VERIFY_EXPORT_COUNT export verifications
+echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+echo `date`
+echo `git status | grep 'On branch'`
+
 if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi

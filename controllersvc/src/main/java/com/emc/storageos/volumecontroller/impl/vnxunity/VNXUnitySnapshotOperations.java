@@ -95,11 +95,15 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             snap.setInactive(true);
             snap.setIsSyncActive(false);
             _dbClient.updateObject(snap);
+            taskCompleter.ready(_dbClient);
+
         } catch (Exception ex) {
             log.error("Delete volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
+
         }
+
     }
     
     @Override
@@ -152,12 +156,15 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
                 log.error(errorMsg);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateCGSnapshot", errorMsg);
                 taskCompleter.error(_dbClient, error);
+
             }
         } catch (Exception ex) {
             log.error("Create volume snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateCGSnapshot", ex.getMessage());
             taskCompleter.error(_dbClient, error);
+
         }
+
     }
 
     @Override
@@ -181,6 +188,7 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
                 }
             }
             taskCompleter.ready(_dbClient);
+
         } catch (Exception ex) {
             log.error("Delete group snapshot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeletGroupSnapshot", ex.getMessage());

@@ -43,6 +43,10 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
         this.targetRepGroup = targetGroupName;
         this.sourceCGUri = sourceCGUri;
     }
+    
+    public URI getVirtualPoolChangeURI() {
+      return vpoolChangeURI;
+    }
 
     @Override
     public void complete(final DbClient dbClient, final Operation.Status status,

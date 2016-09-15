@@ -205,7 +205,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
-        if (scheduleInfo.getCycleFrequency() < 1 ) {
+        if (scheduleInfo.getCycleFrequency() < 1
+                || scheduleInfo.getCycleFrequency() > ScheduleInfo.MAX_CYCLE_FREQUENCE ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
         }
 
@@ -560,7 +561,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             if (executionWindow == null) continue;
 
             ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
-            Calendar windowTime = helper.calculateNext(time);
+            Calendar windowTime = helper.calculateCurrentOrNext(time);
             if (nextWindowTime == null || nextWindowTime.after(windowTime)) {
                 nextWindowTime = windowTime;
                 nextWindow = window;

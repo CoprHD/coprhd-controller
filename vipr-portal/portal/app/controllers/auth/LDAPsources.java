@@ -103,7 +103,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("adType", AuthSourceType.ad);
 
         renderArgs.put("ldapType", AuthSourceType.ldap);
-        //to remove SOFO feature 
+        //Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled 
         //renderArgs.put("keyStoneType", AuthSourceType.keystone);
         //renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
         //renderArgs.put("defaultInterval", DEFAULT_INTERVAL_DELAY);
@@ -201,7 +201,7 @@ public class LDAPsources extends ViprResourceController {
             list();
         }
 
-        //to remove SOFO feature  authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
+        //Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled  authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
         edit(new LDAPsourcesForm(authnProvider));
     }
 
@@ -233,7 +233,7 @@ public class LDAPsources extends ViprResourceController {
         ldapSources.save();
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
 
-        /*to remove SOFO feature  AuthnProviderRestRep authnProvider = ldapSources.save();
+        /*Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled  AuthnProviderRestRep authnProvider = ldapSources.save();
         authProviderName = ldapSources.name;
 
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
@@ -339,7 +339,7 @@ public class LDAPsources extends ViprResourceController {
             this.disable = ldapSources.getDisable();
             this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
             this.tenantsSynchronizationOptions = Lists.newArrayList(ldapSources.getTenantsSynchronizationOptions());
-            //to remove SOFO feature  this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
+            //Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled  this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -370,9 +370,10 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            /*Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled 
+            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects); 
             param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
-            /*to remove SOFO feature  if (this.autoRegCoprHDNImportOSProjects) {
+            if (this.autoRegCoprHDNImportOSProjects) {
                 param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
             } */
             param.setManagerDn(this.managerDn);
@@ -422,15 +423,16 @@ public class LDAPsources extends ViprResourceController {
             return interval;
         }
 
+        /*Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled 
         private TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
         	Set<String> newValues = Sets.newHashSet(parseMultiLineInput(this.tenantsSynchronizationOptions.get(0)));
-            /*to remove SOFO feature  Set<String> newValues;
+            Set<String> newValues;
             if (this.tenantsSynchronizationOptions != null) {
                 newValues = Sets.newHashSet(this.tenantsSynchronizationOptions);
                 newValues.add(this.synchronizationInterval);
             } else {
                 newValues = Sets.newHashSet(this.synchronizationInterval);
-            } */
+            }
 
             Set<String> oldValues = provider.getTenantsSynchronizationOptions();
 
@@ -441,7 +443,7 @@ public class LDAPsources extends ViprResourceController {
             changes.getRemove().removeAll(newValues);
 
             return changes;
-        }
+        } */
 
         private GroupWhitelistValueChanges getGroupWhitelistValueChanges(AuthnProviderRestRep provider) {
             Set<String> oldValues = provider.getGroupWhitelistValues();
@@ -501,7 +503,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            /*to remove SOFO feature  param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            /*Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled  param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             param.getTenantsSynchronizationOptions().addAll(this.tenantsSynchronizationOptions);
             param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
             if (this.autoRegCoprHDNImportOSProjects) {
@@ -540,7 +542,7 @@ public class LDAPsources extends ViprResourceController {
                 Validation.required(fieldName + ".managerPassword", this.managerPassword);
             }
 
-            /* To remove SOfo feature
+            /* Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled
             if (this.autoRegCoprHDNImportOSProjects ) {
                 Validation.required(fieldName + ".synchronizationInterval", this.synchronizationInterval);
                 if (!StringUtils.isNumeric(this.synchronizationInterval) ||
@@ -566,7 +568,7 @@ public class LDAPsources extends ViprResourceController {
             }
 
             validateLDAPGroupProperties(fieldName);
-        	// to remove SOFO feature   } 
+        	// Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled   } 
         }
 
         private void validateLDAPGroupProperties(String fieldName) {

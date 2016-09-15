@@ -884,8 +884,6 @@ public class HostService extends TaskResourceService {
         Initiator firstInitiator = new Initiator();
         Initiator secondInitiator = new Initiator();
         firstInitiator.setHost(id);
-
-        firstInitiator.setHost(URIUtil.NULL_URI);
         firstInitiator.setHostName(host.getHostName());
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
             cluster = queryObject(Cluster.class, host.getCluster(), false);
@@ -893,9 +891,7 @@ public class HostService extends TaskResourceService {
         }
         firstInitiator.setId(URIUtil.createId(Initiator.class));
         populateInitiator(firstInitiator, createParam.getFirstInitiator());
-
         secondInitiator.setHost(id);
-        secondInitiator.setHost(URIUtil.NULL_URI);
         secondInitiator.setHostName(host.getHostName());
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
             cluster = queryObject(Cluster.class, host.getCluster(), false);

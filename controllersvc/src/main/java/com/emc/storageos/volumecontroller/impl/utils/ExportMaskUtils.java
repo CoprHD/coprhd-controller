@@ -141,6 +141,41 @@ public class ExportMaskUtils {
     }
 
     /**
+     * Returns a list of ExportMasks that are for a specified Storage System.
+     *
+     * @param dbClient - reference to the database client
+     * @param ssysURI - the StorageSystem URI
+     * @return List<ExportMask> -- an empty list is returned if there are no matches.
+     */
+    public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
+
+        // NOTE for release 3.5:
+        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
+        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
+        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
+        // -beachn
+
+        List<ExportMask> returnMasks = new ArrayList<ExportMask>();
+        if (!URIUtil.isValid(ssysURI)) {
+            _log.warn("invalid URI: {}", ssysURI);
+            return returnMasks;
+        }
+
+        List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
+        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
+        for (ExportMask exportMask : exportMasks) {
+            if (exportMask == null || exportMask.getInactive()) {
+                continue;
+            }
+            if (URIUtil.identical(ssysURI, exportMask.getStorageDevice())) {
+                returnMasks.add(exportMask);
+            }
+        }
+
+        return returnMasks;
+    }
+
+    /**
      * Find all export groups that are referencing the export mask
      *
      * @param dbClient db client

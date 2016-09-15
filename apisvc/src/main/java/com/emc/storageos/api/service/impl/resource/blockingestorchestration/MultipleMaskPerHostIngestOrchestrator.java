@@ -72,12 +72,15 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
      */
     @Override
-    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
         for (ExportMask createdMask : exportMasks) {
             // COP-18184 : Check if the initiators are also matching
             if (null != createdMask && createdMask.getInitiators() != null
                     && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
+                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, createdMask, dbClient)) {
+                    continue;
+                }
                 _logger.info("Found already-created ExportMask {} matching all initiators of UnManagedExportMask {}",
                         createdMask.getMaskName(), mask.getMaskName());
                 return createdMask;

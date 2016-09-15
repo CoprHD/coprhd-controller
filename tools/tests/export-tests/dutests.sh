@@ -423,7 +423,7 @@ verify_zones() {
 clean_zones() {
     fabricid=$1
     load_zones $2
-    delete_zones
+    delete_zones ${HOST1}
     zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
 "
 /^id: / { uri=\$2; }
@@ -437,8 +437,11 @@ clean_zones() {
     fi
 }
 
-# Deletes the zones returned by load_zones
+# Deletes the zones returned by load_zones, then any remaining zones
 delete_zones() {
+    host=$1
+
+    zonesdel=0
     for zone in ${zones}
     do
       if [ ${DUTEST_DEBUG} -eq 1 ]; then
@@ -447,27 +450,31 @@ delete_zones() {
 
       # Delete zones that were returned by load_zones
       runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone}
+      zonesdel=1
       if [ $? -ne 0 ]; then
 	  secho "zones not deleted"
       fi
-
-      echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
-      fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone}`
-      if [ $? -eq 0 ]; then
-	  for zonename in ${fabriczones}
-	  do
-	    runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zonename}
-	  done	    
-      fi
-
-      if [ ${DUTEST_DEBUG} -eq 1 ]; then
-	  echo "sactivating fabric ${fabricid}"
-      fi
-      zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
-      if [ $? -ne 0 ]; then
-	  secho "fabric not activated"
-      fi
     done
+
+    echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
+    fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host}`
+    if [ $? -eq 0 ]; then
+	for zonename in ${fabriczones}
+	do
+	  runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zonename}
+	  zonesdel=1
+	done	    
+    fi
+
+    if [ ${zonesdel} -eq 1 ]; then
+	if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	    echo "sactivating fabric ${fabricid}"
+	fi
+	runcmd zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho "fabric not activated"
+	fi
+    fi
 }
 
 dbupdate() {
@@ -3297,7 +3304,7 @@ test_24() {
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Delete the zones (no need to verify zones, we intentionally left one behind)
-    delete_zones
+    delete_zones ${HOST1}
 
     # Verify delete zones did what it is supposed to
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}

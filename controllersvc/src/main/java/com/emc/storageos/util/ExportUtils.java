@@ -1688,6 +1688,12 @@ public class ExportUtils {
             List<Initiator> existingKnownInitiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
 
             if (existingKnownInitiators != null) {
+                // If there are more existing initiator port entries than there are existingKnownInitiators
+                // DB entries, it's a guarantee that at least one of them is not in our compute resource
+                if (existingKnownInitiators.size() < exportMask.getExistingInitiators().size()) {
+                    return true;
+                }
+
                 // Collect the compute resources IDs associated with the sent-in compute resource
                 // (which could be a cluster, so we need the hosts)
                 List<URI> computeResources = new ArrayList<>();

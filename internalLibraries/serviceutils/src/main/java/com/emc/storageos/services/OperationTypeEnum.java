@@ -347,9 +347,9 @@ public enum OperationTypeEnum {
     UPDATE_HOST_INITIATOR("UPDATE HOST INITIATOR", "", "operation to update a host initiator."),
     DELETE_HOST_INITIATOR("DELETE HOST INITIATOR", "", "operation to delete a host initiator."),
 
-    CREATE_HOST_PAIRED_INITIATOR("CREATE HOST PAIRED INITIATOR", "", "operation to create a host paired initiator."),
-    UPDATE_HOST_PAIRED_INITIATOR("UPDATE HOST PAIRED INITIATOR", "", "operation to update a host paired initiator."),
-    DELETE_HOST_PAIRED_INITIATOR("DELETE HOST PAIRED INITIATOR", "", "operation to delete a host paired initiator."),
+    CREATE_HOST_PAIRED_INITIATOR("CREATE HOST PAIRED INITIATOR", "", "operation to create a pair of initiators for a host."),
+    UPDATE_HOST_PAIRED_INITIATOR("UPDATE HOST PAIRED INITIATOR", "", "operation to update the pair of initiators for a host"),
+    DELETE_HOST_PAIRED_INITIATOR("DELETE HOST PAIRED INITIATOR", "", "operation to delete the pair of initiators for a host"),
 
     CREATE_HOST_IPINTERFACE("CREATE HOST IPINTERFACE", "", "operation to create a host ip interface."),
     UPDATE_HOST_IPINTERFACE("UPDATE HOST IPINTERFACE", "", "operation to update a host ip interface."),

@@ -235,7 +235,7 @@ angular.module("portalApp").controller({
            return $scope.service.recurringAllowed;
         };
         
-        $scope.isRentionAllowed = function() {
+        $scope.isAutomaticExpirationAllowed = function() {
            var isSnapshotService = ['CreateBlockSnapshot', 'CreateFileSnapshot', 'CreateFullCopy', 
                  'CreateSnapshotOfApplication', 'CreateCloneOfApplication'].indexOf($scope.service.baseService) > -1;
            return $scope.scheduler.recurrence != 1 && isSnapshotService;	
@@ -1540,7 +1540,7 @@ angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
        return $scope.scheduler.recurringAllowed;
     };
     
-    $scope.isRentionAllowed = function() {
+    $scope.isAutomaticExpirationAllowed = function() {
         return $scope.isRecurring() && $scope.scheduler.maxNumOfCopies > 0;	
     }
 });

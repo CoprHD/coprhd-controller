@@ -1527,6 +1527,12 @@ test_3() {
     echot "Test 3: Export Group Delete doesn't delete Export Mask when extra volumes are in it"
     expname=${EXPORT_GROUP_NAME}t3
 
+    if [ "$SS" = "xio" ]; then
+        echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for XIO."
+        return
+    fi
+
+
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
@@ -2694,7 +2700,8 @@ test_17() {
     if [ "${SS}" = "xio" ]; then
         # XIO will still protect the lun mapping due to the additional volume, leaving it behind
 	verify_export ${expname}1 ${HOST1} 2 1
-	# Delete the lun mapping
+	# Delete the lun mapping and mask
+	arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 	arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
     fi
 

@@ -201,14 +201,14 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
             }
 
-//            String label;
-//            if(host != null){
-//                label = host.getLabel();
-//            }else {
-//                label = initiatorList.get(0).getHostName();
-//            }
+            String label;
+            if(host != null){
+                label = host.getLabel();
+            }else {
+                label = initiatorList.get(0).getHostName();
+            }
             
-            String label = host.getLabel();
+            //String label = host.getLabel();
             
 
             // no matched initiator on array side, now try to find host with the given name
@@ -799,7 +799,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,
                     mask);
-            _log.info("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            _log.info("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
             _log.info("CIM Instance : " + instance);
             if (instance != null) {
                 StringBuilder builder = new StringBuilder();

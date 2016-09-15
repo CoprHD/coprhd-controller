@@ -203,8 +203,8 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
             }
 
-//            Host host = _dbClient.queryObject(Host.class, initiatorList.get(0)
-//                    .getHost());
+            Host host = _dbClient.queryObject(Host.class, initiatorList.get(0)
+                    .getHost());
             String label = initiatorList.get(0).getHostName();
 
             // no matched initiator on array side, now try to find host with the given name

@@ -346,7 +346,9 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             }
 
             // Refresh the ExportMask
-            exportMask = refreshExportMask(array, device, exportMask);
+            if (exportMask.getNativeId() != null) {
+                exportMask = refreshExportMask(array, device, exportMask);
+            }
 
             // Determine if we're deleting the last volume.
             Set<String> remainingVolumes = new HashSet<String>();

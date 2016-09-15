@@ -456,6 +456,18 @@ delete_zones() {
       fi
     done
 
+    if [ ${zonesdel} -eq 1 ]; then
+	if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	    echo "sactivating fabric ${fabricid}"
+	fi
+	runcmd zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho "fabric not activated"
+	fi
+    fi
+
+    zonesdel=0
+
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host}`
     if [ $? -eq 0 ]; then

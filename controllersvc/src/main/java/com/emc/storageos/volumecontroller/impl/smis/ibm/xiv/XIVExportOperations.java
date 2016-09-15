@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
@@ -134,22 +133,21 @@ public class XIVExportOperations implements ExportMaskOperations {
             // while there is a host with initiator i2 and i3 on ViPR side,
             // we will not be able to match the two hosts if there is common initiator(s)
             // if an HBA get moved from one host to another, it need to be removed on array side manually
-//            URIQueryResultList uris = new URIQueryResultList();
-//            _dbClient.queryByConstraint(
-//                    ContainmentConstraint.Factory.getContainedObjectsConstraint(initiatorList.get(0).getHost(), Initiator.class, "host"), uris);
-//            Iterator<?> objs = _dbClient.queryIterativeObjects(Initiator.class, uris);
-//            while (objs.hasNext()) {
-//                DataObject obj = (DataObject) objs.next();
-//                _log.info("############################ : " + obj.getLabel());
-//            }
-//            List<Initiator> allInitiators = CustomQueryUtility
-//                    .queryActiveResourcesByConstraint(_dbClient,
-//                            Initiator.class, ContainmentConstraint.Factory
-//                                    .getContainedObjectsConstraint(
-//                                            initiatorList.get(0).getHost(),
-//                                            Initiator.class, "host"));
-            List<Initiator> allInitiators = CustomQueryUtility
-                    .queryActiveResourcesByAltId(_dbClient, Initiator.class, "hostname", initiatorList.get(0).getHostName());
+            List<Initiator> allInitiators;
+            Host host = null;
+            if (initiatorList.get(0).getHost() != null) {
+                allInitiators = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient,
+                                Initiator.class, ContainmentConstraint.Factory
+                                        .getContainedObjectsConstraint(
+                                                initiatorList.get(0).getHost(),
+                                                Initiator.class, "host"));
+                host = _dbClient.queryObject(Host.class, initiatorList.get(0)
+                        .getHost());
+            } else {
+                allInitiators = CustomQueryUtility
+                        .queryActiveResourcesByAltId(_dbClient, Initiator.class, "hostname", initiatorList.get(0).getHostName());
+            }
             for (Initiator initiator : allInitiators) {
                 String normalizedPortName = Initiator.normalizePort(initiator
                         .getInitiatorPort());
@@ -203,9 +201,13 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
             }
 
-            Host host = _dbClient.queryObject(Host.class, initiatorList.get(0)
-                    .getHost());
-            String label = initiatorList.get(0).getHostName();
+            String label;
+            if(host != null){
+                label = host.getLabel();
+            }else {
+                label = initiatorList.get(0).getHostName();
+            }
+            
 
             // no matched initiator on array side, now try to find host with the given name
             if (controllerInst == null) {
@@ -266,11 +268,13 @@ public class XIVExportOperations implements ExportMaskOperations {
             if (controllerInst != null) {
                 String elementName = CIMPropertyFactory.getPropertyValue(controllerInst, SmisConstants.CP_ELEMENT_NAME);
                 // set host tag is needed
-//                if (label.equals(elementName)) {
-//                    _helper.unsetTag(host, storage.getSerialNumber());
-//                } else {
-//                    _helper.setTag(host, storage.getSerialNumber(), elementName);
-//                }
+                if (host != null) {
+                    if (label.equals(elementName)) {
+                        _helper.unsetTag(host, storage.getSerialNumber());
+                    } else {
+                        _helper.setTag(host, storage.getSerialNumber(), elementName);
+                    }
+                }
 
                 CIMObjectPath controller = controllerInst.getObjectPath();
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -364,7 +368,9 @@ public class XIVExportOperations implements ExportMaskOperations {
                 Iterator<String> itr = initiators.iterator();
                 if (itr.hasNext()) {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(itr.next()));
-                    host = _dbClient.queryObject(Host.class, initiator.getHost());
+                    if (initiator.getHost() != null) {
+                        host = _dbClient.queryObject(Host.class, initiator.getHost());
+                    }
                 }
             }
 
@@ -421,7 +427,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                             Initiator initiator = ExportUtils.getInitiator(
                                     WWNUtility.getWWNWithColons(initiatorPort),
                                     _dbClient);
-                            if (initiator != null) {
+                            if (initiator != null && initiator.getHost() != null) {
                                 host = _dbClient.queryObject(Host.class, initiator.getHost());
                                 break;
                             }

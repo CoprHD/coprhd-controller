@@ -57,7 +57,7 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
     private String getEventOutput(List<ActionableEvent> events) {
         List<String> result = Lists.newArrayList();
         for (ActionableEvent event : events) {
-            result.add(event.forDisplay());
+            result.add(event.getResource().getName() + ": " + event.forDisplay());
         }
         return Joiner.on("\n").join(result);
     }

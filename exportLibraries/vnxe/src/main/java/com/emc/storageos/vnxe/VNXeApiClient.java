@@ -66,6 +66,7 @@ import com.emc.storageos.vnxe.models.RemoteSystemParam;
 import com.emc.storageos.vnxe.models.ReplicationCapabilityEnum;
 import com.emc.storageos.vnxe.models.ReplicationParam;
 import com.emc.storageos.vnxe.models.ReplicationSession;
+import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
 import com.emc.storageos.vnxe.models.ReplicationSessionParam;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.SnapCreateParam;
@@ -2921,24 +2922,43 @@ public class VNXeApiClient {
 
     }
 
-    public VNXeCommandJob createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,
-            String remoteSystemId) {
+    /**
+     * get all replication sessions by resource type
+     */
+    public List<ReplicationSession> getAllReplicationSessionsByResource(ReplicationEndpointResourceTypeEnum resourceEnum) {
+        _logger.info("getting all replication sessions by resource type");
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.getByType(resourceEnum);
+
+    }
+
+    /**
+     * get replication session for source and target
+     */
+    public ReplicationSession getReplicationSession(String sourceId, String targetId) {
+        _logger.info("getting replication sessions for source and target");
+        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
+        return req.get(sourceId, targetId);
+
+    }
+
+    public VNXeCommandResult createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,
+            RemoteSystem remoteSystem) {
         _logger.info("Creating new replication session:");
         ReplicationSessionParam createParam = new ReplicationSessionParam();
-        if (remoteSystemId == null) {
+        if (remoteSystem == null) {
             createParam.setSrcResourceId(srcResourceId);
             createParam.setDstResourceId(dstResourceId);
             createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
             createParam.setAutoInitiate(true);
         } else {
-            RemoteSystem remoteSystem = getRemoteSystem(remoteSystemId);
             createParam.setRemoteSystem(remoteSystem);
         }
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.createReplicationSession(createParam);
     }
 
-    public VNXeCommandJob modifyReplicationSession(String id, int maxTimeOutOfSync) {
+    public VNXeCommandResult modifyReplicationSession(String id, int maxTimeOutOfSync) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setMaxTimeOutOfSync(maxTimeOutOfSync);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
@@ -2950,31 +2970,31 @@ public class VNXeApiClient {
         return req.deleteReplicationSession(id);
     }
 
-    public VNXeCommandJob resumeReplicationSession(String id, boolean forceFullCopy) {
+    public VNXeCommandResult resumeReplicationSession(String id, boolean forceFullCopy) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setForceFullCopy(forceFullCopy);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.resumeReplicationSession(id, param);
     }
 
-    public VNXeCommandJob pauseReplicationSession(String id) {
+    public VNXeCommandResult pauseReplicationSession(String id) {
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.pauseReplicationSession(id);
     }
 
-    public VNXeCommandJob syncReplicationSession(String id) {
+    public VNXeCommandResult syncReplicationSession(String id) {
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.syncReplicationSession(id);
     }
 
-    public VNXeCommandJob failoverReplicationSession(String id, boolean sync) {
+    public VNXeCommandResult failoverReplicationSession(String id, boolean sync) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setSync(sync);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.failoverReplicationSession(id, param);
     }
 
-    public VNXeCommandJob failbackReplicationSession(String id, boolean forceFullCopy) {
+    public VNXeCommandResult failbackReplicationSession(String id, boolean forceFullCopy) {
         ReplicationSessionParam param = new ReplicationSessionParam();
         param.setForceFullCopy(forceFullCopy);
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
@@ -2993,7 +3013,7 @@ public class VNXeApiClient {
         return req.get();
     }
 
-    public VNXeCommandJob createRemoteSystem(String ipAddress, String userName, String password) {
+    public VNXeCommandResult createRemoteSystem(String ipAddress, String userName, String password) {
         _logger.info("Creating new remote system");
         RemoteSystemParam createParam = new RemoteSystemParam();
         createParam.setManagementAddress(ipAddress);
@@ -3003,7 +3023,7 @@ public class VNXeApiClient {
         return req.createRemoteSystem(createParam);
     }
 
-    public VNXeCommandJob modifyRemoteSystem(String id, String ipAddress, String userName, String password) {
+    public VNXeCommandResult modifyRemoteSystem(String id, String ipAddress, String userName, String password) {
         _logger.info("modifying remote system");
         RemoteSystemParam param = new RemoteSystemParam();
         param.setManagementAddress(ipAddress);
@@ -3013,7 +3033,7 @@ public class VNXeApiClient {
         return req.modifyRemoteSystem(id, param);
     }
 
-    public VNXeCommandJob verifyRemoteSystem(String id, ReplicationCapabilityEnum connectionType) {
+    public VNXeCommandResult verifyRemoteSystem(String id, ReplicationCapabilityEnum connectionType) {
         _logger.info("verifying remote system");
         RemoteSystemParam param = new RemoteSystemParam();
         param.setConnectionType(connectionType);
@@ -3024,5 +3044,11 @@ public class VNXeApiClient {
     public VNXeCommandResult deleteRemoteSystem(String id) {
         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
         return req.deleteRemoteSystem(id);
+    }
+
+    public RemoteSystem getRemoteSystemBySerial(String serial) {
+        _logger.info("getting remote system by serial");
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.getBySerial(serial);
     }
 }

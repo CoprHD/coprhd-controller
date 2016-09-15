@@ -41,6 +41,9 @@ public class VirtualNAS extends NASServer {
 
     // source vNas if replication destination, null if not
     private URI sourceVirtualNas;
+    
+    // destination vNas if replication source, null if not
+    private URI destinationVirtualNas;
 
     @Name("project")
     public URI getProject() {
@@ -128,6 +131,17 @@ public class VirtualNAS extends NASServer {
     public void setSourceVirtualNas(URI sourceVirtualNas) {
         this.sourceVirtualNas = sourceVirtualNas;
         setChanged("sourceVirtualNas");
+    }
+    
+    @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
+    @Name("destinationVirtualNas")
+    public URI getDestinationVirtualNas() {
+        return destinationVirtualNas;
+    }
+
+    public void setDestinationVirtualNas(URI destinationVirtualNas) {
+        this.destinationVirtualNas = destinationVirtualNas;
+        setChanged("destinationVirtualNas");
     }
 
     // Defines different States of the Virtual NAS server.

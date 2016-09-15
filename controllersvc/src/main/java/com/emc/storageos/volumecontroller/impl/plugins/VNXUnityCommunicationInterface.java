@@ -55,6 +55,8 @@ import com.emc.storageos.vnxe.models.PoolTier;
 import com.emc.storageos.vnxe.models.RaidGroup;
 import com.emc.storageos.vnxe.models.RaidTypeEnum;
 import com.emc.storageos.vnxe.models.ReplicationSession;
+import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
+import com.emc.storageos.vnxe.models.ReplicationSessionReplicationRoleEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
@@ -432,12 +434,48 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     }
 
     private List<VirtualNAS> discoverNasReplicationAssociations(StorageSystem viprStorageSystem, VNXeApiClient client) {
-        List<ReplicationSession> repSessions = client.getAllReplicationSessions();
+        List<ReplicationSession> repSessions = client.getAllReplicationSessionsByResource(ReplicationEndpointResourceTypeEnum.NAS_SERVER);
         List<VirtualNAS> nasList = new ArrayList<VirtualNAS>();
-        for (ReplicationSession session : repSessions) {
-            VirtualNAS dstNas = findvNasByNativeId(viprStorageSystem, session.getDstResourceId());
-            dstNas.setSourceVirtualNas(findvNasByNativeId(viprStorageSystem, session.getSrcResourceId()).getId());
-            nasList.add(dstNas);
+        for (ReplicationSession session : repSessions) { // get all replication sessions on the storage system
+            StorageSystem dstStorageSystem = viprStorageSystem;
+            StorageSystem srcStorageSystem = viprStorageSystem;
+            if (session.getRemoteSystem() != null) { // check if the replication is remote
+                URIQueryResultList results = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemBySerialConstraint(
+                        client.getRemoteSystem(session.getRemoteSystem().getId()).getSerialNumber()), results);
+                Iterator<URI> it = results.iterator(); // get the storage system obj of the remote system
+                StorageSystem tempStorageSystem = null;
+                if (it.hasNext()) {
+                    tempStorageSystem = _dbClient.queryObject(StorageSystem.class, it.next());
+                } else {
+                    // if there is not Storage system in the db, that means the unity has not been discovered
+                    _logger.info("Remote system has not yet been discovered by vipr");
+                    continue;
+                }
+                if (session.getLocalRole() == ReplicationSessionReplicationRoleEnum.DESTINATION) {
+                    // if the local role is destination the then the remote system is the source
+                    srcStorageSystem = tempStorageSystem;
+                }
+                if (session.getLocalRole() == ReplicationSessionReplicationRoleEnum.SOURCE) {
+                    // if the local role is destination the then the remote system is the destination
+                    dstStorageSystem = tempStorageSystem;
+                }
+            }
+            VirtualNAS nas1 = null, nas2 = null;
+            if (srcStorageSystem != null) {
+                nas1 = findvNasByNativeId(srcStorageSystem, session.getSrcResourceId());
+            }
+            if (dstStorageSystem != null) {
+                nas2 = findvNasByNativeId(dstStorageSystem, session.getDstResourceId());
+            }
+            if (nas1 != null) {
+                nas1.setDestinationVirtualNas(nas2.getId());
+                nasList.add(nas1);
+            }
+            if (nas2 != null) {
+                nas2.setSourceVirtualNas(nas1.getId());
+                nasList.add(nas2);
+            }
         }
         _logger.info("discoverNasReplicationAssociations - no of associations {}", nasList.size());
         return nasList;

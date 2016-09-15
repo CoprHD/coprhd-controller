@@ -166,7 +166,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-        
+
         public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
@@ -250,6 +250,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getStorageSystemByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
+        public static AlternateIdConstraint getStorageSystemBySerialConstraint(String serial) {
+            DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("serialNumber"), serial);
         }
 
         public static AlternateIdConstraint getUnManagedVolumeByNativeGuidConstraint(String nativeGuid) {
@@ -670,7 +675,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
         }
-        
+
         public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);

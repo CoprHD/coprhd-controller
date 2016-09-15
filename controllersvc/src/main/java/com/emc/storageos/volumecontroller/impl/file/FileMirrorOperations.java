@@ -20,10 +20,14 @@ public interface FileMirrorOperations {
     /**
      * Create a mirror for a filesystem
      * 
-     * @param system - URI of storage controller.
-     * @param source - source file system
-     * @param target - target file system
-     * @param completer - task completer
+     * @param system
+     *            - URI of storage controller.
+     * @param source
+     *            - source file system
+     * @param target
+     *            - target file system
+     * @param completer
+     *            - task completer
      * @throws DeviceControllerException
      */
     void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
@@ -85,6 +89,17 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
+     * Failback Mirror link
+     * 
+     * @param system
+     * @param target
+     * @param completer
+     * @throws DeviceControllerException
+     */
+    void failbackMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName)
+            throws DeviceControllerException;
+
+    /**
      * Resync the mirror link
      * 
      * @param primarySystem
@@ -116,7 +131,8 @@ public interface FileMirrorOperations {
      * @param devPolicyName
      * @throws DeviceControllerException
      */
-    void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName) throws DeviceControllerException;
+    void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName)
+            throws DeviceControllerException;
 
     /**
      * Refresh Mirror State of a filesystem

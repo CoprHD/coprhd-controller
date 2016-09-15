@@ -110,7 +110,7 @@ public class CIMConnectionFactory {
              * Check cimConnection already exist for vnxfile, if not create new one
              */
             if (StorageSystem.Type.vnxfile.name().equals(storageDevice.getSystemType())) {
-                connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber());
+                connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP(), storageDevice.getPortNumber());
             } else {
                 connection = getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber().toString());
             }
@@ -491,6 +491,32 @@ public class CIMConnectionFactory {
             }
         } catch (Exception e) {
             _log.error("Un-subscription for the SMIS provider {} is failed", smisProviderURI);
+            _log.error(e.getMessage(), e);
+            // throw e;
+        }
+        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        return isSuccess;
+    }
+    
+    
+    /**
+     * Un-Subscribe connection for the given Passive SMIS provider of VNXFile
+     * 
+     * @param storageSystem Passive VNXFile storage system
+     * @return success flag. True means unsubscription for the given storage system is success, else returns false
+     */
+    public boolean unsubscribeVNXFileProviderConnection(StorageSystem storageSystem) {
+        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        boolean isSuccess = false;
+        try {
+            _log.debug("Un-Subscribe initiated for SMIS Provider of VNXFle {}", storageSystem.getId());
+            CimConnection cimConnection = getConnection(storageSystem);
+            if (null != cimConnection) {
+                _connectionManager.unsubscribe(cimConnection);
+                isSuccess = true;
+            }
+        } catch (Exception e) {
+            _log.error("Un-subscription for SMIS Provider of VNXFle {} failed ", storageSystem.getId());
             _log.error(e.getMessage(), e);
             // throw e;
         }

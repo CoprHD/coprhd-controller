@@ -138,7 +138,7 @@ public class VNXFileMonitoringImpl implements IMonitoringStorageSystem {
 
             if (null == storageDevice || storageDevice.getInactive()) {
                 _logger.info("Stale vnxfiler {} has been removed from monitoring", storageDeviceURI);
-                _connectionFactory.unsubscribeSMIProviderConnection(storageDeviceURI);
+                _connectionFactory.unsubscribeVNXFileProviderConnection(storageDevice);
                 try {
                     entry.getValue().itemProcessed();// Removes monitorinJob token from queue
                 } catch (Exception e) {

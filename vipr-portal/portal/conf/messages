@@ -48,6 +48,7 @@ nav.user=User Mode
 nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
+nav.viewImage=Catalog Images
 nav.approvals=Approvals
 nav.admin=Administration Mode
 nav.preferences=Preferences
@@ -4343,9 +4344,9 @@ catalogImage.contentType=Type
 catalogImage.size=Size
 catalogImage.preview=Preview
 catalogImage.invalidContentType=Only images are allowed (supplied content type: %s)
-catalogImage.MB=% MB
-catalogImage.KB=% KB
-catalogImage.bytes=% bytes
+catalogImage.MB=%s MB
+catalogImage.KB=%s KB
+catalogImage.bytes=%s bytes
 
 #
 #

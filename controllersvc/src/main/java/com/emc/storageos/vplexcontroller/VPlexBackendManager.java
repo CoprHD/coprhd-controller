@@ -9,6 +9,7 @@ import static com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementD
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -653,10 +655,13 @@ public class VPlexBackendManager {
             if (mask.getCreatedBySystem()) {
                 _log.info(String.format("Generating unzoning step for ExportMask %s", mask.getMaskName()));
                 // Since this mask was created by the system, we want to unzone it.
-                List<URI> maskURIs = new ArrayList<URI>();
-                maskURIs.add(mask.getId());
+                List<URI> maskURIs = Collections.singletonList(mask.getId());
+                List<NetworkZoningParam> zoningParams = 
+                    	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                    			exportGroup.getId(), maskURIs, _dbClient);
+                
                 Workflow.Method zoneRemoveMethod = _networkDeviceController
-                        .zoneExportRemoveVolumesMethod(exportGroup.getId(), maskURIs, volumes);
+                        .zoneExportRemoveVolumesMethod(zoningParams, volumes);
                 previousStepId = workflow.createStep(ZONING_STEP,
                         String.format("Removing zones for ExportMask %s", mask.getMaskName()),
                         previousStepId, nullURI, "network-system",
@@ -887,13 +892,16 @@ public class VPlexBackendManager {
         if (exportMask.getCreatedBySystem()) {
             _log.info(String.format("Creating zone references for Backend ExportMask %s",
                     exportMask.getMaskName()));
-            List<URI> maskURIs = new ArrayList<URI>();
+            List<URI> maskURIs = Collections.singletonList(exportMask.getId());
+            List<NetworkZoningParam> zoningParams = 
+                	NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                			exportGroup.getId(), maskURIs, _dbClient);
+            
             HashSet<URI> volumes = new HashSet<URI>(volumeLunIdMap.keySet());
-            maskURIs.add(exportMask.getId());
             Workflow.Method zoneCreateMethod = _networkDeviceController
                     .zoneExportAddVolumesMethod(exportGroup.getId(), maskURIs, volumes);
             Workflow.Method zoneDeleteMethod = _networkDeviceController
-                    .zoneExportRemoveVolumesMethod(exportGroup.getId(), maskURIs, volumes);
+                    .zoneExportRemoveVolumesMethod(zoningParams, volumes);
             zoningStep = workflow.createStep(ZONING_STEP,
                     String.format("Adding zones for ExportMask %s", exportMask.getMaskName()),
                     zoningDependentStep, nullURI, "network-system",

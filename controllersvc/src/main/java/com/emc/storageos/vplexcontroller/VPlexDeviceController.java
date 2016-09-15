@@ -3244,6 +3244,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     ctx.setExportMask(exportMask);
                     ctx.setBlockObjects(volumeURIs, _dbClient);
                     ctx.setInitiators(initiators);
+                    ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
                     validator.exportMaskDelete(ctx).validate();
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
@@ -4665,6 +4666,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     ctx.setStorage(vplex);
                     ctx.setExportMask(exportMask);
                     ctx.setBlockObjects(volumeURIList, _dbClient);
+                    ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(opId));
                     validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
@@ -5251,8 +5253,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<PortInfo> initiatorPortInfo = new ArrayList<PortInfo>();
             for (URI initiatorURI : initiatorURIs) {
                 Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
-                // We don't want to remove existing initiator.
-                if (exportMask.hasExistingInitiator(initiator)) {
+                // We don't want to remove existing initiator, unless this is a rollback step
+                if (exportMask.hasExistingInitiator(initiator) && !WorkflowService.getInstance().isStepInRollbackState(stepId)) {
                     continue;
                 }
                 PortInfo portInfo = new PortInfo(initiator.getInitiatorPort()
@@ -11502,7 +11504,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create steps to migrate the backend volumes.
             String lastStep = waitFor;
             URI cgURI = null;
-            List<URI> localSystemsToRemoveCG = new ArrayList<URI>();
+            // With application support, one VPLEX CG could have multiple replication groups from the same local system.
+            // The localSystemToRemoveCG map key is storagesystemUri, value is the list of replication group names to be removed.
+            Map<URI, Set<String>> localSystemsToRemoveCG = new HashMap<URI, Set<String>>();
             List<VolumeDescriptor> vplexMigrateVolumes = VolumeDescriptor.filterByType(
                     volumes,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_MIGRATE_VOLUME },
@@ -11561,16 +11565,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                         URI migTgtURI = migration.getTarget();
                         Volume migTgt = getDataObject(Volume.class, migTgtURI, _dbClient);
-                        if ((migSrc != null) && (!migTgt.getStorageController().equals(migSrc.getStorageController())) &&
-                                (!localSystemsToRemoveCG.contains(migSrc.getStorageController()))) {
+                        if ((migSrc != null) && (!migTgt.getStorageController().equals(migSrc.getStorageController()))) {
                             // If we have a volume to migrate and the RG field is NOT set on the volume,
                             // do not remove the RG on the local system.
                             //
                             // Volumes that are in RGs that are being migrated are grouped together so otherwise
                             // we're good as the replication instance will be set on those volumes.
-                            if (NullColumnValueGetter.isNotNullValue(migSrc.getReplicationGroupInstance())) {
-                                _log.info("Will remove CG on local system {}", migSrc.getStorageController());
-                                localSystemsToRemoveCG.add(migSrc.getStorageController());
+                            String rgName = migSrc.getReplicationGroupInstance();
+                            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                                URI storageUri = migSrc.getStorageController();
+                                Set<String> rgNames = localSystemsToRemoveCG.get(storageUri);
+                                if (rgNames == null) {
+                                    rgNames = new HashSet<String>();
+                                    localSystemsToRemoveCG.put(storageUri, rgNames);
+                                }
+                                rgNames.add(rgName);
+                                _log.info("Will remove CG {} on local system {}", rgName, storageUri);
                             } else {
                                 _log.info("Will not remove CG on local system {}", migSrc.getStorageController());
                             }
@@ -11606,15 +11616,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // migrated to a new storage system, then we need to add a step
                         // to delete the local CG.
                         boolean localCGDeleted = false;
-                        List<URI> localSystemURIs = BlockConsistencyGroupUtils.getLocalSystems(cg, _dbClient);
-                        for (URI localSystemURI : localSystemURIs) {
-                            _log.info("CG exists on local system {}", localSystemURI);
-                            if (localSystemsToRemoveCG.contains(localSystemURI)) {
-                                localCGDeleted = true;
-                                _log.info("Adding step to remove CG on local system {}", localSystemURI);
-                                StorageSystem localSystem = getDataObject(StorageSystem.class, localSystemURI, _dbClient);
+                        for (Map.Entry<URI, Set<String>> entry : localSystemsToRemoveCG.entrySet()) {
+                            localCGDeleted = true;
+                            URI localSystemURI = entry.getKey();
+                            StorageSystem localSystem = getDataObject(StorageSystem.class, localSystemURI, _dbClient);
+                            Set<String> rgNames = entry.getValue();
+                            for (String rgName : rgNames) {
+                                _log.info("Adding step to remove CG {} on local system {}", rgName, localSystemURI);
                                 Workflow.Method deleteCGMethod = new Workflow.Method(
-                                        "deleteConsistencyGroup", localSystemURI, cgURI, Boolean.FALSE);
+                                        "deleteReplicationGroupInConsistencyGroup", localSystemURI, cgURI, rgName, false,
+                                        false, true);
                                 workflow.createStep("deleteLocalCG", String.format(
                                         "Delete consistency group from storage system: %s", localSystemURI),
                                         lastStep, localSystemURI, localSystem.getSystemType(),

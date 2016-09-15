@@ -35,7 +35,7 @@ public class TenantsDataTable extends DataTable {
         nameColumn.setRenderFunction("render.editableLink");
         addColumn("description");
         addColumn("mappedDomains");
-        // to remove SOFO feature  addColumn("source");
+        // Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled  addColumn("source");
 
         sortAll();
         setDefaultSortField("name");
@@ -49,7 +49,7 @@ public class TenantsDataTable extends DataTable {
         public String tags;
         public String mappedDomains;
         public boolean editable;
-        //to remove SOFO feature  public String source;
+        //Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled  public String source;
 
         public Tenant(TenantOrgRestRep tenant, boolean editable) {
             id = tenant.getId().toString();
@@ -67,7 +67,7 @@ public class TenantsDataTable extends DataTable {
             mappedDomains = StringUtils.join(domains, ", ");
             tags = StringUtils.join(tenant.getTags(), ", ");
 
-            //to remove SOFO feature source = TenantSource.getTenantSource(userMappings);
+            //Commented this code to disable SOFO feature, Please uncomment this code to have the SOFO feature enabled source = TenantSource.getTenantSource(userMappings);
         }
     }
 }

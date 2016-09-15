@@ -122,10 +122,10 @@ remove_initiator_from_mask() {
     # Get the full name of the storage group
     sgname=`get_sg_name ${VNX_SP_IP} ${SG_PATTERN}`
 
-    # Find out how many luns there are in the mask now.
+    # Find out how many initiators there are in the mask now.
     num_inits=`get_number_of_initiators_in_mask ${VNX_SP_IP} ${sgname}`
 
-    # register a fake host (maybe add a check to see if it's already there?)
+    # remove the initiators(s)
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -disconnecthost -gname ${sgname} -o -host dutest_fakehost > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to remove the initiator from the mask."
@@ -153,6 +153,7 @@ create_storage_group() {
 delete_storage_group() {
     VNX_SP_IP=$1
     SG_PATTERN=$2
+    HOSTREMOVE=${SG_PATTERN: :-4}
 
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
 
@@ -164,6 +165,10 @@ delete_storage_group() {
     fi
 
     sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+
+    # Delete the host
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -disconnecthost -gname ${sgname} -o -host ${HOSTREMOVE} > /tmp/navisechelper.out
+    # Ignore failures by this command
 
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -destroy -o -gname ${sgname} > /tmp/navisechelper.out
     set +x

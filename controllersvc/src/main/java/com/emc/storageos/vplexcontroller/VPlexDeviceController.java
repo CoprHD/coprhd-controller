@@ -4817,7 +4817,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + " (" + initsStillInExportGroup + ")");
             boolean noMoreInits = hostInitiatorURIs
                     .size() >= (initsStillInExportGroup.size() + initiatorsAlreadyRemovedFromExportGroup.size());
-            if (noMoreInits) {
+            if (noMoreInits && !ExportUtils.checkIfAnyExistingInitiatorsNotInComputeResource(exportMask, hostURI, _dbClient)) {
 
                 _log.info("this means there will be no more initiators present in "
                         + "export group {} for export mask {}", exportGroup.getLabel(), exportMask.getMaskName());
@@ -4897,7 +4897,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (!initiatorsToRemove.isEmpty()) {
                 lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
                         exportMask, initiatorsToRemove, targetURIs, lastStep,
-                        removeAllInits);
+                        removeAllInits, hostURI);
 
                 doFireCompleter = true;
             } else {
@@ -4911,7 +4911,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // this is just a simple initiator removal, so just do it...
             lastStep = handleInitiatorRemoval(vplex, workflow, exportGroup,
                     exportMask, hostInitiatorURIs, targetURIs, lastStep,
-                    removeAllInits);
+                    removeAllInits, hostURI);
         }
 
         if (doFireCompleter) {
@@ -4954,12 +4954,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param removeAllInits
      *            a flag indicating whether all initiators
      *            for the containing host are being removed at once
+     * @param computeResourceId
+     *            compute resource
      * @return a workflow step id
      */
     private String handleInitiatorRemoval(StorageSystem vplex,
             Workflow workflow, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> hostInitiatorURIs, List<URI> targetURIs, String zoneStep,
-            boolean removeAllInits) {
+            boolean removeAllInits, URI computeResourceId) {
         _log.info("these initiators are being marked for removal from export mask {}: {}",
                 exportMask.getMaskName(), CommonTransformerFunctions.collectionToString(hostInitiatorURIs));
         String viewStep;
@@ -4989,25 +4991,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 // Pre Darth CoprHD used to create ExportMask per host in database even if multiple host share same
-                // storage
-                // view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CoprHD reused it.
-                // Normally when CoprHD creates storageview on VPLEX its for a host, so when user request to remove host
-                // from the export group then we would go and delete whole storageview, if storage view was pre existing
-                // then we only remove all volumes from the storage view. Now if Storage view is preexisting and its for
-                // multiple host then we don't want to remove volume(s) from the VPLEX storageview as other host in the
-                // storage
-                // view will loose those volumes as well, so if a storage view is shared and its not the last the host
-                // in
-                // CoprHD then we will only remove those volumes from CoprHD ExportMask and its association to the
-                // export group.
+                // storage view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CoprHD reused
+                // it. Normally when CoprHD creates storageview on VPLEX its for a host, so when user request to remove
+                // host from the export group then we would go and delete whole storageview, if storage view was pre
+                // existing then we only remove all volumes from the storage view. Now if Storage view is preexisting
+                // and it's for multiple hosts, then we don't want to remove volume(s) from the VPLEX storageview as
+                // other host in the storage view will lose those volumes as well. So if a storage view is shared
+                // and it's not the last the host in CoprHD, then we will only remove those volumes from CoprHD
+                // ExportMask and its association to the export group.
                 // So now volume(s) will only be removed when last host removal request is made from CoprHD.
                 // This code to get SharedStorageView is for backward compatibility for multiple export masks created in
-                // CoprHD
-                // for the same storagew view on VPLEX before Darth release.
+                // CoprHD for the same storagew view on VPLEX before Darth release.
                 Map<String, Set<ExportMask>> sharedExportMask = VPlexUtil.getSharedStorageView(exportGroup, vplex.getId(), _dbClient);
-                if (sharedExportMask.containsKey(exportMask.getMaskName())) {
+                if (ExportUtils.checkIfAnyExistingInitiatorsNotInComputeResource(exportMask, computeResourceId, _dbClient)) {
+                    _log.info("Not removing volumes from storage view because there are existing initiators in storage view {} ",
+                            exportMask.getMaskName());
+                } else if (sharedExportMask.containsKey(exportMask.getMaskName())) {
                     _log.info("Multiple Export mask share same stoarge view %s hence volumes will only be removed in the database. ",
                             exportMask.getMaskName());
+
                     Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
                     // Determine the virtual volume names.
                     List<String> blockObjectNames = new ArrayList<String>();
@@ -5029,6 +5031,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
                     }
+
+                    // TODO: COP-25485 We need fix all places where VPLEX orchestration is prematurely updating the EM
+                    // and EG objects. Completers should be doing this work. Currently operations like the below set
+                    // will cause DB inconsistency if the operation execution fails.
+                    //
+                    // This is only ONE example of this practice. The entire module should be scrubbed.
                     _dbClient.updateObject(exportMask);
                     _log.info("successfully removed " + blockObjectNames + " from exportmask " + exportMask.getMaskName()
                             + " in ViPR database only.");
@@ -5039,7 +5047,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient.updateObject(exportGroup);
 
                 } else {
-
                     _log.info("creating a remove volumes workflow step with " + exportMask.getMaskName()
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumes.values()));
 

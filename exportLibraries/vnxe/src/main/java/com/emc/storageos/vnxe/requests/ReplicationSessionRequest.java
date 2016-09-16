@@ -14,11 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.vnxe.VNXeConstants;
+import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
 import com.emc.storageos.vnxe.models.ReplicationSessionParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
@@ -27,7 +27,7 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
 
     private static final String URL_INSTANCE = "/api/instances/replicationSession/";
     private static final String URL = "/api/types/replicationSession/instances";
-    private static final String FIELDS = "name,maxTimeOutOfSync,srcResourceId,dstResourceId,replicationResourceType";
+    private static final String FIELDS = "name,maxTimeOutOfSync,srcResourceId,dstResourceId,replicationResourceType,localRole";
     private static final String ACTION = "/action/";
 
     public ReplicationSessionRequest(KHClient client) {
@@ -87,13 +87,13 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
         return postRequestAsync(param);
     }
 
-    public VNXeCommandResult deleteReplicationSession(String id) {
+    public VNXeCommandJob deleteReplicationSession(String id) {
         _url = URL_INSTANCE + id;
-        setQueryParameters(null);
-        deleteRequest(null);
-        VNXeCommandResult result = new VNXeCommandResult();
-        result.setSuccess(true);
-        return result;
+        if (get(id) != null) {
+            unsetQueryParameters();
+            return deleteRequestAsync(null);
+        }
+        throw VNXeException.exceptions.vnxeCommandFailed("The replication session not found: " + id);
     }
 
     public VNXeCommandJob resumeReplicationSession(String id, ReplicationSessionParam param) {
@@ -131,15 +131,4 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
         List<ReplicationSession> sessions = getDataForObjects(ReplicationSession.class);
         return sessions.get(0);
     }
-
-    public ReplicationSession getByName(String name) {
-        _queryParams = null;
-        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + name + "\"");
-        setQueryParameters(queryParams);
-        _url = URL;
-        List<ReplicationSession> sessions = getDataForObjects(ReplicationSession.class);
-        return sessions.get(0);
-    }
-
 }

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -188,9 +189,17 @@ public class FileSystems extends ResourceController {
         renderJSON(response);
     }
 
-    public static void fileSystemExports(String fileSystemId) {
+    public static void fileSystemExports2(String fileSystemId) {
         URI id = uri(fileSystemId);
         List<ExportRule> exports = FileUtils.getFSExportRules(id);
+        List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
+        renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
+        render(exports, exportsParam);
+    }
+    
+    public static void fileSystemExports(String fileSystemId) {
+        URI id = uri(fileSystemId);
+        List<FileUtils.NFSExportRule> exports = FileUtils.getNFSExportRules(id);
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
         render(exports, exportsParam);
@@ -526,9 +535,19 @@ public class FileSystems extends ResourceController {
         return input;
     }
 
-    public static void fileSystemExportsJson(String id, String path, String sec) {
+    public static void fileSystemExports(String id, String path, String sec) {
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);
         renderJSON(info);
+    }
+    
+    public static void fileSystemExportsJson(String id, String path, List<String> sec) {
+    	Iterator<String> secIter = sec.iterator();
+    	StringBuffer security = new StringBuffer(); 
+    	security.append(secIter.next());
+    	while(secIter.hasNext()) {
+    		security.append(",").append(secIter.next());
+    	}
+    	fileSystemExports(id, path, security.toString());
     }
 
     public static void fileSystemQuotaJson(String id) {

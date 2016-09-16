@@ -30,6 +30,7 @@ import javax.wbem.WBEMException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -626,13 +627,26 @@ public class SRDFUtils implements SmisConstants {
 
     private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath) {
         CloseableIterator<CIMObjectPath> references = null;
-
         try {
             references = helper.getReference(provider, volumePath, CIM_STORAGE_SYNCHRONIZED, null);
-            // TODO Could potentially return a local storage synchronized. Need to make sure we return
-            // the correct one!
-            if (references.hasNext()) {
-                return references.next();
+            while (references.hasNext()) {
+                CIMObjectPath groupSynchronized = references.next();
+                log.debug("groupSynchronized {}", groupSynchronized);
+                String systemElementProp = groupSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
+                CIMObjectPath systemElement = new CIMObjectPath(systemElementProp);
+                String systemNameFromSystemElement = systemElement.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString();
+                log.debug("systemName From SystemElement {}", systemNameFromSystemElement);
+                String syncedElementProp = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
+                CIMObjectPath syncedElement = new CIMObjectPath(syncedElementProp);
+                String systemNameFromSyncedElement = syncedElement.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString();
+                log.debug("systemName From SyncedElement {}", systemNameFromSyncedElement);
+                /**
+                 * Find remote synchronized instance
+                 */
+                if (StringUtils.hasText(systemNameFromSystemElement) && StringUtils.hasText(systemNameFromSyncedElement)
+                        && !systemNameFromSystemElement.equals(systemNameFromSyncedElement)) {
+                    return groupSynchronized;
+                }
             }
         } catch (WBEMException e) {
             throw new RuntimeException("Failed to acquire storage synchronization", e);

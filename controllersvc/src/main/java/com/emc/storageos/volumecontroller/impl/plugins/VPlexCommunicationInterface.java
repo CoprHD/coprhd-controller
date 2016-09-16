@@ -447,15 +447,17 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             s_logger.warn(message);
                             s_logger.warn("Auto upgrade is allowed, will attempt to automatically upgrade to Metro");
 
-                            // we have to persist the new serial number so that the storage port name generator
-                            // works, but we need to save the old serial number so that we can roll back if necessary
+                            // we have to (possibly temporarily) persist the new serial number so that the 
+                            // storage port native guid generator works, but we need to hold on to the old 
+                            // serial number so that we can roll back if necessary
                             String oldSerialNumber = vplex.getSerialNumber();
                             vplex.setSerialNumber(systemSerialNumber);
                             _dbClient.updateObject(vplex);
 
+                            // a failed discovery attempt will null out all the provider info, so we need to reset it.
+                            // this data will be transient unless the upgrade process completes
                             if (null == vplex.getSmisProviderIP()) {
                                 s_logger.info("The provider information was nulled out by a previous upgrade attempt, resetting");
-                                // this data will be transient unless the upgrade process completes
                                 vplex.setActiveProviderURI(mgmntServer.getId());
                                 StringSet providers = new StringSet();
                                 providers.add(mgmntServer.getId().toString());
@@ -465,24 +467,29 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 vplex.setSmisUserName(mgmntServer.getUserName());
                                 vplex.setSmisPassword(mgmntServer.getPassword());
                             }
+
+                            // update scan cache
                             StorageSystemViewObject systemViewObject = scanCache.get(vplex.getNativeGuid());
                             if (null == systemViewObject) {
                                 systemViewObject = new StorageSystemViewObject();
                             } else {
-                                // this is a strange scanCache state that doesn't make any sense. just fail for safety reason.
+                                // this is a strange scanCache state that doesn't make any sense. just fail for safety reasons
                                 throw VPlexApiException.exceptions
                                     .vplexClusterConfigurationChangedFromLocalToMetro(assemblyId, systemNativeGUID);
                             }
                             s_logger.info("adding systemNativeGuid {} storage view object {} to scan cache", 
                                     systemNativeGUID, systemViewObject);
                             scanCache.put(systemNativeGUID, systemViewObject);
+
                             // update the label if it has not been changed from the default native GUID
                             if (vplex.getLabel().equals(vplex.getNativeGuid())) {
                                 vplex.setLabel(systemNativeGUID);
                             }
                             vplex.setNativeGuid(systemNativeGUID);
+
                             // clear the assembly id collection, which will be updated by discoverClusterIdentification
                             vplex.setVplexAssemblyIdtoClusterId(new StringMap());
+
                             // update the assembly id map in the VPLEX storage system object
                             discoverClusterIdentification(vplex, client);
 
@@ -500,13 +507,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 autoUpgradePortsMap.put(storagePort.getPortNetworkId(), storagePort);
                             }
 
-                            boolean doPersist = true;
+                            boolean doPersist = false;
                             try {
                                 // now rediscover all storage ports to pull in the new second cluster's ports
                                 discoverPorts(client, vplex, new ArrayList<StoragePort>(), autoUpgradePortsMap);
+                                doPersist = true;
                             } catch (Exception ex) {
                                 s_logger.error("Failed to discover ports. ", ex);
-                                doPersist = false;
                                 // we've encountered and error and shouldn't persist any of this.
                                 // throw an exception to tell the user to contact customer support.
                                 throw VPlexApiException.exceptions
@@ -624,11 +631,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (vplex.getVplexAssemblyIdtoClusterId() != null && !vplex.getVplexAssemblyIdtoClusterId().isEmpty()) {
                 // We've already retrieved this information during registration (scan), so there's no reason
                 // to retrieve it again. (This information is not expected to change)
-                s_logger.info("not updating cluster id info");
                 return;
             }
 
-            s_logger.info("updating cluster id info");
             // Get the cluster information
             List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
 

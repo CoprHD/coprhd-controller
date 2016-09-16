@@ -535,7 +535,7 @@ public class FileSystems extends ResourceController {
         return input;
     }
 
-    public static void fileSystemExports(String id, String path, String sec) {
+    public static void fileSystemExportsJson(String id, String path, String sec) {
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);
         renderJSON(info);
     }
@@ -547,7 +547,7 @@ public class FileSystems extends ResourceController {
     	while(secIter.hasNext()) {
     		security.append(",").append(secIter.next());
     	}
-    	fileSystemExports(id, path, security.toString());
+    	fileSystemExportsJson(id, path, security.toString());
     }
 
     public static void fileSystemQuotaJson(String id) {

@@ -72,7 +72,7 @@ public class FileUtils {
                     }
                 }
                 exportRuleInfo.setAnon(rule.getAnon());
-                exportRuleInfo.setSecurity(rule.getSecFlavor());
+                exportRuleInfo.setSecurity(getSecFlovorList(rule.getSecFlavor()));
                 exportRuleInfo.setEndpointsInfo(infos);
             }
         }
@@ -134,7 +134,7 @@ public class FileUtils {
 
     public static class ExportRuleInfo {
         public String anon;
-        public String security;
+        public List<String> security;
         public List<EndpointInfo> endpoints;
 
         public ExportRuleInfo() {
@@ -144,7 +144,7 @@ public class FileUtils {
             this.anon = anon;
         }
 
-        public void setSecurity(String security) {
+        public void setSecurity(List<String> security) {
             this.security = security;
         }
 
@@ -154,6 +154,8 @@ public class FileUtils {
     }
     
     public static class NFSExportRule {
+    	private URI fsID;
+    	private URI snapShotID;
     	private String exportPath;
     	private String anon;
     	private List<String> secFlavor;
@@ -162,6 +164,22 @@ public class FileUtils {
     	private Set<String> rootHosts;
     	private String mountPoint;
     	private String comments;
+
+    	public URI getFsID() {
+    		return fsID;
+    	}
+
+    	public void setFsID(URI fsID) {
+    		this.fsID = fsID;
+    	}
+
+    	public URI getSnapShotID() {
+    		return snapShotID;
+    	}
+
+    	public void setSnapShotID(URI snapShotID) {
+    		this.snapShotID = snapShotID;
+    	}
 
     	public String getExportPath() {
     		return exportPath;
@@ -211,7 +229,6 @@ public class FileUtils {
     	 * Anonymous root user mapping e.g. "root", "nobody" or "anyUserName"
     	 * 
     	 */
-    	@XmlElement(name = "anon", required = false)
     	public String getAnon() {
     		return anon;
     	}
@@ -220,7 +237,6 @@ public class FileUtils {
     		this.anon = anon;
     	}
 
-    	@XmlElement(name = "mountPoint", required = false)
     	public String getMountPoint() {
     		return mountPoint;
     	}
@@ -228,8 +244,7 @@ public class FileUtils {
     	public void setMountPoint(String mountPoint) {
     		this.mountPoint = mountPoint;
     	}
-
-    	@XmlElement(name = "comments", required = false)
+    	
     	public String getComments() {
     		return comments;
     	}
@@ -237,5 +252,5 @@ public class FileUtils {
     	public void setComments(String comments) {
     		this.comments = comments;
     	}
-     }
+    }
   }

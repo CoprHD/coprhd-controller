@@ -134,11 +134,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             
             // If there are no masks or volumes associated with this export group, and it's an internal (VPLEX/RP)
             // export group, delete the export group automatically.
-            if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
-                    (exportGroup == null 
-                        || exportGroup.getVolumes() == null 
-                        || exportGroup.getVolumes().isEmpty()
-                        || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty())) {
+            if (CollectionUtils.isEmpty(exportGroup.getVolumes())
+                    || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup))) {
                 _log.info(String.format("Marking export group [%s %s] for deletion.", 
                         (exportGroup != null ? exportGroup.getLabel() : ""), getId()));
                 dbClient.markForDeletion(exportGroup);

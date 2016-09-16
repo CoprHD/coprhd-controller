@@ -6,6 +6,7 @@ package com.emc.storageos.util;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1665,6 +1666,10 @@ public class ExportUtils {
     /**
      * Determines if any of the initiators in the existing initiator list do NOT belong to the
      * compute resource sent in. This is useful when trying to determine the proper export operation.
+     *
+     * Note: We intentionally avoid looking for existing non-managed initiators for VPLEX back-end and
+     * RP front-end masks. Those initiator types do not have a host URI and therefore will be exempt
+     * from this ever returning true.
      * 
      * @param exportMask
      *            export mask
@@ -1677,46 +1682,55 @@ public class ExportUtils {
     public static boolean checkIfAnyExistingInitiatorsNotInComputeResource(ExportMask exportMask, URI computeResourceId,
             DbClient _dbClient) {
         // Assertions
-        if (exportMask == null || NullColumnValueGetter.isNullURI(computeResourceId) || _dbClient == null) {
+        if (exportMask == null || _dbClient == null) {
             _log.error("Invalid argument sent to method.");
             throw DeviceControllerException.exceptions.invalidObjectNull();
         }
 
+        // VPLEX back-end and RP masks will not have a compute resource, and are exempt from this check
+        if (NullColumnValueGetter.isNullURI(computeResourceId)) {
+            return false;
+        }
+
         // You need existing initiator in order to have one not be in a compute resource, so start there.
-        if (exportMask.hasAnyExistingInitiators()) {
-            // This will give us any existing initiator that controller knows about in the DB.
-            List<Initiator> existingKnownInitiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
+        if (!exportMask.hasAnyExistingInitiators()) {
+            return false;
+        }
 
-            if (existingKnownInitiators != null) {
-                // If there are more existing initiator port entries than there are existingKnownInitiators
-                // DB entries, it's a guarantee that at least one of them is not in our compute resource
-                if (existingKnownInitiators.size() < exportMask.getExistingInitiators().size()) {
-                    return true;
-                }
+        // This will give us any existing initiator that controller knows about in the DB.
+        List<Initiator> existingKnownInitiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
+        if (existingKnownInitiators == null) {
+            // Guaranteed to be an empty list at worst, still assert the returning value.
+            _log.error("Invalid existing known initiator list returned");
+            throw DeviceControllerException.exceptions.invalidObjectNull();
+        }
 
-                // Collect the compute resources IDs associated with the sent-in compute resource
-                // (which could be a cluster, so we need the hosts)
-                List<URI> computeResources = new ArrayList<>();
-                computeResources.add(computeResourceId);
+        // If there are more existing initiator port entries than there are existingKnownInitiators
+        // DB entries, it's a guarantee that at least one of them is not in our compute resource
+        if (existingKnownInitiators.size() < exportMask.getExistingInitiators().size()) {
+            return true;
+        }
 
-                // If this is a cluster, get all of the host IDs in that cluster
-                if (URIUtil.isType(computeResourceId, Cluster.class)) {
-                    final List<Host> hosts = CustomQueryUtility
-                            .queryActiveResourcesByConstraint(_dbClient, Host.class,
-                                    AlternateIdConstraint.Factory.getHostsByClusterId(computeResourceId.toString()));
-                    if (hosts != null) {
-                        computeResources.addAll(URIUtil.toUris(hosts));
-                    }
-                }
+        // Collect the compute resources IDs associated with the sent-in compute resource
+        // (which could be a cluster, so we need the hosts)
+        List<URI> computeResourceIds = Arrays.asList(computeResourceId);
 
-                // Now check to see if any of the existing initiators belong to hosts in our list.
-                // If not, return false because one initiator is not in our compute resource.
-                for (Initiator existingKnownInitiator : existingKnownInitiators) {
-                    if (!NullColumnValueGetter.isNullURI(existingKnownInitiator.getHost()) &&
-                            (!computeResources.contains(existingKnownInitiator.getHost()))) {
-                        return true;
-                    }
-                }
+        // If this is a cluster, get all of the host IDs in that cluster
+        if (URIUtil.isType(computeResourceId, Cluster.class)) {
+            final List<Host> hosts = CustomQueryUtility
+                    .queryActiveResourcesByConstraint(_dbClient, Host.class,
+                            AlternateIdConstraint.Factory.getHostsByClusterId(computeResourceId.toString()));
+            if (hosts != null) {
+                computeResourceIds.addAll(URIUtil.toUris(hosts));
+            }
+        }
+
+        // Now check to see if any of the existing initiators belong to hosts in our list.
+        // If not, return false because one initiator is not in our compute resource.
+        for (Initiator existingKnownInitiator : existingKnownInitiators) {
+            if (!NullColumnValueGetter.isNullURI(existingKnownInitiator.getHost()) &&
+                    (!computeResourceIds.contains(existingKnownInitiator.getHost()))) {
+                return true;
             }
         }
 

@@ -12,6 +12,7 @@ import com.emc.storageos.auth.service.impl.resource.AuthenticationResource;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -27,16 +28,18 @@ import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
@@ -72,8 +75,14 @@ public class OIDCAuthenticationManager {
 
         StorageOSUserDAO userInfo = new StorageOSUserDAO();
         userInfo.setUserName( (String) jsonIdToken.get("sub") );
+        userInfo.setGroups( getGroupSet( (JSONArray) jsonIdToken.get("http:/www.watch4net.com/openid/roles") ) );
 
+        userInfo.setTenantId(findTenant(userInfo));
 
+        return userInfo;
+    }
+
+    private String findTenant(StorageOSUserDAO userInfo) {
         Map<URI, List<BasePermissionsHelper.UserMapping>> tenantToMappingMap =
                 permissionsHelper.getAllUserMappingsForDomain(authnProvider.getDomains());
 
@@ -93,12 +102,45 @@ public class OIDCAuthenticationManager {
             throw APIException.forbidden.userBelongsToMultiTenancy(userInfo.getUserName(), tenantName(tenants.keySet()));
         }
 
-        userInfo.setTenantId(tenants.keySet().iterator().next().toString());
+        return tenants.keySet().iterator().next().toString();
+    }
 
-        // TODO: will get real group
-    //    userInfo.addGroup( (String) jsonIdToken.get("http:/www.watch4net.com/openid/roles") );
-        userInfo.addGroup("secdev");
-        return userInfo;
+    private StringSet getGroupSet(JSONArray groups) {
+        if (groups == null) {
+            return null;
+        }
+
+        StringSet groupSet = new StringSet();
+
+        for (Object grpDN: groups) {
+            groupSet.add(upn((String) grpDN));
+        }
+        return groupSet;
+    }
+
+    private String upn(String grpDN) {
+        String baseName = null;
+        String domainName = null;
+        List<String> dcs = new LinkedList<String>();
+        try {
+            int cnCursor = 0; // only need first cn
+            LdapName dn = new LdapName(grpDN);
+            for (Rdn rdn : dn.getRdns()) {
+                if (rdn.getType().equalsIgnoreCase("CN") && cnCursor <= 0) {
+                    baseName = (String) rdn.getValue();
+                } else if (rdn.getType().equalsIgnoreCase("DC")) {
+                    dcs.add(rdn.getValue().toString());
+                }
+            }
+
+            if (dcs.size() > 0) {
+                domainName = StringUtils.join(dcs, ",");
+            }
+
+            return (domainName == null) ? baseName : String.format("%s@%s", baseName, domainName);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private List<String> tenantName(Set<URI> uris) {

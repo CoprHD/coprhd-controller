@@ -426,7 +426,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     String assemblyId = vplex.getVplexAssemblyIdtoClusterId().keySet().iterator().next();
                     if (systemNativeGUID.contains(assemblyId)) {
                         String message = 
-                                String.format("Existing VPLEX local assembly id %s is a substring of the newly-discoverd system GUID %s, "
+                                String.format("The VPLEX storage system serial number unexpectedly changed. "
+                                + "Existing VPLEX local assembly id %s is a substring of the newly-discoverd system GUID %s, "
                                 + "which indicates a change in VPLEX hardware configuration from local to metro. "
                                 + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
                                 + "to contact EMC Customer Support.", assemblyId, systemNativeGUID);
@@ -545,7 +546,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         if (systemNativeGUID.contains(assemblyId)) {
                             // THIS IS VERY BAD
                             String message = 
-                                    String.format("Existing VPLEX metro native GUID %s contains the newly-discovered system assembly "
+                                    String.format("The VPLEX storage system serial number unexpectedly changed. "
+                                    + "Existing VPLEX metro native GUID %s contains the newly-discovered system assembly "
                                     + "id %s, which indicates a change in VPLEX hardware configuration from metro to local. "
                                     + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
                                     + "to contact EMC Customer Support.", systemNativeGUID, assemblyId);

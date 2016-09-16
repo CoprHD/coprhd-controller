@@ -1925,11 +1925,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             $scope.guideErrorObject = failedArray;
                             if(failedType=="PROVIDER"){
                                 $scope.guideError = "The following Storage Providers have not been discovered yet:";
-                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to next step.";
+                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to the next step.";
                                 finishChecking();
                             } else {
                                 $scope.guideError = "The following Storage Systems have not been discovered yet:";
-                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to next step.";
+                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to the next step.";
                                 finishChecking();
                             }
                         } else {
@@ -1968,7 +1968,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     if (data.data.length > 0) {
                         $scope.guideErrorObject = data.data;
                         $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
-                        $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to next step.";
+                        $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;

@@ -377,8 +377,9 @@ public class SRDFOperations implements SmisConstants {
                         //Use force flag only if the RDF Group is not empty AND if the source volume doesn't have any data on it.
                         //Through ViPR only if its change virtual pool operation, the source volume will have data, hence 
                         //formatVolumeFlagNeeded flag will be set to false only during ChangeVirtualPool
-                        
+                        log.info("NonEmptyRDFGroup : {}, formatFlagNeeded {} ",nonEmptyRDFGroup, formatVolumeFlagNeeded);
                         if (nonEmptyRDFGroup && Mode.ACTIVE.getMode() == modeValue && formatVolumeFlagNeeded) {
+                             log.info("Adding format flag to replication Group Instance...");
                             // NOTE: Format flag will wipe out the data.
                             // he FORMAT property is not available as part of the default Replication Instance.
                             // We will be on our own adding this property..

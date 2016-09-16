@@ -512,7 +512,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 }
             }
 
-            Set<String> existingVolumes = (mask != null && mask.getExistingVolumes() != null) ? mask.getExistingVolumes().keySet()
+            Set<String> existingVolumes = mask.getExistingVolumes() != null ? mask.getExistingVolumes().keySet()
                     : Collections.emptySet();
 
             _log.info(String.format("%nXtremIO mask existing volumes : {%s}%n", Joiner.on(',').join(existingVolumes)));

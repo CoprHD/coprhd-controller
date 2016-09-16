@@ -4537,12 +4537,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");
             }
-            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-            ctx.setStorage(vplex);
-            ctx.setExportMask(exportMask);
-            ctx.setBlockObjects(volumeURIList, _dbClient);
-            ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
-            validator.removeInitiators(ctx).validate();
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -4550,6 +4544,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // might be existing ports. If storage ports are removed then we could end up
             // removing all storage ports but leaving the existing initiators and volumes.
             if (!exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes()) {
+                ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                ctx.setStorage(vplex);
+                ctx.setExportMask(exportMask);
+                ctx.setBlockObjects(volumeURIList, _dbClient);
+                ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+                validator.removeInitiators(ctx).validate();
+
                 if (targetURIs != null && targetURIs.isEmpty() == false) {
                     List<PortInfo> targetPortInfos = new ArrayList<PortInfo>();
                     List<URI> targetsToRemoveFromStorageView = new ArrayList<URI>();

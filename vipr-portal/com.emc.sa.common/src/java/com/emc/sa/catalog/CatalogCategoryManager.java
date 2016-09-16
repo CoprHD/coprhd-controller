@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
 
 public interface CatalogCategoryManager {
 
@@ -29,6 +30,8 @@ public interface CatalogCategoryManager {
     public void deleteCatalogCategory(CatalogCategory catalogCategory);
 
     public List<CatalogCategory> getSubCategories(URI parentCatalogCategoryId);
+    
+    public CatalogService getCategorieService(List<CatalogCategory> catalogCategory, String serviceName);
 
     public void moveUpCatalogCategory(URI catalogCategoryId);
 

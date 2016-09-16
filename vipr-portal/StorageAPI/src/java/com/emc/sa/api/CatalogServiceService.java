@@ -174,6 +174,23 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
         return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("service/{name}")
+    public CatalogServiceRestRep findCatalogService(@PathParam("name") String name) {
+        
+        StorageOSUser user = getUserFromContext();
+        final String tenantID = user.getTenantId();
+        CatalogCategory catalogCategory = catalogCategoryManager.getOrCreateRootCategory(uri(tenantID));
+        List<CatalogCategory> subCatalogCategories = catalogCategoryManager.getSubCategories(catalogCategory.getId());
+        
+        CatalogService catalogServices = catalogCategoryManager.getCategorieService(subCatalogCategories, name);
+        
+        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogServices);
+        List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogServices.getId());    
+        return map(catalogServices, serviceDescriptor, catalogServiceFields);
+    }
 
     /**
      * Creates a new catalog service

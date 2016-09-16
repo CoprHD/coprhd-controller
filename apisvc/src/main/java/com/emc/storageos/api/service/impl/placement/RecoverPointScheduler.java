@@ -570,24 +570,23 @@ public class RecoverPointScheduler implements Scheduler {
                     rpProtectionRecommendation.getSourceRecommendations().add(rpSourceRecommendation);
                     rpProtectionRecommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
                     
+                    // If we made it this far we know that our source virtual pool and associated source virtual array
+                    // has a storage pool with enough capacity for the requested resources and which is accessible to an rp cluster site
+                    rpProtectionRecommendation.setPlacementStepsCompleted(PlacementProgress.IDENTIFIED_SOLUTION_FOR_SOURCE);
+                    if (placementStatus.isBestSolutionToDate(rpProtectionRecommendation)) {
+                        placementStatus.setLatestInvalidRecommendation(rpProtectionRecommendation);
+                    }
+
+                    // TODO Joe: need this when we are creating multiple recommendations
+                    placementStatus.setLatestInvalidRecommendation(null);
+                    
                     // Find a solution, given this vpool, and the target varrays
                     if (findSolution(rpProtectionRecommendation, rpSourceRecommendation, varray, vpool, protectionVarrays,
                             capabilities, satisfiedCount, false, null, project)) {
-                        // Found Source, Source Journal, Target, Target Journals...we're good to go, let's
-                        // keep the Source Recommendation and Source Journal Recommendation.
+                        // Found Source, Source Journal, Target, Target Journals...we're good to go.
                         totalSatisfiedCount += satisfiedCount;
                         requestedCount = requestedCount - totalSatisfiedCount;                        
-                        
-                        // If we made it this far we know that our source virtual pool and associated source virtual array
-                        // has a storage pool with enough capacity for the requested resources and which is accessible to an rp cluster site
-                        rpProtectionRecommendation.setPlacementStepsCompleted(PlacementProgress.IDENTIFIED_SOLUTION_FOR_SOURCE);
-                        if (placementStatus.isBestSolutionToDate(rpProtectionRecommendation)) {
-                            placementStatus.setLatestInvalidRecommendation(rpProtectionRecommendation);
-                        }
-
-                        // TODO Joe: need this when we are creating multiple recommendations
-                        placementStatus.setLatestInvalidRecommendation(null);
-                        
+                                                                        
                         if ((totalSatisfiedCount >= totalRequestedCount)) {
                             // Check to ensure the protection system can handle the new resources about to come down
                             if (!verifyPlacement(candidateProtectionSystem, rpProtectionRecommendation,

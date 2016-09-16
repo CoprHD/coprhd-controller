@@ -54,13 +54,10 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
         _password = password;
     }
 
+	 public void setAuthToken(String token) { _authToken = token; }
+
     public String init() throws Exception {
         return null; //getVersion();
-    }
-
-    @Override
-    protected Builder setResourceHeaders(WebResource resource) {
-        return resource.getRequestBuilder();
     }
 
     @Override
@@ -88,7 +85,9 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
 
     @Override
     protected int checkResponse(URI uri, ClientResponse response) { 
-        ClientResponse.Status status = response.getClientResponseStatus();
+
+	log.info("Response:{}", response);
+        /*ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode(); 
         if (errorCode >= 300) {
             String entity = null;
@@ -108,6 +107,13 @@ public class OrchestrationEngineRestClient extends StandardRestClient {
             }
         } else {
             return errorCode;
-        }
+        }*/
+	return 0;
+	
+    }
+
+   @Override
+    protected Builder setResourceHeaders(WebResource resource) {
+        return resource.getRequestBuilder().header("X-SDS-AUTH-TOKEN", _authToken);
     }
 }

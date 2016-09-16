@@ -65,7 +65,8 @@ public abstract class StandardRestClient implements RestClientItf {
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .post(ClientResponse.class, body);
         }
-        checkResponse(uri, response);
+	log.info("Response is {}", response);
+//        checkResponse(uri, response);
         return response;
     }
 

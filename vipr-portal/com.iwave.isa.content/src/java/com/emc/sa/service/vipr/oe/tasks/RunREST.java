@@ -34,7 +34,7 @@ public class RunREST extends ViPRExecutionTask<String>
     String postBody = null;
     String uri;
 
-    public RunREST(String uri, String postBody) {
+    public RunREST(String uri, String postBody, String token) {
 
 
         //init rest client
@@ -47,9 +47,10 @@ public class RunREST extends ViPRExecutionTask<String>
         factory.setSocketConnectionTimeoutMs(3600000);
         factory.setConnectionTimeoutMs(3600000);
         factory.init();
-        String endpoint = "http://localhost:4443";
+        String endpoint = "https://localhost:4443";
         restClient = (OrchestrationEngineRestClient) factory.
                 getRESTClient(URI.create(endpoint), "root", "ChangeMe1!", true);
+	restClient.setAuthToken(token);
         this.uri = uri;
         this.postBody = postBody;
     }
@@ -58,7 +59,7 @@ public class RunREST extends ViPRExecutionTask<String>
     public String executeTask() throws Exception 
     {
 	String RESTresult = null;
-        if (step.getType().equals("ViPR REST")) {
+        //if (step.getType().equals("ViPR REST")) {
 
     //        List<NamedElementQueryResultList.NamedElement> results = modelClient.findByAlternateId(RESTApiFormat.class, "RESTOp", "createvolume");
 
@@ -66,11 +67,12 @@ public class RunREST extends ViPRExecutionTask<String>
     //            RESTApiFormat restapiformat = modelClient.findById(RESTApiFormat.class, result.getId());
       //          String RESTformat = restapiformat.getRESTFormat();
 		RESTresult = makeRestCall(uri, postBody);
+		
         //    }
 
-        } else {
+        //} else {
             //Parse and get the API
-        }
+        //}
 
         //strore result to ViPR DB
 
@@ -87,6 +89,8 @@ public class RunREST extends ViPRExecutionTask<String>
             response = restClient.post(uri(uriString),postBody);
         }
 
+	ExecutionUtils.currentContext().logInfo("Done Executing WF. Response:" +
+                response+ " using API call-1 ");
         String responseString = null;
         try {
             responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");

@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.vipr.oe;
 
+import com.emc.sa.service.vipr.oe.gson.ViprOperation;
+import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationRunnerTask;
@@ -38,7 +40,7 @@ public class OrchestrationService extends ViPRService {
 
     //TODO Hardcocded POST Body:
 
-    public static final String CREATE_URI = "https://localhost:4443/block/volumes";
+    public static final String CREATE_URI = "https://localhost:4443/block/volumes.json";
     public static final String DELETE_URI = "https://localhost:4443/block/volumes/{id}/deactivate";
  
 
@@ -207,7 +209,7 @@ public void OEParser() throws Exception
 
            logger.info("OpName:{}", step.getOpName());
             //TODO GET from DB
-            if (step.getOpName().equals("createVolume"))
+            if (step.getOpName().equals("CreateVolume"))
                 uri = CREATE_URI;
 
             if (step.getOpName().equals("deleteVolume"))
@@ -265,7 +267,8 @@ public void OEParser() throws Exception
                 logger.info("Running REST Step:{}, inputPerStep:{}", step, inputPerStep);
                 String post_body = createPOSTBody(step.getOpName());
 
-                result = ViPRExecutionUtils.execute(new RunREST( uri, post_body));
+		logger.info("POST Body is:{}", post_body);
+                result = ViPRExecutionUtils.execute(new RunREST( uri, post_body, params.get("ProxyToken").toString()));
                 //RunREST run = new RunREST();
                 //result = run.runREST(step, inputPerStep, getModelClient(), getClient());
 
@@ -274,13 +277,31 @@ public void OEParser() throws Exception
 
 
             } else {
+		ExecutionUtils.currentContext().logInfo("Running Ansible Step");
                 logger.info("Running AnsibleStep:{}, inputPerStep:{}", step, inputPerStep);
-                result = ViPRExecutionUtils.execute(new RunAnsible());
+                result = ViPRExecutionUtils.execute(new RunAnsible(step.getOpName()));
                 //RunAnsible run = new RunAnsible();
                 //Map<String, String> result = run.runAnsible(step, inputPerStep);
 
                 //outputPerStep.put(step.getStepId(), result);
             }
+
+
+            //TODO Parse the result
+            if (step.getStepId().equals("1")) {
+                ViprOperation obj1 = gson.fromJson(result, ViprOperation.class);
+                ViprTask[] tasks = obj1.getTask();
+
+                for (ViprTask task : tasks) {
+
+                    volIds.add(task.getResource().getId());
+
+                }
+               /* Map<String, ArrayList<String>> temp = new HashMap<String, ArrayList<String>>();
+                temp.put("volIds", volIds);
+                outputPerStep.put(step.getStepId(), temp);*/
+            }
+
            next1 = findNext(result, step);
             if (next1 == null) {
                 ExecutionUtils.currentContext().logError("Orchestration Engine failed to run Workflow " +
@@ -288,7 +309,7 @@ public void OEParser() throws Exception
                 break;
             }
 
-            ExecutionUtils.currentContext().logError("Orchestration Engine successfully ran " +
+            ExecutionUtils.currentContext().logInfo("Orchestration Engine successfully ran " +
                     "Step: " + step.getStepId() + ":" + step + "result:" + result);
 
             logger.info("Next step: {}", next1);
@@ -299,7 +320,7 @@ public void OEParser() throws Exception
 
                 String stepResults = null; // TODO: change to:  outputPerStep.get(step.getStepId());
 
-                List<URI> newViprTasks = OrchestrationUtils.updateOrder(stepResults,getClient());  // check results from step
+                List<URI> newViprTasks = OrchestrationUtils.updateOrder(result,getClient());  // check results from step
                 tasksStartedByOe.addAll(newViprTasks);  // collect ViPR Tasks started by OE
 
             }
@@ -326,7 +347,9 @@ public void OEParser() throws Exception
     //TODO For now read from file. Impl: Read from DB and merge with input
     private String createPOSTBody(String opName) throws Exception
     {
-        BufferedReader br = new BufferedReader(new FileReader("creteVolume.json"));
+
+	if (opName.equals("CreateVolume")) {
+        BufferedReader br = new BufferedReader(new FileReader("/data/creteVolume.json"));
         try {
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
@@ -343,7 +366,13 @@ public void OEParser() throws Exception
         }
 
     }
+    if (opName.equals("DeleteVolumes")) {
+            return "{\n" + "  \"id\": [\"" + volIds.get(0) + "\",\"" + volIds.get(1) + "\"]}";
+    }
 
+    return null;
+	}
+	ArrayList<String> volIds = new ArrayList<String>();
         HashMap<String, Map<String, String>> inputPerStep = new HashMap<String, Map<String, String>>();
         HashMap<String, Map<String, String>> outputPerStep = new HashMap<String, Map<String, String>>();
 }

@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +45,11 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremIOExportMaskInitiatorsValidator;
 import com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremIOExportMaskVolumesValidator;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
@@ -114,7 +115,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList,
             List<URI> targetURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getSerialNumber());
 
         try {
@@ -323,7 +324,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void removeInitiators(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} removeInitiators START...", storage.getSerialNumber());
         // Get the context from the task completer, in case this is a rollback.
         ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
@@ -450,22 +451,28 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         try {
-            _log.info("Refreshing Initiator labels in ViPR.. ");
+            _log.info("Refreshing volumes and initiator labels in ViPR.. ");
+            Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
+            Set<String> igNames = new HashSet<>();
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
             List<Initiator> initiatorObjs = new ArrayList<Initiator>();
             for (XtremIOInitiator initiator : initiators) {
                 URIQueryResultList initiatorResult = new URIQueryResultList();
                 dbClient
-                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
-                                initiatorResult);
+                .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
+                        initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
                     Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
                     _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
                     initiatorObj.setLabel(initiator.getName());
                     initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
                     initiatorObjs.add(initiatorObj);
+                    if (mask != null && mask.getUserAddedInitiators() != null
+                            && mask.getUserAddedInitiators().containsValue(initiatorObj.getId().toString())) {
+                        igNames.add(initiator.getInitiatorGroup().get(1));
+                    }
                 } else {
                     _log.info("No initiator objects in vipr db for port address {}", initiator.getPortAddress());
                 }
@@ -473,16 +480,116 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (!initiatorObjs.isEmpty()) {
                 dbClient.updateObject(initiatorObjs);
             }
+
+            // if the mask is null, then just return.
+            if (mask == null) {
+                _log.info("Mask is null so refreshing just the initiators.");
+                return mask;
+            }
+            // get the mask volumes
+            for (String igName : igNames) {
+                List<XtremIOVolume> igVolumes = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
+                for (XtremIOVolume igVolume : igVolumes) {
+                    for (List<Object> lunMapEntries : igVolume.getLunMaps()) {
+                        @SuppressWarnings("unchecked")
+                        // This can't be null
+                        List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
+                            _log.warn("IG Name or hlu is null in returned lun map response for volume {}", igVolume.toString());
+                            continue;
+                        }
+                        String igNameToProcess = (String) igDetails.get(1);
+                        if (!igName.equalsIgnoreCase(igNameToProcess)) {
+                            continue;
+                        }
+
+                        Double hluNumber = (Double) lunMapEntries.get(2);
+                        _log.info("Found HLU {} for volume {}", hluNumber, igVolume.getVolInfo().get(1));
+                        // for each IG involved, the same volume is visible thro different HLUs.
+                        // TODO we might need a list of HLU for each Volume URI
+                        discoveredVolumes.put(igVolume.getWwn(), Integer.valueOf(hluNumber.intValue()));
+                    }
+                }
+            }
+
+            Set<String> existingVolumes = (mask != null && mask.getExistingVolumes() != null) ? mask.getExistingVolumes().keySet()
+                    : Collections.emptySet();
+
+            _log.info(String.format("%nXtremIO mask existing volumes : {%s}%n", Joiner.on(',').join(existingVolumes)));
+
+            _log.info(String.format("XtremIO discovered volumes: {%s}%n",
+                    Joiner.on(',').join(discoveredVolumes.keySet())));
+            // Check the volumes and update the lists as necessary
+            Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+            boolean addVolumes = !volumesToAdd.isEmpty();
+
+            boolean removeVolumes = false;
+            List<String> volumesToRemove = new ArrayList<String>();
+            if (mask.getExistingVolumes() != null &&
+                    !mask.getExistingVolumes().isEmpty()) {
+                volumesToRemove.addAll(mask.getExistingVolumes().keySet());
+                volumesToRemove.removeAll(discoveredVolumes.keySet());
+            }
+
+            // if the volume is in export mask's volume and also in the existing volumes, remove from exiting volumes
+            for (String wwn : discoveredVolumes.keySet()) {
+                if (mask.hasExistingVolume(wwn)) {
+                    URIQueryResultList volumeList = new URIQueryResultList();
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                    if (volumeList.iterator().hasNext()) {
+                        URI volumeURI = volumeList.iterator().next();
+                        if (mask.hasVolume(volumeURI)) {
+                            _log.info(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                                    + "export mask's volumes, so removing from existing volumes", wwn));
+                            volumesToRemove.add(wwn);
+                        }
+                    }
+                }
+            }
+
+            removeVolumes = !volumesToRemove.isEmpty();
+
+            _log.info(String.format("Mask refresh: %s volumes; add:{%s} remove:{%s}%n", mask.getMaskName(),
+                    Joiner.on(',').join(volumesToAdd.keySet()), Joiner.on(',').join(volumesToRemove)));
+
+            // Any changes indicated, then update the mask and persist it
+            if (addVolumes || removeVolumes) {
+                _log.info("Mask refresh: There are changes to mask, updating it...\n");
+                mask.removeFromExistingVolumes(volumesToRemove);
+                mask.addToExistingVolumesIfAbsent(volumesToAdd);
+
+                // Update the volume list to include existing volumes if know about them.
+                if (addVolumes) {
+                    for (String wwn : volumesToAdd.keySet()) {
+                        URIQueryResultList results = new URIQueryResultList();
+                        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                .getVolumeWwnConstraint(wwn.toUpperCase()), results);
+                        if (results != null) {
+                            Iterator<URI> resultsIter = results.iterator();
+                            if (resultsIter.hasNext()) {
+                                Volume volume = dbClient.queryObject(Volume.class, resultsIter.next());
+                                if (null != volume) {
+                                    mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
+                                }
+                            }
+                        }
+                    }
+                }
+                ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);
+                dbClient.updateObject(mask);
+            } else {
+                _log.info("Mask refresh: There are no changes to the mask\n");
+            }
         } catch (Exception e) {
-            _log.warn("Refreshing XtremIO Initiator ports failed", e);
+            _log.warn("Refreshing XtremIO mask failed", e);
         }
-        // CTRL-13080 fix - refresh mask will not be used by XtremIo exports, hence returning null is not an issue.
-        return null;
+
+        return mask;
     }
 
     private void runLunMapDeletionAlgorithm(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
@@ -636,7 +743,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
      */
     private void runLunMapDeletionOrRemoveInitiatorAlgorithm(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
@@ -795,7 +902,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                                 ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                                 if (operation != null
                                         && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP
-                                                .equals(operation.getOperation())) {
+                                        .equals(operation.getOperation())) {
                                     initiatorsToBeRemoved = (List<Initiator>) operation.getArgs().get(0);
                                     _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiatorsToBeRemoved));
                                 }
@@ -878,7 +985,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private void addInitiatorToInitiatorGroup(XtremIOClient client, String xioClusterName,
             String clusterName, String hostName, List<Initiator> initiatorsToBeCreated,
             Set<String> igNames, ExportMask exportMask, StorageSystem storage, TaskCompleter taskCompleter)
-            throws Exception {
+                    throws Exception {
         XtremIOInitiatorGroup igGroup = null;
         // create initiator group folder and initiator group
         String igFolderName = getInitiatorGroupFolderName(clusterName, hostName, storage);
@@ -921,7 +1028,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     remainingInitiator.getLabel());
             String initiatorName = ((null == remainingInitiator.getLabel() || remainingInitiator
                     .getLabel().isEmpty()) ? remainingInitiator.getInitiatorPort()
-                    : remainingInitiator.getLabel());
+                            : remainingInitiator.getLabel());
             List<Initiator> createdInitiators = new ArrayList<Initiator>();
             _log.info("Initiator {}  ", initiatorName);
             try {
@@ -959,7 +1066,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private void runLunMapCreationAlgorithm(StorageSystem storage, ExportMask exportMask, VolumeURIHLU[] volumeURIHLUs,
             List<Initiator> initiators, List<URI> targets, XtremIOClient client, String xioClusterName,
             ArrayListMultimap<String, Initiator> initiatorToIGMap, List<Initiator> initiatorsToBeCreated, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
 
         Set<String> igNames = null;
         List<URI> mappedVolumes = new ArrayList<URI>();

@@ -727,7 +727,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     apiClient.deleteConsistencyGroup(id, false, false);
                     URI systemURI = storage.getId();
                     if (consistencyGroup != null) {
-                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), cgName);
                     }
                 }
             }

@@ -81,6 +81,7 @@ import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -247,8 +248,8 @@ public class Orders extends OrderExecution {
                 orderId = submittedOrder.getId().toString();
             }
         } catch (Exception e) {
-            Logger.error(e, MessagesUtils.get("order.submitFailed"));
-            flash.error(MessagesUtils.get("order.submitFailed"));
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
             Common.handleError();
         }
 

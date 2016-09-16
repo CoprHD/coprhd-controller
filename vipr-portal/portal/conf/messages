@@ -3134,6 +3134,7 @@ currency.format=$%.2f
 
 order.submitSuccess=Your order has been successfully received and is being processed. You may leave this page and return at any time through your Orders.
 order.submitFailed=Your order was unable to be submitted due to an internal error.
+order.submitFailedWithDetail=Your order was unable to be submitted due to %s.
 order.processingFailed=Error processing order
 
 OrderStatus.PENDING=Preparing Order

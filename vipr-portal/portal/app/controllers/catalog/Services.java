@@ -29,6 +29,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 import util.AssetOptionUtils;
 import util.BourneUtil;
+import util.CatalogCategoryUtils;
 import util.CatalogServiceUtils;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
@@ -37,6 +38,7 @@ import util.ServiceFormUtils;
 import util.ServiceFormUtils.AssetFieldDescriptor;
 
 import com.emc.vipr.model.catalog.AssetOption;
+import com.emc.vipr.model.catalog.CatalogCategoryRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceFieldRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
@@ -73,33 +75,14 @@ public class Services extends Controller {
         renderArgs.put("backUrl", backUrl);
     }
     
-//    public static void emmetService(String service, String varray, String vpool) {
-//        //call API to get URI
-//        String serviceId = "urn:storageos:CatalogService:ccd97a66-2cf6-4747-8ba1-3dc48ec2ddf5:vdc1";
-//        String virtualArray = "";
-//        if(varray!=null) {
-//            List<VirtualArrayRestRep> varray1 = BourneUtil.getViprClient().varrays().findByName(varray);
-//            for (VirtualArrayRestRep varray2:varray1) {
-//                virtualArray = varray2.getId().toString();
-//            }
-//        }
-//        String virtualPool = "";
-//        if(vpool!=null) {
-//            List<BlockVirtualPoolRestRep> pool = BourneUtil.getViprClient().blockVpools().getByName(vpool);
-//            if(!pool.isEmpty()) {
-//                for (BlockVirtualPoolRestRep poolName:pool) {
-//                    virtualPool = poolName.getId().toString();
-//                }
-//            }
-//            List<FileVirtualPoolRestRep> filepool = BourneUtil.getViprClient().fileVpools().getByName(vpool);
-//            if(!filepool.isEmpty()) {
-//                for(FileVirtualPoolRestRep filepoolName:filepool) {
-//                    virtualPool = filepoolName.getId().toString();
-//                }
-//            }
-//        }
-//        showForm(serviceId, virtualArray, virtualPool);
-//    }
+    public static void emmetService(String service, String varray, String vpool) {
+        String serviceId = "";
+        if(service!=null) {
+            CatalogServiceRestRep category = CatalogServiceUtils.findCatalogService(service);
+            serviceId = category.getId().toString();
+        }
+        showForm(serviceId, varray, vpool);
+    }
 
     /**
      * Builds a form for a particular service

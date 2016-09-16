@@ -27,6 +27,7 @@ public class PathConstants {
     public static final String SETUP_SKIP_URL = "/api/setup/skip";
 
     // New URLs
+    public static final String CATALOG_FINDSERVICE_URL = "/catalog/services/service/{name}";
     public static final String CATALOG_CATEGORY_URL = "/catalog/categories";
     public static final String CATALOG_RESET_URL = CATALOG_CATEGORY_URL + "/reset";
     public static final String CATALOG_UPGRADE_URI = "/catalog/categories/upgrade";

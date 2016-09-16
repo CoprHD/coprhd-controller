@@ -6,6 +6,7 @@ package util;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getCatalogClient;
+
 import java.net.URI;
 import java.util.List;
 
@@ -98,6 +99,11 @@ public class CatalogServiceUtils {
     public static void moveDownServiceField(URI catalogServiceId, String fieldName) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         catalog.services().moveDownField(catalogServiceId, fieldName);
+    }
+    
+    public static CatalogServiceRestRep findCatalogService(String serviceName) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        return catalog.services().findCatalogService(serviceName);
     }
 
 }

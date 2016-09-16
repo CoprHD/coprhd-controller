@@ -128,11 +128,13 @@ public class BlockMapper {
         }
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
-        if (dbClient != null && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
-            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
-        } else {
-            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
-        }
+        to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        if (dbClient != null) {
+            StorageSystem system = getStorageSystemFromCache(from.getStorageController(), dbClient, storageSystemCache);
+            if (DiscoveredDataObject.Type.vplex.name().equalsIgnoreCase(system.getSystemType())) {
+                to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
+            }
+        } 
         to.setCapacity(CapacityUtils.convertBytesToGBInStr(from.getCapacity()));
         if (from.getThinlyProvisioned()) {
             to.setPreAllocationSize(CapacityUtils.convertBytesToGBInStr(from.getThinVolumePreAllocationSize()));

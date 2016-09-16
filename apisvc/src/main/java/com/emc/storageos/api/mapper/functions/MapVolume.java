@@ -27,6 +27,10 @@ public class MapVolume implements Function<Volume, VolumeRestRep> {
         return instance;
     }
     
+    // This method is supposed to be used by Volume Bulk API only.
+    // An in-memory cache for StorageSystem table is allocated for each MapVolume instance and
+    // we want to release the cache at the end of bulk API. So we create MapVolume instance 
+    // here so that JVM GC can release it when bulk API finishes.
     public static MapVolume getInstance(DbClient dbClient) {
         return new MapVolume(dbClient);
     }

@@ -638,13 +638,11 @@ public class SRDFUtils implements SmisConstants {
             references = helper.getReference(provider, volumePath, CIM_STORAGE_SYNCHRONIZED, null);
             while (references.hasNext()) {
                 CIMObjectPath storageSynchronized = references.next();
-                log.debug("groupSynchronized {}", storageSynchronized);
-                String systemElementProp = storageSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
-                CIMObjectPath systemElement = new CIMObjectPath(systemElementProp);
+                log.debug("storage Synchronized {}", storageSynchronized);
+                CIMObjectPath systemElement = (CIMObjectPath) storageSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT);
                 String systemNameFromSystemElement = systemElement.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString();
                 log.debug("systemName From SystemElement {}", systemNameFromSystemElement);
-                String syncedElementProp = storageSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
-                CIMObjectPath syncedElement = new CIMObjectPath(syncedElementProp);
+                CIMObjectPath syncedElement = (CIMObjectPath) storageSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT);
                 String systemNameFromSyncedElement = syncedElement.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString();
                 log.debug("systemName From SyncedElement {}", systemNameFromSyncedElement);
 

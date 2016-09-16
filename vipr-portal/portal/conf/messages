@@ -48,6 +48,7 @@ nav.user=User Mode
 nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
+nav.viewImage=Catalog Images
 nav.approvals=Approvals
 nav.admin=Administration Mode
 nav.preferences=Preferences
@@ -3190,7 +3191,7 @@ order.MONTHLY=month(s)
 order.WEEKLY=week(s)
 order.occurrences= for %s occurrences
 order.occurrences.indefinite=indefinitely
-order.additionalScheduleInfo=Retention Policy
+order.additionalScheduleInfo=Automatic Expiration
 order.additionalScheduleInfo.value=Max %s Copies
 
 order.host.with.cluster.decoration=%s [cluster: %s]
@@ -3338,6 +3339,7 @@ resources.event=Event
 resources.events.approved=Approved
 resources.events.pending=Pending
 resources.events.declined=Declined
+resources.events.failed=Failed
 resources.events.total=Total
 resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event
@@ -4346,9 +4348,9 @@ catalogImage.contentType=Type
 catalogImage.size=Size
 catalogImage.preview=Preview
 catalogImage.invalidContentType=Only images are allowed (supplied content type: %s)
-catalogImage.MB=% MB
-catalogImage.KB=% KB
-catalogImage.bytes=% bytes
+catalogImage.MB=%s MB
+catalogImage.KB=%s KB
+catalogImage.bytes=%s bytes
 
 #
 #
@@ -4806,8 +4808,8 @@ scheduler.onlyonce=Only Once
 scheduler.indefinitely=Indefinitely
 scheduler.endAfterRecurrences=End after recurrences
 scheduler.rangeOfRecurrence=Number of recurrences
-scheduler.retention=Retention Policy
-scheduler.retention.helpText=Maximum snapshots or copies to keep.
+scheduler.expiration=Automatic Expiration
+scheduler.expiration.helpText=Maximum snapshots or copies to keep.
 
 gettingStarted.header.full=Getting Started Guide
 gettingStarted.header.side=Return To Guide

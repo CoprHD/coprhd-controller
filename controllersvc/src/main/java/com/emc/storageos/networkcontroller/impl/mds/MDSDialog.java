@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +29,7 @@ import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.google.common.collect.Sets;
 
 
@@ -405,6 +404,11 @@ public class MDSDialog extends SSHDialog {
 
         Map<String, String> aliasDatabase = showDeviceAliasDatabase();
 
+        String filterCriteria = null;
+        if (!StringUtils.isEmpty(zoneName) && zoneName.startsWith(NetworkDeviceController.ZONESET_QUERY_FILTER)) {
+            filterCriteria = zoneName.substring(NetworkDeviceController.ZONESET_QUERY_FILTER.length());
+        }
+
         for (String line : lines) {        	
             int index = match(line, regex, groups);
             switch (index) {
@@ -419,8 +423,10 @@ public class MDSDialog extends SSHDialog {
                     break;
                 case 1:
                     // if zoneName is not specified, we want all zones in zoneset.
-                    // Or, if it zoneName is specified, then only return zone matched the name. Otherwise, ignore it.
-                    if (StringUtils.isEmpty(zoneName) || StringUtils.equals(groups[0], zoneName)) {
+                    // Or, if it zoneName is specified, then only return zone matched the name.
+                    // Or, if there was a filter specified, check the name for that. Otherwise, ignore it.
+                    if (StringUtils.isEmpty(zoneName) || StringUtils.equals(groups[0], zoneName)
+                            || (!StringUtils.isEmpty(filterCriteria) && groups[0].contains(filterCriteria))) {
                         zone = new Zone(groups[0]);
                         zoneset.getZones().add(zone);
                     } else {

@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -120,7 +121,8 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
         }
 
@@ -220,7 +222,9 @@ public class EventService extends TaggedResource {
             Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, eventMethod.getArgs());
+            Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
+            parameters[parameters.length - 1] = event.getId();
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             event.setEventStatus(eventStatus);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
@@ -259,7 +263,8 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
         }
 
@@ -350,6 +355,7 @@ public class EventService extends TaggedResource {
         int approved = 0;
         int declined = 0;
         int pending = 0;
+        int failed = 0;
         Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(ActionableEvent.class, "tenant",
                 tenantId.toString(), "eventStatus");
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
@@ -363,12 +369,14 @@ public class EventService extends TaggedResource {
                 approved++;
             } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())) {
                 declined++;
+            } else if (entry.getValue().equals(ActionableEvent.Status.failed.name())) {
+                failed++;
             } else {
                 pending++;
             }
         }
 
-        return new EventStatsRestRep(pending, approved, declined);
+        return new EventStatsRestRep(pending, approved, declined, failed);
     }
 
     @Override

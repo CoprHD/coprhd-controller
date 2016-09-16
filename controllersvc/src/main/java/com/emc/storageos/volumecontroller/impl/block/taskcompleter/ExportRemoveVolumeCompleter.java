@@ -77,7 +77,8 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                         || exportGroup.getVolumes().isEmpty()
                         || exportGroup.getExportMasks() == null 
                         || exportGroup.getExportMasks().isEmpty())) {
-                _log.info("Marking export group for deletion.");
+                _log.info(String.format("Marking export group [%s %s] for deletion.", 
+                        (exportGroup != null ? exportGroup.getLabel() : ""), getId()));
                 dbClient.markForDeletion(exportGroup);
             } 
 

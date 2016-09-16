@@ -625,27 +625,32 @@ public class SRDFUtils implements SmisConstants {
         return forceAdd;
     }
 
+    /**
+     * Finds remote storage synchronized element for the given volume's cimObjectPath
+     * 
+     * @param provider
+     * @param volumePath
+     * @return
+     */
     private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath) {
         CloseableIterator<CIMObjectPath> references = null;
         try {
             references = helper.getReference(provider, volumePath, CIM_STORAGE_SYNCHRONIZED, null);
             while (references.hasNext()) {
-                CIMObjectPath groupSynchronized = references.next();
-                log.debug("groupSynchronized {}", groupSynchronized);
-                String systemElementProp = groupSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
+                CIMObjectPath storageSynchronized = references.next();
+                log.debug("groupSynchronized {}", storageSynchronized);
+                String systemElementProp = storageSynchronized.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
                 CIMObjectPath systemElement = new CIMObjectPath(systemElementProp);
                 String systemNameFromSystemElement = systemElement.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString();
                 log.debug("systemName From SystemElement {}", systemNameFromSystemElement);
-                String syncedElementProp = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
+                String syncedElementProp = storageSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
                 CIMObjectPath syncedElement = new CIMObjectPath(syncedElementProp);
                 String systemNameFromSyncedElement = syncedElement.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString();
                 log.debug("systemName From SyncedElement {}", systemNameFromSyncedElement);
-                /**
-                 * Find remote synchronized instance
-                 */
+
                 if (StringUtils.hasText(systemNameFromSystemElement) && StringUtils.hasText(systemNameFromSyncedElement)
                         && !systemNameFromSystemElement.equals(systemNameFromSyncedElement)) {
-                    return groupSynchronized;
+                    return storageSynchronized;
                 }
             }
         } catch (WBEMException e) {

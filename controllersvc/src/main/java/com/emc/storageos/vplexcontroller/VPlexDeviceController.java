@@ -3598,9 +3598,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info(String.format("exportGroupRemove: mask %s volumes to process: %s", exportMask.getMaskName(),
                         volumeURIList.toString()));
 
-//                List<URI> exportMaskURIs = new ArrayList<URI>();
-//                exportMaskURIs.add(exportMask.getId());
-
                 // Fetch exportMask again as exportMask zoning Map might have changed in zoneExportRemoveVolumes
                 exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
 

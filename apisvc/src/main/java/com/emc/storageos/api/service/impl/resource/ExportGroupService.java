@@ -1506,14 +1506,14 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate there are no pending events (actionable events) against the hosts or clusters
+     * Validate there are no pending or failed events (actionable events) against the hosts or clusters
      * associated with this export group.
      * 
      * @param exportGroup
      *            export group we wish to update/delete
      */
     private void validateExportGroupNoPendingEvents(ExportGroup exportGroup) {
-        // Find the compute resource and see if there are any pending events
+        // Find the compute resource and see if there are any pending or failed events
         List<URI> computeResourceIDs = new ArrayList<>();
 
         if (exportGroup == null) {
@@ -1536,7 +1536,8 @@ public class ExportGroupService extends TaskResourceService {
             List<ActionableEvent> events = EventUtils.findAffectedResourceEvents(_dbClient, computeResourceID);
             if (events != null && !events.isEmpty()) {
                 for (ActionableEvent event : events) {
-                    if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {
+                    if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name())) {
                         errMsg.append(event.forDisplay() + "\n");
                     }
                 }
@@ -1544,7 +1545,7 @@ public class ExportGroupService extends TaskResourceService {
         }
 
         if (errMsg.length() != 0) {
-            throw APIException.badRequests.cannotExecuteOperationWhilePendingEvent(errMsg.toString());
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
         }
     }
 

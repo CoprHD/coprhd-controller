@@ -110,6 +110,7 @@ verify_export() {
 	fi
 	echo There was a failure
 	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	cleanup
 	finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
@@ -134,7 +135,8 @@ verify_maskname() {
 	/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep host1export
 
 	# We normally don't bail out of the suite, but this is a pretty serious issue that would prevent you from running further.
-	exit;
+	cleanup
+	finish
     fi
 }
 
@@ -202,7 +204,8 @@ arrayhelper() {
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
-	exit
+	cleanup
+	finish
 	;;
     esac
 }
@@ -226,7 +229,8 @@ arrayhelper_create_export_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -255,7 +259,8 @@ arrayhelper_volume_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -284,7 +289,8 @@ arrayhelper_initiator_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -312,7 +318,8 @@ arrayhelper_delete_volume() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -333,7 +340,8 @@ arrayhelper_delete_export_mask() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -361,7 +369,8 @@ arrayhelper_delete_mask() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -389,7 +398,8 @@ arrayhelper_verify_export() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -616,10 +626,8 @@ run() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	if [ "${docleanup}" = "1" ]; then
-	    cleanup;
-	fi
-	exit;
+	cleanup
+	finish
     fi
 }
 
@@ -1499,8 +1507,8 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	# TODO: add error handling
-	exit;
+	cleanup
+	finish
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1532,8 +1540,8 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	# TODO: add error handling
-	exit;
+	cleanup
+	finish
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1600,7 +1608,8 @@ test_3() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1679,7 +1688,8 @@ test_4() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1760,7 +1770,8 @@ test_5() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1855,7 +1866,8 @@ test_6() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2055,7 +2067,8 @@ test_9() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2199,7 +2212,8 @@ test_11() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2336,7 +2350,8 @@ test_13() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2434,7 +2449,8 @@ test_14() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2520,7 +2536,8 @@ test_15() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2622,7 +2639,8 @@ test_16() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2722,7 +2740,8 @@ test_17() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2807,7 +2826,8 @@ test_18() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2890,7 +2910,8 @@ test_19() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2985,9 +3006,10 @@ test_20() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
 
     if [ $? -ne 0 ]; then
-	    echo "export group command failed outright"
-	    exit;
-	fi
+	echo "export group command failed outright"
+	cleanup
+	finish
+    fi
 
 	# Show the result of the export group command for now (show the task and WF IDs)
     echo $resultcmd
@@ -3082,7 +3104,8 @@ test_21() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3420,14 +3443,16 @@ test_25() {
 }
 
 cleanup() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      runcmd export_group delete ${id} > /dev/null
-      echo "Deleted export group: ${id}"
-   done
-   runcmd volume delete --project $PROJECT --wait
-   echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    if [ "${docleanup}" = "1" ]; then
+	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+	do
+	  runcmd export_group delete ${id} > /dev/null
+	  echo "Deleted export group: ${id}"
+	done
+	runcmd volume delete --project $PROJECT --wait
+    fi
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests

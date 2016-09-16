@@ -2330,7 +2330,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_TASK_EXECUTION_IN_PROGRESS)
-    public BadRequestException cannotExecuteOperationWhilePendingOrFailedEvent(final String pendingVolumes);
+    public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
@@ -3103,7 +3103,7 @@ public interface BadRequestExceptions {
     public BadRequestException exportGroupContainsMountedVolumes(final URI exportGroup, final String volumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotExecuteOperationWhilePendingEvent(final String string);
+    public BadRequestException cannotExecuteOperationWhilePendingOrFailedEvent(final String string);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deactivateRPTargetNotSupported(final String string);

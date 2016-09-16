@@ -6,6 +6,12 @@ package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.vipr.client.core.VirtualArrays;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +28,7 @@ import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.AssetOptionUtils;
+import util.BourneUtil;
 import util.CatalogServiceUtils;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
@@ -57,7 +64,7 @@ public class Services extends Controller {
             String path = "";
             URI categoryId = service.getCatalogCategory().getId();
             if (categoryId != null) {
-                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant(), null);
+                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant());
                 CategoryDef category = catalog.get(categoryId.toString());
                 path = (category != null) ? category.path : path;
             }
@@ -65,12 +72,41 @@ public class Services extends Controller {
         }
         renderArgs.put("backUrl", backUrl);
     }
+    
+//    public static void emmetService(String service, String varray, String vpool) {
+//        //call API to get URI
+//        String serviceId = "urn:storageos:CatalogService:ccd97a66-2cf6-4747-8ba1-3dc48ec2ddf5:vdc1";
+//        String virtualArray = "";
+//        if(varray!=null) {
+//            List<VirtualArrayRestRep> varray1 = BourneUtil.getViprClient().varrays().findByName(varray);
+//            for (VirtualArrayRestRep varray2:varray1) {
+//                virtualArray = varray2.getId().toString();
+//            }
+//        }
+//        String virtualPool = "";
+//        if(vpool!=null) {
+//            List<BlockVirtualPoolRestRep> pool = BourneUtil.getViprClient().blockVpools().getByName(vpool);
+//            if(!pool.isEmpty()) {
+//                for (BlockVirtualPoolRestRep poolName:pool) {
+//                    virtualPool = poolName.getId().toString();
+//                }
+//            }
+//            List<FileVirtualPoolRestRep> filepool = BourneUtil.getViprClient().fileVpools().getByName(vpool);
+//            if(!filepool.isEmpty()) {
+//                for(FileVirtualPoolRestRep filepoolName:filepool) {
+//                    virtualPool = filepoolName.getId().toString();
+//                }
+//            }
+//        }
+//        showForm(serviceId, virtualArray, virtualPool);
+//    }
 
     /**
      * Builds a form for a particular service
-     * @param source TODO
+     * @param varray TODO
+     * @param vpool TODO
      */
-    public static void showForm(String serviceId) {
+    public static void showForm(String serviceId, String varray, String vpool) {
         TenantSelector.addRenderArgs();
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         List<CatalogServiceFieldRestRep> serviceFields = service.getCatalogServiceFields();
@@ -93,7 +129,7 @@ public class Services extends Controller {
                 .createAssetFieldDescriptors(serviceDescriptor);
 
         // Calculate default values for all fields
-        Map<String, String> defaultValues = getDefaultValues(serviceDescriptor);
+        Map<String, String> defaultValues = getDefaultValues(serviceDescriptor, varray, vpool);
 
         // Calculate asset parameters for any fields that are overridden
         Map<String, String> overriddenValues = getOverriddenValues(service);
@@ -172,9 +208,11 @@ public class Services extends Controller {
      * 
      * @param descriptor
      *            the service descriptor.
+     * @param varray TODO
+     * @param vpool TODO
      * @return the default field values.
      */
-    private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor) {
+    private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor, String varray, String vpool) {
         Map<String, String> defaultValues = Maps.newHashMap();
         List<ServiceFieldRestRep> allFields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());
         for (ServiceFieldRestRep field : allFields) {
@@ -184,6 +222,12 @@ public class Services extends Controller {
             else {
                 defaultValues.put(field.getName(), field.getInitialValue());
             }
+        }
+        if(StringUtils.isNotEmpty(varray)) {
+            defaultValues.put("virtualArray", varray);
+        }
+        if(StringUtils.isNotEmpty(vpool)) {
+            defaultValues.put("virtualPool", vpool);
         }
         return defaultValues;
     }

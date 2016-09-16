@@ -33,4 +33,8 @@ public class VirtualArraySearchBuilder extends SearchBuilder<VirtualArrayRestRep
     public SearchBuilder<VirtualArrayRestRep> byCluster(URI clusterId) {
         return byCluster(clusterId.toString());
     }
+    
+    public SearchBuilder<VirtualArrayRestRep> byName(String arrayId) {
+        return by(NAME_PARAM , arrayId);
+    }
 }

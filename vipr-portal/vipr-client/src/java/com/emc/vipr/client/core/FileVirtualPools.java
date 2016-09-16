@@ -154,6 +154,10 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
         List<NamedRelatedVirtualPoolRep> refs = list();
         return getByRefs(refs, filter);
     }
+    
+    public List<FileVirtualPoolRestRep> getByName(String name) {
+        return search().byName(name).run();
+    }
 
     /**
      * Creates a file virtual pool.

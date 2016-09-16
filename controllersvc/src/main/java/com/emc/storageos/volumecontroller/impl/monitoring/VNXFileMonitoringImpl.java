@@ -187,7 +187,13 @@ public class VNXFileMonitoringImpl implements IMonitoringStorageSystem {
     public boolean makeVNXFileSubscription(String storageSystemURI) {
         _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         boolean isSuccess = false;
-
+        StorageSystem storageDevice = null;
+        try {
+            storageDevice = _dbClient.queryObject(StorageSystem.class, URI.create(storageSystemURI));
+        } catch (DatabaseException e) {
+            _logger.error(e.getMessage(), e);
+        }
+        
         // Check for Storage System compatibility & SMIS provider connection status
         if (isCompatibleDevice(storageSystemURI) &&
                 isSMISProviderConnected(storageSystemURI)) {
@@ -196,6 +202,8 @@ public class VNXFileMonitoringImpl implements IMonitoringStorageSystem {
              */
             _logger.debug("Storage System(vnx file) delete stale subscription status: {}"
                     , _connectionFactory.deleteVnxFileStaleSubscriptions(storageSystemURI));
+            // Un-subscribe the existing indications!!
+            _connectionFactory.unsubscribeVNXFileProviderConnection(storageDevice);
             isSuccess = _connectionFactory.subscribeVnxFileForIndication(storageSystemURI);
             _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         }

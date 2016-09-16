@@ -1878,6 +1878,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 });
                 break;
             case landingStep:
+            	guide_data=angular.fromJson(readCookie(dataCookieKey));
+                if(guide_data){
+                    $scope.completedSteps = 3;
+                }
                 callback();
                 return true;
                 break;

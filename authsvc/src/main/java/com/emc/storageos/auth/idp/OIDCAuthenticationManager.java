@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
 
 /**
  *
@@ -79,9 +80,10 @@ public class OIDCAuthenticationManager {
 
         // Figure out tenant id
 
-        // Dont support user attributes in this IDP case for now. So always set user attribute mapping to null
+        // Dont support user attributes in this IDP case for now. So pass an empty attribute map here
+        Map<String, List<String>> userMappingAttributes = new HashMap<String, List<String>>();
         Map<URI, BasePermissionsHelper.UserMapping> tenants =
-                TenantMapper.mapUserToTenant(authnProvider.getDomains(), userInfo, null, tenantToMappingMap, _dbClient);
+                TenantMapper.mapUserToTenant(authnProvider.getDomains(), userInfo, userMappingAttributes, tenantToMappingMap, _dbClient);
 
         if (null == tenants || tenants.isEmpty()) {
             log.error("User {} did not match any tenant", userInfo.getUserName());

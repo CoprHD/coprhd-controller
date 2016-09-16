@@ -2952,12 +2952,6 @@ public class VNXeApiClient {
 
     }
 
-    public ReplicationSession getReplicationSessionByName(String sessionName) {
-        _logger.info("getting replication sessions by Name");
-        ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
-        return req.getByName(sessionName);
-    }
-
     public VNXeCommandJob createReplicationSession(String srcResourceId, String dstResourceId, int maxTimeOutOfSync,
             RemoteSystem remoteSystem, String name) {
         _logger.info("Creating new replication session:");
@@ -2982,7 +2976,7 @@ public class VNXeApiClient {
         return req.modifyReplicationSession(id, param);
     }
 
-    public VNXeCommandResult deleteReplicationSession(String id) {
+    public VNXeCommandJob deleteReplicationSession(String id) {
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
         return req.deleteReplicationSession(id);
     }

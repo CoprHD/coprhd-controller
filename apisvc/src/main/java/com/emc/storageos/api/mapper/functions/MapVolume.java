@@ -5,8 +5,8 @@
 package com.emc.storageos.api.mapper.functions;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.db.client.DbClient;
@@ -36,7 +36,7 @@ public class MapVolume implements Function<Volume, VolumeRestRep> {
     
     private MapVolume(DbClient dbClient) {
         this.dbClient = dbClient;
-        this.storageSystemCache = new WeakHashMap<URI, StorageSystem>();
+        this.storageSystemCache = new HashMap<URI, StorageSystem>();
     }
 
     @Override

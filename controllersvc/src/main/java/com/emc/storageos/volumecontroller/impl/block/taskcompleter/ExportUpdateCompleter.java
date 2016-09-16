@@ -26,11 +26,13 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.BlockExportController;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
@@ -122,12 +124,25 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
             }
             dbClient.updateObject(exportGroup);
+            
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
+            
+            // If there are no masks or volumes associated with this export group, and it's an internal (VPLEX/RP)
+            // export group, delete the export group automatically.
+            if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
+                    (exportGroup == null 
+                        || exportGroup.getVolumes() == null 
+                        || exportGroup.getVolumes().isEmpty()
+                        || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty())) {
+                _log.info(String.format("Marking export group [%s %s] for deletion.", 
+                        (exportGroup != null ? exportGroup.getLabel() : ""), getId()));
+                dbClient.markForDeletion(exportGroup);
+            } 
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);

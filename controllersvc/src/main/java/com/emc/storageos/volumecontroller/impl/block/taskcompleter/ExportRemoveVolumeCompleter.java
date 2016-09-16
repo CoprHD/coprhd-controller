@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportRemoveVolumeCompleter.class);
@@ -75,8 +76,7 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     (exportGroup == null 
                         || exportGroup.getVolumes() == null 
                         || exportGroup.getVolumes().isEmpty()
-                        || exportGroup.getExportMasks() == null 
-                        || exportGroup.getExportMasks().isEmpty())) {
+                        || ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty())) {
                 _log.info(String.format("Marking export group [%s %s] for deletion.", 
                         (exportGroup != null ? exportGroup.getLabel() : ""), getId()));
                 dbClient.markForDeletion(exportGroup);

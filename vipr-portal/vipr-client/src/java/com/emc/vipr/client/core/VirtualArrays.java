@@ -354,6 +354,13 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
     public List<VirtualArrayRestRep> findByConnectedHost(URI hostId) {
         return search().byHost(hostId).run();
     }
+    
+    /**
+     * Finds virtual array details based on name
+     */
+    public List<VirtualArrayRestRep> findByName(String name) {
+        return search().byName(name).run();
+    }
 
     /**
      * Finds the list of virtual arrays connected to the given host by ID, optionally filtering the results. This is

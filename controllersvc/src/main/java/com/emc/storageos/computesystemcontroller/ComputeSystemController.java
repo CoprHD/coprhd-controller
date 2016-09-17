@@ -103,17 +103,31 @@ public interface ComputeSystemController extends Controller {
 
     public void addInitiatorToExport(URI host, URI init, String taskId) throws ControllerException;
 
+    public void addInitiatorsToExport(URI eventId, URI host, List<URI> init, String taskId) throws ControllerException;
+
     public void addInitiatorsToExport(URI host, List<URI> init, String taskId) throws ControllerException;
+
+    public void removeInitiatorFromExport(URI eventId, URI host, URI init, String taskId) throws ControllerException;
 
     public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException;
 
+    public void removeInitiatorsFromExport(URI eventId, URI host, List<URI> init, String taskId) throws ControllerException;
+
     public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException;
+
+    public void addHostsToExport(URI eventId, List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException;
 
     public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException;
 
-    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
-            throws ControllerException;
+    public void removeHostsFromExport(URI eventId, List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException;
+
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException;
 
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 

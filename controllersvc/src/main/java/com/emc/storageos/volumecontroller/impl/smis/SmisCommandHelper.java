@@ -4696,9 +4696,10 @@ public class SmisCommandHelper implements SmisConstants {
      *            of an array masking container.
      * @return - Will return a map of the volume WWNs to their HLU values for an instance of
      *         LunMasking container on the array.
+     * @throws WBEMException
      */
     public Map<String, Integer> getVolumesFromLunMaskingInstance(WBEMClient client,
-            CIMInstance instance) {
+            CIMInstance instance) throws WBEMException {
         Map<String, Integer> wwnToHLU = new HashMap<String, Integer>();
         CloseableIterator<CIMInstance> iterator = null;
         CloseableIterator<CIMInstance> protocolControllerForUnitIter = null;
@@ -4763,16 +4764,11 @@ public class SmisCommandHelper implements SmisConstants {
 
             _log.debug(String.format("getVolumesFromLunMaskingInstance(%s) - wwnToHLU map = %s",
                     instance.getObjectPath().toString(), Joiner.on(',').join(wwnToHLU.entrySet())));
-        } catch (
-
-        WBEMException we)
-
-        {
+        } catch (WBEMException we) {
             _log.error("Caught an error will attempting to get volume list from " +
                     "masking instance", we);
-        } finally
-
-        {
+            throw we;
+        } finally {
             closeCIMIterator(iterator);
             closeCIMIterator(protocolControllerForUnitIter);
         }
@@ -4789,9 +4785,10 @@ public class SmisCommandHelper implements SmisConstants {
      *            [in] - Instance of CIM_LunMaskingSCSIProtocolController, holding a representation
      *            of an array masking container.
      * @return - Will return a list of port names for the LunMasking container.
+     * @throws WBEMException
      */
     public List<String> getInitiatorsFromLunMaskingInstance(WBEMClient client,
-            CIMInstance instance) {
+            CIMInstance instance) throws WBEMException {
         List<String> initiatorPorts = new ArrayList<String>();
         CloseableIterator<CIMInstance> iterator = null;
         try {
@@ -4809,6 +4806,7 @@ public class SmisCommandHelper implements SmisConstants {
         } catch (WBEMException we) {
             _log.error("Caught an error while attempting to get initiator list from " +
                     "masking instance", we);
+            throw we;
         } finally {
             closeCIMIterator(iterator);
         }

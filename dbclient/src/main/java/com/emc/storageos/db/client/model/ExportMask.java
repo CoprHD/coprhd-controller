@@ -498,6 +498,10 @@ public class ExportMask extends DataObject {
                 (_userAddedVolumes != null && !_userAddedVolumes.isEmpty());
     }
 
+    public boolean hasAnyUserAddedVolumes() {
+        return (_userAddedVolumes != null && !_userAddedVolumes.isEmpty());
+    }
+
     public void addToUserCreatedVolumes(Collection<BlockObject> blockObjects) {
         if (_userAddedVolumes == null) {
             _userAddedVolumes = new StringMap();

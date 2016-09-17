@@ -340,20 +340,17 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     *
-     * Start continuous copies.
-     *
+     * Start continuous copies.  Continuous copies will be created when <i>NATIVE</i> type is specified and
+     * <i>copyID</i> fields are omitted.
      *
      * @prereq none
      *
-     * @param id
-     *            the URN of a ViPR Source volume
-     * @param param
-     *            List of copies to start
+     * @param id    URN of a ViPR Source volume
+     * @param param List of copies to start or create.
      *
-     * @brief Start continuous copies.
-     * @return TaskList
+     * @brief       Start or create continuous copies.
      *
+     * @return      TaskList
      * @throws ControllerException
      *
      */
@@ -417,7 +414,7 @@ public class BlockService extends TaskResourceService {
                 taskList.getTaskList().add(taskResp);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 if (URIUtil.isValid(copyID) && URIUtil.isType(copyID, BlockMirror.class)) {
-                    /**
+                    /*
                      * To establish group relationship between volume group and mirror group
                      */
                     taskResp = establishVolumeMirrorGroupRelation(id, copy, ProtectionOp.START.getRestOp());
@@ -3486,12 +3483,19 @@ public class BlockService extends TaskResourceService {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
             _log.error(errorMsg, e);
-            for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-                volumeTask.setState(Operation.Status.error.name());
-                volumeTask.setMessage(errorMsg);
-                _dbClient.updateTaskOpStatus(Volume.class, volumeTask
-                        .getResource().getId(), taskId,
-                        new Operation(Operation.Status.error.name(), errorMsg));
+            if (!taskList.getTaskList().isEmpty()) {
+                for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+                    volumeTask.setState(Operation.Status.error.name());
+                    volumeTask.setMessage(errorMsg);
+                    _dbClient.updateTaskOpStatus(Volume.class, volumeTask
+                            .getResource().getId(), taskId,
+                            new Operation(Operation.Status.error.name(), errorMsg));
+                }
+            } else {
+                for (Volume volume : volumes) {
+                    _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskId,
+                            new Operation(Operation.Status.error.name(), errorMsg));
+                }
             }
             throw e;
         }

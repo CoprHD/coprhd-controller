@@ -1877,7 +1877,7 @@
     {
         key : "controller_mds_allow_zoneset_commit",
         label : "Allow Cisco Zone changes",
-        description : "Allow Cisco zoning changes to be committed if zoneset clone fails",
+        description : "Allow Cisco zoning changes to be committed if zoneset clone fails. If Clone Cisco Zonesets is false, this option is ignored.",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : true,
@@ -2940,7 +2940,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "true", 
+        value : "false", 
     },
     {
         key : "artificial_failure",

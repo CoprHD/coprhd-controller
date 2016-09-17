@@ -3103,5 +3103,8 @@ public interface BadRequestExceptions {
     public BadRequestException exportGroupContainsMountedVolumes(final URI exportGroup, final String volumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotExecuteOperationWhilePendingEvent(final String string);
+    public BadRequestException cannotExecuteOperationWhilePendingOrFailedEvent(final String string);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException deactivateRPTargetNotSupported(final String string);
 }

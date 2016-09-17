@@ -327,14 +327,14 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         if (null != catalogCategories && !catalogCategories.isEmpty() && null != serviceName) {
             List<URI> serviceURIList = client.catalogServices().findByLabel(serviceName);
             List<CatalogService> requestedCatalogServices = client.catalogServices().findByIds(serviceURIList);
-            
-            for(CatalogCategory catalogCategory : catalogCategories) {
+
+            for (CatalogCategory catalogCategory : catalogCategories) {
                 final String parentCatalogCategoryId = catalogCategory.getId() + ":" + catalogCategory.getLabel();
-                for(CatalogService requestedCatalogService : requestedCatalogServices){
+                for (CatalogService requestedCatalogService : requestedCatalogServices) {
                     if (null != requestedCatalogService) {
                         final NamedURI serviceID = requestedCatalogService.getCatalogCategoryId();
-                        if(null != serviceID && parentCatalogCategoryId.equals(serviceID.toString()) && serviceName.equals(serviceLabel)) {
                         final String serviceLabel = requestedCatalogService.getLabel();
+                        if (null != serviceID && parentCatalogCategoryId.equals(serviceID.toString()) && serviceName.equals(serviceLabel)) {
                             return requestedCatalogService;
                         }
                     }

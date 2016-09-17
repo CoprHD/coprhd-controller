@@ -195,13 +195,13 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
 
         CatalogService catalogServices = catalogCategoryManager.getCategorieService(subCatalogCategories, name);
 
-        if (null != catalogServices) {
-            ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogServices);
-            List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogServices.getId());
-            return map(catalogServices, serviceDescriptor, catalogServiceFields);
-        } else {
+        if (null == catalogServices) {
             APIException.notFound.unableToFindEntityInURL(catalogCategory.getId());
-        }
+        } 
+        
+        ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogServices);
+        List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogServices.getId());
+        return map(catalogServices, serviceDescriptor, catalogServiceFields);
     }
 
     /**

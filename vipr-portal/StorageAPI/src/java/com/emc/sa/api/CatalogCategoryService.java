@@ -659,15 +659,13 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
                 ScopedLabelSet tags = category.getTag();
                 if(null != tags) {
                     for (ScopedLabel tag : tags) {
-                        switch (tag.getScope()) {
-                            case "source":
-                                if(source.equals(tag.getLabel())) {
-                                    filteredCatalogCategories.add(category);
-                                }
+                        if(source.equals(tag.getLabel())) {
+                            filteredCatalogCategories.add(category);
                         }
                     }
                 }
             }
+            log.debug("Filtered Catalog Categories for source : {} Categories : {}", source, filteredCatalogCategories);
             return filteredCatalogCategories;
         } else {
             return categories;

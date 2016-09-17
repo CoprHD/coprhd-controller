@@ -324,22 +324,24 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     }
     
     public CatalogService getCategorieService(List<CatalogCategory> catalogCategories, String serviceName) {
-        CatalogService catalogService = null;
         if (null != catalogCategories && !catalogCategories.isEmpty() && null != serviceName) {
             List<URI> serviceURIList = client.catalogServices().findByLabel(serviceName);
-            List<CatalogService> reqestedCatalogServices = client.catalogServices().findByIds(serviceURIList);
+            List<CatalogService> requestedCatalogServices = client.catalogServices().findByIds(serviceURIList);
             
             for(CatalogCategory catalogCategory : catalogCategories) {
                 final String parentCatalogCategoryId = catalogCategory.getId() + ":" + catalogCategory.getLabel();
-                for(CatalogService reqestedCatalogService : reqestedCatalogServices){
-                    if (null != reqestedCatalogService && parentCatalogCategoryId.equals(reqestedCatalogService.getCatalogCategoryId().toString())) {
-                        catalogService = reqestedCatalogService;
-                        break;
+                for(CatalogService requestedCatalogService : requestedCatalogServices){
+                    if (null != requestedCatalogService) {
+                        final NamedURI serviceID = requestedCatalogService.getCatalogCategoryId();
+                        if(null != serviceID && parentCatalogCategoryId.equals(serviceID.toString()) && serviceName.equals(serviceLabel)) {
+                        final String serviceLabel = requestedCatalogService.getLabel();
+                            return requestedCatalogService;
+                        }
                     }
                 }
             }
         }
-        return catalogService;
+        return null;
     }
     
     public List<CatalogCategory> getSubCategories(URI parentCatalogCategoryId, String serviceName) {

@@ -199,34 +199,33 @@ public class InitiatorService extends TaskResourceService {
     }
 
     /**
-     * Dissociate a Host initiator to another.
+     * Dissociate a Host initiator from its pair
      * 
      * @param id the URN of a ViPR initiator
-     * @param dissociatedId he URN of a ViPR paired initiator
      * @prereq none
      * @brief Dissociate a Host initiator to another.
      * @return the details of the updated host initiator.
      * @throws DatabaseException when a DB error occurs
      */
     @PUT
-    @Path("/{id}/dissociate/{dissociatedId}")
+    @Path("/{id}/dissociate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public InitiatorRestRep dissociateInitiator(@PathParam("id") URI id,
-            @PathParam("dissociatedId") URI dissociatedId) throws DatabaseException {
+    public InitiatorRestRep dissociateInitiator(@PathParam("id") URI id
+            ) throws DatabaseException {
 
-        if (id.compareTo(dissociatedId) == 0) {
-            APIException.badRequests.dissociateInitiatorMismatch(id, dissociatedId);
-        }
         Initiator initiator = queryObject(Initiator.class, id, true);
-        Initiator pairInitiator = queryObject(Initiator.class, dissociatedId, true);
-        if (pairInitiator != null && initiator != null) {
-            initiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
-            pairInitiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
-            _dbClient.updateObject(initiator);
-            _dbClient.updateObject(pairInitiator);
-            auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
-                    initiator.auditParameters());
+        if (initiator != null) {
+            URI pairedId = initiator.getAssociatedInitiator();
+            Initiator pairInitiator = queryObject(Initiator.class, pairedId, true);
+            if (pairInitiator != null) {
+                initiator.setAssociatedInitiator(null);
+                pairInitiator.setAssociatedInitiator(null);
+                _dbClient.updateObject(initiator);
+                _dbClient.updateObject(pairInitiator);
+                auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
+                        initiator.auditParameters());
+            }
         } else {
             throw APIException.badRequests.initiatorPortNotValid();
         }

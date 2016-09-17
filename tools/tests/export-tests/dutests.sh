@@ -2242,7 +2242,7 @@ test_12() {
     volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Check to make sure we're running VPLEX only
-    if [ "${SS: 0:-1}" != "vplex" ]; then
+    if [ "${SS}" != "vplex" ]; then
         echo "test_12 only runs on VPLEX.  Bypassing for ${SS}."
         return
     fi

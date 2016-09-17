@@ -180,10 +180,10 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      */
     public List<CatalogCategoryRestRep> getSubCategories(URI catalogCategoryId, String source) {
         CatalogCategoryList response = null;
-        if (source!=null) {
+        if (source != null) {
             Properties queryParam = new Properties();
             queryParam.setProperty("source", source);
-            response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, queryParam , catalogCategoryId);
+            response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, queryParam, catalogCategoryId);
         } else {
             response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, catalogCategoryId);
         }

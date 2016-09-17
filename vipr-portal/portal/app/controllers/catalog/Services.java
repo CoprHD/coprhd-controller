@@ -5,12 +5,7 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
-
-import com.emc.storageos.model.varray.VirtualArrayRestRep;
-import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
-import com.emc.vipr.client.core.VirtualArrays;
+import static com.emc.vipr.client.impl.Constants.EMMET_COOKIE;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -28,8 +23,6 @@ import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.AssetOptionUtils;
-import util.BourneUtil;
-import util.CatalogCategoryUtils;
 import util.CatalogServiceUtils;
 import util.ExecutionWindowUtils;
 import util.MessagesUtils;
@@ -38,7 +31,6 @@ import util.ServiceFormUtils;
 import util.ServiceFormUtils.AssetFieldDescriptor;
 
 import com.emc.vipr.model.catalog.AssetOption;
-import com.emc.vipr.model.catalog.CatalogCategoryRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceFieldRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
@@ -75,11 +67,14 @@ public class Services extends Controller {
         renderArgs.put("backUrl", backUrl);
     }
     
-    public static void emmetService(String service, String varray, String vpool) {
+    public static void emmetService(String service, String varray, String vpool, String source) {
         String serviceId = "";
         if(service!=null) {
             CatalogServiceRestRep category = CatalogServiceUtils.findCatalogService(service);
             serviceId = category.getId().toString();
+        }
+        if(source!=null) {
+            response.setCookie(EMMET_COOKIE, source);
         }
         showForm(serviceId, varray, vpool);
     }

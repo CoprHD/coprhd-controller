@@ -120,10 +120,6 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
         return ResourceUtils.defaultList(response.getVirtualPool());
     }
     
-    public List<BlockVirtualPoolRestRep> getByName(String name) {
-        return search().byName(name).run();
-    }
-
     public List<BlockVirtualPoolRestRep> getByTenant(URI tenantId) {
         return getByTenant(tenantId, null);
     }

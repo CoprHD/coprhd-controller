@@ -101,7 +101,7 @@ angular.module("portalApp").controller({
         	 */
         	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
         	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
-        	if((nonequalList.indexOf(value)<0)||(equalList.indexOf(value)==-1)) {
+        	if((nonequalList.indexOf(value)==-1)||(equalList.indexOf(value)!=-1)) {
         		$('#vpool_placementPolicy').val('0').prop('selected',true);
         		$('#vpool_placementPolicy').change();
         	}

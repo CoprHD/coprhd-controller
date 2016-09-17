@@ -50,6 +50,8 @@ import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -410,7 +412,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
     @GET
     @Path("/{id}/categories")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CatalogCategoryList getCatalogCategories(@PathParam("id") URI id) throws DatabaseException {
+    public CatalogCategoryList getCatalogCategories(@PathParam("id") URI id, @QueryParam("source") String source) throws DatabaseException {
         CatalogCategory parentCatalogCategory = queryResource(id);
 
         // check the user permissions
@@ -418,6 +420,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
         List<CatalogCategory> subCatalogCategories = catalogCategoryManager.getSubCategories(id);
         subCatalogCategories = filterCategoriesByACLs(subCatalogCategories);
+        subCatalogCategories = filterCategoriesBySource(source, subCatalogCategories);
 
         CatalogCategoryList subCatalogCategoryList = new CatalogCategoryList();
         for (CatalogCategory subCatalogCategory : subCatalogCategories) {
@@ -647,6 +650,26 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
             }
         }
         return filteredCatalogCategories;
+    }
+    
+    private List<CatalogCategory> filterCategoriesBySource(String source, List<CatalogCategory> categories) {
+        if(null != source) {
+            List<CatalogCategory> filteredCatalogCategories = Lists.newArrayList();
+            for (CatalogCategory category : categories) {
+                ScopedLabelSet tags = category.getTag();
+                if(null != tags) {
+                    for (ScopedLabel tag : tags) {
+                        if(source.equals(tag.getLabel())) {
+                            filteredCatalogCategories.add(category);
+                        }
+                    }
+                }
+            }
+            log.debug("Filtered Catalog Categories for source : {} Categories : {}", source, filteredCatalogCategories);
+            return filteredCatalogCategories;
+        } else {
+            return categories;
+        }
     }
 
     /**

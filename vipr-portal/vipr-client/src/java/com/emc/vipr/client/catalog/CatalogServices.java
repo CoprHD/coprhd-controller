@@ -23,6 +23,7 @@ import com.emc.vipr.client.core.TenantResources;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.model.catalog.CatalogCategoryRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceBulkRep;
 import com.emc.vipr.model.catalog.CatalogServiceCreateParam;
 import com.emc.vipr.model.catalog.CatalogServiceList;
@@ -131,6 +132,17 @@ public class CatalogServices extends AbstractCatalogBulkResources<CatalogService
     public List<CatalogServiceRestRep> findByCatalogCategory(URI catalogCategoryId) {
         CatalogServiceList response = client.get(CatalogServiceList.class, PathConstants.CATALOG_SUB_SERVICES_URL, catalogCategoryId);
         return getByRefs(response.getCatalogServices());
+    }
+
+    /**
+     * GET /services/service/{name}
+     *
+     * @param name
+     * @return
+     */
+    public CatalogServiceRestRep findCatalogService(String name) {
+        CatalogServiceRestRep response = client.get(CatalogServiceRestRep.class, PathConstants.CATALOG_FINDSERVICE_URL, name);
+        return response;
     }
 
     /**

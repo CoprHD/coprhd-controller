@@ -36,9 +36,9 @@ public class CatalogCategoryUtils {
         return catalog.categories().getRootCatalogCategory(Models.currentAdminTenant());
     }
 
-    public static List<CatalogCategoryRestRep> getCatalogCategories(CatalogCategoryRestRep category) {
+    public static List<CatalogCategoryRestRep> getCatalogCategories(CatalogCategoryRestRep category, String source) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        return catalog.categories().getSubCategories(category.getId());
+        return catalog.categories().getSubCategories(category.getId(), source);
     }
 
     public static void upgradeCatalog() {

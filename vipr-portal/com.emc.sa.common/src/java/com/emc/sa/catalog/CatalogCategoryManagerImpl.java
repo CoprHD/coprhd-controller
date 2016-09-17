@@ -322,6 +322,33 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         SortedIndexUtils.sort(categories);
         return categories;
     }
+    
+    public CatalogService getCategorieService(List<CatalogCategory> catalogCategories, String serviceName) {
+        if (null != catalogCategories && !catalogCategories.isEmpty() && null != serviceName) {
+            List<URI> serviceURIList = client.catalogServices().findByLabel(serviceName);
+            List<CatalogService> requestedCatalogServices = client.catalogServices().findByIds(serviceURIList);
+
+            for (CatalogCategory catalogCategory : catalogCategories) {
+                final String parentCatalogCategoryId = catalogCategory.getId() + ":" + catalogCategory.getLabel();
+                for (CatalogService requestedCatalogService : requestedCatalogServices) {
+                    if (null != requestedCatalogService) {
+                        final NamedURI serviceID = requestedCatalogService.getCatalogCategoryId();
+                        final String serviceLabel = requestedCatalogService.getLabel();
+                        if (null != serviceID && parentCatalogCategoryId.equals(serviceID.toString()) && serviceName.equals(serviceLabel)) {
+                            return requestedCatalogService;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
+    public List<CatalogCategory> getSubCategories(URI parentCatalogCategoryId, String serviceName) {
+        List<CatalogCategory> categories = client.catalogCategories().findSubCatalogCategories(parentCatalogCategoryId);
+        SortedIndexUtils.sort(categories);
+        return categories;
+    }
 
     public void moveUpCatalogCategory(URI catalogCategoryId) {
         CatalogCategory catalogCategory = getCatalogCategoryById(catalogCategoryId);
@@ -352,5 +379,4 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
             return key;
         }
     }
-
 }

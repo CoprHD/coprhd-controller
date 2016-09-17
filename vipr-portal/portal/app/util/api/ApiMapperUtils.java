@@ -49,7 +49,7 @@ public class ApiMapperUtils {
         it.setTitle(category.getTitle());
         it.setDescription(category.getDescription());
         it.setImage(category.getImage());
-        List<CatalogCategoryRestRep> subCatalogCategories = CatalogCategoryUtils.getCatalogCategories(category);
+        List<CatalogCategoryRestRep> subCatalogCategories = CatalogCategoryUtils.getCatalogCategories(category, null);
         for (CatalogCategoryRestRep subCatalogCategory : subCatalogCategories) {
             it.getSubCategories().add(newNamedReference(subCatalogCategory));
         }

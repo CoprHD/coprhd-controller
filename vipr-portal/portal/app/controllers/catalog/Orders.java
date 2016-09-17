@@ -196,7 +196,7 @@ public class Orders extends OrderExecution {
         checkAuthenticity();
         OrderRestRep order = OrderUtils.getOrder(uri(orderId));
         addParametersToFlash(order);
-        Services.showForm(order.getCatalogService().getId().toString());
+        Services.showForm(order.getCatalogService().getId().toString(), null, null);
     }
 
     @Util
@@ -275,7 +275,7 @@ public class Orders extends OrderExecution {
         if (Validation.hasErrors()) {
             Validation.keep();
             Common.flashParamsExcept("json", "body");
-            Services.showForm(serviceId);
+            Services.showForm(serviceId, null, null);
         }
 
         return createOrder(service, descriptor, parameters);

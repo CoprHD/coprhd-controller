@@ -119,7 +119,7 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
         VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
         return ResourceUtils.defaultList(response.getVirtualPool());
     }
-    
+
     public List<BlockVirtualPoolRestRep> getByTenant(URI tenantId) {
         return getByTenant(tenantId, null);
     }

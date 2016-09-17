@@ -154,7 +154,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
         List<NamedRelatedVirtualPoolRep> refs = list();
         return getByRefs(refs, filter);
     }
-    
+
     /**
      * Creates a file virtual pool.
      * <p>

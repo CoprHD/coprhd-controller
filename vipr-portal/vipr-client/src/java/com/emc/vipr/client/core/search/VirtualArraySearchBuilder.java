@@ -33,5 +33,4 @@ public class VirtualArraySearchBuilder extends SearchBuilder<VirtualArrayRestRep
     public SearchBuilder<VirtualArrayRestRep> byCluster(URI clusterId) {
         return byCluster(clusterId.toString());
     }
-
 }

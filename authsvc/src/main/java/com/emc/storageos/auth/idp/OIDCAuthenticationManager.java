@@ -41,7 +41,11 @@ import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import java.net.URI;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
 
 /**
  *
@@ -92,13 +96,15 @@ public class OIDCAuthenticationManager {
     private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {
 
         JSONObject jsonIdToken = JWSObject.parse(idToken).getPayload().toJSONObject();
-        log.info("the user info: {}, {}", (String) jsonIdToken.get("sub"), (String) jsonIdToken.get("http:/www.watch4net.com/openid/roles"));
+        String sub = (String) jsonIdToken.get("sub");
+        JSONArray groups = (JSONArray) jsonIdToken.get("http://www.watch4net.com/openid/roles");
+        log.info("the user info: {}, {}", sub, groups.toString());
 
         StorageOSUserDAO userInfo = new StorageOSUserDAO();
-        userInfo.setUserName( (String) jsonIdToken.get("sub") );
-        userInfo.setGroups( getGroupSet( (JSONArray) jsonIdToken.get("http:/www.watch4net.com/openid/roles") ) );
+        userInfo.setUserName(sub);
+        userInfo.setGroups( getGroupSet(groups) );
 
-        userInfo.setTenantId(findTenant(userInfo));
+        userInfo.setTenantId( findTenant(userInfo) );
 
         return userInfo;
     }
@@ -109,9 +115,10 @@ public class OIDCAuthenticationManager {
 
         // Figure out tenant id
 
-        // Dont support user attributes in this IDP case for now. So always set user attribute mapping to null
+        // Dont support user attributes in this IDP case for now. So pass an empty attribute map here
+        Map<String, List<String>> userMappingAttributes = new HashMap<String, List<String>>();
         Map<URI, BasePermissionsHelper.UserMapping> tenants =
-                TenantMapper.mapUserToTenant(authnProvider.getDomains(), userInfo, null, tenantToMappingMap, _dbClient);
+                TenantMapper.mapUserToTenant(authnProvider.getDomains(), userInfo, userMappingAttributes, tenantToMappingMap, _dbClient);
 
         if (null == tenants || tenants.isEmpty()) {
             log.error("User {} did not match any tenant", userInfo.getUserName());
@@ -142,7 +149,7 @@ public class OIDCAuthenticationManager {
     private String upn(String grpDN) {
         String baseName = null;
         String domainName = null;
-        List<String> dcs = new LinkedList<String>();
+        List<String> dcs = new ArrayList<String>();
         try {
             int cnCursor = 0; // only need first cn
             LdapName dn = new LdapName(grpDN);

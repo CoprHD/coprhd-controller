@@ -1257,19 +1257,10 @@ public class AuthenticationResource {
     @Path("/oidcauth")
     public Response oidcAuthRequest(@QueryParam("resource_uri") String resourceURI) {
         try {
-            State state = new State(resourceURI);
-            AuthenticationRequest req = new AuthenticationRequest(
-                    null, // url to provider
-                    new ResponseType(ResponseType.Value.CODE),
-                    Scope.parse("openid email profile address"),
-                    new ClientID(getAuthnProvider().getOidcClientId()),
-                    URI.create(getAuthnProvider().getOidcCallBackUrl()), // redirect uri
-                    state,
-                    null // nonce
-            );
+            OIDCAuthenticationManager authMgr = new OIDCAuthenticationManager(_permissionsHelper, _dbClient, getAuthnProvider());
+            URI oidcAuthEndpoint = authMgr.buildAuthenticationRequestInURI(resourceURI);
 
-            URI authLocation = buildAuthLocation(req);
-            return Response.temporaryRedirect(authLocation).build();
+            return Response.temporaryRedirect(oidcAuthEndpoint).build();
         } catch (Exception e) {
             _log.error("", e);
             throw new RuntimeException("Fail to generate auth req", e);
@@ -1315,9 +1306,5 @@ public class AuthenticationResource {
             _log.error("", e);
             throw new RuntimeException("", e);
         }
-    }
-
-    private URI buildAuthLocation(AuthenticationRequest req) throws Exception {
-        return URI.create(String.format("%s?%s", getAuthnProvider().getOidcAuthorizeUrl(), req.toQueryString()));
     }
 }

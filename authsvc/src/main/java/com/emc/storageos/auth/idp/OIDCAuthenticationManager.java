@@ -26,6 +26,8 @@ import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
 import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.id.State;
+import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
 import net.minidev.json.JSONArray;
@@ -58,6 +60,21 @@ public class OIDCAuthenticationManager {
         this.authnProvider = authnProvider;
     }
 
+    public URI buildAuthenticationRequestInURI(String resourceURI) throws Exception {
+        State state = new State(resourceURI);
+        AuthenticationRequest req = new AuthenticationRequest(
+                null, // url to provider
+                new ResponseType(ResponseType.Value.CODE),
+                Scope.parse("openid email profile address"),
+                new ClientID(getAuthnProvider().getOidcClientId()),
+                URI.create(getAuthnProvider().getOidcCallBackUrl()), // redirect uri
+                state,
+                null // nonce
+        );
+
+        return buildAuthLocation(req);
+    }
+
     public StorageOSUserDAO authenticate(String code) {
         try {
             String idToken = requestToken(code);
@@ -66,6 +83,10 @@ public class OIDCAuthenticationManager {
         } catch (Exception e) {
             throw new RuntimeException("Fail to authenticate code", e);
         }
+    }
+
+    private URI buildAuthLocation(AuthenticationRequest req) throws Exception {
+        return URI.create(String.format("%s?%s", getAuthnProvider().getOidcAuthorizeUrl(), req.toQueryString()));
     }
 
     private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {

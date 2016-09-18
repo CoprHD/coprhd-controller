@@ -45,6 +45,7 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
         String startTimeStr = (newStartTimeStr == null || newStartTimeStr.isEmpty())
                 ? oldProps.getProperty(BackupConstants.SCHEDULE_TIME) : newStartTimeStr;
 
+        _log.info("intervalStr={}, startTimeStr={}", intervalStr, startTimeStr);
         validateBackupIntervalAndStartTime(intervalStr, startTimeStr);
     }
 
@@ -111,9 +112,9 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
                 if (intervalValue != 12) {
                     unsupportedInterval = true;
                 }
-                if (getStartTimeInMins(startTime) >= intervalValue * TimeUtils.HOURS/TimeUtils.MINUTES) {
+                /*if (getStartTimeInMins(startTime) >= intervalValue * TimeUtils.HOURS/TimeUtils.MINUTES) {
                     unsupportedStartTime = true;
-                }
+                }*/
                 break;
             case MINUTE:
                 if (intervalValue >= 60) {

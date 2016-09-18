@@ -176,8 +176,8 @@ public class IndexClientImpl implements IndexClient {
         ModifiableSolrParams params = new ModifiableSolrParams();
         params.set("action", CollectionParams.CollectionAction.CREATE.toString());
         params.set("numShards", 5);
-        params.set("replicationFactor", 3);
-        params.set("maxShardsPerNode", 3);
+        params.set("replicationFactor", 1);
+        params.set("maxShardsPerNode", 9);
         params.set("collection.configName", "myconf");
         params.set("name", collectionName);
 
@@ -237,11 +237,10 @@ public class IndexClientImpl implements IndexClient {
         solrClient.close();
     }
 
-    public void deleteAllData(Class clazz) {
-        String collectionName = clazz.getName();
-        solrClient.setDefaultCollection(collectionName);
+    public void deleteAllData() {
         try {
             solrClient.deleteByQuery("*:*");
+            solrClient.commit();
         } catch (SolrServerException e) {
             log.info("Failed to delete data in Solr.", e);
         } catch (IOException e) {

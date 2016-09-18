@@ -98,10 +98,10 @@ ext {
     ]
 
     solr = [ 
-        "org.apache.lucene:lucene-core:6.1.0",
-        "org.apache.lucene:lucene-analyzers-common:6.1.0",
-        "org.apache.solr:solr-solrj:6.1.0",
-        "org.apache.solr:solr-core:6.1.0",
+        "org.apache.lucene:lucene-core:6.2.0",
+        "org.apache.lucene:lucene-analyzers-common:6.2.0",
+        "org.apache.solr:solr-solrj:6.2.0",
+        "org.apache.solr:solr-core:6.2.0",
         "org.noggit:noggit:0.7",
         "org.apache.httpcomponents:httpmime:4.5.2",
     ]

@@ -344,7 +344,7 @@ public class OrderExecution extends Controller {
             for (Parameter parameter : parameters) {
                 if (parameter.getLabel().equals(nameToValidate) &&
                         !parameter.getValue().contains("{datetime}")) {
-                    Validation.addError(nameToValidate, "need to add patten '{datatime}' in the name for scheduled operation");
+                    Validation.addError(nameToValidate, "need to add patten '{datetime}' in the name for reoccuring scheduled operation");
                 }
                 Logger.info(parameter.getLabel() + " = " + parameter.getValue() + ", "
                         + parameter.getFriendlyLabel() + " = " + parameter.getFriendlyValue());

@@ -11,18 +11,15 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportRemoveVolumeCompleter.class);

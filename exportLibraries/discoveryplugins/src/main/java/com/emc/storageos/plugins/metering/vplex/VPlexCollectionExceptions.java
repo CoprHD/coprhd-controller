@@ -21,7 +21,7 @@ public interface VPlexCollectionExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_DATA_COLLECTION_EXCEPTION)
     public VPlexCollectionException failedScanningManagedSystems(
-            final String mgmntServerIP, final Throwable tn);
+            final String mgmntServerIP, final String message, final Throwable tn);
 
     @DeclareServiceCode(ServiceCode.VPLEX_DATA_COLLECTION_EXCEPTION)
     public VPlexCollectionException failedScan(

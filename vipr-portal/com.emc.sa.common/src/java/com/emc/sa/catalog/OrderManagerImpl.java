@@ -116,7 +116,7 @@ public class OrderManagerImpl implements OrderManager {
 
                     // Set schedule time to latest updated time.  It would still be scheduled in executed window
                     Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-                    scheduleTime.setTime(order.getLastUpdated());
+                    scheduleTime.setTime(new Date());
                     order.setScheduledTime(scheduleTime);
                     order.setExecutionWindowId(new NamedURI(ExecutionWindow.NEXT, "NEXT"));
                 } else {

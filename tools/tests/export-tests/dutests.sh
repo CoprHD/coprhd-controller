@@ -183,7 +183,7 @@ arrayhelper() {
 	arrayhelper_verify_export $operation $serial_number $masking_view_name $*
 	;;
     *)
-        echo "ERROR: Invalid operation $operation specified to arrayhelper."
+        echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
 	exit
 	;;
     esac
@@ -207,7 +207,7 @@ arrayhelper_create_export_mask_operation() {
 	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -236,7 +236,7 @@ arrayhelper_volume_mask_operation() {
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -265,7 +265,7 @@ arrayhelper_initiator_mask_operation() {
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -293,7 +293,7 @@ arrayhelper_delete_volume() {
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -314,7 +314,7 @@ arrayhelper_delete_export_mask() {
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -342,7 +342,7 @@ arrayhelper_delete_mask() {
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -370,7 +370,7 @@ arrayhelper_verify_export() {
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
     default)
-         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 exit
 	 ;;
     esac
@@ -385,8 +385,7 @@ verify_no_zones() {
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
     if [ $? -eq 0 ]; then
-	echo "ERROR: Found zones on the switch associated with host ${host}."
-	exit;
+	echo -e "\e[91mERROR\e[0m: Found zones on the switch associated with host ${host}."
     fi
 }
 
@@ -396,7 +395,7 @@ load_zones() {
     host=$1
     zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
     if [ $? -ne 0 ]; then
-	echo "ERROR: Could not determine the zones that were created"
+	echo -e "\e[91mERROR\e[0m: Could not determine the zones that were created"
     fi
     if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	secho "load_zones: " $zones
@@ -413,9 +412,9 @@ verify_zones() {
       echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
       zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
       if [ $? -ne 0 -a "${check}" = "exists" ]; then
-	  echo "ERROR: Expected to find zone ${zone} but did not."
+	  echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
       elif [ $? -eq 0 -a "${check}" = "gone" ]; then
-	  echo "ERROR: Expected to not find zone ${zone} but it is there."
+	  echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
       fi
     done
 }
@@ -424,40 +423,70 @@ verify_zones() {
 clean_zones() {
     fabricid=$1
     load_zones $2
-    delete_zones
+    delete_zones ${HOST1}
     zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
 "
 /^id: / { uri=\$2; }
 /zoneName/ { name = \$3; print uri, name; }
 " | grep host1 | awk -e ' { print $1; }')
     if [ "${zoneUris}" != "" ]; then
-	secho "Deleting FCZoneReferences" $zoneUris
 	for uri in $zoneUris
 	do
-	  /opt/storageos/bin/dbutils delete FCZoneReference $uri > /dev/null
+	  runcmd /opt/storageos/bin/dbutils delete FCZoneReference $uri
 	done
     fi
 }
 
-# Deletes the zones returned by load_zones
+# Deletes the zones returned by load_zones, then any remaining zones
 delete_zones() {
+    host=$1
+
+    zonesdel=0
     for zone in ${zones}
     do
       if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	  secho "deleteing zone ${zone}"
       fi
-      zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone} | tail -1 > /dev/null
+
+      # Delete zones that were returned by load_zones
+      runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone}
+      zonesdel=1
       if [ $? -ne 0 ]; then
 	  secho "zones not deleted"
       fi
-      if [ ${DUTEST_DEBUG} -eq 1 ]; then
-	  echo "sactivating fabric ${fabricid}"
-      fi
-      zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
-      if [ $? -ne 0 ]; then
-	  secho "fabric not activated"
-      fi
     done
+
+    if [ ${zonesdel} -eq 1 ]; then
+	if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	    echo "sactivating fabric ${fabricid}"
+	fi
+	runcmd zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho "fabric not activated"
+	fi
+    fi
+
+    zonesdel=0
+
+    echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
+    fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host}`
+    if [ $? -eq 0 ]; then
+	for zonename in ${fabriczones}
+	do
+	  runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zonename}
+	  zonesdel=1
+	done	    
+    fi
+
+    if [ ${zonesdel} -eq 1 ]; then
+	if [ ${DUTEST_DEBUG} -eq 1 ]; then
+	    echo "sactivating fabric ${fabricid}"
+	fi
+	runcmd zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
+	if [ $? -ne 0 ]; then
+	    secho "fabric not activated"
+	fi
+    fi
 }
 
 dbupdate() {
@@ -518,7 +547,6 @@ VOLNAME=dutestexp${BASENUM}
 EXPORT_GROUP_NAME=export${BASENUM}
 HOST1=host1export${BASENUM}
 HOST2=host2export${BASENUM}
-HOST3=host3export${BASENUM}
 CLUSTER=cl${BASENUM}
 
 # Allow for a way to easily use different hardware
@@ -697,6 +725,11 @@ setup_provider() {
 login() {
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
+}
+
+prerun_setup() {
+    # Convenience, clean up known artifacts
+    cleanup_previous_run_artifacts
 
     echo "Seeing if there's an existing base of volumes"
     BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
@@ -707,7 +740,6 @@ login() {
        EXPORT_GROUP_NAME=export${BASENUM}
        HOST1=host1export${BASENUM}
        HOST2=host2export${BASENUM}
-       HOST3=host3export${BASENUM}
        CLUSTER=cl${BASENUM}
 
        sstype=${SS:0:3}
@@ -726,11 +758,6 @@ login() {
        fi
 
     fi
-}
-
-prerun_setup() {
-    # Convenience, clean up known artifacts
-    cleanup_previous_run_artifacts
 
     if [ "${SS}" = "vnx" ]
     then
@@ -786,6 +813,12 @@ reset_system_props() {
     set_artificial_failure "none"
     set_validation_check true
     set_validation_refresh true
+}
+
+# Clean zones from previous tests, verify no zones are on the switch
+prerun_tests() {
+    clean_zones ${FC_ZONE_A:7} ${HOST1}
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 vnx_setup() {
@@ -1228,10 +1261,6 @@ common_setup() {
         run hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
         run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
         run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
-
-        run hosts create ${HOST3} $TENANT Windows ${HOST3} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
-        run initiator create ${HOST3} FC $H3PI1 --node $H3NI1
-        run initiator create ${HOST3} FC $H3PI2 --node $H3NI2
     else
         run hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0
         run initiator create ${HOST1} FC $H1PI1 --node $H1NI1
@@ -1240,10 +1269,6 @@ common_setup() {
         run hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0
         run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
         run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
-
-        run hosts create ${HOST3} $TENANT Windows ${HOST3} --port 8111 --username user --password 'password' --osversion 1.0
-        run initiator create ${HOST3} FC $H3PI1 --node $H3NI1
-        run initiator create ${HOST3} FC $H3PI2 --node $H3NI2
     fi
 }
 
@@ -1344,10 +1369,8 @@ verify_nomasks() {
     echo "Verifying no masks exist on storage array"
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} gone
-    verify_export ${expname}1 ${HOST3} gone
     verify_export ${expname}2 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} gone
-    verify_export ${expname}2 ${HOST3} gone
 }
 
 # Export Test 0
@@ -1358,15 +1381,11 @@ test_0() {
     echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     verify_export ${expname}1 ${HOST1} gone
-    verify_export ${expname}2 ${HOST2} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
-    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2}"
-    verify_export ${expname}2 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 ${HOST1} gone
-    runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${expname}2 ${HOST2} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Suspend/Resume base test 1
@@ -1431,6 +1450,7 @@ test_1() {
     runcmd task follow $task
 
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Suspend/Resume base test 2
@@ -1508,6 +1528,7 @@ test_2() {
     runcmd task follow $task
 
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 3
@@ -1526,6 +1547,12 @@ test_2() {
 test_3() {
     echot "Test 3: Export Group Delete doesn't delete Export Mask when extra volumes are in it"
     expname=${EXPORT_GROUP_NAME}t3
+
+    if [ "$SS" = "xio" ]; then
+        echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for XIO."
+        return
+    fi
+
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -1595,6 +1622,7 @@ test_3() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Export Test 4
@@ -1675,6 +1703,7 @@ test_4() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Export Test 5
@@ -1758,6 +1787,7 @@ test_5() {
 
     # Make sure the mask is gone
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 6
@@ -1859,6 +1889,7 @@ test_6() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Validation Test 7
@@ -1912,6 +1943,7 @@ test_7() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${volname} --wait
@@ -1965,6 +1997,7 @@ test_8() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 9
@@ -2041,6 +2074,7 @@ test_9() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 10
@@ -2103,6 +2137,7 @@ test_10() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 11
@@ -2162,7 +2197,7 @@ test_11() {
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
-    # Invoke failure in the step desired (experimental; emphasis on the "mental")
+    # Invoke failure in the step desired
     set_artificial_failure failure_001_early_in_add_volume_to_mask
 
     # Resume the workflow
@@ -2178,7 +2213,7 @@ test_11() {
     # Remove the volume from the mask
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
-    # Verify the mask has the new volume in it (this will fail if rollback removed it)
+    # Verify the mask has the new volume removed
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Delete the export group
@@ -2186,6 +2221,7 @@ test_11() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 12
@@ -2206,7 +2242,7 @@ test_12() {
     volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Check to make sure we're running VPLEX only
-    if [ "${SS: 0:-1}" != "vplex" ]; then
+    if [ "${SS}" != "vplex" ]; then
         echo "test_12 only runs on VPLEX.  Bypassing for ${SS}."
         return
     fi
@@ -2321,13 +2357,10 @@ test_13() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 14
-#
-# Currently failing for:
-# 1) VPLEX - COP-25238
-# 2) XIO   - COP-25240
 #
 # Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
 #
@@ -2423,6 +2456,7 @@ test_14() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Validation Test 15
@@ -2512,6 +2546,7 @@ test_15() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Validation Test 16
@@ -2621,6 +2656,7 @@ test_16() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 17
@@ -2694,7 +2730,8 @@ test_17() {
     if [ "${SS}" = "xio" ]; then
         # XIO will still protect the lun mapping due to the additional volume, leaving it behind
 	verify_export ${expname}1 ${HOST1} 2 1
-	# Delete the lun mapping
+	# Delete the lun mapping and mask
+	arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 	arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
     fi
 
@@ -2703,6 +2740,7 @@ test_17() {
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Export Test 18
@@ -2794,6 +2832,7 @@ test_18() {
 
     # Make sure the mask is gone
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 19
@@ -2881,6 +2920,7 @@ test_19() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 20
@@ -2977,6 +3017,7 @@ test_20() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 21
@@ -3075,6 +3116,7 @@ test_21() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # Suspend/Resume of Migration test volumes
@@ -3277,17 +3319,14 @@ test_24() {
     # Make sure we end clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Verify there are no zones on the switch
-    # Unfortuantely zones are left because after we remove the 1st vipr volume and have only the hijack
-    # volume remaining in the mask, it becomes an existing volume when the 2nd vipr volume
-    # is added back into the mask.
-    #verify_no_zones ${FC_ZONE_A:7} ${HOST1}
-
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
-    # Delete the zones
-    delete_zones
+    # Delete the zones (no need to verify zones, we intentionally left one behind)
+    delete_zones ${HOST1}
+
+    # Verify delete zones did what it is supposed to
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 # DU Prevention Validation Test 25
@@ -3357,6 +3396,7 @@ test_25() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 cleanup() {
@@ -3378,7 +3418,7 @@ cleanup_previous_run_artifacts() {
       runcmd export_group delete ${id} > /dev/null
    done
 
-   for id in `volume list $PROJECT | grep YES | grep hijack | awk '{print $5}'`
+   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
    do
       echo "Deleting old volume: ${id}"
       runcmd volume delete ${id} --wait > /dev/null
@@ -3520,6 +3560,7 @@ then
    do
       echo Run $t
       reset_system_props
+      prerun_tests
       $t
       reset_system_props
    done
@@ -3528,15 +3569,17 @@ else
    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
    do
      reset_system_props
+     prerun_tests
      test_${num}
      reset_system_props
    done
 fi
 
-   echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-   echo `date`
-   echo `git status | grep 'On branch'`
+echo There were $VERIFY_EXPORT_COUNT export verifications
+echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+echo `date`
+echo `git status | grep 'On branch'`
+
 if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi

@@ -1951,16 +1951,20 @@ srdf_cos_change()
 srdf_v3_cos_change()
 {
    # Create non-protected volume, then move it to a cos that has protection
+   cg=cg${RANDOM}
+   run blockconsistencygroup create $SRDF_PROJECT $cg
+
    srdfvolumecc="${SRDF_VOLUME}-coschange"
-   run volume create ${srdfvolumecc} $PROJECT $V3_SRDF_VARRAY $COS_VMAXBLOCK_V3_SRDF_TARGET 1GB
+   run volume create ${srdfvolumecc} $SRDF_PROJECT $V3_SRDF_VARRAY $COS_VMAXBLOCK_V3_SRDF_TARGET 1GB --consistencyGroup $cg
    echo "Created volume, now sleeping..."
    sleep 60
    echo "Changing cos..."
-   run volume change_cos $PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
+   run volume change_cos $SRDF_PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
    echo "Changed cos"
    sleep 60
    echo "Deleting volume"
-   run volume delete $PROJECT/${srdfvolumecc} --wait
+   run volume delete $SRDF_PROJECT/${srdfvolumecc} --wait
+   run_noundo blockconsistencygroup delete $cg
 }
 
 srdf_cos_change_meta()
@@ -1989,8 +1993,9 @@ srdf_basic_sync_test()
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
-   
+   sleep 125
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   sleep 125
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
@@ -2000,9 +2005,10 @@ srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   sleep 125
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    echo "Created 2 volumes... now going to sleep..."
-   sleep 60
+   sleep 125
    echo "Deleting volumes..."
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --count 2
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
@@ -2015,8 +2021,9 @@ srdf_basic_active_test()
 {
    srdfvolume="${SRDF_VOLUME}_active"
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
+   sleep 125
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
-   sleep 60
+   sleep 125
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
 
@@ -2051,7 +2058,7 @@ srdf_tests()
    
    echo 'About to run SRDF cos change test'
    sleep 60
-   srdf_cos_change
+   #srdf_cos_change
    # echo 'About to run SRDF cos change test for meta volume'
    # sleep 60
    # srdf_cos_change_meta

@@ -207,7 +207,8 @@ public class FileSystems extends ResourceController {
         
         
         String personality = targetFileSystems.getPersonality();
-        
+        //right now we have code limited to one to one replication.
+        // We are going to code refactoring the when we implement multiple replication
         if(!fileMirrors.isEmpty()) {
 	        FileShareRestRep fsRestRep = fileMirrors.get(0);
 	        fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());

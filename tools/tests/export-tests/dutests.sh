@@ -205,7 +205,7 @@ arrayhelper() {
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
 	cleanup
-	finish
+	finish -1
 	;;
     esac
 }
@@ -230,7 +230,7 @@ arrayhelper_create_export_mask_operation() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -260,7 +260,7 @@ arrayhelper_volume_mask_operation() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -290,7 +290,7 @@ arrayhelper_initiator_mask_operation() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -319,7 +319,7 @@ arrayhelper_delete_volume() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -341,7 +341,7 @@ arrayhelper_delete_export_mask() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -370,7 +370,7 @@ arrayhelper_delete_mask() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -399,7 +399,7 @@ arrayhelper_verify_export() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -544,8 +544,12 @@ dbupdate() {
 }
 
 finish() {
+    code=${1}
     if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
         exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    if [ "${code}" != "" ]; then
+	exit ${code}
     fi
     exit 0
 }
@@ -649,7 +653,7 @@ run() {
 	fi
 	echo There was a failure
 	cleanup
-	finish
+	finish -1
     fi
 }
 
@@ -1568,7 +1572,7 @@ test_2() {
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
 	cleanup
-	finish
+	finish 2
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1601,7 +1605,7 @@ test_2() {
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
 	cleanup
-	finish
+	finish 2
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1669,7 +1673,7 @@ test_3() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 3
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1749,7 +1753,7 @@ test_4() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1831,7 +1835,7 @@ test_5() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 5
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1927,7 +1931,7 @@ test_6() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2128,7 +2132,7 @@ test_9() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 9
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2273,7 +2277,7 @@ test_11() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 11
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2411,7 +2415,7 @@ test_13() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 13
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2510,7 +2514,7 @@ test_14() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 14
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2597,7 +2601,7 @@ test_15() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 15
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2700,7 +2704,7 @@ test_16() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 16
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2804,7 +2808,7 @@ test_17() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 17
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2890,7 +2894,7 @@ test_18() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 18
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2974,7 +2978,7 @@ test_19() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 19
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3071,7 +3075,7 @@ test_20() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 20
     fi
 
 	# Show the result of the export group command for now (show the task and WF IDs)
@@ -3168,7 +3172,7 @@ test_21() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 21
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3707,6 +3711,6 @@ if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi
 
-finish
-exit;
+finish;
+
 

@@ -189,19 +189,21 @@ public class FileSystems extends ResourceController {
         renderJSON(response);
     }
 
-    public static void fileSystemExports2(String fileSystemId) {
+    public static void fileSystemExports(String fileSystemId) {
         URI id = uri(fileSystemId);
         List<ExportRule> exports = FileUtils.getFSExportRules(id);
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
+        flash.success("called filesystems::fileSystemExports org");
         render(exports, exportsParam);
     }
     
-    public static void fileSystemExports(String fileSystemId) {
+    public static void fileSystemExports23(String fileSystemId) {
         URI id = uri(fileSystemId);
         List<FileUtils.NFSExportRule> exports = FileUtils.getNFSExportRules(id);
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
+        flash.success("called filesystems::fileSystemExports v2");
         render(exports, exportsParam);
     }
 
@@ -536,11 +538,13 @@ public class FileSystems extends ResourceController {
     }
 
     public static void fileSystemExportsJson(String id, String path, String sec) {
+    	 flash.success("called filesystems::fileSystemExportsJson str with sec " + sec) ;
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);
         renderJSON(info);
     }
     
     public static void fileSystemExportsJson(String id, String path, List<String> sec) {
+    	 flash.success("called filesystems::fileSystemExportsJson list with sec " + sec) ;
     	Iterator<String> secIter = sec.iterator();
     	StringBuffer security = new StringBuffer(); 
     	security.append(secIter.next());

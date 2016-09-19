@@ -288,6 +288,7 @@ angular.module("portalApp").controller({
     FileRessourceCtrl: function($scope, $http, $window, translate) {
     	$scope.edit = false;
     	$scope.rule = {};
+    	$scope.rule.security = [];
     	$scope.add = {endpoint:'', permission:'ro'};
     	
     	$scope.secOpt = [{id:'sys', name:translate('resources.filesystem.export.security.sys')},
@@ -300,11 +301,12 @@ angular.module("portalApp").controller({
     	                  {id:'root', name:translate('resources.filesystem.export.permission.root')}];
     	
     	var setData = function(data) {
-    		$scope.rule = data;
+    		//$scope.rule = data;
     	}
     	
     	var resetModal = function() {
     		$scope.rule = {};
+    		$scope.rule.security = [];
     	}
     	
     	$scope.populateModal = function(edit, id, path, sec, anon) {
@@ -316,7 +318,7 @@ angular.module("portalApp").controller({
     			$scope.rule.security = sec;
         		$scope.rule.anon = anon;
         		alert(Object.prototype.toString.call(sec));
-        		var data = {params: { id: id, path: path, sec: [sec]} };
+        		var data = {params: { id: id, path: path, sec: sec} };
         		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
         			$http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
         		} else {
@@ -346,7 +348,7 @@ angular.module("portalApp").controller({
     			}
     		});
     		$scope.rule.anon = newVal.anon;
-    		$scope.rule.security = newVal.security;
+    		//$scope.rule.security = newVal.security;
     		$scope.rule.subDir = newVal.subDir;
     		$scope.ro = ro.toString();
     		$scope.rw = rw.toString();

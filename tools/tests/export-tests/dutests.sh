@@ -3233,13 +3233,15 @@ test_22() {
     echot "Test 22 suspend resume migration with volume"
     expname=${EXPORT_GROUP_NAME}t22
 
-    # validation check off for this one.  vplex sim failing volume validation
-    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
-
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
 	return
+    fi
+
+    if [ "${SIM}" = "1" ]; then
+        # validation check off for this one.  vplex sim failing volume validation
+	runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     fi
 
     # Create a new vplex volume that we can migrate
@@ -3303,6 +3305,11 @@ test_23() {
 	return
     fi
 
+    if [ "${SIM}" = "1" ]; then
+        # validation check off for this one.  vplex sim failing volume validation
+	runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    fi
+
     randval=${RANDOM}
 
     # Create a new CG
@@ -3347,7 +3354,7 @@ test_23() {
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
-    runcmd blockconsistencygroup delete ${PROJECT}/${CGNAME}
+    runcmd blockconsistencygroup delete ${CGNAME}
 }
 
 # Export Test 24

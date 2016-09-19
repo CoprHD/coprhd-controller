@@ -123,7 +123,7 @@ public class DbConsistencyCheckerHelper {
             boolean inactiveObject = false;
             
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
-                if (column.getName().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue() == true) {
+                if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
                 	inactiveObject = true;
                 }
             }

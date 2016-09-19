@@ -1105,11 +1105,21 @@ public class DataCollectionJobUtil {
                 // even if the current provider is already active, we need to update the provider details
                 // in storage system object, so that any change in provider object will take effect.
                 if (provider.getId().equals(storageSystemInDb.getActiveProviderURI())) {
-                    storageSystemInDb.setSmisProviderIP(provider.getIPAddress());
-                    storageSystemInDb.setSmisPortNumber(provider.getPortNumber());
-                    storageSystemInDb.setSmisUserName(provider.getUserName());
-                    storageSystemInDb.setSmisPassword(provider.getPassword());
-                    storageSystemInDb.setSmisUseSSL(provider.getUseSSL());
+                    if (!StringUtils.equals(provider.getIPAddress(), storageSystemInDb.getSmisProviderIP())) {
+                        storageSystemInDb.setSmisProviderIP(provider.getIPAddress());
+                    }
+                    if (provider.getPortNumber() != storageSystemInDb.getSmisPortNumber()) {
+                        storageSystemInDb.setSmisPortNumber(provider.getPortNumber());
+                    }
+                    if (!StringUtils.equals(provider.getUserName(), storageSystemInDb.getSmisUserName())) {
+                        storageSystemInDb.setSmisUserName(provider.getUserName());
+                    }
+                    if (!StringUtils.equals(provider.getPassword(), storageSystemInDb.getSmisPassword())) {
+                        storageSystemInDb.setSmisPassword(provider.getPassword());
+                    }
+                    if (provider.getUseSSL() != storageSystemInDb.getSmisUseSSL()) {
+                        storageSystemInDb.setSmisUseSSL(provider.getUseSSL());
+                    }
                 }
             }
         }

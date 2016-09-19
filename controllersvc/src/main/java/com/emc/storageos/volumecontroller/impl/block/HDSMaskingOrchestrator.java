@@ -401,8 +401,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
                 continue;
             }
-            else
+            else {
                 masksWithStoragePortFromVArrayFound = true;
+            }
         }
         if (matchingExportMaskURIs.isEmpty() || !masksWithStoragePortFromVArrayFound) {
             _log.info(String.format("No existing mask found w/ initiators { %s }", Joiner.on(",")

@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Collections2;
@@ -132,15 +133,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
             
-            // If there are no masks or volumes associated with this export group, and it's an internal (VPLEX/RP)
-            // export group, delete the export group automatically.
-            if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
-                    (CollectionUtils.isEmpty(exportGroup.getVolumes())
-                    || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup)))) {
-                _log.info(String.format("Marking export group [%s %s] for deletion.", 
-                        (exportGroup != null ? exportGroup.getLabel() : ""), getId()));
-                dbClient.markForDeletion(exportGroup);
-            } 
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);

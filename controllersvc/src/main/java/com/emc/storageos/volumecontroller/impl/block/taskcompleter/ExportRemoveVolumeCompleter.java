@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
@@ -71,15 +72,8 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.updateObject(exportGroup);
             
-            // If there are no masks or volumes associated with this export group, and it's an internal (VPLEX/RP)
-            // export group, delete the export group automatically.
-            if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
-                    (CollectionUtils.isEmpty(exportGroup.getVolumes())
-                    || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup)))) {
-                _log.info(String.format("Marking export group [%s %s] for deletion.", 
-                        (exportGroup != null ? exportGroup.getLabel() : ""), getId()));
-                dbClient.markForDeletion(exportGroup);
-            } 
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
 
             _log.info(String.format("Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

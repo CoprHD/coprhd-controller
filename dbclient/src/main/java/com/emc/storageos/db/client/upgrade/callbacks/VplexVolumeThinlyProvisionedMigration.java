@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
@@ -45,7 +46,7 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
 
         // cache a list of vplex URIs for performance reasons
         List<URI> vplexUris = new ArrayList<URI>();
-        List<StorageSystem> vplexes = VPlexControllerUtils.getAllVplexStorageSystems(dbClient);
+        List<StorageSystem> vplexes = getAllVplexStorageSystems(dbClient);
         for (StorageSystem vplex : vplexes) {
             if (null != vplex) {
                 vplexUris.add(vplex.getId());
@@ -74,4 +75,22 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
                 volumeUpdatedCount);
     }
 
+    /**
+     * Returns all VPLEX storage systems in ViPR.
+     * 
+     * @param dbClient a database client reference
+     * @return a List of StorageSystems that are "vplex" type
+     */
+    private List<StorageSystem> getAllVplexStorageSystems(DbClient dbClient) {
+        List<StorageSystem> vplexStorageSystems = new ArrayList<StorageSystem>();
+        List<URI> allStorageSystemUris = dbClient.queryByType(StorageSystem.class, true);
+        List<StorageSystem> allStorageSystems = dbClient.queryObject(StorageSystem.class, allStorageSystemUris);
+        for (StorageSystem storageSystem : allStorageSystems) {
+            if ((storageSystem != null)
+                    && (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType()))) {
+                vplexStorageSystems.add(storageSystem);
+            }
+        }
+        return vplexStorageSystems;
+    }
 }

@@ -207,10 +207,11 @@ public class FileSystems extends ResourceController {
         
         
         String personality = targetFileSystems.getPersonality();
-
-        FileShareRestRep fsRestRep = fileMirrors.get(0);
         
-        fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
+        if(!fileMirrors.isEmpty()) {
+	        FileShareRestRep fsRestRep = fileMirrors.get(0);
+	        fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
+        }
         
         renderArgs.put("personality", personality);
         renderArgs.put("fileMirrors", fileMirrors);

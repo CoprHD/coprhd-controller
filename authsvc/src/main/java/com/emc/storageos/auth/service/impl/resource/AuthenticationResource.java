@@ -20,6 +20,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.auth.idp.OIDCAuthenticationManager;
+import com.emc.storageos.auth.impl.CustomAuthenticationManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.password.PasswordChangeParam;
@@ -29,10 +30,6 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
 import com.emc.storageos.services.util.SecurityUtils;
-import com.nimbusds.oauth2.sdk.*;
-import com.nimbusds.oauth2.sdk.id.ClientID;
-import com.nimbusds.oauth2.sdk.id.State;
-import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -1256,8 +1253,11 @@ public class AuthenticationResource {
     @GET
     @Path("/oidcauth")
     public Response oidcAuthRequest(@QueryParam("resource_uri") String resourceURI) {
+
+        OIDCAuthenticationManager authMgr = ((CustomAuthenticationManager) _authManager).getOIDCAuthManager();
+        authMgr.verifyAuthModeForOIDC();
+
         try {
-            OIDCAuthenticationManager authMgr = new OIDCAuthenticationManager(_permissionsHelper, _dbClient, getAuthnProvider());
             URI oidcAuthEndpoint = authMgr.buildAuthenticationRequestInURI(resourceURI);
 
             return Response.temporaryRedirect(oidcAuthEndpoint).build();
@@ -1295,8 +1295,10 @@ public class AuthenticationResource {
                                      @QueryParam("code") String code,
                                      @QueryParam("state") String relaystate) {
 
+        OIDCAuthenticationManager authMgr = ((CustomAuthenticationManager) _authManager).getOIDCAuthManager();
+        authMgr.verifyAuthModeForOIDC();
+
         try {
-            OIDCAuthenticationManager authMgr = new OIDCAuthenticationManager(_permissionsHelper, _dbClient, getAuthnProvider());
             StorageOSUserDAO userInfo = authMgr.authenticate(code);
             String viprToken = _tokenManager.getToken(userInfo);
             LoginStatus loginStatus = new LoginStatus(userInfo.getUserName(), viprToken, true);

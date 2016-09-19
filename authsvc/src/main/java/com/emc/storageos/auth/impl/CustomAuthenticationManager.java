@@ -5,6 +5,7 @@
 package com.emc.storageos.auth.impl;
 
 import com.emc.storageos.auth.*;
+import com.emc.storageos.auth.idp.OIDCAuthenticationManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -13,6 +14,7 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.resource.UserInfoPage.UserDetails;
@@ -46,6 +48,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     private AuthenticationProvider _localAuthenticationProvider;
     private final ProviderConfigUpdater _updaterRunnable = new ProviderConfigUpdater();
     private LdapProviderMonitor _ldapProviderMonitor;
+    private OIDCAuthenticationManager _oidcAuthMgr;
 
     @Autowired
     protected TokenManager _tokenManager;
@@ -470,6 +473,9 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                         _lastReloadTime = timeNow;
                         updateLastKnown(providers);
                         _ldapProviderMonitor.setAuthnProviders(_authNProviders);
+                        synchronized (_oidcAuthMgr) {
+                            _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
+                        }
                         _log.info("Done authn provider config reload. lastReloadTime {}", _lastReloadTime);
                     }
                     // sleep and check for updates
@@ -531,5 +537,14 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             _log.debug("UserGroup {} is valid", group);
             return true;
         }
+    }
+
+    public OIDCAuthenticationManager getOIDCAuthManager() {
+        synchronized (_oidcAuthMgr) {
+            if (_oidcAuthMgr == null) {
+                _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
+            }
+        }
+        return _oidcAuthMgr;
     }
 }

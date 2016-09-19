@@ -7,6 +7,8 @@
 
 package com.emc.storageos.auth.idp;
 
+import com.emc.storageos.auth.impl.AuthenticationProvider;
+import com.emc.storageos.auth.impl.ImmutableAuthenticationProviders;
 import com.emc.storageos.auth.impl.TenantMapper;
 import com.emc.storageos.auth.service.impl.resource.AuthenticationResource;
 import com.emc.storageos.db.client.DbClient;
@@ -35,8 +37,8 @@ import net.minidev.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import java.net.URI;
@@ -54,14 +56,15 @@ public class OIDCAuthenticationManager {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationResource.class);
 
-    private DbClient _dbClient;
-    private AuthnProvider authnProvider;
+    private DbClient dbClient;
     private BasePermissionsHelper permissionsHelper;
 
-    public OIDCAuthenticationManager(BasePermissionsHelper permissionsHelper, DbClient dbClient, AuthnProvider authnProvider) {
-        this._dbClient = dbClient;
-        this.permissionsHelper = permissionsHelper;
-        this.authnProvider = authnProvider;
+    private ImmutableAuthenticationProviders authProviders;
+
+    public OIDCAuthenticationManager(DbClient dbClient, ImmutableAuthenticationProviders authProviders) {
+        this.dbClient = dbClient;
+        this.permissionsHelper = new BasePermissionsHelper(dbClient);
+        this.authProviders = authProviders;
     }
 
     public URI buildAuthenticationRequestInURI(String resourceURI) throws Exception {
@@ -70,8 +73,8 @@ public class OIDCAuthenticationManager {
                 null, // url to provider
                 new ResponseType(ResponseType.Value.CODE),
                 Scope.parse("openid email profile address"),
-                new ClientID(getAuthnProvider().getOidcClientId()),
-                URI.create(getAuthnProvider().getOidcCallBackUrl()), // redirect uri
+                new ClientID(getOidcAuthProvider().getOidcClientId()),
+                URI.create(getOidcAuthProvider().getOidcCallBackUrl()), // redirect uri
                 state,
                 null // nonce
         );
@@ -90,7 +93,7 @@ public class OIDCAuthenticationManager {
     }
 
     private URI buildAuthLocation(AuthenticationRequest req) throws Exception {
-        return URI.create(String.format("%s?%s", getAuthnProvider().getOidcAuthorizeUrl(), req.toQueryString()));
+        return URI.create(String.format("%s?%s", getOidcAuthProvider().getOidcAuthorizeUrl(), req.toQueryString()));
     }
 
     private StorageOSUserDAO populateUserInfo(String idToken) throws Exception {
@@ -111,14 +114,14 @@ public class OIDCAuthenticationManager {
 
     private String findTenant(StorageOSUserDAO userInfo) {
         Map<URI, List<BasePermissionsHelper.UserMapping>> tenantToMappingMap =
-                permissionsHelper.getAllUserMappingsForDomain(authnProvider.getDomains());
+                permissionsHelper.getAllUserMappingsForDomain(getOidcAuthProvider().getDomains());
 
         // Figure out tenant id
 
         // Dont support user attributes in this IDP case for now. So pass an empty attribute map here
         Map<String, List<String>> userMappingAttributes = new HashMap<String, List<String>>();
         Map<URI, BasePermissionsHelper.UserMapping> tenants =
-                TenantMapper.mapUserToTenant(authnProvider.getDomains(), userInfo, userMappingAttributes, tenantToMappingMap, _dbClient);
+                TenantMapper.mapUserToTenant(getOidcAuthProvider().getDomains(), userInfo, userMappingAttributes, tenantToMappingMap, dbClient);
 
         if (null == tenants || tenants.isEmpty()) {
             log.error("User {} did not match any tenant", userInfo.getUserName());
@@ -174,7 +177,7 @@ public class OIDCAuthenticationManager {
     private List<String> tenantName(Set<URI> uris) {
         List<String> tenantNames = new ArrayList<>();
         for (URI tId : uris) {
-            TenantOrg t = _dbClient.queryObject(TenantOrg.class, tId);
+            TenantOrg t = dbClient.queryObject(TenantOrg.class, tId);
             tenantNames.add(t.getLabel());
         }
 
@@ -183,7 +186,7 @@ public class OIDCAuthenticationManager {
 
     private void validateToken(String idToken) throws Exception {
         // load JWKS. TODO: store key locally
-        JWKSet jwkeys = JWKSet.load(new URL(getAuthnProvider().getJwksUrl()));
+        JWKSet jwkeys = JWKSet.load(new URL(getOidcAuthProvider().getJwksUrl()));
         jwkeys.getKeys().get(0);
 
         // Verify id token
@@ -194,9 +197,9 @@ public class OIDCAuthenticationManager {
 
     private String requestToken(String code) throws Exception {
         TokenRequest tokenReq = new TokenRequest(
-                URI.create(getAuthnProvider().getOidcTokenUrl()),
-                new ClientSecretBasic(new ClientID(getAuthnProvider().getOidcClientId()), new Secret("anysecret")),
-                new AuthorizationCodeGrant(new AuthorizationCode(code), URI.create( getAuthnProvider().getOidcCallBackUrl() ) ) );
+                URI.create(getOidcAuthProvider().getOidcTokenUrl()),
+                new ClientSecretBasic(new ClientID(getOidcAuthProvider().getOidcClientId()), new Secret("anysecret")),
+                new AuthorizationCodeGrant(new AuthorizationCode(code), URI.create( getOidcAuthProvider().getOidcCallBackUrl() ) ) );
 
         log.info("Requesting token for code {}", code);
         HTTPResponse tokenHTTPResp = tokenReq.toHTTPRequest().send();
@@ -211,7 +214,16 @@ public class OIDCAuthenticationManager {
         return ((OIDCAccessTokenResponse) tokenResponse).getIDTokenString();
     }
 
-    public AuthnProvider getAuthnProvider() {
-        return authnProvider;
+    public AuthnProvider getOidcAuthProvider() {
+        for (AuthenticationProvider provider : authProviders.getAuthenticationProviders()) {
+            if ( provider.getProviderConfig().getMode().equalsIgnoreCase( AuthnProvider.ProvidersType.oidc.name() ) ) {
+                return provider.getProviderConfig();
+            }
+        }
+        throw new RuntimeException("No OIDC provider is found");
+    }
+
+    public void verifyAuthModeForOIDC() {
+        // TODO, throw exception if not oidc mode
     }
 }

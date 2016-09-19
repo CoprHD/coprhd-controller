@@ -55,6 +55,7 @@ public class AuthnProvider extends DataObject {
     private String oidcTokenUrl;
     private String oidcAuthorizeUrl;
     private String jwksUrl;
+    private String oidcProviderAddress;
 
     @Name("clientid")
     public String getOidcClientId() {
@@ -101,9 +102,17 @@ public class AuthnProvider extends DataObject {
         this.jwksUrl = jwksUrl;
     }
 
+    public void setOidcProviderAddress(String oidcProviderAddress) {
+        this.oidcProviderAddress = oidcProviderAddress;
+    }
+
+    public String getOidcProviderAddress() {
+        return oidcProviderAddress;
+    }
+
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {
-        ldap, ad, keystone
+        ldap, ad, keystone, oidc;
     }
 
     // values to be used for the searchScope element

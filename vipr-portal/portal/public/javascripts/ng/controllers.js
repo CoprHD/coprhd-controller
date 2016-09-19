@@ -1286,9 +1286,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     }
     
     function getSearchRegex(message) {
-        return message ? ("(?i).*" + message + ".*") : undefined;
+        return message ? ("(?i).*" + replaceSpace(message) + ".*") : undefined;
     }
-    
+
+    function replaceSpace(searchMessage) {
+        return searchMessage.split(" ").join("+");
+    }
+     
     function fetchLogs(args) {
         console.log("fetch args: "+JSON.stringify(args));
         $scope.loading = true;

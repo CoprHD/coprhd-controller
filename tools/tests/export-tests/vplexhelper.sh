@@ -20,6 +20,11 @@
 TMPFILE1=/tmp/verify-${RANDOM}
 TMPFILE2=$TMPFILE1-error
 
+delete_mask() {
+    pattern=$1
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method delete_mask -params "${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
+}
+
 add_volume_to_mask() {
     device_id=$1
     pattern=$2
@@ -66,16 +71,16 @@ verify_export() {
                 echo "PASSED: Verified Storage View with pattern ${STORAGE_VIEW_NAME} doesn't exist."
                 exit 0;
             fi
-            echo "ERROR: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
+            echo -e "\e[91mERROR\e[0m: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
             exit 1;
         else
             if [ "$2" = "gone" ]; then
-                echo "ERROR: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
+                echo -e "\e[91mERROR\e[0m: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
                 exit 1;
             fi
         fi
     else
-        echo "ERROR: empty or invalid response from vplex"
+        echo -e "\e[91mERROR\e[0m: empty or invalid response from vplex"
         exit 1;
     fi
 
@@ -85,13 +90,13 @@ verify_export() {
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
 	then
-	echo "FAILED: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
 	failed=true
     fi
 
     if [ ${num_luns} -ne ${NUM_LUNS} ]
 	then
-	echo "FAILED: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
 	failed=true
     fi
 
@@ -124,9 +129,12 @@ elif [ "$1" = "remove_initiator_from_mask" ]; then
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2
+elif [ "$1" = "delete_mask" ]; then
+    shift
+    delete_mask $1 $2
 elif [ "$1" = "verify_export" ]; then
     shift
     verify_export $*
 else
-    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
+    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_mask | delete_volume | verify_export] {params}"
 fi

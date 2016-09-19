@@ -87,7 +87,7 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
      */
     @Override
-    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                 mask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
         List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();

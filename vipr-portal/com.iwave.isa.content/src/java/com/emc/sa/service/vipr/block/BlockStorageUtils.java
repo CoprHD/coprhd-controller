@@ -342,9 +342,15 @@ public class BlockStorageUtils {
                     break;
             }
         }
-        blockResources.addAll(getVolumes(blockVolumes));
-        blockResources.addAll(getBlockSnapshots(blockSnapshots));
-        blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
+        if (!blockVolumes.isEmpty()) {
+            blockResources.addAll(getVolumes(blockVolumes));
+        }
+        if (!blockSnapshots.isEmpty()) {
+            blockResources.addAll(getBlockSnapshots(blockSnapshots));
+        }
+        if (!blockContinuousCopies.isEmpty()) {
+            blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
+        }
         return blockResources;
     }
 

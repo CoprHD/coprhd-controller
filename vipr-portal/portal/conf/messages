@@ -48,6 +48,7 @@ nav.user=User Mode
 nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
+nav.viewImage=Catalog Images
 nav.approvals=Approvals
 nav.admin=Administration Mode
 nav.preferences=Preferences
@@ -3133,6 +3134,7 @@ currency.format=$%.2f
 
 order.submitSuccess=Your order has been successfully received and is being processed. You may leave this page and return at any time through your Orders.
 order.submitFailed=Your order was unable to be submitted due to an internal error.
+order.submitFailedWithDetail=Your order was unable to be submitted due to %s.
 order.processingFailed=Error processing order
 
 OrderStatus.PENDING=Preparing Order
@@ -3190,7 +3192,7 @@ order.MONTHLY=month(s)
 order.WEEKLY=week(s)
 order.occurrences= for %s occurrences
 order.occurrences.indefinite=indefinitely
-order.additionalScheduleInfo=Retention Policy
+order.additionalScheduleInfo=Automatic Expiration
 order.additionalScheduleInfo.value=Max %s Copies
 
 order.host.with.cluster.decoration=%s [cluster: %s]
@@ -3338,6 +3340,7 @@ resources.event=Event
 resources.events.approved=Approved
 resources.events.pending=Pending
 resources.events.declined=Declined
+resources.events.failed=Failed
 resources.events.total=Total
 resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event
@@ -4346,9 +4349,9 @@ catalogImage.contentType=Type
 catalogImage.size=Size
 catalogImage.preview=Preview
 catalogImage.invalidContentType=Only images are allowed (supplied content type: %s)
-catalogImage.MB=% MB
-catalogImage.KB=% KB
-catalogImage.bytes=% bytes
+catalogImage.MB=%s MB
+catalogImage.KB=%s KB
+catalogImage.bytes=%s bytes
 
 #
 #
@@ -4806,17 +4809,18 @@ scheduler.onlyonce=Only Once
 scheduler.indefinitely=Indefinitely
 scheduler.endAfterRecurrences=End after recurrences
 scheduler.rangeOfRecurrence=Number of recurrences
-scheduler.retention=Retention Policy
-scheduler.retention.helpText=Maximum snapshots or copies to keep.
+scheduler.expiration=Automatic Expiration
+scheduler.expiration.helpText=Maximum snapshots or copies to keep.
 
 gettingStarted.header.full=Getting Started Guide
 gettingStarted.header.side=Return To Guide
 gettingStarted.header.side.next=Next Step
+gettingStarted.button.error=Complete Step
 gettingStarted.loader.recheck=Add more Storage
 gettingStarted.landing.loading=&nbsp;&nbsp;&nbsp;Loading...
-gettingStarted.loader.dismiss=No thanks, I\'ll get started on my own
+gettingStarted.loader.dismiss=Exit
 gettingStarted.landing.header=Welcome to EMC ViPR Controller
-gettingStarted.landing.text=ViPR Controller Getting Started Guide, brings easy and quick steps to create a virtual data center with EMC VMAX All Flash, EMC Unity All Flash, and XtremIO arrays.<br><br>If you are not configuring ViPR Controller with all flash arrays, or prefer a custom deployment, exit guide, and continue with ViPR Controller UI.
+gettingStarted.landing.text=ViPR Controller Getting Started Guide, brings easy and quick steps to create a virtual data center with EMC VMAX All Flash, EMC Unity All Flash, and XtremIO arrays.<br><br>If you are not configuring ViPR Controller with all flash arrays, or prefer a custom deployment, exit guide, and continue with ViPR Controller UI.<br><br> System and Tenant Administrator role are required.
 gettingStarted.landing.systemNew=You can now use our Getting Started Guide to help you configure ViPR
 gettingStarted.landing.systemPartial=Welcome back! You\'re almost done with the Getting Started Guide.
 gettingStarted.landing.systemReady=Welcome back! You\'re done with the Getting Started Guide.
@@ -4859,3 +4863,7 @@ gettingStarted.provision.project=Created Project
 gettingStarted.incompletesteps.text=You must complete all prerequisite steps to start this step
 gettingStarted.popover=The Guide has been closed. <br/> Click Guide to return to it at any time.
 gettingStarted.step.popover=Please complete this step then click the arrow to continue.
+gettingStarted.vpool.allflash.desc=Virtual Pool for All-Flash Storage created by Getting Started Guide
+gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
+gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
+gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide

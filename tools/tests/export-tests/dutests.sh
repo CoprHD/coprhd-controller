@@ -2275,7 +2275,7 @@ test_12() {
     volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Check to make sure we're running VPLEX only
-    if [ "${SS: 0:-1}" != "vplex" ]; then
+    if [ "${SS}" != "vplex" ]; then
         echo "test_12 only runs on VPLEX.  Bypassing for ${SS}."
         return
     fi
@@ -3277,7 +3277,7 @@ test_23() {
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
-    runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
+    runcmd blockconsistencygroup delete ${PROJECT}/${CGNAME}
 }
 
 # Export Test 24

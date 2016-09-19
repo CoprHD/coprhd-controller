@@ -160,10 +160,11 @@ public class BlockMapper {
             }
         }
         // Extra checks for VPLEX volumes
+        Volume sourceSideBackingVolume = null;
         if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
             // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
             // volume.
-            Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+            sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
             // Check for null in case the VPlex vol was ingested w/o the backend volumes
             if (sourceSideBackingVolume != null) {
                 StorageSystem system = getStorageSystemFromCache(sourceSideBackingVolume.getStorageController(), dbClient, storageSystemCache);
@@ -173,7 +174,12 @@ public class BlockMapper {
             }
             // Set xio3xvolume in virtual volume only if its backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
-                Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                Volume backendVol = null;
+                if (sourceSideBackingVolume != null && backendVolumeuri.equals(sourceSideBackingVolume.getId().toString())) {
+                    backendVol = sourceSideBackingVolume;
+                } else {
+                    backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                }
                 if (null != backendVol) {
                     StorageSystem system = getStorageSystemFromCache(backendVol.getStorageController(), dbClient, storageSystemCache);
                     if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
@@ -291,7 +297,6 @@ public class BlockMapper {
             }
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
-                Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
                 if (sourceSideBackingVolume != null
                         && NullColumnValueGetter.isNotNullValue((sourceSideBackingVolume.getReplicationGroupInstance()))) {
                     to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());

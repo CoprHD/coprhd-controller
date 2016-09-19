@@ -405,7 +405,7 @@ public class DbClientImpl implements DbClient {
         if (objs.isEmpty()) {
             return null;
         }
-
+        
         return objs.get(0);
     }
 

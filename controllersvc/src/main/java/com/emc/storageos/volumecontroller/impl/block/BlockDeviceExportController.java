@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -153,7 +154,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask tempExportMask : tempExportMasks) {               
+                for (ExportMask tempExportMask : tempExportMasks) {
                     List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                             _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                             StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), tempExportMask.getStorageDevice());
@@ -485,6 +486,7 @@ public class BlockDeviceExportController implements BlockExportController {
         if (exportGroup.getVolumes() != null) {
             _log.info("Existing export group volumes: " + Joiner.on(',').join(exportGroup.getVolumes().keySet()));
             Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+            reduceBlockObjectsByRpBlockSnapshot(existingBlockObjectMap);
             for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
                 BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
                 URI storageControllerUri = getExportStorageController(bo);
@@ -666,6 +668,48 @@ public class BlockDeviceExportController implements BlockExportController {
 
     }
 
+    private void reduceBlockObjectsByRpBlockSnapshot(Map<URI, Integer> existingBlockObjectMap) {
+        List<BlockObject> blockObjects = new ArrayList<BlockObject>();
+        List<BlockObject> rpBlockSnapshots = new ArrayList<BlockObject>();
+        List<URI> toRemove = new ArrayList<URI>();
+
+        if (existingBlockObjectMap == null) {
+            return;
+        }
+
+        // Build a list of BlockObjects for processing
+        for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
+            BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
+
+            if (bo instanceof BlockSnapshot && BlockObject.checkForRP(_dbClient, existingBlockObjectEntry.getKey())) {
+                // blockObjectMap.put(existingBlockObjectEntry.getKey(), existingBlockObjectEntry.getValue());
+                rpBlockSnapshots.add(bo);
+            } else {
+                blockObjects.add(bo);
+            }
+        }
+
+        for (BlockObject rpBlockSnapshot : rpBlockSnapshots) {
+            for (BlockObject blockObject : blockObjects) {
+                if (!NullColumnValueGetter.isNullURI(blockObject.getStorageController())
+                        && blockObject.getStorageController().equals(rpBlockSnapshot.getStorageController())
+                        && !NullColumnValueGetter.isNullURI(blockObject.getProtectionController())
+                        && blockObject.getProtectionController().equals(rpBlockSnapshot.getProtectionController())
+                        && !NullColumnValueGetter.isNullURI(blockObject.getConsistencyGroup())
+                        && blockObject.getConsistencyGroup().equals(rpBlockSnapshot.getConsistencyGroup())) {
+                    _log.info(String
+                            .format("Found that BlockObject %s is directly related to RecoverPoint bookmark %s.  It can be ignored and processed as part of the operation on the bookmark.",
+                                    blockObject.getId(), rpBlockSnapshot.getId()));
+                    toRemove.add(blockObject.getId());
+                }
+            }
+        }
+
+        for (URI uriToRemove : toRemove) {
+            existingBlockObjectMap.remove(uriToRemove);
+        }
+    }
+
     private Map<URI, Integer> getOrAddStorageMap(BlockObjectControllerKey controllerKey,
             Map<BlockObjectControllerKey, Map<URI, Integer>> map) {
         Map<URI, Integer> volumesForStorage = map.get(controllerKey);
@@ -678,9 +722,9 @@ public class BlockDeviceExportController implements BlockExportController {
 
     private ExportMask getExportMask(URI exportGroupUri, URI storageUri) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-    
+
         for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
-            try {               
+            try {
                 if (exportMask.getStorageDevice().equals(storageUri)) {
                     return exportMask;
                 }
@@ -689,7 +733,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
             }
         }
-        
+
         return null;
     }
 

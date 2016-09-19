@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -486,7 +485,14 @@ public class BlockDeviceExportController implements BlockExportController {
         if (exportGroup.getVolumes() != null) {
             _log.info("Existing export group volumes: " + Joiner.on(',').join(exportGroup.getVolumes().keySet()));
             Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+
+            // Reduce the Map of BlockObjects if any of the ExportGroup's existing objects are RecoverPoint bookmarks.
+            // When we have RP bookmarks mixed with Volumes, it's possible to end up with a BlockSnapshot and a Volume
+            // that reference the same storage system, protection controller, and consistency group. In this case we
+            // want to focus only on the BlockSnapshot so we do not generate 2 BlockObjectControllerKey objects for the
+            // same storage system.
             reduceBlockObjectsByRpBlockSnapshot(existingBlockObjectMap);
+
             for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
                 BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
                 URI storageControllerUri = getExportStorageController(bo);
@@ -495,7 +501,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 if (!storageControllerUri.equals(bo.getStorageController())) {
                     controllerKey.setProtectionControllerUri(storageControllerUri);
                 }
-                Log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
+                _log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
                 // add an entry in each map for the storage system if not already exists
                 getOrAddStorageMap(controllerKey, addedBlockObjects);
                 getOrAddStorageMap(controllerKey, removedBlockObjects);
@@ -668,6 +674,14 @@ public class BlockDeviceExportController implements BlockExportController {
 
     }
 
+    /**
+     * Searches the Map of existing block objects for RP BlockSnapshots. Removes any RP Volumes from the
+     * Map that reference the same storage system, protection controller, and consistency group. This will
+     * reduce the Map to array BlockSnapshots, RP BlockSnapshots, and Volumes that are unrelated to any
+     * RP BlockSnapshot in the Map.
+     *
+     * @param existingBlockObjectMap the Map of existing export group BlockObjects.
+     */
     private void reduceBlockObjectsByRpBlockSnapshot(Map<URI, Integer> existingBlockObjectMap) {
         List<BlockObject> blockObjects = new ArrayList<BlockObject>();
         List<BlockObject> rpBlockSnapshots = new ArrayList<BlockObject>();
@@ -677,12 +691,11 @@ public class BlockDeviceExportController implements BlockExportController {
             return;
         }
 
-        // Build a list of BlockObjects for processing
+        // Build a list of BlockObjects/RP bookmarks for processing
         for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
 
             if (bo instanceof BlockSnapshot && BlockObject.checkForRP(_dbClient, existingBlockObjectEntry.getKey())) {
-                // blockObjectMap.put(existingBlockObjectEntry.getKey(), existingBlockObjectEntry.getValue());
                 rpBlockSnapshots.add(bo);
             } else {
                 blockObjects.add(bo);
@@ -698,7 +711,7 @@ public class BlockDeviceExportController implements BlockExportController {
                         && !NullColumnValueGetter.isNullURI(blockObject.getConsistencyGroup())
                         && blockObject.getConsistencyGroup().equals(rpBlockSnapshot.getConsistencyGroup())) {
                     _log.info(String
-                            .format("Found that BlockObject %s is directly related to RecoverPoint bookmark %s.  It can be ignored and processed as part of the operation on the bookmark.",
+                            .format("Found that BlockObject %s is directly related to RecoverPoint bookmark %s.  It will be ignored.",
                                     blockObject.getId(), rpBlockSnapshot.getId()));
                     toRemove.add(blockObject.getId());
                 }

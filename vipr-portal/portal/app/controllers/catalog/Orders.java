@@ -238,6 +238,11 @@ public class Orders extends OrderExecution {
         try {
             if (isSchedulerEnabled()) {
                 ScheduledEventCreateParam event = createScheduledOrder(order);
+                if (Validation.hasErrors()) {
+                    Validation.keep();
+                    Common.flashParamsExcept("json", "body");
+                    Services.showForm(serviceId);
+                }
                 ScheduledEventRestRep submittedEvent = getCatalogClient().orders().submitScheduledEvent(event);
                 status = submittedEvent.getEventStatus();
                 orderId = submittedEvent.getLatestOrderId().toString();

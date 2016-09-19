@@ -279,7 +279,7 @@ public class XIVRestOperationsHelper {
                             throw new Exception(errMsg);
                         } else {
                             if (!restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(),
-                                    String.valueOf(hluDec))) {
+                                    String.valueOf(hluDec), isSnapshot(volumeURIHLU.getVolumeURI()))) {
                                 userAddedVolumes.add(blockObject);
                             }
                         }
@@ -712,7 +712,8 @@ public class XIVRestOperationsHelper {
                             _log.error(errMsg);
                             throw new Exception(errMsg);
                         } else {
-                            restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec));
+                            restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec),
+                                    isSnapshot(volumeURIHLU.getVolumeURI()));
                             userAddedVolumes.add(blockObject);
                         }
                     }
@@ -875,5 +876,14 @@ public class XIVRestOperationsHelper {
             ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
             taskCompleter.error(_dbClient, error);
         }
+    }
+    
+    /**
+     * Verify if volume is snapshot or not
+     * @param uri URI
+     * @return
+     */
+    private boolean isSnapshot(URI uri){
+        return URIUtil.isType(uri, BlockSnapshot.class);
     }
 }

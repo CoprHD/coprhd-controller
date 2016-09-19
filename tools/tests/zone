@@ -29,7 +29,7 @@ def zone_delete(args):
     s = bourne.zone_delete(uri, args.fabricid, args.zones)
     print s
     if (s['state'] == 'ready'):
-        print 'zones are delete'
+        print 'zones are deleted'
     else:
         print 'zones failed to delete.'
         

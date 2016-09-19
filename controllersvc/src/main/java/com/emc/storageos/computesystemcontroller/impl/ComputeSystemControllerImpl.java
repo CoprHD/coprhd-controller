@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
@@ -377,10 +378,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void addInitiatorsToExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
+    public void addInitiatorsToExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(initiators, false, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -396,16 +397,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeInitiatorFromExport(URI hostId, URI initId, String taskId) throws ControllerException {
+    public void removeInitiatorFromExport(URI eventId, URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
-        removeInitiatorsFromExport(hostId, uris, taskId);
+        removeInitiatorsFromExport(eventId, hostId, uris, taskId);
     }
 
     @Override
-    public void removeInitiatorsFromExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
+    public void removeInitiatorsFromExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(initiators, true, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, true, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -460,11 +461,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+    public void addHostsToExport(URI eventId, List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new HostCompleter(hostIds, false, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -492,11 +493,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
-            throws ControllerException {
+    public void removeHostsFromExport(URI eventId, List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new HostCompleter(hostIds, false, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -635,13 +637,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
-            newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                    String.format("Updating export group %s", export.getId()), newWaitFor,
-                    export.getId(), export.getId().toString(),
-                    this.getClass(),
-                    updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
-                    null, null);
+            if (updatedHosts.isEmpty()) {
+                newWaitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
+                        String.format("Deleting export group %s", export.getId()), newWaitFor,
+                        export.getId(), export.getId().toString(),
+                        this.getClass(),
+                        deleteExportGroupMethod(export.getId()),
+                        null, null);
+            } else {
+                newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                        String.format("Updating export group %s", export.getId()), newWaitFor,
+                        export.getId(), export.getId().toString(),
+                        this.getClass(),
+                        updateExportGroupMethod(export.getId(),
+                                updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
+                                updatedClusters, updatedHosts, updatedInitiators),
+                        null, null);
+            }
         }
         return newWaitFor;
     }
@@ -897,16 +909,27 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
-            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) {
+            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) throws Exception {
         Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
         Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
         ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
         ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
-                stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
-        blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
-                newHosts, newInitiators, stepId);
+
+        try {
+            if (exportGroupObject.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
+                throw new Exception("Export group is being updated by another operation");
+            }
+            exportGroupObject.addInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+            _dbClient.updateObject(exportGroupObject);
+
+            _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                    stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+            blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
+                    newHosts, newInitiators, stepId);
+        } catch (Exception ex) {
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
@@ -1965,5 +1988,36 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+    }
+
+    @Override
+    public void addInitiatorsToExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        addInitiatorsToExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+    }
+
+    @Override
+    public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException {
+        removeInitiatorFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        removeInitiatorsFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException {
+        addHostsToExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, taskId, oldCluster, isVcenter);
+
+    }
+
+    @Override
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
+            throws ControllerException {
+        removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
+
     }
 }

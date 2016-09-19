@@ -74,8 +74,8 @@ public class ExportOperationContext implements Serializable {
             operations = new ArrayList<>();
         }
         operations.add(op);
-        _log.info("Operation " + operation + " (" + operations.size()
-                + ") has been recorded for the benefit of potential rollback in the event of overall failure.");
+        _log.info(String.format("Operation %s (%d) has been recorded for the benefit of potential rollback "
+                + "in the event of overall failure.", operation, operations.size()));
     }
 
     public List<ExportOperationContextOperation> getOperations() {

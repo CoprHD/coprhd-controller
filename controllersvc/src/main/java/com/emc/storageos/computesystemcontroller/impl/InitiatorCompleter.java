@@ -11,8 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -20,13 +22,16 @@ public class InitiatorCompleter extends ComputeSystemCompleter {
 
     private static final Logger _logger = LoggerFactory.getLogger(InitiatorCompleter.class);
     private static final long serialVersionUID = 1L;
+    private URI eventId;
 
-    public InitiatorCompleter(URI id, boolean deactivateOnComplete, String opId) {
+    public InitiatorCompleter(URI eventId, URI id, boolean deactivateOnComplete, String opId) {
         super(Initiator.class, id, deactivateOnComplete, opId);
+        this.eventId = eventId;
     }
 
-    public InitiatorCompleter(List<URI> ids, boolean deactivateOnComplete, String opId) {
+    public InitiatorCompleter(URI eventId, List<URI> ids, boolean deactivateOnComplete, String opId) {
         super(Initiator.class, ids, deactivateOnComplete, opId);
+        this.eventId = eventId;
     }
 
     @Override
@@ -36,6 +41,13 @@ public class InitiatorCompleter extends ComputeSystemCompleter {
             switch (status) {
                 case error:
                     dbClient.error(Initiator.class, this.getId(), getOpId(), coded);
+                    if (!NullColumnValueGetter.isNullURI(eventId)) {
+                        ActionableEvent event = dbClient.queryObject(ActionableEvent.class, eventId);
+                        if (event != null) {
+                            event.setEventStatus(ActionableEvent.Status.failed.name());
+                            dbClient.updateObject(event);
+                        }
+                    }
                     break;
                 default:
                     dbClient.ready(Initiator.class, this.getId(), getOpId());

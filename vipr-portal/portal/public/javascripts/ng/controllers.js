@@ -235,7 +235,7 @@ angular.module("portalApp").controller({
            return $scope.service.recurringAllowed;
         };
         
-        $scope.isRentionAllowed = function() {
+        $scope.isAutomaticExpirationAllowed = function() {
            var isSnapshotService = ['CreateBlockSnapshot', 'CreateFileSnapshot', 'CreateFullCopy', 
                  'CreateSnapshotOfApplication', 'CreateCloneOfApplication'].indexOf($scope.service.baseService) > -1;
            return $scope.scheduler.recurrence != 1 && isSnapshotService;	
@@ -951,6 +951,7 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
     $scope.pending = 0;
     $scope.approved = 0;
     $scope.declined = 0;
+    $scope.failed = 0;
     $scope.dataReady = false;
 
     var poller = function() {
@@ -959,7 +960,8 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
                     $scope.pending = countSummary.pending;
                     $scope.approved = countSummary.approved;
                     $scope.declined = countSummary.declined;
-                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined;
+                    $scope.failed = countSummary.failed;
+                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined + countSummary.failed;
                     $scope.dataReady = true;
 
                     $timeout(poller, 5000);
@@ -1090,6 +1092,14 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
 
     $scope.isElementManagerType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.elementManagerStorageProviderList);
+    }
+    
+    $scope.isProviderXIV = function() {
+    	var interfaceType = $scope.smisProvider.interfaceType;
+    	if (interfaceType == "ibmxiv") {
+    		$('#smisProvider_useSSLControlGroup').find('input').attr('disabled', true);
+    		$('input[name="smisProvider.useSSL"]').removeAttr('disabled');
+    	}
     }
 });
 
@@ -1532,7 +1542,7 @@ angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
        return $scope.scheduler.recurringAllowed;
     };
     
-    $scope.isRentionAllowed = function() {
+    $scope.isAutomaticExpirationAllowed = function() {
         return $scope.isRecurring() && $scope.scheduler.maxNumOfCopies > 0;	
     }
 });
@@ -1581,6 +1591,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
                 eraseCookie(cookieKey);
                 return;
+            } else {
+                eraseCookie(dataCookieKey);
             }
         }
 
@@ -1866,6 +1878,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 });
                 break;
             case landingStep:
+            	guide_data=angular.fromJson(readCookie(dataCookieKey));
+                if(guide_data){
+                    $scope.completedSteps = 3;
+                }
                 callback();
                 return true;
                 break;

@@ -271,7 +271,8 @@ public class HostService extends TaskResourceService {
     @Path("/{id}")
     public TaskResourceRep updateHost(@PathParam("id") URI id,
             HostUpdateParam updateParam,
-            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
+            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
+            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports) {
         // update the host
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);
@@ -289,18 +290,18 @@ public class HostService extends TaskResourceService {
 
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
-            if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+            if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
                         taskId);
-            } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
+            } else if (updateExports && NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
-            } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
@@ -562,10 +563,17 @@ public class HostService extends TaskResourceService {
         Boolean discoverable = hostParam.getDiscoverable() == null ? (host == null ? Boolean.FALSE : host.getDiscoverable())
                 : hostParam.getDiscoverable();
 
+        boolean vCenterManaged = host == null ? false : Host.HostType.Esx.name().equals(host.getType())
+                && !NullColumnValueGetter.isNullURI(host.getVcenterDataCenter());
+
         // If discoverable, ensure username and password are set in the current host or parameters
-        if (discoverable != null && discoverable) {
-            String username = hostParam.getUserName() == null ? (host == null ? null : host.getUsername()) : hostParam.getUserName();
-            String password = hostParam.getPassword() == null ? (host == null ? null : host.getPassword()) : hostParam.getPassword();
+        if (!vCenterManaged && discoverable != null && discoverable) {
+            String username = hostParam.getUserName() == null ?
+                    (host == null ? null : host.getUsername()) :
+                    hostParam.getUserName();
+            String password = hostParam.getPassword() == null ?
+                    (host == null ? null : host.getPassword()) :
+                    hostParam.getPassword();
             ArgValidator.checkFieldNotNull(username, "username");
             ArgValidator.checkFieldNotNull(password, "password");
 

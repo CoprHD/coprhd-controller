@@ -104,6 +104,7 @@ vipr_RenamePasswd
 adg_bootClock
 fix_enable_java_sslv3
 vipr_fix_add_strongswan
+vipr_fix_etc_profile
 
 #######################################################
 # Ending to call funtions from configurations.sh      #

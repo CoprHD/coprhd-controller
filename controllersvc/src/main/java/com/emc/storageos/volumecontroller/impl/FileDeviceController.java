@@ -4336,7 +4336,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param opId
      */
     public void acquireStepLock(StorageSystem storageObj, String opId) {
-        if (storageObj.deviceIsType(Type.vnxfile)) {
+        Workflow workflow = _workflowService.getWorkflowFromStepId(opId);
+        if (workflow != null && storageObj.deviceIsType(Type.vnxfile)) {
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(storageObj.getNativeGuid());
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,

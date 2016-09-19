@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +57,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapa
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
@@ -572,7 +572,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
             List<BlockSnapshot> groupSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, dbClient);
 
-            if (groupSnapshots.size() > 1 &&
+            if (!groupSnapshots.isEmpty() &&
                     ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)) {
                 // make sure we delete only snapshots from the same consistency group
                 List<BlockSnapshot> snapshotsToDelete = new ArrayList<>();
@@ -1587,7 +1587,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.info(msg);
             taskCompleter.ready(dbClient);
         }
-        taskCompleter.ready(dbClient);
     }
 
     private void deleteGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> groupSnapshots,
@@ -1722,37 +1721,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             if (providerUriList.iterator().hasNext()) {
                 StorageProvider storageProvider = dbClient.queryObject(StorageProvider.class,
                         providerUriList.iterator().next());
-
-                // get driver for the provider
-                BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
-                String username = storageProvider.getUserName();
-                String password = storageProvider.getPassword();
-                String hostName = storageProvider.getIPAddress();
-                Integer providerPortNumber = storageProvider.getPortNumber();
-                String providerType = storageProvider.getInterfaceType();
-                Boolean useSsl = storageProvider.getUseSSL();
-                String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
-                        providerType, hostName, providerPortNumber, username, useSsl);
-                _log.info(msg);
-
-                com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
-                        new com.emc.storageos.storagedriver.model.StorageProvider();
-                // initialize driver provider
-                driverProvider.setProviderHost(hostName);
-                driverProvider.setPortNumber(providerPortNumber);
-                driverProvider.setUsername(username);
-                driverProvider.setPassword(password);
-                driverProvider.setUseSSL(useSsl);
-                driverProvider.setProviderType(providerType);
-
-                isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+                isConnectionValid = validateStorageProviderConnection(storageProvider);
             } else {
                String msg = String.format("Cannot find provider with ID: %s ", providerID);
             }
         } catch (Exception ex) {
             _log.error(
-                    "Problem in checking provider live connection with IP address and port: {}/{} due to: ",
+                    "Problem in checking provider live connection with IP address and port: {}:{} due to: ",
                     ipAddress, portNumber, ex);
+        }
+        return isConnectionValid;
+    }
+
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        boolean isConnectionValid = false;
+        try {
+            // call driver to validate provider connection
+            // get driver for the provider
+            BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
+            String username = storageProvider.getUserName();
+            String password = storageProvider.getPassword();
+            String hostName = storageProvider.getIPAddress();
+            Integer providerPortNumber = storageProvider.getPortNumber();
+            String providerType = storageProvider.getInterfaceType();
+            Boolean useSsl = storageProvider.getUseSSL();
+            String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
+                    providerType, hostName, providerPortNumber, username, useSsl);
+            _log.info(msg);
+
+            com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
+                    new com.emc.storageos.storagedriver.model.StorageProvider();
+            // initialize driver provider
+            driverProvider.setProviderHost(hostName);
+            driverProvider.setPortNumber(providerPortNumber);
+            driverProvider.setUsername(username);
+            driverProvider.setPassword(password);
+            driverProvider.setUseSSL(useSsl);
+            driverProvider.setProviderType(providerType);
+
+            isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+        } catch (Exception ex) {
+            _log.error("Problem in checking connection of provider {} due to: ", storageProvider.getLabel(), ex);
         }
         return isConnectionValid;
     }

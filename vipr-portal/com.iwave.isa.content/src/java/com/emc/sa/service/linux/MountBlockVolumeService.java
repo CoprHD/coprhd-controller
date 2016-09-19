@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.VOLUME;
 
 import java.net.URI;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -40,7 +41,11 @@ public class MountBlockVolumeService extends LinuxService {
         super.precheck();
         exportBlockVolumeHelper.precheck();
         volume = BlockStorageUtils.getBlockResource(volumeId);
+        if (BlockStorageUtils.isVolumeVMFSDatastore(volume)) {
+            ExecutionUtils.fail("failTask.verifyVMFSDatastore", volume.getName(), volume.getName());
+        }
         acquireHostsLock();
+        mountBlockVolumeHelper.verifyMountConfiguration(volume);
         mountBlockVolumeHelper.precheck();
         mountBlockVolumeHelper.refreshStorage(Lists.newArrayList(volume));
     }

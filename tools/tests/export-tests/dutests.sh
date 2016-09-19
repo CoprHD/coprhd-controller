@@ -23,7 +23,7 @@
 # - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
 # - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
-#set +x
+#set -x
 
 Usage()
 {
@@ -103,11 +103,6 @@ verify_export() {
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
 
-    # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
-	sleep 10
-    fi
-
     arrayhelper verify_export ${SERIAL_NUMBER} ${masking_view_name} $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
@@ -115,9 +110,34 @@ verify_export() {
 	fi
 	echo There was a failure
 	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	cleanup
 	finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+# Extra gut-check.  Make sure we didn't just grab a different mask off the array.
+# Run this during test_0 to make sure we're not getting off on the wrong foot.
+# Even better would be to delete that mask, export_group, and try again.
+verify_maskname() {
+    export_name=$1
+    host_name=$2
+
+    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
+
+    maskname=$(/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep ${masking_view_name} | awk -e ' { print $3; }')
+
+    if [ "${maskname}" = "" ]; then
+	echo -e "\e[91mERROR\e[0m: Mask was not found with the name we expected.  This is likely because there is another mask using the same WWNs from a previous run of the test on this VM."
+	echo -e "\e[91mERROR\e[0m: Recommended action: delete mask manually from array and rerun test"
+	echo -e "\e[91mERROR\e[0m: OR: rerun -setup after setting environment variable: \"export WWN=<some value between 1-9,A-F>\""
+	echo "Masks found: "
+	/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep host1export
+
+	# We normally don't bail out of the suite, but this is a pretty serious issue that would prevent you from running further.
+	cleanup
+	finish
+    fi
 }
 
 # Array helper method that supports the following operations:
@@ -184,7 +204,8 @@ arrayhelper() {
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
-	exit
+	cleanup
+	finish
 	;;
     esac
 }
@@ -208,7 +229,8 @@ arrayhelper_create_export_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -237,7 +259,8 @@ arrayhelper_volume_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -266,7 +289,8 @@ arrayhelper_initiator_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -294,7 +318,8 @@ arrayhelper_delete_volume() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -315,7 +340,8 @@ arrayhelper_delete_export_mask() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -343,7 +369,8 @@ arrayhelper_delete_mask() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -371,7 +398,8 @@ arrayhelper_verify_export() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish
 	 ;;
     esac
 }
@@ -620,10 +648,8 @@ run() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	if [ "${docleanup}" = "1" ]; then
-	    cleanup;
-	fi
-	exit;
+	cleanup
+	finish
     fi
 }
 
@@ -1126,11 +1152,10 @@ vplex_setup() {
 
     secho "Discovering VPLEX Storage Assets"
     storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+    run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    
+    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
     run storagedevice discover_all
 
     VPLEX_VARRAY1=$NH
@@ -1444,6 +1469,8 @@ test_0() {
     verify_export ${expname}1 ${HOST1} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
+    # Paranoia check, verify if maybe we picked up an old mask.  Exit if we did.
+    verify_maskname  ${expname}1 ${HOST1}
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
@@ -1540,8 +1567,8 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	# TODO: add error handling
-	exit;
+	cleanup
+	finish
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1573,8 +1600,8 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	# TODO: add error handling
-	exit;
+	cleanup
+	finish
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1641,7 +1668,8 @@ test_3() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1720,7 +1748,8 @@ test_4() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1801,7 +1830,8 @@ test_5() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1896,7 +1926,8 @@ test_6() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2096,7 +2127,8 @@ test_9() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2240,7 +2272,8 @@ test_11() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2377,7 +2410,8 @@ test_13() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2475,7 +2509,8 @@ test_14() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2561,7 +2596,8 @@ test_15() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2663,7 +2699,8 @@ test_16() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2743,6 +2780,9 @@ test_17() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Verify the mask was created
+    verify_export ${expname}1 ${HOST1} 2 1
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
@@ -2763,7 +2803,8 @@ test_17() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2848,7 +2889,8 @@ test_18() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2931,7 +2973,8 @@ test_19() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3026,9 +3069,10 @@ test_20() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
 
     if [ $? -ne 0 ]; then
-	    echo "export group command failed outright"
-	    exit;
-	fi
+	echo "export group command failed outright"
+	cleanup
+	finish
+    fi
 
 	# Show the result of the export group command for now (show the task and WF IDs)
     echo $resultcmd
@@ -3123,7 +3167,8 @@ test_21() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3302,7 +3347,7 @@ test_23() {
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
-    runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
+    runcmd blockconsistencygroup delete ${PROJECT}/${CGNAME}
 }
 
 # Export Test 24
@@ -3467,14 +3512,16 @@ test_25() {
 }
 
 cleanup() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      runcmd export_group delete ${id} > /dev/null
-      echo "Deleted export group: ${id}"
-   done
-   runcmd volume delete --project $PROJECT --wait
-   echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    if [ "${docleanup}" = "1" ]; then
+	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+	do
+	  runcmd export_group delete ${id} > /dev/null
+	  echo "Deleted export group: ${id}"
+	done
+	runcmd volume delete --project $PROJECT --wait
+    fi
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
@@ -3490,7 +3537,6 @@ cleanup_previous_run_artifacts() {
       echo "Deleting old volume: ${id}"
       runcmd volume delete ${id} --wait > /dev/null
    done
-
 }
 
 # call this to generate a random WWN for exports.

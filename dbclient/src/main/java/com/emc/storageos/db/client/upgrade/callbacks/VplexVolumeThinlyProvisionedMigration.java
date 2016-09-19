@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
 /**
  * If we are upgrading from any version before 3.5, the thinlyProvisioned 

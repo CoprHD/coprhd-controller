@@ -1464,7 +1464,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
         if (newVal === undefined || newVal.indexOf(hint) > -1) return;
-        setOffsetFromLocalTime($scope.backup_startTime);
+        setOffsetFromLocalTime($scope.backup_startTime, $backup_interval.val());
         if (typeof $backup_interval != 'undefined') {
             withHint($backup_interval.val());
         }
@@ -1478,11 +1478,14 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return localTime;
     }
 
-    function setOffsetFromLocalTime(localTime) {
+    function setOffsetFromLocalTime(localTime, $interval) {
         if ($scope.backup_startTime !== undefined &&
             $scope.backup_startTime.indexOf(hint) === -1) {
             var localMoment = moment(localTime, "HH:mm");
             var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+            if ($interval === twicePerDay) {
+                utcOffset = (utcOffset >= 1200) ? (utcOffset - 1200) : utcOffset;
+            }
             var $backup_time = $("#backup_scheduler_time");
             $backup_time.val(utcOffset);
             checkForm();

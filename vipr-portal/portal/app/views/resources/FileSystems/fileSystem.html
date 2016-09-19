@@ -106,7 +106,7 @@
     <div ng-controller="FileRessourceCtrl" id="rule">
        <div class="container-fluid">
            <div class="row">
-                <control-group v-field='rule.security' labelWidth="1">
+                <control-group v-field='rule.security' labelWidth="1" required >
                     <select-many options="secOpt" ng-disabled="edit"></select-many>
                 </control-group>
            </div>

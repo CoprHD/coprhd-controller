@@ -430,9 +430,7 @@ public class ExportMaskUtils {
                 storagePortURIs);
         //Get all the storage ports that are in the varray belonging to the storage array
         Set<URI> storagePortUriSet = new HashSet<>();
-        for (URI uri : storagePortURIs) {
-            storagePortUriSet.add(uri);
-        }
+        storagePortUriSet.addAll(storagePortURIs);
         
         Set<StoragePort> storagePortsAssociatedWithVArrayAndStorageArray = new HashSet<>();
         for (StoragePort storagePort : dbClient.queryObject(StoragePort.class, storagePortUriSet)) {

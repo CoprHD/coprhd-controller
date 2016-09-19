@@ -111,6 +111,7 @@ import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
@@ -174,8 +175,8 @@ public class BlockStorageUtils {
         return execute(new GetHost(hostId));
     }
 
-    public static void checkEvents(URI resourceId) {
-        execute(new GetActionableEvents(resourceId));
+    public static void checkEvents(DataObject resource) {
+        execute(new GetActionableEvents(resource));
     }
 
     public static Cluster getCluster(URI clusterId) {

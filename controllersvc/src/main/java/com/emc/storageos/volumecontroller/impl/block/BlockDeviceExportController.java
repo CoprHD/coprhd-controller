@@ -704,6 +704,8 @@ public class BlockDeviceExportController implements BlockExportController {
 
         for (BlockObject rpBlockSnapshot : rpBlockSnapshots) {
             for (BlockObject blockObject : blockObjects) {
+                // If one of the existing volumes matches the RP BlockSnapshot based on storage controller,
+                // protection system, and consistency group, we want to ignore it.
                 if (!NullColumnValueGetter.isNullURI(blockObject.getStorageController())
                         && blockObject.getStorageController().equals(rpBlockSnapshot.getStorageController())
                         && !NullColumnValueGetter.isNullURI(blockObject.getProtectionController())

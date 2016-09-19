@@ -92,11 +92,11 @@ public class BlockSnapshotSessions extends ResourceController {
     }
 
     @FlashException(referrer = { "snapshotSessionDetails" })
-    public static void deleteSnapshotSession(String snapshotId) {
+    public static void deleteSnapshotSession(String snapshotId, VolumeDeleteTypeEnum deleteType) {
         if (StringUtils.isNotBlank(snapshotId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
 
-            Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(uri(snapshotId), VolumeDeleteTypeEnum.FULL);
+            Tasks<BlockSnapshotSessionRestRep> task = client.blockSnapshotSessions().deactivate(uri(snapshotId), deleteType);
             flash.put("info", MessagesUtils.get("resources.snapshot.deactivate", snapshotId));
         }
         snapshotSessionDetails(snapshotId);

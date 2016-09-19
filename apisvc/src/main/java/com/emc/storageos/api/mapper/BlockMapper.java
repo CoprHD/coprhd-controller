@@ -96,6 +96,10 @@ public class BlockMapper {
     public static VolumeRestRep map(Volume from) {
         return map(null, from, null);
     }
+
+    public static VolumeRestRep map(DbClient dbClient, Volume from) {
+        return map(dbClient, from, null);
+    }
     
     private static StorageSystem getStorageSystemFromCache(URI uri, DbClient dbClient, Map<URI, StorageSystem> storageSystemCache) {
         if (storageSystemCache != null) {
@@ -169,7 +173,7 @@ public class BlockMapper {
             sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
             // Check for null in case the VPlex vol was ingested w/o the backend volumes
             if (sourceSideBackingVolume != null) {
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
+                StorageSystem system = getStorageSystemFromCache(sourceSideBackingVolume.getStorageController(), dbClient, storageSystemCache);
                 if (null != system && system.checkIfVmax3()) {
                     to.setSupportsSnapshotSessions(Boolean.TRUE);
                 }

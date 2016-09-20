@@ -540,7 +540,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     }
 
     public OIDCAuthenticationManager getOIDCAuthManager() {
-        synchronized (_oidcAuthMgr) {
+        synchronized (this) {
             if (_oidcAuthMgr == null) {
                 _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
             }

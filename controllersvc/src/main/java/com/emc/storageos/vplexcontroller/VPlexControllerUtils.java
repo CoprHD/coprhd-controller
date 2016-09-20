@@ -602,7 +602,7 @@ public class VPlexControllerUtils {
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
             List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorsObjectsToAdd = new ArrayList<Initiator>();
+            List<Initiator> initiatorObjectsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -611,7 +611,7 @@ public class VPlexControllerUtils {
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
                     if (knownInitiator != null) {
-                        initiatorsObjectsToAdd.add(knownInitiator);
+                        initiatorObjectsToAdd.add(knownInitiator);
                     } else {
                         initiatorPortWwnsToAdd.add(normalizedPort);
                     }
@@ -750,10 +750,10 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorsObjectsToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
                 exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
-                exportMask.addInitiators(initiatorsObjectsToAdd);
+                exportMask.addInitiators(initiatorObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);

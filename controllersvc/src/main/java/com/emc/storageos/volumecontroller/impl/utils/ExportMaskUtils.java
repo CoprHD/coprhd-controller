@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 import sun.net.util.IPAddressUtil;
 
@@ -425,24 +427,22 @@ public class ExportMaskUtils {
      * @return
      */
     public static Set<String> getStoragePortUrisAssociatedWithVarrayAndStorageArray(URI storageURI, URI varray, DbClient dbClient) {
-        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        URIQueryResultList storagePortsAssociatedWithVarray = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varray.toString()),
-                storagePortURIs);
+                storagePortsAssociatedWithVarray);
         //Get all the storage ports that are in the varray belonging to the storage array
-        Set<URI> storagePortUriSet = new HashSet<>();
-        storagePortUriSet.addAll(storagePortURIs);
+        Set<URI> storagePortsSetAssociatedWithVarray = new HashSet<>();
+        storagePortsSetAssociatedWithVarray.addAll(storagePortsAssociatedWithVarray);
         
-        Set<StoragePort> storagePortsAssociatedWithVArrayAndStorageArray = new HashSet<>();
-        for (StoragePort storagePort : dbClient.queryObject(StoragePort.class, storagePortUriSet)) {
-            if(storagePort.getStorageDevice().equals(storageURI))
-                storagePortsAssociatedWithVArrayAndStorageArray.add(storagePort);
-        }
-        //String set of all the storage port URI's
-        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = new HashSet<>();
-        for (StoragePort storagePort : storagePortsAssociatedWithVArrayAndStorageArray) {
-            storagePortURIsAssociatedWithVArrayAndStorageArray.add(storagePort.getId().toString());
-        }
-        return storagePortURIsAssociatedWithVArrayAndStorageArray;
+        URIQueryResultList storagePortsAssociatedWithStorageSystem = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortsForStorageSystemConstraint(storageURI.toString()),
+                storagePortsAssociatedWithStorageSystem);
+        
+        Set<URI> storagePortsSetAssociatedWithStorageSystem = new HashSet<>();
+        storagePortsSetAssociatedWithStorageSystem.addAll(storagePortsAssociatedWithStorageSystem);
+        
+        return Sets.intersection(storagePortsSetAssociatedWithVarray, storagePortsSetAssociatedWithStorageSystem)
+                .stream().map(storagePortUri -> storagePortUri.toString()).collect(Collectors.toSet());
     }
 
     

@@ -4813,7 +4813,7 @@ scheduler.expiration=Automatic Expiration
 scheduler.expiration.helpText=Maximum snapshots or copies to keep.
 
 gettingStarted.header.full=Getting Started Guide
-gettingStarted.header.side=Return To Guide
+gettingStarted.header.side=Return to Guide
 gettingStarted.header.side.next=Next Step
 gettingStarted.button.error=Complete Step
 gettingStarted.loader.recheck=Add more Storage

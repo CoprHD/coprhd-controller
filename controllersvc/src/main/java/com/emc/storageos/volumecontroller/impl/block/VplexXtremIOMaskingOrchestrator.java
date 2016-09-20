@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -618,13 +619,32 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             // refresh export mask
             device.refreshExportMask(array, exportMask);
 
+            StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) {
-                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            if (maskVolumesMap != null) {
+                remainingVolumes.addAll(maskVolumesMap.keySet());
             }
-            for (URI volume : volumes) {
-                remainingVolumes.remove(volume.toString());
+
+            Iterator<URI> volumeURIsIter = volumes.iterator();
+            while (volumeURIsIter.hasNext()) {
+                String volumeId = volumeURIsIter.next().toString();
+                remainingVolumes.remove(volumeId);
+                
+                // Remove any volumes from the volume list that are no longer
+                // in the export mask. When a failure occurs removing a backend
+                // volume from a mask, the rollback method will try and remove it
+                // again. However, in the case of a distributed volume, one side
+                // may have succeeded, so we will try and remove it again. Previously,
+                // this was not a problem. However, new validation exists at the
+                // block level that checks to make sure the volume to remove is
+                // actually in the mask, which now causes a failure when you remove
+                // it a second time. So, we check here and remove any volumes that
+                // are not in the mask to handle this condition.
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volumeId))){
+                    volumeURIsIter.remove();
+                }
             }
+
             // If it is last volume and there are no existing initiators
             // or existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()

@@ -41,7 +41,7 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
                 events = models.actionableEvents().findPendingByAffectedResources(host.getId());
                 if (!events.isEmpty()) {
                     ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {},
-                            new Object[] { host.getLabel(), getEventOutput(events) });
+                            new Object[] { host.forDisplay(), getEventOutput(events) });
 
                 }
             }

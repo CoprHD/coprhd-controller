@@ -139,7 +139,10 @@ public class DbCli {
      * @Param cfName
      */
     public void printFieldsByCf(String cfName) {
-        Class clazz = _cfMap.get(cfName);
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
+            return;
+        }
         if (DataObject.class.isAssignableFrom(clazz)) {
             DataObjectType doType = TypeMap.getDoType(clazz);
             System.out.println(String.format("Column Family: %s", doType.getCF().getName()));
@@ -694,13 +697,8 @@ public class DbCli {
      */
     @SuppressWarnings("unchecked")
     public void queryForDump(String cfName, String fileName, String[] ids) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.out.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.out.println("TimeSeries data not supported with this command.");
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
         initDumpXmlFile(cfName);
@@ -719,13 +717,8 @@ public class DbCli {
      */
     @SuppressWarnings("unchecked")
     public void queryForList(String cfName, String[] ids) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.out.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.out.println("TimeSeries data not supported with this command.");
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
         for (String id : ids) {
@@ -795,9 +788,8 @@ public class DbCli {
      * @param force
      */
     private void delete(String id, String cfName, boolean force) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.out.println("Unknown Column Family: " + cfName);
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
 
@@ -864,13 +856,8 @@ public class DbCli {
      */
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName) throws Exception {
-        final Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.out.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.out.println("TimeSeries data not supported with this command.");
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
         List<URI> uris = null;
@@ -989,6 +976,19 @@ public class DbCli {
                 cfMap.put(doType.getCF().getName(), clazz);
             }
         }
+    }
+
+    private Class<? extends DataObject>  getClassFromCFName(String cfName) {
+        Class<? extends DataObject> clazz = _cfMap.get(cfName); // fill in type from cfName
+        if (clazz == null) {
+            System.err.println("Unknown Column Family: " + cfName);
+            return null;
+        }
+        if (!DataObject.class.isAssignableFrom(clazz)) {
+            System.err.println("TimeSeries data not supported with this command.");
+            return null;
+        }
+        return clazz;
     }
 
 }

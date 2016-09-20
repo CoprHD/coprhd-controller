@@ -17,6 +17,10 @@
 #
 #set -x
 
+# Required for remote execution of SYMCLI commands.
+# If you are debugging, export this variable on your command line or add to your .bashrc
+export SYMCLI_CONNECT=SYMAPI_SERVER
+
 ## Convenience method for deleting a mask outside of ViPR (including the storage group)
 delete_mask() {
     serial_number=$1

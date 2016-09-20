@@ -965,6 +965,7 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
     $scope.pending = 0;
     $scope.approved = 0;
     $scope.declined = 0;
+    $scope.failed = 0;
     $scope.dataReady = false;
 
     var poller = function() {
@@ -973,7 +974,8 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
                     $scope.pending = countSummary.pending;
                     $scope.approved = countSummary.approved;
                     $scope.declined = countSummary.declined;
-                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined;
+                    $scope.failed = countSummary.failed;
+                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined + countSummary.failed;
                     $scope.dataReady = true;
 
                     $timeout(poller, 5000);
@@ -1476,7 +1478,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
         if (newVal === undefined || newVal.indexOf(hint) > -1) return;
-        setOffsetFromLocalTime($scope.backup_startTime);
+        setOffsetFromLocalTime($scope.backup_startTime, $backup_interval.val());
         if (typeof $backup_interval != 'undefined') {
             withHint($backup_interval.val());
         }
@@ -1490,11 +1492,14 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return localTime;
     }
 
-    function setOffsetFromLocalTime(localTime) {
+    function setOffsetFromLocalTime(localTime, $interval) {
         if ($scope.backup_startTime !== undefined &&
             $scope.backup_startTime.indexOf(hint) === -1) {
             var localMoment = moment(localTime, "HH:mm");
             var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+            if ($interval === twicePerDay) {
+                utcOffset = (utcOffset >= 1200) ? (utcOffset - 1200) : utcOffset;
+            }
             var $backup_time = $("#backup_scheduler_time");
             $backup_time.val(utcOffset);
             checkForm();
@@ -1890,6 +1895,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 });
                 break;
             case landingStep:
+            	guide_data=angular.fromJson(readCookie(dataCookieKey));
+                if(guide_data){
+                    $scope.completedSteps = 3;
+                }
                 callback();
                 return true;
                 break;
@@ -1934,11 +1943,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }));
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
+                            $scope.guideErrorObject = failedArray;
                             if(failedType=="PROVIDER"){
-                                $scope.guideError = "Error: Storage Provider failed to discover:\n"+failedArray;
+                                $scope.guideError = "The following Storage Providers have not been discovered yet:";
+                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to the next step.";
                                 finishChecking();
                             } else {
-                                $scope.guideError = "Error: Storage System(s) failed to discover:\n"+failedArray;
+                                $scope.guideError = "The following Storage Systems have not been discovered yet:";
+                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to the next step.";
                                 finishChecking();
                             }
                         } else {
@@ -1975,7 +1987,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Storage System(s) not attached to Network:\n"+data.data;
+                        $scope.guideErrorObject = data.data;
+                        $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
+                        $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -1998,7 +2012,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Storage System(s) not attached to Virtual Array:\n"+data.data;
+                        $scope.guideErrorObject = data.data;
+                        $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Array:";
+                         $scope.guideErrorSolution = "To complete step, run Virtual Array creation step again.";
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -2021,7 +2037,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideError = "Error: Storage System(s) not attached to Virtual Pool:\n"+data.data;
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Pool:";
+                             $scope.guideErrorSolution = "To complete step, run Virtual Pool creation step again.";
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;

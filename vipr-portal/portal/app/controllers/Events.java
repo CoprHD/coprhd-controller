@@ -137,7 +137,8 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
@@ -250,7 +251,8 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();

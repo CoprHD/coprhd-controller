@@ -245,6 +245,43 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         return poolList;
     }
+    
+    /**
+     * Return the matching pools for a given set of VirtualPool attributes.
+     * This API is useful for user to find the matching pools before creating a VirtualPool.
+     *
+     * @prereq none
+     * @param param : VirtualPoolAttributeParam
+     * @brief List matching pools for virtual pool properties
+     * @return matching pools.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/pool-recommendations")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public StoragePoolList getPoolRecommendations(BlockVirtualPoolParam param) {
+        StoragePoolList poolList = new StoragePoolList();
+
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
+        List<VpoolProtectionVarraySettings> protectionSettings = new ArrayList<VpoolProtectionVarraySettings>();
+        Map<URI, VpoolProtectionVarraySettings> protectionSettingsMap = new HashMap<URI, VpoolProtectionVarraySettings>();
+        VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap, protectionSettingsMap, protectionSettings);
+        List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+        List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
+        StringBuffer errorMessage = new StringBuffer();
+        List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
+                protectionSettingsMap,
+                remoteSettingsMap,
+                null,
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
+        for (StoragePool pool : matchedPools) {
+            poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
+        }
+        return poolList;
+    }
+    
+    
 
     /**
      * List the virtual pools for Block Store

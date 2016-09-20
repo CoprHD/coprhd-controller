@@ -89,6 +89,7 @@ public class HP3PARUtil {
 
             // get storage port details
             PortCommandResult portResult = hp3parApi.getPortDetails();
+            PortStatisticsCommandResult portStatResult = hp3parApi.getPortStatisticsDetail();
 
             // for each ViPR Storage port = 3PAR host port
             for (PortMembers currMember:portResult.getMembers()) {
@@ -128,11 +129,11 @@ public class HP3PARUtil {
                 String id = String.format("%s:%s:%s", currMember.getPortPos().getNode(),
                         currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
 
-                PortStatisticsCommandResult portStatResultSpecific = hp3parApi.getPortStatistics(id);
+                /*PortStatisticsCommandResult portStatResultSpecific = hp3parApi.getPortStatistics(id);
                 if (portStatResultSpecific.getTotal() != 0) {
                 	//Result will have stats of only one port specified
                 	port.setPortSpeed(portStatResultSpecific.getMembers().get(0).getSpeed() * HP3PARConstants.MEGA_BYTE);
-                } else {
+                } else {*/
                 	// get speed from general query
                 	PortStatisticsCommandResult portStatResult = hp3parApi.getPortStatisticsDetail();
                 	for (PortStatMembers currStat:portStatResult.getMembers()) {
@@ -143,7 +144,7 @@ public class HP3PARUtil {
                 			port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.MEGA_BYTE);
                 		}
                 	}
-                }
+                //}
 
                 // grouping with cluster node and slot
                 port.setPortGroup(currMember.getPortPos().getNode().toString());

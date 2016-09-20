@@ -4,8 +4,17 @@
  */
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
+import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -17,16 +26,9 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeRespo
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
 
 public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
@@ -55,7 +57,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotVolume(parent.getNativeId(),
                     blockSnapshot.getLabel(), systemId);
             String nativeId = result.getVolumeIdList().get(0);
-            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, blockSnapshot, systemId, nativeId);
+            ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, blockSnapshot, systemId, nativeId, storage);
             dbClient.persistObject(blockSnapshot);
             ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
             taskCompleter.ready(dbClient);
@@ -88,7 +90,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             List<String> nativeIds = result.getVolumeIdList();
             Map<String, String> snapNameIdMap = scaleIOHandle.getVolumes(nativeIds);
             ScaleIOHelper.updateSnapshotsWithSnapshotMultiVolumeResult(dbClient, blockSnapshots, systemId, snapNameIdMap,
-                    result.getSnapshotGroupId());
+                    result.getSnapshotGroupId(), storage);
             dbClient.persistObject(blockSnapshots);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
@@ -136,11 +138,10 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
             if (blockSnapshot != null) {
                 blockSnapshot.setInactive(true);
-                dbClient.persistObject(blockSnapshot);
+                dbClient.updateObject(blockSnapshot);
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, blockSnapshot);
             }
             taskCompleter.ready(dbClient);
-
         } catch (Exception e) {
             log.error("Encountered an exception", e);
             ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteSingleVolumeSnapshot",
@@ -165,7 +166,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
                 poolsToUpdate.add(parent.getPool());
                 groupSnapshot.setInactive(true);
             }
-            dbClient.persistObject(groupSnapshots);
+            dbClient.updateObject(groupSnapshots);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
             for (StoragePool pool : pools) {

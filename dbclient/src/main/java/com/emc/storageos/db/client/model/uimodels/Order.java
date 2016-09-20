@@ -10,6 +10,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 import java.net.URI;
+import java.util.Calendar;
 import java.util.Date;
 
 @Cf("Order")
@@ -25,6 +26,8 @@ public class Order extends ModelObject implements TenantDataObject {
     public static final String EXECUTION_WINDOW_ID = "executionWindowId";
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
     public static final String ORDER_NUMBER = "orderNumber";
+    public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
+    public static final String SCHEDULED_TIME = "scheduledTime";
 
     /** User friendly Order number */
     private String orderNumber;
@@ -48,6 +51,10 @@ public class Order extends ModelObject implements TenantDataObject {
     private String orderStatus;
 
     private String tenant;
+
+    private URI scheduledEventId;
+
+    private Calendar scheduledTime;
 
     /**
      * Field used for indexing updated time
@@ -156,6 +163,27 @@ public class Order extends ModelObject implements TenantDataObject {
     public void setTenant(String tenant) {
         this.tenant = tenant;
         setChanged(TENANT);
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)
+    @Name(SCHEDULED_EVENT_ID)
+    public URI getScheduledEventId() {
+        return scheduledEventId;
+    }
+
+    public void setScheduledEventId(URI scheduledEventId) {
+        this.scheduledEventId = scheduledEventId;
+        setChanged(SCHEDULED_EVENT_ID);
+    }
+
+    @Name(SCHEDULED_TIME)
+    public Calendar getScheduledTime() {
+        return scheduledTime;
+    }
+
+    public void setScheduledTime(Calendar scheduledTime) {
+        this.scheduledTime = scheduledTime;
+        setChanged(SCHEDULED_TIME);
     }
 
     @Override

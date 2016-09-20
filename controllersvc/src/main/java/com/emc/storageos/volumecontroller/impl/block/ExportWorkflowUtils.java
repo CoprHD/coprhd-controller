@@ -132,8 +132,8 @@ public class ExportWorkflowUtils {
      * the storage system export mask
      * 
      * @param workflow the main workflow
-     * @param wfGroupId the workglow group Id, if any
-     * @param waitFor the id of a step on which this wrokflow has to wait, if any
+     * @param wfGroupId the workflow group Id, if any
+     * @param waitFor the id of a step on which this workflow has to wait, if any
      * @param storageUri the storage controller used to perform the export update.
      *            This can be either a block storage controller or protection
      *            controller.
@@ -347,14 +347,10 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportAddInitiatorsMethod(storage, export,
                         initiatorURIs);
 
-        Workflow.Method rollback =
-                ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(storage, export,
-                        initiatorURIs);
-
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding initiators from export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollback, waitFor);
+                storageSystem, method, rollbackMethodNullMethod(), waitFor);
     }
 
     /**
@@ -542,5 +538,15 @@ public class ExportWorkflowUtils {
                 removedBlockObjects != null && removedBlockObjects.isEmpty() &&
                 addedInitiators != null && addedInitiators.isEmpty() &&
                 removedInitiators != null && removedInitiators.isEmpty());
+    }
+
+    /**
+     * Creates a rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain.
+     *
+     * @return A workflow method
+     */
+    private Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method("rollbackMethodNull");
     }
 }

@@ -61,13 +61,15 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 
 /**
  * Block Service subtask (parts of larger operations) default implementation.
  */
 public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<StorageScheduler> {
     private static final Logger _log = LoggerFactory.getLogger(DefaultBlockServiceApiImpl.class);
-
+    private static final String REGEX_XIV = "^[-\\w._~]+";
+    
     public DefaultBlockServiceApiImpl() {
         super(null);
     }
@@ -90,13 +92,16 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood,
             VirtualPool cos, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
-
+        
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
-                existingDescriptors, param.getName(), size,
+                existingDescriptors, param.getName(), size, 
                 project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
+        
+        //Check for special characters in volume names
+        checkVolumeNames(preparedVolumes.get(0));
 
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -116,6 +121,26 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         return taskList;
     }
+    
+    /**
+     * Method to validate volume names.
+     * @param volume Volume Name
+     */
+    private void checkVolumeNames(Volume volume) {
+		URI storageSystemUri = volume.getStorageController();
+		if(null != storageSystemUri){
+			StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+			//A check for XIV array volume name. XIV volume name supports only four special character .~-_
+			if(storageSystem.deviceIsType(Type.ibmxiv)){
+				if(volume.getLabel().matches(REGEX_XIV)){
+					return;
+				}else{
+					throw APIException.badRequests.invalidVolumeName(volume.getLabel());
+				}
+			}
+		}
+		
+	}
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size,
@@ -142,10 +167,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
-
+        
         return volumeDescriptors;
     }
-
+    
     /**
      * Retrieves the preparedVolumes from the volume descriptors.
      * 
@@ -208,7 +233,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         StorageSystemConnectivityList result = new StorageSystemConnectivityList();
         for (AbstractBlockServiceApiImpl impl : apiMap.values()) {
             if (impl == this) {
-                continue;     // no infinite recursion
+                continue; // no infinite recursion
             }
             StorageSystemConnectivityList list = impl.getStorageSystemConnectivity(storageSystem);
             result.getConnections().addAll(list.getConnections());
@@ -424,10 +449,13 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * Update volumes with volumeGroup Id, if the volumes are application ready
      * (non VNX, or VNX volumes not in a real replication group)
      *
-     * @param volumesList The add volume list
-     * @param application The application that the volumes are added to
+     * @param volumesList
+     *            The add volume list
+     * @param application
+     *            The application that the volumes are added to
      * @param taskId
-     * @return ApplicationVolumeList The volumes that are not application ready (in real VNX CG with array replication group)
+     * @return ApplicationVolumeList The volumes that are not application ready (in real VNX CG with array replication
+     *         group)
      */
     private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
         ApplicationAddVolumeList addVolumeList = new ApplicationAddVolumeList();
@@ -487,7 +515,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             }
 
             if (ControllerUtils.isVnxVolume(firstVolume, _dbClient) && !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
-                // VNX CG cannot have snapshots, user has to remove the snapshots first in order to add the CG to an application
+                // VNX CG cannot have snapshots, user has to remove the snapshots first in order to add the CG to an
+                // application
                 URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
                 _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(cgUri), cgSnapshotsResults);
                 Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
@@ -558,9 +587,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     /**
      * Remove volumes from application
      * 
-     * @param removeVolumes Volumes to be removed
+     * @param removeVolumes
+     *            Volumes to be removed
      * @param taskId
-     * @param application The application that the volumes are removed from
+     * @param application
+     *            The application that the volumes are removed from
      */
     private void removeVolumesFromApplication(List<Volume> removeVolumes, VolumeGroup application, String taskId) {
         Map<URI, List<URI>> cgVolsMap = new HashMap<URI, List<URI>>();
@@ -676,7 +707,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * (non-Javadoc)
      * 
      * @see
-     * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+     * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.
+     * model.VolumeGroup)
      */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {

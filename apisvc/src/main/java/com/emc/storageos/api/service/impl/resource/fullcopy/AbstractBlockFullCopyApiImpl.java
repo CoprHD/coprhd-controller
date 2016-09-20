@@ -773,4 +773,39 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
 
         return taskList;
     }
+
+    /**
+     * Set volumes to inactive state.
+     * Release reserved capacity for volumes in their storage pools.
+     * @param volumesList volumes to process.
+     */
+    public void handlePlacementFailure(List<Volume> volumesList) {
+        Map<URI, StoragePool> uriToStoragePool = new HashMap<>();
+        Map<URI, List<String>> storagePoolUriToVolumes = new HashMap<>();
+
+        for (Volume volume : volumesList) {
+            volume.setInactive(true);
+            URI storagePoolUri = volume.getPool();
+            if (!(URIUtil.isNull(storagePoolUri) || URIUtil.isNull(volume.getId()))) {
+                List<String> poolVolumes = storagePoolUriToVolumes.get(storagePoolUri);
+                if (poolVolumes == null) {
+                    poolVolumes = new ArrayList<>();
+                    storagePoolUriToVolumes.put(storagePoolUri, poolVolumes);
+                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
+                    if (storagePool != null) {
+                        uriToStoragePool.put(storagePoolUri, storagePool);
+                    }
+                }
+                poolVolumes.add(volume.getId().toString());
+            }
+        }
+        _dbClient.updateObject(volumesList);
+
+        for (URI poolUri : uriToStoragePool.keySet()) {
+            StoragePool pool = uriToStoragePool.get(poolUri);
+            List<String> volumes = storagePoolUriToVolumes.get(poolUri);
+            pool.removeReservedCapacityForVolumes(volumes);
+            _dbClient.updateObject(pool);
+        }
+    }
 }

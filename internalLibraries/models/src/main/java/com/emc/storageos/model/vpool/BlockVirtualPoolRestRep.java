@@ -27,10 +27,17 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
+    private String placementPolicy;
+    
+    // vmax all flash arrays
+    private Boolean compressionEnabled;
 
     // VMAX Host IO Limits attributes
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
     private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+    
+    // De-duplication supported vpool
+    private Boolean dedupCapable;
 
     public BlockVirtualPoolRestRep() {
     }
@@ -252,6 +259,21 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
         this.pathsPerInitiator = pathsPerInitiator;
     }
 
+    /**
+     * @return the compressionEnabled
+     */
+    @XmlElement(name = "compression_enabled", required = false)
+    public Boolean getCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
+    }
+
     @XmlElement(name = "host_io_limit_bandwidth", required = false)
     public Integer getHostIOLimitBandwidth() {
         return hostIOLimitBandwidth;
@@ -269,4 +291,29 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     public void setHostIOLimitIOPs(Integer hostIOLimitIOPs) {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
     }
+
+    @XmlElement(name = "dedup_capable", required = false)
+	public Boolean getDedupCapable() {
+		return dedupCapable;
+	}
+
+	public void setDedupCapable(Boolean dedupCapable) {
+		this.dedupCapable = dedupCapable;
+	}
+
+    /**
+     * Resource placement policy used by the virtual pool.
+     * Valid values:
+     *  default_policy (storage system/pool selection based on metrics and capacity)
+     *  array_affinity (storage system/pool selection based on host/cluster's array affinity first, then metrics and capacity)
+     */
+    @XmlElement(name = "placement_policy")
+    public String getPlacementPolicy() {
+        return placementPolicy;
+    }
+
+    public void setPlacementPolicy(String placementPolicy) {
+        this.placementPolicy = placementPolicy;
+    }
+
 }

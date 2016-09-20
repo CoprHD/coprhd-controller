@@ -283,6 +283,7 @@ public class SystemsMapper {
 		to.setCompatibilityStatus(from.getCompatibilityStatus());
 		to.setDiscoveryStatus(from.getDiscoveryStatus());
 		to.setDataCenters(from.getDataCenters());
+		to.setCompressionEnabled(from.getCompressionEnabled());
 		to.setMaxPoolUtilizationPercentage(
 				(from.getMaxPoolUtilizationPercentage() != null) ? from.getMaxPoolUtilizationPercentage()
 						: Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinatorClient,
@@ -418,6 +419,11 @@ public class SystemsMapper {
 		to.setRemotelyConnectedTo(from.getRemotelyConnectedTo());
 		to.setSupportedReplicationTypes(from.getSupportedReplicationTypes());
 		to.setAveragePortMetrics(from.getAveragePortMetrics());
+		to.setArrayAffinityJobStatus(from.getArrayAffinityStatus());
+		to.setLastArrayAffinityStatusMessage(from.getLastArrayAffinityStatusMessage());
+		to.setLastArrayAffinityRunTime(from.getLastArrayAffinityRunTime());
+		to.setNextArrayAffinityRunTime(from.getNextArrayAffinityRunTime());
+		to.setSuccessArrayAffinityTime(from.getSuccessArrayAffinityTime());
 		return to;
 	}
 

@@ -92,9 +92,10 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
      * @param system
      * @param target
      * @param completer
+     * @param devSpecificPolicyName
      */
     @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

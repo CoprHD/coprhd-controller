@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
@@ -63,12 +62,12 @@ import com.google.common.collect.ListMultimap;
  * existence of exports created outside of the system. It should take to make
  * sure that it does what it can to allow the operation to succeed in light of
  * such cases.
- * 
+ *
  * TODO: You'll notice several areas of code are very similar.
  * Recommend refactor to consolidate methods:
  * - Create, AddVolumes, AddInitiators should have its main BL in one place
  * - Delete, RemoveVolumes, RemoveInitiators should have its main BL in one place
- * 
+ *
  */
 public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final Logger _log = LoggerFactory.getLogger(VnxMaskingOrchestrator.class);
@@ -91,11 +90,13 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
-     * com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator#generateExportMaskAddInitiatorsWorkflow(com.emc.
+     * com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator#
+     * generateExportMaskAddInitiatorsWorkflow(com.emc.
      * storageos.workflow.Workflow, java.lang.String, com.emc.storageos.db.client.model.StorageSystem,
-     * com.emc.storageos.db.client.model.ExportGroup, com.emc.storageos.db.client.model.ExportMask, java.util.List, java.util.Set,
+     * com.emc.storageos.db.client.model.ExportGroup, com.emc.storageos.db.client.model.ExportMask, java.util.List,
+     * java.util.Set,
      * java.lang.String)
      */
     @Override
@@ -107,19 +108,21 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> initiatorURIs,
             Set<URI> newVolumeURIs,
             String token)
-            throws Exception {
+                    throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
         URI storageURI = storage.getId();
         List<URI> newTargetURIs = new ArrayList<>();
 
-        // Only update the ports of a mask that we created.
-        List<Initiator> initiators =
-                _dbClient.queryObject(Initiator.class, initiatorURIs);
+        List<Initiator> initiators = null;
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        }
+
         // Allocate any new ports that are required for the initiators
         // and update the zoning map in the exportMask.
-        Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
-                (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
+        Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs
+                : (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeURIs, exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
@@ -130,7 +133,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
-        _dbClient.persistObject(exportMask);
+        _dbClient.updateObject(exportMask);
 
         String maskingStep = workflow.createStepId();
         ExportTaskCompleter exportTaskCompleter = new ExportMaskAddInitiatorCompleter(
@@ -139,11 +142,11 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, newTargetURIs, exportTaskCompleter);
+                exportMaskURI, new ArrayList<URI>(volumeURIs), initiatorURIs, newTargetURIs, exportTaskCompleter);
 
         Workflow.Method rollbackMethod = new Workflow.Method(
                 "rollbackExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, maskingStep);
+                exportMaskURI, new ArrayList<URI>(volumeURIs), initiatorURIs, maskingStep);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Adding initiators to mask %s (%s)",
@@ -164,13 +167,18 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * mask will only allow for addition and removal of those initiators/volumes
      * that were added by a Bourne request. Existing initiators/volumes will be
      * maintained.
-     * 
-     * 
-     * @param storageURI - URI referencing underlying storage array
-     * @param exportGroupURI - URI referencing Bourne-level masking, ExportGroup
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer URI
-     * @param token - Identifier for operation
+     *
+     *
+     * @param storageURI
+     *            - URI referencing underlying storage array
+     * @param exportGroupURI
+     *            - URI referencing Bourne-level masking, ExportGroup
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer URI
+     * @param token
+     *            - Identifier for operation
      * @throws Exception
      */
     @Override
@@ -238,7 +246,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             logExportGroup(exportGroup, storageURI);
             boolean anyVolumesAdded = false;
             boolean createdNewMask = false;
-            if (exportGroup.getExportMasks() != null) {
+            if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
@@ -248,9 +256,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Add the volume to all the ExportMasks that are contained in the
                 // ExportGroup. The volumes should be added only if they don't
                 // already exist for the ExportMask.
-                Collection<URI> initiatorURIs =
-                        Collections2.transform(exportGroup.getInitiators(),
-                                CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 List<URI> hostURIs = new ArrayList<URI>();
                 Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
                 List<String> portNames = new ArrayList<String>();
@@ -287,6 +294,13 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 Integer hlu = volumeMap.get(boURI);
                                 volumesToAdd.put(thisVol, hlu);
                             }
+                            // Check if the volume is present in existing volumes. If yes, move it to user created
+                            // volumes
+                            if (bo != null && exportMask.hasExistingVolume(bo.getWWN())) {
+                                exportMask.removeFromExistingVolumes(bo);
+                                exportMask.addToUserCreatedVolumes(bo);
+                                _dbClient.updateObject(exportMask);
+                            }
                             // Check if the requested HLU for the volume is
                             // already taken by a pre-existing volume.
                             Integer requestedHLU = volumeMap.get(boURI);
@@ -296,9 +310,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
-                                ServiceError serviceError =
-                                        DeviceControllerException.errors.
-                                                exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
+                                ServiceError serviceError = DeviceControllerException.errors
+                                        .exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
                                 completer.error(_dbClient, serviceError);
                                 return;
                             }
@@ -317,7 +330,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // the first time. Need to update zoning map
                             updateZoningMap(exportGroup, exportMask, true);
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, exportMask, volumesToAdd);
+                                    exportGroup, exportMask, volumesToAdd, null);
                             anyVolumesAdded = true;
                             // Need to check if the mask is not already associated with
                             // ExportGroup. This is case when we are adding volume to
@@ -342,12 +355,10 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (!ExportMaskUtils.hasExportMaskForStorage(_dbClient,
                             exportGroup, storageURI) && exportGroup.hasInitiators()) {
                         _log.info("No existing masks to which the requested volumes can be added. Creating a new mask");
-                        List<URI> initiators =
-                                StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
 
-                        attachGroupSnapshot =
-                                checkForSnapshotsToCopyToTarget(workflow, storage,
-                                        null, volumeMap, null);
+                        attachGroupSnapshot = checkForSnapshotsToCopyToTarget(workflow, storage,
+                                null, volumeMap, null);
 
                         Map<URI, List<URI>> hostInitiatorMap = new HashMap<URI, List<URI>>();
                         for (URI newExportMaskInitiator : initiators) {
@@ -442,24 +453,34 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     /**
      * Routine contains logic to create an export mask on the array
-     * 
-     * @param workflow - Workflow object to create steps against
-     * @param previousStep - [optional] Identifier of workflow step to wait for
-     * @param device - BlockStorageDevice implementation
-     * @param storage - StorageSystem object representing the underlying array
-     * @param exportGroup - ExportGroup object representing Bourne-level masking
-     * @param initiatorURIs - List of Initiator URIs
-     * @param volumeMap - Map of Volume URIs to requested Integer HLUs
-     * @param zoningStepNeeded - No specific logic required for VNX as zoning is taken care of already.
-     * @param token - Identifier for the operation
+     *
+     * @param workflow
+     *            - Workflow object to create steps against
+     * @param previousStep
+     *            - [optional] Identifier of workflow step to wait for
+     * @param device
+     *            - BlockStorageDevice implementation
+     * @param storage
+     *            - StorageSystem object representing the underlying array
+     * @param exportGroup
+     *            - ExportGroup object representing Bourne-level masking
+     * @param initiatorURIs
+     *            - List of Initiator URIs
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer HLUs
+     * @param zoningStepNeeded
+     *            - No specific logic required for VNX as zoning is taken care of already.
+     * @param token
+     *            - Identifier for the operation
      * @throws Exception
      */
     @Override
-    public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
+    public boolean determineExportGroupCreateSteps(Workflow workflow, String waitFor,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
-        // If we didn't create any workflows by the end of this method, we can return an appropriate exception (instead of the Task just
-        // hanging)
+        // If we didn't create any workflows by the end of this method, we can return an appropriate exception (instead
+        // of the Task just hanging)
+        String previousStep = waitFor;
         boolean flowCreated = false;
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> volumeURIs = new ArrayList<URI>();
@@ -480,12 +501,10 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // Find the export masks that are associated with any or all the ports in
         // portNames. We will have to do processing differently based on whether
         // or there is an existing ExportMasks.
-        Map<String, Set<URI>> matchingExportMaskURIs =
-                device.findExportMasks(storage, portNames, false);
+        Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
         if (matchingExportMaskURIs.isEmpty()) {
-            previousStep =
-                    checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
-                            volumeMap, null);
+            previousStep = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
+                    volumeMap, null);
 
             _log.info(String.format("No existing mask found w/ initiators { %s }", Joiner.on(",")
                     .join(portNames)));
@@ -495,11 +514,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(portNames), Joiner.on(",").join(matchingExportMaskURIs.keySet()), Joiner
-                    .on(",").join(portNameToInitiatorURI.entrySet())));
-            // There are some initiators that already exist. We need to create a
-            // workflow that create new masking containers or updates masking
-            // containers as necessary.
+                            .join(portNames),
+                    Joiner.on(",").join(matchingExportMaskURIs.keySet()), Joiner
+                            .on(",").join(portNameToInitiatorURI.entrySet())));
+                            // There are some initiators that already exist. We need to create a
+                            // workflow that create new masking containers or updates masking
+                            // containers as necessary.
 
             // These data structures will be used to track new initiators - ones
             // that don't already exist on the array
@@ -545,7 +565,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             for (String existingMaskInitiatorStr : mask.getInitiators()) {
 
                                 // Now look at it from a different angle. Which one of our export group initiators
-                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing one,
+                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing
+                                // one,
                                 // we should add it to this mask.
                                 Iterator<URI> initiatorIter = initiatorURIsCopy.iterator();
                                 while (initiatorIter.hasNext()) {
@@ -565,7 +586,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                                 existingMasksToUpdateWithNewInitiators.put(mask.getId(), existingMaskInitiators);
                                             }
                                             existingMaskInitiators.add(initiatorCopy);
-                                            initiatorIter.remove(); // remove this from the list of initiators we'll make a new mask from
+                                            initiatorIter.remove(); // remove this from the list of initiators we'll
+                                            // make a new mask from
                                         }
                                     }
                                 }
@@ -605,9 +627,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
-                                ServiceError serviceError =
-                                        DeviceControllerException.errors.
-                                                exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
+                                ServiceError serviceError = DeviceControllerException.errors
+                                        .exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
                                 completer.error(_dbClient, serviceError);
                                 return false;
                             }
@@ -667,9 +688,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info(String.format("existingMasksToUpdateWithNewVolumes.size = %d",
                     existingMasksToUpdateWithNewVolumes.size()));
 
-            previousStep =
-                    checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
-                            volumeMap, existingMasksToUpdateWithNewVolumes.values());
+            previousStep = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
+                    volumeMap, existingMasksToUpdateWithNewVolumes.values());
 
             // At this point we have the necessary data structures populated to
             // determine the workflow steps. We are going to create new masks
@@ -680,8 +700,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // the host. If there is we will need to add these intiators
                     // associated with that host to the list
                     if (hostToExistingExportMaskMap.containsKey(hostID)) {
-                        URI existingExportMaskURI =
-                                hostToExistingExportMaskMap.get(hostID);
+                        URI existingExportMaskURI = hostToExistingExportMaskMap.get(hostID);
                         Set<Initiator> toAddInits = new HashSet<Initiator>();
                         List<URI> hostInitaitorList = hostInitiatorMap.get(hostID);
                         for (URI initURI : hostInitaitorList) {
@@ -699,9 +718,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // We have some brand new initiators, let's add them to new masks
                     _log.info(String.format("new export masks %s",
                             Joiner.on(",").join(hostInitiatorMap.get(hostID))));
-                    GenExportMaskCreateWorkflowResult result =
-                            generateExportMaskCreateWorkflow(workflow, previousStep, storage, exportGroup,
-                                    hostInitiatorMap.get(hostID), volumeMap, token);
+                    GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, previousStep, storage,
+                            exportGroup,
+                            hostInitiatorMap.get(hostID), volumeMap, token);
                     previousStep = result.getStepId();
                     flowCreated = true;
                 }
@@ -714,7 +733,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("adding these volumes %s to mask %s",
                         Joiner.on(",").join(volumesToAdd.keySet()), mask.getMaskName()));
                 previousStep = generateExportMaskAddVolumesWorkflow(workflow, previousStep, storage, exportGroup, mask,
-                        volumesToAdd);
+                        volumesToAdd, null);
                 flowCreated = true;
             }
 
@@ -727,11 +746,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
                 _log.info(String.format("adding these initiators %s to mask %s",
                         Joiner.on(",").join(initiatorsURIs), mask.getMaskName()));
-                // To make the right pathing assignments, send down the volumes we are going to add to this mask, if available.
+                // To make the right pathing assignments, send down the volumes we are going to add to this mask, if
+                // available.
                 previousStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep, storage, exportGroup, mask,
                         initiatorsURIs,
-                        existingMasksToUpdateWithNewVolumes.get(entry.getKey()) != null ?
-                                existingMasksToUpdateWithNewVolumes.get(entry.getKey()).keySet() : null,
+                        existingMasksToUpdateWithNewVolumes.get(entry.getKey()) != null
+                                ? existingMasksToUpdateWithNewVolumes.get(entry.getKey()).keySet() : null,
                         token);
                 flowCreated = true;
             }
@@ -742,35 +762,37 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * Method creates a workflow step for copying snapshots to the target devices,
      * so that they can be exported.
-     * 
-     * @param workflow - Workflow object to create steps against
-     * @param previousStep - [optional] Identifier of workflow step to wait for
-     * @param storageSystem - StorageSystem object representing the underlying array
-     * @param volumeMap - Map of Volume URIs to requested Integer HLUs
-     * @param volumesToAdd - Map of Volumes that need to be added to the export
-     * 
+     *
+     * @param workflow
+     *            - Workflow object to create steps against
+     * @param previousStep
+     *            - [optional] Identifier of workflow step to wait for
+     * @param storageSystem
+     *            - StorageSystem object representing the underlying array
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer HLUs
+     * @param volumesToAdd
+     *            - Map of Volumes that need to be added to the export
+     *
      * @return String workflow step ID. If no workflow is added,
      *         the passed in previousStep id is returned.
-     * 
+     *
      */
     @Override
-    public String
-            checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
-                    String previousStep,
-                    Map<URI, Integer> volumeMap,
-                    Collection<Map<URI, Integer>> volumesToAdd) {
+    public String checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
+            String previousStep,
+            Map<URI, Integer> volumeMap,
+            Collection<Map<URI, Integer>> volumesToAdd) {
         String step = previousStep;
-        ListMultimap<String, URI> snaps =
-                getBlockSnapshotsRequiringCopyToTarget(volumeMap, volumesToAdd);
+        ListMultimap<String, URI> snaps = getBlockSnapshotsRequiringCopyToTarget(volumeMap, volumesToAdd);
         if (snaps != null && !snaps.isEmpty()) {
             for (Map.Entry<String, Collection<URI>> entries : snaps.asMap().entrySet()) {
                 List<URI> snapshots = new ArrayList<URI>();
                 snapshots.addAll(entries.getValue());
                 _log.info(String.format("Need to run copy-to-target snapshots in snap set %s:%n%s",
                         entries.getKey(), Joiner.on(',').join(snapshots)));
-                step = SnapshotWorkflowEntryPoints.
-                        generateCopySnapshotsToTargetWorkflow(workflow, step,
-                                storageSystem, snapshots);
+                step = SnapshotWorkflowEntryPoints.generateCopySnapshotsToTargetWorkflow(workflow, step,
+                        storageSystem, snapshots);
             }
         } else {
             _log.info("There are no block snapshots that require copy-to-target.");
@@ -788,8 +810,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificAddInitiatorWorkFlow(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
-            ExportMask mask, List<URI> initiatorsURIs,
-            Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
+            ExportMask mask, List<URI> volumeURIs,
+            List<URI> initiatorsURIs, Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
 
         String maskingStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep,
                 storage, exportGroup, mask, initiatorsURIs, null, token);
@@ -801,15 +823,16 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * Method will return a ListMultimap of String snapsetLabel to snapshots that need
      * to have copyToTarget setup for them.
-     * 
-     * @param volumeMap - Map of Volume URIs to requested Integer HLUs
-     * @param volumesToAdd - Map of Volumes that need to be added to the export
-     * 
+     *
+     * @param volumeMap
+     *            - Map of Volume URIs to requested Integer HLUs
+     * @param volumesToAdd
+     *            - Map of Volumes that need to be added to the export
+     *
      * @return
      */
-    private ListMultimap<String, URI>
-            getBlockSnapshotsRequiringCopyToTarget(Map<URI, Integer> volumeMap,
-                    Collection<Map<URI, Integer>> volumesToAdd) {
+    private ListMultimap<String, URI> getBlockSnapshotsRequiringCopyToTarget(Map<URI, Integer> volumeMap,
+            Collection<Map<URI, Integer>> volumesToAdd) {
         ListMultimap<String, URI> snapLabelToSnapURIs = ArrayListMultimap.create();
         List<URI> list = new ArrayList<URI>();
 
@@ -830,8 +853,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, uri);
             if (snapshot != null && snapshot.getNeedsCopyToTarget()) {
-                String label = (Strings.isNullOrEmpty(snapshot.getSnapsetLabel())) ?
-                        DEFAULT_LABEL : snapshot.getSnapsetLabel();
+                String label = (Strings.isNullOrEmpty(snapshot.getSnapsetLabel())) ? DEFAULT_LABEL : snapshot.getSnapsetLabel();
                 snapLabelToSnapURIs.put(label, uri);
             }
         }
@@ -862,7 +884,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // new initiators don't have connectivity to the volumes. Thus it is done
         // this way to ensure newly zoned initiators have connectivity to volumes.
         String removeInitiatorStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, null,
-                storageSystem, exportGroup, exportMask, newInitiators, true, completer);
+                storageSystem, exportGroup, exportMask, null, newInitiators, true, completer);
         String zoningStep = generateZoningAddInitiatorsWorkflow(workflow, removeInitiatorStep,
                 exportGroup, zoneMasksToInitiatorsURIs);
         generateExportMaskAddInitiatorsWorkflow(workflow, zoningStep, storageSystem, exportGroup, exportMask,
@@ -886,9 +908,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 String computeKey = resourceEntry.getKey();
                 List<URI> computeInitiatorURIs = resourceEntry.getValue();
                 _log.info(String.format("New export masks for %s", computeKey));
-                GenExportMaskCreateWorkflowResult result =
-                        generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep, storage, exportGroup,
-                                computeInitiatorURIs, volumeMap, token);
+                GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep, storage,
+                        exportGroup,
+                        computeInitiatorURIs, volumeMap, token);
                 // Run the creates sequentially. There could be some issues with database consistency if
                 // masking operations are run in parallel as calls get interleaved against the provider.
                 previousStep = result.getStepId();

@@ -57,6 +57,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapa
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
@@ -87,7 +88,7 @@ import com.google.common.base.Strings;
  */
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
-    private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
+    private static Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
     // Storage drivers for block  devices
     private Map<String, AbstractStorageDriver> drivers;
     private DbClient dbClient;
@@ -151,13 +152,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Map<StorageVolume, Volume> driverVolumeToVolumeMap = new HashMap<>();
         Set<URI> consistencyGroups = new HashSet<>();
         StorageCapabilities storageCapabilities = null;
+        DriverTask task = null;
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         try {
             for (Volume volume : volumes) {
                 if (storageCapabilities == null) {
                     // All volumes created in a request will have the same capabilities.
-                    // Currently, auto tiering policy is the only capability supported.
                     storageCapabilities = new StorageCapabilities();
                     addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
+                    addDeduplicationCapability(storageCapabilities, volume.getIsDeduplicated());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -174,8 +177,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverVolumeToVolumeMap.put(driverVolume, volume);
             }
             // Call driver
-            BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), storageCapabilities);
+            task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), storageCapabilities);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY || task.getStatus() == DriverTask.TaskStatus.PARTIALLY_FAILED ) {
 
@@ -200,6 +202,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("doCreateVolumes -- Failed to create volumes. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("doCreateVolumes", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        } finally {
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    updateStoragePoolCapacity(storagePool, storageSystem,
+                            URIUtil.toUris(volumes), dbClient);
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool {} after create volumes operation completion.", storagePool.getId(), ex);
+            }
         }
     }
     
@@ -243,11 +254,51 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 commonCapabilities.setDataStorage(dataStorageSvcOptions);
             }
             
-            // Create a new data storage service option for the auto tiering policy capability
+            // Create a new data storage service option for the AutoTiering policy capability
             // and add it to the list.
             DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Arrays.asList(autoTieringCapability));
             dataStorageSvcOptions.add(dataStorageSvcOption);
         }        
+    }
+
+    /**
+     * Create deduplication capability and add it to the passed
+     * storage capabilities
+     *
+     * @param storageCapabilities reference to storage capbilities
+     * @param deduplication indicates if deduplication is required
+     */
+    private void addDeduplicationCapability(StorageCapabilities storageCapabilities, Boolean deduplication) {
+        if (deduplication) {
+            // Create the deduplicated capability.
+            DeduplicationCapabilityDefinition capabilityDefinition = new DeduplicationCapabilityDefinition();
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            capabilityProperties.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                    Collections.singletonList(Boolean.TRUE.toString()));
+            CapabilityInstance dedupCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                    capabilityDefinition.getId(), capabilityProperties);
+
+            // Get the common capabilities for the passed storage capabilities.
+            // If null, create and set it.
+            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+            if (commonCapabilities == null) {
+                commonCapabilities = new CommonStorageCapabilities();
+                storageCapabilities.setCommonCapabilitis(commonCapabilities);
+            }
+
+            // Get the data storage service options for the common capabilities.
+            // If null, create it and set it.
+            List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
+            if (dataStorageSvcOptions == null) {
+                dataStorageSvcOptions = new ArrayList<>();
+                commonCapabilities.setDataStorage(dataStorageSvcOptions);
+            }
+
+            // Create a new data storage service option for the auto tiering policy capability
+            // and add it to the list.
+            DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Collections.singletonList(dedupCapability));
+            dataStorageSvcOptions.add(dataStorageSvcOption);
+        }
     }
 
     @Override
@@ -295,11 +346,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception e) {
-            _log.error("doCreateVolumes -- Failed to expand volume. ", e);
+            _log.error("doExpandVolume -- Failed to expand volume. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.expandVolumeFailed("doExpandVolume", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         } finally {
-            storagePool.removeReservedCapacityForVolumes(Collections.singletonList(volume.getId().toString()));
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    updateStoragePoolCapacity(storagePool, storageSystem,
+                            URIUtil.toUris(Collections.singletonList(volume)), dbClient);
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool {} after expand volume operation completion.", storagePool.getId(), ex);
+            }
         }
     }
 
@@ -343,6 +401,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setDeviceLabel(volume.getDeviceLabel());
+                    driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
                     task = driver.deleteVolume(driverVolume);
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -513,7 +572,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
             List<BlockSnapshot> groupSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, dbClient);
 
-            if (groupSnapshots.size() > 1 &&
+            if (!groupSnapshots.isEmpty() &&
                     ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)) {
                 // make sure we delete only snapshots from the same consistency group
                 List<BlockSnapshot> snapshotsToDelete = new ArrayList<>();
@@ -545,6 +604,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateClone(StorageSystem storageSystem, URI volume, URI clone, Boolean createInactive,
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
+        DriverTask task = null;
         try {
         	cloneObject = dbClient.queryObject(Volume.class, clone);
             BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
@@ -573,7 +633,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task ;
         	List<VolumeClone> driverClones = new ArrayList<>();
         	driverClones.add(driverClone);
         	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
@@ -608,6 +667,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Failed to create volume clone. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        } finally {
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    StoragePool dbPool = dbClient.queryObject(StoragePool.class, cloneObject.getPool());
+                    updateStoragePoolCapacity(dbPool, storageSystem,
+                            Collections.singletonList(clone), dbClient);
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool {} after create clone operation completion.", cloneObject.getPool(), ex);
+            }
         }
     }
     
@@ -667,14 +736,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.error(String.format("Add volumes to Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                        		consistencyGroup.getLabel(), task.getMessage()));
+                                consistencyGroup.getLabel(), task.getMessage()));
             }   
             _log.info("{} doAddVolumesToConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Add volumes from Consistency Group operation failed %s", e.getMessage()));
             taskCompleter.error(dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                    		consistencyGroup.getLabel(), e.getMessage()));
+                            consistencyGroup.getLabel(), e.getMessage()));
         }
     }
     
@@ -713,14 +782,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                        		consistencyGroup.getLabel(), task.getMessage()));
+                                consistencyGroup.getLabel(), task.getMessage()));
             }
             _log.info("{} doRemoveVolumesFromConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
             taskCompleter.error(dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                    		consistencyGroup.getLabel(), e.getMessage()));
+                            consistencyGroup.getLabel(), e.getMessage()));
         }
     }
 
@@ -734,6 +803,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Set<URI> consistencyGroups = new HashSet<>();
 
         List<Volume> clones = null;
+        DriverTask task = null;
         try {
             clones = dbClient.queryObject(Volume.class, cloneURIs);
             // We assume here that all volumes belong to the same consistency group
@@ -770,7 +840,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverCloneToCloneMap.put(driverClone, clone);
             }
             // Call driver to create group snapshot
-            DriverTask task = driver.createConsistencyGroupClone(driverCG, Collections.unmodifiableList(driverClones), null);
+            task = driver.createConsistencyGroupClone(driverCG, Collections.unmodifiableList(driverClones), null);
             if (!isTaskInTerminalState(task.getStatus())) {
                 // If the task is not in a terminal state and will be completed asynchronously
                 // create a job to monitor the progress of the request and update the clone 
@@ -813,6 +883,30 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Failed to create group clone. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createGroupCloneFailed("doCreateGroupClone", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        } finally {
+            try {
+                if (task == null || isTaskInTerminalState(task.getStatus())) {
+                    // post process storage pool capacity for clone's pools
+                    // map clones to their storage pool
+                    Map<URI, List<URI>> dbPoolToClone = new HashMap<>();
+                    for (Volume clone : clones) {
+                        URI dbPoolUri = clone.getPool();
+                        List<URI> poolClones = dbPoolToClone.get(dbPoolUri);
+                        if (poolClones == null) {
+                            poolClones = new ArrayList<>();
+                            dbPoolToClone.put(dbPoolUri, poolClones);
+                        }
+                        poolClones.add(clone.getId());
+                    }
+                    for (URI dbPoolUri : dbPoolToClone.keySet()) {
+                        StoragePool dbPool = dbClient.queryObject(StoragePool.class, dbPoolUri);
+                        updateStoragePoolCapacity(dbPool, storageSystem,
+                                dbPoolToClone.get(dbPoolUri), dbClient);
+                    }
+                }
+            } catch (Exception ex) {
+                _log.error("Failed to update storage pool after create group clone operation completion.", ex);
+            }
         }
     }
 
@@ -1185,109 +1279,110 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportGroupCreate(StorageSystem storage,
+    public void doExportCreate(StorageSystem storage,
                                     ExportMask exportMask, Map<URI, Integer> volumeMap,
                                     List<Initiator> initiators, List<URI> targets,
                                     TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
+        _log.info("{} doExportCreate START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumeMap, dbClient);
         exportMaskOperationsHelper.createExportMask(storage, exportMask.getId(), volumeLunArray, targets, initiators, taskCompleter);
-        _log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
+        _log.info("{} doExportCreate END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
-                                  URI volume, Integer lun, TaskCompleter taskCompleter)
+                                  URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), map, dbClient);
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray, taskCompleter);
+        exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray, initiators, taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
 
     @Override
     public void doExportAddVolumes(StorageSystem storage,
-                                   ExportMask exportMask, Map<URI, Integer> volumes,
-                                   TaskCompleter taskCompleter) throws DeviceControllerException {
+                                   ExportMask exportMask, List<Initiator> initiators,
+                                   Map<URI, Integer> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumes, dbClient);
-        exportMaskOperationsHelper.addVolume(storage, exportMask.getId(),
-                volumeLunArray, taskCompleter);
+        exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(),
+                volumeLunArray, initiators, taskCompleter);
         _log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportRemoveVolume(StorageSystem storage,
-                                     ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+                                     ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), Arrays.asList(volume), taskCompleter);
+        exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), Arrays.asList(volume), initiators, taskCompleter);
         _log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportRemoveVolumes(StorageSystem storage,
                                       ExportMask exportMask, List<URI> volumes,
+                                      List<Initiator> initiators, 
                                       TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportRemoveVolumes START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), volumes,
-                taskCompleter);
+        exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), volumes,
+                initiators, taskCompleter);
         _log.info("{} doExportRemoveVolumes END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddInitiator(StorageSystem storage,
-                                     ExportMask exportMask, Initiator initiator, List<URI> targets,
-                                     TaskCompleter taskCompleter) throws DeviceControllerException {
+                                     ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
+                                     List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), Arrays.asList(initiator), targets, taskCompleter);
+        exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, Arrays.asList(initiator), targets, taskCompleter);
         _log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportAddInitiators(StorageSystem storage,
-                                      ExportMask exportMask, List<Initiator> initiators,
-                                      List<URI> targets, TaskCompleter taskCompleter)
+                                      ExportMask exportMask, List<URI> volumeURIs,
+                                      List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportAddInitiators START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), initiators, targets, taskCompleter);
+        exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, initiators, targets, taskCompleter);
         _log.info("{} doExportAddInitiators END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportRemoveInitiator(StorageSystem storage,
-                                        ExportMask exportMask, Initiator initiator, List<URI> targets,
-                                        TaskCompleter taskCompleter) throws DeviceControllerException {
+                                        ExportMask exportMask, List<URI> volumes, Initiator initiator,
+                                        List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(), Arrays.asList(initiator), targets, taskCompleter);
+        exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(), volumes, Arrays.asList(initiator), targets, taskCompleter);
         _log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 
     @Override
     public void doExportRemoveInitiators(StorageSystem storage,
-                                         ExportMask exportMask, List<Initiator> initiators,
-                                         List<URI> targets, TaskCompleter taskCompleter)
+                                         ExportMask exportMask, List<URI> volumes,
+                                         List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiators START ...", storage.getSerialNumber());
-        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(), initiators, targets, taskCompleter);
+        exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(), volumes, initiators, targets, taskCompleter);
         _log.info("{} doExportRemoveInitiators END ...", storage.getSerialNumber());
     }
 
     @Override
-    public void doExportGroupDelete(StorageSystem storage,
-                                    ExportMask exportMask, TaskCompleter taskCompleter)
+    public void doExportDelete(StorageSystem storage,
+                                    ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        _log.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
+        _log.info("{} doExportDelete START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(), new ArrayList<URI>(),
                 new ArrayList<URI>(), new ArrayList<Initiator>(), taskCompleter);
-        _log.info("{} doExportGroupDelete END ...", storage.getSerialNumber());
+        _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
@@ -1360,6 +1455,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));
                 snapshot.setIsSyncActive(true);
                 snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());
                 if (driverSnapshot.getProvisionedCapacity() > 0) {
@@ -1424,6 +1520,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));
                 snapshot.setIsSyncActive(true);
                 // we use driver snapshot consistency group id as replication group label for group snapshots
                 snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());
@@ -1490,7 +1587,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.info(msg);
             taskCompleter.ready(dbClient);
         }
-        taskCompleter.ready(dbClient);
     }
 
     private void deleteGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> groupSnapshots,
@@ -1554,7 +1650,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-                                                 List<String> initiatorNames, boolean mustHaveAllPorts) {
+                                                 List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
     }
 
@@ -1625,39 +1721,82 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             if (providerUriList.iterator().hasNext()) {
                 StorageProvider storageProvider = dbClient.queryObject(StorageProvider.class,
                         providerUriList.iterator().next());
-
-                // get driver for the provider
-                BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
-                String username = storageProvider.getUserName();
-                String password = storageProvider.getPassword();
-                String hostName = storageProvider.getIPAddress();
-                Integer providerPortNumber = storageProvider.getPortNumber();
-                String providerType = storageProvider.getInterfaceType();
-                Boolean useSsl = storageProvider.getUseSSL();
-                String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
-                        providerType, hostName, providerPortNumber, username, useSsl);
-                _log.info(msg);
-
-                com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
-                        new com.emc.storageos.storagedriver.model.StorageProvider();
-                // initialize driver provider
-                driverProvider.setProviderHost(hostName);
-                driverProvider.setPortNumber(providerPortNumber);
-                driverProvider.setUsername(username);
-                driverProvider.setPassword(password);
-                driverProvider.setUseSSL(useSsl);
-                driverProvider.setProviderType(providerType);
-
-                isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+                isConnectionValid = validateStorageProviderConnection(storageProvider);
             } else {
                String msg = String.format("Cannot find provider with ID: %s ", providerID);
             }
         } catch (Exception ex) {
             _log.error(
-                    "Problem in checking provider live connection with IP address and port: {}/{} due to: ",
+                    "Problem in checking provider live connection with IP address and port: {}:{} due to: ",
                     ipAddress, portNumber, ex);
         }
         return isConnectionValid;
+    }
+
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        boolean isConnectionValid = false;
+        try {
+            // call driver to validate provider connection
+            // get driver for the provider
+            BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
+            String username = storageProvider.getUserName();
+            String password = storageProvider.getPassword();
+            String hostName = storageProvider.getIPAddress();
+            Integer providerPortNumber = storageProvider.getPortNumber();
+            String providerType = storageProvider.getInterfaceType();
+            Boolean useSsl = storageProvider.getUseSSL();
+            String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
+                    providerType, hostName, providerPortNumber, username, useSsl);
+            _log.info(msg);
+
+            com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
+                    new com.emc.storageos.storagedriver.model.StorageProvider();
+            // initialize driver provider
+            driverProvider.setProviderHost(hostName);
+            driverProvider.setPortNumber(providerPortNumber);
+            driverProvider.setUsername(username);
+            driverProvider.setPassword(password);
+            driverProvider.setUseSSL(useSsl);
+            driverProvider.setProviderType(providerType);
+
+            isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+        } catch (Exception ex) {
+            _log.error("Problem in checking connection of provider {} due to: ", storageProvider.getLabel(), ex);
+        }
+        return isConnectionValid;
+    }
+
+    /**
+     * Update storage pool capacity to the most recent values from  driver.
+     * Release reserved capacity in the pool for set of reservedObjects.
+     *
+     * @param dbPool storage pool to update capacity
+     * @param dbSystem storage system where the pool is located
+     * @param reservedObjects list of reserved object (volumes/clones/mirrors)
+     * @param dbClient db client
+     */
+    public static void updateStoragePoolCapacity(StoragePool dbPool, StorageSystem dbSystem,
+                                                 List<URI> reservedObjects, DbClient dbClient) {
+        _log.info(String.format("Update storage pool capacity for pool %s, system %s ", dbPool.getId(),
+                dbSystem.getId()));
+        BlockStorageDriver driver = getBlockStorageDriver(dbSystem.getSystemType());
+        // refresh the pool
+        dbPool = dbClient.queryObject(StoragePool.class, dbPool.getId());
+        // rediscover driver storage pool
+        com.emc.storageos.storagedriver.model.StoragePool driverPool = driver.getStorageObject(dbSystem.getNativeId(),
+                dbPool.getNativeId(), com.emc.storageos.storagedriver.model.StoragePool.class);
+        // update pool capacity in db
+        if (driverPool != null) {
+            _log.info(String.format("Driver pool %s info: free capacity %s, subscribed capacity %s ", driverPool.getNativeId(),
+                    driverPool.getFreeCapacity(), driverPool.getSubscribedCapacity()));
+            dbPool.setFreeCapacity(driverPool.getFreeCapacity());
+            dbPool.setSubscribedCapacity(driverPool.getSubscribedCapacity());
+        } else {
+            _log.error("Driver pool for storage pool {} and storage system {} is null.", dbPool.getNativeId(), dbSystem.getNativeId());
+        }
+        // release reserved capacity
+        dbPool.removeReservedCapacityForVolumes(URIUtil.asStrings(reservedObjects));
+        dbClient.updateObject(dbPool);
     }
 
 }

@@ -70,6 +70,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -115,6 +116,7 @@ import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -122,6 +124,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -1666,6 +1669,7 @@ public class VolumeGroupService extends TaskResourceService {
         // validate name
         String name = param.getName();
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
+        name = TimeUtils.formatDateForCurrent(name);
 
         // snapsetLabel is normalized in RP, do it here too to avoid potential mismatch
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
@@ -2331,9 +2335,9 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT_SESSION);
 
         // validate name
-        String name = param.getName();
+        String name = TimeUtils.formatDateForCurrent(param.getName());
         ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
-
+        
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {
             // original name has special chars only
@@ -3192,7 +3196,7 @@ public class VolumeGroupService extends TaskResourceService {
          * @param volumeGroup being update
          * @param volumes being added or removed
          */
-        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
+        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {            
             Set<URI> consistencyGroups = Sets.newHashSet();
             List<URI> volumeIds = new ArrayList<URI>();
             // Get list of all consistency groups for these volumes
@@ -3209,7 +3213,12 @@ public class VolumeGroupService extends TaskResourceService {
 
                 for (URI consistencyGroupId : consistencyGroups) {
                     BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-                    List<Volume> cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                    List<Volume> cgVolumes = null;
+                    if (consistencyGroup.getRequestedTypes().contains(Types.RP.toString())) {
+                        cgVolumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), dbClient);
+                    } else {
+                        cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                    }
 
                     // make sure all volumes in 'cgVolumes' are also in 'volumes'
                     for (Volume cgVolume : cgVolumes) {
@@ -3964,23 +3973,6 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Check if the volume is a vplex volume
-     * 
-     * @param volume The volume to be checked
-     * @return true or false
-     */
-    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
-        boolean result = false;
-        URI storageUri = volume.getStorageController();
-        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
-        String systemType = storage.getSystemType();
-        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
-            result = true;
-        }
-        return result;
-    }
-
-    /**
      * Gets all clones for the given set name and volume group.
      * 
      * @param cloneSetName
@@ -3997,7 +3989,7 @@ public class VolumeGroupService extends TaskResourceService {
             while (iter.hasNext()) {
                 Volume vol = iter.next();
                 URI sourceId = getSourceIdForFullCopy(vol);
-                if (sourceId != null) {
+                if (!NullColumnValueGetter.isNullURI(sourceId)) {
                     Volume sourceVol = _dbClient.queryObject(Volume.class, sourceId);
                     if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
                             && sourceVol.getVolumeGroupIds().contains(volumeGroupId.toString())) {

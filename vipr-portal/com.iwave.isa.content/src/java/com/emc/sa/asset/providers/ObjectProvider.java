@@ -109,7 +109,7 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("objectVirtualPool")
-    @AssetDependencies({ "virtualArray" })
+    @AssetDependencies({ "objectVirtualArray" })
     public List<AssetOption> getObjectVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting getObjectVirtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
         List<ObjectVirtualPoolRestRep> virtualPools = api(ctx).objectVpools().getByVirtualArrayAndTenant(virtualArray, ctx.getTenant());

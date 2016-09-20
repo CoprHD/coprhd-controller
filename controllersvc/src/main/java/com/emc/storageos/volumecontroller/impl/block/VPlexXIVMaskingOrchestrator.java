@@ -189,10 +189,10 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     @Override
     public Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
 
         return new Workflow.Method("createOrAddVolumesToExportMask",
-                arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
+                arrayURI, exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     /*
@@ -205,7 +205,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap,
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs2,
             TaskCompleter completer, String stepId) {
 
         try {
@@ -256,10 +256,22 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 // The default completer passed in is for add volume, create correct one
                 TaskCompleter createCompleter = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, volumeMap, stepId);
-                device.doExportGroupCreate(array, exportMask, volumeMap,
+                device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, createCompleter);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
+                // Fetch the Initiators
+                List<URI> initiatorURIs = new ArrayList<URI>();
+                List<Initiator> initiators = new ArrayList<Initiator>();
+                for (String initiatorId : exportMask.getInitiators()) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                    if (initiator != null) {
+                        initiators.add(initiator);
+                        initiatorURIs.add(initiator.getId());
+                    }
+                }
+
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
         } catch (Exception ex) {
@@ -280,10 +292,10 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     @Override
     public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
 
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     /*
@@ -297,7 +309,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes,
+            List<URI> volumes, List<URI> initiatorURIs,
             TaskCompleter completer, String stepId) {
 
         try {
@@ -339,13 +351,18 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 remainingVolumes.remove(volume.toString());
             }
 
-            // If so, delete the ExportMask.
+            // If it is last volume and there are no existing initiators
+            // or existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null
-                            || exportMask.getExistingVolumes().isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                    && !exportMask.hasAnyExistingVolumes()
+                    && !exportMask.hasAnyExistingInitiators()) {
+                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
 
         } catch (Exception ex) {

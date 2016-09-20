@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowService;
 
@@ -195,7 +196,7 @@ public class BlockStorageDeviceTest {
         ExportTaskCompleter taskCompleter = new ExportMaskCreateCompleter(
                 exportGroup.getId(), exportMask.getId(), initiatorURIs, volumeMap,
                 maskingStep);
-        _deviceController.doExportGroupCreate(_storageSystem, exportMask, volumeMap, initiatorList, null,
+        _deviceController.doExportCreate(_storageSystem, exportMask, volumeMap, initiatorList, null,
                 taskCompleter);
     }
 
@@ -206,7 +207,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportDeleteCompleter(exportGroup.getId(), false, token);
-        _deviceController.doExportGroupDelete(_storageSystem, exportMask, taskCompleter);
+        _deviceController.doExportDelete(_storageSystem, exportMask, null, null, taskCompleter);
     }
 
     @Test
@@ -222,7 +223,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportAddVolumeCompleter(exportGroup.getId(), volumeMap, token);
-        _deviceController.doExportAddVolume(_storageSystem, exportMask, volume.getId(), lun, taskCompleter);
+        _deviceController.doExportAddVolume(_storageSystem, exportMask, volume.getId(), lun, null, taskCompleter);
     }
 
     @Test
@@ -238,7 +239,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportAddVolumeCompleter(exportGroup.getId(), volumeMap, token);
-        _deviceController.doExportAddVolumes(_storageSystem, exportMask, volumeMap, taskCompleter);
+        _deviceController.doExportAddVolumes(_storageSystem, exportMask, null, volumeMap, taskCompleter);
     }
 
     @Test
@@ -252,7 +253,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportRemoveVolumeCompleter(exportGroup.getId(), volumeURIs, token);
-        _deviceController.doExportRemoveVolume(_storageSystem, exportMask, volume.getId(), taskCompleter);
+        _deviceController.doExportRemoveVolume(_storageSystem, exportMask, volume.getId(), null, taskCompleter);
     }
 
     @Test
@@ -268,7 +269,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportRemoveVolumeCompleter(exportGroup.getId(), volumeURIs, token);
-        _deviceController.doExportRemoveVolumes(_storageSystem, exportMask, volumeURIs, taskCompleter);
+        _deviceController.doExportRemoveVolumes(_storageSystem, exportMask, volumeURIs, null, taskCompleter);
     }
 
     @Test
@@ -282,7 +283,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportAddInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
-        _deviceController.doExportAddInitiator(_storageSystem, exportMask, initiator, targets, taskCompleter);
+        _deviceController.doExportAddInitiator(_storageSystem, exportMask, null, initiator, targets, taskCompleter);
     }
 
     @Test
@@ -304,7 +305,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportAddInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
-        _deviceController.doExportAddInitiators(_storageSystem, exportMask, initiatorArgs, targets, taskCompleter);
+        _deviceController.doExportAddInitiators(_storageSystem, exportMask, null, initiatorArgs, targets, taskCompleter);
     }
 
     @Test
@@ -319,7 +320,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportRemoveInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
-        _deviceController.doExportRemoveInitiator(_storageSystem, exportMask, initiator, null, taskCompleter);
+        _deviceController.doExportRemoveInitiator(_storageSystem, exportMask, null, initiator, null, taskCompleter);
     }
 
     @Test
@@ -339,7 +340,7 @@ public class BlockStorageDeviceTest {
 
         String token = UUID.randomUUID().toString() + UUID.randomUUID().toString();
         ExportTaskCompleter taskCompleter = new ExportRemoveInitiatorCompleter(exportGroup.getId(), initiatorURIs, token);
-        _deviceController.doExportRemoveInitiators(_storageSystem, exportMask, initiators, null, taskCompleter);
+        _deviceController.doExportRemoveInitiators(_storageSystem, exportMask, null, initiators, null, taskCompleter);
     }
 
     @Test
@@ -669,10 +670,10 @@ public class BlockStorageDeviceTest {
             _dbClient.createObject(exportGroup);
         }
 
-        StringSet masks = exportGroup.getExportMasks();
-        if (masks == null) {
+        List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+        if (masks.isEmpty()) {
             exportGroup.addExportMask(getExportMask().getId());
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
         }
 
         return exportGroup;
@@ -688,7 +689,7 @@ public class BlockStorageDeviceTest {
             ExportMask mask = iter.next();
             mask.setMaskName("host2278");
             mask.setStorageDevice(_storageSystem.getId());
-            _dbClient.persistObject(mask);
+            _dbClient.updateObject(mask);
             return mask;
         }
 

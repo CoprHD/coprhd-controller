@@ -236,7 +236,7 @@ class Cluster(object):
 
         return
 
-    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled):
+    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=True):
         '''
         update cluster with datacenter, label
         Parameters:
@@ -265,6 +265,10 @@ class Cluster(object):
 
         # get the cluster uri
         cluster_uri = self.cluster_query(name, tenant)
+
+        if(updateExports is not None):
+            cluster_uri = cluster_uri + "?update-exports=" + updateExports
+
 
         body = json.dumps(parms)
         common.service_json_request(self.__ipAddr, self.__port, "PUT",
@@ -616,6 +620,10 @@ def update_parser(subcommand_parsers, common_parser):
                                help="Enables the Auto exports" ,
                                dest='autoexportsenabled' ,
                                choices = Cluster.BOOL_TYPE_LIST)
+    update_parser.add_argument('-updateExports' , '-updateEx' ,
+                               help="Updates the exports during cluster update" ,
+                               dest='updateExports' ,
+                               choices = Cluster.BOOL_TYPE_LIST)
 
     update_parser.set_defaults(func=cluster_update)
 
@@ -641,7 +649,7 @@ def cluster_update(args):
                                "vcenter and datacenter needs to be specified")
 
         obj.cluster_update(args.name, args.tenant, args.datacenter,
-                           args.vcenter, args.label ,args.autoexportsenabled)
+                           args.vcenter, args.label ,args.autoexportsenabled, args.updateExports)
     except SOSError as e:
         common.format_err_msg_and_raise("update", "cluster",
                                         e.err_text, e.err_code)

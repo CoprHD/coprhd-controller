@@ -77,8 +77,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     /**
      * @param cinderApiFactory the CinderApiFactory to set
      */
-    public void setCinderApiFactory(CinderApiFactory cinderApiFactory)
-    {
+    public void setCinderApiFactory(CinderApiFactory cinderApiFactory) {
         this.cinderApiFactory = cinderApiFactory;
     }
 
@@ -86,13 +85,11 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         _exportMaskOperationsHelper = exportMaskOperationsHelper;
     }
 
-    public void setCloneOperations(final CloneOperations cloneOperations)
-    {
+    public void setCloneOperations(final CloneOperations cloneOperations) {
         this.cloneOperations = cloneOperations;
     }
 
-    public void setNameGenerator(final NameGenerator nameGenerator)
-    {
+    public void setNameGenerator(final NameGenerator nameGenerator) {
         this.nameGenerator = nameGenerator;
     }
 
@@ -110,8 +107,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateVolumes(StorageSystem storageSystem, StoragePool storagePool,
             String opId, List<Volume> volumes,
             VirtualPoolCapabilityValuesWrapper capabilities,
-            TaskCompleter taskCompleter) throws DeviceControllerException
-    {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
 
         String label = null;
         Long capacity = null;
@@ -121,17 +117,14 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
 
-        for (Volume volume : volumes)
-        {
+        for (Volume volume : volumes) {
             logMsgBuilder
                     .append(String.format("%nVolume:%s", volume.getLabel()));
             String tenantName = "";
-            try
-            {
+            try {
                 TenantOrg tenant = dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
                 tenantName = tenant.getLabel();
-            } catch (DatabaseException e)
-            {
+            } catch (DatabaseException e) {
                 log.error("Error lookup TenantOrg object", e);
             }
 
@@ -139,15 +132,13 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                     volume.getId().toString(), CinderConstants.CHAR_HYPHEN,
                     SmisConstants.MAX_VOLUME_NAME_LENGTH);
 
-            if (capacity == null)
-            {
+            if (capacity == null) {
                 capacity = volume.getCapacity();
             }
         }
         log.info(logMsgBuilder.toString());
 
-        try
-        {
+        try {
 
             CinderEndPointInfo ep = CinderUtils.getCinderEndPoint(storageSystem.getActiveProviderURI(), dbClient);
 
@@ -156,51 +147,42 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
 
             String volumeId = null;
             Map<String, URI> volumeIds = new HashMap<String, URI>();
-            if (volumes.size() == 1)
-            {
-                volumeId = cinderApi.createVolume(label, (capacity / CinderConstants.BYTES_TO_GB), storagePool.getNativeId());
+            if (volumes.size() == 1) {
+                volumeId = cinderApi.createVolume(label, CinderUtils.convertToGB(capacity), storagePool.getNativeId());
                 volumeIds.put(volumeId, volumes.get(0).getId());
                 log.debug("Creating volume with the id {} on Openstack cinder node", volumeId);
-            }
-            else
-            {
+            } else {
                 log.debug("Starting to create {} volumes", volumes.size());
-                for (int volumeIndex = 0; volumeIndex < volumes.size(); volumeIndex++)
-                {
+                for (int volumeIndex = 0; volumeIndex < volumes.size(); volumeIndex++) {
                     volumeId = cinderApi.createVolume(label + CinderConstants.HYPHEN + (volumeIndex + 1),
-                            (capacity / CinderConstants.BYTES_TO_GB), storagePool.getNativeId());
+                            CinderUtils.convertToGB(capacity), storagePool.getNativeId());
                     volumeIds.put(volumeId, volumes.get(volumeIndex).getId());
                     log.debug("Creating volume with the id {} on Openstack cinder node", volumeId);
                 }
             }
 
-            if (!volumeIds.isEmpty())
-            {
-                CinderJob createVolumeJob = (volumes.size() > 1) ?
-                        new CinderMultiVolumeCreateJob(volumeId, label, volumes.get(0).getStorageController(),
-                                CinderConstants.ComponentType.volume.name(), ep, taskCompleter, storagePool.getId(), volumeIds) :
-                        new CinderSingleVolumeCreateJob(volumeId, label, volumes.get(0).getStorageController(),
+            if (!volumeIds.isEmpty()) {
+                CinderJob createVolumeJob = (volumes.size() > 1)
+                        ? new CinderMultiVolumeCreateJob(volumeId, label, volumes.get(0).getStorageController(),
+                                CinderConstants.ComponentType.volume.name(), ep, taskCompleter, storagePool.getId(), volumeIds)
+                        : new CinderSingleVolumeCreateJob(volumeId, label, volumes.get(0).getStorageController(),
                                 CinderConstants.ComponentType.volume.name(), ep, taskCompleter, storagePool.getId(), volumeIds);
                 ControllerServiceImpl.enqueueJob(new QueueJob(createVolumeJob));
             }
 
-        } catch (final InternalException e)
-        {
+        } catch (final InternalException e) {
             log.error("Problem in doCreateVolumes: ", e);
             opCreationFailed = true;
             taskCompleter.error(dbClient, e);
-        } catch (final Exception e)
-        {
+        } catch (final Exception e) {
             log.error("Problem in doCreateVolumes: ", e);
             opCreationFailed = true;
             ServiceError serviceError = DeviceControllerErrors.cinder.operationFailed("doCreateVolumes", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
 
-        if (opCreationFailed)
-        {
-            for (Volume vol : volumes)
-            {
+        if (opCreationFailed) {
+            for (Volume vol : volumes) {
                 vol.setInactive(true);
                 dbClient.persistObject(vol);
             }
@@ -210,8 +192,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 "Create Volumes End - Array:%s, Pool:%s",
                 storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
-        for (Volume volume : volumes)
-        {
+        for (Volume volume : volumes) {
             logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
@@ -231,8 +212,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExpandVolume(StorageSystem storageSystem, StoragePool storagePool,
             Volume volume, Long size, TaskCompleter taskCompleter)
-            throws DeviceControllerException
-    {
+                    throws DeviceControllerException {
 
         try {
             log.info(String.format("Expand Volume Start - Array:%s, Pool:%s, Volume:%s",
@@ -246,7 +226,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
             String volumeId = volume.getNativeId();
             if (null != volumeId) {
                 log.info("Expanding volume with the id " + volumeId + " on Openstack cinder node");
-                cinderApi.expandVolume(volumeId, (size / CinderConstants.BYTES_TO_GB));
+                cinderApi.expandVolume(volumeId, CinderUtils.convertToGB(size));
 
                 CinderJob expandVolumeJob = new CinderVolumeExpandJob(volumeId, volume.getLabel(),
                         volume.getStorageController(), CinderConstants.ComponentType.volume.name(),
@@ -283,10 +263,8 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doDeleteVolumes(StorageSystem storageSystem, String opId,
-            List<Volume> volumes, TaskCompleter taskCompleter) throws DeviceControllerException
-    {
-        try
-        {
+            List<Volume> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
             List<String> volumeNativeIdsToDelete = new ArrayList<String>(volumes.size());
             List<String> volumeLabels = new ArrayList<String>(volumes.size());
 
@@ -301,16 +279,13 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
             log.info("Getting the cinder APi for the provider with id " + storageSystem.getActiveProviderURI());
             CinderApi cinderApi = cinderApiFactory.getApi(storageSystem.getActiveProviderURI(), ep);
 
-            for (Volume volume : volumes)
-            {
+            for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
 
-                try
-                {
+                try {
                     // Check if the volume is present on the back-end device
                     cinderApi.showVolume(volume.getNativeId());
-                } catch (CinderException ce)
-                {
+                } catch (CinderException ce) {
                     // This means, the volume is not present on the back-end device
                     log.info(String.format("Volume %s already deleted: ", volume.getNativeId()));
                     volume.setInactive(true);
@@ -328,15 +303,12 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
             }
 
             // Now - trigger the delete
-            if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty())
-            {
+            if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty()) {
                 cinderApi.deleteVolumes(volumeNativeIdsToDelete.toArray(new String[] {}));
                 ControllerServiceImpl.enqueueJob(new QueueJob(
                         new CinderDeleteVolumeJob(volumeNativeIdsToDelete.get(0), volumeLabels.get(0),
                                 volumes.get(0).getStorageController(), CinderConstants.ComponentType.volume.name(), ep, taskCompleter)));
-            }
-            else
-            {
+            } else {
                 // If we are here, there are no volumes to delete, we have
                 // invoked ready() for the VolumeDeleteCompleter, and told
                 // the multiVolumeTaskCompleter to skip these completers.
@@ -348,8 +320,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 // updated.
                 multiVolumeTaskCompleter.ready(dbClient);
             }
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Problem in doDeleteVolume: ", e);
             ServiceError error = DeviceControllerErrors.cinder.operationFailed("doDeleteVolume", e.getMessage());
             taskCompleter.error(dbClient, error);
@@ -358,8 +329,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));
 
-        for (Volume volume : volumes)
-        {
+        for (Volume volume : volumes) {
             logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
@@ -373,47 +343,37 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      * @param cinderApi
      * @throws Exception
      */
-    private void cleanupAnyBackupSnapshots(Volume volume, CinderApi cinderApi) throws Exception
-    {
+    private void cleanupAnyBackupSnapshots(Volume volume, CinderApi cinderApi) throws Exception {
         // Get all snapshots of a volume
         List<String> snapshotIdsList = cinderApi.listSnapshotsForVolume(volume.getNativeId());
         String snapIdToRemove = "";
 
-        if (!snapshotIdsList.isEmpty())
-        {
+        if (!snapshotIdsList.isEmpty()) {
             // Invoke Delete for all volume snapshots
-            for (String snapId : snapshotIdsList)
-            {
+            for (String snapId : snapshotIdsList) {
                 cinderApi.deleteSnapshot(snapId);
             }
 
             // Check the deletion status before returning to the caller.
             // Return only after snapshots are deleted.
             boolean isWait = true;
-            while (true)
-            {
+            while (true) {
 
-                if (isWait)
-                {
+                if (isWait) {
                     // Wait for 10 seconds before checking the status as
                     // deletion will take some time to complete.
-                    try
-                    {
+                    try {
                         Thread.sleep(SNAPSHOT_DELETE_STATUS_CHECK_SLEEP_TIME);
-                    } catch (InterruptedException e)
-                    {
+                    } catch (InterruptedException e) {
                         log.error("Snapshot deletion check waiting thread interrupted", e);
                     }
                 }
 
-                for (String snapId : snapshotIdsList)
-                {
-                    try
-                    {
+                for (String snapId : snapshotIdsList) {
+                    try {
                         cinderApi.getTaskStatus(snapId, CinderConstants.ComponentType.snapshot.name());
                         isWait = true;
-                    } catch (CinderException e)
-                    {
+                    } catch (CinderException e) {
                         // This means the snapshot was deleted, remove it from
                         // the status check list
                         snapIdToRemove = snapId;
@@ -424,15 +384,13 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 }
 
                 // remove the snapId which is deleted from the backend
-                if (!snapIdToRemove.isEmpty())
-                {
+                if (!snapIdToRemove.isEmpty()) {
                     snapshotIdsList.remove(snapIdToRemove);
                     snapIdToRemove = ""; // reset
                 }
 
                 // break the while loop on list empty
-                if (snapshotIdsList.isEmpty())
-                {
+                if (snapshotIdsList.isEmpty()) {
                     break;
                 }
 
@@ -444,7 +402,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupCreate
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportCreate
      * (com.emc.storageos.db.client.model.StorageSystem,
      * com.emc.storageos.db.client.model.ExportMask,
      * java.util.Map, java.util.List,
@@ -452,32 +410,32 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
-    public void doExportGroupCreate(StorageSystem storage,
+    public void doExportCreate(StorageSystem storage,
             ExportMask exportMask, Map<URI, Integer> volumeMap,
             List<Initiator> initiators, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
+        log.info("{} doExportCreate START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumeMap, dbClient);
         _exportMaskOperationsHelper.createExportMask(storage, exportMask.getId(), volumeLunArray, targets, initiators, taskCompleter);
-        log.info("{} doExportGroupCreate END ...", storage.getSerialNumber());
+        log.info("{} doExportCreate END ...", storage.getSerialNumber());
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportGroupDelete(
+     * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doExportDelete(
      * com.emc.storageos.db.client.model.StorageSystem,
      * com.emc.storageos.db.client.model.ExportMask,
      * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
-    public void doExportGroupDelete(StorageSystem storage,
-            ExportMask exportMask, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        log.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
+    public void doExportDelete(StorageSystem storage,
+            ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        log.info("{} doExportDelete START ...", storage.getSerialNumber());
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(), new ArrayList<URI>(),
                 new ArrayList<URI>(), new ArrayList<Initiator>(), taskCompleter);
-        log.info("{} doExportGroupDelete END ...", storage.getSerialNumber());
+        log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 
     /*
@@ -491,13 +449,14 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
-            URI volume, Integer lun, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+            URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+
         log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), map, dbClient);
-        _exportMaskOperationsHelper.addVolume(storage, exportMask.getId(), volumeLunArray, taskCompleter);
+        _exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(), volumeLunArray, initiators, taskCompleter);
         log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
@@ -511,12 +470,12 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportAddVolumes(StorageSystem storage,
-            ExportMask exportMask, Map<URI, Integer> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<Initiator> initiators,
+            Map<URI, Integer> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(storage.getSystemType(), volumes, dbClient);
-        _exportMaskOperationsHelper.addVolume(storage, exportMask.getId(),
-                volumeLunArray, taskCompleter);
+        _exportMaskOperationsHelper.addVolumes(storage, exportMask.getId(),
+                volumeLunArray, initiators, taskCompleter);
         log.info("{} doExportAddVolume END ...", storage.getSerialNumber());
     }
 
@@ -530,10 +489,11 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveVolume(StorageSystem storage,
-            ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+            ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+
         log.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), Arrays.asList(volume), taskCompleter);
+        _exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), Arrays.asList(volume), initiators, taskCompleter);
         log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
     }
 
@@ -548,10 +508,10 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExportRemoveVolumes(StorageSystem storage,
             ExportMask exportMask, List<URI> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.removeVolume(storage, exportMask.getId(), volumes,
-                taskCompleter);
+        _exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(), volumes,
+                initiators, taskCompleter);
         log.info("{} doExportRemoveVolume END ...", storage.getSerialNumber());
     }
 
@@ -566,10 +526,11 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportAddInitiator(StorageSystem storage,
-            ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), Arrays.asList(initiator), targets, taskCompleter);
+        _exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, Arrays.asList(initiator),
+                targets, taskCompleter);
         log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
@@ -585,12 +546,12 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportAddInitiators(StorageSystem storage,
-            ExportMask exportMask, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumeURIs,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), initiators,
-                targets, taskCompleter);
+        _exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs,
+                initiators, targets, taskCompleter);
         log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
     }
 
@@ -605,11 +566,11 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveInitiator(StorageSystem storage,
-            ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumes, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                Arrays.asList(initiator), targets, taskCompleter);
+        _exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, Arrays.asList(initiator), targets, taskCompleter);
         log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 
@@ -624,12 +585,12 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doExportRemoveInitiators(StorageSystem storage,
-            ExportMask exportMask, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumes,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
         log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(),
-                initiators, targets, taskCompleter);
+        _exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
+                volumes, initiators, targets, taskCompleter);
         log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
     }
 
@@ -646,7 +607,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
 
         log.debug("In CinderStorageDevice.doCreateSnapshot method.");
         boolean operationFailed = false;
@@ -724,7 +685,8 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
                 // This means, the snapshot is not present on the back-end device
                 log.info(String.format("Snapshot %s already deleted: ", snapshot.getNativeId()));
                 snapshot.setInactive(true);
-                dbClient.persistObject(snapshot);
+                dbClient.updateObject(snapshot);
+                taskCompleter.ready(dbClient);
             }
 
             // Now - trigger the delete
@@ -754,8 +716,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateClone(StorageSystem storageSystem, URI sourceVolume,
             URI cloneVolume, Boolean createInactive,
-            TaskCompleter taskCompleter)
-    {
+            TaskCompleter taskCompleter) {
 
         this.cloneOperations.createSingleClone(storageSystem, sourceVolume,
                 cloneVolume, createInactive,
@@ -773,8 +734,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doDetachClone(StorageSystem storage, URI cloneVolume,
-            TaskCompleter taskCompleter)
-    {
+            TaskCompleter taskCompleter) {
         this.cloneOperations.detachSingleClone(storage, cloneVolume, taskCompleter);
     }
 
@@ -786,7 +746,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-            List<String> initiatorNames, boolean mustHaveAllPorts) {
+            List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
     }
 
@@ -797,7 +757,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      * (com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask)
      */
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
@@ -809,8 +769,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doActivateFullCopy(StorageSystem storageSystem, URI fullCopy,
-            TaskCompleter completer)
-    {
+            TaskCompleter completer) {
         this.cloneOperations.activateSingleClone(storageSystem, fullCopy, completer);
     }
 
@@ -818,7 +777,8 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         return true;
     }
-    
+
+    @Override
     public void doWaitForSynchronized(Class<? extends BlockObject> clazz,
             StorageSystem storageObj, URI target, TaskCompleter completer) {
         // Do nothing - cinder API does not have API to synchronize copies
@@ -827,11 +787,11 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         log.info("Nothing to do here.  Cinder does not require a wait for synchronization");
         completer.ready(dbClient);
     }
-    
+
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
             URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);
         log.info("{} doCreateConsistencyGroup END ...", storage.getSerialNumber());
@@ -840,20 +800,20 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
             URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);
         log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
-        
+
     }
-    
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
-    
+
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,

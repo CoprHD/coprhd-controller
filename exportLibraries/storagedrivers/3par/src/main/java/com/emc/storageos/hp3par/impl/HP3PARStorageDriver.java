@@ -32,6 +32,7 @@ import com.emc.storageos.hp3par.utils.HP3PARConstants;
 import com.emc.storageos.hp3par.utils.HP3PARUtil;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -56,6 +57,7 @@ import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
@@ -64,7 +66,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
  * You can refer super class for method details
  *
  */
-public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
+public class HP3PARStorageDriver extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final String HP3PAR_CONF_FILE = "hp3par-conf.xml";
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
@@ -125,12 +127,28 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				cg.setDeviceLabel(objectId);
 				_log.info("3PARDriver: getStorageObject leaving ");
 				return (T) cg;
+			} else if (StoragePool.class.getSimpleName().equals(type.getSimpleName())) {
+			    CPGMember cpgResult = null;
+			    cpgResult = hp3parApi.getCPGDetails(objectId);
+			    StoragePool sp = new StoragePool();
+
+			    sp.setNativeId(cpgResult.getName()); 
+			    sp.setTotalCapacity((cpgResult.getUsrUsage().getTotalMiB().longValue()
+			            + cpgResult.getSAUsage().getTotalMiB().longValue()
+			            + cpgResult.getSDUsage().getTotalMiB().longValue()) * HP3PARConstants.KILO_BYTE);
+			    sp.setSubscribedCapacity((cpgResult.getUsrUsage().getUsedMiB().longValue()
+			            + cpgResult.getSAUsage().getUsedMiB().longValue()
+			            + cpgResult.getSDUsage().getUsedMiB().longValue()) * HP3PARConstants.KILO_BYTE);
+			    sp.setFreeCapacity(sp.getTotalCapacity() - sp.getSubscribedCapacity());
+			    _log.info("3PARDriver: StoragePool getStorageObject leaving ");
+			    return (T) sp;
 			}
 		} catch (Exception e) {
 			String msg = String.format("3PARDriver: Unable to get Stroage Object for id %s; Error: %s.\n", objectId,
 					e.getMessage());
 			_log.error(msg);
 			e.printStackTrace();
+			_log.error(CompleteError.getStackTrace(e));
 			return (T) null;
 		}
 		return null;
@@ -239,6 +257,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		_log.info("3PARDriver: discoverStoragePools information for storage system {}, nativeId {} - start",
 				storageSystem.getIpAddress(), storageSystem.getNativeId());
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
+		
+		DeduplicationCapabilityDefinition dedupCapabilityDefinition = new DeduplicationCapabilityDefinition();
 
 		try {
 			// get Api client
@@ -288,6 +308,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				}
 				pool.setSupportedRaidLevels(supportedRaidLevels);
 
+				if (currMember.getSDGrowth().getLDLayout().getDiskPatterns() == null) {
+					_log.warn("3PARDriver: Neglecting storage pool {} as there is no disk associated with it", currMember.getName());
+					continue;
+				}
 				Set<SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
 				for (int j = 0; j < currMember.getSDGrowth().getLDLayout().getDiskPatterns().size(); j++) {
 					switch (currMember.getSDGrowth().getLDLayout().getDiskPatterns().get(j).getDiskType()) {
@@ -318,7 +342,17 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setDisplayName(currMember.getName());
 				storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
                 List<CapabilityInstance> capabilities = new ArrayList<>(); // SDK requires initialization
+                
+                // setting appropriate capability for dedup supported pool
+                if(currMember.isDedupCapable()) {
+                    Boolean dedupEnabled = true;
+                    Map<String, List<String>> props = new HashMap<>();
+                    props.put(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name(), Arrays.asList(dedupEnabled.toString()));
+                    CapabilityInstance capabilityInstance = new CapabilityInstance(dedupCapabilityDefinition.getId(), dedupCapabilityDefinition.getId(), props);
+                    capabilities.add(capabilityInstance);
+                }
                 pool.setCapabilities(capabilities);
+                
 
 				_log.info("3PARDriver: added storage pool {}, native id {}", pool.getPoolName(), pool.getNativeId());
 				storagePools.add(pool);
@@ -629,7 +663,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
 	    
 	    return expunexpHelper.unexportVolumesFromInitiators(initiators, volumes,
-	            task, this.driverRegistry);
+	            task, this.driverRegistry, this.lockManager);
 	}
 
 	/**

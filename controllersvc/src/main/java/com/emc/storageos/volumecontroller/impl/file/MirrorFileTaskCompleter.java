@@ -41,15 +41,35 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory
             .getLogger(MirrorFileTaskCompleter.class);
 
-    public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId) {
+    public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId, URI stoageUri) {
+
         super(clazz, ids, opId);
+        this.storageUri = stoageUri;
+    }
+    
+    public MirrorFileTaskCompleter(Class clazz, URI id, String opId, URI stoageUri) {
+
+        super(clazz, id, opId);
+        this.storageUri = stoageUri;
     }
 
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     protected FileShare.MirrorStatus mirrorSyncStatus = FileShare.MirrorStatus.OTHER;
 
-    protected MirrorStatus getMirrorSyncStatus() {
+
+
+    private URI storageUri;
+
+    public void setStorageUri(URI storageUri) {
+		this.storageUri = storageUri;
+	}
+    
+    public URI getStorageUri() {
+        return storageUri;
+    }
+
+	protected MirrorStatus getMirrorSyncStatus() {
         return mirrorSyncStatus;
     }
 
@@ -79,6 +99,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     protected List<FileShare> fileshareCache;
 
+    
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -100,21 +121,8 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             if (Operation.Status.ready.equals(status)) {
                 List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());
                 for (FileShare fs : fileshares) {
-                    fs.setMirrorStatus(getFileMirrorStatusForSuccess().name());
+                    fs.setMirrorStatus(getFileMirrorStatusForSuccess(fs));
                     fs.setAccessState(getFileShareAccessStateForSuccess(fs).name());
-                    if (fs.getMirrorfsTargets() != null) {
-                        List<URI> targetFsURIs = new ArrayList<URI>();
-                        for (String targetId : fs.getMirrorfsTargets()) {
-                            targetFsURIs.add(URI.create(targetId));
-                        }
-                        List<FileShare> targetFileShares = dbClient.queryObject(FileShare.class, targetFsURIs);
-                        for (FileShare targetFileShare : targetFileShares) {
-                            targetFileShare.setMirrorStatus(getFileMirrorStatusForSuccess().name());
-                            targetFileShare.setAccessState(getFileShareAccessStateForSuccess(targetFileShare).name());
-
-                        }
-                        dbClient.updateAndReindexObject(targetFileShares);
-                    }
                 }
                 dbClient.updateObject(fileshares);
                 _logger.info("Updated Mirror status for fileshares: {}", getIds());
@@ -254,8 +262,8 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         throw new IllegalStateException("Expected a source FileShare with an non-null Replication parent");
     }
 
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        return this.mirrorSyncStatus;
+    protected String getFileMirrorStatusForSuccess(FileShare fs) {
+        return this.mirrorSyncStatus.name();
     }
 
     /**
@@ -268,18 +276,9 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         // If this fileshare is a source and exported to a host, the is write-disabled. Otherwise it is readwrite.
         if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
                 && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
-            // Check to see if it's exported
-            URIQueryResultList fsExports = new URIQueryResultList();
-            getDbClient().queryByConstraint(ContainmentConstraint.
-                    Factory.getFileExportRulesConstraint(fs.getId()), fsExports);
-            if (fsExports != null && fsExports.iterator().hasNext()) {
-                // A source file share that is in an exports is write-disabled or not-ready.
-                return FileShare.FileAccessState.NOT_READY;
-            } else {
-                return FileShare.FileAccessState.READWRITE;
-            }
+           return FileShare.FileAccessState.NOT_READY;
         } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())
-                && !fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
+                && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
             // A target fileshare in any state other than FAILED_OVER is write-disabled or not-ready.
             return FileShare.FileAccessState.NOT_READY;
 

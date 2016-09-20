@@ -86,6 +86,8 @@ public interface CustomConfigConstants {
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
 
+    public String HOST_RESOURCE_MAX_NUM_OF_ARRAYS = "HostResourceMaximumNumberOfArrays";
+
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
     public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
     public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";

@@ -74,6 +74,7 @@ POST  /config/validateMail                       infra.ConfigProperties.validate
 GET   /config/passwords                          infra.ConfigProperties.passwords
 POST  /config/passwords                          infra.ConfigProperties.changePassword
 POST  /config/validateExternalServer             infra.ConfigProperties.validateExternalSettings
+POST  /config/ConnectRemoteSyslogServer          infra.ConfigProperties.connectExternalServerIpPort
 
 GET   /cluster/ipInfo                            infra.ClusterInfo.clusterIpInfo
 POST  /cluster/ipReconfig                        infra.ClusterInfo.ipReconfig
@@ -85,6 +86,14 @@ GET   /tasks/recentTasks                         Tasks.getRecentTasks
 GET   /tasks/updatedTasks                        Tasks.getUpdatedTasks
 GET   /tasks/detailsJson                         Tasks.detailsJson
 GET   /tasks/countSummary                        Tasks.getCountSummary
+
+GET   /events/all								  Events.listAll
+GET   /events/activeCount                         Events.getActiveCount
+GET   /events/recentTasks                         Events.getRecentTasks
+GET   /events/updatedTasks                        Events.getUpdatedTasks
+GET   /events/detailsJson                         Events.detailsJson
+GET   /events/countSummary                        Events.getCountSummary
+
 
 ## Infrastructure UI
 

@@ -188,7 +188,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             } else {
                 // Perhaps, it's already been deleted or was deleted on the array.
@@ -196,7 +196,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
@@ -323,7 +323,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 for (BlockSnapshot snap : snaps) {
                     snap.setInactive(true);
                     snap.setIsSyncActive(false);
-                    _dbClient.persistObject(snap);
+                    _dbClient.updateObject(snap);
                 }
                 taskCompleter.ready(_dbClient);
             }

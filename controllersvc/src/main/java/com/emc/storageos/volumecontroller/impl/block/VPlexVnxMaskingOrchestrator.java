@@ -364,17 +364,15 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device, exportMask);
 
-            // Determine if we're deleting the last volume.
+            // Determine if we're deleting the last volume in the mask.
             StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
+            List<URI> passedVolumesInMask = new ArrayList<>(volumes);
             if (maskVolumesMap != null) {
                 remainingVolumes.addAll(maskVolumesMap.keySet());
             }
-
-            Iterator<URI> volumeURIsIter = volumes.iterator();
-            while (volumeURIsIter.hasNext()) {
-                String volumeId = volumeURIsIter.next().toString();
-                remainingVolumes.remove(volumeId);
+            for (URI volume : volumes) {
+                remainingVolumes.remove(volume.toString());
                 
                 // Remove any volumes from the volume list that are no longer
                 // in the export mask. When a failure occurs removing a backend
@@ -386,9 +384,16 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 // actually in the mask, which now causes a failure when you remove
                 // it a second time. So, we check here and remove any volumes that
                 // are not in the mask to handle this condition.
-                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volumeId))){
-                    volumeURIsIter.remove();
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                    passedVolumesInMask.remove(volume);
                 }
+            }
+            
+            // None of the volumes is in the export mask, so we are done.
+            if (passedVolumesInMask.isEmpty()) {
+                _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
             }
 
             // If it is last volume and there are no existing initiators
@@ -396,13 +401,13 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             if (remainingVolumes.isEmpty()
                     && !exportMask.hasAnyExistingVolumes()
                     && !exportMask.hasAnyExistingInitiators()) {
-                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
+                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                     initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 }
-                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
+                device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vnx: ", ex);

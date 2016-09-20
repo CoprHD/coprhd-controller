@@ -26,6 +26,21 @@
     volume:{
       type:"assetType.vipr.virtualPoolChangeVolumeWithSource",
       select: "many"
+    },
+    
+    migrationSuspend:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },    
+
+    displayJournals: {
+      type: "assetType.vipr.displayJournals",
+      initialValue: "no",
+      required: "false",   
+      omitNone: "true",
+      lockable: true
     }
   }
 }

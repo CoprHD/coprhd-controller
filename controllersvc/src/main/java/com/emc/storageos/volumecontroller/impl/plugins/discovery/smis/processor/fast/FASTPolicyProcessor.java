@@ -24,8 +24,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -173,7 +175,8 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
     }
 
     /**
-     * if the policy had been deleted from the Array, the rediscovery cycle should set the fast Policy to inactive.
+     * if the policy had been deleted from the Array, the rediscovery cycle should set the fast Policy to inactive if that policy
+     * has no volumes associated.
      * 
      * @param policyNames
      * @param storageSystemURI
@@ -181,15 +184,16 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
      */
     private void performPolicyBookKeeping(Set<String> policyNames, URI storageSystemURI)
             throws IOException {
-        List<URI> policiesInDB = _dbClient
-                .queryByConstraint(ContainmentConstraint.Factory
-                        .getStorageDeviceFASTPolicyConstraint(storageSystemURI));
-        for (URI policy : policiesInDB) {
-            AutoTieringPolicy policyObject = _dbClient.queryObject(
-                    AutoTieringPolicy.class, policy);
+        URIQueryResultList policyList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceFASTPolicyConstraint(storageSystemURI), policyList);
+        Iterator<AutoTieringPolicy> policyIterator = _dbClient.queryIterativeObjects(AutoTieringPolicy.class,
+                policyList, true);
+        while (policyIterator.hasNext()) {
+            AutoTieringPolicy policyObject = policyIterator.next();
 
             String policyName = policyObject.getPolicyName();
-            if (null == policyObject || Constants.START_HIGH_THEN_AUTO_TIER_POLICY_NAME.equals(policyName) ||
+            if (Constants.START_HIGH_THEN_AUTO_TIER_POLICY_NAME.equals(policyName) ||
                     // If a VMAX3 SLO AutoTierPolicy, do not process here
                     !Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
                 continue;
@@ -197,18 +201,39 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
             /**
              * Since START_HIGH_THEN_AUTO_TIER_POLICY is ViPR created policy, no need to clean up
              */
-            if (!policyNames.contains(policyName)) {
+            if (!policyNames.contains(policyName) && !policyHasVolume(policyObject)) {
                 policyObject.setPolicyEnabled(false);
                 if (policyObject.getPools() != null) {
                     policyObject.getPools().clear();
                 } else {
                     _logger.info("Policy {} does not have pools", policyObject.getId());
                 }
+                _logger.info("Marking Policy {}({}) inactive as it is not discovered", policyName, policyObject.getId());
                 policyObject.setInactive(true);
-                _dbClient.updateAndReindexObject(policyObject);
+                _dbClient.updateObject(policyObject);
             }
 
         }
+    }
+
+    /**
+     * Checks if any volume has been created with this Policy.
+     */
+    private boolean policyHasVolume(AutoTieringPolicy policyObject) {
+        // Look for volumes through pools as there is no relation index between Policy and Volume
+        if (policyObject.getPools() != null) {
+            for (String pool : policyObject.getPools()) {
+                URIQueryResultList volumeList = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getStoragePoolVolumeConstraint(URI.create(pool)), volumeList);
+                Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
+                        volumeList, true);
+                if (volumeIterator.hasNext()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private String getFASTPolicyServiceConstant(String arrayType, String policyRuleName) {

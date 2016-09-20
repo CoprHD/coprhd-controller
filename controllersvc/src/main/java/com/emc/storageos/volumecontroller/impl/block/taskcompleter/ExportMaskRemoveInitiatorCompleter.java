@@ -18,7 +18,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskRemoveInitiatorCompleter.class);
@@ -32,33 +32,8 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
         _initiatorURIs.addAll(initiatorURIs);
     }
 
-    private void updateExportGroups(DbClient dbClient, Operation.Status status)
-            throws DeviceControllerException {
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-        ExportMask exportMask = (getMask() != null) ?
-                dbClient.queryObject(ExportMask.class, getMask()) : null;
-        if (exportMask != null) {
-            List<Initiator> initiators =
-                    dbClient.queryObject(Initiator.class, _initiatorURIs);
-            exportMask.removeInitiators(initiators);
-            exportMask.removeFromUserCreatedInitiators(initiators);
-            if (exportMask.getInitiators() == null ||
-                    exportMask.getInitiators().isEmpty()) {
-                exportGroup.removeExportMask(exportMask.getId());
-                dbClient.markForDeletion(exportMask);
-                dbClient.updateAndReindexObject(exportGroup);
-            } else {
-                dbClient.updateAndReindexObject(exportMask);
-            }
-            _log.info(String.format(
-                    "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
-                    getId().toString(), getOpId(), status.name()));
-        }
-    }
-
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status,
-            ServiceCoded coded) throws DeviceControllerException {
+    public void ready(DbClient dbClient) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
@@ -72,21 +47,30 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                         exportMask.getInitiators().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
                     dbClient.markForDeletion(exportMask);
-                    dbClient.updateAndReindexObject(exportGroup);
+                    dbClient.updateObject(exportGroup);
                 } else {
-                    dbClient.updateAndReindexObject(exportMask);
+                    List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
+                    if (targetPorts != null && !targetPorts.isEmpty()) {
+                        for (URI targetPort : targetPorts) {
+                            exportMask.removeTarget(targetPort);
+                        }
+                    }
+                    dbClient.updateObject(exportMask);
                 }
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
-                        getId().toString(), getOpId(), status.name()));
+                        getId().toString(), getOpId(), Operation.Status.ready.name()));
             }
         } catch (Exception e) {
             _log.error(String.format(
                     "Failed updating status for ExportMaskRemoveInitiator - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         } finally {
-            super.complete(dbClient, status, coded);
+            super.ready(dbClient);
         }
     }
 
+    public boolean removeInitiator(URI initiator) {
+        return _initiatorURIs.remove(initiator);
+    }
 }

@@ -4,11 +4,15 @@
  */
 package com.emc.storageos.networkcontroller.impl.mds;
 
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,11 +24,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.google.common.collect.Sets;
+
 
 /**
  * This file contains all the SSH dialogs to/from the MDS (or Nexus) Cisco switches.
@@ -53,7 +60,7 @@ public class MDSDialog extends SSHDialog {
     private static final Logger _log = LoggerFactory.getLogger(MDSDialog.class);
     private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
     private final static Integer sessionLockRetryMax = 5;
-
+    private final static String IVR_ZONENAME_PREFIX = "IVRZ_";
     public MDSDialog(SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);
     }
@@ -397,7 +404,12 @@ public class MDSDialog extends SSHDialog {
 
         Map<String, String> aliasDatabase = showDeviceAliasDatabase();
 
-        for (String line : lines) {
+        String filterCriteria = null;
+        if (!StringUtils.isEmpty(zoneName) && zoneName.startsWith(NetworkDeviceController.ZONESET_QUERY_FILTER)) {
+            filterCriteria = zoneName.substring(NetworkDeviceController.ZONESET_QUERY_FILTER.length());
+        }
+
+        for (String line : lines) {        	
             int index = match(line, regex, groups);
             switch (index) {
                 case 0:
@@ -411,8 +423,10 @@ public class MDSDialog extends SSHDialog {
                     break;
                 case 1:
                     // if zoneName is not specified, we want all zones in zoneset.
-                    // Or, if it zoneName is specified, then only return zone matched the name. Otherwise, ignore it.
-                    if (StringUtils.isEmpty(zoneName) || StringUtils.equals(groups[0], zoneName)) {
+                    // Or, if it zoneName is specified, then only return zone matched the name.
+                    // Or, if there was a filter specified, check the name for that. Otherwise, ignore it.
+                    if (StringUtils.isEmpty(zoneName) || StringUtils.equals(groups[0], zoneName)
+                            || (!StringUtils.isEmpty(filterCriteria) && groups[0].contains(filterCriteria))) {
                         zone = new Zone(groups[0]);
                         zoneset.getZones().add(zone);
                     } else {
@@ -468,7 +482,7 @@ public class MDSDialog extends SSHDialog {
         };
 
         Zoneset activeZoneset = null;
-        for (String line : lines) {
+        for (String line : lines) {       	
             int index = match(line, regex2, groups);
             switch (index) {
                 case 0:     // found the active one
@@ -975,13 +989,16 @@ public class MDSDialog extends SSHDialog {
 
         String busyKey = "MDSDialog.checkForEnhancedZoneSession.busy";
         String createdKey = "MDSDialog.checkForEnhancedZoneSession.created";
-
+        String pendingKey = "MDSDialog.checkForEnhancedZoneSession.pending";
+        
         if (forIvr) {
             busyKey = "MDSDialog.ivr.checkForEnhancedZoneSession.busy";
             createdKey = "MDSDialog.ivr.checkForEnhancedZoneSession.created";
+            pendingKey = "MDSDialog.ivr.checkForEnhancedZoneSession.pending";
         }
-
+        
         for (String s : lines) {
+        	_log.debug("line : {}", s);
             if (s.startsWith(MDSDialogProperties.getString(createdKey))) { // Enhanced zone session has been created
                 inSession = true;
                 return false;
@@ -998,6 +1015,20 @@ public class MDSDialog extends SSHDialog {
                 }
                 _log.error("Zone session lock is busy, gave up after " + sessionLockRetryMax + " retries!");
                 throw NetworkDeviceControllerException.exceptions.zoneSessionLocked(retryCount + 1);
+            }
+            
+            if (s.contains(MDSDialogProperties.getString(pendingKey))) {            	
+            	   if ((retryCount + 1) < sessionLockRetryMax) {
+                       _log.info("There is a pending session, will retry after " + defaultTimeout / 1000 + " seconds...");
+                       try {
+                           Thread.sleep(defaultTimeout);
+                       } catch (InterruptedException ex) {
+                           _log.warn(ex.getLocalizedMessage());
+                       }
+                       return true;
+                   }
+                   _log.error("There is a pending session still, gave up after " + sessionLockRetryMax + " retries!");
+                   throw NetworkDeviceControllerException.exceptions.timeoutWaitingOnPendingActions();
             }
         }
         return false;
@@ -1157,13 +1188,14 @@ public class MDSDialog extends SSHDialog {
     }
 
     /**
-     * zoneset name {zonesetName} vsan {vsanId}
+     * (no) zoneset name {zonesetName} vsan {vsanId}
      * 
      * @param zonesetName
      * @param vsanId
+     * @param no - true for removing zoneset, false otherwise
      * @throws NetworkDeviceControllerException
      */
-    public void zonesetNameVsan(String zonesetName, Integer vsanId) throws NetworkDeviceControllerException {
+    public void zonesetNameVsan(String zonesetName, Integer vsanId, boolean no) throws NetworkDeviceControllerException {
         if (!inConfigMode) {
             throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
         }
@@ -1171,17 +1203,18 @@ public class MDSDialog extends SSHDialog {
             throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
                     SSHPrompt.MDS_CONFIG.toString());
         }
+        String noString = no ? MDSDialogProperties.getString("MDSDialog.zonesetNameVsan.no.cmd") : ""; // no
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG_ZONESET, SSHPrompt.MDS_CONFIG };
         StringBuilder buf = new StringBuilder();
         boolean retryNeeded = true;
         for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
             String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetNameVsan.cmd"), zonesetName,
-                    vsanId.toString()); // zoneset name {0} vsan {1}\n
+                    vsanId.toString(), noString); // zoneset name {0} vsan {1}\n
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
             String[] lines = getLines(buf);
             retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
         }
-        if (lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
+        if (no == false && lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
             throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
                     SSHPrompt.MDS_CONFIG_ZONESET.toString());
         }
@@ -1194,8 +1227,8 @@ public class MDSDialog extends SSHDialog {
      * @param zoneName
      * @throws NetworkDeviceControllerException
      */
-    public void zonesetMember(String zoneName) throws NetworkDeviceControllerException {
-        if (!inConfigMode) {
+    public void zonesetMember(String zoneName, boolean no) throws NetworkDeviceControllerException {
+    	if (!inConfigMode) {
             throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
         }
         if (lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
@@ -1203,10 +1236,12 @@ public class MDSDialog extends SSHDialog {
                     SSHPrompt.MDS_CONFIG_ZONESET.toString());
         }
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG_ZONESET };
+        String noString = no ? MDSDialogProperties.getString("MDSDialog.zonesetMember.no.cmd") : ""; // no
+
         StringBuilder buf = new StringBuilder();
         boolean retryNeeded = true;
         for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
-            String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetMember.member.cmd"), zoneName); // member
+            String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetMember.member.cmd"), zoneName, noString); // member
                                                                                                                                   // {0}\n
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
             String[] lines = getLines(buf);
@@ -1315,7 +1350,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void waitForZoneCommit(Integer vsanId) throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN waitForZoneCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN waitForZoneCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         SSHPrompt[] prompts = { SSHPrompt.MDS_POUND, SSHPrompt.MDS_CONFIG };
@@ -1361,7 +1396,7 @@ public class MDSDialog extends SSHDialog {
             }
         }
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END waitForZoneCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END waitForZoneCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
 
@@ -1371,7 +1406,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void copyRunningConfigToStartup() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN copyRunningConfigToStartup",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN copyRunningConfigToStartup",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         if (!inConfigMode) {
@@ -1387,9 +1422,106 @@ public class MDSDialog extends SSHDialog {
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END copyRunningConfigToStartup",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END copyRunningConfigToStartup",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
+    }
+       
+    /**
+     * Creates a clone of the zoneset. 
+     * cmd : zoneset clone <existing_zoneset_name> <zoneset_clone_name> vsan <vsan id>
+     * 
+     * @throws NetworkDeviceControllerException
+     */
+    public void zonesetClone(Integer vsanId, String zonesetToClone) throws NetworkDeviceControllerException {
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN zonesetClone",
+                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
+
+        if (!inConfigMode) {
+            throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
+        }
+        if (lastPrompt != SSHPrompt.MDS_CONFIG) {
+            throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
+                    SSHPrompt.MDS_CONFIG.toString());
+        }
+        SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
+        String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
+        StringBuilder buf = new StringBuilder();      
+        String newZoneset = generateZonesetCloneName(zonesetToClone);
+        List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
+        _log.info("Creating new zoneset clone : " + newZoneset	);
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
+        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+        String[] lines = getLines(buf);
+        
+        for(String line : lines ){
+        	if (line.indexOf(errorString) >= 0) {
+        		_log.info("Zoneset clone operation failed");        		
+        		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
+        	}
+        }
+        
+        //Delete older clones
+        for (String zonesetClone : zonesetClonesToDelete) {
+        	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
+			zonesetNameVsan(zonesetClone, vsanId, true);    	
+        }
+        	
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
+                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
+    }
+    
+    /**
+     * This routine looks for any zoneset clones that contain the same date-stamp and add them to the list
+     * of clones to be deleted.
+     * Only one zoneset clone per zoneset per vsan per day is maintained on the switch 
+     *  
+     * @param vsanId
+     * 
+     */
+    private List<String> findZonesetClonesToDelete(Integer vsanId) {
+    	List<String> zonesetClonesToDelete = new ArrayList<String>();
+    	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
+    	    	
+    	Calendar cal = Calendar.getInstance();
+  	   	DateFormat dateFormat = new SimpleDateFormat("MMddyy");
+  	    String dateStr = dateFormat.format(cal.getTime()); 
+    	for (Zoneset zoneset : zonesets) {
+    		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
+    			_log.info(String.format("Identified zoneset (clone) %s to be removed", zoneset.getName()));  
+    			zonesetClonesToDelete.add(zoneset.getName());
+    		}
+    	}    	
+    	return zonesetClonesToDelete;
+    }
+    
+    /**
+     * Generate a unique name for the zoneset clone.
+     * The format of the zoneset clone name is "ViPR-<existing_zone>-MMddyy-HHmmss"
+     * MMddyy and HHmmss refer to the date and the time-stamp that will help identify when the clone was taken.
+     * 
+     * @param zonesetToClone
+     * @return
+     */
+    private String generateZonesetCloneName(String zonesetToClone) {
+    	//Sleep for one second to make sure that the new zoneset clone name doesn't clash with something existing 
+    	//if there were multiple operations all happening at the same time
+    	 try {
+             Thread.sleep(1000); // sleep one second
+         } catch (InterruptedException ex) {
+             _log.warn(ex.getLocalizedMessage());
+         }
+    	 
+    	//get current date time with Calendar()
+ 	   Calendar cal = Calendar.getInstance();
+ 	   DateFormat dateFormat = new SimpleDateFormat("MMddyy-HHmmss");
+ 	   String dateString = dateFormat.format(cal.getTime()); 	
+ 	   String longName = MDSDialogProperties.getString("MDSDialog.zonesetCloneLongName.cmd");
+ 	   //NOTE: This is a hook placed to assist QE in triggering a zoneset clone failure on demand. 
+ 	   if (!longName.contains("!MDSDialog.zonesetCloneLongName.cmd!")) {
+ 		   return longName;
+ 	   }
+       return "ViPR-" + zonesetToClone + "-" + dateString;    	
     }
 
     /**
@@ -1399,7 +1531,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void copyRunningConfigToStartupFabric() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN copyRunningConfigToStartupFabric",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN copyRunningConfigToStartupFabric",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         if (!inConfigMode) {
@@ -1412,7 +1544,7 @@ public class MDSDialog extends SSHDialog {
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG, SSHPrompt.MDS_CONTINUE_QUERY };
         StringBuilder buf = new StringBuilder();
         String payload = MDSDialogProperties.getString("MDSDialog.copyRunningConfigToStartupFabric.cmd"); // copy running-config
-                                                                                                          // startup-cnofig fabric\n
+                                                                                                          // startup-config fabric\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         if (lastPrompt == SSHPrompt.MDS_CONTINUE_QUERY) {
             payload = MDSDialogProperties.getString("MDSDialog.copyRunningConfigToStartupFabric.y.cmd");  // y\n
@@ -1439,7 +1571,7 @@ public class MDSDialog extends SSHDialog {
             }
         }
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END copyRunningConfigToStartupFabric",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END copyRunningConfigToStartupFabric",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
 
@@ -1524,7 +1656,7 @@ public class MDSDialog extends SSHDialog {
      */
     private void ivrZoneName(boolean isZoneset, String zoneName, boolean isActivate, boolean isRemove)
             throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN Configure {2}: {3} - Remove {4}",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN Configure {2}: {3} - Remove {4}",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort(), isZoneset ? "zoneset" : "zone",
                         zoneName, isRemove }));
 
@@ -1594,7 +1726,7 @@ public class MDSDialog extends SSHDialog {
             throw new NetworkDeviceControllerException(errorMessage + ": " + zoneName);
         }
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END Configure {2}: {3} - Remove {4}",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END Configure {2}: {3} - Remove {4}",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort(), isZoneset ? "zoneset" : "zone",
                         zoneName, isRemove }));
     }
@@ -1701,7 +1833,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void ivrCommit() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN ivrCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN ivrCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG, SSHPrompt.MDS_CONFIG_IVR_ZONE, SSHPrompt.MDS_CONFIG_IVR_ZONESET };
@@ -1717,7 +1849,7 @@ public class MDSDialog extends SSHDialog {
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         inSession = false;
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END ivrCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END ivrCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
     }
@@ -1728,7 +1860,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void waitForIvrZonesetActivate() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN waitForIvrZonesetActivate",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN waitForIvrZonesetActivate",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         _log.info("Waiting for ivr zoneset to activate");
@@ -1977,7 +2109,7 @@ public class MDSDialog extends SSHDialog {
                     zones.add(zone);
                     break;
                 case 1:
-                    member = new IvrZoneMember(groups[0] + groups[2], Integer.valueOf(groups[3]));
+                    member = new IvrZoneMember(groups[0], Integer.valueOf(groups[3]));
                     zone.getMembers().add(member);
                     break;
             }
@@ -2107,16 +2239,54 @@ public class MDSDialog extends SSHDialog {
      */
     public List<Zone> showZones(Collection<String> zoneNames, boolean excludeAliases) {
         List<Zone> zones = new ArrayList<Zone>();
+        Zone zone = null;
         if (zoneNames != null && !zoneNames.isEmpty()) {
             Map<String, String> aliasDatabase = showDeviceAliasDatabase();
             for (String zoneName : zoneNames) {
-                Zone zone = showZone(zoneName, aliasDatabase, excludeAliases);
+            	//it's ivr zone 
+            	if (zoneName.startsWith(IVR_ZONENAME_PREFIX)) {
+            	    zone = showIvrZone(zoneName.substring(IVR_ZONENAME_PREFIX.length()));
+            	} else {
+                    zone = showZone(zoneName, aliasDatabase, excludeAliases);
+            	}
                 zones.add(zone);
             }
         }
         return zones;
     }
+    
+    /**
+     * Get Zone and its members for given ivr zone name.
+     * 
+     * @param zoneName
+     * @return zone
+     * @throws NetworkDeviceControllerException
+     */
+    private Zone showIvrZone(String zoneName) {
+    	Zone zone = new Zone(zoneName);
+        SSHPrompt[] prompts = { SSHPrompt.POUND, SSHPrompt.GREATER_THAN };
+        StringBuilder buf = new StringBuilder();
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.ivr.show.zoneName.cmd"), zoneName);
 
+        sendWaitFor(payload, defaultTimeout, prompts, buf);
+        String[] lines = getLines(buf);
+        ZoneMember member = null;
+        String[] regex = {
+                MDSDialogProperties.getString("MDSDialog.ivr.showZoneset.zone.member.match")
+        };
+        String[] groups = new String[10];
+        for (String line : lines) {
+            int index = match(line, regex, groups);
+            member = new ZoneMember(ZoneMember.ConnectivityMemberType.WWPN);
+            switch (index) {
+                case 0:
+                    member.setAddress(groups[0]); 
+                    zone.getMembers().add(member);
+                    break;
+            }
+        }
+        return zone;
+    }
     /**
      * Get Zone and its members for given zone name. Besure to resolve device alias if present.
      * 
@@ -2176,5 +2346,48 @@ public class MDSDialog extends SSHDialog {
             }
         }
         return zone;
+    }
+ 
+    /**
+     * Populate routedEndpoints based on ivr zone information.
+     * 
+     * @param routedEndpoints a IN/OUT parameters which is a map of fabricWwn to endpoint set
+     */
+    public void populateConnectionByIvrZone(Map<String, Set<String>> routedEndpoints) {
+    	List<IvrZone> ivrZones = this.showIvrZones(false);
+    	for (IvrZone ivrZone : ivrZones) {
+    		for (IvrZoneMember zoneMember : ivrZone.getMembers()) {
+    			Integer vsanId = zoneMember.getVsanId();
+    			Map<Integer, String> idWwnMap = getVsanWwns(vsanId);
+    			String fabricWwn = idWwnMap.get(vsanId);
+    			if (NullColumnValueGetter.isNullValue(fabricWwn)) {
+    				continue;
+    			}
+                Set<String> netRoutedEndpoints = routedEndpoints.get(fabricWwn.toUpperCase());
+                if (netRoutedEndpoints == null) {
+                    netRoutedEndpoints = new HashSet<String>();
+                    routedEndpoints.put(fabricWwn.toUpperCase(), netRoutedEndpoints);
+                }
+                Set<String> connectedPwwns = this.getOtherMemberPwwn(ivrZone.getMembers(), zoneMember.getPwwn());
+                netRoutedEndpoints.addAll(connectedPwwns);
+    		}
+    	}
+    }
+    
+    /**
+     * Get pwwns from ivr zone members excludes specific one.
+     * 
+     * @param ivrZoneMember
+     * @param pwwn which should be excluded
+     * @return otherPwwns pwwn set except spcific pwwn
+     */
+    private Set<String> getOtherMemberPwwn(List<IvrZoneMember> ivrZoneMembers, String pwwn) {
+    	Set<String> otherPwwns = new HashSet<String>();
+    	for (IvrZoneMember member : ivrZoneMembers) {
+    		if (!member.getPwwn().equals(pwwn)) {
+    			otherPwwns.add(member.getPwwn());
+    		}
+    	}
+    	return otherPwwns;
     }
 }

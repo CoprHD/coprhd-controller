@@ -53,6 +53,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
@@ -73,6 +74,7 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -419,8 +421,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
             log.info("Discovered fS export {}", exp.toString());
 
             VNXeFileSystem fs = null;
-            if (exp.getParentFilesystem() != null) {
-                fs = apiClient.getFileSystemByFSId(exp.getParentFilesystem().getId());
+            if (exp.getFilesystem() != null) {
+                fs = apiClient.getFileSystemByFSId(exp.getFilesystem().getId());
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());
 
@@ -667,6 +669,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             UnManagedSMBFileShare unManagedSMBFileShare = new UnManagedSMBFileShare();
 
             unManagedSMBFileShare.setName(shareName);
+            unManagedSMBFileShare.setNativeId(exp.getId());
             unManagedSMBFileShare.setMountPoint(mountPoint);
             unManagedSMBFileShare.setMaxUsers(Integer.parseInt(CIFS_MAX_USERS));
             unManagedSMBFileShare.setPortGroup(storagePort.getPortGroup());
@@ -825,6 +828,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
 
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), Boolean.FALSE.toString());
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), Boolean.FALSE.toString());
+        
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(lun.getName());
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
@@ -1201,8 +1207,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
                     VNXUnityQuotaConfig qc = apiClient.getQuotaConfigById(quota.getQuotaConfigId());
 
-                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = getExistingUnManagedQuotaDirectory(dbClient, nativeUnmanagedGUID);
+                    boolean existingUnManagedQD = true;
+                    if (unManagedFileQuotaDirectory == null){                      
+                         unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                         existingUnManagedQD = false;
+                         unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    }
                     unManagedFileQuotaDirectory.setLabel(quota.getPath().substring(1));
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
@@ -1217,7 +1228,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedFileQuotaDirectory.setSoftLimit(softLimit.intValue());
                     unManagedFileQuotaDirectory.setNotificationLimit(0);
                     unManagedFileQuotaDirectory.setNativeId(quota.getId());
-                    if (!checkUnManagedQuotaDirectoryExistsInDB(dbClient, nativeUnmanagedGUID)) {
+                    if (!existingUnManagedQD) { 
                         unManagedTreeQuotaInsert.add(unManagedFileQuotaDirectory);
                     } else {
                         unManagedTreeQuotaUpdate.add(unManagedFileQuotaDirectory);
@@ -1243,15 +1254,18 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
     }
 
-    private boolean checkUnManagedQuotaDirectoryExistsInDB(DbClient _dbClient, String nativeGuid)
+    private UnManagedFileQuotaDirectory getExistingUnManagedQuotaDirectory(DbClient _dbClient, String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();
+        UnManagedFileQuotaDirectory existingUmQd = null;
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
-        if (result.iterator().hasNext()) {
-            return true;
+        Iterator<URI> iter = result.iterator();
+        if (iter.hasNext()) {
+            URI unManagedFSQDUri = iter.next();
+            existingUmQd = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, unManagedFSQDUri);
         }
-        return false;
+        return existingUmQd;
     }
 
     /**
@@ -1359,7 +1373,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         List<UnManagedVolume> unManagedExportVolumesToUpdate = new ArrayList<UnManagedVolume>();
         // In Unity, the volumes are exposed through all the storage ports.
         // Get all the storage ports to be added as known ports in the unmanaged export mask
-        // If the host ports are FC, then all add all FC storage ports to the mask
+        // If the host ports are FC, then add all FC storage ports to the mask
         // else add all IP ports
         StringSet knownFCStoragePortUris = new StringSet();
         StringSet knownIPStoragePortUris = new StringSet();
@@ -1392,6 +1406,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
             VNXeHost host = apiClient.getHostById(hostId);
             List<VNXeBase> fcInits = host.getFcHostInitiators();
             List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
+            boolean isVplexHost = false;
+            boolean isRPHost = false;
             if (fcInits != null && !fcInits.isEmpty()) {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
@@ -1404,8 +1420,19 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         knownInitSet.add(knownInitiator.getId().toString());
                         knownNetworkIdSet.add(portwwn);
                         matchedFCInitiators.add(knownInitiator);
+                    } else {
+                        knownInitiator = new Initiator();
+                        knownInitiator.setInitiatorPort(portwwn);
+                    }
+                    if (!isVplexHost && VPlexControllerUtils.isVplexInitiator(knownInitiator, dbClient)) {
+                        isVplexHost = true;
                     }
                 }
+            }
+            if (!matchedFCInitiators.isEmpty() && ExportUtils.checkIfInitiatorsForRP(matchedFCInitiators)) {
+                log.info("host {} contains RP initiators, "
+                        + "so this mask contains RP protected volumes", host.getName());
+                isRPHost = true;
             }
             if (iScsiInits != null && !iScsiInits.isEmpty()) {
                 for (VNXeBase init : iScsiInits) {
@@ -1435,6 +1462,25 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 hostUnManagedVol.getInitiatorNetworkIds().addAll(knownNetworkIdSet);
                 hostUnManagedVol.getInitiatorUris().addAll(knownInitSet);
                 hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+                if (isVplexHost) {
+                    log.info("marking unmanaged unity volume {} as a VPLEX backend volume",
+                            hostUnManagedVol.getLabel());
+                    hostUnManagedVol.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
+                            Boolean.TRUE.toString());
+                }
+                if (isRPHost) {
+                    log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                    hostUnManagedVol.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                            Boolean.TRUE.toString());
+                } else {
+                    log.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.",
+                            hostUnManagedVol.forDisplay());
+                    hostUnManagedVol.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                            Boolean.TRUE.toString());
+                }
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
             }
@@ -1567,7 +1613,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
             unManagedVolume = createUnManagedVolumeForSnap(unManagedVolume, unManagedVolumeNatvieGuid, lun, system,
                     dbClient, hostVolumesMap, snapDetail);
-            populateSnapInfo(unManagedVolume, snapDetail, parentGUID, parentMatchedVPools, cgName);
+            populateSnapInfo(unManagedVolume, snapDetail, parentGUID, parentMatchedVPools);
             snapsets.add(unManagedVolumeNatvieGuid);
             unManagedVolumesReturnedFromProvider.add(unManagedVolume.getId());
 
@@ -1697,10 +1743,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
      * @param snap
      * @param parentVolumeNatvieGuid
      * @param parentMatchedVPools
-     * @param cgName
      */
     private void populateSnapInfo(UnManagedVolume unManagedVolume, Snap snap, String parentVolumeNatvieGuid,
-            StringSet parentMatchedVPools, String cgName) {
+            StringSet parentMatchedVPools) {
         log.info(String.format("populate snap:", snap.getName()));
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
 
@@ -1721,9 +1766,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
 
-        if (cgName != null && !cgName.isEmpty()) {
+        VNXeBase snapGroup = snap.getSnapGroup();
+        if (snapGroup != null) {
             unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
-                    cgName);
+                snapGroup.getId());
         }
 
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));

@@ -108,7 +108,7 @@
        <div class="container-fluid">
            <div class="row">
                 <control-group v-field='rule.security' labelWidth="1">
-                    <select-one options="secOpt" ng-disabled="edit"></select-one>
+                    <select-many options="secOpt" ng-disabled="edit"></select-many>
                 </control-group>
            </div>
            <div class="row">
@@ -219,7 +219,7 @@
         <input-text></input-text>
       </control-group>
       #{Modal.buttonBar}
-        <button type="submit" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+        <button id="saveQuotaButton" type="submit" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
       #{/Modal.buttonBar}
     #{/form}
     </div>

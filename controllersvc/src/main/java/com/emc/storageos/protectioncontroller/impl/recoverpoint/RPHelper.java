@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
@@ -64,8 +65,14 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
+import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
+import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -75,6 +82,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
@@ -489,7 +497,7 @@ public class RPHelper {
                 }
 
                 // If this is a virtual volume, add a descriptor for the virtual volume
-                if (RPHelper.isVPlexVolume(volume)) {
+                if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                     // VPLEX virtual volume
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
@@ -1247,11 +1255,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1320,7 +1328,7 @@ public class RPHelper {
                 // If the personality type matches any of the passed in personality
                 // types, we can return true.
                 for (PersonalityTypes type : types) {
-                    if (vplexVirtualVolume.getPersonality().equals(type.name())) {
+                    if (vplexVirtualVolume.checkPersonality(type)) {
                         return true;
                     }
                 }
@@ -1508,7 +1516,9 @@ public class RPHelper {
         String standbyInternalSite = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume)) {
+            if (isMetroPointVolume(dbClient, sourceVolume) 
+                    && (null != sourceVolume.getAssociatedVolumes()
+                    && (!sourceVolume.getAssociatedVolumes().isEmpty()))) {
                 // Check the associated volumes to find the non-matching internal site and return that one.
                 for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
@@ -1571,20 +1581,11 @@ public class RPHelper {
      * Determines if a volume is a VPLEX volume.
      *
      * @param volume the volume.
+     * @param dbClient the database client.
      * @return true if this is a VPLEX volume, false otherwise.
      */
-    public static boolean isVPlexVolume(Volume volume) {
-        return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
-    }
-
-    /**
-     * Determines if a volume is a VPLEX Distributed (aka Metro) volume.
-     *
-     * @param volume the volume.
-     * @return true if this is a VPLEX Distributed (aka Metro) volume, false otherwise.
-     */
-    public static boolean isVPlexDistributedVolume(Volume volume) {
-        return (isVPlexVolume(volume) && (volume.getAssociatedVolumes().size() > 1));
+    public static boolean isVPlexVolume(Volume volume, DbClient dbClient) {
+        return volume.isVPlexVolume(dbClient);
     }
 
     /**
@@ -1678,18 +1679,33 @@ public class RPHelper {
 
             // If this is a VPLEX volume, update the virtual pool references to the old vpool on
             // the backing volumes if they were set to the new vpool.
-            if (RPHelper.isVPlexVolume(volume)) {
-                for (String associatedVolId : volume.getAssociatedVolumes()) {
-                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
-                            associatedVolume.setVirtualPool(oldVpool.getId());
-                            _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
-                                    associatedVolume.getLabel(),
-                                    oldVpool.getLabel()));
+            if (RPHelper.isVPlexVolume(volume, dbClient)) {
+                if (null == volume.getAssociatedVolumes()) {
+                    // this is a rollback situation, so we probably don't want to
+                    // throw another exception...
+                    _log.warn("VPLEX volume {} has no backend volumes.", 
+                            volume.forDisplay());
+                } else {
+                    for (String associatedVolId : volume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {
+                            if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                    && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                                associatedVolume.setVirtualPool(oldVpool.getId());
+                                _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
+                                        associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                            }
+                            associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.updateObject(associatedVolume);
                         }
-                        associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        // If the old vpool did not specify multi volume consistency,
+                        // remove the CG reference of the volume since we are rolling back
+                        // in the case of VPLEX and Array rollback those steps will be fired
+                        // before we get here anyway.
+                        if (!oldVpool.getMultivolumeConsistency()) {
+                            associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        }
                         dbClient.updateObject(associatedVolume);
                     }
                 }
@@ -1735,7 +1751,7 @@ public class RPHelper {
             }
 
             // Rollback any VPLEX backing volumes too
-            if (RPHelper.isVPlexVolume(volume)) {
+            if (RPHelper.isVPlexVolume(volume, dbClient) && (null != volume.getAssociatedVolumes())) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
@@ -1809,11 +1825,43 @@ public class RPHelper {
                 newStyleJournals.add(journalVol);
             }
         }
+        
+        // For some platforms volume names with blank spaces are not allowed. 
+        // If the varray and/or CG name has spaces they may have been removed from
+        // the volume label. If this is the case, we would not have added them
+        // to the new style journal list. If the list is empty, try again with
+        // the blank spaces removed from the journal name prefix.
+        if (newStyleJournals.isEmpty()) {
+            journalPrefix = journalPrefix.replaceAll("\\s+","");
+            for (Volume journalVol : existingJournals) {
+                String volName = journalVol.getLabel();
+                if (volName != null && volName.length() >= journalPrefix.length() &&
+                        volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+                    newStyleJournals.add(journalVol);
+                }
+            }
+        }
 
         // calculate the largest index
         int largest = 0;
         for (Volume journalVol : newStyleJournals) {
-            String[] parts = StringUtils.split(journalVol.getLabel(), VOL_DELIMITER);
+            String journalVolName = journalVol.getLabel();
+            // For journal volumes that are VPLEX volumes, if custom naming was enabled,
+            // then the journal volume may have an unexpected name. However, the backend
+            // volume is not custom named and will have the expected label, but with a 
+            // well-known suffix. We simply remove the suffix and compare against the backend
+            // volume name. If we use the VPLEX volume name and its name was customized, then
+            // we could end up with a duplicate name error when we go to prepare the backend
+            // volume for a new journal volume, such as when journal capacity is added to
+            // an RP protected volume. See Jira COP-24930.
+            if (journalVol.isVPlexVolume(_dbClient)) {
+                Volume journalBackendVol = VPlexUtil.getVPLEXBackendVolume(journalVol, true, _dbClient);
+                if (journalBackendVol != null) {
+                    journalVolName = journalBackendVol.getLabel();
+                    journalVolName = journalVolName.substring(0, journalVolName.lastIndexOf("-0"));
+                }
+            }
+            String[] parts = StringUtils.split(journalVolName, VOL_DELIMITER);
             try {
                 int idx = Integer.parseInt(parts[parts.length - 1]);
                 if (idx > largest) {
@@ -1985,9 +2033,6 @@ public class RPHelper {
         // If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
         if (isJournalExport) {
             exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
-            String egName = exportGroup.getGeneratedName() + "_JOURNAL";
-            exportGroup.setGeneratedName(egName);
-            exportGroup.setLabel(egName);
         }
 
         return exportGroup;
@@ -2001,16 +2046,20 @@ public class RPHelper {
      * @param storageSystem the StorageSystem for the ExportGroup
      * @param internalSiteName the RecoverPoint internal site name
      * @param virtualArray the VirtualArray for the ExportGroup
+     * @param isJournalExport flag indicating if this is an ExportGroup intended only for journal volumes
      * @return a RecoverPoint ExportGroup name String
      */
     public static String generateExportGroupName(ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
+            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray, boolean isJournalExport) {
         // This name generation needs to match ingestion code found in RPDeviceController until
         // we come up with better export group matching criteria.
         String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
         String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
                 + "_"
                 + virtualArray.getLabel();
+        if (isJournalExport) {
+            exportGroupGeneratedName = exportGroupGeneratedName + "_JOURNAL";
+        }
         // Remove all non alpha-numeric characters, excluding "_".
         exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
         _log.info("ExportGroup generated name is " + exportGroupGeneratedName);
@@ -2099,4 +2148,257 @@ public class RPHelper {
         }
     }
 
+    /**
+     * For an RP configuration, get all RP bookmarks for the CGs provided
+     *
+     * @param system RP system
+     * @param cgIDs IDs of the consistency groups to get the bookmarks
+     * @return command result object, object list [0] has GetBookmarksResponse
+     * @throws RecoverPointException
+     */
+    private static BiosCommandResult getRPBookmarks(ProtectionSystem system, Set<Integer> cgIDs) throws RecoverPointException {
+        _log.info("getRPBookmarks {} - start", system.getId());
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+        GetBookmarksResponse bookmarkResponse = rp.getRPBookmarks(cgIDs);
+        _log.info("getRPBookmarks {} - complete", system.getId());
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        List<Object> returnList = new ArrayList<Object>();
+        returnList.add(bookmarkResponse);
+        result.setObjectList(returnList);
+        return result;
+    }
+
+    /**
+     * Validate Block snapshots that correspond to RP bookmarks. Some may no longer exist in the RP system, and we
+     * need to mark them as invalid.
+     *
+     * The strategy is as follows:
+     * 1. Get all of the protection sets associated with the protection system
+     * 2. Are there any Block Snapshots of type RP? (if not, don't bother cleaning up)
+     * 3. Query the RP Appliance for all bookmarks for that CG (protection set)
+     * 4. Find each block snapshot of type RP for each site
+     * 5. If you can't find the bookmark in the RP list, move the block snapshot to inactive
+     *
+     * @param protectionSystem Protection System
+     */
+    public static void cleanupSnapshots(DbClient dbClient, ProtectionSystem protectionSystem) throws RecoverPointException {
+        // 1. Get all of the protection sets associated with the protection system
+        Set<URI> protectionSetIDs = new HashSet<URI>();
+        Set<Integer> cgIDs = new HashSet<Integer>();
+        URIQueryResultList list = new URIQueryResultList();
+        Constraint constraint = ContainmentConstraint.Factory.getProtectionSystemProtectionSetConstraint(protectionSystem.getId());
+        dbClient.queryByConstraint(constraint, list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI protectionSetId = it.next();
+
+            // Get all snapshots that are part of this protection set.
+            URIQueryResultList plist = new URIQueryResultList();
+            Constraint pconstraint = ContainmentConstraint.Factory.getProtectionSetBlockSnapshotConstraint(protectionSetId);
+            dbClient.queryByConstraint(pconstraint, plist);
+            if (plist.iterator().hasNext()) {
+                // OK, we know there are snapshots for this protection set/CG.
+                // Retrieve all of the bookmarks associated with this protection set/CG later on by adding to the list now
+                ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetId);
+                if (protectionSet != null && !protectionSet.getInactive()) {
+                    protectionSetIDs.add(protectionSet.getId());
+                    cgIDs.add(Integer.valueOf(protectionSet.getProtectionId()));
+                }
+            }
+        }
+
+        // 2. No reason to bother the RPAs if there are no protection sets for this protection system.
+        if (protectionSetIDs.isEmpty()) {
+            _log.info("Block Snapshot of RP Bookmarks cleanup not run for this protection system. No Protections or RP Block Snapshots found on protection system: "
+                    + protectionSystem.getLabel());
+            return;
+        }
+
+        // 3. Query the RP appliance for all of the bookmarks for these CGs in one call
+        BiosCommandResult result = getRPBookmarks(protectionSystem, cgIDs);
+        GetBookmarksResponse bookmarkMap = (GetBookmarksResponse) result.getObjectList().get(0);
+
+        // 4. Go through each protection set's snapshots and see if they're there.
+        it = protectionSetIDs.iterator();
+        while (it.hasNext()) {
+            URI protectionSetId = it.next();
+            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetId);
+
+            // Now find this snapshot in the returned list of snapshots
+            // The map should have an entry for that CG with an empty list if it looked and couldn't find any. (a successful empty set)
+            if (protectionSet.getProtectionId() != null &&
+                    bookmarkMap.getCgBookmarkMap() != null &&
+                    bookmarkMap.getCgBookmarkMap().containsKey(new Integer(protectionSet.getProtectionId()))) {
+
+                // If the list of RPBookmark objects corresponding to the CG is null, lets replace it with an empty
+                // list to avoid issues further down.
+                if (bookmarkMap.getCgBookmarkMap().get(new Integer(protectionSet.getProtectionId())) == null) {
+                    bookmarkMap.getCgBookmarkMap().put(new Integer(protectionSet.getProtectionId()), new ArrayList<RPBookmark>());
+                }
+
+                // Get all snapshots that are part of this protection set.
+                URIQueryResultList plist = new URIQueryResultList();
+                Constraint pconstraint = ContainmentConstraint.Factory.getProtectionSetBlockSnapshotConstraint(protectionSetId);
+                dbClient.queryByConstraint(pconstraint, plist);
+                Iterator<URI> snapshotIter = plist.iterator();
+                while (snapshotIter.hasNext()) {
+                    URI snapshotId = snapshotIter.next();
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
+                    boolean deleteSnapshot = true;
+
+                    if (snapshot.getInactive()) {
+                        // Don't bother deleting or processing if the snapshot is already on its way out.
+                        deleteSnapshot = false;
+                    } else if (snapshot.getEmCGGroupCopyId() == null) {
+                        // If something bad happened and we weren't able to get the site information off of the snapshot
+                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark is missing Site information, thus not analyzing for automated deletion. "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":" + snapshot.getEmName());
+                        deleteSnapshot = false;
+                    } else if (!bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId())).isEmpty()) {
+                        for (RPBookmark bookmark : bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId()))) {
+                            // bookmark (from RP) vs. snapshot (from ViPR)
+                            if (snapshot.getEmName().equalsIgnoreCase(bookmark.getBookmarkName()) &&
+                                    snapshot.getEmCGGroupCopyId().equals(bookmark.getCGGroupCopyUID().getGlobalCopyUID().getCopyUID())) {
+                                deleteSnapshot = false;
+                                _log.info("Found that ViPR Snapshot corresponding to RP Bookmark still exists, thus saving in ViPR: "
+                                        + snapshot.getId() +
+                                        " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                        + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                            }
+                        }
+                    } else {
+                        // Just for debugging, otherwise useless
+                        _log.debug("Found that ViPR Snapshot corresponding to RP Bookmark doesn't exist, thus going to delete from ViPR: "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                    }
+
+                    if (deleteSnapshot) {
+                        // 5. We couldn't find the bookmark, and the query for it was successful, so it's time to mark it as gone
+                        _log.info("Found that ViPR Snapshot corresponding to RP Bookmark no longer exists, thus deleting in ViPR: "
+                                + snapshot.getId() +
+                                " - " + protectionSet.getLabel() + ":" + snapshot.getEmInternalSiteName() + ":"
+                                + snapshot.getEmCGGroupCopyId() + ":" + snapshot.getEmName());
+                        dbClient.markForDeletion(snapshot);
+                    }
+                }
+            } else if (protectionSet.getProtectionId() == null) {
+                _log.error("Can not determine the consistency group ID of protection set: " + protectionSet.getLabel()
+                        + ", can not perform any cleanup of snapshots.");
+            } else {
+                _log.info("No consistency groups were found associated with protection system: " + protectionSystem.getLabel()
+                        + ", can not perform cleanup of snapshots.");
+            }
+        }
+    }
+
+    /**
+     * Determines if the provided copy state is valid for creating RP bookmarks.
+     *
+     * @param copyState the copy state
+     * @return true if the copy state if valid for creating bookmarks, false otherwise
+     */
+    public static boolean isValidBookmarkState(String copyState) {
+        // The only invalid copy bookmark states we care about are null and DIRECT_ACCESS.
+        if (copyState == null || copyState.equalsIgnoreCase(Copy.ImageAccessMode.DIRECT_ACCESS.name())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate the CG before performing destructive operations.
+     * If additional volumes appear in the RP CG on the hardware, this method returns false
+     * Clerical errors (such as missing DB entries) result in an Exception
+     * 
+     * @param dbClient
+     *            dbclient
+     * @param system
+     *            protection system
+     * @param cgId
+     *            BlockConsistencyGroup ID
+     * @param volumes
+     *            list of volumes
+     * @return true if CG is what we expect on the hardware, false otherwise
+     */
+    public static boolean validateCGForDelete(DbClient dbClient, ProtectionSystem system, URI cgId, Set<URI> volumes) {
+        _log.info("validateCGForDelete {} - start", system.getId());
+
+        // Retrieve all of the RP CGs, their RSets, and their volumes
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+        Set<GetCGsResponse> cgList = rp.getAllCGs();
+        if (cgList == null || cgList.isEmpty()) {
+            String errMsg = "Could not retrieve CGs from the RPA to perform validation."; 
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Grab all of the source volumes from the CG according to ViPR
+        List<Volume> srcVolumes = RPHelper.getCgVolumes(dbClient, cgId, PersonalityTypes.SOURCE.toString());
+        if (srcVolumes == null || srcVolumes.isEmpty()) {
+            String errMsg = "Could not retrieve volumes from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Get the protection set ID from the first source volume. All volumes will have the same pset ID.
+        URI psetId = srcVolumes.get(0).getProtectionSet().getURI();
+        if (NullColumnValueGetter.isNullURI(psetId)) {
+            String errMsg = "Could not retrieve protection set ID from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Get the protection set, which is required to get the CG ID on the RPA
+        ProtectionSet pset = dbClient.queryObject(ProtectionSet.class, psetId);
+        if (pset == null) {
+            String errMsg = "Could not retrieve protection set from the database for CG to perform validation";
+            throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+        }
+        
+        // Pre-populate the wwn fields for comparisons later.
+        List<String> srcVolumeWwns = new ArrayList<>();
+        for (Volume srcVolume : srcVolumes) {
+            srcVolumeWwns.add(srcVolume.getWWN());
+        }
+        
+        // This loop finds the CG on the hardware from the list of all CGs. Ignores all CGs that don't match our ID.
+        for (GetCGsResponse cgResponse : cgList) {
+            // Compare the stored CG ID (unique per RP System, doesn't change even if CG name changes)
+            if (Long.parseLong(pset.getProtectionId()) != cgResponse.getCgId()) {
+                continue;
+            }
+
+            // Make sure we have rsets before we continue. If the CG has no RSets on the hardware, throw
+            if (cgResponse.getRsets() == null || cgResponse.getRsets().isEmpty()) {
+                String errMsg = "Could not retrieve replication sets from the hardware to perform validation";
+                throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+            }
+            
+            // Find one of our volumes
+            for (GetRSetResponse rsetResponse : cgResponse.getRsets()) {
+                
+                // Make sure we have volumes in the RSet before we continue
+                if (rsetResponse == null || rsetResponse.getVolumes() == null || rsetResponse.getVolumes().isEmpty()) {
+                    String errMsg = "Could not retrieve the volumes in the replication set from the hardware to perform validation";
+                    throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
+                }
+            
+                // Check all of the volumes in the replication set. At least ONE volume needs to match one of our source
+                // volumes. An RSet contains one source (or an active and stand-by source) and multiple targets. Our
+                // list of WWNs is the list of source volumes we know about.
+                for (GetVolumeResponse volumeResponse : rsetResponse.getVolumes()) {
+                    // This hardware volume should be represented in the list of srcVolumes
+                    if (!srcVolumeWwns.contains(volumeResponse.getWwn())) {
+                        _log.warn(
+                                "Found at least one volume that isn't in our list of source volumes {}, therefore we can not delete the entire CG.",
+                                volumeResponse.getWwn());
+                        return false;
+                    }
+                }
+            }
+        }
+        _log.info("validateCGForDelete {} - end", system.getId());
+        return true;
+    }
 }

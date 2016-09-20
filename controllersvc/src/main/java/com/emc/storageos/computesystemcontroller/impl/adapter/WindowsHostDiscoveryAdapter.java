@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
@@ -30,6 +31,7 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.KerberosUtil;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
@@ -61,7 +63,9 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         host.setOsVersion(version.toString());
 
         if (getVersionValidator().isValidWindowsVersion(version)) {
-            host.setCluster(findCluster(host));
+            URI cluster = findCluster(host);
+            changes.setOldCluster(host.getCluster());
+            changes.setNewCluster(cluster);
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             save(host);
             super.discoverHost(host, changes);
@@ -79,60 +83,65 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
         try {
             if (system.isClustered()) {
-                if (NullColumnValueGetter.isNullURI(host.getCluster())) { // Windows clustered, but Not already in a ViPR cluster
-                    Map<String, List<MSClusterNetworkInterface>> clusterToNetworkInterfaces = system.getClusterToNetworkInterfaces();
-                    String clusterName = WindowsClusterUtils.findWindowsClusterHostIsIn(host.getHostName(), clusterToNetworkInterfaces);
-                    if (clusterName == null) {
-                        if (clusterToNetworkInterfaces.size() == 1) {
-                            clusterName = clusterToNetworkInterfaces.keySet().iterator().next();
-                        }
-                        else if (clusterToNetworkInterfaces.isEmpty()) {
-                            warn("Host '%s' appears to be clustered, but cannot find any cluster interfaces",
-                                    host.getHostName());
-                            return NullColumnValueGetter.getNullURI();
-                        }
-                        else {
-                            warn("Host '%s' is configured in multiple clusters %s, cannot determine primary cluster by network interface",
-                                    host.getHostName(), clusterToNetworkInterfaces.keySet());
-                            return NullColumnValueGetter.getNullURI();
-                        }
-                    }
-
-                    List<String> clusterIpAddresses = WindowsClusterUtils
-                            .getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
-
-                    // Find the cluster by address
-                    URI cluster = findClusterByAddresses(host.getTenant(), HostType.Windows, clusterIpAddresses);
-                    if (cluster != null) {
-                        return cluster;
-                    }
-
-                    // Find the cluster by name
-                    cluster = findClusterByName(host.getTenant(), clusterName);
-                    if (cluster != null) {
-                        // Ensure the cluster is empty before using it
-                        if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))) {
-                            return cluster;
-                        }
-                        // Log a warning
-                        warn("Host '%s' is in a cluster named '%s' which could not be matched by address. "
-                                + "An existing non-empty ViPR cluster exists with the same name; "
-                                + "manual cluster assignment required", host.getHostName(), clusterName);
+                Map<String, List<MSClusterNetworkInterface>> clusterToNetworkInterfaces = system.getClusterToNetworkInterfaces();
+                String clusterName = WindowsClusterUtils.findWindowsClusterHostIsIn(host.getHostName(), clusterToNetworkInterfaces);
+                if (clusterName == null) {
+                    if (clusterToNetworkInterfaces.size() == 1) {
+                        clusterName = clusterToNetworkInterfaces.keySet().iterator().next();
+                    } else if (clusterToNetworkInterfaces.isEmpty()) {
+                        warn("Host '%s' appears to be clustered, but cannot find any cluster interfaces",
+                                host.getHostName());
+                        return NullColumnValueGetter.getNullURI();
+                    } else {
+                        warn("Host '%s' is configured in multiple clusters %s, cannot determine primary cluster by network interface",
+                                host.getHostName(), clusterToNetworkInterfaces.keySet());
                         return NullColumnValueGetter.getNullURI();
                     }
+                }
 
-                    // No cluster matched by address or name, create a new one
-                    return createNewCluster(host.getTenant(), clusterName);
+                List<String> clusterIpAddresses = WindowsClusterUtils
+                        .getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
+
+                // Find the cluster by address
+                URI cluster = findClusterByAddresses(host, host.getTenant(), HostType.Windows, clusterIpAddresses);
+                if (cluster != null) {
+                    updateClusterName(cluster, clusterName);
+                    return cluster;
                 }
-                else {
-                    return host.getCluster();
+
+                // Find the cluster by name
+                cluster = findClusterByName(host.getTenant(), clusterName);
+                if (cluster != null) {
+                    // Ensure the cluster is empty before using it or if host already belongs to this cluster
+                    if (Iterables.isEmpty(getModelClient().hosts().findByCluster(cluster, true))
+                            || (!NullColumnValueGetter.isNullURI(host.getCluster())
+                                    && host.getCluster().toString().equals(cluster.toString()))) {
+                        updateClusterName(cluster, clusterName);
+                        return cluster;
+                    }
+                    // Log a warning
+                    warn("Host '%s' is in a cluster named '%s' which could not be matched by address. "
+                            + "An existing non-empty ViPR cluster exists with the same name; "
+                            + "manual cluster assignment required", host.getHostName(), clusterName);
+                    return NullColumnValueGetter.getNullURI();
                 }
+
+                // No cluster matched by address or name, create a new one
+                return createNewCluster(host.getTenant(), clusterName);
             }
 
             // Host is not currently in a Windows Cluster
             return NullColumnValueGetter.getNullURI();
         } catch (WinRMException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void updateClusterName(URI clusterId, String name) {
+        Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
+        if (cluster != null) {
+            cluster.setLabel(name);
+            dbClient.updateObject(cluster);
         }
     }
 
@@ -158,10 +167,10 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (FibreChannelHBA hba : windows.listFibreChannelHBAs()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, hba.getPortWWN()) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, hba.getPortWWN());
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, hba.getPortWWN());
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
@@ -176,10 +185,10 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             for (String iqn : windows.listIScsiInitiators()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                     addedInitiators.add(initiator);
                 } else {
-                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    initiator = getOrCreateInitiator(host.getId(), oldInitiators, iqn);
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }

@@ -72,6 +72,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -305,8 +306,8 @@ public class BlockSnapshotSessionManager {
         s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
         // Get the snapshot session label.
-        String snapSessionLabel = param.getName();
-
+        String snapSessionLabel = TimeUtils.formatDateForCurrent(param.getName());
+        
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsName = null;
@@ -314,7 +315,7 @@ public class BlockSnapshotSessionManager {
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
-            newTargetsName = linkedTargetsParam.getTargetName();
+            newTargetsName = TimeUtils.formatDateForCurrent(linkedTargetsParam.getTargetName());
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
         }
 
@@ -778,6 +779,13 @@ public class BlockSnapshotSessionManager {
         if (volumes.isEmpty()) {
             return result;
         }
+        
+        // if any of the source volumes are in an application, replica management must be done via the application
+        for (Volume srcVol : volumes) {
+            if (srcVol.getApplication(_dbClient) != null) {
+                return result;
+            }
+        }
 
         Volume sourceVolume = volumes.get(0);
 
@@ -851,7 +859,7 @@ public class BlockSnapshotSessionManager {
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, snapSessionOp);
         snapSession.getOpStatus().put(taskId, snapSessionOp);
 
-        if (snapSession.hasConsistencyGroup()) {
+        if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
             addConsistencyGroupTasks(snapSessionSourceObjs, taskList, taskId, getDeleteResourceOperationTypeEnum(snapSession));
         } else {
             taskList.addTask(toTask(snapSession, taskId, snapSessionOp));

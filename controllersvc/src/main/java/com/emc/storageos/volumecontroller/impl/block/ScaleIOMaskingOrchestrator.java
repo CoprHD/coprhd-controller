@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -95,7 +94,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // concept ExportMasks.
                 for (Map.Entry<URI, Map<URI, Integer>> toAddVolumes : exportMaskToVolumesToAdd.entrySet()) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, toAddVolumes.getKey());
-                    generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue());
+                    generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue(), null);
                 }
 
                 String successMessage = String.format(
@@ -161,7 +160,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         } else if (volumesToAdd != null && volumesToAdd.size() > 0) {
                             log.info(String.format("Add step to add volumes %s to ExportMask %s",
                                     Joiner.on(',').join(volumesToAdd.entrySet()), exportMask.getMaskName()));
-                            generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToAdd);
+                            generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToAdd, null);
                         }
                         initiatorURIsToPlace.remove(toAddInitiator);
                     }
@@ -208,7 +207,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
-            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup.getExportMasks() != null) {
+            if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup != null && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token);
@@ -217,9 +216,8 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Map<URI, List<URI>> exportToInitiatorsToRemove = new HashMap<>();
                 Map<URI, List<URI>> exportToVolumesToRemove = new HashMap<>();
                 Map<URI, Integer> volumeMap = null;
-                for (String exportMaskURIStr : exportGroup.getExportMasks()) {
-                    URI exportMaskURI = URI.create(exportMaskURIStr);
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                for (ExportMask exportMask : exportMasks) {                  
                     if (exportMask == null) {
                         continue;
                     }
@@ -232,7 +230,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             List<URI> initiators = exportToInitiatorsToRemove.get(exportGroupURI);
                             if (initiators == null) {
                                 initiators = new ArrayList<>();
-                                exportToInitiatorsToRemove.put(exportMaskURI, initiators);
+                                exportToInitiatorsToRemove.put(exportMask.getId(), initiators);
                             }
                             initiators.add(initiatorURI);
                         } else {
@@ -242,7 +240,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             List<URI> volumeURIs = exportToVolumesToRemove.get(exportGroupURI);
                             if (volumeURIs == null) {
                                 volumeURIs = new ArrayList<>();
-                                exportToVolumesToRemove.put(exportMaskURI, volumeURIs);
+                                exportToVolumesToRemove.put(exportMask.getId(), volumeURIs);
                             }
                             for (URI volumeURI : volumeMap.keySet()) {
                                 // Only add to the remove list for the ExportMask if
@@ -267,12 +265,12 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         }
                         if (exportMaskInitiatorURIs.isEmpty()) {
                             log.info(String.format("Adding step to delete ExportMask %s", exportMask.getMaskName()));
-                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null);
+                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null, null, null);
                         } else {
                             log.info(String.format("Adding step to remove initiators %s from ExportMask %s",
                                     Joiner.on(',').join(removeInitURIs), exportMask.getMaskName()));
-                            generateExportMaskRemoveInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, removeInitURIs,
-                                    true);
+                            generateExportMaskRemoveInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, null,
+                                    removeInitURIs, true);
                         }
                     }
                 }
@@ -289,12 +287,12 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         }
                         if (exportMaskVolumeURIs.isEmpty()) {
                             log.info(String.format("Adding step to delete ExportMask %s", exportMask.getMaskName()));
-                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null);
+                            generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null, null, null);
                         } else {
                             log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
                                     Joiner.on(',').join(removeVolumeURIs), exportMask.getMaskName()));
                             generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, removeVolumeURIs,
-                                    null);
+                                    null, null);
                         }
                     }
                 }
@@ -364,7 +362,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // We already know about the ExportMask, so we just add volumes to it
                 for (Map.Entry<URI, Map<URI, Integer>> toAddVolumes : exportMaskToVolumesToAdd.entrySet()) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, toAddVolumes.getKey());
-                    generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue());
+                    generateExportMaskAddVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, toAddVolumes.getValue(), null);
                 }
 
                 String successMessage = String.format(
@@ -437,7 +435,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, entry.getKey());
                     log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
                             Joiner.on(',').join(entry.getValue()), exportMask.getMaskName()));
-                    generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, entry.getValue(), null);
+                    generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, entry.getValue(), null, null);
                 }
 
                 String successMessage = String.format(
@@ -478,7 +476,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     List<URI> exportGroupURIs = new ArrayList<>();
                     if (!ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), exportGroupURIs)) {
                         log.info(String.format("Adding step to delete ExportMask %s", exportMask.getMaskName()));
-                        generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null);
+                        generateExportMaskDeleteWorkflow(workflow, null, storage, exportGroup, exportMask, null, null, null);
                     } else {
                         Map<URI, Integer> volumeToExportGroupCount = exportMaskToVolumeCount.get(exportMask.getId());
                         List<URI> volumesToRemove = new ArrayList<>();
@@ -496,7 +494,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         if (!volumesToRemove.isEmpty()) {
                             log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
                                     Joiner.on(',').join(volumesToRemove), exportMask.getMaskName()));
-                            generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToRemove, null);
+                            generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToRemove, null, null);
                         }
                     }
                 }

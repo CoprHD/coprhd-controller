@@ -93,11 +93,26 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * @return the newly created order
      */
     public OrderRestRep submit(OrderCreateParam input) {
+        
         OrderRestRep order = client
                 .post(OrderRestRep.class, input, PathConstants.ORDER2_URL);
         return order;
     }
 
+    /**
+     * Schedule an order
+     * <p>
+     * API Call: <tt>POST /catalog/events</tt>
+     * 
+     * @param input - event creation parameters
+     * @return the scheduled events
+     */
+    public ScheduledEventRestRep submitScheduledEvent(ScheduledEventCreateParam input) {
+        ScheduledEventRestRep event = client
+                .post(ScheduledEventRestRep.class, input, PathConstants.SCHEDULED_EVENTS_URL);
+        return event;
+    }
+    
     /**
      * Convenience method for submitting orders using a map of parameters.
      * <p>
@@ -200,5 +215,54 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     public void deactivate(URI id) {
         doDeactivate(id);
     }
+    
+    /**
+     * Return scheduled event for an order
+     * <p>
+     * API Call: <tt>GET /catalog/events/{id}</tt>
+     * 
+     * @return order's logs
+     */
+    public ScheduledEventRestRep getScheduledEvent(URI eventId) {
+        ScheduledEventRestRep event = client.get(ScheduledEventRestRep.class, PathConstants.SCHEDULED_EVENTS_URL + "/{id}", eventId);
+        return event;
+    }
+    
+    /**
+     * Update an order
+     * <p>
+     * API Call: <tt>PUT /catalog/events/{id}</tt>
+     * 
+     * @param eventId - URN for the event
+     * @param input - event update parameters
+     * @return the scheduled events
+     */
+    public ScheduledEventRestRep updateScheduledEvent(URI eventId, ScheduledEventUpdateParam input) {
+        String uri = String.format("%s/%s", PathConstants.SCHEDULED_EVENTS_URL, eventId);
+        ScheduledEventRestRep event = client
+                .put(ScheduledEventRestRep.class, input, uri);
+        return event;
+    }
+    
+    /**
+     * Deactivate an recurring event
+     * <p>
+     * API Call: <tt>POST /catalog/events/{id}/deactivate</tt>
+     * 
+     * @param eventId - URN for the event
+     */
+    public void deactivateScheduledEvent(URI eventId) {
+        client.post(String.class, PathConstants.SCHEDULED_EVENTS_DEACTIVATE_URL, eventId);
+    }
 
+    /**
+     * Cancellation an recurring event
+     * <p>
+     * API Call: <tt>POST /catalog/events/{id}/cancel</tt>
+     *
+     * @param eventId - URN for the event
+     */
+    public void cancelScheduledEvent(URI eventId) {
+        client.post(String.class, PathConstants.SCHEDULED_EVENTS_CANCELLATION_URL, eventId);
+    }
 }

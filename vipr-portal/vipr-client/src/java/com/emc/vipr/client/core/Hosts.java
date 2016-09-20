@@ -5,6 +5,7 @@
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.core.impl.SearchConstants.TENANT_PARAM;
+import static com.emc.vipr.client.core.impl.SearchConstants.UPDATE_EXPORTS;
 import static com.emc.vipr.client.core.impl.SearchConstants.VALIDATE_CONNECTION_PARAM;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
@@ -16,6 +17,7 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.OsInstallParam;
+import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
@@ -227,6 +229,34 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
         return update(id, input, Boolean.FALSE);
     }
 
+    /**
+     * Updates a host by ID.
+     * <p>
+     * API Call: <tt>PUT /compute/hosts/{id}?validate_connection={validateConnection}&amp;update_exports={updateExports}</tt>
+     * 
+     * @param id
+     *            the ID of the host to update.
+     * @param input
+     *            the update configuration.
+     * @param validateConnection
+     *            if true, also validate the host connection
+     * @param updateExports
+     *            if true, will also update host exports.
+     */
+    public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection, boolean updateExports) {
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+        if (validateConnection) {
+            uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
+        }
+
+        if (updateExports) {
+            uriBuilder.queryParam(UPDATE_EXPORTS, Boolean.TRUE);
+        } else {
+            uriBuilder.queryParam(UPDATE_EXPORTS, Boolean.FALSE);
+        }
+        return putTaskURI(input, uriBuilder.build(id));
+    }
+
     public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection) {
         UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
         if (validateConnection) {
@@ -304,6 +334,19 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      */
     public Task<HostRestRep> discover(URI id) {
         return postTask(getIdUrl() + "/discover", id);
+    }
+
+    /**
+     * Begins discovery of array affinity information on all supported arrays for the given host IDs.
+     * <p>
+     * API Call: <tt>POST /compute/hosts/discover-array-affinity</tt>
+     * 
+     * @param param
+     *            ArrayAffinityHostParam containing host IDs.
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<HostRestRep> discoverHostArrayAffinity(ArrayAffinityHostParam param) {
+        return postTasks(param, baseUrl + "/discover-array-affinity");
     }
 
     /**

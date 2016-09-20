@@ -1,0 +1,352 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+
+    function reverse(s){
+        return s.split("").reverse().join("");
+    }
+
+    $(document).ready(function () {
+        var remoteServersId = "network_syslog_remote_servers_ports";
+        $network_syslog_remote_servers_ports = $("#" + remoteServersId);
+        
+        $syslogProtocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}");
+        $syslogProtocol.on('change', function () {
+            checkIfDisableTestButton();
+            changeLayout(this.value);
+        });
+
+        checkIfDisableTestButton();
+        initialServerPortCert();
+
+
+        $('#validateButtonIpPort').on('click', function(e) {
+        e.preventDefault();
+        this.disabled = 'true';
+        validateExternalServerIpPort();
+        window.scrollTo(0,0);
+        });
+    });
+    function checkIfDisableTestButton() {
+        var validateControl = $('#ValidatConnectiontrolGroup');
+        var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
+        if ( protocol === 'UDP') {
+            validateControl.hide();
+        } else {
+            validateControl.show();
+        }
+    }
+    function validateExternalServerIpPort() {
+       var ipPortListStr = $("#${util.ConfigProperty.SYSLOG_REMOTE_SERVERS_PORTS}").val();
+
+       $('#alerts_success').hide();
+       $('#alerts_error').hide();
+
+       var data = {
+            authenticityToken: '${session.authenticityToken}',
+            ipPortListStr: ipPortListStr
+                }
+       var url = #{jsAction @infra.ConfigProperties.connectExternalServerIpPort()/}();
+       $.post(url, data, function(result) {
+               showIpPortValidationResult(result);
+               });
+
+    }
+    function showIpPortValidationResult(result) {
+        var success = false;
+        var message = "";
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (i > 0) {
+                    message += "<br>";
+                }
+            message += result[i].message;
+            success = success || result[i].success;
+            }
+        }else {
+            message = result.message;
+            success = result.success;
+        }
+        if (success) {
+            $('#alerts_success .message').html(message);
+            $('#alerts_success').slideDown('fast');
+        }else {
+            $('#alerts_error .message').html(message);
+            $('#alerts_error').slideDown('fast');
+        }
+        $('#validateButtonIpPort').prop('disabled',false);
+    }
+    function initialServerPortCert() {
+        var urlValue = '${page.syslogRemoteServersPorts.value}';
+        var servers = urlValue.split(',');
+        var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
+        var certsValue = '';
+        var certs = [];
+        if ( protocol === 'TLS') {
+            certsValue = $("#${util.ConfigProperty.SYSLOG_DRIVER_CA}").val();
+            certs = certsValue.split(',');
+        }
+        for (var i = 0; i < servers.length; i++) {
+            var server = servers[i];
+            var cert ='';
+
+            var ip = server.substring(0, server.lastIndexOf(":"));
+            var port = server.substring(server.lastIndexOf(":")+1, server.length);
+            if ( protocol === 'TLS') {
+                cert=certs[i];
+            }
+            addServer(ip,port,cert);
+        }
+
+    }
+
+    function changeLayout() {
+        removeAllTr();
+        initialServerPortCert();
+     }
+
+    function removeAllTr(){
+        $("table#server-table tbody tr").remove();
+        var numi = document.getElementById('theValue');
+        numi.value = 0;
+    }
+
+    function setDriverCert() {
+        var certsFild = document.getElementById('system_syslog_driver_ca');
+        var numi = document.getElementById('theValue').value;
+        $DriverCert = $("#${util.ConfigProperty.SYSLOG_DRIVER_CA}");
+        var certsArray = [];
+        var certs='';
+        for (n = 1 ; n <= numi ; n++) {
+            var id='serverCert_'+n;
+            var cert = document.getElementById(id).value ;
+            certsArray.push(cert);
+        }
+        $DriverCert.val(certsArray);
+        checkForm();
+    }
+
+    function addServer(server,port,cert) {
+        var ipErrorMessage = "&{'configProperties.syslog.setToZero.ip'}";
+        var portErrorMessage = "&{'configProperties.syslog.setToZero.port'}";
+        var certErrorMessage = "&{'configProperties.syslog.setToZero.cert'}";
+        var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
+        var ni = document.getElementById('server-group');
+        var numi = document.getElementById('theValue');
+        var num = (document.getElementById('theValue').value -1)+ 2;
+        if (num > 6) {
+            return;
+        }
+        numi.value = num;
+        var newdiv = document.createElement('tr');
+        var divIdName = 'server_'+num;
+        newdiv.setAttribute('id',divIdName);
+        newdiv.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value" name="serverIp_column">' +
+                '<input type="text" name="serverIp" value="'+server+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
+                '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">'+ ipErrorMessage +'</small> </div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="col-xs-8 ng-scope" v-field="config.value">' +
+                '<input type="text" name="serverPort" value="'+port+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
+                '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">'+ portErrorMessage +'</small> </div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="col-xs-1">' +
+                '<button type="button" class="close" ng-hide="config.systemDefault" onClick="removeServer(\''+divIdName+'\')">×</button>' +
+            '</td>';
+        ni.appendChild(newdiv);
+        if ( protocol === 'TLS') {
+            var newdivCert = document.createElement('tr');
+            var newdivCertName = 'server_cert_'+num;
+            newdivCert.setAttribute('id',newdivCertName);
+            var newdivCertId = 'serverCert_'+num;
+            var newlabelId = 'serverCertLabel_'+num;
+            newdivCert.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value" name="serverCert_column">'+
+            '<label class="control-label col-sm-3" for="'+newlabelId+'">Certificate</label>' +
+               '<textarea name="serverCert" id="'+newdivCertId+'" class="form-control" maxlength="1280" onchange="setDriverCert()">'+cert+'</textarea>'+
+               '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">'+ certErrorMessage +'</small> </div>' +
+               '</div>' +
+                '<p class="help-block clear">Certifiacte file from remote syslog server</p>' +'</td>';
+            ni.appendChild(newdivCert);
+               }
+
+    }
+    function isBlank(str) {
+        return (!str || /^\s*$/.test(str));
+    }
+
+    function setTableError(object) {
+        object.parent().addClass('has-error');
+        object.siblings().removeClass('ng-hide');
+    }
+
+    function clearTableError(object) {
+        object.parent().removeClass('has-error');
+        object.siblings().addClass('ng-hide');
+    }
+
+    function verifyServers() {
+        var ipPortArray = [];
+        var protocol = '${page.syslogTransportProtocol.value}';
+        var certsArray = [];
+
+        $("table#server-table tbody tr").each(function() {
+            var trId = this.id;
+            if (trId.substring(0,11) !== "server_cert") {
+                var serverIp = $(this).find('input[name=serverIp]');
+                var serverPort = $(this).find('input[name=serverPort]');
+                var hasError = false;
+                if (isBlank(serverIp.val())){
+                   setTableError(serverIp);
+                   hasError = true;
+                } else { clearTableError(serverIp); }
+                if (isBlank(serverPort.val())) {
+                   setTableError(serverPort);
+                   hasError = true;
+                } else { clearTableError(serverPort); }
+                if (hasError) {
+                   return true;
+                }
+
+                ipPortArray.push(serverIp.val()+":"+serverPort.val());
+            } else {
+                if ( protocol === 'TLS' ) {
+                    var cert = $(this).find('textarea[name=serverCert]');
+                    if (isBlank(cert.val())){
+                        cert.siblings().removeClass('ng-hide');
+                        hasError = true;
+                    } else { cert.siblings().addClass('ng-hide'); }
+                    if (hasError) {
+                        return true;
+                    }
+                    certsArray.push(cert.val());
+                }
+            }    
+        });
+        updateServers(ipPortArray,certsArray);
+    }
+
+    function updateServers(ipPortArray,certsArray) {
+        $network_syslog_remote_servers_ports.val(ipPortArray);
+        var protocol = '${page.syslogTransportProtocol.value}';
+        if ( protocol === 'TLS' ) {
+            $DriverCert = $("#${util.ConfigProperty.SYSLOG_DRIVER_CA}");
+            $DriverCert.val(certsArray);
+        }
+        checkForm();
+    }
+
+
+    function removeServer(id) {
+        var d = document.getElementById('server-group');
+        var checkboxes = document.getElementById(id);
+        d.removeChild(checkboxes);
+        var protocol = $("#${util.ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL}").val();
+        var numi = document.getElementById('theValue');
+        var num = document.getElementById('theValue').value -1;
+        numi.value = num;
+        if ( protocol === 'TLS') {
+            var num = id.substring(id.length-1,id.length);
+            var certId='server_cert_'+num;
+            var certDiv=document.getElementById(certId);
+            d.removeChild(certDiv);
+        }
+        verifyServers();
+    }
+
+</script>
+#{/set}
+
+#{ConfigProperties.property property:page.syslogEnable, disabled:unstable/}
+%{
+property = page.syslogDriverCa
+id = property.name
+name = property.name
+originalValue = property.value
+value = flash[name] ?: originalValue
+disabled:unstable;
+}%
+#{set 'error'}#{error name /}#{/set}
+
+<div id="${id}ControlGroup" class="form-group">
+
+    <div class="col-sm-6 controls">
+        <div class="row col-gap-sm" id="backup-time">
+            <textarea id="${id}" style="display:none" name="${name}" class="form-control"  data-originalvalue="${originalValue}">${value}</textarea>
+        </div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
+
+<fieldset>
+    <legend>&{'configProperties.syslog.servers'}
+        <p class="help-block clear" style="font-size:13px;">Make sure the remote syslog is configured to accept client connections.Ask your syslog server admin for inputs.For more details click
+            <a href="${util.DocUtils.getDocumentationLink()}" target="_blank">here</a>.
+        </p>
+    </legend>
+#{ConfigProperties.property property:page.syslogTransportProtocol, disabled:unstable/}
+
+<input type="hidden" value="0" id="theValue" />
+%{
+    property = page.syslogRemoteServersPorts
+    id = property.name
+    name = property.name
+    label = property.label
+    originalValue = property.value
+    value = flash[name] ?: originalValue
+    rebootRequired = property.rebootRequired
+    description = property.description
+    disabled:unstable;
+}%
+#{set 'error'}#{error name /}#{/set}
+
+<div id="${id}ControlGroup" class="form-group ">
+    <label class="control-label col-sm-3" for="${id}">${label}:</label>
+    <div class="col-sm-6" z="">
+        <div class="dataTables_wrapper">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}"/>
+            <table class="table table-hover table-condensed dataTable " id="server-table" >
+                <thead>
+                <tr>
+                    <th style="width: 160px;">Server</th>
+                    <th style="width: 160px;">Port</th>
+                    <th style="width: 25px;"></th>
+                </tr>
+                </thead>
+                <tbody id="server-group">
+
+                </tbody>
+            </table>
+
+        </div>
+        <div class="button-bar">
+            <div>
+                <button type="button" class="btn btn-success" name="button.add" onclick="addServer('','','');">
+                    <span class="glyphicon glyphicon-plus "></span> Add
+                </button>
+            </div>
+        </div>
+        <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
+    <div id="ValidatConnectiontrolGroup" class="form-group">
+        <div class="col-sm-3">
+            &nbsp;
+        </div>
+        <div class="col-sm-6">
+            <button id="validateButtonIpPort" type="button" class="btn btn-info">
+                &{'configProperties.syslog.serverPort.validate'}
+            </button>
+        </div>
+    </div>
+</fieldset>

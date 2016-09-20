@@ -1,4 +1,8 @@
 dependencies {
     compile project(":errorhandling"),
-                     project(":serviceutils")   
+            project(":serviceutils"),
+            project(":cinder"),
+            project(":dbclient")
+
+    testCompile "org.mockito:mockito-all:1.9.5"
 }

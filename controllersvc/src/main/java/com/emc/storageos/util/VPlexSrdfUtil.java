@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * Performs conversions from Vplex Volumes to corresponding SRDF Volumes and vice-versa.
@@ -33,15 +34,18 @@ public class VPlexSrdfUtil {
      * @return -- Srdf volume if present, or null
      */
     static public Volume getSrdfVolumeFromVplexVolume(DbClient dbClient, Volume vplexVolume) {
-        for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
-            Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
-            if (assocVolume == null || assocVolume.getInactive()) {
-                continue;
-            }
-            if (assocVolume.checkForSRDF()) {
-                return assocVolume;
+        if (null != vplexVolume.getAssociatedVolumes()) {
+            for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
+                Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+                if (assocVolume == null || assocVolume.getInactive()) {
+                    continue;
+                }
+                if (assocVolume.checkForSRDF()) {
+                    return assocVolume;
+                }
             }
         }
+
         return null;
     }
     
@@ -131,7 +135,7 @@ public class VPlexSrdfUtil {
             }
             Volume srdfVolume = getSrdfVolumeFromVplexVolume(dbClient, vplexVolume);
             // See if SRDF target
-            if (srdfVolume != null && srdfVolume.getSrdfParent() != null) {
+            if (srdfVolume != null && !NullColumnValueGetter.isNullNamedURI(srdfVolume.getSrdfParent())) {
                 // Virtual volume in front of SRDF target to return list
                 returnedVolumes.add(vplexVolume.getId());
             }

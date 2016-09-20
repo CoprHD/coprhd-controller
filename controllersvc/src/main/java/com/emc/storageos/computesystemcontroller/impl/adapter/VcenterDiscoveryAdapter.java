@@ -14,32 +14,40 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
+import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VcenterVersion;
 import com.vmware.vim25.AboutInfo;
 import com.vmware.vim25.HostHardwareInfo;
 import com.vmware.vim25.HostSystemConnectionState;
-
 import com.vmware.vim25.InvalidLogin;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datacenter;
@@ -89,7 +97,9 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<HostStateChange> changes = Lists.newArrayList();
             List<URI> deletedHosts = Lists.newArrayList();
             List<URI> deletedClusters = Lists.newArrayList();
-            processor.discover(changes, deletedHosts, deletedClusters);
+            Set<URI> discoveredHosts = Sets.newHashSet();
+            processor.discover(changes, deletedHosts, deletedClusters, discoveredHosts);
+            deletedHosts.removeAll(discoveredHosts);
             processor.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             // only update registration status of hosts if the vcenter is unregistered
             // to ensure newly discovered hosts are marked as unregistered
@@ -97,9 +107,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 processor.setRegistrationStatus(vcenter.getRegistrationStatus());
             }
             save(vcenter);
-            processHostChanges(changes, deletedHosts, deletedClusters);
-        }
-        else {
+            processHostChanges(changes, deletedHosts, deletedClusters, true);
+        } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
@@ -182,15 +191,40 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
     private void deleteDatacenters(Iterable<VcenterDataCenter> datacenters, List<URI> deletedHosts, List<URI> deletedClusters) {
         for (VcenterDataCenter datacenter : datacenters) {
+            boolean containsHosts = false;
+            boolean clustersInUse = false;
+
             for (Cluster cluster : getClusters(datacenter)) {
                 deletedClusters.add(cluster.getId());
             }
 
             for (Host host : getHosts(datacenter)) {
                 deletedHosts.add(host.getId());
+                containsHosts = true;
             }
 
-            delete(datacenter);
+            for (Cluster cluster : getClusters(datacenter)) {
+                URI clusterId = cluster.getId();
+                List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
+                if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
+                        && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
+                    info("Deactivating Cluster: " + clusterId);
+                    ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+                } else {
+                    info("Unable to delete cluster " + clusterId);
+                    clustersInUse = true;
+                }
+            }
+
+            // delete datacenters that don't contain any clusters or hosts, don't have any exports, and don't have any pending events
+            if (!containsHosts && !clustersInUse
+                    && !ComputeSystemHelper.isDataCenterInUse(dbClient, datacenter.getId())
+                    && EventUtils.findAffectedResourcePendingEvents(dbClient, datacenter.getId()).isEmpty()) {
+                info("Deactivating Datacenter: " + datacenter.getId());
+                ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, datacenter);
+            } else {
+                info("Unable to delete datacenter " + datacenter.getId());
+            }
         }
     }
 
@@ -221,7 +255,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             this.vcenter = vcenter;
         }
 
-        public void discover(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
+        public void discover(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, Set<URI> discoveredHosts) {
             vcenterAPI = createVCenterAPI(vcenter);
             try {
                 AboutInfo aboutInfo = vcenterAPI.getAboutInfo();
@@ -230,7 +264,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 }
                 checkDuplicateVcenter(vcenter, aboutInfo.getInstanceUuid());
                 vcenter.setNativeGuid(aboutInfo.getInstanceUuid());
-                discoverDatacenters(changes, deletedHosts, deletedClusters);
+                discoverDatacenters(changes, deletedHosts, deletedClusters, discoveredHosts);
             } finally {
                 vcenterAPI.logout();
             }
@@ -247,13 +281,14 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             return dataCenter;
         }
 
-        private void discoverDatacenters(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
+        private void discoverDatacenters(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters,
+                Set<URI> discoveredHosts) {
             List<VcenterDataCenter> oldDatacenters = new ArrayList<VcenterDataCenter>();
             Iterables.addAll(oldDatacenters, getDatacenters(vcenter));
 
             for (Datacenter sourceDatacenter : vcenterAPI.listAllDatacenters()) {
                 VcenterDataCenter targetDatacenter = findOrCreateDataCenter(oldDatacenters, sourceDatacenter);
-                discoverDatacenter(sourceDatacenter, targetDatacenter, changes, deletedHosts, deletedClusters);
+                discoverDatacenter(sourceDatacenter, targetDatacenter, changes, deletedHosts, deletedClusters, discoveredHosts);
             }
 
             deleteDatacenters(oldDatacenters, deletedHosts, deletedClusters);
@@ -291,7 +326,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
 
         private void discoverDatacenter(Datacenter source, VcenterDataCenter target, List<HostStateChange> changes, List<URI> deletedHosts,
-                List<URI> deletedClusters) {
+                List<URI> deletedClusters, Set<URI> discoveredHosts) {
             info("processing datacenter %s", source.getName());
             target.setVcenter(vcenter.getId());
             setVcenterDataCenterTenant(target);
@@ -338,9 +373,15 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     }
                 }
 
+                if (deletedHosts != null && deletedHosts.contains(target.getId())) {
+                    deletedHosts.remove(target.getId());
+                    info("Removing host " + target.getId() + " from deletedHosts. It may have been rediscovered in a different datacenter");
+                }
+
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(), targetHost);
                 try {
                     discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
+                    discoveredHosts.add(targetHost.getId());
                     DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
                 } catch (RuntimeException e) {
                     warn(e, "Problem discovering host %s", targetHost.getLabel());
@@ -349,8 +390,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
 
             for (Host oldHost : oldHosts) {
-                info("Unable to discover host %s. Marking as failed discovery.", oldHost.getId());
-                DiscoveryStatusUtils.markAsFailed(getModelClient(), oldHost, "Unable to discover host. Host may be disconnected.", null);
+                if (!discoveredHosts.contains(oldHost.getId())) {
+                    info("Unable to discover host %s. Marking as failed discovery.", oldHost.getId());
+                    DiscoveryStatusUtils.markAsFailed(getModelClient(), oldHost, "Unable to discover host. Host may be disconnected.",
+                            null);
+                }
             }
 
             Collection<URI> oldClusterIds = Lists.newArrayList(Collections2.transform(oldClusters,
@@ -458,8 +502,19 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
         private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, VcenterDataCenter targetDatacenter,
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
-            target.setVcenterDataCenter(targetDatacenter.getId());
-            target.setTenant(targetDatacenter.getTenant());
+            URI oldDatacenterURI = target.getVcenterDataCenter();
+            URI newDatacenterURI = targetDatacenter.getId();
+            boolean isDatacenterChanged = false;
+            info("Discovering host " + target.getLabel() + " (" + target.getId() + ")");
+            if (NullColumnValueGetter.isNullURI(oldDatacenterURI) || (!NullColumnValueGetter.isNullURI(newDatacenterURI)
+                    && newDatacenterURI.toString().equalsIgnoreCase(oldDatacenterURI.toString()))) {
+                info("setting vCenter datacenter to " + targetDatacenter.getLabel() + " (" + targetDatacenter.getId() + ") and tenant to "
+                        + targetDatacenter.getTenant() + " for host " + target.getLabel());
+                target.setVcenterDataCenter(targetDatacenter.getId());
+                target.setTenant(targetDatacenter.getTenant());
+            } else {
+                isDatacenterChanged = true;
+            }
             target.setDiscoverable(true);
 
             if (target.getId() == null) {
@@ -477,8 +532,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             if (clusterName != null) {
                 cluster = findModelByLabel(clusters, clusterName);
             }
-            info("setting host cluster to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
-            target.setCluster(cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI());
 
             if (target.getType() == null ||
                     StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString())) {
@@ -500,11 +553,14 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 List<Initiator> addedInitiators = new ArrayList<Initiator>();
                 discoverConnectedHostInitiators(source, target, oldInitiators, addedInitiators);
 
-                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target
-                        .getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
+                URI targetCluster = cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI();
 
-                if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
-                    changes.add(new HostStateChange(target, oldClusterURI, oldInitiators, addedInitiators));
+                boolean isClusterChanged = NullColumnValueGetter.isNullURI(oldClusterURI) ? !NullColumnValueGetter.isNullURI(targetCluster)
+                        : targetCluster != null && !oldClusterURI.toString().equals(targetCluster.toString());
+
+                if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged || isDatacenterChanged) {
+                    changes.add(new HostStateChange(target, oldClusterURI, targetCluster, oldInitiators, addedInitiators, oldDatacenterURI,
+                            newDatacenterURI));
                 }
             }
             else {

@@ -122,13 +122,14 @@ public class VPlexApiExportManager {
      * Delete the storage view with the passed name.
      * 
      * @param viewName The name of the storage view to be deleted.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param viewFound An out parameter indicating whether or
      *            not the storage view was actually found on
      *            the VPLEX device during this process.
      * 
      * @throws VPlexApiException When an error occurs deleting the storage view.
      */
-    void deleteStorageView(String viewName, Boolean[] viewFound) throws VPlexApiException {
+    void deleteStorageView(String viewName, String clusterName, Boolean[] viewFound) throws VPlexApiException {
 
         s_logger.info("Request to delete storage view {}", viewName);
 
@@ -136,7 +137,7 @@ public class VPlexApiExportManager {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         VPlexStorageViewInfo storageViewInfo = null;
         try {
-            storageViewInfo = discoveryMgr.findStorageView(viewName);
+            storageViewInfo = discoveryMgr.findStorageViewOnCluster(viewName, clusterName, false);
         } catch (Exception e) {
             s_logger.error("Exception trying to find VPLEX storage view.", e);
             viewFound[0] = false;
@@ -160,7 +161,13 @@ public class VPlexApiExportManager {
                     VPlexApiConstants.URI_DESTROY_STORAGE_VIEW);
             s_logger.info("Delete storage view URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
-            argsMap.put(VPlexApiConstants.ARG_DASH_V, viewName);
+            // assemble the full path to the storage view
+            StringBuilder viewPath = new StringBuilder(); 
+            viewPath.append(VPlexApiConstants.URI_CLUSTERS_RELATIVE.toString());
+            viewPath.append(clusterName);
+            viewPath.append(VPlexApiConstants.URI_STORAGE_VIEWS.toString());
+            viewPath.append(viewName);
+            argsMap.put(VPlexApiConstants.ARG_DASH_V, viewPath.toString());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Delete storage view POST data is {}",
                     postDataObject.toString());
@@ -196,19 +203,20 @@ public class VPlexApiExportManager {
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param initiatorPortInfo The port information for the initiators to be
      *            added.
      * 
      * @throws VPlexApiException When an error occurs adding the initiators.
      */
-    void addInitiatorsToStorageView(String viewName,
+    void addInitiatorsToStorageView(String viewName, String clusterName,
             List<PortInfo> initiatorPortInfo) throws VPlexApiException {
 
         // In case of a VPlex cross connect initiators will be in both the clusters.
         // So first find the storage view in both the VPlex clusters and then find
         // Initiators in a specific cluster.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageView(viewName);
+        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageViewOnCluster(viewName, clusterName, false);
         if (storageViewInfo == null) {
             throw VPlexApiException.exceptions.couldNotFindStorageView(viewName);
         }
@@ -296,19 +304,20 @@ public class VPlexApiExportManager {
      * storage view with the passed name.
      * 
      * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param initiatorPortInfo The port information for the initiators to be
      *            removed.
      * 
      * @throws VPlexApiException When an error occurs removing the initiators.
      */
-    void removeInitiatorsFromStorageView(String viewName,
+    void removeInitiatorsFromStorageView(String viewName, String clusterName,
             List<PortInfo> initiatorPortInfo) throws VPlexApiException {
 
         // In case of a VPlex cross connect initiators will be in both the clusters.
         // So first find the storage view in both the VPlex clusters and then find
         // Initiators in a specific cluster.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageView(viewName);
+        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageViewOnCluster(viewName, clusterName, false);
         if (storageViewInfo == null) {
             throw VPlexApiException.exceptions.couldNotFindStorageView(viewName);
         }
@@ -336,20 +345,21 @@ public class VPlexApiExportManager {
      * Adds the virtual volumes with the passed names to the storage view with
      * the passed name.
      * 
+     * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param virtualVolumeMap Map of virtual volume names to LUN ID.
-     * 
      * @return A reference to a VPlexStorageViewInfo specifying the storage view
      *         information.
      * 
      * @throws VPlexApiException When an error occurs adding the virtual
      *             volumes.
      */
-    VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName,
+    VPlexStorageViewInfo addVirtualVolumesToStorageView(String viewName, String clusterName,
             Map<String, Integer> virtualVolumeMap) throws VPlexApiException {
 
         // Find the virtual volume with the passed name.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageView(viewName);
+        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageViewOnCluster(viewName, clusterName, false);
         if (storageViewInfo == null) {
             throw VPlexApiException.exceptions.couldNotFindStorageView(viewName);
         }
@@ -364,17 +374,19 @@ public class VPlexApiExportManager {
      * Removes the virtual volumes with the passed names from the storage view
      * with the passed name.
      * 
+     * @param viewName The name of the storage view.
+     * @param clusterName The name of the VPLEX cluster that the storage view is on.
      * @param virtualVolumeNames The names of the virtual volumes to be removed.
      * 
      * @throws VPlexApiException When an error occurs removing the virtual
      *             volumes.
      */
-    void removeVirtualVolumesFromStorageView(String viewName,
+    void removeVirtualVolumesFromStorageView(String viewName, String clusterName,
             List<String> virtualVolumeNames) throws VPlexApiException {
 
         // Find the virtual volume with the passed name.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageView(viewName, true);
+        VPlexStorageViewInfo storageViewInfo = discoveryMgr.findStorageViewOnCluster(viewName, clusterName, true);
         if (storageViewInfo == null) {
             // if the storage view doesn't exist, there can't be any volumes in it
             // not an error; just return
@@ -696,7 +708,7 @@ public class VPlexApiExportManager {
                 // for the initiator.
                 initiatorInfo.updateOnRegistration();
 
-                s_logger.info("Registered initiator", initiatorInfo.getName());
+                s_logger.info(String.format("Successfully registered initiator %s", initiatorInfo.getName()));
             } catch (VPlexApiException vae) {
                 throw vae;
             } catch (Exception e) {

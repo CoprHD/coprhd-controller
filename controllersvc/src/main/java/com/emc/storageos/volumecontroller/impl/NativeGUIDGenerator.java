@@ -84,7 +84,7 @@ public class NativeGUIDGenerator {
     public static final String UN_MANAGED_VOLUME = "UNMANAGEDVOLUME";
 
     public static final String UN_MANAGED_FILESYSTEM = "UNMANAGEDFILESYSTEM";
-
+    
     public static final String UN_MANAGED_QUOTADIRECTORY = "UNMANAGEDQUOTADIRECTORY";
 
     public static final String UN_MANAGED_FILE_EXPORT_RULE = "UNMANAGEDFILEEXPORTRULE";
@@ -143,10 +143,16 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
         _deviceTypeMap.put(StorageSystem.Type.ceph.name(), "CEPH");
 
-        // add systems managed by driver
+        // add system types managed by driver
         Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();
         for (String storageSystem : storageSystems) {
             _deviceTypeMap.put(storageSystem, storageSystem);
+        }
+
+        // add provider types managed by driver
+        Collection<String> storageProviders = storageDriverManager.getStorageProvidersMap().values();
+        for (String storageProvider : storageProviders) {
+            _deviceTypeMap.put(storageProvider, storageProvider);
         }
     }
 
@@ -505,13 +511,13 @@ public class NativeGUIDGenerator {
         return String.format("%s+%s+%s+" + QUOTADIRECTORY + "+%s", _deviceTypeMap.get(device.getSystemType()),
                 device.getSerialNumber(), fs.getName(), quotaDirName);
     }
-
+    
     public static String generateNativeGuidForQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
             throws IOException {
         return String.format("%s+%s+%s+" + QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
                 serialNumber, fsName, quotaDirName);
     }
-
+    
     public static String generateNativeGuidForUnManagedQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
             throws IOException {
         return String.format("%s+%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
@@ -685,7 +691,7 @@ public class NativeGUIDGenerator {
         return String.format("%s+%s+" + UN_MANAGED_FILESYSTEM + "+%s", _deviceTypeMap.get(deviceType), serialNumber, fileShareNativeId);
 
     }
-
+    
     public static String generateNativeGuidForPreExistingQuotaDirectory(String deviceType, String serialNumber,
             String quotaDirectoryNativeId) {
         return String.format("%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType), serialNumber,

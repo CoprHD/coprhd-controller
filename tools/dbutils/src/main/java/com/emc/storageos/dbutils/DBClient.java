@@ -9,6 +9,8 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -63,6 +65,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -74,6 +77,8 @@ public class DBClient {
     private static final Logger log = LoggerFactory.getLogger(DBClient.class);
 
     private static final String pkgs = "com.emc.storageos.db.client.model";
+
+    private static final Set<Class> inactiveIsNullClass = new HashSet<>(Arrays.asList(Token.class, ProxyToken.class));
 
     private static final String QUITCHAR = "q";
     private int listLimit = 100;
@@ -463,9 +468,10 @@ public class DBClient {
     }
 
     private static class AuditQueryResult implements TimeSeriesQueryResult<AuditLog> {
-        private StringBuilder builder = new StringBuilder("<audits>");
+        //Should guarantee of synchronization
+        private StringBuffer buffer = new StringBuffer("<audits>");
+        private AtomicInteger recCount = new AtomicInteger(0);
         private String filename = null;
-        private int recCount = 0;
 
         AuditQueryResult(String filename) {
             this.filename = filename;
@@ -475,15 +481,15 @@ public class DBClient {
         public void data(AuditLog data, long insertionTimeMs) {
             BuildXML<AuditLog> xmlBuilder = new BuildXML<AuditLog>();
             String xml = xmlBuilder.writeAsXML(data, "audit");
-            builder.append(xml);
-            ++recCount;
+            buffer.append(xml);
+            recCount.addAndGet(1);
         }
 
         @Override
         public void done() {
-            builder.append("</audits>");
+            buffer.append("</audits>");
             XMLWriter writer = new XMLWriter();
-            writer.writeXMLToFile(builder.toString(), filename);
+            writer.writeXMLToFile(buffer.toString(), filename);
             BuildXML.count = 0;
             System.out.println(" -> Querying For audits completed and count of the audits found are : " + recCount);
         }
@@ -651,10 +657,10 @@ public class DBClient {
      * Get the column family row count
      * 
      * @param cfName
-     * @param isActive
+     * @param isActiveOnly
      */
     @SuppressWarnings("unchecked")
-    public int getRowCount(String cfName, boolean isActive) throws Exception {
+    public int getRowCount(String cfName, boolean isActiveOnly) throws Exception {
         Class clazz = _cfMap.get(cfName); // fill in type from cfName
         int rowCount = 0;
         if (clazz == null) {
@@ -662,7 +668,7 @@ public class DBClient {
             return -1;
         }
         List<URI> uris = null;
-        uris = getColumnUris(clazz, isActive);
+        uris = getColumnUris(clazz, isActiveOnly);
         if (uris == null || !uris.iterator().hasNext()) {
             System.out.println(String.format(PRINT_COUNT_RESULT, cfName, rowCount));
             return -1;
@@ -684,15 +690,31 @@ public class DBClient {
     /**
      * get the keys of column family for list/count
      */
-    private List<URI> getColumnUris(Class clazz, boolean isActive) {
+    private List<URI> getColumnUris(Class clazz, boolean isActiveOnly) {
         List<URI> uris = null;
         try {
-            uris = _dbClient.queryByType(clazz, isActive);
+            if (onlySupportActiveOnlyIsFalse(clazz)) {
+                uris = _dbClient.queryByType(clazz, false);
+            } else {
+                uris = _dbClient.queryByType(clazz, isActiveOnly);
+            }
         } catch (DatabaseException e) {
             System.err.println("Error querying from db: " + e);
             return null;
         }
         return uris;
+    }
+
+    /**
+     * Some model classes do not use .inactive field at all, which means all object instances with .inactive == null,
+     * so When querying , can only specify activeOnly == false, otherwise will get nothing.
+     * Forward to {@link com.emc.storageos.db.client.impl.DbClientImpl#queryByType} for more detail.
+     */
+    private boolean onlySupportActiveOnlyIsFalse(Class clazz) {
+        if (inactiveIsNullClass.contains(clazz)) {
+            return true;
+        }
+        return false;
     }
 
     public void setListLimit(int listLimit) {
@@ -1120,6 +1142,15 @@ public class DBClient {
         }
     }
 
+    /**
+     * This db consistency check is for the whole database and we could detect,
+     * 1. The data object record exists but related indices are missing, the scope is the whole db, it will scan all the CFs, from one to
+     * next.
+     * 2. The index exists but related data object records are missing, the scope is the whole db too, it will scan from one index to next.
+     * 
+     * The indices here means all the indices of each filed of the data object record. If inconsistency found, it will generate several
+     * files to do the cleanup work, including rebuilding index.
+     */
     public void checkDB() {
         try {
             DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
@@ -1142,7 +1173,48 @@ public class DBClient {
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");
         }
+    }
 
+    /**
+     * This db consistency check is for a specific CF,
+     * It could also detect the 2 paths same as {@link DBClient#checkDB()}
+     * 
+     * @param cfName
+     */
+    public void checkDB(String cfName) {
+        final Class clazz = getClassFromCFName(cfName);
+        if (clazz == null) {
+            return;
+        }
+        DataObjectType dataCf = TypeMap.getDoType(clazz);
+        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+        try {
+
+            logMsg("\nStart to check DataObject records id that is illegal.\n");
+            int illegalCount = helper.checkDataObject(dataCf, true);
+            logMsg(String.format("\nFinish to check DataObject records id for CF %s "
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), illegalCount));
+
+            logMsg("\nStart to check DataObject records that the related index is missing.\n");
+            int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
+            logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), cfCorruptedCount));
+
+            logMsg("\nStart to check INDEX data that the related object records are missing.\n");
+            Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
+            int indexCorruptCount = 0;
+            for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
+                indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
+            }
+            logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
+                    idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
+        } catch (ConnectionException e) {
+            log.error("Database connection exception happens, fail to connect: ", e);
+            System.err.println("The checker has been stopped by database connection exception. "
+                    + "Please see the log for more information.");
+        } finally {
+            DbCheckerFileWriter.close();
+        }
     }
     
     public void printDependencies(String cfName, URI uri) {
@@ -1213,18 +1285,80 @@ public class DBClient {
     }
 
     public boolean rebuildIndex(String id, String cfName) {
+        return rebuildIndex(URI.create(id), getClassFromCFName(cfName));
+    }
+    
+    public boolean rebuildIndex(String cfName) {
+        boolean runResult = true;
+        Class cfClazz = getClassFromCFName(cfName);
+        if (cfClazz == null) {
+            return false;
+        }
+        List<URI> objUris = getColumnUris(cfClazz, false);
+        for (URI id : objUris) {
+            boolean eachResult = rebuildIndex(id, cfClazz);
+            if (runResult && !eachResult) {// mark some error happens
+                runResult = eachResult;
+            }
+        }
+        return runResult;
+    }
+    
+    public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
-            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
-            if(queryObject != null) {
-                BeanUtils.copyProperties(queryObject, queryObject);
-                _dbClient.updateObject(queryObject);
-                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+            DataObject queryObject = queryObject(id, clazz);
+            if (queryObject != null) {
+                DataObject newObject = queryObject.getClass().newInstance();
+                newObject.trackChanges();
+                ConvertUtils.register(new CalendarConverter(null), Calendar.class);
+                BeanUtils.copyProperties(newObject, queryObject);
+
+                // special change tracking for customized types
+                BeanInfo bInfo;
+                try {
+                    bInfo = Introspector.getBeanInfo(clazz);
+
+                } catch (IntrospectionException ex) {
+                    log.error("Unexpected exception getting bean info", ex);
+                    throw new RuntimeException("Unexpected exception getting bean info",
+                            ex);
+
+                }
+                PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
+                for (PropertyDescriptor pd : pds) {
+                    Object val = pd.getReadMethod().invoke(newObject);
+                    if (val instanceof AbstractChangeTrackingSet) {
+                        AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet) val;
+                        valueSet.markAllForOverwrite();
+
+                    } else if (val instanceof AbstractChangeTrackingMap) {
+                        AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap) val;
+                        valueMap.markAllForOverwrite();
+
+                    } else if (val instanceof AbstractChangeTrackingSetMap) {
+                        AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap) val;
+                        Set<String> keys = valueMap.keySet();
+                        if (keys != null) {
+                            Iterator<String> it = keys.iterator();
+                            while (it.hasNext()) {
+                                String key = it.next();
+                                AbstractChangeTrackingSet valueSet = valueMap.get(key);
+                                valueSet.markAllForOverwrite();
+                            }
+                        }
+                    }
+                }
+
+                _dbClient.updateObject(newObject);
+                logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));
+                runResult = true;
+            } else {
+                logMsg(String.format("Could not find data object record for %s in cf %s, no need to rebuild index. Mark as success too.", id, clazz));
                 runResult = true;
             }
         } catch (Exception e) {
-            System.err.println(String.format("Error when rebuilding index for %s in cf %s", id, cfName));
-            e.printStackTrace();
+            logMsg(String.format("Error when rebuilding index for %s in cf %s", id, clazz), true, e);
         }
         return runResult;
     }
@@ -1240,5 +1374,19 @@ public class DBClient {
             return null;
         }
         return clazz;
+    }
+    
+    private void logMsg(String msg, boolean isError, Exception e) {
+        if (isError) {
+            log.error(msg, e);
+            System.err.println(msg);
+        } else {
+            log.info(msg);
+            System.out.println(msg);
+        }
+    }
+    
+    private void logMsg(String msg) {
+        logMsg(msg, false, null);
     }
 }

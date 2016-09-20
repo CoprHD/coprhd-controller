@@ -168,10 +168,14 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
      * 
-     * @param candidatePorts -- List of ports from which to choose
-     * @param portsRequested -- Integer number of ports requested
-     * @param net -- NetworkLite network
-     * @param varrayURI -- URI of VirtualArray
+     * @param candidatePorts
+     *            -- List of ports from which to choose
+     * @param portsRequested
+     *            -- Integer number of ports requested
+     * @param net
+     *            -- NetworkLite network
+     * @param varrayURI
+     *            -- URI of VirtualArray
      * @return
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
@@ -184,8 +188,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated =
-                    allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
             allocator.setContext(context);
             return portsAllocated;
         } else {
@@ -247,15 +250,14 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     @Override
     public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer)
-    {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask",
-                arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
+                arrayURI, exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs2, TaskCompleter completer, String stepId) {
         try {
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
@@ -277,22 +279,23 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
+            // Fetch the Initiators
+            List<URI> initiatorURIs = new ArrayList<URI>();
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorId : exportMask.getInitiators()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null) {
+                    initiators.add(initiator);
+                    initiatorURIs.add(initiator.getId());
+                }
+            }
+
             // We do not refresh here, as the VNXExportOperations code will throw an exception
             // if the StorageGroup was not found.
-
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             if (!exportMask.hasAnyVolumes() && exportMask.getCreatedBySystem()) {
                 // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
-                // Fetch the Initiators
-                List<URI> initiatorURIs = new ArrayList<URI>();
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                        initiatorURIs.add(initiator.getId());
-                    }
-                }
+
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
@@ -308,10 +311,10 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 // The default completer passed in is for add volume, create correct one
                 completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, volumeMap, stepId);
-                device.doExportGroupCreate(array, exportMask, volumeMap,
+                device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to create or add volumes to export mask for vnx: ", ex);
@@ -323,14 +326,14 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     @Override
     public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -367,12 +370,18 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }
-            // If so, delete the ExportMask.
+            // If it is last volume and there are no existing initiators
+            // or existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                    && !exportMask.hasAnyExistingVolumes()
+                    && !exportMask.hasAnyExistingInitiators()) {
+                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vnx: ", ex);

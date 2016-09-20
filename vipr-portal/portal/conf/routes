@@ -73,6 +73,8 @@ POST  /config                                    infra.ConfigProperties.saveProp
 POST  /config/validateMail                       infra.ConfigProperties.validateMailSettings
 GET   /config/passwords                          infra.ConfigProperties.passwords
 POST  /config/passwords                          infra.ConfigProperties.changePassword
+POST  /config/validateExternalServer             infra.ConfigProperties.validateExternalSettings
+POST  /config/ConnectRemoteSyslogServer          infra.ConfigProperties.connectExternalServerIpPort
 
 GET   /cluster/ipInfo                            infra.ClusterInfo.clusterIpInfo
 POST  /cluster/ipReconfig                        infra.ClusterInfo.ipReconfig
@@ -84,6 +86,14 @@ GET   /tasks/recentTasks                         Tasks.getRecentTasks
 GET   /tasks/updatedTasks                        Tasks.getUpdatedTasks
 GET   /tasks/detailsJson                         Tasks.detailsJson
 GET   /tasks/countSummary                        Tasks.getCountSummary
+
+GET   /events/all								  Events.listAll
+GET   /events/activeCount                         Events.getActiveCount
+GET   /events/recentTasks                         Events.getRecentTasks
+GET   /events/updatedTasks                        Events.getUpdatedTasks
+GET   /events/detailsJson                         Events.detailsJson
+GET   /events/countSummary                        Events.getCountSummary
+
 
 ## Infrastructure UI
 
@@ -99,6 +109,11 @@ GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
 *       /storagearrays/pools/{id}               arrays.StorageSystems.pools
 *       /storagearrays/ports/{id}               arrays.StorageSystems.ports
 *       /storagearrays/{action}                 arrays.StorageSystems.{action}
+
+GET     /storagesystemtype/edit/{id}           arrays.StorageSystemTypes.edit
+GET     /storagesystemtype/list				   arrays.StorageSystemTypes.list
+*       /storagesystemtype/{action}			   arrays.StorageSystemTypes.{action}
+
 
 GET     /dataprotectionsystems/edit/{id}        arrays.DataProtectionSystems.edit
 *       /dataprotectionsystems/{action}         arrays.DataProtectionSystems.{action}

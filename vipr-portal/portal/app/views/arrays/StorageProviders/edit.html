@@ -4,6 +4,7 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.storageProviders'] /}
 #{set 'title'}&{titleKey}#{/set}
+#{set editMode:smisProvider?.id ? true : false/}
 
 #{breadcrumb.container}
   #{breadcrumb.item @list()}&{'SMISProviders.list.title'}#{/breadcrumb.item}
@@ -23,7 +24,6 @@
     #{/field}
 
     <input type="hidden" name="smisProvider.id" value="{{smisProvider.id}}" ng-if="smisProvider.id">
-
     <fieldset>
       <control-group v-field="smisProvider.name" required>
         <input-text class="initialFocus"></input-text>
@@ -49,7 +49,7 @@
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem() || smisProvider.interfaceType === 'ddmc'">
+      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem()" ng-disabled="isProviderXIV()">
         <boolean-checkbox></boolean-checkbox>
       </control-group>
 
@@ -86,10 +86,31 @@
         <input-text></input-text>
       </control-group>
 
+	  
       <control-group v-field="smisProvider.secretKey" required="!editMode" ng-show="isSecretKeyProviderList()">
         <input-password></input-password>
       </control-group>
 
+      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-text></input-text>
+      </control-group>
+
+	  <control-group v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-text></input-text>
+      </control-group>
+            
+      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-password></input-password>
+      </control-group>      
+      
     </fieldset>	
     #{Form.saveCancel cancelHref:referrer/}  
   #{/form}
@@ -98,10 +119,12 @@
 $(document).ready(function() {
 	disableInterfaceType();
 });
+
 function disableInterfaceType() {
 	var providerType = '${smisProvider.interfaceType}';
 	if (providerType == 'scaleioapi' || providerType == 'ceph') {
 		$("#smisProvider_interfaceType").attr('disabled',true);
 	}
 }
+
 </script>

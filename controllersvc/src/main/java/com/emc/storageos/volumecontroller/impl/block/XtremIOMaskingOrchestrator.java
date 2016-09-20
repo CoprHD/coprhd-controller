@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,11 +16,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -31,20 +35,22 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCom
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 /**
  * XtremIO Masking Orchestrator
- * 
+ *
  * Steps Export Group Create :
  * **************************
  * There is no equivalent entity in XtremIO Array which can contribute to an export mask in Array.
  * As Group of LunMaps contribute to a Export Mask, there is really no need to determine create
  * mask steps based on existing Masking information on Array.Always create an export mask irrespective of what's
  * available on Array.
- * 
+ *
  * Export Group Add Volume
  * ************************
- * 
+ *
  * If there are no export masks within export Group , then generateExportGroupCreateWorkFlow
  * else for each export Masks in export Group
  * if exportMask belongs to the same Storage Array
@@ -57,19 +63,19 @@ import com.google.common.base.Joiner;
  * For each compute resource
  * GenerateExportMaskWorkFlow
  * GenerateZoneNew
- * 
+ *
  * Add Volume to Host 1 alone in existing cluster support [Exclusive]
  * *****************************************************************
- * 
+ *
  * Find the Export Mask corresponds to the list of given Hosts's initiator
  * If all initiators found
  * GenerateAddVolumeWorkFlow
  * Else if only a partial set of initiators found
  * GenerateAddInitiatorWorkFlow
- * 
+ *
  * Export Group Add Initiators
  * ***************************
- * 
+ *
  * If there are no export masks , then generateExportGrouPCreateWorkFlow
  * else For each export Masks in export Group
  * if exportMask belongs to the same Storage Array
@@ -81,22 +87,22 @@ import com.google.common.base.Joiner;
  * then AddInitiatorToExportMask
  * AddZoningInitiatorWorkFlow
  * AddVolumesWorkFlow
- * 
+ *
  * For the remaining list of initiators Host is not part of any e.masks
  * Group Initiators by Compute
  * For each Compute resource
  * GenerateExportMaskWorkFlow GenerateZoneNew
- * 
+ *
  * Export Group remove Initiators
  * *******************************
- * 
+ *
  * Find the right Export Mask,
  * If the # initiators in Export Mask is 0 after removing,
  * then deleteExportMask
  * Else
  * RemoveInitiatorsfromExportmask
- * 
- * 
+ *
+ *
  */
 public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final Logger log = LoggerFactory
@@ -122,7 +128,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     public boolean determineExportGroupCreateSteps(Workflow workflow, String zoningStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token)
-            throws Exception {
+                    throws Exception {
 
         /**
          * TODO
@@ -134,6 +140,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
+        // CTRL-13080 fix
+        refreshExportMask(storage, device, null);
 
         processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI,
                 hostURIs);
@@ -141,8 +149,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI, initiatorURIs,
                 hostURIs);
 
-        // CTRL-13080 fix
-        refreshExportMask(storage, device, null);
         // Export Mask cannot be grouped to an individual construct in XtremIO.
         // Group of LunMaps contribute to a Export Mask, hence there is really no need to determine
         // create mask steps based on existing Masking information on Array.
@@ -195,8 +201,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 String zoningStep = generateZoningAddVolumesWorkflow(workflow,
                         null, exportGroup, masks, volumeURIs);
                 for (ExportMask mask : masks) {
+                    List<URI> initiators = StringSetUtil.stringSetToUriList(mask.getInitiators());
                     generateExportMaskAddVolumesWorkflow(workflow, zoningStep,
-                            storage, exportGroup, mask, volumeMap);
+                            storage, exportGroup, mask, volumeMap, initiators);
                 }
 
                 String successMessage = String.format(
@@ -271,7 +278,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         try {
             log.info(String.format("exportRemoveVolume start - Array: %s ExportGroup: %s "
                     + "Volume: %s", storageURI.toString(), exportGroupURI.toString(), Joiner
-                    .on(',').join(volumes)));
+                            .on(',').join(volumes)));
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
@@ -289,31 +296,45 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 List<ExportMask> exportMaskstoRemoveVolume = new ArrayList<ExportMask>();
                 String previousStep = null;
                 for (ExportMask exportMask : exportMasks) {
-                    if (isRemoveAllVolumes(exportMask, volumes)) {
-                        exportMaskstoDelete.add(exportMask);
-                    } else {
-                        exportMaskstoRemoveVolume.add(exportMask);
+                    for (URI egVolumeID : volumes) {
+                        String volumeIdStr = egVolumeID.toString();
+                        BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
+                        if (bo != null && exportMask.hasUserCreatedVolume(bo.getId())) {
+                            if (isRemoveAllVolumes(exportMask, volumes)) {
+                                exportMaskstoDelete.add(exportMask);
+                            } else {
+                                exportMaskstoRemoveVolume.add(exportMask);
+                            }
+                        } else {
+                            _log.info(String
+                                    .format("Export mask %s does not contain system-created volume %s, so it will not be removed from this export mask",
+                                            exportMask.getId().toString(), volumeIdStr));
+                        }
                     }
                 }
                 if (!exportMaskstoRemoveVolume.isEmpty()) {
-                    previousStep = generateZoningRemoveVolumesWorkflow(workflow, null,
-                            exportGroup, exportMaskstoRemoveVolume, volumes);
                     for (ExportMask exportMask : exportMaskstoRemoveVolume) {
-                        generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage,
-                                exportGroup, exportMask, volumes, null);
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                        previousStep = generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage,
+                                exportGroup, exportMask, volumes, initiators, null);
                     }
+                    previousStep = generateZoningRemoveVolumesWorkflow(workflow, previousStep,
+                            exportGroup, exportMaskstoRemoveVolume, volumes);
                 }
                 if (!exportMaskstoDelete.isEmpty()) {
+                    for (ExportMask exportMask : exportMaskstoDelete) {
+                        List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                        previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
+                                exportGroup, exportMask, volumesInMask, initiators, null);
+                    }
                     previousStep = generateZoningDeleteWorkflow(workflow, previousStep,
                             exportGroup, exportMaskstoDelete);
-                    for (ExportMask exportMask : exportMaskstoDelete) {
-                    	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
-                                exportGroup, exportMask, null);
-                    }
                 }
                 // volumes
+                List<URI> initiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
                 generateExportGroupRemoveVolumesCleanup(workflow, EXPORT_GROUP_MASKING_TASK, storage,
-                        exportGroup, volumes);
+                        exportGroup, volumes, initiators);
 
                 String successMessage = String.format(
                         "Volumes successfully unexported from StorageArray %s", storage.getLabel());
@@ -327,7 +348,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             log.info(String.format("exportRemoveVolume end - Array: %s ExportGroup: %s "
                     + "Volume: %s", storageURI.toString(), exportGroupURI.toString(), Joiner
-                    .on(',').join(volumes)));
+                            .on(',').join(volumes)));
         } catch (Exception e) {
             if (taskCompleter != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(
@@ -355,10 +376,11 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
 
-            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
-                    exportGroup, initiatorURIs);
             // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
             refreshExportMask(storage, getDevice(), null);
+
+            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
+                    exportGroup, initiatorURIs);
             log.info("initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -393,9 +415,10 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             // AddInitiatorWorkFlow
                             masksToInitiators.put(exportMaskUri,
                                     computeResourceToInitiators.get(computeKey));
+                            List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
                             // all masks will be always created by system = true, hence port allocation will happen
                             addIniStep = generateExportMaskAddInitiatorsWorkflow(workflow, null,
-                                    storage, exportGroup, exportMask, initiatorURIs, null,
+                                    storage, exportGroup, exportMask, initiatorURIs, new HashSet<URI>(volumesInMask),
                                     token);
                             computeResourceToInitiators.remove(computeKey);
                         }
@@ -509,11 +532,11 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     storageURI);
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
-            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
-                    exportGroup, initiatorURIs);
-
             // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
             refreshExportMask(storage, getDevice(), null);
+
+            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
+                    exportGroup, initiatorURIs);
 
             log.info("Host to initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
@@ -523,7 +546,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddInitiators", true, token);
+                        "exportGroupRemoveInitiators", true, token);
 
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils
@@ -541,7 +564,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
                 // map of masks to initiators being removed needed to remove zones
                 Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
-                String zoningStep = null;
+                String previousStep = null;
 
                 for (String computeKey : computeResourceToInitiators.keySet()) {
                     URI exportMaskUri = hostToEMaskGroup.get(computeKey);
@@ -551,32 +574,48 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         if (exportMask.getStorageDevice().equals(storageURI)) {
                             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
                                     computeResourceToInitiators.get(computeKey));
-                            log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(initiators));
-                            maskToInitiatorsMap.put(exportMask.getId(), computeResourceToInitiators.get(computeKey));
-                            if (isRemoveAllInitiators(exportMask, initiators)) {
-                                exportMaskDelete.add(exportMask);
-                            } else {
-                                exportMaskRemoveInitiator.add(exportMask);
+                            List<Initiator> maskInitiators = new ArrayList<Initiator>();
+                            for (Initiator initiator : initiators) {
+                                if (exportMask.hasUserInitiator(initiator.getId())) {
+                                    maskInitiators.add(initiator);
+                                } else {
+                                    _log.info(String
+                                            .format("Initiator %s was not added by ViPR, so ViPR cannot remove it.  No action will be taken for this initiator",
+                                                    initiator.getId()));
+                                }
+                            }
+                            log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(maskInitiators));
+                            if (!maskInitiators.isEmpty()) {
+                                maskToInitiatorsMap.put(exportMask.getId(), Lists.newArrayList(Collections2.transform(maskInitiators,
+                                        CommonTransformerFunctions.fctnDataObjectToID())));
+                                if (isRemoveAllInitiators(exportMask, initiators)) {
+                                    exportMaskDelete.add(exportMask);
+                                } else {
+                                    exportMaskRemoveInitiator.add(exportMask);
+                                }
                             }
                         }
                     }
                 }
-                if (!maskToInitiatorsMap.isEmpty()) {
-                    zoningStep = generateZoningRemoveInitiatorsWorkflow(workflow, null,
-                            exportGroup, maskToInitiatorsMap);
-                }
                 if (!exportMaskRemoveInitiator.isEmpty()) {
                     for (ExportMask exportMask : exportMaskRemoveInitiator) {
-                        generateExportMaskRemoveInitiatorsWorkflow(workflow, zoningStep,
-                                storage, exportGroup, exportMask, initiatorURIs, true);
+                        Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
+                                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                        previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep,
+                                storage, exportGroup, exportMask, new ArrayList<URI>(volumeURIs), initiatorURIs, true);
                     }
                 }
                 if (!exportMaskDelete.isEmpty()) {
-                	String previousStep = zoningStep;
                     for (ExportMask exportMask : exportMaskDelete) {
-                    	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
-                                exportGroup, exportMask, null);
+                        List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
+                        List<URI> initiators = maskToInitiatorsMap.get(exportMask.getId());
+                        previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
+                                exportGroup, exportMask, volumesInMask, initiators, null);
                     }
+                }
+                if (!maskToInitiatorsMap.isEmpty()) {
+                    previousStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep,
+                            exportGroup, maskToInitiatorsMap);
                 }
                 String successMessage = String.format(
                         "Initiators successfully removed from export StorageArray %s",
@@ -650,7 +689,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true,
                     token);
 
-            String previousStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
+            String previousStep = null;
 
             if (exportGroup != null && (null == exportMasks || exportMasks.isEmpty())) {
                 exportGroup.getVolumes().clear();
@@ -667,9 +706,13 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
              * right set of initiators and volumes to be removed from both the export Groups.
              */
             for (ExportMask exportMask : exportMasks) {
+                List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
                 previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
-                        exportMask, null);
+                        exportMask, volumesInMask, initiators, null);
             }
+
+            previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, exportMasks);
 
             String successMessage = String.format(
                     "Export was successfully removed from StorageArray %s",

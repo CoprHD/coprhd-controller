@@ -35,7 +35,7 @@ def snapshot_session_delete(args):
     bourne.connect(args.ip)
     session_uri = bourne.block_snapshot_session_query(args.name)
     start = time.time()
-    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri)
+    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri, args.vipronly)
     total = time.time() - start
     print "Delete snapshot session completed in", "{0:.2f}".format(total), "seconds."
     if (state == 'ready'):
@@ -166,6 +166,7 @@ create.add_argument('--target_copymode', help = 'The copy mode for newly created
 # snapshotsession delete name [--ip ipaddr]
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name', help = 'The name of the snapshot session as project/source_name/session_name.')
+delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
 
 # snapshotsession list name [--ip ipaddr]
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

@@ -2,6 +2,7 @@ package com.emc.storageos.vplexcontroller;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,7 +22,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -63,6 +63,7 @@ public class VplexBackendIngestionContext {
     
     protected final DbClient _dbClient;
     private final UnManagedVolume _unmanagedVirtualVolume;
+    private final String _originalVolumeLabel;
 
     private boolean _discoveryInProgress = false;
     private boolean _ingestionInProgress = false;
@@ -100,6 +101,7 @@ public class VplexBackendIngestionContext {
         this._unmanagedVirtualVolume = unManagedVolume;
         this._dbClient = dbClient;
         this._tracker = new BackendDiscoveryPerformanceTracker();
+        this._originalVolumeLabel = unManagedVolume.getLabel();
     }
 
     /**
@@ -241,7 +243,6 @@ public class VplexBackendIngestionContext {
     private void updateUnmanagedBackendVolumesInParent() {
         if (!getUnmanagedBackendVolumes().isEmpty()) {
             StringSet bvols = new StringSet();
-            String friendlyLabel = _unmanagedVirtualVolume.getLabel();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
 
@@ -249,17 +250,6 @@ public class VplexBackendIngestionContext {
                 StringSet parentVol = new StringSet();
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
-
-                // There may be two backing volumes, so we need to pick the right label.  But for now....
-                if (_unmanagedVirtualVolume.getLabel() == null || _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL1) ||
-                        _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL2)) {
-                    String baseLabel = backendVol.getLabel();
-                    // Remove the -0 or -1 from the backing volume label, if it's there.
-                    if (baseLabel.endsWith("-0") || baseLabel.endsWith("-1")) {
-                        baseLabel = backendVol.getLabel().substring(0, backendVol.getLabel().length()-2);
-                    }
-                    friendlyLabel = baseLabel + " (" + _unmanagedVirtualVolume.getLabel() + ")";
-                }
 
                 if (isDistributed()) {
                     // determine cluster location of distributed component storage volume leg
@@ -282,9 +272,55 @@ public class VplexBackendIngestionContext {
             if (bvols != null && !bvols.isEmpty()) {
                 _logger.info("setting VPLEX_BACKEND_VOLUMES: " + unmanagedBackendVolumes);
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.name(), bvols);
-                _unmanagedVirtualVolume.setLabel(friendlyLabel);
+                _unmanagedVirtualVolume.setLabel(getFriendlyLabel());
             }
         }
+    }
+
+    /**
+     * Returns a friendly label for the virtual volume based on the names of
+     * the backend volumes. This should better reflect what the user originally
+     * created as a label for the volume, rather than the VPLEX format (device_ or dd_).
+     * 
+     * This is somewhat a "best effort" and will fall back on the default VPLEX label
+     * format if a better name can't be determined safely.
+     * 
+     * @return a friendly label for the virtual volume
+     */
+    private String getFriendlyLabel() {
+        String friendlyLabel = _originalVolumeLabel;
+
+        boolean hasBackendMirror = unmanagedMirrors != null && !unmanagedMirrors.isEmpty();
+        if (_unmanagedVirtualVolume.getLabel() == null || _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL1) ||
+                _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL2) || hasBackendMirror) {
+            if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
+                if (unmanagedBackendVolumes.size() > VPlexApiConstants.LOCAL_BACKEND_VOLUME_COUNT) {
+                    // sort so that we consistently pick the same backend volume for the label
+                    Comparator<UnManagedVolume> sorter = new Comparator<UnManagedVolume>() {
+                        public int compare(UnManagedVolume o1, UnManagedVolume o2) {
+                            return o1.getLabel().compareTo(o2.getLabel());
+                        };
+                    };
+                    unmanagedBackendVolumes.sort(sorter);
+                }
+
+                UnManagedVolume backendVol = unmanagedBackendVolumes.get(0);
+                if (null != backendVol) {
+                    String baseLabel = backendVol.getLabel();
+
+                    if (null != _originalVolumeLabel && !_originalVolumeLabel.isEmpty()) {
+                        // put the existing virtual volume label inside parentheses for reference
+                        friendlyLabel = baseLabel + " (" + _originalVolumeLabel + ")";
+                    } else {
+                        friendlyLabel = baseLabel;
+                    }
+                }
+            }
+        }
+
+        _logger.info("Determined friendly label to be {} for UnManagedVolume {}", 
+                friendlyLabel, _unmanagedVirtualVolume.forDisplay());
+        return friendlyLabel;
     }
 
     /**
@@ -647,8 +683,8 @@ public class VplexBackendIngestionContext {
                                 clusterIds);
 
                         // 5. need to go ahead and persist any changes to backend volume info
-                        _dbClient.persistObject(associatedVolumeSource);
-                        _dbClient.persistObject(associatedVolumeMirror);
+                        _dbClient.updateObject(associatedVolumeSource);
+                        _dbClient.updateObject(associatedVolumeMirror);
                     } else {
                         String reason = "couldn't find all associated device components in mirror device: ";
                         reason += " associatedVolumeSource is " + associatedVolumeSource;

@@ -34,14 +34,14 @@ def volume_create(args):
    
     start = time.time()
     tr_list = bourne.volume_create(args.label, project_uri, nh_uri, cos_uri, args.size, isThinVolume, volumeCount,
-                                  args.protocols, args.protection, cons_grp_uri)
+                                  args.protocols, args.protection, cons_grp_uri, args.computeResource)
     total = time.time() - start
     print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Volume_create debug : ' + str(s)
     for tr in tr_list:
         if (tr['state'] == 'ready'):
             print 'Volume created with id ' + tr['resource']['id']
-        else:
+        elif (tr['state'] != 'suspended_no_error'):
             print 'Volume create failed.'
 	    
 def volume_add_journal(args):
@@ -151,19 +151,24 @@ def volume_detach(args):
 
 def volume_change_cos(args):
     bourne.connect(args.ip)
-    uri = bourne.volume_query(args.name)
+    uris = []
+    names = args.name.split(',')
+    for name in names:
+        uri = bourne.volume_query(name)
+        uris.append(uri)
     cos_uri = bourne.cos_query('block', args.cos)
     cg_uri= ''
     if (args.consistencyGroup):
         cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
     start = time.time()
-    tr = bourne.volume_change_cos(uri, cos_uri, cg_uri)
+    tr_list = bourne.volume_change_cos(uris, cos_uri, cg_uri, args.suspend)
     total = time.time() - start
-    print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
-    if (tr['state'] == 'ready'):
-        print 'Volume CoS change succeeded'
-    else:
-        print 'Volume CoS change failed.'
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume CoS change succeeded'
+        elif (tr['state'] != 'suspended_no_error'):
+            print 'Volume CoS change failed.'
+            sys.exit(1);
 
 def volume_change_cos_matches(args):
     bourne.connect(args.ip)
@@ -199,6 +204,7 @@ def volume_expand(args):
         print "Volume expanded with id " + s['resource']['id'] + ". "
     else:
         print "Volume expand failed. "
+        sys.exit(1);
 
 def volume_delete(args):
     bourne.connect(args.ip)
@@ -233,7 +239,14 @@ def volume_delete(args):
     total = time.time() - start
     if (args.wait):
        print "Volume delete took", "{0:.2f}".format(total), "seconds to complete"
-       print "Volume delete ended with status " + s + ". " + m
+       try:
+           if (s == "ready"):
+               print "Volume(s) deleted successfully"
+           else:
+               sys.exit(1);
+       except:
+           print "Volume delete failed."
+           sys.exit(1);
     else:
        print o
 
@@ -253,7 +266,12 @@ def volume_list(args):
     res = bourne.volume_list(args.project)
     for r in res:
         vol = bourne.volume_show(r['id'])
-        vol_display(vol)
+        storage = vol['storage_controller']
+        if (args.storage):
+            if (args.storage == storage):
+                vol_display(vol)
+        else:
+            vol_display(vol)
 
 def volume_bulkget(args):
     bourne.connect(args.ip)
@@ -278,7 +296,7 @@ def volume_change_link(args):
     bourne.connect(args.ip)
     uri = bourne.volume_query(args.name)
     copy_uri = bourne.volume_query(args.copyURI)
-    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type, args.pit)
+    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type, args.am, args.pit)
     print "Volume change link operation completed"
 
 def volume_verify(args):
@@ -412,6 +430,7 @@ create.add_argument('--protocols',      help = 'volume access storage protocols'
 create.add_argument('--protection',     help = 'data protection level for this volume')
 create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistency group for snapshot operations')
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
+create.add_argument('--computeResource', help = 'The name of a host or cluster to which the volume will be exported')
 
 # volume add_journal
 add_journal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -459,9 +478,11 @@ detach.add_argument('name', help = 'Name of the full copy volume to be detached'
 
 # volume change_cos label cos
 change_cos = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-change_cos.add_argument('name',	help = 'name of volume whose cos is modified')
-change_cos.add_argument('cos', help = 'name of the cos')
+change_cos.add_argument('name',	help = 'names of all the volumes to change cos')
+change_cos.add_argument('cos', help = 'name of the new cos')
 change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
+change_cos.add_argument('--suspend', action='store_true', help = 'suspend the workflow before commit and delete of original source volume')
+
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -496,6 +517,7 @@ query.add_argument('name',	help = 'full pathname of volume')
 # volume list project
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 list.add_argument('project',	help = 'container project name')
+list.add_argument('--storage', help='URI of storage controller')
 
 # volume exports
 export_args = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -508,6 +530,7 @@ change_link.add_argument('name',		help = 'URI or full pathname of volume')
 change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume')
 change_link.add_argument('copyURI', help = 'URI of copy to perform operation on')
 change_link.add_argument('type', help = 'type of protection for the source volume')
+change_link.add_argument('--am', help = 'access mode')
 change_link.add_argument('--pit', help = 'any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
 
 # volume verify

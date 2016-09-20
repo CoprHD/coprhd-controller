@@ -61,6 +61,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.Workflow;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -71,6 +72,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFS
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -164,15 +166,15 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
+        
+        public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
+        }
 
         public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
-        }
-
-        public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
-            DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
         }
 
         public static AlternateIdConstraint getVolumeWwnConstraint(String wwn) {
@@ -663,6 +665,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
         }
+        
+        public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
+            DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);
+        }
 
         public static AlternateIdConstraint getRpSourceVolumeByTarget(String targetVolumeId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
@@ -730,6 +737,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
         }
 
+        public static AlternateIdConstraint getHostsByClusterId(String clusterId) {
+            DataObjectType doType = TypeMap.getDoType(Host.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("cluster"), clusterId);
+        }
+
         public static AlternateIdConstraint getClustersByVolumeGroupId(String volumeGroupId) {
             DataObjectType doType = TypeMap.getDoType(Cluster.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
@@ -753,6 +765,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
+        public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
     }
 }

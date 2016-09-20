@@ -25,7 +25,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
     private static final String URL = "/api/types/nfsShare/instances";
     private static final String URL_NFS = "/api/instances/nfsShare/";
     private static final String URL_MODIFY = "/action/modify";
-    private static final String FIELDS = "name,path,filesystem,readOnlyHosts,readWriteHosts,rootAccessHosts";
+    private static final String FIELDS = "name,path,filesystem,readOnlyHosts,readWriteHosts,rootAccessHosts,noAccessHosts,defaultAccess";
 
     public NfsShareRequests(KHClient client) {
         super(client);
@@ -144,9 +144,12 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
      */
     public VNXeCommandJob deleteShareForSnapshot(String shareId) {
         _url = URL_NFS + shareId;
-        return deleteRequestAsync(null);
-
-    }
+        if (getShareById(shareId) != null) {
+            unsetQueryParameters();
+            return deleteRequestAsync(null);
+        } 
+            throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
+        }
 
     /**
      * Get the specific NFS share's details

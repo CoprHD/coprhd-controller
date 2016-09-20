@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.InitiatorHostMigration;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
 
@@ -98,7 +99,7 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         ExportGroup exportGroupMissingMask = createExportGroup(oldSingleInitiators, "exportGroupMissingMask");
         missingMaskURI = URIUtil.createId(ExportMask.class);
         exportGroupMissingMask.addExportMask(missingMaskURI);
-        _dbClient.updateAndReindexObject(exportGroupMissingMask);
+        _dbClient.updateObject(exportGroupMissingMask);
 
     }
 
@@ -115,23 +116,23 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
             if (exportGroup.getLabel().equalsIgnoreCase("old-export")) {
                 Assert.assertEquals(newInitiators.size(), exportGroup.getInitiators().size());
                 Assert.assertTrue(exportGroup.getInitiators().containsAll(newInitiators));
-                validateExportMask(exportGroup.getExportMasks(), newInitiators);
+                validateExportMask(ExportMaskUtils.getExportMasks(_dbClient, exportGroup), newInitiators);
             } else if (exportGroup.getLabel().equalsIgnoreCase("new-export")) {
                 Assert.assertEquals(newInitiators.size(), exportGroup.getInitiators().size());
                 Assert.assertTrue(exportGroup.getInitiators().containsAll(newInitiators));
-                validateExportMask(exportGroup.getExportMasks(), newInitiators);
+                validateExportMask(ExportMaskUtils.getExportMasks(_dbClient, exportGroup), newInitiators);
             } else if (exportGroup.getLabel().equalsIgnoreCase("old-exportWithSingleInitiator")) {
                 Assert.assertEquals(newSingleInitiators.size(), exportGroup.getInitiators().size());
                 Assert.assertTrue(exportGroup.getInitiators().containsAll(newSingleInitiators));
-                validateExportMask(exportGroup.getExportMasks(), newSingleInitiators);
+                validateExportMask(ExportMaskUtils.getExportMasks(_dbClient, exportGroup), newSingleInitiators);
             } else if (exportGroup.getLabel().equalsIgnoreCase("exportGroupMissingMask")) {
                 Assert.assertEquals(newSingleInitiators.size(), exportGroup.getInitiators().size());
                 Assert.assertTrue(exportGroup.getInitiators().containsAll(newSingleInitiators));
-                Assert.assertTrue(exportGroup.getExportMasks().size() == 2);
+                Assert.assertTrue(ExportMaskUtils.getExportMasks(_dbClient, exportGroup).size() == 2);
                 exportGroup.removeExportMask(missingMaskURI);
                 _dbClient.updateAndReindexObject(exportGroup);
-                Assert.assertTrue(exportGroup.getExportMasks().size() == 1);
-                validateExportMask(exportGroup.getExportMasks(), newSingleInitiators);
+                Assert.assertTrue(ExportMaskUtils.getExportMasks(_dbClient, exportGroup).size() == 1);
+                validateExportMask(ExportMaskUtils.getExportMasks(_dbClient, exportGroup), newSingleInitiators);
             } else {
                 Assert.fail("Found export group that wasn't created in this test");
             }
@@ -218,9 +219,8 @@ public class DbInitiatorHostMigrationTest extends DbSimpleMigrationTestBase {
         return mask;
     }
 
-    private void validateExportMask(StringSet exportMaskIds, Set<String> initiators) {
-        for (String exportMaskId : exportMaskIds) {
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
+    private void validateExportMask(List<ExportMask> exportMasks, Set<String> initiators) {
+        for (ExportMask mask : exportMasks) {
             Assert.assertNotNull(mask);
             Assert.assertEquals(initiators.size(), mask.getInitiators().size());
             Assert.assertTrue(mask.getInitiators().containsAll(initiators));

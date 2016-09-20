@@ -143,7 +143,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         /**
          * Till all storage ports been processed:
          * -- get a set of 4 storage ports selected equally across networks
-         * -- add this set into network to port List map (each port set within a network will be mapped for different directors)
+         * -- add this set into network to port List map (each port set within a network will be mapped for different
+         * directors)
          */
         Map<URI, List<List<StoragePort>>> useablePorts = new HashMap<URI, List<List<StoragePort>>>();
         Set<String> usedPorts = new HashSet<String>();
@@ -182,14 +183,19 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
      * Returns a Set of Storage Ports selected equally across networks. Minimum of 2 and maximum of 4 storage ports.
      * It returns null when all storage ports have been processed and the minimum requirement is not met.
      *
-     * @param allocatablePorts the allocatable ports
-     * @param orderedNetworks the ordered networks
-     * @param usedPorts the used ports
+     * @param allocatablePorts
+     *            the allocatable ports
+     * @param orderedNetworks
+     *            the ordered networks
+     * @param usedPorts
+     *            the used ports
      * @param networkToSelectedXbricks
      * @param xBricksToSelectedSCs
      * @param networkMap
-     * @param allocator Storage Ports Allocator
-     * @param sanZoningEnabled on vArray
+     * @param allocator
+     *            Storage Ports Allocator
+     * @param sanZoningEnabled
+     *            on vArray
      * @return the usable ports set
      */
     private Map<URI, List<StoragePort>> getUsablePortsSet(Map<URI, List<StoragePort>> allocatablePorts, List<URI> orderedNetworks,
@@ -235,7 +241,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         _log.info("Set Done: Ports selected in this set: {}", usedPortsSet);
 
         if (usedPortsSet.size() < REQUIRED_MINIMUM_NUMBER_OF_STORAGE_PORTS_PER_SET) {
-            return null;  // requirement not met
+            return null; // requirement not met
         }
         // if usedPortsSet.size() >= 2, satisfies minimum requirement, min 2 paths
 
@@ -247,12 +253,18 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     /**
      * Gets a storage port for the given network from Unique X-brick/SC.
      *
-     * @param networkURI the network uri
-     * @param storagePorts the storage ports
-     * @param usedPorts the used ports
-     * @param networkToSelectedXbricks the network to selected x-bricks
-     * @param xBricksToSelectedSCs the x-bricks to selected SCs
-     * @param allocator Storage Port Allocator
+     * @param networkURI
+     *            the network uri
+     * @param storagePorts
+     *            the storage ports
+     * @param usedPorts
+     *            the used ports
+     * @param networkToSelectedXbricks
+     *            the network to selected x-bricks
+     * @param xBricksToSelectedSCs
+     *            the x-bricks to selected SCs
+     * @param allocator
+     *            Storage Port Allocator
      * @param checkConnectivity
      * @return the network port unique x brick
      */
@@ -266,8 +278,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
          * -X-bricks already chosen for all networks with StorageControllers (SC) chosen:
          *
          * Choose a storage port based on below logic:
-         * -See if there is a port from X-brick other than allNetworkXbricks (select different SC for the selected X-brick)
-         * -If not, see if there is a port from X-brick other than networkXbricks (select different SC for the selected X-brick)
+         * -See if there is a port from X-brick other than allNetworkXbricks (select different SC for the selected
+         * X-brick)
+         * -If not, see if there is a port from X-brick other than networkXbricks (select different SC for the selected
+         * X-brick)
          */
         StoragePort port = null;
         if (networkToSelectedXbricks.get(networkURI) == null) {
@@ -349,7 +363,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     /**
      * Order the networks from those with least ports to those with most ports.
      *
-     * @param allocatablePorts -- Map of Network URI to list of ports
+     * @param allocatablePorts
+     *            -- Map of Network URI to list of ports
      * @return ordered list of Network URIs
      */
     private List<URI> orderNetworksByNumberOfPorts(Map<URI, List<StoragePort>> allocatablePorts) {
@@ -373,7 +388,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     /**
      * Gets the number of X-bricks from the selected ports.
      *
-     * @param useablePorts the port groups
+     * @param useablePorts
+     *            the port groups
      * @return the xbricks count
      */
     private int getXbricksCount(Map<URI, List<List<StoragePort>>> useablePorts) {
@@ -407,7 +423,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // select number of paths per VPLEX director
         // if X-bricks count is less than director count, choose only 2 initiators from each director
         // leaving other initiators for future scale of X-bricks
-        int pathsPerDirector = DEFAULT_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR;   // default 4 initiators in director
+        int pathsPerDirector = DEFAULT_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR; // default 4 initiators in director
         if (xtremIOXbricksCount < vplexDirectorCount) {
             pathsPerDirector = MINIMUM_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR;
         }
@@ -464,8 +480,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     /**
      * Gets the storage port set for director.
      *
-     * @param list the list
-     * @param directorNumber the director number
+     * @param list
+     *            the list
+     * @param directorNumber
+     *            the director number
      * @return the storage port set for director
      */
     private List<StoragePort> getStoragePortSetForDirector(List<List<StoragePort>> list, int directorNumber) {
@@ -482,14 +500,14 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
 
     @Override
     public Method createOrAddVolumesToExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumeMap, completer);
+                exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -538,10 +556,18 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     }
                 }
                 _dbClient.persistObject(exportMask);
-                device.doExportGroupCreate(array, exportMask, volumeMap, initiators, targets,
+                device.doExportCreate(array, exportMask, volumeMap, initiators, targets,
                         completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                List<Initiator> initiators = new ArrayList<Initiator>();
+                for (String initiatorId : exportMask.getInitiators()) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class,
+                            URI.create(initiatorId));
+                    if (initiator != null) {
+                        initiators.add(initiator);
+                    }
+                }
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
         } catch (Exception ex) {
@@ -556,14 +582,14 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     @Override
     public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -599,13 +625,18 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }
-            // If so, delete the ExportMask.
+            // If it is last volume and there are no existing initiators
+            // or existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes()
-                            .isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                    && !exportMask.hasAnyExistingVolumes()
+                    && !exportMask.hasAnyExistingInitiators()) {
+                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = null;
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                }
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);

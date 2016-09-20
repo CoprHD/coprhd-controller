@@ -28,12 +28,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.Collection;
-import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,8 +50,22 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.QuotaOfCinder;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.ProvisioningType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -776,10 +787,10 @@ public abstract class VirtualPoolService extends TaggedResource {
                 tenant = tenant_input.getId();
             }
 
+            Set<VirtualPool> vpoolSet = new HashSet<VirtualPool>();
             for (VirtualPool virtualPool : vpoolObjects) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
-                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
-
+                    vpoolSet.add(virtualPool);
                 }
             }
 
@@ -788,9 +799,13 @@ public abstract class VirtualPoolService extends TaggedResource {
                 List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
                 for (VirtualPool virtualPool : vpoolObjects) {
                     if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
-                        list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+                        vpoolSet.add(virtualPool);
                     }
                 }
+            }
+
+            for (VirtualPool virtualPool : vpoolSet) {
+                list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
             }
         }
 
@@ -1049,7 +1064,8 @@ public abstract class VirtualPoolService extends TaggedResource {
         if (!vpool.getType().equals(type.name())) {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
+        StringBuffer errorMessage = new StringBuffer();
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
         _dbClient.updateAndReindexObject(vpool);
         StringSet matchedPools = vpool.getMatchedStoragePools();
         if (null != matchedPools && !matchedPools.isEmpty()) {

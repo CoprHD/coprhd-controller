@@ -3674,8 +3674,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + "so just removing ViPR-managed volumes and initiators : "
                             + exportMask.getMaskName());
                     hasSteps = true;
-                    // Remove volumes from the storage view.
-                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                     if (!existingVolumes) {
                         // create workflow and steps to remove zones and initiators
@@ -3711,6 +3709,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 vplex.getSystemType(),
                                 this.getClass(), fireCompleter, null, completerStepId);
                     }
+
+                    // Remove volumes from the storage view.
+                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
@@ -3870,7 +3871,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         // if the ExportMask no longer has any user added volumes,
-        // remove it from any ExportGroups it's associated with
+        // remove it from any ExportGroups it's associated with,
+        // and mark the ExportMask for deletion
         if (!exportMask.hasAnyUserAddedVolumes()) {
             _log.info("updating ExportGroups containing this ExportMask");
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
@@ -3879,6 +3881,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 exportGroup.removeExportMask(exportMask.getId());
                 _dbClient.updateObject(exportGroup);
             }
+            _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
+            _dbClient.markForDeletion(exportMask);
         }
 
         _dbClient.updateObject(exportMask);

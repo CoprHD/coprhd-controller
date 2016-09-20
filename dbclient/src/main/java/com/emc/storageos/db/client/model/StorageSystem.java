@@ -693,6 +693,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     public void setVplexAssemblyIdtoClusterId(StringMap vplexAssemblyIdtoClusterId) {
         this.vplexAssemblyIdtoClusterId = vplexAssemblyIdtoClusterId;
+        setChanged("vplexAssemblyIdToClusterId");
     }
 
     @Name("nativeId")

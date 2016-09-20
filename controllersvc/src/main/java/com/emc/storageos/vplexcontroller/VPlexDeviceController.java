@@ -3732,7 +3732,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             _networkDeviceController.zoneExportRemoveVolumesMethod(
                                     zoningParams, volumeURIs),
                             null, workflow.createStepId());
-
                 }
             }
 

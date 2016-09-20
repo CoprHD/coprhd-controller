@@ -458,11 +458,10 @@ public class MaskingWorkflowEntryPoints implements Controller {
         String call = String.format("doExportGroupRemoveVolumesCleanup(%s, %s, [%s], [%s], %s)",
                 storageURI.toString(),
                 exportGroupURI.toString(),
-                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Voumes",
+                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes",
                 initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators",
                 taskCompleter.getOpId());
         try {
-
             WorkflowStepCompleter.stepExecuting(token);
             ExportGroup exportGroup = _dbClient
                     .queryObject(ExportGroup.class, exportGroupURI);

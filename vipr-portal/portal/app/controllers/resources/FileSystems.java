@@ -727,7 +727,7 @@ public class FileSystems extends ResourceController {
     }
 
     @FlashException(referrer = { "fileSystem" })
-    public static void save(Boolean edit, String id, String fsPath, String exportPath, String security,
+    public static void save(Boolean edit, String id, String fsPath, String exportPath, @Required String security,
             String anon, String subDir, @As(",") List<String> ro, @As(",") List<String> rw, @As(",") List<String> root) {
 
         ExportRule rule = new ExportRule();

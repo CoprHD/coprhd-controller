@@ -5232,9 +5232,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {
-                    StringSet portIds = exportMask.getStoragePorts();
-                    StoragePort exportMaskPort = getDataObject(StoragePort.class, URI.create(portIds.iterator().next()), _dbClient);
-                    String clusterId = ConnectivityUtil.getVplexClusterOfPort(exportMaskPort);
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                    String clusterId = ConnectivityUtil.getVplexClusterForVarray(exportGroup.getVirtualArray(), vplexURI, _dbClient);
                     lockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
                     lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                     if (!lockAcquired) {

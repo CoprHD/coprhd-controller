@@ -204,9 +204,16 @@ public class FileSystems extends ResourceController {
         for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
             fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
         }
-
+        
+        
         String personality = targetFileSystems.getPersonality();
-
+        //The current implementation is limited to 1:1 FS replication. 
+        //The code will be refactored once 1:n or cascaded FS replication is supported
+        if(!fileMirrors.isEmpty()) {
+	        FileShareRestRep fsRestRep = fileMirrors.get(0);
+	        fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
+        }
+        
         renderArgs.put("personality", personality);
         renderArgs.put("fileMirrors", fileMirrors);
         renderArgs.put("fileSystemId", fileSystemId);

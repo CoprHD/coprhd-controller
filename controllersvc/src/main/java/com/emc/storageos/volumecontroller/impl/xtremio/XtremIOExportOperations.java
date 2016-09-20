@@ -481,9 +481,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 dbClient.updateObject(initiatorObjs);
             }
 
-            // if the mask is null, then just return.
+            // The mask will be null in cases where we are creating new export mask. In this case, we just refresh the initiators info
             if (mask == null) {
-                _log.info("Mask is null so refreshing just the initiators.");
+                _log.info("Mask is null which means we are creating a new export mask and need to refresh just the initiators' info.");
                 return mask;
             }
             // get the mask volumes
@@ -558,7 +558,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 mask.removeFromExistingVolumes(volumesToRemove);
                 mask.addToExistingVolumesIfAbsent(volumesToAdd);
 
-                // Update the volume list to include existing volumes if know about them.
+                // Update the volume list to include existing volumes if we know about them.
                 if (addVolumes) {
                     for (String wwn : volumesToAdd.keySet()) {
                         URIQueryResultList results = new URIQueryResultList();

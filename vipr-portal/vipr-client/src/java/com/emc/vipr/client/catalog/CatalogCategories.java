@@ -9,6 +9,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.asString;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Properties;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -175,9 +176,17 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * 
      * @param catalogCategoryId
      *            the ID of the catalog category
+     * @param source TODO
      */
-    public List<CatalogCategoryRestRep> getSubCategories(URI catalogCategoryId) {
-        CatalogCategoryList response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, catalogCategoryId);
+    public List<CatalogCategoryRestRep> getSubCategories(URI catalogCategoryId, String source) {
+        CatalogCategoryList response = null;
+        if (source != null) {
+            Properties queryParam = new Properties();
+            queryParam.setProperty("source", source);
+            response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, queryParam, catalogCategoryId);
+        } else {
+            response = client.get(CatalogCategoryList.class, PathConstants.CATALOG_SUB_CATEGORIES_URL, catalogCategoryId);
+        }
         return getByRefs(response.getCatalogCategories());
     }
 

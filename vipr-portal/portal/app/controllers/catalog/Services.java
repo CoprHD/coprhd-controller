@@ -5,6 +5,7 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static com.emc.vipr.client.impl.Constants.EMMET_COOKIE;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -57,7 +58,7 @@ public class Services extends Controller {
             String path = "";
             URI categoryId = service.getCatalogCategory().getId();
             if (categoryId != null) {
-                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant());
+                Map<String, CategoryDef> catalog = ServiceCatalog.getCatalog(Models.currentAdminTenant(), null);
                 CategoryDef category = catalog.get(categoryId.toString());
                 path = (category != null) ? category.path : path;
             }
@@ -65,11 +66,25 @@ public class Services extends Controller {
         }
         renderArgs.put("backUrl", backUrl);
     }
+    
+    public static void emmetService(String service, String varray, String vpool, String source) {
+        String serviceId = "";
+        if(service!=null) {
+            CatalogServiceRestRep category = CatalogServiceUtils.findCatalogService(service);
+            serviceId = category.getId().toString();
+        }
+        if(source!=null) {
+            response.setCookie(EMMET_COOKIE, source);
+        }
+        showForm(serviceId, varray, vpool);
+    }
 
     /**
      * Builds a form for a particular service
+     * @param varray TODO
+     * @param vpool TODO
      */
-    public static void showForm(String serviceId) {
+    public static void showForm(String serviceId, String varray, String vpool) {
         TenantSelector.addRenderArgs();
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         List<CatalogServiceFieldRestRep> serviceFields = service.getCatalogServiceFields();
@@ -92,7 +107,7 @@ public class Services extends Controller {
                 .createAssetFieldDescriptors(serviceDescriptor);
 
         // Calculate default values for all fields
-        Map<String, String> defaultValues = getDefaultValues(serviceDescriptor);
+        Map<String, String> defaultValues = getDefaultValues(serviceDescriptor, varray, vpool);
 
         // Calculate asset parameters for any fields that are overridden
         Map<String, String> overriddenValues = getOverriddenValues(service);
@@ -171,9 +186,11 @@ public class Services extends Controller {
      * 
      * @param descriptor
      *            the service descriptor.
+     * @param varray TODO
+     * @param vpool TODO
      * @return the default field values.
      */
-    private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor) {
+    private static Map<String, String> getDefaultValues(ServiceDescriptorRestRep descriptor, String varray, String vpool) {
         Map<String, String> defaultValues = Maps.newHashMap();
         List<ServiceFieldRestRep> allFields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());
         for (ServiceFieldRestRep field : allFields) {
@@ -183,6 +200,12 @@ public class Services extends Controller {
             else {
                 defaultValues.put(field.getName(), field.getInitialValue());
             }
+        }
+        if(StringUtils.isNotEmpty(varray)) {
+            defaultValues.put("virtualArray", varray);
+        }
+        if(StringUtils.isNotEmpty(vpool)) {
+            defaultValues.put("virtualPool", vpool);
         }
         return defaultValues;
     }

@@ -31,6 +31,7 @@ import util.FileUtils;
 import util.FileUtils.ExportRuleInfo;
 import util.MessagesUtils;
 import util.StringOption;
+import util.ValidationResponse;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -110,6 +111,19 @@ public class FileSystems extends ResourceController {
         }
         List<FileSystemsDataTable.FileSystem> fileSystems = FileSystemsDataTable.fetch(uri(projectId));
         renderJSON(DataTablesSupport.createJSON(fileSystems, params));
+    }
+    
+    public static void validateQuotaSize(String quotaSize){
+        if (StringUtils.isEmpty(quotaSize) || !quotaSize.matches("^\\d+$")) {
+            Validation.addError("quota.size", "resources.filesystem.quota.size.invalid.value");
+        }
+        
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        }
+        else {
+            renderJSON(ValidationResponse.valid());
+        }
     }
 
     public static void fileSystem(String fileSystemId) {
@@ -739,6 +753,13 @@ public class FileSystems extends ResourceController {
     }
 
     public static void saveQuota(String fileSystemId, String id, Quota quota) {
+        
+        quota.validate("quota");
+        
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        
         ViPRCoreClient client = BourneUtil.getViprClient();
         QuotaDirectoryUpdateParam param = new QuotaDirectoryUpdateParam();
         param.setOpLock(quota.oplock);
@@ -1311,6 +1332,12 @@ public class FileSystems extends ResourceController {
 
         public void setSize(String size) {
             this.size = size;
+        }
+        
+        public void validate(String formName){
+            if (StringUtils.isEmpty(size) || !size.matches("^\\d+$")) {
+                Validation.addError(formName + ".size", "resources.filesystem.quota.size.invalid.value");
+            }
         }
 
     }

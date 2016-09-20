@@ -53,21 +53,6 @@ public class CatalogCategoryFinder extends TenantModelFinder<CatalogCategory> {
         return root;
     }
 
-    public CatalogCategory findSubCatalogCategory(URI catalogCategoryId, String label) {
-        if (catalogCategoryId == null || StringUtils.isBlank(label)) {
-            return null;
-        }
-
-        List<CatalogCategory> subCatalogCategories = findSubCatalogCategories(catalogCategoryId);
-        for (CatalogCategory subCatalogCategory : subCatalogCategories) {
-            if (subCatalogCategory != null && label.equals(subCatalogCategory.getLabel())) {
-                return subCatalogCategory;
-            }
-        }
-
-        return null;
-    }
-
     public Map<URI, Set<String>> findPermissions(StorageOSUser user, URI tenantId) {
         return findPermissions(this.clazz, user, tenantId);
     }

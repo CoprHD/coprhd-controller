@@ -573,8 +573,7 @@ render.actionableEvent = function(o, val) {
     if (resourceLink) {
       s += " <a href='" + resourceLink + "'>";
     }
-    var eventId = o.aData.id;
-    s += eventId.substring(0, eventId.indexOf('-'));
+    s += o.aData.name;
     if (resourceLink) {
       s += "</a>";
     }

@@ -185,6 +185,7 @@ POST    /Catalog/service/save                   catalog.EditCatalog.saveService
 POST    /Catalog/service/delete                 catalog.EditCatalog.deleteService
 
 
+*		/services								catalog.Services.emmetService
 *       /certificates/{action}        	        auth.Certificates.{action}
 *       /security/ipsec                         auth.IPsec.ipsec
 

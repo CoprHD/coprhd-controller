@@ -106,7 +106,7 @@ public class CatalogSearchBuilder {
             return null;
         }
 
-        List<CatalogCategoryRestRep> subCatalogCategories = catalog.categories().getSubCategories(parent.getId());
+        List<CatalogCategoryRestRep> subCatalogCategories = catalog.categories().getSubCategories(parent.getId(), null);
         for (CatalogCategoryRestRep subCatalogCategory : subCatalogCategories) {
             if (subPath.equalsIgnoreCase(subCatalogCategory.getName())) {
                 return subCatalogCategory;

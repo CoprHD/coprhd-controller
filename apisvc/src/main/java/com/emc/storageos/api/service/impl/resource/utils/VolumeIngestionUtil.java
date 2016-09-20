@@ -1453,7 +1453,7 @@ public class VolumeIngestionUtil {
         if (checkMaskPathForVplex && (exportMask.getNativeId() != null 
                 && !exportMask.getNativeId().equalsIgnoreCase(mask.getNativeId()))){
             // this is not the right mask
-            _logger.info("found a mask with the same name {}, but the mask view paths are different. "
+            _logger.info("found an existing mask with the same name or initiators {}, but the mask view paths are different. "
                     + "UnManagedExportMask: {} Existing ExportMask: {}", mask.getMaskName(),
                     mask.getNativeId(), exportMask.getNativeId());
             return true;

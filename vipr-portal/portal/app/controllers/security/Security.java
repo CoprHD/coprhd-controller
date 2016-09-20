@@ -24,6 +24,7 @@ import java.util.List;
 
 import static com.emc.vipr.client.impl.Constants.AUTH_PORTAL_TOKEN_KEY;
 import static com.emc.vipr.client.impl.Constants.AUTH_TOKEN_KEY;
+import static com.emc.vipr.client.impl.Constants.EMMET_COOKIE;
 import static util.BourneUtil.getViprClient;
 
 /**
@@ -188,6 +189,11 @@ public class Security extends Controller {
     }
 
     @Util
+    public static void clearEmmetToken() {
+        removeResponseCookie(EMMET_COOKIE);
+    }
+
+    @Util
     static void clearSession() {
         session.clear();
     }
@@ -254,6 +260,7 @@ public class Security extends Controller {
         }
         clearAuthToken();
         clearSession();
+        clearEmmetToken();
         render("@nologin");
     }
 

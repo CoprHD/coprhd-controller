@@ -2893,6 +2893,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // We might need to change the completer or use ExportMaskCreateCompleter
             // during exportGroupCreate which sets volumes to user created volumes list.
             exportMask.addToUserCreatedVolumes(blockObjects);
+            // update native id (this is the context path to the storage view on the vplex)
+            // e.g.: /clusters/cluster-1/exports/storage-views/V1_myserver_288
+            // this column being set to non-null can be used to indicate a storage view that 
+            // has been successfully created on the VPLEX device
             exportMask.setNativeId(svInfo.getPath());
             _dbClient.updateObject(exportMask);
 

@@ -757,6 +757,8 @@ public class VPlexControllerUtils {
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);
                 exportMask.getStoragePorts().removeAll(storagePortsToRemove);
+                // update native id (this is the context path to the storage view on the vplex)
+                exportMask.setNativeId(storageView.getPath());
                 ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
                 dbClient.updateObject(exportMask);
                 log.info("ExportMask is now:\n" + exportMask.toString());

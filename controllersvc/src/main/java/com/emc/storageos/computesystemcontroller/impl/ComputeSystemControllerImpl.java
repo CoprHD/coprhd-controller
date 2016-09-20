@@ -1029,6 +1029,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     try {
+                        _log.info("Refreshing storage");
+                        storageAPI.refreshStorage();
                         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                             if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                                 _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());

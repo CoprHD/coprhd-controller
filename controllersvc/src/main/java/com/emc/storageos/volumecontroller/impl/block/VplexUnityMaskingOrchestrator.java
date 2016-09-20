@@ -293,13 +293,6 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
-            
-            // None of the volumes is in the export mask, so we are done.
-            if (passedVolumesInMask.isEmpty()) {
-                log.info("None of these volumes {} are in export mask {}", passedVolumesInMask, exportMask.forDisplay());
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
 
             // If it is last volume and there are no existing initiators
             // or existing volumes, delete the ExportMask.

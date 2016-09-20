@@ -1038,7 +1038,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         _log.info("Refreshing storage");
                         storageAPI.refreshStorage();
                     } catch (VMWareException ex) {
-                        _log.error(ex.getMessage(), ex);
+                        _log.warn(ex.getMessage(), ex);
                     }
 
                     if (blockObject != null && blockObject.getTag() != null) {
@@ -1053,7 +1053,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                         storageAPI.mountDatastore(datastore);
                                     }
                                 } catch (VMWareException ex) {
-                                    _log.error(ex.getMessage(), ex);
+                                    _log.warn(ex.getMessage(), ex);
                                 }
                             }
                         }

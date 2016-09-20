@@ -3869,6 +3869,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
 
+        // if the ExportMask no longer has any user added volumes,
+        // remove it from any ExportGroups it's associated with
+        if (!exportMask.hasAnyUserAddedVolumes()) {
+            _log.info("updating ExportGroups containing this ExportMask");
+            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+            for (ExportGroup exportGroup : exportGroups) {
+                _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
+                exportGroup.removeExportMask(exportMask.getId());
+                _dbClient.updateObject(exportGroup);
+            }
+        }
+
         _dbClient.updateObject(exportMask);
         _log.info("successfully removed " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
     }

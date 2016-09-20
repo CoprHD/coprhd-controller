@@ -208,7 +208,8 @@ public class AuthnConfigurationService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public AuthnProviderRestRep createProvider(AuthnCreateParam param) {
-        validateAuthnCreateParam(param);
+        // validateAuthnCreateParam(param);
+/*
         if (param.getDisable() == null || !param.getDisable()) {
             _log.debug("Validating manager dn credentials before provider creation...");
             AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateCreate(param, null);
@@ -219,7 +220,7 @@ public class AuthnConfigurationService extends TaggedResource {
                         authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
-
+*/
         AuthnProvider provider = map(param);
         provider.setId(URIUtil.createId(AuthnProvider.class));
 

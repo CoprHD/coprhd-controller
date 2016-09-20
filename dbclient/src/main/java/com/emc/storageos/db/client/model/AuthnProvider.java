@@ -106,6 +106,7 @@ public class AuthnProvider extends DataObject {
         this.oidcProviderAddress = oidcProviderAddress;
     }
 
+    @Name("oidcaddr")
     public String getOidcProviderAddress() {
         return oidcProviderAddress;
     }

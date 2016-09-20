@@ -49,6 +49,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     private final ProviderConfigUpdater _updaterRunnable = new ProviderConfigUpdater();
     private LdapProviderMonitor _ldapProviderMonitor;
     private OIDCAuthenticationManager _oidcAuthMgr;
+    private Object _oidcLock = new Object();
 
     @Autowired
     protected TokenManager _tokenManager;
@@ -473,7 +474,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                         _lastReloadTime = timeNow;
                         updateLastKnown(providers);
                         _ldapProviderMonitor.setAuthnProviders(_authNProviders);
-                        synchronized (_oidcAuthMgr) {
+                        synchronized (_oidcLock) {
                             _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
                         }
                         _log.info("Done authn provider config reload. lastReloadTime {}", _lastReloadTime);
@@ -540,7 +541,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     }
 
     public OIDCAuthenticationManager getOIDCAuthManager() {
-        synchronized (_oidcAuthMgr) {
+        synchronized (_oidcLock) {
             if (_oidcAuthMgr == null) {
                 _oidcAuthMgr = new OIDCAuthenticationManager(_dbClient, _authNProviders);
             }

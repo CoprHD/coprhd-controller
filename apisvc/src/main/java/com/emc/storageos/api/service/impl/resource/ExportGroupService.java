@@ -1367,8 +1367,9 @@ public class ExportGroupService extends TaskResourceService {
                             && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
                         if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
                             name = initiator.getClusterName();
-                        } else if (!StringUtils.hasText(initiator.getHostName())) {
-                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                        } else if (!StringUtils.hasText(initiator.getHostName())
+                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
+                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
                             throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
                         }
 

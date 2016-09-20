@@ -93,9 +93,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
             exportHosts.add(BlockStorageUtils.getHost(mount.getHost()).getHostName());
             export.setExportHosts(exportHosts);
             export.setPermission(mount.getPermission());
-            List<String> secTypes = new ArrayList<String>();
-            secTypes.add(mount.getSecurity());
-            export.setSecurity(secTypes);
+            export.setSecurity(mount.getSecurity());
             exportList.add(export);
         }
 
@@ -106,7 +104,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
 
         // create nfs export
         if (exportList != null) {
-            FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getCSSecurity(),
+            FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
                     exportList.get(0).getPermission(), DEFAULT_ROOT_USER, exportList.get(0).getExportHosts(), null);
             if (!exportList.isEmpty()) {
                 FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));

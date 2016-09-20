@@ -4,14 +4,10 @@
  */
 package util;
 
-import java.io.Serializable;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -20,7 +16,6 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileSystemExportParam;
-import com.emc.storageos.model.file.FileExportUpdateParams.ExportOperationErrorType;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
@@ -101,27 +96,7 @@ public class FileUtils {
     	}
     	return secTypes;
     }
-    
-    public static List<NFSExportRule> getNFSExportRules(URI id) {
-    	List<NFSExportRule> nfsExportRules = Lists.newArrayList();
-    	
-    	for (ExportRule exportRule : getFSExportRules(id)) {
-    		NFSExportRule nfsRule = new NFSExportRule();
-    		nfsRule.setAnon(exportRule.getAnon());
-    		nfsRule.setComments(exportRule.getComments());
-    		nfsRule.setExportPath(exportRule.getExportPath());
-    		nfsRule.setMountPoint(exportRule.getMountPoint());
-    		nfsRule.setSecFlavor(getSecFlovorList(exportRule.getSecFlavor()));
-    		nfsRule.setReadOnlyHosts(exportRule.getReadOnlyHosts());
-    		nfsRule.setReadWriteHosts(exportRule.getReadWriteHosts());
-    		nfsRule.setRootHosts(exportRule.getRootHosts());
-    		
-    		nfsExportRules.add(nfsRule);
-    	}
-    	
-    	return nfsExportRules;	
-    }
-    
+
     public static class EndpointInfo {
         public String endpoint;
         public String permission;
@@ -151,106 +126,5 @@ public class FileUtils {
         public void setEndpointsInfo(List<EndpointInfo> infos) {
             this.endpoints = infos;
         }
-    }
-    
-    public static class NFSExportRule {
-    	private URI fsID;
-    	private URI snapShotID;
-    	private String exportPath;
-    	private String anon;
-    	private List<String> secFlavor;
-    	private Set<String> readOnlyHosts;
-    	private Set<String> readWriteHosts;
-    	private Set<String> rootHosts;
-    	private String mountPoint;
-    	private String comments;
-
-    	public URI getFsID() {
-    		return fsID;
-    	}
-
-    	public void setFsID(URI fsID) {
-    		this.fsID = fsID;
-    	}
-
-    	public URI getSnapShotID() {
-    		return snapShotID;
-    	}
-
-    	public void setSnapShotID(URI snapShotID) {
-    		this.snapShotID = snapShotID;
-    	}
-
-    	public String getExportPath() {
-    		return exportPath;
-    	}
-
-    	public void setExportPath(String exportPath) {
-    		this.exportPath = exportPath;
-    	}
-
-    	public Set<String> getReadOnlyHosts() {
-    		return readOnlyHosts;
-    	}
-
-    	public void setReadOnlyHosts(Set<String> readOnlyHosts) {
-    		this.readOnlyHosts = readOnlyHosts;
-    	}
-
-    	public Set<String> getReadWriteHosts() {
-    		return readWriteHosts;
-    	}
-
-    	public void setReadWriteHosts(Set<String> readWriteHosts) {
-    		this.readWriteHosts = readWriteHosts;
-    	}
-
-    	public Set<String> getRootHosts() {
-    		return rootHosts;
-    	}
-
-    	public void setRootHosts(Set<String> rootHosts) {
-    		this.rootHosts = rootHosts;
-    	}
-
-    	/**
-    	 * Security flavor of an export e.g. sys, krb, krbp or krbi
-    	 * 
-    	 */
-    	public List<String> getSecFlavor() {
-    		return secFlavor;
-    	}
-
-    	public void setSecFlavor(List<String> secFlavor) {
-    		this.secFlavor = secFlavor;
-    	}
-
-    	/**
-    	 * Anonymous root user mapping e.g. "root", "nobody" or "anyUserName"
-    	 * 
-    	 */
-    	public String getAnon() {
-    		return anon;
-    	}
-
-    	public void setAnon(String anon) {
-    		this.anon = anon;
-    	}
-
-    	public String getMountPoint() {
-    		return mountPoint;
-    	}
-
-    	public void setMountPoint(String mountPoint) {
-    		this.mountPoint = mountPoint;
-    	}
-    	
-    	public String getComments() {
-    		return comments;
-    	}
-
-    	public void setComments(String comments) {
-    		this.comments = comments;
-    	}
     }
   }

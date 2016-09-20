@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import models.datatable.FilePolicySnapshotsDataTable;
 import models.datatable.FileSystemsDataTable;
@@ -194,19 +195,9 @@ public class FileSystems extends ResourceController {
         List<ExportRule> exports = FileUtils.getFSExportRules(id);
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
-        flash.success("called filesystems::fileSystemExports org");
         render(exports, exportsParam);
     }
     
-    public static void fileSystemExports23(String fileSystemId) {
-        URI id = uri(fileSystemId);
-        List<FileUtils.NFSExportRule> exports = FileUtils.getNFSExportRules(id);
-        List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
-        renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
-        flash.success("called filesystems::fileSystemExports v2");
-        render(exports, exportsParam);
-    }
-
     public static void fileSystemMirrors(String fileSystemId) {
         URI id = uri(fileSystemId);
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -537,14 +528,29 @@ public class FileSystems extends ResourceController {
         return input;
     }
 
+    private static String getOrderedSecurities( String sec) {
+    	// Convert the set of security types to a string separated by comma(,).
+        Set<String> orderedSecTypes = new TreeSet<String>();
+        StringBuffer securityTypes = new StringBuffer();
+        for (String secType : sec.split(",") ){
+        	orderedSecTypes.add(secType);
+        }
+
+        Iterator<String> orderedList = orderedSecTypes.iterator();
+        securityTypes.append(orderedList.next().toString());
+        while (orderedList.hasNext()) {
+        	securityTypes.append(",").append(orderedList.next().toString());
+        }
+        return securityTypes.toString();
+    }
+
+    
     public static void fileSystemExportsJson(String id, String path, String sec) {
-    	 flash.success("called filesystems::fileSystemExportsJson str with sec " + sec) ;
-        ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);
+        ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, getOrderedSecurities(sec));
         renderJSON(info);
     }
     
     public static void fileSystemExportsJson(String id, String path, List<String> sec) {
-    	 flash.success("called filesystems::fileSystemExportsJson list with sec " + sec) ;
     	Iterator<String> secIter = sec.iterator();
     	StringBuffer security = new StringBuffer(); 
     	security.append(secIter.next());
@@ -727,7 +733,7 @@ public class FileSystems extends ResourceController {
     }
 
     @FlashException(referrer = { "fileSystem" })
-    public static void save(Boolean edit, String id, String fsPath, String exportPath, @Required String security,
+    public static void save(Boolean edit, String id, String fsPath, String exportPath, String security,
             String anon, String subDir, @As(",") List<String> ro, @As(",") List<String> rw, @As(",") List<String> root) {
 
         ExportRule rule = new ExportRule();

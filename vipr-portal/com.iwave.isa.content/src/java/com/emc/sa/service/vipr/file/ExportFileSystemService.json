@@ -35,8 +35,8 @@
         
         security:{
           type:"assetType.vipr.fileNFSSecurity",
-          initialValue:"krb5i",
-          select: "many"
+          initialValue:"sys",
+          lockable: true
         },
         
         permission:{

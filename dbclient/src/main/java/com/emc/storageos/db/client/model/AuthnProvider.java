@@ -104,6 +104,7 @@ public class AuthnProvider extends DataObject {
 
     public void setJwksUrl(String jwksUrl) {
         this.jwksUrl = jwksUrl;
+        setChanged("jwksurl");
     }
 
     public void setOidcProviderAddress(String oidcProviderAddress) {

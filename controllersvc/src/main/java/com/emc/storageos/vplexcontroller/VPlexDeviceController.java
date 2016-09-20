@@ -2893,6 +2893,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // We might need to change the completer or use ExportMaskCreateCompleter
             // during exportGroupCreate which sets volumes to user created volumes list.
             exportMask.addToUserCreatedVolumes(blockObjects);
+            exportMask.setNativeId(svInfo.getPath());
             _dbClient.updateObject(exportMask);
 
             _dbClient.updateObject(exportGroup);

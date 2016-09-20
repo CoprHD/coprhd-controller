@@ -874,9 +874,12 @@ public class VPlexControllerUtils {
         Map<ExportGroup, Set<ExportMask>> exportGroupToStaleMaskMap = new HashMap<ExportGroup, Set<ExportMask>>();
         Map<URI, ExportGroup> exportGroupUriMap = new HashMap<URI, ExportGroup>();
 
-        // check all export masks in the database to make sure they still exist on the VPLEX
+        // check all export masks in the database to make sure they still exist on the VPLEX.
+        // a null or empty ExportMask.nativeId would indicate an ExportMask that has been created
+        // by ViPR in the database, but not yet created on the VPLEX device itself. skip those of course.
         for (ExportMask exportMask : exportMasks) {
-            if (null != exportMask && !exportMask.getInactive()) {
+            if (null != exportMask && !exportMask.getInactive() 
+                    && (exportMask.getNativeId() != null && !exportMask.getNativeId().isEmpty())) {
                 // we need to check both native id and export mask name to make sure we are NOT finding the storage view.
                 // native id is most accurate, but greenfield ExportMasks for VPLEX don't have this property set.
                 // native id will be set on ingested export masks, however, and we should check it, in case the same

@@ -1290,12 +1290,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     }
 
                 }
-                //taskCompleter.ready(_dbClient);
                 taskCompleter.ready(_dbClient);
-                Exception e = new Exception("Forced Exception");
-                _log.error(String.format("removeVolumes failed - maskName: %s", exportMaskURI.toString()), e);
-                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-                taskCompleter.error(_dbClient, serviceError);
             }
         } catch (Exception e) {
             _log.error(String.format("removeVolumes failed - maskName: %s", exportMaskURI.toString()), e);

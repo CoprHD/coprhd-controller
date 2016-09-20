@@ -62,24 +62,33 @@ public class DbConsistencyCheckerHelper {
      */
     public int checkDataObject(DataObjectType doType, boolean toConsole) {
         int dirtyCount = 0;
-        _log.info("Check CF {}", doType.getDataObjectClass().getName());
+        Class<? extends DataObject> dataObjectClass = doType.getDataObjectClass();
         
-        if (excludeClasses.contains(doType.getDataObjectClass())) {
-        	_log.info("Skip CF {} since its URI is special", doType.getDataObjectClass());
+		_log.info("Check CF {}", dataObjectClass.getName());
+        
+        if (excludeClasses.contains(dataObjectClass)) {
+        	_log.info("Skip CF {} since its URI is special", dataObjectClass);
         	return 0;
         }
         
         try {
             OperationResult<Rows<String, CompositeColumnName>> result = dbClient.getKeyspace(
-                    doType.getDataObjectClass()).prepareQuery(doType.getCF())
+                    dataObjectClass).prepareQuery(doType.getCF())
                     .getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : result.getResult()) {
-            	if (!isValidDataObjectKey(URI.create(row.getKey()), doType.getDataObjectClass())) {
+            	try {
+	            	if (!isValidDataObjectKey(URI.create(row.getKey()), dataObjectClass)) {
+	            		dirtyCount++;
+	    		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
+	    		                row.getKey(), dataObjectClass.getName()), true, toConsole);
+	            	}
+            	} catch (Exception ex) {
             		dirtyCount++;
-    		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
-    		                row.getKey(), doType.getDataObjectClass().getName()), true, toConsole);
+            		logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
+                            row.getKey(), dataObjectClass.getName(),
+                            ex.getMessage()), true, toConsole);
             	}
             }
 
@@ -105,16 +114,15 @@ public class DbConsistencyCheckerHelper {
 
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
         for (ColumnField field : doType.getColumnFields()) {
-            if (field.getIndex() == null) {
-                continue;
+            if (field.getIndex() != null) {
+            	indexedFields.put(field.getName(), field);
             }
-            indexedFields.put(field.getName(), field);
         }
 
         if (indexedFields.isEmpty()) {
             return dirtyCount;
         }
-        
+
         Keyspace keyspace = dbClient.getKeyspace(objClass);
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
         OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
@@ -125,6 +133,7 @@ public class DbConsistencyCheckerHelper {
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
                 	inactiveObject = true;
+                	break;
                 }
             }
             
@@ -605,14 +614,6 @@ public class DbConsistencyCheckerHelper {
     }
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
-        if (uri == null) {
-        	return false;
-        }
-
-        if (!URIUtil.isValid(uri) || !URIUtil.isType(uri, type)) {
-            return false;
-        }
-
-        return true;
+    	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
     }
 }

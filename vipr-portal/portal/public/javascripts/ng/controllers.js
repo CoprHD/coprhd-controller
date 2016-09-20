@@ -1588,7 +1588,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     $scope.toggleGuide = function(nonav) {
 
-        //we need to check that the guide only appears on the license and initial setup nonav pages
+        //we need erase guide data on the license and initial setup nonav pages
         if (nonav) {
             eraseCookie(dataCookieKey);
         }
@@ -1941,7 +1941,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                     $scope.completedSteps = 4;
                                     callback();
                                 } else {
-                                    $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
+                                    if (guide_data.storage_systems){
+                                        $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
+                                    }
                                     finishChecking();
                                 }
                             });
@@ -1965,9 +1967,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideErrorObject = data.data;
-                        $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
-                        $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
+                        if (guide_data.fabrics){
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
+                            $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
+                        }
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -1990,9 +1994,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideErrorObject = data.data;
-                        $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Array:";
-                         $scope.guideErrorSolution = "To complete step, run Virtual Array creation step again.";
+                        if (guide_data.varrays){
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Array:";
+                            $scope.guideErrorSolution = "To complete step, run Virtual Array creation step again.";
+                         }
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -2015,9 +2021,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideErrorObject = data.data;
-                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Pool:";
-                             $scope.guideErrorSolution = "To complete step, run Virtual Pool creation step again.";
+                            if (guide_data.vpools){
+                                $scope.guideErrorObject = data.data;
+                                $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Pool:";
+                                $scope.guideErrorSolution = "To complete step, run Virtual Pool creation step again.";
+                            }
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;

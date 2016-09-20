@@ -71,15 +71,23 @@ class CreateExportGroupSchedulingThread implements Runnable {
         try {
             // validate clients (initiators, hosts clusters) input and package them
             // This call may take a long time.
-            List<URI> affectedInitiators = this.exportGroupService.validateClientsAndPopulate(exportGroup,
+        	List<URI> affectedInitiators = null;
+        	if (project == null) {
+        		affectedInitiators = this.exportGroupService.validatePassThroughClientsAndPopulate(exportGroup,
+                        storageMap.keySet(), clusters, hosts, initiators, volumeMap.keySet(), pathParam);
+                
+        	}
+        	else {
+        		affectedInitiators = this.exportGroupService.validateClientsAndPopulate(exportGroup,
                     project, virtualArray, storageMap.keySet(),
                     clusters, hosts, initiators,
                     volumeMap.keySet(), pathParam);
+        	}
             _log.info("Initiators {} will be used.", affectedInitiators);
-            
+
             // If ExportPathParameter block is present, and volumes are present, capture those arguments.
             if (pathParam!= null && !volumeMap.keySet().isEmpty()) {
-                ExportPathParams exportPathParam = exportGroupService.validateAndCreateExportPathParam(pathParam, 
+                ExportPathParams exportPathParam = exportGroupService.validateAndCreateExportPathParam(pathParam,
                                     exportGroup, volumeMap.keySet());
                 exportGroupService.addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
                 exportGroupService._dbClient.createObject(exportPathParam);
@@ -93,9 +101,16 @@ class CreateExportGroupSchedulingThread implements Runnable {
             }
 
             // push it to storage devices
-            BlockExportController exportController = this.exportGroupService.getExportController();
+        	BlockExportController exportController = this.exportGroupService.getExportController();
             _log.info("createExportGroup request is submitted.");
-            exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
+            if (project == null && virtualArray == null) {
+            	//This is pass through export
+            	task = task + "direct";
+            	exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
+            }
+            else {
+            	exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
+            }
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 this.exportGroupService._dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(),
@@ -115,7 +130,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
 
     /**
      * Static method to kick off the execution of the API level task to create an export group.
-     * 
+     *
      * @param exportGroupService export group service ("this" from caller)
      * @param executorService executor service for bounded thread pooling management
      * @param dbClient dbclient
@@ -127,7 +142,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
      * @param hosts hosts
      * @param initiators initiators
      * @param volumeMap volume map
-     * @param pathParam ExportPathParameters from 
+     * @param pathParam ExportPathParameters from
      * @param task task
      * @param taskRes task resource object
      */
@@ -148,6 +163,25 @@ class CreateExportGroupSchedulingThread implements Runnable {
             // Set the export group to inactive
             exportGroup.setInactive(true);
             dbClient.updateAndReindexObject(exportGroup);
+        }
+    }
+
+    public static void executePassThroughApiTask(ExportGroupService exportGroupService, ExecutorService executorService, DbClient dbClient,
+                ExportGroup exportGroup, Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters,
+                List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap, ExportPathParameters pathParam, String task,
+                TaskResourceRep taskRes) {
+
+        CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, null, 
+        		null, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
+        try {
+                executorService.execute(schedulingThread);
+        } catch (Exception e) {
+                String message = "Failed to execute export group creation API task for resource " + exportGroup.getId();
+                _log.error(message);
+                taskRes.setMessage(message);
+                // Set the export group to inactive
+                exportGroup.setInactive(true);
+                dbClient.updateAndReindexObject(exportGroup);
         }
     }
 }

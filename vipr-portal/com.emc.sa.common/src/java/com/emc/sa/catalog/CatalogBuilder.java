@@ -15,9 +15,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
@@ -71,6 +76,11 @@ public class CatalogBuilder {
 
             Gson gson = new GsonBuilder().create();
             CategoryDef root = gson.fromJson(catalog, CategoryDef.class);
+            
+            CategoryDef extCategory=loadCustomCategories();
+            if (extCategory != null){
+            	root.categories.add(extCategory);
+            }
             root.version = DigestUtils.sha1Hex(catalog);
             return root;
         } finally {
@@ -78,7 +88,22 @@ public class CatalogBuilder {
         }
     }
 
-    public static String getCatalogHash(InputStream in) throws IOException {
+    private static CategoryDef loadCustomCategories() {
+		try {
+		   	InputStream customCategories = new FileInputStream("/opt/storageos/customFlow/custom-catalog.json");
+	    	String catalog;
+			catalog = IOUtils.toString(customCategories);
+	        Gson gson = new GsonBuilder().create();
+	        CategoryDef extCatorories = gson.fromJson(catalog, CategoryDef.class);
+	        IOUtils.closeQuietly(customCategories);
+			return extCatorories;
+		} catch (IOException e) {
+			return null;
+		} 
+
+	}
+
+	public static String getCatalogHash(InputStream in) throws IOException {
         return DigestUtils.sha1Hex(in);
     }
 

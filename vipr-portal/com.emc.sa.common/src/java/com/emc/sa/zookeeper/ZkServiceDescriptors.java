@@ -122,6 +122,9 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
     }
 
     private String getServiceDefinitionPath(String serviceId) {
+    	if(serviceId.endsWith("@Extension")){
+    		serviceId=serviceId.substring(0, serviceId.length()-"@Extension".length());
+    	}
         return ZK_SERVICE_DEFINITION_PATH + "/" + serviceId;
     }
 

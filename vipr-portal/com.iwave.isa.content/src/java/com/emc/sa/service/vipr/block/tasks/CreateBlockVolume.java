@@ -20,6 +20,9 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
     private String name;
     private URI consistencyGroupId;
 
+    public CreateBlockVolume(){
+    	
+    }
     public CreateBlockVolume(String vpoolId, String varrayId, String projectId, String size, Integer count,
             String name, String consistencyGroupId) {
         this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId));

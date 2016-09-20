@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration debug="false"
+	xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+
+	<appender name="console" class="org.apache.log4j.ConsoleAppender">
+		<param name="Target" value="System.out" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+		</layout>
+	</appender>
+
+	<appender name="cxf-fileAppender" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="${product.home}/logs/vasa-cxf.log" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+		</layout>
+	</appender>
+
+	<appender name="ws-fileAppender" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="${product.home}/logs/vasa-ws.log" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+		</layout>
+	</appender>
+
+
+
+
+	<!-- LOGGERS -->
+	<logger name="com.emc.storageos.vasa">
+		<level value="DEBUG" />
+	</logger>
+
+	<logger name="org.springframework">
+		<level value="WARN" />
+	</logger>
+	<logger name="org.apache.cxf">
+		<level value="WARN" />
+	</logger>
+
+	<logger name="org.apache.commons.httpclient">
+		<level value="INFO" />
+	</logger>
+	<logger name="httpclient.wire">
+		<level value="INFO" />
+	</logger>
+
+
+	<!-- level INFO needed to log SOAP messages -->
+	<logger name="org.apache.cxf.services" additivity="false">
+		<level value="INFO" />
+		<!-- specify a dedicated appender for the SOAP messages -->
+		<appender-ref ref="cxf-fileAppender" />
+	</logger>
+
+	<root>
+		<level value="INFO" />
+		<appender-ref ref="console" />
+		<appender-ref ref="ws-fileAppender" />
+		<appender-ref ref="cxf-fileAppender" />
+	</root>
+
+
+</log4j:configuration>

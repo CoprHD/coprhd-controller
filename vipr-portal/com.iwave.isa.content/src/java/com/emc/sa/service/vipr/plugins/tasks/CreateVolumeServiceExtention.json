@@ -1,0 +1,22 @@
+{
+    baseKey:"CreateVolume.Block",
+    serviceId:"CreateVolume.Extension",
+    fields:{
+        externalParam:{
+            type:"text",
+            required: false,
+            initialValue: "ExtendedParams"           
+        },
+        extendClass:{
+           	type:"text",
+           	required: false,
+           	initialValue: "com.emc.sa.service.vipr.block.tasks.CreateBlockVolume"
+        },
+        extendMethods:{
+           	type:"text",
+           	required: false,
+           	initialValue: "preLaunch,postLaunch"
+         }
+     }
+}
+

@@ -21,6 +21,7 @@ var routes = {
   ServiceCatalog_docCategory: #{jsAction @catalog.ServiceCatalog.docCategory(':categoryId') /},
   CatalogImages_view: #{jsAction @catalog.CatalogImages.view(':image')/},
   EditCatalog_images: #{jsAction @catalog.EditCatalog.imagesJson()/},
+  ServiceCatalog_CreateCustomService: #{jsAction @catalog.EditCatalog.createCustomService() /},
   
   ExecutionWindows_events: #{jsAction @catalog.ExecutionWindows.events(':timezoneOffsetInMinutes') /},
   ExecutionWindows_create: #{jsAction @catalog.ExecutionWindows.create(':start', ':end', ':timezoneOffsetInMinutes') /},

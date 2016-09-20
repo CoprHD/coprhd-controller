@@ -1629,53 +1629,65 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                         .format("determineInitiatorToExportMaskPlacements - Checking to see if we can consider mask %s, given its initiators, storage ports, and volumes",
                                 mask.getMaskName()));
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
-                if (mask.getCreatedBySystem()) {
-                    if (mask.getResource().equals(computeResource)) {
-                        if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
-                            _log.info(String
-                                    .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
-                                            mask.getMaskName()));
-                            candidateExportMaskURIs.add(exportMaskURI);
-                            totalPorts += storagePortToNetworkName.keySet().size();
-                            maskToTotalMatchingPorts.put(exportMaskURI, totalPorts);
-                            // Ingest Fix : In ingest case, more than 1 export mask with createdBySystem flag set to true is possible
-                            // remove the break statement
-                            // break; First ViPR-created ExportMask associated with the resource, we will use
-                        } else {
-                            masksWithUnmatchedStoragePorts.put(exportMaskURI, storagePortToNetworkName);
-                            _log.info(String
-                                    .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
-                                            mask.getMaskName()));
-                        }
-                    }
-                } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
-                        maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {
-                    if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
-                        _log.info(String.format(
-                                "determineInitiatorToExportMaskPlacements - Pre-existing mask %s qualifies for consideration for re-use",
-                                mask.getMaskName()));
-                        // This is a non-ViPR create ExportMask and it has the initiator
-                        // as an existing initiator. Add it this as a matching candidate
-                        candidateExportMaskURIs.add(exportMaskURI);
-                        // We don't have zone ingest information for pre-existing masks, so for the purpose of
-                        // matching more coexistence masks, we assume there are zones from every port to every
-                        // initiator in the mask.
-                        // Existing Initiators - initiators which are not userAdded.
-                        int existingInitiators = mask.getExistingInitiators() == null ? 0 : mask.getExistingInitiators().size();
-                        int userAddedInitators = mask.getUserAddedInitiators() == null ? 0 : mask.getUserAddedInitiators().size();
-                        int totalInitiators = existingInitiators + userAddedInitators;
-                        totalPorts += storagePortToNetworkName.keySet().size() * totalInitiators;
-                        maskToTotalMatchingPorts.put(exportMaskURI, totalPorts);
-                    } else {
-                        masksWithUnmatchedStoragePorts.put(exportMaskURI, storagePortToNetworkName);
-                        _log.info(String
-                                .format("determineInitiatorToExportMaskPlacements - Pre-existing mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
-                                        mask.getMaskName()));
-                    }
-                } else {
-                    _log.info(String
-                            .format("determineInitiatorToExportMaskPlacements - Pre-existing mask %s does not qualify for consideration for re-use due to initiators not suitable for export group type.",
-                                    mask.getMaskName()));
+                
+                //Added for PassThrough export
+                if(!(exportGroup.getProject() == null && exportGroup.getVirtualArray() == null)) {
+	                if (mask.getCreatedBySystem()) {
+	                    if (mask.getResource().equals(computeResource)) {
+	                        if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+	                            _log.info(String
+	                                    .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
+	                                            mask.getMaskName()));
+	                            candidateExportMaskURIs.add(exportMaskURI);
+	                            totalPorts += storagePortToNetworkName.keySet().size();
+	                            maskToTotalMatchingPorts.put(exportMaskURI, totalPorts);
+	                            // Ingest Fix : In ingest case, more than 1 export mask with createdBySystem flag set to true is possible
+	                            // remove the break statement
+	                            // break; First ViPR-created ExportMask associated with the resource, we will use
+	                        } else {
+	                            masksWithUnmatchedStoragePorts.put(exportMaskURI, storagePortToNetworkName);
+	                            _log.info(String
+	                                    .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
+	                                            mask.getMaskName()));
+	                        }
+	                    }
+	                } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
+	                        maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {
+	                    if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+	                        _log.info(String.format(
+	                                "determineInitiatorToExportMaskPlacements - Pre-existing mask %s qualifies for consideration for re-use",
+	                                mask.getMaskName()));
+	                        // This is a non-ViPR create ExportMask and it has the initiator
+	                        // as an existing initiator. Add it this as a matching candidate
+	                        candidateExportMaskURIs.add(exportMaskURI);
+	                        // We don't have zone ingest information for pre-existing masks, so for the purpose of
+	                        // matching more coexistence masks, we assume there are zones from every port to every
+	                        // initiator in the mask.
+	                        // Existing Initiators - initiators which are not userAdded.
+	                        int existingInitiators = mask.getExistingInitiators() == null ? 0 : mask.getExistingInitiators().size();
+	                        int userAddedInitators = mask.getUserAddedInitiators() == null ? 0 : mask.getUserAddedInitiators().size();
+	                        int totalInitiators = existingInitiators + userAddedInitators;
+	                        totalPorts += storagePortToNetworkName.keySet().size() * totalInitiators;
+	                        maskToTotalMatchingPorts.put(exportMaskURI, totalPorts);
+	                    } else {
+	                        masksWithUnmatchedStoragePorts.put(exportMaskURI, storagePortToNetworkName);
+	                        _log.info(String
+	                                .format("determineInitiatorToExportMaskPlacements - Pre-existing mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
+	                                        mask.getMaskName()));
+	                    }
+	                } else {
+	                    _log.info(String
+	                            .format("determineInitiatorToExportMaskPlacements - Pre-existing mask %s does not qualify for consideration for re-use due to initiators not suitable for export group type.",
+	                                    mask.getMaskName()));
+	                }
+                }
+                else {
+                	candidateExportMaskURIs.add(exportMaskURI);
+                	int existingInitiators = mask.getExistingInitiators() == null ? 0 : mask.getExistingInitiators().size();
+                    int userAddedInitators = mask.getUserAddedInitiators() == null ? 0 : mask.getUserAddedInitiators().size();
+                    int totalInitiators = existingInitiators + userAddedInitators;
+                    totalPorts += storagePortToNetworkName.keySet().size() * totalInitiators;
+                    maskToTotalMatchingPorts.put(exportMaskURI, totalPorts);
                 }
             }
 

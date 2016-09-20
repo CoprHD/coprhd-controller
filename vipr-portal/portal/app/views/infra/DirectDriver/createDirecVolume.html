@@ -1,0 +1,264 @@
+%{
+  titleKey = 'nav.createDriver';
+  descriptionKey = 'CreateVolume.direct.description';
+  image = '/public/img/assets/Volume.png';
+  
+}%
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:storageArray?.id ? true : false/}
+
+#{set 'moreScripts'}
+#{/set}
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @saveVolume(), id:'volume', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+	  #{field 'volume.arrayType'}
+	    %{
+	      field.options = storageArrayTypeList
+	      field.addEmptyOption = true
+    	  field.emptyOptionLabel = "Select an Option"
+	      field.required = true
+	      field.cssClass = 'span6 initialFocus'
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+	  
+
+    #{field 'volume.ipAddress'}
+      %{
+        field.required = true        
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup options:ipList, field:field /}
+    #{/field}
+
+	  #{field 'volume.ha'}
+	    %{
+	      field.options = ha_Options
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+	  
+    
+<!--new editing start-->
+	  #{field 'volume.arrayTypeForVplex'}
+	    %{
+	      field.options = storageArrayTypeList
+	      field.addEmptyOption = true
+    	  field.emptyOptionLabel = "Select an Option"
+	      field.required = true
+	      field.cssClass = 'span6 initialFocus'
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+    
+        #{field 'volume.ipAddressForVplex'}
+      %{
+        field.required = true        
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup options:ipList, field:field /}
+    #{/field}
+    
+        #{field 'volume.poolForVplex'}
+    %{
+    	field.required = true
+    	field.cssClass = 'span3'
+    }%
+	      #{Form.selectOneControlGroup options:poolList, field:field /}
+    #{/field}
+    
+ <!-- end -->   
+    #{field 'volume.pool'}
+    %{
+    	field.required = true
+    	field.cssClass = 'span3'
+    }%
+	      #{Form.selectOneControlGroup options:poolList, field:field /}
+    #{/field}
+    
+	  
+	  #{field 'volume.ipAddress2'}
+	  %{
+	    field.required = true        
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup options:ipList, field:field /}
+	  #{/field}
+    
+      #{field 'volume.pool2'}
+	    %{
+	      field.options = ha_Options
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+	  
+
+    #{field 'volume.hosts'}
+    %{
+    	field.required = true
+    	field.cssClass = 'span3'
+    }%
+    #{Form.selectOneControlGroup options:hostList, field:field /}
+    #{/field}
+    
+    #{field 'volume.name'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+	
+	#{field 'volume.size'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'volume.count'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+
+    </fieldset>
+    
+    #{Form.saveCancel /}
+  
+#{/form}
+</div>
+<script>
+var editVersion = -1;
+var ipSelectId = $('#volume_ipAddress');
+var storagePool = $('#volume_pool');
+var ipSelectIdForVplex = $('#volume_ipAddressForVplex');
+var storagePoolForVplex = $('#volume_poolForVplex');
+
+$(document).ready(function () {
+	$('#volume_arrayType').on('change', systemTypeChanged);
+	$('#volume_arrayTypeForVplex').on('change', systemTypeChangedForVplex);
+	$('#volume_ha').on('change', availabilityChanged);
+	$('#volume_haControlGroup').hide();
+	$('#volume_arrayTypeForVplexControlGroup').hide();
+	$('#volume_ipAddressForVplexControlGroup').hide();
+	$('#volume_poolForVplexControlGroup').hide();
+	$('#volume_ipAddress2ControlGroup').hide();
+	$('#volume_pool2ControlGroup').hide();
+
+	function systemTypeChanged(){
+		var handler = function(data, textStatus, jqXHR) {
+			ipSelectId.empty();
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+                option += '>'+data[i].name+'</option>';
+                ipSelectId.append(option);
+            }
+            $("#volume_ipAddress").trigger('chosen:updated');
+            loadstoragePool();
+            triggerSelectUpdated(ipSelectId);
+           
+        };
+        var type = $('#volume_arrayType').val();
+        if(type=="vplex") {
+        	$('#volume_haControlGroup').show();
+        	$('#volume_arrayTypeForVplexControlGroup').show();
+        	$('#volume_ipAddressForVplexControlGroup').show();
+        	$('#volume_poolForVplexControlGroup').show();
+
+ 			$('#volume_poolControlGroup').hide();
+        } else {
+        	$('#volume_haControlGroup').hide();
+        	$('#volume_arrayTypeForVplexControlGroup').hide();
+        	$('#volume_ipAddressForVplexControlGroup').hide();
+        	$('#volume_poolForVplexControlGroup').hide();
+        	$('#volume_ipAddress2ControlGroup').hide();
+        	$('#volume_pool2ControlGroup').hide();
+ 			$('#volume_poolControlGroup').show();
+        }
+
+		var url = "@{getIpFromType()}";
+		$.get(url,"type="+type, handler,'json' );
+	}
+	
+	function loadstoragePool() {
+		var handler = function(data, textStatus, jqXHR) {
+			storagePool.empty();
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+                option += '>'+data[i].name+'</option>';
+                storagePool.append(option);
+            }
+            $("#volume_pool").trigger('chosen:updated');
+            triggerSelectUpdated(storagePool);
+           
+        };
+        var type = $('#volume_ipAddress').val();
+		var url = "@{getPoolsFromSystem()}";
+		$.get(url,"id="+type, handler,'json' );
+	}
+	
+	function availabilityChanged() {
+		var hatype = $('#volume_ha').val();
+        if(hatype=="vplex_distributed") {
+        	$('#volume_ipAddress2ControlGroup').show();
+        	$('#volume_pool2ControlGroup').show();
+        } else {
+        	$('#volume_ipAddress2ControlGroup').hide();
+        	$('#volume_pool2ControlGroup').hide();
+        }
+	}
+	
+	function triggerSelectUpdated(select) {
+        select.trigger("change");
+    }
+	
+	function systemTypeChangedForVplex(){
+		var handler = function(data, textStatus, jqXHR) {
+			ipSelectIdForVplex.empty();
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+                option += '>'+data[i].name+'</option>';
+                ipSelectIdForVplex.append(option);
+            }
+            $("#volume_ipAddressForVplex").trigger('chosen:updated');
+            loadstoragePoolForVplex();
+            triggerSelectUpdated(ipSelectIdForVplex);
+           
+        };
+        var type = $('#volume_arrayTypeForVplex').val();
+		var url = "@{getIpFromType()}";
+		$.get(url,"type="+type, handler,'json' );
+	}
+	
+	function loadstoragePoolForVplex() {
+		var handler = function(data, textStatus, jqXHR) {
+			storagePoolForVplex.empty();
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+                option += '>'+data[i].name+'</option>';
+                storagePoolForVplex.append(option);
+            }
+            $("#volume_poolForVplex").trigger('chosen:updated');
+            triggerSelectUpdated(storagePoolForVplex);
+           
+        };
+        var type = $('#volume_ipAddressForVplex').val();
+		var url = "@{getPoolsFromSystem()}";
+		$.get(url,"id="+type, handler,'json');
+	}
+	
+
+});
+</script>

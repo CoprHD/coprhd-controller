@@ -465,9 +465,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
                 Volume volume = _dbClient.queryObject(Volume.class, first.getVolumeURI());
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+		
+		boolean createAsMetaVolume = false;
+ 
+                if(capabilities.getSize() == 0){
+                        createAsMetaVolume = false;
+                } else{
+                	createAsMetaVolume = capabilities.getIsMetaVolume()
+                          || MetaVolumeUtils.createAsMetaVolume(first.getVolumeURI(), _dbClient, capabilities);
+                }
 
-                boolean createAsMetaVolume = capabilities.getIsMetaVolume()
-                        || MetaVolumeUtils.createAsMetaVolume(first.getVolumeURI(), _dbClient, capabilities);
                 if (storageSystem.checkIfVmax3()) {
                     createAsMetaVolume = false; // VMAX3 does not support META and we will get here due to change VPool scenario
                 }
@@ -980,7 +987,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
             Volume volume = volumes.get(0);
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            //VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,
                     storagePool, opId, volumes, capabilities, completer);

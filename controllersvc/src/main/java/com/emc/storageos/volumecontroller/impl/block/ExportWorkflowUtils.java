@@ -85,6 +85,38 @@ public class ExportWorkflowUtils {
                         storageSystem.getNativeGuid(), storage.toString()),
                 storageSystem, method, rollback, waitFor);
     }
+    
+    /*
+     * Same as enerateExportGroupCreateWorkflow. This one is for PassThrough Export.
+     */
+    public String generatePassThroughExportGroupCreateWorkflow(Workflow workflow, String wfGroupId,
+            String waitFor, URI storage,
+            URI export,
+            Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs)
+            throws WorkflowException {
+        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
+
+        // Filter the addedInitiators for non VPLEX system by the Export Group varray.
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
+        
+        /*initiatorURIs = ExportUtils.filterNonVplexInitiatorsByExportGroupVarray(
+                exportGroup, initiatorURIs, storage, _dbClient);
+		*/
+        
+        Workflow.Method method =
+                ExportWorkflowEntryPoints.exportGroupCreateMethod(storage, export,
+                        volumeMap, initiatorURIs);
+
+        Workflow.Method rollback =
+                ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
+
+        return newWorkflowStep(workflow, wfGroupId,
+                String.format("Creating export on storage array %s (%s)",
+                        storageSystem.getNativeGuid(), storage.toString()),
+                storageSystem, method, rollback, waitFor);
+    }
+    
 
     /**
      * Creates the workflow for one export mask (storage system) for an update export

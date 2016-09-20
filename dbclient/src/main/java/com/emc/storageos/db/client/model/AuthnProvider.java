@@ -64,6 +64,7 @@ public class AuthnProvider extends DataObject {
 
     public void setOidcClientId(String oidcClientId) {
         this.oidcClientId = oidcClientId;
+        setChanged("clientid");
     }
 
     @Name("cburl")
@@ -73,6 +74,7 @@ public class AuthnProvider extends DataObject {
 
     public void setOidcCallBackUrl(String oidcCallBackUrl) {
         this.oidcCallBackUrl = oidcCallBackUrl;
+        setChanged("cburl");
     }
 
     @Name("tokenurl")
@@ -82,6 +84,7 @@ public class AuthnProvider extends DataObject {
 
     public void setOidcTokenUrl(String oidcTokenUrl) {
         this.oidcTokenUrl = oidcTokenUrl;
+        setChanged("tokenurl");
     }
 
     @Name("authurl")
@@ -91,6 +94,7 @@ public class AuthnProvider extends DataObject {
 
     public void setOidcAuthorizeUrl(String oidcAuthorizeUrl) {
         this.oidcAuthorizeUrl = oidcAuthorizeUrl;
+        setChanged("authurl");
     }
 
     @Name("jwksurl")
@@ -104,6 +108,7 @@ public class AuthnProvider extends DataObject {
 
     public void setOidcProviderAddress(String oidcProviderAddress) {
         this.oidcProviderAddress = oidcProviderAddress;
+        setChanged("oidcaddr");
     }
 
     @Name("oidcaddr")

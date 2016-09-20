@@ -1,0 +1,39 @@
+%{
+  titleKey = 'customWorkflow.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.customWorkflow'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{DataTable.header titleKey:'diagram.crud.title'/}
+
+#{DataTable.table id:'diagrams',
+                  dataTable: dataTable,
+                  selectable: true,
+                  source: @diagramsJson()}
+                  
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', action:'loadCanvas()'/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+
+#{/DataTable.table}
+
+
+  <script type="text/javascript">
+     function loadCanvas() {
+        var url = #{jsAction @canvas() /};
+        window.location.href = url();   
+     }
+  </script>
+  
+  <script type="text/javascript">
+function renderLink(o, val) {
+	
+	var data = o.aData;
+    var url = #{jsAction @diagram(':id')/};
+    var href = url(data);
+	
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>

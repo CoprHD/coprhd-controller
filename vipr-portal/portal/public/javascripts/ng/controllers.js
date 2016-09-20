@@ -1590,32 +1590,24 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
         //we need to check that the guide only appears on the license and initial setup nonav pages
         if (nonav) {
-            if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
-                //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
-                eraseCookie(cookieKey);
-                return;
-            } else {
-                eraseCookie(dataCookieKey);
-            }
+            eraseCookie(dataCookieKey);
         }
 
         if ($scope.guideVisible) {
 		    $scope.closeGuide();
         }
         else {
-            if (window.location.pathname != '/security/logout') {
-                $scope.guideVisible = true;
-                $scope.guideMode='full';
-                if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
-                    if ($window.location.pathname == '/setup/license') {
-                        if ($scope.currentStep == 1) {return;};
-                    }
-                    if ($window.location.pathname == '/setup/index') {
-                        if ($scope.currentStep == 2) {return;};
-                    }
+            $scope.guideVisible = true;
+            $scope.guideMode='full';
+            if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
+                if ($window.location.pathname == '/setup/license') {
+                    if ($scope.currentStep == 1) {return;};
                 }
-                $scope.initializeSteps();
-		    }
+                if ($window.location.pathname == '/setup/index') {
+                    if ($scope.currentStep == 2) {return;};
+                }
+            }
+            $scope.initializeSteps();
         }
     }
 
@@ -2271,7 +2263,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
                 window.clearInterval(guideMonitor);
                 $scope.currentStep = 3;
+                $scope.guideMode='full';
                 $scope.staleData = true;
+                $scope.$apply();
             }
         };
     }();

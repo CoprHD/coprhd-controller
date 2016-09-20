@@ -653,3 +653,6 @@ $(document).ready(function() {
   #{/Modal.dialog}
 
 #{/form}
+<div id="wizard" ng-controller="wizardController"  ng-init="toggleGuide(true)" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
+  #{GettingStarted.gettingStarted/}
+</div>

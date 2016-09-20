@@ -6950,7 +6950,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (createdVolumeURI != null) {
                     Volume createdVolume = _dbClient.queryObject(Volume.class, createdVolumeURI);
                     if (createdVolume != null) {
-                        _dbClient.markForDeletion(vplexVolume);
+                        _dbClient.markForDeletion(createdVolume);
                     }
                 }
                 

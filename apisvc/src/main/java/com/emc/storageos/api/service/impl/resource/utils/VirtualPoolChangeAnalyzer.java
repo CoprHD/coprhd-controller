@@ -1875,6 +1875,13 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             List<RPVPlexMigration> potentialMigrations, StringBuffer notSuppReasonBuff, DbClient dbClient) {
         boolean invalidMigration = false;
         
+        if (currentVpool.getProtectionVarraySettings() == null 
+                || newVpool.getProtectionVarraySettings() == null
+                || (currentVpool.getProtectionVarraySettings().size() != newVpool.getProtectionVarraySettings().size())) {
+            notSuppReasonBuff.append("RP Targets are mismatched.");
+            return true;
+        }
+        
         // Check the Targets for potential candidates for migration
         for (Map.Entry<String, String> entry : currentVpool.getProtectionVarraySettings().entrySet()) {
             String targetVarrayId = entry.getKey();

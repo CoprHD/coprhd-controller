@@ -601,8 +601,8 @@ public class VPlexControllerUtils {
 
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
-            List<String> initiatorPortsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorsToAdd = new ArrayList<Initiator>();
+            List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
+            List<Initiator> initiatorsObjectsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -610,9 +610,10 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
-                    initiatorPortsToAdd.add(normalizedPort);
                     if (knownInitiator != null) {
-                        initiatorsToAdd.add(knownInitiator);
+                        initiatorsObjectsToAdd.add(knownInitiator);
+                    } else {
+                        initiatorPortWwnsToAdd.add(normalizedPort);
                     }
                     addInitiators = true;
                 }
@@ -726,7 +727,7 @@ public class VPlexControllerUtils {
 
             log.info(
                     String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}%n",
-                            name, Joiner.on(',').join(initiatorPortsToAdd),
+                            name, Joiner.on(',').join(initiatorPortWwnsToAdd),
                             Joiner.on(',').join(initiatorsToRemove), 
                             Joiner.on(',').join(initiatorsToRemoveFromExisting)));
             log.info(
@@ -749,10 +750,10 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorsToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorsObjectsToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
-                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortsToAdd);
-                exportMask.addInitiators(initiatorsToAdd);
+                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
+                exportMask.addInitiators(initiatorsObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);

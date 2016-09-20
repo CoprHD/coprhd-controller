@@ -3675,9 +3675,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // initiators and existing volumes then remove all the initiators
                     // as well. Remove initiators method will make sure
                     // not to remove existing initiators.
-                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes and initiators "
-                            + "so just removing ViPR-managed volumes and initiators : "
-                            + exportMask.getMaskName());
+                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes ({}) or initiators ({}) "
+                            + "so just removing ViPR-managed volumes and initiators: {}", 
+                            existingVolumes, existingInitiators, exportMask.getMaskName());
                     hasSteps = true;
 
                     if (!existingVolumes) {

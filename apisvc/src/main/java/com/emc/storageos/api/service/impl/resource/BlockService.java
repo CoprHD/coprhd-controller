@@ -340,20 +340,17 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     *
-     * Start continuous copies.
-     *
+     * Start continuous copies.  Continuous copies will be created when <i>NATIVE</i> type is specified and
+     * <i>copyID</i> fields are omitted.
      *
      * @prereq none
      *
-     * @param id
-     *            the URN of a ViPR Source volume
-     * @param param
-     *            List of copies to start
+     * @param id    URN of a ViPR Source volume
+     * @param param List of copies to start or create.
      *
-     * @brief Start continuous copies.
-     * @return TaskList
+     * @brief       Start or create continuous copies.
      *
+     * @return      TaskList
      * @throws ControllerException
      *
      */
@@ -417,7 +414,7 @@ public class BlockService extends TaskResourceService {
                 taskList.getTaskList().add(taskResp);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 if (URIUtil.isValid(copyID) && URIUtil.isType(copyID, BlockMirror.class)) {
-                    /**
+                    /*
                      * To establish group relationship between volume group and mirror group
                      */
                     taskResp = establishVolumeMirrorGroupRelation(id, copy, ProtectionOp.START.getRestOp());

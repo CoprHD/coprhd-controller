@@ -17,6 +17,10 @@
 #
 #set -x
 
+# Required for remote execution of SYMCLI commands.
+# If you are debugging, export this variable on your command line or add to your .bashrc
+export SYMCLI_CONNECT=SYMAPI_SERVER
+
 ## Convenience method for deleting a mask outside of ViPR (including the storage group)
 delete_mask() {
     serial_number=$1
@@ -167,7 +171,7 @@ verify_export_prechecks() {
 
     grep -n ${SG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]; then
-	echo "ERROR: Expected MaskingView ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN}, but could not find it";
 	exit 1;
     fi
 }
@@ -223,12 +227,12 @@ verify_export() {
 	    echo "PASSED: Verified MaskingView with pattern ${SG_PATTERN} doesn't exist."
 	    exit 0;
 	fi
-	echo "ERROR: Expected MaskingView ${SG_PATTERN}, but could not find it";
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN}, but could not find it";
 	exit 1;
     else
 	if [ "$2" = "gone" ]
 	    then
-	    echo "ERROR: Expected MaskingView ${SG_PATTERN} to be gone, but it was found"
+	    echo -e "\e[91mERROR\e[0m: Expected MaskingView ${SG_PATTERN} to be gone, but it was found"
 	    exit 1;
 	fi
     fi
@@ -238,8 +242,8 @@ verify_export() {
     failed=false
 
     if [ "${num_inits}" != "${NUM_INITIATORS}" ]; then
-	echo "FAILED: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
-	echo "FAILED: Masking view dump:"
+	echo -e "\e[91mERROR\e[0m: Export group initiators: Expected: ${NUM_INITIATORS}, Retrieved: ${num_inits}";
+	echo -e "\e[91mERROR\e[0m: Masking view dump:"
 	grep "Masking View Name" ${TMPFILE1}
 	grep "Group Name" ${TMPFILE1}
 	grep "WWN.*:" ${TMPFILE1}
@@ -248,8 +252,8 @@ verify_export() {
     fi
 
     if [ "${num_luns}" != "${NUM_LUNS}" ]; then
-	echo "FAILED: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
-	echo "FAILED: Masking view dump:"
+	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
+	echo -e "\e[91mERROR\e[0m: Masking view dump:"
 	grep "Masking View Name" ${TMPFILE1}
 	grep "Group Name" ${TMPFILE1}
 	grep "WWN" ${TMPFILE1}

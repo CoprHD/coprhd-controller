@@ -2564,10 +2564,17 @@ public class WorkflowService implements WorkflowController {
     public void markWorkflowBeenCreated(String stepId, String workflowKey) {
         // Mark this workflow as created/executed so we don't do it again on retry/resume
         try {
+            Workflow workflow = getWorkflowFromStepId(stepId);
+            if (workflow == null) {
+                _log.info(String.format(
+                        "Step %s has already been deleted and therefore cannot mark sub-workflow created, key %s",
+                        stepId, workflowKey));
+                return;
+            }
             WorkflowService.getInstance().storeStepData(stepId, workflowKey, Boolean.TRUE.toString());
         } catch (WorkflowException ex) {
             _log.info(String.format(
-                "Step %s has already been deleted and therefore cannot mark sub-workflow created, key %s",
+                "Step %s unable to mark sub-workflow created, key %s",
                 stepId, workflowKey));
         }
     }

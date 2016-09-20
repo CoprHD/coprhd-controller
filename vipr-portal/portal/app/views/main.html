@@ -172,7 +172,10 @@
       #{nav.item 'viewCatalog', href: @catalog.ServiceCatalog.view()/}
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
           #{nav.item 'editCatalog', href: @catalog.EditCatalog.edit() /}
-      #{/deadbolt.restrict}              
+      #{/deadbolt.restrict}
+      #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+          #{nav.item 'viewImage', href: @catalog.CatalogImages.list() /}
+      #{/deadbolt.restrict}
       #{nav.separator/}
       #{nav.item 'viewOrders', href: @catalog.Orders.list()/}
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}

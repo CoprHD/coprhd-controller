@@ -829,7 +829,16 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException storageVolumeFailedValidation(final String vplexVolumeId, final String storageVolumeId);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_FIRMWARE_UPDATE_NEEDED)
     public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexClusterConfigurationChangedFromMetroToLocal(final String systemNativeGuid, final String localAssemblyId);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexClusterConfigurationChangedFromLocalToMetro(final String localAssemblyId, final String systemNativeGuid);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexSerialNumberChanged(final String oldSerialNumber, final String newSerialNumber);
 }

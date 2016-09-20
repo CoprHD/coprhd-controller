@@ -81,6 +81,7 @@ import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -238,6 +239,11 @@ public class Orders extends OrderExecution {
         try {
             if (isSchedulerEnabled()) {
                 ScheduledEventCreateParam event = createScheduledOrder(order);
+                if (Validation.hasErrors()) {
+                    Validation.keep();
+                    Common.flashParamsExcept("json", "body");
+                    Services.showForm(serviceId);
+                }
                 ScheduledEventRestRep submittedEvent = getCatalogClient().orders().submitScheduledEvent(event);
                 status = submittedEvent.getEventStatus();
                 orderId = submittedEvent.getLatestOrderId().toString();
@@ -247,8 +253,8 @@ public class Orders extends OrderExecution {
                 orderId = submittedOrder.getId().toString();
             }
         } catch (Exception e) {
-            Logger.error(e, MessagesUtils.get("order.submitFailed"));
-            flash.error(MessagesUtils.get("order.submitFailed"));
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
             Common.handleError();
         }
 

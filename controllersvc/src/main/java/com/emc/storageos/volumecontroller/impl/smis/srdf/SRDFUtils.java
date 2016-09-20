@@ -206,13 +206,13 @@ public class SRDFUtils implements SmisConstants {
     public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, Volume targetVolume) {
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
         CIMObjectPath objectPath = cimPath.getBlockObjectPath(targetSystem, targetVolume);
-
+        RemoteDirectorGroup rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, targetVolume.getSrdfGroup());
         CIMObjectPath remoteGroupPath = getRemoteGroupPath(provider, objectPath);
         List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);
 
         List<CIMObjectPath> result = new ArrayList<>();
         for (CIMObjectPath volumePath : volumePathsInRemoteGroup) {
-            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath);
+            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath, rdfGrp);
             result.add(storageSync);
         }
 
@@ -225,7 +225,7 @@ public class SRDFUtils implements SmisConstants {
 
         List<CIMObjectPath> result = new ArrayList<>();
         for (CIMObjectPath volumePath : volumePathsInRemoteGroup) {
-            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath);
+            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath, group);
             result.add(storageSync);
         }
 
@@ -624,15 +624,30 @@ public class SRDFUtils implements SmisConstants {
         return forceAdd;
     }
 
-    private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath) {
+    /**
+     * Finds remote storage synchronized element for the given volume's cimObjectPath
+     * 
+     * @param provider
+     * @param volumePath
+     * @param rdfGroup {@link RemoteDirectorGroup}
+     * @return
+     */
+    private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath,
+            RemoteDirectorGroup rdfGroup) {
         CloseableIterator<CIMObjectPath> references = null;
-
         try {
             references = helper.getReference(provider, volumePath, CIM_STORAGE_SYNCHRONIZED, null);
-            // TODO Could potentially return a local storage synchronized. Need to make sure we return
-            // the correct one!
-            if (references.hasNext()) {
-                return references.next();
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getSourceStorageSystemUri());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getRemoteStorageSystemUri());
+            log.debug("Source serial number {}", sourceSystem.getSerialNumber());
+            log.debug("target system serial number {}", targetSystem.getSerialNumber());
+            while (references.hasNext()) {
+                CIMObjectPath storageSynchronized = references.next();
+                log.debug("storage Synchronized {}", storageSynchronized);
+                if (storageSynchronized.toString().contains(sourceSystem.getSerialNumber())
+                        && storageSynchronized.toString().contains(targetSystem.getSerialNumber())) {
+                    return storageSynchronized;
+                }
             }
         } catch (WBEMException e) {
             throw new RuntimeException("Failed to acquire storage synchronization", e);
@@ -654,6 +669,8 @@ public class SRDFUtils implements SmisConstants {
         boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.identical(activeProviderSystem.getId(),
                 sourceSystem.getId()));
         String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
+
+        RemoteDirectorGroup rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
         // Use the activeSystem always.
         StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
         if (null != activeProviderSystem) {
@@ -665,7 +682,7 @@ public class SRDFUtils implements SmisConstants {
             throw new IllegalStateException("Volume not found : " + source.getNativeId());
         }
         log.info("Volume Path {}", volumePath.toString());
-        return getStorageSynchronizationFromVolume(systemToUse, volumePath);
+        return getStorageSynchronizationFromVolume(systemToUse, volumePath, rdfGrp);
 
     }
 

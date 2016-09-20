@@ -113,7 +113,7 @@ public class ImmutableAuthenticationProviders {
         }
         _log.info("Loading authentication providers from the database");
         for (AuthnProvider authenticationConfiguration : providerConfigs) {
-            _log.debug("Adding auth provider with ID {}", authenticationConfiguration.getId());
+            _log.info("Adding auth provider with ID {} and mode {}", authenticationConfiguration.getId(), authenticationConfiguration.getMode());
             if (authenticationConfiguration.getInactive() || authenticationConfiguration.getDisable()) {
                 _log.info("Skipping authentication provider {} because it is inactive", authenticationConfiguration.getId());
                 continue;
@@ -130,7 +130,7 @@ public class ImmutableAuthenticationProviders {
                         authenticationConfiguration.getId(), e);
             }
         }
-        _log.info("Loaded {} authentication handlers", authenticationProviders.size());
+        _log.info("Loaded {} authentication providers", authenticationProviders.size());
         return new ImmutableAuthenticationProviders(authenticationProviders);
     }
 
@@ -162,7 +162,7 @@ public class ImmutableAuthenticationProviders {
         } else if (AuthnProvider.ProvidersType.oidc.toString()
                 .equalsIgnoreCase(authenticationConfiguration.getMode())) {
             _log.debug("Auth handler is in OIDC mode");
-            return getOIDCProvider(coordinator, authenticationConfiguration, dbclient);
+            return getOIDCProvider(authenticationConfiguration);
         } else {
             _log.error(
                     "Mode {} not known skipping this authN configuration",
@@ -171,8 +171,8 @@ public class ImmutableAuthenticationProviders {
         return null;
     }
 
-    private static AuthenticationProvider getOIDCProvider(CoordinatorClient coordinator, AuthnProvider authenticationConfiguration, DbClient dbclient) {
-        return null;
+    private static AuthenticationProvider getOIDCProvider(AuthnProvider authenticationConfiguration) {
+        return new AuthenticationProvider(null, null, authenticationConfiguration);
     }
 
     /**

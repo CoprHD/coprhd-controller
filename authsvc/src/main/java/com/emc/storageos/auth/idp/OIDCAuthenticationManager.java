@@ -216,6 +216,9 @@ public class OIDCAuthenticationManager {
 
     public AuthnProvider getOidcAuthProvider() {
         for (AuthenticationProvider provider : authProviders.getAuthenticationProviders()) {
+            if (provider.getProviderConfig() == null) { // local auth
+                continue;
+            }
             if ( provider.getProviderConfig().getMode().equalsIgnoreCase( AuthnProvider.ProvidersType.oidc.name() ) ) {
                 return provider.getProviderConfig();
             }

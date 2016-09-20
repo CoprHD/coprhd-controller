@@ -82,7 +82,7 @@ public class ExportMaskOnlyRemoveVolumeCompleter extends ExportTaskCompleter {
                     "Failed updating status for ExportMaskOnlyRemoveVolume - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         } finally {
-            //super.complete(dbClient, status, coded);
+            super.complete(dbClient, status, coded);
         }
     }
 }

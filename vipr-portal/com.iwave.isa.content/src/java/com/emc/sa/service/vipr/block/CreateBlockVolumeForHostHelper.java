@@ -67,7 +67,7 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
 
-        BlockStorageUtils.checkEvents(hostId);
+        BlockStorageUtils.checkEvents(host != null ? host : cluster);
 
     }
 

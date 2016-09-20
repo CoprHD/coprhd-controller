@@ -473,7 +473,7 @@ public class NetAppApi {
     public List<Qtree> listQtrees() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https,_vFilerName);
             return netAppFacade.listQtrees();
         } catch (Exception e) {
             throw NetAppException.exceptions.listQtreesFailed(_ipAddress, e.getMessage());
@@ -483,7 +483,7 @@ public class NetAppApi {
     public List<Quota> listQuotas() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https,_vFilerName);
             return netAppFacade.listQuotas();
         } catch (Exception e) {
             throw NetAppException.exceptions.listQuotasFailed(_ipAddress, e.getMessage());

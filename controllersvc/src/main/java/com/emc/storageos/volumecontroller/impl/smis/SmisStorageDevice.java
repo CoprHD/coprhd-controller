@@ -73,7 +73,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.CloneOperations;
-import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.MetaVolumeOperations;
@@ -104,7 +103,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchron
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
@@ -130,16 +128,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private SRDFOperations _srdfOperations;
     private SmisStorageDevicePreProcessor _smisStorageDevicePreProcessor;
     private FindProviderFactory findProviderFactory;
-    private ControllerLockingService _locker;
-    private ValidatorFactory validator;
-
-    public void setValidator(ValidatorFactory validator) {
-        this.validator = validator;
-    }
-
-    public void setLocker(final ControllerLockingService locker) {
-        this._locker = locker;
-    }
 
     public void setCimObjectPathFactory(final CIMObjectPathFactory cimObjectPathFactory) {
         _cimPath = cimObjectPathFactory;
@@ -207,8 +195,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Create Volume Start - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
+        StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
         // volumeGroupObjectPath is required for VMAX3
-        CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(storageSystem, volumes.get(0), storagePool);
+        CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(forProvider, storageSystem, volumes.get(0), storagePool);
         List<String> volumeLabels = new ArrayList<>();
 
         for (Volume volume : volumes) {
@@ -266,7 +255,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
             CIMArgument[] outArgs = new CIMArgument[5];
-            StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
             _helper.invokeMethod(forProvider, configSvcPath,
                     _helper.createVolumesMethodName(forProvider), inArgs, outArgs);
             CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
@@ -553,9 +541,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 taskCompleter);
         try {
-
-            validator.expandVolumes(storageSystem, volume).validate();
-
             if (!doesStorageSystemSupportVolumeExpand(storageSystem)) {
                 ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
                 taskCompleter.error(_dbClient, error);
@@ -600,8 +585,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<Volume> volumes, final TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         try {
-            int volumeCount = 0;
-            String[] volumeNativeIds = new String[volumes.size()];
+            List<String> volumeNativeIds = new ArrayList<String>();
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Delete Volume Start - Array:%s", storageSystem.getSerialNumber()));
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
@@ -609,18 +593,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             Set<Volume> cloneVolumes = new HashSet<Volume>();
 
             _helper.callRefreshSystem(storageSystem, null, false);
-
-            if (validator == null) {
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
-            } else {
-                validator.deleteVolumes(storageSystem, volumes).validate();
-            }
 
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
@@ -636,26 +608,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                     _log.info("Done invoking remove volume from storage group");
                 }
-                // For clones, 'replicationgroupinstance' property contains the Replication Group name.
-                if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+               
+                if (volume.getConsistencyGroup() != null
+                        || NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                    _log.info(String.format("Volume [%s](%s) is a part of CG (%s), extra cleanup operations may be needed.", 
+                            volume.getLabel(), volume.getId(), volume.getConsistencyGroup()));
+                    // Clean up any group backup snapshots (VNX only), if there are none this step will be skipped.
+                    if (storageSystem.deviceIsType(Type.vnxblock)) {
+                        cleanupAnyGroupBackupSnapshots(storageSystem, volume);
+                    }
+                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
+                    cleanupAnyBackupSnapshots(storageSystem, volume);
+                    // Remove the volume from the backend CG, if it's not actually in a backend CG this step will be skipped.
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
-                }
-                if (volume.getConsistencyGroup() != null) {
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
-                    // Only perform native CG operations if the CG is not for RecoverPoint alone. If the
-                    // CG is for RecoverPoint alone, there are no native array artifacts to cleanup/remove.
-                    if (cg != null && cg.getTypes() != null &&
-                            !(cg.getTypes().size() == 1 && cg.checkForType(BlockConsistencyGroup.Types.RP))) {
-                        if (storageSystem.deviceIsType(Type.vnxblock)) {
-                            cleanupAnyGroupBackupSnapshots(storageSystem, volume);
-                        }
-                        removeVolumeFromConsistencyGroup(storageSystem, volume);
-                    }
-                    // for VMAX3, delete the associated snapshot sessions before deleting the volume
-                    // volume may be removed from CG which has group session
-                    if (storageSystem.checkIfVmax3()) {
-                        cleanupAnyBackupSnapshots(storageSystem, volume);
-                    }
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
                     if (storageSystem.deviceIsType(Type.vnxblock) || storageSystem.checkIfVmax3()) {
@@ -667,9 +632,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     // COP-16705, COP-21770 - Ingested non-exported Volume may be associated with SG outside of ViPR.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
-                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
-                        volumes.get(0));
-                CIMInstance volumeInstance = _helper.checkExists(forProvider,
+
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
                         _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
                 if (volumeInstance == null) {
@@ -727,7 +691,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                     cloneVolumes.add(volume);
                 }
-                volumeNativeIds[volumeCount++] = volume.getNativeId();
+                volumeNativeIds.add(volume.getNativeId());
             }
             _log.info(logMsgBuilder.toString());
 
@@ -746,7 +710,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
                 CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
                 CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storageSystem,
-                        volumeNativeIds);
+                        volumeNativeIds.toArray(new String[0]));
                 CIMArgument[] outArgs = new CIMArgument[5];
                 String returnElementsMethod;
                 if (storageSystem.getUsingSmis80()) {
@@ -1385,6 +1349,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     private void removeVolumeFromConsistencyGroup(StorageSystem storage, final Volume volume)
             throws Exception {
+        _log.info(String.format("removeVolumeFromConsistencyGroup for volume [%s](%s)...",
+                volume.getLabel(), volume.getId()));
         CloseableIterator<CIMObjectPath> assocVolNamesIter = null;
         try {
             // Check if the consistency group exists
@@ -1396,12 +1362,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, _dbClient);
             }
 
-            storage = findProviderFactory.withGroup(storage, groupName).find();
-
-            if (storage == null) {
-                _log.warn("Replication Group {} not found. Skipping Remove Volume from CG step.", groupName);
+            if (groupName != null) {
+                storage = findProviderFactory.withGroup(storage, groupName).find();   
+                if (storage == null) {
+                    _log.info("Replication Group {} not found. Skipping Remove Volume from CG step.", groupName);
+                    return;
+                }
+            } else {
+                _log.info(String.format("No Replication Group found for volume [%s](%s). Skipping remove volume from CG step.",
+                        volume.getLabel(), volume.getId()));
                 return;
             }
+            
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
 
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
@@ -1475,6 +1447,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     private void cleanupAnyBackupSnapshots(final StorageSystem storage, final Volume volume)
             throws Exception {
+        _log.info(String.format("cleanupAnyBackupSnapshots for volume [%s](%s)...",
+                volume.getLabel(), volume.getId()));
         CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, volume);
         if (_helper.checkExists(storage, volumePath, false, false) == null) {
             _log.info(String
@@ -1486,11 +1460,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             settingsIterator = _helper.getReference(storage, volumePath,
                     SmisConstants.CIM_SETTINGS_DEFINE_STATE, null);
-            while (settingsIterator.hasNext()) {
-                CIMObjectPath settingsPath = settingsIterator.next();
-                CIMArgument[] outArgs = new CIMArgument[5];
-                _helper.callModifySettingsDefineState(storage,
-                        _helper.getDeleteSettingsForSnapshotInputArguments(settingsPath, true), outArgs);
+            if (settingsIterator != null) {
+                while (settingsIterator.hasNext()) {
+                    CIMObjectPath settingsPath = settingsIterator.next();                                        
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    _helper.callModifySettingsDefineState(storage,
+                            _helper.getDeleteSettingsForSnapshotInputArguments(settingsPath, true), outArgs);
+                }
             }
         } finally {
             if (settingsIterator != null) {
@@ -1511,9 +1487,23 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     private void cleanupAnyGroupBackupSnapshots(final StorageSystem storage, final Volume volume) {
         CloseableIterator<CIMObjectPath> settingsIterator = null;
+        _log.info(String.format("cleanupAnyGroupBackupSnapshots for volume [%s](%s)...",
+                volume.getLabel(), volume.getId()));
         try {
             String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, _dbClient);
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+            CIMObjectPath cgPath = null;
+            if (groupName != null) {
+                cgPath = _cimPath.getReplicationGroupPath(storage, groupName);  
+                if (cgPath == null) {
+                    _log.info("Replication Group {} not found. Skipping cleanup of group backup snapsots step.", groupName);
+                    return;
+                }
+            } else {
+                _log.info(String.format("No Replication Group found for volume [%s](%s). Skipping cleanup of group backup snapsots step.",
+                        volume.getLabel(), volume.getId()));
+                return;
+            }
+           
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
             if (cgPathInstance != null) {
@@ -1528,7 +1518,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             .getDeleteSettingsForSnapshotInputArguments(settingsPath, true);
                     _helper.callModifySettingsDefineState(storage, deleteSettingsInput, outArgs);
                 }
-            }
+            }            
         } catch (Exception e) {
             _log.info("Problem making SMI-S call: ", e);
         } finally {

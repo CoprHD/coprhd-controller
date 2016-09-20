@@ -76,6 +76,8 @@ class Fileshare(object):
     URI_MOUNT_TASKS_BY_OPID = '/vdc/tasks/{0}'
 	
     BOOL_TYPE_LIST = ['true', 'false']
+    MOUNT_FS_TYPES = ['auto', 'nfs', 'nfs4']
+    MOUNT_SEC_TYPES = ['sys', 'krb5', 'krb5i', 'krb5p']
 
     isTimeout = False
     timeout = 300
@@ -1216,13 +1218,8 @@ class Fileshare(object):
             Fileshare.URI_MOUNT.format(ouri), body)
 
         o = common.json_decode(s)
-
-        if sync:
-            return (
-                self.block_until_complete(
-                    o['resource']['id'],
-                    o["id"], synctimeout)
-            )
+        if(sync):
+            return self.check_for_sync(o, sync, synctimeout)
         else:
             return o
         
@@ -1243,12 +1240,8 @@ class Fileshare(object):
 
         o = common.json_decode(s)
 
-        if sync:
-            return (
-                self.block_until_complete(
-                    o['resource']['id'],
-                    o["id"], synctimeout)
-            )
+        if(sync):
+            return self.check_for_sync(o, sync,synctimeout)
         else:
             return o
 
@@ -3378,10 +3371,11 @@ def mount_parser(subcommand_parsers, common_parser):
         help='the mount fs type',
         metavar='<fstype>',
         dest='fstype',
+        choices=Fileshare.MOUNT_FS_TYPES,
         required=True)
     mandatory_args.add_argument(
         '-mp', '-mountpath',
-        help='the mount fs path',
+        help='the mount path',
         metavar='<mountpath>',
         dest='mountpath',
         required=True)
@@ -3390,6 +3384,7 @@ def mount_parser(subcommand_parsers, common_parser):
         help='the security style for the mount',
         metavar='<security>',
         dest='security',
+        choices=Fileshare.MOUNT_SEC_TYPES,
         required=True)
     mount_parser.add_argument(
         '-dir', '-subdirectory',
@@ -3440,7 +3435,7 @@ def fileshare_mount(args):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
                 "fileshare Mount: " + 
-                args.name + 
+                args.filesystem + 
                 ", mount Failed\n" + 
                 e.err_text)
         else:
@@ -3582,7 +3577,7 @@ def mountnfs_unmount(args):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
                 "MountNFS: " + 
-                args.name + 
+                args.filesystem + 
                 ", unmount Failed\n" + 
                 e.err_text)
         else:

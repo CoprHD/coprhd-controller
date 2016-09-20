@@ -74,6 +74,7 @@ POST  /config/validateMail                       infra.ConfigProperties.validate
 GET   /config/passwords                          infra.ConfigProperties.passwords
 POST  /config/passwords                          infra.ConfigProperties.changePassword
 POST  /config/validateExternalServer             infra.ConfigProperties.validateExternalSettings
+POST  /config/ConnectRemoteSyslogServer          infra.ConfigProperties.connectExternalServerIpPort
 
 GET   /cluster/ipInfo                            infra.ClusterInfo.clusterIpInfo
 POST  /cluster/ipReconfig                        infra.ClusterInfo.ipReconfig

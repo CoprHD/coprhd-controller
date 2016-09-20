@@ -106,11 +106,19 @@ public class FileExportUpdateParams implements Serializable {
         return sb.toString();
 
     }
-
+    
+    /**
+     * Non payload models - for internal use only: use query parameter subDir instead
+     */
     public String getSubDir() {
         return subDir;
     }
 
+    /**
+     * Non payload models - for internal use only: use query parameter subDir instead
+     * 
+     * @param subDir
+     */
     public void setSubDir(String subDir) {
         this.subDir = subDir;
     }

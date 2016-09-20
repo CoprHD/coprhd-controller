@@ -70,7 +70,7 @@ finish_message() {
 # 1. The backup created locally
 # 2. The downloaded backup
 is_local_backup() {
-    if [[ "${1}" =~ ^\/data\/backup ]]; then
+    if [[ "${1}" =~ ^\/data\/backup &&  -d "${RESTORE_ORIGIN}" ]]; then
         echo "true"
     else
         echo "false"

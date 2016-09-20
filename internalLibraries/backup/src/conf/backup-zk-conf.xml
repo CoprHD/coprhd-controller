@@ -18,6 +18,7 @@
     <bean id="backupHandler" class="com.emc.storageos.management.backup.ZkBackupHandler" >
         <property name="backupType" ref="backupType"/>
         <property name="backupContext" ref="backupContext"/>
+        <property name="nodeCount" ref="nodeCount"/>
         <property name="zkDir" ref="zkBackupFolder" />
         <property name="siteIdFile" ref="siteIdPath" />
         <property name="fileTypeList">
@@ -28,7 +29,6 @@
                 <value>currentEpoch</value>
             </list>
         </property>
-        <property name="maxEnrolledFileCount" value="1"/>
     </bean>
 
     <bean id="backupType" class="com.emc.storageos.management.backup.BackupType" factory-method="valueOf">

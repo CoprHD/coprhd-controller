@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.mutable.MutableInt;
@@ -13,18 +12,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
-import com.google.common.collect.Collections2;
+import com.emc.storageos.util.ConnectivityUtil;
 
 /*
  * MULTIPLE_MASK_PER_HOST :
@@ -55,8 +51,14 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                if (null == exportMask) {
+                    continue;
+                }
+                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                    continue;
+                }
                 // COP-18184 : Check if the initiators are also matching
-                if (null != exportMask && exportMask.getInitiators() != null
+                if (exportMask.getInitiators() != null
                         && exportMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
                     return exportMask;
                 }
@@ -70,12 +72,15 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
      */
     @Override
-    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
         for (ExportMask createdMask : exportMasks) {
             // COP-18184 : Check if the initiators are also matching
             if (null != createdMask && createdMask.getInitiators() != null
                     && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
+                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, createdMask, dbClient)) {
+                    continue;
+                }
                 _logger.info("Found already-created ExportMask {} matching all initiators of UnManagedExportMask {}",
                         createdMask.getMaskName(), mask.getMaskName());
                 return createdMask;

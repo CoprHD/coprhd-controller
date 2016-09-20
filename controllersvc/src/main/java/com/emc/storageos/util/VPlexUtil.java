@@ -145,13 +145,12 @@ public class VPlexUtil {
      * 
      */
     public static Volume getVPLEXBackendVolume(Volume vplexVolume, boolean sourceVolume, DbClient dbClient, boolean errorIfNotFound) {
-        String vplexVolumeId = vplexVolume.getId().toString();
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         Volume backendVolume = null;
         if (associatedVolumeIds == null) {
             if (errorIfNotFound) {
                 throw InternalServerErrorException.internalServerErrors
-                        .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+                        .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
             } else {
                 return backendVolume;
             }
@@ -289,7 +288,7 @@ public class VPlexUtil {
     static public Map<URI, Set<URI>> mapBlockObjectsToVarrays(DbClient dbClient,
             Collection<URI> blockObjectURIs, URI storageURI, ExportGroup exportGroup) {
         URI exportGroupVarray = exportGroup.getVirtualArray();
-        Map<URI, Set<URI>> varrayToBlockObjects = new HashMap<URI, Set<URI>>();
+        Map<URI, Set<URI>> varrayToBlockObjects = new HashMap<>();
         for (URI blockObjectURI : blockObjectURIs) {
             BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
             if (blockObject != null) {
@@ -394,7 +393,7 @@ public class VPlexUtil {
     public static Map<URI, List<URI>> partitionInitiatorsByVarray(DbClient dbClient,
             BlockStorageScheduler blockScheduler, List<URI> initiatorURIs, List<URI> varrayURIs,
             StorageSystem storage) {
-        Map<URI, List<URI>> varrayToInitiators = new HashMap<URI, List<URI>>();
+        Map<URI, List<URI>> varrayToInitiators = new HashMap<>();
         // Read the initiators and partition them by Network
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
         Map<NetworkLite, List<Initiator>> networkToInitiators = NetworkUtil.getInitiatorsByNetwork(initiators, dbClient);
@@ -432,7 +431,7 @@ public class VPlexUtil {
         if (srcVarray == null && haVarray == null) {
             return;
         }
-        Set<String> unconnectedHostNames = new HashSet<String>();
+        Set<String> unconnectedHostNames = new HashSet<>();
 
         // Retrieve all the Initiators
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
@@ -440,11 +439,11 @@ public class VPlexUtil {
         // a Map of Host URI to a List of Initiator objects, then get Initiator list for src, ha
         Map<URI, List<Initiator>> hostToInitiators = BlockStorageScheduler.getInitiatorsByHostMap(
                 initiators);
-        List<URI> srcVarrayInitiators = new ArrayList<URI>();
+        List<URI> srcVarrayInitiators = new ArrayList<>();
         if (srcVarray != null && varrayToInitiators.get(srcVarray) != null) {
             srcVarrayInitiators = varrayToInitiators.get(srcVarray);
         }
-        List<URI> haVarrayInitiators = new ArrayList<URI>();
+        List<URI> haVarrayInitiators = new ArrayList<>();
         if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
             haVarrayInitiators = varrayToInitiators.get(haVarray);
         }
@@ -470,8 +469,7 @@ public class VPlexUtil {
         }
 
         // log a message indicating unconnected hosts
-        String whichVarray = (srcVarray == null ? "high availability" :
-                (haVarray == null ? "source" : "source or high availability"));
+        String whichVarray = (srcVarray == null ? "high availability" : (haVarray == null ? "source" : "source or high availability"));
         if (!unconnectedHostNames.isEmpty()) {
             _log.info(String.format("The following initiators are not connected to the %s varrays: %s",
                     whichVarray, unconnectedHostNames.toString()));
@@ -505,14 +503,12 @@ public class VPlexUtil {
      */
     public static ExportMask getExportMaskForHostInVarray(DbClient dbClient,
             ExportGroup exportGroup, URI hostURI, URI vplexURI, URI varrayURI) throws Exception {
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (ExportMaskUtils.getExportMasks(dbClient, exportGroup).isEmpty()) {
             return null;
         }
         ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, dbClient, varrayURI, null, null);
 
-        List<ExportMask> exportMasks =
-                ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
         for (ExportMask exportMask : exportMasks) {
             boolean shared = false;
             if (sharedExportMask != null) {
@@ -542,7 +538,7 @@ public class VPlexUtil {
      * @return URI of host, or Null URI if host undeterminable or multiple host URI if ExportMask is shared.
      */
     public static Set<URI> getExportMaskHosts(DbClient dbClient, ExportMask exportMask, boolean sharedExportMask) {
-        Set<URI> hostURIs = new HashSet<URI>();
+        Set<URI> hostURIs = new HashSet<>();
         if (exportMask.getInitiators() == null || exportMask.getInitiators().isEmpty()) {
             return hostURIs;
         }
@@ -613,24 +609,25 @@ public class VPlexUtil {
         }
     }
 
-    
     /**
      * 
      * Returns the initiator's host name. If the initiator is an RP initiator, returns the cluster name.
      * In the case of RP, only one StorageView per RP cluster need to be created. RP initiators have a cluster name
      * as well as host name fields populated and returning the host name would result in creation of 2 StorageView's
-     * for the same RP cluster. 
+     * for the same RP cluster.
+     * 
      * @param initiator Initiator
      * @return Initiator's host name per the above rules.
      */
     public static String getInitiatorHostResourceName(Initiator initiator) {
-    	
-    	if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
-    		return initiator.getClusterName();
-    	}
-    	
-    	return initiator.getHostName();
+
+        if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+            return initiator.getClusterName();
+        }
+
+        return initiator.getHostName();
     }
+
     /**
      * Filter a list of initiators to contain only those with protocols
      * supported by the VPLEX.
@@ -644,7 +641,7 @@ public class VPlexUtil {
     public static List<URI> filterInitiatorsForVplex(DbClient dbClient, List<URI> initiators) {
 
         // filter initiators for FC protocol type only (CTRL-6326)
-        List<URI> initsToRemove = new ArrayList<URI>();
+        List<URI> initsToRemove = new ArrayList<>();
         for (URI init : initiators) {
             Initiator initiator = dbClient.queryObject(Initiator.class, init);
             if ((null != initiator) && !HostInterface.Protocol.FC.toString().equals(initiator.getProtocol())) {
@@ -666,7 +663,7 @@ public class VPlexUtil {
      *         from BlockSnapshot to Volume.
      */
     public static Map<URI, BlockObject> translateRPSnapshots(DbClient dbClient, List<URI> volumeURIList) {
-        Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
+        Map<URI, BlockObject> blockObjectCache = new HashMap<>();
         // Determine the virtual volume names.
         for (URI boURI : volumeURIList) {
             BlockObject blockObject = Volume.fetchExportMaskBlockObject(dbClient, boURI);
@@ -738,7 +735,7 @@ public class VPlexUtil {
     public static Set<URI> getBackendPortInitiators(URI vplexUri, DbClient dbClient) {
 
         _log.info("finding backend port initiators for VPLEX: " + vplexUri);
-        Set<URI> initiators = new HashSet<URI>();
+        Set<URI> initiators = new HashSet<>();
 
         List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(dbClient, vplexUri);
         for (StoragePort port : ports) {
@@ -764,7 +761,7 @@ public class VPlexUtil {
     public static Set<URI> getBackendPortInitiators(DbClient dbClient) {
 
         _log.info("finding backend port initiators for all VPLEX systems");
-        Set<URI> initiators = new HashSet<URI>();
+        Set<URI> initiators = new HashSet<>();
 
         List<URI> storageSystemUris = dbClient.queryByType(StorageSystem.class, true);
         List<StorageSystem> storageSystems = dbClient.queryObject(StorageSystem.class, storageSystemUris);
@@ -789,14 +786,13 @@ public class VPlexUtil {
      */
     public static Map<String, Set<ExportMask>> getSharedStorageView(ExportGroup exportGroup, URI vplexURI, DbClient dbClient) {
         // Map of Storage view name to list of ExportMasks that represent same storage view on VPLEX.
-        Map<String, Set<ExportMask>> exportGroupExportMasks = new HashMap<String, Set<ExportMask>>();
-        Map<String, Set<ExportMask>> sharedExportMasks = new HashMap<String, Set<ExportMask>>();
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        Map<String, Set<ExportMask>> exportGroupExportMasks = new HashMap<>();
+        Map<String, Set<ExportMask>> sharedExportMasks = new HashMap<>();
+        if (exportGroup.getExportMasks() == null) {
             return null;
         }
-        List<ExportMask> exportMasks =
-                ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
         for (ExportMask exportMask : exportMasks) {
             if (!exportMask.getInactive()) {
                 if (!exportGroupExportMasks.containsKey(exportMask.getMaskName())) {
@@ -822,7 +818,7 @@ public class VPlexUtil {
      */
     public static Map<URI, List<Initiator>> makeHostInitiatorsMap(List<URI> initiators, DbClient dbClient) {
         // sort initiators in a host to initiator map
-        Map<URI, List<Initiator>> hostInitiatorMap = new HashMap<URI, List<Initiator>>();
+        Map<URI, List<Initiator>> hostInitiatorMap = new HashMap<>();
         if (!initiators.isEmpty()) {
             for (URI initiatorUri : initiators) {
 
@@ -854,7 +850,7 @@ public class VPlexUtil {
      */
     private static List<ExportMask> getExportMasksForVplexCluster(URI vplexURI, DbClient dbClient, URI varrayURI,
             String vplexCluster, List<ExportMask> exportMasks) throws Exception {
-        List<ExportMask> exportMasksForVplexCluster = new ArrayList<ExportMask>();
+        List<ExportMask> exportMasksForVplexCluster = new ArrayList<>();
         if (vplexCluster == null) {
             vplexCluster = ConnectivityUtil.getVplexClusterForVarray(varrayURI, vplexURI, dbClient);
             if (vplexCluster.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
@@ -909,14 +905,12 @@ public class VPlexUtil {
     public static ExportMask getSharedExportMaskInDb(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
             URI varrayUri, String vplexCluster, Map<URI, List<Initiator>> hostInitiatorMap) throws Exception {
         ExportMask sharedExportMask = null;
-        StringSet maskIds = exportGroup.getExportMasks();
-        if (maskIds == null) {
+        if (exportGroup.getExportMasks() == null) {
             return null;
         }
         StringSet exportGrouphosts = exportGroup.getHosts();
         // Get all the exportMasks for the VPLEX from the export group
-        List<ExportMask> exportMasks =
-                ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
 
         // exportMasks list could have mask for both the VPLEX cluster for the same initiators for the cross-connect case
         // for the cross-connect case hence get the ExportMask for the specific VPLEX cluster.
@@ -927,8 +921,9 @@ public class VPlexUtil {
         // and we found only one exportMask in database for the VPLEX cluster
         if (exportGrouphosts != null && exportGrouphosts.size() > 1 && exportMasksForVplexCluster.size() == 1) {
             ExportMask exportMask = exportMasksForVplexCluster.get(0);
-            ArrayList<String> exportMaskInitiators = new ArrayList<String>(exportMask.getInitiators());
-            Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(URIUtil.toURIList(exportMaskInitiators), dbClient);
+            ArrayList<String> exportMaskInitiators = new ArrayList<>(exportMask.getInitiators());
+            Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(URIUtil.toURIList(exportMaskInitiators),
+                    dbClient);
             // Remove the host which is not yet added by CorpHD
             if (hostInitiatorMap != null) {
                 for (Entry<URI, List<Initiator>> entry : hostInitiatorMap.entrySet()) {
@@ -987,8 +982,8 @@ public class VPlexUtil {
      * 
      */
     public static boolean isVPLEXCGBackendVolumesInSameStorage(List<Volume> vplexVolumes, DbClient dbClient) {
-        Set<String> backendSystems = new HashSet<String>();
-        Set<String> haBackendSystems = new HashSet<String>();
+        Set<String> backendSystems = new HashSet<>();
+        Set<String> haBackendSystems = new HashSet<>();
         boolean result = true;
         for (Volume vplexVolume : vplexVolumes) {
             Volume srcVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
@@ -1030,23 +1025,23 @@ public class VPlexUtil {
     public static boolean verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes, DbClient dbClient) {
         boolean result = true;
         // Sort all the volumes in the CG based on the backend volume's storage system.
-        Map<String, List<String>> cgBackendSystemToVolumesMap = new HashMap<String, List<String>>();
+        Map<String, List<String>> cgBackendSystemToVolumesMap = new HashMap<>();
         for (Volume cgVolume : cgVolumes) {
             Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
             List<String> vols = cgBackendSystemToVolumesMap.get(srcVolume.getStorageController().toString());
             if (vols == null) {
-                vols = new ArrayList<String>();
+                vols = new ArrayList<>();
                 cgBackendSystemToVolumesMap.put(srcVolume.getStorageController().toString(), vols);
             }
             vols.add(cgVolume.getId().toString());
         }
         // Sort the passed volumes, and make sure the volumes are in the CG.
-        Map<String, List<String>> backendSystemToVolumesMap = new HashMap<String, List<String>>();
+        Map<String, List<String>> backendSystemToVolumesMap = new HashMap<>();
         for (Volume volume : volumes) {
             Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
             List<String> vols = backendSystemToVolumesMap.get(srcVolume.getStorageController().toString());
             if (vols == null) {
-                vols = new ArrayList<String>();
+                vols = new ArrayList<>();
                 backendSystemToVolumesMap.put(srcVolume.getStorageController().toString(), vols);
             }
             vols.add(volume.getId().toString());
@@ -1098,6 +1093,7 @@ public class VPlexUtil {
 
     /**
      * Check if the full copy is a vplex full copy and its backend full copy is in a replication group
+     * 
      * @param fullcopy
      * @param dbClient
      * @return true or false
@@ -1116,7 +1112,7 @@ public class VPlexUtil {
                 }
             }
         }
-        
+
         return result;
     }
 
@@ -1133,66 +1129,62 @@ public class VPlexUtil {
 
     // these patterns are used to build up the various
     // supported device structures as outlined in the method javadoc
-    private static final StringBuffer EXTENT_STORAGE_VOLUME_PATTERN = 
-            new StringBuffer(ANYTHING).append(EXTENT)
-                     .append(ANYTHING).append(STORAGE_VOLUME);
-    private static final StringBuffer LOCAL_DEVICE_COMPONENT_PATTERN = 
-            new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
-                .append(EXTENT_STORAGE_VOLUME_PATTERN);
-    private static final StringBuffer DISTRIBUTED_DEVICE_COMPONENT_PATTERN = 
-            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
-                .append(EXTENT_STORAGE_VOLUME_PATTERN);
-    private static final StringBuffer DISTRIBUTED_LEG_MIRROR_PATTERN = 
-            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
-                .append(LOCAL_DEVICE_COMPONENT_PATTERN)
-                .append(LOCAL_DEVICE_COMPONENT_PATTERN);
+    private static final StringBuffer EXTENT_STORAGE_VOLUME_PATTERN = new StringBuffer(ANYTHING).append(EXTENT)
+            .append(ANYTHING).append(STORAGE_VOLUME);
+    private static final StringBuffer LOCAL_DEVICE_COMPONENT_PATTERN = new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
+            .append(EXTENT_STORAGE_VOLUME_PATTERN);
+    private static final StringBuffer DISTRIBUTED_DEVICE_COMPONENT_PATTERN = new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+            .append(EXTENT_STORAGE_VOLUME_PATTERN);
+    private static final StringBuffer DISTRIBUTED_LEG_MIRROR_PATTERN = new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+            .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+            .append(LOCAL_DEVICE_COMPONENT_PATTERN);
 
     /**
      * Analyzes the given String as a VPLEX API drill-down response and
-     * checks that it has a structure compatible with ViPR.  Supported structure examples:
+     * checks that it has a structure compatible with ViPR. Supported structure examples:
      * 
      * a simple local device
      * 
-     *  local-device: device_VAPM00140844981-01727 (cluster-1)
-     *     extent: extent_VAPM00140844981-01727_1
-     *        storage-volume: VAPM00140844981-01727 (blocks: 0 - 2097151)
+     * local-device: device_VAPM00140844981-01727 (cluster-1)
+     * extent: extent_VAPM00140844981-01727_1
+     * storage-volume: VAPM00140844981-01727 (blocks: 0 - 2097151)
      *
      * a local device with a mirror
      * 
-     *  local-device: device_VAPM00140844981-00464 (cluster-1)
-     *     local-device-component: device_VAPM00140801303-01246
-     *        extent: extent_VAPM00140801303-01246_1
-     *           storage-volume: VAPM00140801303-01246 (blocks: 0 - 786431)
-     *     local-device-component: device_VAPM00140844981-004642015Oct07_142827
-     *        extent: extent_VAPM00140844981-00464_1
-     *           storage-volume: VAPM00140844981-00464 (blocks: 0 - 786431)
+     * local-device: device_VAPM00140844981-00464 (cluster-1)
+     * local-device-component: device_VAPM00140801303-01246
+     * extent: extent_VAPM00140801303-01246_1
+     * storage-volume: VAPM00140801303-01246 (blocks: 0 - 786431)
+     * local-device-component: device_VAPM00140844981-004642015Oct07_142827
+     * extent: extent_VAPM00140844981-00464_1
+     * storage-volume: VAPM00140844981-00464 (blocks: 0 - 786431)
      * 
      * a simple distributed device
      * 
-     *  distributed-device: dd_VAPM00140844981-00294_V000198700406-02199
-     *     distributed-device-component: device_V000198700406-02199 (cluster-2)
-     *        extent: extent_V000198700406-02199_1
-     *           storage-volume: V000198700406-02199 (blocks: 0 - 524287)
-     *     distributed-device-component: device_VAPM00140844981-00294 (cluster-1)
-     *        extent: extent_VAPM00140844981-00294_1
-     *           storage-volume: VAPM00140844981-00294 (blocks: 0 - 524287)
+     * distributed-device: dd_VAPM00140844981-00294_V000198700406-02199
+     * distributed-device-component: device_V000198700406-02199 (cluster-2)
+     * extent: extent_V000198700406-02199_1
+     * storage-volume: V000198700406-02199 (blocks: 0 - 524287)
+     * distributed-device-component: device_VAPM00140844981-00294 (cluster-1)
+     * extent: extent_VAPM00140844981-00294_1
+     * storage-volume: VAPM00140844981-00294 (blocks: 0 - 524287)
      *
      * a distributed device with a mirror on one or both legs
      * 
-     *  distributed-device: dd_VAPM00140844981-00525_VAPM00140801303-01247
-     *     distributed-device-component: device_VAPM00140801303-01247 (cluster-2)
-     *        extent: extent_VAPM00140801303-01247_1
-     *           storage-volume: VAPM00140801303-01247 (blocks: 0 - 1048575)
-     *     distributed-device-component: device_VAPM00140844981-00525 (cluster-1)
-     *        local-device-component: device_VAPM00140801303-01258
-     *           extent: extent_VAPM00140801303-01258_1
-     *              storage-volume: VAPM00140801303-01258 (blocks: 0 - 1048575)
-     *        local-device-component: device_VAPM00140844981-005252015Oct07_160927
-     *           extent: extent_VAPM00140844981-00525_1
-     *              storage-volume: VAPM00140844981-00525 (blocks: 0 - 1048575)
+     * distributed-device: dd_VAPM00140844981-00525_VAPM00140801303-01247
+     * distributed-device-component: device_VAPM00140801303-01247 (cluster-2)
+     * extent: extent_VAPM00140801303-01247_1
+     * storage-volume: VAPM00140801303-01247 (blocks: 0 - 1048575)
+     * distributed-device-component: device_VAPM00140844981-00525 (cluster-1)
+     * local-device-component: device_VAPM00140801303-01258
+     * extent: extent_VAPM00140801303-01258_1
+     * storage-volume: VAPM00140801303-01258 (blocks: 0 - 1048575)
+     * local-device-component: device_VAPM00140844981-005252015Oct07_160927
+     * extent: extent_VAPM00140844981-00525_1
+     * storage-volume: VAPM00140844981-00525 (blocks: 0 - 1048575)
      * 
      * @param deviceName name of the device being analyzed
-     * @param drillDownResponse a drill-down command response from the VPLEX API 
+     * @param drillDownResponse a drill-down command response from the VPLEX API
      * @return true if the device structure is compatible with ViPR
      */
     public static boolean isDeviceStructureValid(String deviceName, String drillDownResponse) {
@@ -1210,8 +1202,7 @@ public class VPlexUtil {
                     // 0 indicates a simple local or distributed volume
                     // 2 indicates a mirror configured on local or one leg of distributed
                     // 4 indicates a mirror configured on each leg of a distributed volume
-                    int localDeviceComponentCount = 
-                            StringUtils.countMatches(drillDownResponse, LOCAL_DEVICE_COMPONENT);
+                    int localDeviceComponentCount = StringUtils.countMatches(drillDownResponse, LOCAL_DEVICE_COMPONENT);
 
                     // other component counts
                     int storageVolumeCount = StringUtils.countMatches(drillDownResponse, STORAGE_VOLUME);
@@ -1227,7 +1218,7 @@ public class VPlexUtil {
                     }
                 }
             } catch (Exception ex) {
-                _log.error("Exception encountered parsing device drill down: " 
+                _log.error("Exception encountered parsing device drill down: "
                         + ex.getLocalizedMessage(), ex);
             }
         }
@@ -1244,7 +1235,7 @@ public class VPlexUtil {
      * @param storageVolumeCount count of storage-volumes in the drill-down response
      * @param extentCount count of extents in the drill-down response
      * 
-     * @return true if this drill-down structure is compatible for ingestion 
+     * @return true if this drill-down structure is compatible for ingestion
      */
     private static boolean validateLocalDevice(
             String drillDownResponse, int localDeviceComponentCount,
@@ -1256,8 +1247,8 @@ public class VPlexUtil {
                 if (storageVolumeCount == 1 && extentCount == 1) {
                     StringBuffer localDevice = new StringBuffer(START);
                     localDevice.append(LOCAL_DEVICE)
-                               .append(EXTENT_STORAGE_VOLUME_PATTERN)
-                               .append(END);
+                            .append(EXTENT_STORAGE_VOLUME_PATTERN)
+                            .append(END);
                     if (drillDownResponse.matches(localDevice.toString())) {
                         _log.info("this is a simple local volume");
                         return true;
@@ -1269,19 +1260,19 @@ public class VPlexUtil {
                 if (storageVolumeCount == 2 && extentCount == 2) {
                     StringBuffer localDeviceWithMirror = new StringBuffer(START);
                     localDeviceWithMirror.append(LOCAL_DEVICE)
-                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
-                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
-                                         .append(END);
+                            .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                            .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                            .append(END);
                     if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
                         _log.info("this is a local device with mirror");
                         return true;
                     }
                 }
                 break;
-            default :
+            default:
                 // fall through
         }
-        
+
         return false;
     }
 
@@ -1293,15 +1284,14 @@ public class VPlexUtil {
      * @param storageVolumeCount count of storage-volumes in the drill-down response
      * @param extentCount count of extents in the drill-down response
      * 
-     * @return true if this drill-down structure is compatible for ingestion 
+     * @return true if this drill-down structure is compatible for ingestion
      */
     private static boolean validateDistributedDevice(
-            String drillDownResponse, int localDeviceComponentCount, 
+            String drillDownResponse, int localDeviceComponentCount,
             int storageVolumeCount, int extentCount) {
         // need to check that distributed device has
         // exactly two distributed device components
-        int distributedDeviceComponentCount = 
-                StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
+        int distributedDeviceComponentCount = StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
         if (distributedDeviceComponentCount == 2) {
             // we have the right number of distributed device components
             // a distributed device can have 0, 2, or 4 local device components
@@ -1311,9 +1301,9 @@ public class VPlexUtil {
                     if (storageVolumeCount == 2 && extentCount == 2) {
                         StringBuffer distributedDevice = new StringBuffer(START);
                         distributedDevice.append(DISTRIBUTED_DEVICE)
-                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                         .append(END);
+                                .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                .append(END);
                         if (drillDownResponse.matches(distributedDevice.toString())) {
                             _log.info("this is a simple distributed device");
                             return true;
@@ -1325,16 +1315,16 @@ public class VPlexUtil {
                     if (storageVolumeCount == 3 && extentCount == 3) {
                         StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
                         distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
-                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                         .append(END);
+                                .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                .append(END);
                         StringBuffer distributedDeviceMirrorOnLeg2 = new StringBuffer(START);
                         distributedDeviceMirrorOnLeg2.append(DISTRIBUTED_DEVICE)
-                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                         .append(END);
-                        if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
-                         || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
+                                .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                .append(END);
+                        if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString())
+                                || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
                             _log.info("this is a distributed volume with a mirror on one leg or the other");
                             return true;
                         }
@@ -1345,25 +1335,26 @@ public class VPlexUtil {
                     if (storageVolumeCount == 4 && extentCount == 4) {
                         StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
                         distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
-                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                         .append(END);
+                                .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                .append(END);
                         if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
                             _log.info("this is a distributed volume with mirrors on both legs");
                             return true;
                         }
                     }
                     break;
-                default :
+                default:
                     // fall through
             }
         }
-        
+
         return false;
     }
 
     /**
      * Check if the volume is a vplex virtual volume
+     * 
      * @param volume the volume
      * @param dbClient
      * @return true or false
@@ -1403,7 +1394,7 @@ public class VPlexUtil {
 
         return isBuiltOnSnapshot;
     }
-    
+
     /**
      * Determines if the back-end is OpenStack Cinder, if yes returns true
      * otherwise returns false.
@@ -1413,27 +1404,58 @@ public class VPlexUtil {
      * @return
      */
     public static boolean isOpenStackBackend(BlockObject fcObject, DbClient dbClient) {
-        
+
+        String systemType = getBackendStorageSystemType(fcObject, dbClient);
+        if (DiscoveredDataObject.Type.openstack.name().equals(systemType)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets the back-end volume's storage system type
+     * 
+     * @param fcObject
+     * @param dbClient
+     * @return
+     */
+    private static String getBackendStorageSystemType(BlockObject fcObject, DbClient dbClient) {
         URI backendStorageSystem = null;
-        if(fcObject instanceof Volume) {            
-            Volume backendVolume = getVPLEXBackendVolume((Volume)fcObject, true, dbClient, true);
+        if (fcObject instanceof Volume) {
+            Volume backendVolume = getVPLEXBackendVolume((Volume) fcObject, true, dbClient, true);
             backendStorageSystem = backendVolume.getStorageController();
         } else {
             backendStorageSystem = fcObject.getStorageController();
         }
         StorageSystem backendStorage = dbClient.queryObject(StorageSystem.class, backendStorageSystem);
         String systemType = backendStorage.getSystemType();
-        if(DiscoveredDataObject.Type.openstack.name().equals(systemType)) {
+        return systemType;
+    }
+
+    /**
+     * Determines if the back-end is IBM XIV, if yes returns true
+     * otherwise returns false.
+     * 
+     * @param fcObject
+     * @param dbClient
+     * @return
+     */
+    public static boolean isIBMXIVBackend(BlockObject fcObject, DbClient dbClient) {
+
+        String systemType = getBackendStorageSystemType(fcObject, dbClient);
+        if (DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check if the volume is a backend volume of a vplex volume
+     * 
      * @param volume the volume
-     * @param dbClient 
+     * @param dbClient
      * @return true or false
      */
     public static boolean isVplexBackendVolume(Volume volume, DbClient dbClient) {
@@ -1476,8 +1498,6 @@ public class VPlexUtil {
         }
         return result;
     }
-    
-    
 
     /**
      * Gets the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array.
@@ -1489,7 +1509,7 @@ public class VPlexUtil {
      * @return the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array
      * @throws Exception if the VPLEX cluster name cannot be determined
      */
-    public static String getVplexClusterName(URI varrayUri, URI vplexUri, VPlexApiClient client, DbClient dbClient) throws Exception{
+    public static String getVplexClusterName(URI varrayUri, URI vplexUri, VPlexApiClient client, DbClient dbClient) throws Exception {
 
         String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
@@ -1497,7 +1517,7 @@ public class VPlexUtil {
             throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
         }
 
-        return client.getClusterName(vplexClusterId);
+        return client.getClusterNameForId(vplexClusterId);
     }
 
     /**
@@ -1510,7 +1530,8 @@ public class VPlexUtil {
      * @return the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array
      * @throws Exception if the VPLEX cluster name cannot be determined
      */
-    public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient) throws Exception{
+    public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient)
+            throws Exception {
 
         String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
@@ -1518,16 +1539,16 @@ public class VPlexUtil {
             throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
         }
 
-        return client.getClusterName(vplexClusterId);
+        return client.getClusterNameForId(vplexClusterId);
     }
-    
+
     /**
      * Lookup the Project assigned to this VPlex for its artifact, using the Vplex nativeGuid
      * as the project name. If one is found thatbelongs to the root tenant, it is returned.
      * Otherwise the project from the protoVolume is returned.
      *
-     * @protoVolume A volume from the backend array. 
-     * If no Vplex project is found, the proto volume's project is returned.
+     * @protoVolume A volume from the backend array.
+     *              If no Vplex project is found, the proto volume's project is returned.
      * @param vplexSystem A StorageSystem instance representing a VPlex.
      * @param dbClient A reference to a database client.
      *
@@ -1553,7 +1574,7 @@ public class VPlexUtil {
         // VPlex project not found. Return on from proto volume.
         return dbClient.queryObject(Project.class, protoVolume.getProject().getURI());
     }
-    
+
     /**
      * Update the backing volume virtual pool reference(s), needed for change vpool
      * operations.
@@ -1562,12 +1583,21 @@ public class VPlexUtil {
      *            The source volume.
      * @param newVpoolURI
      *            The new vpool.
-     * @param dbClient 
-     *            A reference to a database client.            
+     * @param dbClient
+     *            A reference to a database client.
      */
     public static void updateVPlexBackingVolumeVpools(Volume volume, URI newVpoolURI, DbClient dbClient) {
         // Check to see if this is a VPLEX virtual volume
         if (isVplexVolume(volume, dbClient)) {
+            if (null == volume.getAssociatedVolumes()) {
+                // this is a change vpool operation, so we don't want to throw an exception,
+                // in case it's a change from non-supported backend array(s) to supported
+                _log.warn("VPLEX volume {} has no backend volumes. It was probably ingested 'Virtual Volume Only'. "
+                        + "Backend volume virtual pools will not be updated.", 
+                        volume.forDisplay());
+                return;
+            }
+
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).",
                     volume.getLabel(), volume.getId()));
             VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
@@ -1601,8 +1631,8 @@ public class VPlexUtil {
                     vpoolName = newHaVpoolName;
                 }
 
-                VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());                
-                backingVolume.setVirtualPool(vpoolURI);                
+                VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
+                backingVolume.setVirtualPool(vpoolURI);
                 dbClient.updateObject(backingVolume);
                 _log.info(String.format("Updated backing volume [%s](%s) virtual pool from [%s](%s) to [%s](%s).",
                         backingVolume.getLabel(), backingVolume.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));

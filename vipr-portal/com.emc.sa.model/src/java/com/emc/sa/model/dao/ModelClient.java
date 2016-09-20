@@ -46,6 +46,7 @@ public class ModelClient {
     private ExecutionWindowFinder executionWindowDAO;
     private OrderFinder orderModelDAO;
     private OrderParameterFinder orderParameterDAO;
+    private ScheduledEventFinder scheduledEventModelDAO;
     private RecentServiceFinder recentServiceDAO;
     private VCenterFinder vcenterDAO;
     private VirtualMachineFinder virtualMachineDAO;
@@ -55,9 +56,14 @@ public class ModelClient {
     private InitiatorFinder initiatorDAO;
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
+    private ActionableEventFinder actionableEventDAO;
 
     public ModelClient(DBClientWrapper client) {
         this.client = client;
+    }
+
+    public DBClientWrapper getModelClient() {
+        return client;
     }
 
     public <T extends DataObject> ModelFinder<T> of(final Class<T> clazz) {
@@ -99,6 +105,10 @@ public class ModelClient {
 
     public <T extends DataObject> T findById(Class<T> clazz, URI id) {
         return client.findById(clazz, id);
+    }
+    
+    public <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id) {
+        return client.findBy(clazz, columnField, id);
     }
 
     /**
@@ -234,6 +244,13 @@ public class ModelClient {
         return orderParameterDAO;
     }
 
+    public ScheduledEventFinder scheduledEvents() {
+        if (scheduledEventModelDAO == null) {
+            scheduledEventModelDAO = new ScheduledEventFinder(client);
+        }
+        return scheduledEventModelDAO;
+    }
+
     @Deprecated
     public RecentServiceFinder recentServices() {
         if (recentServiceDAO == null) {
@@ -268,6 +285,13 @@ public class ModelClient {
             hostDAO = new HostFinder(client);
         }
         return hostDAO;
+    }
+
+    public ActionableEventFinder actionableEvents() {
+        if (actionableEventDAO == null) {
+            actionableEventDAO = new ActionableEventFinder(client);
+        }
+        return actionableEventDAO;
     }
 
     public InitiatorFinder initiators() {

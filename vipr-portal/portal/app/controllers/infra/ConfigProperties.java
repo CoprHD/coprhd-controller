@@ -9,6 +9,8 @@ import static com.emc.storageos.model.property.PropertyConstants.TEXT;
 import static controllers.Common.flashException;
 
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -310,6 +312,30 @@ public class ConfigProperties extends Controller {
             renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
         }
 
+    }
+
+  public static void connectExternalServerIpPort(String ipPortListStr){
+        if (ipPortListStr.isEmpty()) {
+            renderJSON(ValidationResponse.invalid(Messages.get("configProperties.syslog.serverPort.unavailable",null)));
+        }
+        String[] ipPortList = ipPortListStr.split(",");
+        for (String ipPort : ipPortList) {
+            String[] ipPortSpliter = ipPort.split(":");
+            String ip = ipPortSpliter[0];
+            String port = ipPortSpliter[1];
+            Socket socket = new Socket();
+            try {
+                socket.connect(new InetSocketAddress(ip,Integer.parseInt(port)),2*1000);
+                socket.close();
+            }catch (Exception e ){
+                Validation.addError(null,Messages.get("configProperties.syslog.serverPort.unavailable",ipPort));
+            }
+        }
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        } else {
+            renderJSON(ValidationResponse.valid(Messages.get("configProperties.syslog.serverPort.successful")));
+        }
     }
 
     public static void validateMailSettings(String server, String port, String username, String password, String enableTls,

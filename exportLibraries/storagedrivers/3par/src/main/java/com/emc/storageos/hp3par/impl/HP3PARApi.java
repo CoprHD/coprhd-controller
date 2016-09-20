@@ -66,6 +66,7 @@ public class HP3PARApi {
     private static final String URI_CPG_DETAILS = "/api/v1/cpgs/{0}";
     private static final String URI_PORTS = "/api/v1/ports";
     private static final String URI_PORT_STATISTICS = "/api/v1/systemreporter/attime/portstatistics/daily";
+    private static final String URI_PORT_STATISTICS_SPECIFIC = "/api/v1/systemreporter/attime/portstatistics/daily?query=%22portPos%20EQ%20{0}%22";
 
     // Base volume , snap and clone volume related
     private static final String URI_CREATE_VOLUME = "/api/v1/volumes";
@@ -95,6 +96,7 @@ public class HP3PARApi {
     
     // For ingestion
 	private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=%22volumeWWN=={0}%22";
+	private static final String URI_VLUNS_BY_VOlUME_NAME = "/api/v1/vluns?query=%22volumeName=={0}%22";
 	private static final String URI_SNAPSHOTS_OF_VOLUME = "/api/v1/volumes?query=%22copyOf=={0}%22";
     
     // For export
@@ -199,6 +201,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:verifyUserRole enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_USER_ROLE, name);
+        _log.info("3PARDriver: verifyUserRole path is {}", path);
 
         try {
             clientResp = get(path);
@@ -237,7 +240,7 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:verifyUserRole enter");
+            _log.info("3PARDriver:verifyUserRole leave");
         } //end try/catch/finally
     }
     
@@ -313,6 +316,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getCPGDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_CPG_DETAILS, name);
+        _log.info("3PARDriver: getCPGDetails path is {}", path);
 
         try {
             clientResp = get(path);
@@ -335,7 +339,7 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:getSystemDetails leave");
+            _log.info("3PARDriver:getCPGDetails leave");
         } //end try/catch/finally
     }    
 
@@ -406,6 +410,42 @@ public class HP3PARApi {
             _log.info("3PARDriver:getPortStatisticsDetail leave");
         } //end try/catch/finally
     }
+    
+    public PortStatisticsCommandResult getPortStatistics(String portId) throws Exception {
+
+    	_log.info("3PARDriver: getPortStatistics enter");
+    	ClientResponse clientResp = null;
+    	final String path = MessageFormat.format(URI_PORT_STATISTICS_SPECIFIC, portId);
+    	PortStatisticsCommandResult portStatResult = null;
+    	_log.info("3PARDriver: getPortStatistics path is {}", path);
+
+    	try {
+    		clientResp = get(path);
+    		if (clientResp == null) {
+    			_log.error("3PARDriver: getPortStatistics There is no response from 3PAR");
+    			throw new HP3PARException("There is no response from 3PAR");
+    		} else if (clientResp.getStatus() != 200) {
+    			String errResp = getResponseDetails(clientResp);
+    			_log.error("3PARDriver: getPortStatistics There is error response from 3PAR = {}" , errResp);
+    			throw new HP3PARException(errResp);
+    		} else {
+    			String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriveri:getPortStatistics 3PAR response is {}", responseString);
+                portStatResult = new Gson().fromJson(sanitize(responseString),
+                        PortStatisticsCommandResult.class);
+                
+    		}
+    	} catch (Exception e) {
+    		throw e;
+    	} finally {
+    		if (clientResp != null) {
+    			clientResp.close();
+    		}
+    		_log.info("3PARDriver: getPortStatistics leave");
+    	} //end try/catch/finally
+    	
+    	return portStatResult;
+    }
 
     public HostCommandResult getAllHostDetails() throws Exception {
         _log.info("3PARDriver:getAllHostDetails enter");
@@ -441,6 +481,8 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
                 "\", \"tpvv\":" + thin.toString() + ", \"tdvv\":" + dedup.toString() + ", \"sizeMiB\":" + size.toString() + ", \"snapCPG\":\"" + cpg + "\"}";
+        _log.info("3PARDriver: createVolume body is {}", body);
+        
         try {
             clientResp = post(URI_CREATE_VOLUME, body);
             if (clientResp == null) {
@@ -613,6 +655,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getVolumeDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_VOLUME_DETAILS, name);
+        _log.info("3PARDriver: getVolumeDetails path is {}", path);
         
         try {
             clientResp = get(path);
@@ -675,6 +718,7 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_EXPAND_VOLUME, name);
         String body = "{\"action\":3, \"sizeMiB\":" + additionalSize.toString() + "}";
+        _log.info("3PARDriver: expandVolume path is {}, body is {}", path, body);
 
         try {
             clientResp = put(path, body);
@@ -702,6 +746,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:deleteVolume enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_DELETE_VOLUME, name);
+        _log.info("3PARDriver: deleteVolume path is {}", path);
 
         try {
             clientResp = delete(path);
@@ -882,6 +927,7 @@ public class HP3PARApi {
         }
         
         body = body.concat("}");
+        _log.info("3PARDriver: createVlun body is {}", body);
 
         try {
             clientResp = post(URI_CREATE_VLUN, body);
@@ -915,6 +961,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getHostSetDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_HOSTSET_DETAILS, name);
+        _log.info("3PARDriver: getHostSetDetails path is {}", path);
         
         try {
             clientResp = get(path);
@@ -950,6 +997,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:createHostSet enter");
         ClientResponse clientResp = null;
         String body = "{\"name\": \"" + clustName + "\", \"setmembers\": [\"" + hostName + "\"]}";
+        _log.info("3PARDriver: createHostSet body is {}", body);
         
         try {
             clientResp = post(URI_HOSTSETS, body);
@@ -978,6 +1026,7 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         String body = "{\"action\": 1, \"setmembers\": [\"" + hostName + "\"]}";
         final String path = MessageFormat.format(URI_HOSTSET_DETAILS, clustName);
+        _log.info("3PARDriver: updateHostSet path is {}, body is {}", path, body);
         
         try {
             clientResp = put(path, body);
@@ -1008,6 +1057,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:getHostDetails enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_HOST_DETAILS, name);
+        _log.info("3PARDriver: getHostDetails path is {}", path);
         
         try {
             clientResp = get(path);
@@ -1071,6 +1121,7 @@ public class HP3PARApi {
             path = path.concat(","+pos);
         }
 
+        _log.info("3PARDriver: deleteVlun path is {}", path);
         try {
             clientResp = delete(path);
             if (clientResp == null) {
@@ -1114,6 +1165,7 @@ public class HP3PARApi {
                     ", \"persona\":" + persona.toString() + "}";            
         }
 
+        _log.info("3PARDriver: createHost body is {}", body);
         try {
             clientResp = post(URI_HOSTS, body);
             if (clientResp == null) {
@@ -1162,8 +1214,8 @@ public class HP3PARApi {
 
                 // remove existing wwn/iqns in the list to be added
                 for (String portId:portIdsNew) {
-                    if (existingFc.contains(portId) == false) {
-                        portIdsNewFiltered.add(portId);
+                    if (existingFc.contains(SanUtils.cleanWWN(portId)) == false) {
+                        portIdsNewFiltered.add(SanUtils.cleanWWN(portId));
                     }
                 }
             } else {
@@ -1193,6 +1245,7 @@ public class HP3PARApi {
                 body = "{\"iSCSINames\":" + portIdstr + ", \"pathOperation\":1\"}";
             }
 
+            _log.info("3PARDriver: updateHost path is {}, body is {}", path, body);
             clientResp = put(path, body);
             if (clientResp == null) {
                 _log.error("3PARDriver:There is no response from 3PAR");
@@ -1202,7 +1255,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+                _log.info("3PARDriver:updateHost 3PAR response is Location: {}", responseString);
             }
 
         } catch (Exception e) {
@@ -1573,7 +1626,49 @@ public class HP3PARApi {
     
 	}
 
-	
+
+	/**
+	 * Get all vluns, which are associated with a volume, snapshot or a clone. 
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public VirtualLunsList getVLunsByVolumeName(String volumeName) throws Exception {
+
+        _log.info("3PARDriver: getVLunsOfVolume enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_VLUNS_BY_VOlUME_NAME, volumeName);
+        _log.info("getVLunsOfVolume path is {}", path);
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVLunsOfVolume There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVLunsOfVolume 3PAR response is {}", responseString);
+                VirtualLunsList vlunsListResult = new Gson().fromJson(sanitize(responseString),
+                		VirtualLunsList.class);
+                return vlunsListResult;
+            }
+        } catch (Exception e) {
+	    _log.info("getVLunsOfVolume exception is {}", e.getMessage());
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVLunsOfVolume leave");
+        } //end try/catch/finally
+    
+	}
+
 	
 
 	public void createVVsetVirtualCopy(String nativeId, String snapshotName, Boolean readOnly) throws Exception {

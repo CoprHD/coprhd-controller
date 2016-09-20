@@ -4,17 +4,15 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -31,37 +29,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.EventMapper;
 import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventBulkRep;
+import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
+import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.collect.Lists;
 
 /**
  * A service that provides APIs for viewing, approving, declining and removing actionable events.
@@ -76,6 +77,10 @@ public class EventService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "event";
     private static final String TENANT_QUERY_PARAM = "tenant";
 
+    private static final String RESOURCE_QUERY_PARAM = "resource";
+
+    private static final String DETAILS_SUFFIX = "Details";
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -88,12 +93,13 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
-        return map(event);
+        return EventMapper.map(event);
     }
 
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deleteEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
@@ -101,6 +107,7 @@ public class EventService extends TaggedResource {
         _dbClient.markForDeletion(event);
         _log.info(
                 "Deleting Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Warning: " + event.getWarning()
                         + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                         + event.getEventCode());
         return Response.ok().build();
@@ -109,20 +116,74 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/approve")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskList approveEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
         }
 
         _log.info(
                 "Approving Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Warning: " + event.getWarning()
                         + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                         + event.getEventCode());
 
         return executeEventMethod(event, true);
+    }
+
+    @GET
+    @Path("/{id}/details")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public EventDetailsRestRep eventDetails(@PathParam("id") URI id) throws DatabaseException {
+        ActionableEvent event = queryObject(ActionableEvent.class, id, false);
+        verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+        EventDetailsRestRep eventDetails = new EventDetailsRestRep();
+        eventDetails.setApproveDetails(getEventDetails(event, true));
+        eventDetails.setDeclineDetails(getEventDetails(event, false));
+        return eventDetails;
+    }
+
+    /**
+     * Gets details for an event
+     * 
+     * @param event the event to get details for
+     * @param approve if true, get the approve details, if false the get the decline details
+     * @return event details
+     */
+    public List<String> getEventDetails(ActionableEvent event, boolean approve) {
+
+        byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
+
+        if (method == null || method.length == 0) {
+            _log.info("Method is null or empty for event " + event.getId());
+            return Lists.newArrayList("N/A");
+        }
+
+        ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
+        if (eventMethod == null) {
+            _log.info("Event method is null or empty for event " + event.getId());
+            return Lists.newArrayList("N/A");
+        }
+
+        String eventMethodName = eventMethod.getMethodName() + DETAILS_SUFFIX;
+
+        try {
+            Method classMethod = getMethod(ActionableEventExecutor.class, eventMethodName);
+            if (classMethod == null) {
+                return Lists.newArrayList("N/A");
+            } else {
+                ComputeSystemController controller = getController(ComputeSystemController.class, null);
+                ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+                return (List<String>) classMethod.invoke(executor, eventMethod.getArgs());
+            }
+        } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethodName);
+        }
     }
 
     /**
@@ -137,6 +198,10 @@ public class EventService extends TaggedResource {
 
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
+
+        event.setEventExecutionTime(Calendar.getInstance());
+        event.setApproveDetails(new StringSet(getEventDetails(event, true)));
+        event.setDeclineDetails(new StringSet(getEventDetails(event, false)));
 
         if (method == null || method.length == 0) {
             _log.info("Method is null or empty for event " + event.getId());
@@ -154,160 +219,24 @@ public class EventService extends TaggedResource {
         }
 
         try {
-            Method classMethod = getMethod(EventService.class, eventMethod.getMethodName());
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(this, eventMethod.getArgs());
+            Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+            Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
+            parameters[parameters.length - 1] = event.getId();
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             event.setEventStatus(eventStatus);
+            if (result != null && result.getId() != null) {
+                Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
+                event.setTaskIds(new StringSet(taskCollection));
+            }
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
-        } catch (SecurityException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
-        } catch (IllegalAccessException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
-        } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage(), e.getCause());
-            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
-        } catch (InvocationTargetException e) {
+        } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             _log.error(e.getMessage(), e.getCause());
             throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         }
-    }
-
-    /**
-     * Method to add an initiator to existing exports for a host.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param initiatorId the initiator to add
-     * @return task for adding an initiator
-     */
-    public TaskResourceRep addInitiator(URI initiatorId) {
-        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
-        Host host = queryObject(Host.class, initiator.getHost(), true);
-
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiatorId, taskId,
-                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
-
-        // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
-        } else {
-            // No updates were necessary, so we can close out the task.
-            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
-        }
-
-        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
-                initiator.auditParameters());
-        return toTask(initiator, taskId, op);
-    }
-
-    /**
-     * Method to remove an initiator from existing exports for a host.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param initiatorId the initiator to remove
-     * @return task for removing an initiator
-     */
-    public TaskResourceRep removeInitiator(URI initiatorId) {
-        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
-
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
-                ResourceOperationTypeEnum.DELETE_INITIATOR);
-
-        if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiatorId.toString())) {
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
-        } else {
-            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
-            _dbClient.markForDeletion(initiator);
-        }
-
-        auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,
-                initiator.auditParameters());
-
-        return toTask(initiator, taskId, op);
-    }
-
-    /**
-     * Method to move a host to a new datacenter and update shared exports.
-     * 
-     * @param hostId the host that is moving datacenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return task for updating export groups
-     */
-
-    public TaskResourceRep hostDatacenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        Host host = queryObject(Host.class, hostId, true);
-        host.setVcenterDataCenter(datacenterId);
-        _dbClient.updateObject(host);
-        return hostClusterChange(hostId, clusterId, isVcenter);
-    }
-
-    /**
-     * Method to move a host to a new vcenter and update shared exports.
-     * 
-     * @param hostId the host that is moving vcenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return task for updating export groups
-     */
-
-    public TaskResourceRep hostVcenterChange(URI hostId, URI clusterId, URI datacenterId, boolean isVcenter) {
-        Host host = queryObject(Host.class, hostId, true);
-        host.setVcenterDataCenter(datacenterId);
-        _dbClient.updateObject(host);
-        return hostClusterChange(hostId, clusterId, isVcenter);
-    }
-
-    /**
-     * Method to move a host to a new cluster and update shared exports.
-     * 
-     * @param hostId the host that is moving clusters
-     * @param clusterId the cluster the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
-     *            datastores
-     * @return task for updating export groups
-     */
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter) {
-        Host host = queryObject(Host.class, hostId, true);
-        URI oldClusterURI = host.getCluster();
-        String taskId = UUID.randomUUID().toString();
-        host.setCluster(clusterId);
-        _dbClient.updateObject(host);
-
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-
-        if (!NullColumnValueGetter.isNullURI(oldClusterURI)
-                && NullColumnValueGetter.isNullURI(host.getCluster())
-                && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
-            // Remove host from shared export
-            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, isVcenter, taskId);
-        } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
-                && !NullColumnValueGetter.isNullURI(host.getCluster())
-                && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
-            // Non-clustered host being added to a cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
-        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
-                && !NullColumnValueGetter.isNullURI(host.getCluster())
-                && !oldClusterURI.equals(host.getCluster())
-                && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                        || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
-            // Clustered host being moved to another cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
-        } else {
-            ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
-        }
-
-        return new TaskResourceRep();
     }
 
     /**
@@ -329,16 +258,19 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/decline")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskList declineEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
         }
 
         _log.info(
                 "Declining Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: " + event.getDescription()
+                        + " Warning: " + event.getWarning()
                         + " Event Status: " + event.getEventStatus() + " Resource: " + event.getResource() + " Event Code: "
                         + event.getEventCode());
 
@@ -423,6 +355,7 @@ public class EventService extends TaggedResource {
         int approved = 0;
         int declined = 0;
         int pending = 0;
+        int failed = 0;
         Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(ActionableEvent.class, "tenant",
                 tenantId.toString(), "eventStatus");
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
@@ -436,33 +369,44 @@ public class EventService extends TaggedResource {
                 approved++;
             } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())) {
                 declined++;
+            } else if (entry.getValue().equals(ActionableEvent.Status.failed.name())) {
+                failed++;
             } else {
                 pending++;
             }
         }
 
-        return new EventStatsRestRep(pending, approved, declined);
+        return new EventStatsRestRep(pending, approved, declined, failed);
     }
 
-    /**
-     * Maps an actionable event to a restful response
-     * 
-     * @param from the database event
-     * @return restful response object
-     */
-    public static EventRestRep map(ActionableEvent from) {
-        if (from == null) {
-            return null;
+    @Override
+    protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
+        SearchResults searchResults = new SearchResults();
+
+        if (parameters.containsKey(RESOURCE_QUERY_PARAM)) {
+            URI resourceId = URI.create(parameters.get(RESOURCE_QUERY_PARAM).get(0));
+
+            List<ActionableEvent> events = EventUtils.findResourceEvents(_dbClient, resourceId);
+
+            searchResults.getResource().addAll(toSearchResults(events));
         }
-        EventRestRep to = new EventRestRep();
-        to.setName(from.getLabel());
-        to.setDescription(from.getDescription());
-        to.setEventStatus(from.getEventStatus());
-        to.setResource(toNamedRelatedResource(from.getResource()));
-        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
-        to.setEventCode(from.getEventCode());
-        DbObjectMapper.mapDataObjectFields(from, to);
-        return to;
+
+        return searchResults;
+    }
+
+    private List<SearchResultResourceRep> toSearchResults(List<ActionableEvent> items) {
+        List<SearchResultResourceRep> results = Lists.newArrayList();
+
+        for (ActionableEvent item : items) {
+            results.add(toSearchResult(item.getId()));
+        }
+
+        return results;
+    }
+
+    private SearchResultResourceRep toSearchResult(URI uri) {
+        RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), uri));
+        return new SearchResultResourceRep(uri, selfLink, null);
     }
 
     protected ActionableEvent queryEvent(DbClient dbClient, URI id) throws DatabaseException {

@@ -161,6 +161,7 @@ import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -238,6 +239,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
     private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
+    
+    private static final String METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP = "createFullCopyOrchestrationRollbackSteps";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -769,7 +772,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         deviceURI, getDeviceType(deviceURI),
                         this.getClass(),
                         new Workflow.Method("updateConsistencyGroup", deviceURI, consistencyGroupURI, volumesToAdd, volumesToRemove),
-                        null, null);
+                        rollbackMethodNullMethod(), null);
                 if (volumesToAdd != null) {
                     _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
                             Joiner.on("\t").join(volumesToAdd),
@@ -1124,15 +1127,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         if (exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                             // Make sure the volume is not in an export mask
                             boolean foundInMask = false;
-                            if (exportGroup.getExportMasks() != null) {
-                                for (String exportMaskId : exportGroup.getExportMasks()) {
-                                    ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
-                                    if (mask.hasVolume(volume.getId())) {
-                                        foundInMask = true;
-                                        break;
-                                    }
+                            
+                            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {                                  
+                                if (exportMask.hasVolume(volume.getId())) {
+                                    foundInMask = true;
+                                    break;
                                 }
-                            }
+                            }                            
 
                             // If we didn't find that volume in a mask, it's OK to remove it.
                             if (!foundInMask) {
@@ -1140,7 +1141,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 if (exportGroup.getVolumes().isEmpty()) {
                                     _dbClient.removeObject(exportGroup);
                                 } else {
-                                    _dbClient.updateAndReindexObject(exportGroup);
+                                    _dbClient.updateObject(exportGroup);
                                 }
                             }
                         }
@@ -2091,11 +2092,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-                WorkflowStepCompleter.stepFailed(opId, serviceError);
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
@@ -3959,7 +3958,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             scanCompleter.statusReady(_dbClient, "Scan for storage system has completed");
         } catch (Exception ex) {
             _log.error("Scan failed for {}--->", provider, ex);
-            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex));
+            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
             throw DeviceControllerException.exceptions.scanProviderFailed(storageSystem.getNativeGuid(),
                     provider.getId().toString());
         }
@@ -6792,7 +6791,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
             return waitFor;
-}
+        }
         
         URI storageURI = null;
         boolean createInactive = false;
@@ -6816,14 +6815,34 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
             Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
                     createInactive);
-            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+            Workflow.Method createFullCopyOrchestrationExecutionRollbackMethod = new Workflow.Method(METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP,
+                    workflow.getWorkflowURI(), stepId);
 
             waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
-                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, createFullCopyOrchestrationExecutionRollbackMethod, stepId);
             _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
         }
         
         return waitFor;
+    }
+    
+    /**
+     * calls the child workflow step rollback methods
+     * 
+     * @param parentWorkflow
+     * @param orchestrationStepId
+     * @param token
+     * @return
+     * @throws WorkflowException
+     */
+    public boolean createFullCopyOrchestrationRollbackSteps(URI parentWorkflow, String orchestrationStepId, String token)
+            throws WorkflowException {
+        // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
+        // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and
+        // exportOrchestrationStepId.
+        _workflowService.rollbackChildWorkflow(parentWorkflow, orchestrationStepId, token);
+
+        return true;
     }
 
     /* (non-Javadoc)

@@ -98,6 +98,7 @@ import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowException;
 import com.google.common.base.Joiner;
@@ -730,8 +731,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
+        TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return createTasksForVolumes(vpool, volumes, taskId);
+            return taskList;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -1567,7 +1569,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         s_logger.info("Cleaning block object {} from exports", boURI);
         Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
         Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
-        Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
         Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
         BlockObject bo = BlockObject.fetch(_dbClient, boURI);
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
@@ -1590,17 +1591,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 }
             }
 
-            StringSet exportMaskIds = exportGroup.getExportMasks();
-            for (String exportMaskId : exportMaskIds) {
-                ExportMask exportMask = null;
-                if (exportMaskMap.containsKey(exportMaskId)) {
-                    exportMask = exportMaskMap.get(exportMaskId);
-                } else {
-                    exportMask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
-                    exportMaskMap.put(exportMaskId, exportMask);
-                }
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {              
                 if (exportMask.hasVolume(boURI)) {
-                    s_logger.info("Cleaning block object from export mask {}", exportMaskId);
+                    s_logger.info(String.format("Cleaning block object from export mask [%s]", exportMask.forDisplay()));
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
                     String hluStr = exportMaskVolumeMap.get(boURI.toString());
                     exportMask.removeVolume(boURI);
@@ -1612,8 +1606,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                         s_logger.info("Adding to existing volumes");
                         exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
                     }
-                    if (!updatedExportMaskMap.containsKey(exportMaskId)) {
-                        updatedExportMaskMap.put(exportMaskId, exportMask);
+                    if (!updatedExportMaskMap.containsKey(exportMask.getId().toString())) {
+                        updatedExportMaskMap.put(exportMask.getId().toString(), exportMask);
                     }
                 }
             }

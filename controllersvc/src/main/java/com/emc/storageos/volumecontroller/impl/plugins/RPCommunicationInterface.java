@@ -471,7 +471,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 _log.info("Change personality of source volume " + protectionVolume.getWWN() + " to target");
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 volume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
-                protectionVolume.setRpTargets(null);
+                protectionVolume.setRpTargets(new StringSet());
                 _dbClient.persistObject(protectionVolume);
             } else if (!protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + protectionVolume.getWWN() + " is a target that remains a target");

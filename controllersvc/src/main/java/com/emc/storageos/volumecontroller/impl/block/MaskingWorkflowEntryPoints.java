@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +25,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -203,16 +205,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
         try {
             ExportGroup eg = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            List<URI> exportMaskURIs = StringSetUtil.stringSetToUriList(eg.getExportMasks());
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, eg);
 
             // There will be only export mask for the create export group use case,
             // so fetch the 0th URI
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURIs.get(0));
-
-            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
+            if (!exportMasks.isEmpty()) {
+	            ExportMask mask = exportMasks.get(0);	
+	            _blockScheduler.updateZoningMap(mask, eg.getVirtualArray(), exportGroupURI);
+            }
 
             WorkflowStepCompleter.stepSucceded(token);
-
         } catch (final InternalException e) {
             _log.error("Encountered an exception", e);
             WorkflowStepCompleter.stepFailed(token, e);
@@ -347,7 +349,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     exportGroup, storageURI);
             if (exportMask != null) {
                 _log.info("export_delete: export mask exists");
-                List<URI> exportMaskURIs = new ArrayList<URI>();
+                List<NetworkZoningParam> zoningParam = 
+                    NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroup.getId(), 
+                    		Collections.singletonList(exportMask.getId()), _dbClient);
 
                 List<URI> volumeURIs = new ArrayList<>();
                 if (exportMask.getVolumes() != null) {
@@ -362,9 +366,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         initiatorURIs.add(URI.create(initiatorId));
                     }
                 }
-                exportMaskURIs.add(exportMask.getId());
-                _networkDeviceController.zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, UUID.randomUUID().toString());
                 getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
+                _networkDeviceController.zoneExportMasksDelete(zoningParam, volumeURIs, 
+                        UUID.randomUUID().toString());
             } else {
                 _log.info("export_delete: no export mask, task completed");
                 taskCompleter.ready(_dbClient);
@@ -454,11 +458,10 @@ public class MaskingWorkflowEntryPoints implements Controller {
         String call = String.format("doExportGroupRemoveVolumesCleanup(%s, %s, [%s], [%s], %s)",
                 storageURI.toString(),
                 exportGroupURI.toString(),
-                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Voumes",
+                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes",
                 initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators",
                 taskCompleter.getOpId());
         try {
-
             WorkflowStepCompleter.stepExecuting(token);
             ExportGroup exportGroup = _dbClient
                     .queryObject(ExportGroup.class, exportGroupURI);
@@ -468,7 +471,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
             // If there are no masks associated with this export group, and it's an internal (VPLEX/RP)
             // export group, delete the export group automatically.
             if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
-                    (exportGroup.getExportMasks() == null || exportGroup.getExportMasks().isEmpty())) {
+                    (exportGroup == null || exportGroup.getExportMasks() == null || 
+                     exportGroup.getExportMasks().isEmpty())) {
                 _dbClient.markForDeletion(exportGroup);
             } else {
                 _dbClient.updateObject(exportGroup);

@@ -114,7 +114,9 @@ public class XIVRestOperationsHelper {
     	if(null != initiators && !initiators.isEmpty()) {
     		Set<String> hostNames = new HashSet<String>();
     		XIVRestClient restExportOpr = getRestClient(storage);
-    		
+    		if(null == restExportOpr){
+    		    return isClusteredHost;
+    		}
     		//From Initiators find all the Hosts on Array
     		for (Initiator initiator : initiators) {
 	    		try {
@@ -122,9 +124,12 @@ public class XIVRestOperationsHelper {
 	        		if(null != hostName) {
 	        			hostNames.add(hostName);	
 	        		}
-				} catch (Exception e) {
-					_log.error("Unable to get host info from Port {} on array : {} ", initiator.getInitiatorPort(), storage.getLabel(), e);
-				}
+                } catch (Exception e) {
+                    _log.error("Invalid host : {} or Port : {} for HSM from Storage System : {} ", storage.getSmisProviderIP(),
+                            initiator.getInitiatorPort(), storage.getLabel());
+                    final String errorMessage = "Unable to contact Hyper Scale Manager to execute operation. Either Host or Port could be invalid.";
+                    throw XIVRestException.exceptions.errorInHSMHostConfiguration(errorMessage);
+                }
     		}
     		
     		//Check if Host is part of Cluster
@@ -274,7 +279,7 @@ public class XIVRestOperationsHelper {
                             throw new Exception(errMsg);
                         } else {
                             if (!restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(),
-                                    String.valueOf(hluDec))) {
+                                    String.valueOf(hluDec), isSnapshot(volumeURIHLU.getVolumeURI()))) {
                                 userAddedVolumes.add(blockObject);
                             }
                         }
@@ -707,7 +712,8 @@ public class XIVRestOperationsHelper {
                             _log.error(errMsg);
                             throw new Exception(errMsg);
                         } else {
-                            restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec));
+                            restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec),
+                                    isSnapshot(volumeURIHLU.getVolumeURI()));
                             userAddedVolumes.add(blockObject);
                         }
                     }
@@ -870,5 +876,14 @@ public class XIVRestOperationsHelper {
             ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
             taskCompleter.error(_dbClient, error);
         }
+    }
+    
+    /**
+     * Verify if volume is snapshot or not
+     * @param uri URI
+     * @return
+     */
+    private boolean isSnapshot(URI uri){
+        return URIUtil.isType(uri, BlockSnapshot.class);
     }
 }

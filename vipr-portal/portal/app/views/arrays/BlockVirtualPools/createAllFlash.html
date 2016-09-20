@@ -19,7 +19,7 @@ titleKey = "BlockVirtualPools.create.title"
     	</div>
     </form-header>
     <fieldset class="form form-horizontal ng-pristine ng-valid" style="padding-top:20px">
-    <h5>        We have detected the following Storage System type </h5>
+    <h5>        Following Storage System type(s) are detected: </h5>
         %{
         	for(type in types) {
         }%
@@ -28,7 +28,7 @@ titleKey = "BlockVirtualPools.create.title"
         }
         }%
     <h5 style="padding-top:40px">
-        Do you want the system to create Virtual Pools automatically?<br>
+        The system will create Virtual Pools automatically<br>
     </h5>
     </fieldset>
 </div>
@@ -38,6 +38,5 @@ titleKey = "BlockVirtualPools.create.title"
         <button type="submit" class="btn btn-primary btn-large " name="button.create" onclick="window.location = &quot;@{arrays.BlockVirtualPools.createAllFlashAuto(types)}&quot;">
             Create
         </button>
-        <span class="extraButtons"></span>
     </div>
 </div>

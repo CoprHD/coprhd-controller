@@ -19,49 +19,44 @@
 
             <guidestep class="loadingstep" name="loading" ng-hide="guideDataAvailable">
                 <div class="container2">
-                    <div class="center-block ">
+                    <div class="center-block landing-title">
                         <h1>&{'gettingStarted.landing.header'}</h1>
                     </div>
-                    <div class="center-block ">
-                        <ecs-mini-loader show="isLoading"></ecs-mini-loader>
-                    </div>
                     <div class="" ng-hide="guideDataAvailable">
-                        <i class="glyphicon glyphicon-refresh rotate"></i>&nbsp;&nbsp;&nbsp;Loading...
-                    </div>
-                    <div class="center-block " ng-show="isError">
-                        <p class="error-oops"><i class="text-danger glyphicon glyphicon-remove-circle"></i> &{'gettingStarted.loader.oops'}</p>
-                        <p class="error-text" translate="&{'gettingStarted.loader.error'}"></p>
-                        <button name="singlebutton" class="btn btn-primary" ng-click="initializeGuide();">&{'gettingStarted.loader.recheck'}</button>
-                        <p ng-show="canDismiss" class="dismiss-me" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</p>
+                        <i class="glyphicon glyphicon-refresh rotate"></i>&{'gettingStarted.landing.loading'}
                     </div>
                 </div>
             </guidestep>
 
             <guidestep class="landingstep" name="landing" ng-show="guideDataAvailable && currentStep == 3">
                 <div class="container2">
-                    <div class="center-block  landing-title">
-                        <h1 ng-class="{'postSave':isSavingSuccess}">&{'gettingStarted.landing.header'}</h1>
+                    <div class="center-block landing-title">
+                        <h1 ng-show="!staleData">&{'gettingStarted.landing.header'}</h1>
                     </div>
 
-                    <div class="center-block " ng-show="isSavingSuccess">
-                        <h6><i class="text-success glyphicon glyphicon-ok-circle"></i> &{'gettingStarted.lpw.success'}</h6>
+                    <div ng-show="completedSteps == 2 && !staleData" class="landing-text-welcome">
+                        <h4>&{'gettingStarted.landing.text'}</h4>
                     </div>
 
-                    <div class="landing-text">
-                        <h3 ng-show="completedSteps == 2">&{'gettingStarted.landing.text'}</h3>
-                        <h3 ng-show="completedSteps >= 3 && completedSteps < maxSteps" >&{'gettingStarted.landing.systemPartial'}</h3>
-                        <h3 ng-show="completedSteps == maxSteps" >&{'gettingStarted.landing.systemReady'}</h3>
+                    <div ng-show="completedSteps != 2 || staleData" class="landing-text">
+                        <h3 ng-show="completedSteps >= 3 && completedSteps < maxSteps && !staleData" >&{'gettingStarted.landing.systemPartial'}</h3>
+                        <h3 ng-show="staleData" >&{'gettingStarted.landing.oldData'}</h3>
+                        <h3 ng-show="completedSteps == maxSteps && !staleData" >&{'gettingStarted.landing.systemReady'}</h3>
                     </div>
 
                     <div class="center-block ">
                         <div class="text-center action-btn">
-                            <button ng-show="completedSteps == 2" name="singlebutton" class="btn btn-primary" ng-click="completeStep();">&{'gettingStarted.landing.initial'}</button>
+                            <button ng-show="completedSteps == 2 && !staleData" name="singlebutton" class="btn btn-primary" ng-click="completeStep();">&{'gettingStarted.landing.initial'}</button>
 
-                            <button ng-show="completedSteps >= 3  && completedSteps < maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(completedSteps+1);">&{'gettingStarted.landing.partial'}</button>
+                            <button ng-show="completedSteps >= 3  && completedSteps < maxSteps && !staleData" name="singlebutton" class="btn btn-primary" ng-click="showStep(completedSteps+1);">&{'gettingStarted.landing.partial'}</button>
 
-                            <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(9);">&{'gettingStarted.landing.completed'}</button> <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="startAddMoreStorage();">&{'gettingStarted.loader.recheck'}</button> 
+                            <button ng-show="staleData" name="singlebutton" class="btn btn-primary" ng-click="refreshPage();">&{'gettingStarted.landing.updateData'}</button>
+
+                            <button ng-show="completedSteps == maxSteps && !staleData" name="singlebutton" class="btn btn-primary" ng-click="showStep(9);">&{'gettingStarted.landing.completed'}</button>
+                            <button ng-show="completedSteps == maxSteps && !staleData" name="singlebutton" class="btn btn-primary" ng-click="startAddMoreStorage();">&{'gettingStarted.loader.recheck'}</button>
+                            <button name="singlebutton" class="btn btn-primary" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</button>
                         </div>
-                        <p class="dismiss-me" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</p>
+                        <!--p class="dismiss-me" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</p-->
                     </div>
                 </div>
             </guidestep>
@@ -81,6 +76,9 @@
                             <div class="guide-textpanel">
                                 <h4>&{'gettingStarted.licenses.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.licenses.text'}</p>
+                                #{if flash.error}
+                                    <p class="guide-error">&{'gettingStarted.licenses.error'}</p>
+                                #{/}
                                 <div class="action-btn">
                                     <button ng-show="completedSteps == currentStep-1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.licenses.button'}</button>
                                     <div ng-show="currentStep > completedSteps + 1" class="guide-textpanel">
@@ -134,12 +132,16 @@
                                 <div class="action-btn">
                                     <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 4">
                                         <p class="guide-error">{{guideError}}</p>
+                                        <ul class="guide-error">
+                                            <li ng-repeat="object in guideErrorObject">{{object}}</li>
+                                        </ul>
+                                        <p class="guide-error">{{guideErrorSolution}}</p>
                                     </div>
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="!guideError && completedSteps < 4" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.storagesystem.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 3" name="singlebutton" class="btn btn-danger" ng-click="runStep(guideError);">Fix Error</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="!guideError && completedSteps < 4" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.storagesystem.button'}</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 3" name="singlebutton" class="btn btn-danger" ng-click="runStep(guideError);">&{'gettingStarted.button.error'}</button>
                                 </div>
                             </div>
                         </div>
@@ -147,9 +149,6 @@
                 </div>
             </guidestep>
             <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
-                <div ng-if="guideVisible && currentStep == 5">
-                    #{set navSelected: ['nav.virtualStorage', 'nav.block.virtualPools'] /}
-                </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
@@ -162,13 +161,18 @@
                                 <h4>&{'gettingStarted.fabricmanager.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.fabricmanager.text'}</p>
                                 <div class="action-btn">
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 5" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.fabricmanager.button'}</button>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 5">
+                                        <p class="guide-error">{{guideError}}</p>
+                                        <ul class="guide-error">
+                                            <li ng-repeat="object in guideErrorObject">{{object}}</li>
+                                        </ul>
+                                        <p class="guide-error">{{guideErrorSolution}}</p>
+                                    </div>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
-                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 5">
-                                        <p class="guide-error">{{guideError}}</p>
-                                    </div>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="(!guideError && completedSteps == 4) != (completedSteps < 4)" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.fabricmanager.button'}</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 4" name="singlebutton" class="btn btn-danger" ng-click="runStep();">&{'gettingStarted.button.error'}</button>
                                 </div>
                             </div>
                         </div>
@@ -188,13 +192,18 @@
                                 <h4>&{'gettingStarted.virtualarray.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.virtualarray.text'}</p>
                                 <div class="action-btn">
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 6" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualarray.button'}</button>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 6">
+                                        <p class="guide-error">{{guideError}}</p>
+                                        <ul class="guide-error">
+                                            <li ng-repeat="object in guideErrorObject">{{object}}</li>
+                                        </ul>
+                                        <p class="guide-error">{{guideErrorSolution}}</p>
+                                    </div>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
-                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 6">
-                                        <p class="guide-error">{{guideError}}</p>
-                                    </div>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="(!guideError && completedSteps == 5) != (completedSteps < 5)" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualarray.button'}</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 5" name="singlebutton" class="btn btn-danger" ng-click="runStep();">&{'gettingStarted.button.error'}</button>
                                 </div>
                             </div>
                         </div>
@@ -214,13 +223,18 @@
                                 <h4>&{'gettingStarted.virtualpool.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.virtualpool.text'}</p>
                                 <div class="action-btn">
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 7" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualpool.button'}</button>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 7">
+                                        <p class="guide-error">{{guideError}}</p>
+                                        <ul class="guide-error">
+                                            <li ng-repeat="object in guideErrorObject">{{object}}</li>
+                                        </ul>
+                                        <p class="guide-error">{{guideErrorSolution}}</p>
+                                    </div>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
-                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 7">
-                                        <p class="guide-error">{{guideError}}</p>
-                                    </div>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="(!guideError && completedSteps == 6) != (completedSteps < 6)" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualpool.button'}</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 6" name="singlebutton" class="btn btn-danger" ng-click="runStep();">&{'gettingStarted.button.error'}</button>
                                 </div>
                             </div>
                         </div>
@@ -240,13 +254,18 @@
                                 <h4>&{'gettingStarted.project.title'}</h4>
                                 <p class="step-text">&{'gettingStarted.project.text'}</p>
                                 <div class="action-btn">
-                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="completedSteps < 8" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.project.button'}</button>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 8">
+                                        <p class="guide-error">{{guideError}}</p>
+                                        <ul class="guide-error">
+                                            <li ng-repeat="object in guideErrorObject">{{object}}</li>
+                                        </ul>
+                                        <p class="guide-error">{{guideErrorSolution}}</p>
+                                    </div>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
-                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 8">
-                                        <p class="guide-error">{{guideError}}</p>
-                                    </div>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="(!guideError && completedSteps == 7) != (completedSteps < 7)" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.project.button'}</button>
+                                    <button ng-disabled="currentStep > completedSteps + 1" ng-show="guideError && completedSteps == 7" name="singlebutton" class="btn btn-danger" ng-click="runStep();">&{'gettingStarted.button.error'}</button>
                                 </div>
                             </div>
                         </div>
@@ -265,28 +284,28 @@
                             <div class="guide-textpanel">
                                 <h4>&{'gettingStarted.provision.title'}</h4>
                                 <div class="step-text">
-                                    <p>&{'gettingStarted.provision.text'}</p>
+                                    <p>&{'gettingStarted.provision.text.summary'}</p>
                                     <div class="summary-box"  ng-if="guideDataAvailable && currentStep == 9" ng-init="getSummary()">
-                                        <span class="summary-item">Discovered Storage: </span>
+                                        <span class="summary-item">&{'gettingStarted.provision.storage'}: </span>
                                             <span ng-class="{'summary-success':guide_storageArray!='Not Complete'&&guide_storageArray!='Skipped'}" class="summary-value">{{guide_storageArray}}</span><br>
-                                        <span class="summary-item">Discovered Fabric: </span>
+                                        <span class="summary-item">&{'gettingStarted.provision.fabric'}: </span>
                                             <span ng-class="{'summary-success':guide_fabric!='Not Complete'&&guide_fabric!='Skipped'}" class="summary-value">{{guide_fabric}}</span><br>
-                                        <span class="summary-item">Created Virtual Array: </span>
+                                        <span class="summary-item">&{'gettingStarted.provision.varray'}: </span>
                                             <span ng-class="{'summary-success':guide_varray!='Not Complete'&&guide_varray!='Skipped'}" class="summary-value">{{guide_varray}}</span><br>
-                                        <span class="summary-item">Created Virtual Pool: </span>
+                                        <span class="summary-item">&{'gettingStarted.provision.vpool'}: </span>
                                             <span ng-class="{'summary-success':guide_vpool!='Not Complete'&&guide_vpool!='Skipped'}" class="summary-value">{{guide_vpool}}</span><br>
-                                        <span class="summary-item">Created Project: </span>
+                                        <span class="summary-item">&{'gettingStarted.provision.project'}: </span>
                                             <span ng-class="{'summary-success':guide_project!='Not Complete'&&guide_project!='Skipped'}" class="summary-value">{{guide_project}}</span><br>
                                     </div>
                                     <div class="action-btn" ng-show="completedSteps > 7">
-                                        <p>&{'gettingStarted.provision.text2'}</p>
+                                        <p>&{'gettingStarted.provision.text'}</p>
                                     </div>
                                 </div>
                                 <div class="action-btn">
-                                    <button ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.provision.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
+                                    <button ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.provision.button'}</button>
                                 </div>
                             </div>
                         </div>

@@ -448,6 +448,7 @@ fix_devkit_storageos_cert
 fix_devkit_readme
 fix_enable_java_sslv3
 vipr_fix_add_strongswan
+vipr_fix_etc_profile
 
 
 #######################################################

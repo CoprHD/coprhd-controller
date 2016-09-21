@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -320,7 +321,9 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host != null) {
-            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel()));
+            Vcenter vcenter = ComputeSystemHelper.getHostVcenter(_dbClient, host);
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel(),
+                    vcenter == null ? "N/A" : vcenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
         }
         return result;

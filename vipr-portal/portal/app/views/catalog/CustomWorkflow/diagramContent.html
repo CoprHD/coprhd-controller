@@ -1,0 +1,53 @@
+#{assets.css "stylesheets/diagram-js.css"/}
+#{assets.css "stylesheets/bpmn-embedded.css"/}
+#{assets.css "stylesheets/app.css"/}
+#{assets.css "stylesheets/bpmn.css"/}
+
+  <div class="content" id="js-drop-zone">
+
+    <div class="message intro"><BR><BR><BR>
+      <div>
+        <input type="hidden" id="diagramXML" value="${diagramXML}"/>
+        <a id="js-open-vipr-diagram" href></a> 
+      </div>
+	  
+    </div>
+
+    <div class="message error">
+      <div class="note">
+        <p>Ooops, we could not display the BPMN 2.0 diagram.</p>
+
+        <div class="details">
+          <span>cause of the problem</span>
+          <pre></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas" id="js-canvas"></div>
+    <div id="js-properties-panel"></div>
+  </div>
+   <ul class="buttons">
+    <li>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    </li>
+     <li>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    </li> 
+    
+    <li>
+     <a id="js-download-diagram">
+       <button class="btn btn-info btn-large" name="save" > ${messages.get('button.save')}</button>
+     </a>
+    </li>
+    <li>
+
+  </ul>
+
+ <script>
+    window.onload = function(){
+      document.getElementById("js-open-vipr-diagram").click();
+    }
+ </script>
+  
+  #{script 'workflow.js'/}

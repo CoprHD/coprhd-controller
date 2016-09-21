@@ -145,6 +145,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.TaskLockingCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
@@ -2793,16 +2794,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorURIs.add(initiator.getId());
             }
 
+            String stepId = workflow.createStepId();
+
             Workflow.Method addInitiatorMethod = storageViewAddInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
                     initiatorURIs, null, sharedVplexExportMask);
 
-            Workflow.Method initiatorRollback = storageViewRemoveInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
-                    initiatorURIs, null);
+            Workflow.Method initiatorRollback = storageViewAddInitiatorsRollbackMethod(vplexSystem.getId(), export, exportMask.getId(),
+                    new ArrayList<>(blockObjectMap.keySet()), initiatorURIs, stepId);
 
             storageViewStepId = workflow.createStep("storageView",
                     String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
                     storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                    this.getClass(), addInitiatorMethod, initiatorRollback, null);
+                    this.getClass(), addInitiatorMethod, initiatorRollback, stepId);
         }
 
         if (exportMasksToUpdateOnDeviceWithStoragePorts.containsKey(exportMask.getId())) {
@@ -3705,7 +3708,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                         // Create a step to remove initiators from the storage view
                         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
-                                exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
+                                exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs), null);
                         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
                         previousStep = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
                                 null, vplexURI, vplex.getSystemType(), this.getClass(),
@@ -4131,12 +4134,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
+            String addInitStepId = workflow.createStepId();
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplexURI, exportURI, exportMask.getId(), hostInitiatorURIs,
                     newTargetURIs, shared);
-            Workflow.Method addToViewRollbackMethod = storageViewRemoveInitiatorsMethod(vplexURI,
-                    exportURI, exportMask.getId(), hostInitiatorURIs, null);
+            Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplexURI,
+                    exportURI, exportMask.getId(), StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet()), hostInitiatorURIs,
+                    addInitStepId);
             lastStepId = workflow.createStep("storageView", "Add " + message,
-                    zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod, null);
+                    zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod,
+                    addInitStepId);
         }
         return lastStepId;
     }
@@ -4370,6 +4376,59 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ServiceError serviceError = VPlexApiException.errors.storageViewAddInitiatorFailed(opName, ex);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
+    }
+
+    /**
+     * @see storageViewAddInitiatorsRollback
+     * @param vplexURI
+     * @param exportURI
+     * @param maskURI
+     * @param initiatorURIs
+     * @param targetURIs
+     * @return Workflow.Method for addition to workflow.
+     */
+    public Workflow.Method storageViewAddInitiatorsRollbackMethod(URI vplexURI, URI exportURI, URI maskURI,
+            List<URI> volumeURIs, List<URI> initiatorURIs, String contextKey) {
+        return new Workflow.Method("storageViewAddInitiatorsRollback", vplexURI, exportURI, maskURI, volumeURIs, initiatorURIs, contextKey);
+    }
+
+    /**
+     * Rollback entry point. This is a wrapper around the exportRemoveInitiators
+     * operation, which requires that we create a specific completer using the token
+     * that's passed in. This token is generated by the rollback processing.
+     *
+     * @param storageURI
+     *            [in] - StorageSystem URI
+     * @param exportGroupURI
+     *            [in] - ExportGroup URI
+     * @param exportMaskURI
+     *            [in] - ExportMask URI
+     * @param volumeURIs
+     *            [in] - Impacted volume URIs
+     * @param initiatorURIs
+     *            [in] - List of Initiator URIs
+     * @param contextKey
+     *            [in] - context token
+     * @param token
+     *            [in] - String token generated by the rollback processing
+     * @throws ControllerException
+     */
+    public void storageViewAddInitiatorsRollback(URI storageURI, URI exportGroupURI,
+            URI exportMaskURI, List<URI> volumeURIs,
+            List<URI> initiatorURIs,
+            String contextKey, String token) throws ControllerException {
+        ExportTaskCompleter taskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
+                initiatorURIs, token);
+        // Take the context of the step in flight and feed it into our current step
+        // in order to only perform rollback of operations we successfully performed.
+        try {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
+        }
+        storageViewRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
+                volumeURIs, initiatorURIs, taskCompleter, token);
     }
 
     /**
@@ -4981,7 +5040,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
-                exportMask.getId(), hostInitiatorURIs, targetURIs);
+                exportMask.getId(), hostInitiatorURIs, targetURIs, null);
         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         lastStep = workflow.createStep("storageView", "Removing " + hostInitiatorURIs.toString(),
                 zoneStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
@@ -5128,9 +5187,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return Workflow.Method for addition into workflow.
      */
     private Workflow.Method storageViewRemoveInitiatorsMethod(URI vplexURI, URI exportGroupURI,
-            URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs) {
+            URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs, TaskCompleter taskCompleter) {
         return new Workflow.Method("storageViewRemoveInitiators", vplexURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, targetURIs);
+                exportMaskURI, initiatorURIs, targetURIs, null);
     }
 
     /**
@@ -5154,7 +5213,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws WorkflowException
      */
     public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> initiatorURIs, List<URI> targetURIs, String stepId)
+            List<URI> initiatorURIs, List<URI> targetURIs, TaskCompleter taskCompleter, String stepId)
             throws WorkflowException {
 
         List<URI> initiatorIdsToProcess = new ArrayList<>(initiatorURIs);
@@ -5171,30 +5230,34 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     targetPortMap, _networkDeviceController);
 
             // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(stepId);
-            if (context != null && context.getOperations() != null) {
-                _log.info("Handling removeInitiators as a result of rollback");
-                List<Initiator> addedInitiators = new ArrayList<Initiator>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            && VnxExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_GROUP.equals(operation.getOperation())) {
-                        addedInitiators = (List<Initiator>) operation.getArgs().get(0);
-                        _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+            if (taskCompleter != null) {
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter != null ? taskCompleter.getOpId() : null);
+                if (context != null && context.getOperations() != null) {
+                    _log.info("Handling removeInitiators as a result of rollback");
+                    List<Initiator> addedInitiators = new ArrayList<Initiator>();
+                    ListIterator<ExportOperationContextOperation> li = context.getOperations()
+                            .listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                && VnxExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_GROUP.equals(operation.getOperation())) {
+                            addedInitiators = (List<Initiator>) operation.getArgs().get(0);
+                            _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                        }
                     }
-                }
 
-                if (addedInitiators == null || addedInitiators.isEmpty()) {
-                    _log.info("There was no context found for add initiator. So there is nothing to rollback.");
-                    WorkflowStepCompleter.stepSucceded(stepId);
-                    return;
-                }
+                    if (addedInitiators == null || addedInitiators.isEmpty()) {
+                        _log.info("There was no context found for add initiator. So there is nothing to rollback.");
+                        WorkflowStepCompleter.stepSucceded(stepId);
+                        return;
+                    }
 
-                // Change the list of initiators to process to the list that successfully were added during
-                // addInitiators.
-                initiatorIdsToProcess.clear();
-                initiatorIdsToProcess.addAll(URIUtil.toUris(addedInitiators));
+                    // Change the list of initiators to process to the list that successfully were added during
+                    // addInitiators.
+                    initiatorIdsToProcess.clear();
+                    initiatorIdsToProcess.addAll(URIUtil.toUris(addedInitiators));
+                }
             }
 
             // validate the remove initiator operation against the export mask volumes
@@ -8306,55 +8369,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
         return volumeDescsForGivenURIs;
-    }
-
-    /**
-     * Create a step in the passed workflow to create native full copies for
-     * the volumes or snapshots represented by the passed volume descriptors.
-     *
-     * @param workflow
-     *            A reference to the workflow to which the step is added.
-     * @param srcObject
-     *            A reference to a backend source volume or snapshot to be copied.
-     * @param copyVolumeDescriptors
-     *            The descriptors representing the backend
-     *            full copy volumes.
-     * @param waitFor
-     *            The step in the passed workflow for which this step should
-     *            wait to complete successfully before executing.
-     *
-     * @return The id of the step, for which subsequent steps in the workflow
-     *         should wait.
-     */
-    private String createStepForNativeCopy(Workflow workflow, BlockObject srcObject,
-            List<VolumeDescriptor> copyVolumeDescriptors, String waitFor) {
-        List<URI> copyVolumeURIs = VolumeDescriptor.getVolumeURIs(copyVolumeDescriptors);
-        StorageSystem srcVolumeSystem = getDataObject(StorageSystem.class,
-                srcObject.getStorageController(), _dbClient);
-        URI srcVolumeSystemURI = srcVolumeSystem.getId();
-        _log.info("Source volume storage system is {}", srcVolumeSystemURI);
-
-        String stepId = workflow.createStepId();
-        Workflow.Method executeMethod = new Workflow.Method(FULL_COPY_METHOD_NAME,
-                srcVolumeSystemURI, copyVolumeURIs, Boolean.FALSE);
-        Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_FULL_COPY_METHOD, srcVolumeSystemURI, copyVolumeURIs);
-        workflow.createStep(COPY_VOLUME_STEP, String.format(
-                "Create full copy volumes %s on system %s", copyVolumeURIs,
-                srcVolumeSystemURI), waitFor, srcVolumeSystemURI,
-                srcVolumeSystem.getSystemType(), BlockDeviceController.class,
-                executeMethod, rollbackMethod, stepId);
-
-        // Create a task operation status for each volume copy that will
-        // be updated when the step is executed and completed.
-        for (URI copyVolumeURI : copyVolumeURIs) {
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY);
-            _dbClient.createTaskOpStatus(Volume.class, copyVolumeURI, stepId, op);
-        }
-
-        _log.info("Created workflow step to create native full copies");
-
-        return stepId;
     }
 
     /**

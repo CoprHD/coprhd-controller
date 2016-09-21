@@ -1025,8 +1025,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
+                _log.info("Refreshing storage");
+                storageAPI.refreshStorage();
                 for (String volume : exportGroup.getVolumes().keySet()) {
-
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     try {
                         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
@@ -1035,8 +1036,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 storageAPI.attachScsiLun(entry);
                             }
                         }
-                        _log.info("Refreshing storage");
-                        storageAPI.refreshStorage();
                     } catch (VMWareException ex) {
                         _log.warn(ex.getMessage(), ex);
                     }

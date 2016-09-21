@@ -546,20 +546,26 @@ public class FileSystems extends ResourceController {
 
     
     public static void fileSystemExportsJson(String id, String path, String sec) {
+    	String security = sec;
+    	// Remove if the security list padded with []!!!
+    	if (sec.startsWith("[") && sec.endsWith("]")) {
+    		security = sec.substring(1, sec.length()-2);
+    	}
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, getOrderedSecurities(sec));
         renderJSON(info);
     }
     
-    public static void fileSystemExportsJson(String id, String path, List<String> sec) {
+  public static void fileSystemExportsJson(String id, String path, List<String> sec) {
     	Iterator<String> secIter = sec.iterator();
     	StringBuffer security = new StringBuffer(); 
     	security.append(secIter.next());
     	while(secIter.hasNext()) {
     		security.append(",").append(secIter.next());
     	}
-    	fileSystemExportsJson(id, path, security.toString());
+    	 ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, getOrderedSecurities(security.toString()));
+         renderJSON(info);
     }
-
+  
     public static void fileSystemQuotaJson(String id) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         QuotaDirectoryRestRep quota = client.quotaDirectories().getQuotaDirectory(uri(id));

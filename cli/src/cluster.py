@@ -236,7 +236,7 @@ class Cluster(object):
 
         return
 
-    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=True):
+    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=False):
         '''
         update cluster with datacenter, label
         Parameters:
@@ -623,6 +623,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-updateExports' , '-updateEx' ,
                                help="Updates the exports during cluster update" ,
                                dest='updateExports' ,
+                               default='false' ,
                                choices = Cluster.BOOL_TYPE_LIST)
 
     update_parser.set_defaults(func=cluster_update)

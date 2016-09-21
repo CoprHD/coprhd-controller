@@ -189,7 +189,7 @@ class Host(object):
     def update(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, newlabel, autodiscovery,
-               bootvolume, project, updateExports=True):
+               bootvolume, project, updateExports=False):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -1105,7 +1105,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-updateExports', '-updateEx',
                             help="Updates the exports during host update",
                             dest='updateExports',
-                            default='true',
+                            default='false',
                             choices=['true', 'false'])
 
     update_parser.set_defaults(func=host_update)

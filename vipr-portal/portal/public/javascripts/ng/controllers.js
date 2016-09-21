@@ -2337,14 +2337,4 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             div.style.top = e.clientY + 'px';
           }
     }
-
-    $scope.$watch('guideMode', function(newValue, oldValue) {
-        if (newValue != oldValue){
-            var div = document.getElementById('wizard');
-            div.removeAttribute("style");
-        }
-        if (newValue=='side'){
-            $(".mainContent .section-header").addClass("wizard-side-move-content");
-        }
-    });
 });

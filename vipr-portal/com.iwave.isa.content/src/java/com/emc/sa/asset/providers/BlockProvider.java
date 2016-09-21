@@ -323,7 +323,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
         debug("getting source block volumes (project=%s)", project);
-        FilterChain<VolumeRestRep> filters = new BlockObjectMountPointFilter().not();
+        FilterChain<VolumeRestRep> filters = new BlockVolumeMountPointFilter().not();
         filters.and(new BlockVolumeVMFSDatastoreFilter().not());
         List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project, filters);
         return createVolumeOptions(null, volumes);
@@ -351,7 +351,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<URI> volumeIds = getExportedVolumeIds(ctx, project);
         FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
         filter.and(new BlockVolumeVMFSDatastoreFilter().not());
-        filter.and(new BlockObjectMountPointFilter().not());
+        filter.and(new BlockVolumeMountPointFilter().not());
         List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
         return createVolumeWithVarrayOptions(client, volumes);
     }
@@ -1805,7 +1805,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockVolume")
     @AssetDependencies({ "esxHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForEsxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, false);
+        return getProjectBlockVolumesForHost(api(context), project, host, false,
+                new BlockObjectMountPointFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
     }
 
     @Asset("mountedBlockResource")
@@ -3462,10 +3463,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /**
      * MountPoint filter for block objects.
      */
-    private static class BlockObjectMountPointFilter extends DefaultResourceFilter<VolumeRestRep> {
+    private static class BlockObjectMountPointFilter extends DefaultResourceFilter<BlockObjectRestRep> {
         @Override
-        public boolean accept(VolumeRestRep blockObject) {
+        public boolean accept(BlockObjectRestRep blockObject) {
             return BlockStorageUtils.isVolumeMounted(blockObject);
+        }
+    }
+
+    /**
+     * MountPoint filter for block volumes.
+     */
+    private static class BlockVolumeMountPointFilter extends DefaultResourceFilter<VolumeRestRep> {
+        @Override
+        public boolean accept(VolumeRestRep volume) {
+            return BlockStorageUtils.isVolumeMounted(volume);
         }
     }
 

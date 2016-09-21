@@ -398,7 +398,7 @@ class ExportGroup(object):
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
         
-        if(maxpath):
+        if(maxpaths):
             parms['path_parameters'] = path_parameters
         parms['volume_changes'] = volChanges
        

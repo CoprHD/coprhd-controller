@@ -469,12 +469,11 @@ public class ActionableEventExecutor {
             URI blockURI = details.getBlockURI();
             if (addPath) {
                 result.add(
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded", (projectName == null ? "N/A" : projectName),
-                                (volumeName == null ? "N/A" : volumeName), blockURI));
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded",
+                                (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName), blockURI));
             } else {
                 result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathRemoved",
-                        (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI));
+                        (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName), blockURI));
             }
         }
         return result;

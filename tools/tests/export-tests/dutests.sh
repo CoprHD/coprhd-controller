@@ -205,7 +205,7 @@ arrayhelper() {
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
 	cleanup
-	finish
+	finish -1
 	;;
     esac
 }
@@ -230,7 +230,7 @@ arrayhelper_create_export_mask_operation() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -260,7 +260,7 @@ arrayhelper_volume_mask_operation() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -290,7 +290,7 @@ arrayhelper_initiator_mask_operation() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -319,7 +319,7 @@ arrayhelper_delete_volume() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -341,7 +341,7 @@ arrayhelper_delete_export_mask() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -370,7 +370,7 @@ arrayhelper_delete_mask() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -399,7 +399,7 @@ arrayhelper_verify_export() {
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
-	 finish
+	 finish -1
 	 ;;
     esac
 }
@@ -409,6 +409,10 @@ arrayhelper_verify_export() {
 verify_no_zones() {
     fabricid=$1
     host=$2
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
@@ -421,6 +425,11 @@ verify_no_zones() {
 #
 load_zones() {
     host=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
     if [ $? -ne 0 ]; then
 	echo -e "\e[91mERROR\e[0m: Could not determine the zones that were created"
@@ -434,6 +443,10 @@ load_zones() {
 verify_zones() {
     fabricid=$1
     check=$2
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     for zone in ${zones}
     do
@@ -450,6 +463,11 @@ verify_zones() {
 # Cleans zones and zone referencese ($1=fabricId, $2=host)
 clean_zones() {
     fabricid=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     load_zones $2
     delete_zones ${HOST1}
     zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
@@ -468,6 +486,10 @@ clean_zones() {
 # Deletes the zones returned by load_zones, then any remaining zones
 delete_zones() {
     host=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     zonesdel=0
     for zone in ${zones}
@@ -522,8 +544,12 @@ dbupdate() {
 }
 
 finish() {
+    code=${1}
     if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
         exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    if [ "${code}" != "" ]; then
+	exit ${code}
     fi
     exit 0
 }
@@ -627,7 +653,7 @@ run() {
 	fi
 	echo There was a failure
 	cleanup
-	finish
+	finish -1
     fi
 }
 
@@ -783,6 +809,13 @@ prerun_setup() {
 	    storage_password=${XTREMIO_3X_PASSWD}
        fi
 
+    fi
+
+    smisprovider list | grep SIM > /dev/null
+    if [ $? -eq 0 ];
+    then
+	ZONE_CHECK=0
+	echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -1050,6 +1083,38 @@ vplex_sim_setup() {
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
+            run cos create block ${VPOOL_BASE}_migration_src false                            \
+                             --description 'vpool-for-vplex-local-volumes-src'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (target)"
+            run cos create block ${VPOOL_BASE}_migration_tgt false                           \
+                             --description 'vpool-for-vplex-local-volumes-tgt'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_SIM_VMAX2_NATIVEGUID
         ;;
         distributed)
             secho "Setting up the virtual pool for distributed VPLEX provisioning"
@@ -1507,7 +1572,7 @@ test_2() {
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
 	cleanup
-	finish
+	finish 2
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1540,7 +1605,7 @@ test_2() {
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
 	cleanup
-	finish
+	finish 2
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1608,7 +1673,7 @@ test_3() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 3
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1688,7 +1753,7 @@ test_4() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1770,7 +1835,7 @@ test_5() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 5
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1866,7 +1931,7 @@ test_6() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2067,7 +2132,7 @@ test_9() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 9
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2212,7 +2277,7 @@ test_11() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 11
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2350,7 +2415,7 @@ test_13() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 13
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2449,7 +2514,7 @@ test_14() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 14
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2536,7 +2601,7 @@ test_15() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 15
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2639,7 +2704,7 @@ test_16() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 16
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2743,7 +2808,7 @@ test_17() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 17
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2829,7 +2894,7 @@ test_18() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 18
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2913,7 +2978,7 @@ test_19() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 19
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3010,7 +3075,7 @@ test_20() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 20
     fi
 
 	# Show the result of the export group command for now (show the task and WF IDs)
@@ -3107,7 +3172,7 @@ test_21() {
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
-	finish
+	finish 21
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3178,6 +3243,11 @@ test_22() {
 	return
     fi
 
+    if [ "${SIM}" = "1" ]; then
+        # validation check off for this one.  vplex sim failing volume validation
+	runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    fi
+
     # Create a new vplex volume that we can migrate
     HIJACK=du-hijack-volume-${RANDOM}
 
@@ -3225,6 +3295,9 @@ test_23() {
     echot "Test 23 (VPLEX) Suspend resume migration with CGs"
     expname=${EXPORT_GROUP_NAME}t23
 
+    # validation check off for this one.  vplex sim failing volume validation
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
@@ -3234,6 +3307,11 @@ test_23() {
     if [ "${VPLEX_MODE}" = "distributed" ]; then
 	echo "This test is reserved for vplex local as distributed mode uses the same code path"
 	return
+    fi
+
+    if [ "${SIM}" = "1" ]; then
+        # validation check off for this one.  vplex sim failing volume validation
+	runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     fi
 
     randval=${RANDOM}
@@ -3280,7 +3358,7 @@ test_23() {
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
-    runcmd blockconsistencygroup delete ${PROJECT}/${CGNAME}
+    runcmd blockconsistencygroup delete ${CGNAME}
 }
 
 # Export Test 24
@@ -3556,15 +3634,18 @@ case $SS in
     ;;
 esac
 
+# By default, check zones
+ZONE_CHECK=${ZONE_CHECK:-1}
 if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
 then
     echo "Setting up testing based on real hardware"
     setup=1;
     shift 1;
-elif [ "$1" = "setupsim" ]; then
+elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	echo "Setting up testing based on simulators"
 	SIM=1;
+	ZONE_CHECK=0;
 	setup=1;
 	shift 1;
     else
@@ -3635,6 +3716,6 @@ if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi
 
-finish
-exit;
+finish;
+
 

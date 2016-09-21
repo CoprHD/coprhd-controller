@@ -122,6 +122,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
                 exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
             }
+            cleanStaleReferences(exportGroup, dbClient);
             dbClient.updateObject(exportGroup);
             
             _log.info("export_update completer: done");
@@ -185,6 +186,17 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
+
+
+    }
+
+    /**
+     * Cleans ExportGroup's stale references
+     * 
+     * @param exportGroup
+     * @param dbClient
+     */
+    private void cleanStaleReferences(ExportGroup exportGroup, DbClient dbClient) {
 
         cleanStaleMaskReferences(exportGroup, dbClient);
 

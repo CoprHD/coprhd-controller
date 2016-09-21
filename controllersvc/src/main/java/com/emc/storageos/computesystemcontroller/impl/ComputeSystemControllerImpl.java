@@ -1025,8 +1025,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
+                _log.info("Refreshing storage");
+                storageAPI.refreshStorage();
                 for (String volume : exportGroup.getVolumes().keySet()) {
-
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     try {
                         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
@@ -1035,10 +1036,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 storageAPI.attachScsiLun(entry);
                             }
                         }
-                        _log.info("Refreshing storage");
-                        storageAPI.refreshStorage();
                     } catch (VMWareException ex) {
-                        _log.error(ex.getMessage(), ex);
+                        _log.warn(ex.getMessage(), ex);
                     }
 
                     if (blockObject != null && blockObject.getTag() != null) {
@@ -1053,18 +1052,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                         storageAPI.mountDatastore(datastore);
                                     }
                                 } catch (VMWareException ex) {
-                                    _log.error(ex.getMessage(), ex);
+                                    _log.warn(ex.getMessage(), ex);
                                 }
                             }
                         }
                     }
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**
@@ -1193,12 +1192,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**

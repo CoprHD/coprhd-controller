@@ -69,7 +69,7 @@ angular.module("portalApp").controller({
             vpoolHAJournalVirtualPool: {
                 path: routes.BlockVirtualPools_listHaRpJournalVPoolsJson(),
                 depend: ['vpool.haJournalVArray']
-            }            
+            }
         };
 
         angular.forEach(track, function(options, key) {
@@ -94,6 +94,20 @@ angular.module("portalApp").controller({
             event.preventDefault();
         };
 
+        $scope.disablePlacementPolicy = function(value) {
+        	/*
+        	 * When value does not belong to nonequalList or belongs to equalList, 
+        	 * ie. value is not XTREMIO, VMAX, Unity, VnxBlock or value is "vplex_local","vplex_distributed","rp", "srdf"
+        	 */
+        	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
+        	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
+        	if((nonequalList.indexOf(value)==-1)||(equalList.indexOf(value)!=-1)) {
+        		$('#vpool_placementPolicy').val('0').prop('selected',true);
+        		$('#vpool_placementPolicy').change();
+        	}
+        	
+        }
+        
         $scope.saveRecoverPointCopy = function(rpCopy, event) {
             function find(options, id) {
                 var name = $scope.none;
@@ -285,75 +299,91 @@ angular.module("portalApp").controller({
             return result;
         }
     },
+    
     FileRessourceCtrl: function($scope, $http, $window, translate) {
-    	$scope.edit = false;
-    	$scope.rule = {};
-    	$scope.add = {endpoint:'', permission:'ro'};
-    	
-    	$scope.secOpt = [{id:'sys', name:translate('resources.filesystem.export.security.sys')},
-    	                 {id:'krb5', name:translate('resources.filesystem.export.security.krb5')},
-    	                 {id:'krb5p', name:translate('resources.filesystem.export.security.krb5p')},
-    	                 {id:'krb5i', name:translate('resources.filesystem.export.security.krb5i')}];
+       $scope.edit = false;
+       $scope.rule = {};
+       $scope.add = {endpoint:'', permission:'ro'};
+       
+       $scope.secOpt = [{id:'sys', name:translate('resources.filesystem.export.security.sys')},
+                        {id:'krb5', name:translate('resources.filesystem.export.security.krb5')},
+                        {id:'krb5p', name:translate('resources.filesystem.export.security.krb5p')},
+                        {id:'krb5i', name:translate('resources.filesystem.export.security.krb5i')}];
 
-    	$scope.permOpt = [{id:'ro', name:translate('resources.filesystem.export.permission.ro')}, 
-    	                  {id:'rw', name:translate('resources.filesystem.export.permission.rw')}, 
-    	                  {id:'root', name:translate('resources.filesystem.export.permission.root')}];
-    	
-    	var setData = function(data) {
-    		$scope.rule = data;
-    	}
-    	
-    	var resetModal = function() {
-    		$scope.rule = {};
-    	}
-    	
-    	$scope.populateModal = function(edit, id, path, sec, anon) {
-    		resetModal();
-    		$scope.edit = edit;
-    		$scope.rule.subDir = "";
-    		if (edit) {
-    			$scope.exportPath = path;
-    			$scope.rule.security = sec;
-        		$scope.rule.anon = anon;
-        		var data = {params: { id: id, path: path, sec: sec} };
-        		$scope.ruleTitle=translate('resources.filesystem.export.modify');//"Modify Export Rule";
-        		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
-        			$http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
-        		} else {
-        			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
-        		}
-    		} else {
-    		    $scope.ruleTitle=translate('resources.filesystem.export.addExportRule');//"Add Export Rule";
-    			$scope.rule.security = "sys";
-        		$scope.rule.anon = "root";
-        		$scope.rule.endpoints = [];
-        		$scope.rule.endpoints.push(angular.copy($scope.add));
-        		$scope.$apply();
-    		}
-    	}
+       $scope.permOpt = [{id:'ro', name:translate('resources.filesystem.export.permission.ro')}, 
+                         {id:'rw', name:translate('resources.filesystem.export.permission.rw')}, 
+                         {id:'root', name:translate('resources.filesystem.export.permission.root')}];
+       
+       var setData = function(data) {
+              $scope.rule = data;
+       }
+       
+       var resetModal = function() {
+              $scope.rule = {};
+       }
+       
+       $scope.populateModal = function(edit, id, path, sec, anon) {
+              resetModal();
+              $scope.edit = edit;
+              $scope.rule.subDir = "";
+              if (edit) {
+                     $scope.exportPath = path;
+                     $scope.rule.security = sec;
+                     $scope.rule.anon = anon;
+                     // Set the title as Modify rule
+                     $scope.ruleTitle=translate('resources.filesystem.export.modify');
+                     var data = {params: { id: id, path: path, sec: sec} };
+                     if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
+                           $http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
+                     } else {
+                           $http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
+                     }
+              } else {
+                     // Set the title as Add rule
+                     $scope.ruleTitle=translate('resources.filesystem.export.addExportRule');
+                     $scope.rule.anon = "root";
+                     $scope.rule.endpoints = [];
+                     $scope.rule.endpoints.push(angular.copy($scope.add));
+                     $scope.$apply();
+              }
+       }
 
-    	$scope.deleteEndpoint = function(idx) { $scope.rule.endpoints.splice(idx, 1); }
-    	$scope.addEndpoint = function() { $scope.rule.endpoints.push(angular.copy($scope.add)); }
+       function isMatch(value, values) {
+            if (!values) {
+                return false;
+            }
+            if (!$.isArray(values)) {
+                values = new String(values).split(",");
+            }
+            return $.inArray(value, values) > -1;
+        }
+       $scope.deleteEndpoint = function(idx) { $scope.rule.endpoints.splice(idx, 1); }
+       $scope.addEndpoint = function() { $scope.rule.endpoints.push(angular.copy($scope.add)); }
 
-    	$scope.$watch('rule', function(newVal) {
-    		var ro = [], rw = [], root = [];
-    		angular.forEach($scope.rule.endpoints, function(obj) {
-    			if (obj.endpoint != '' && obj.permission == 'ro') {
-    				ro.push(obj.endpoint);
-    			} else if (obj.endpoint != '' && obj.permission == 'rw') {
-    				rw.push(obj.endpoint);
-    			} else if (obj.endpoint != '' && obj.permission == 'root') {
-    				root.push(obj.endpoint);
-    			}
-    		});
-    		$scope.rule.anon = newVal.anon;
-    		$scope.rule.security = newVal.security;
-    		$scope.rule.subDir = newVal.subDir;
-    		$scope.ro = ro.toString();
-    		$scope.rw = rw.toString();
-    		$scope.root = root.toString();
-    	}, true);
+       $scope.$watch('rule', function(newVal) {
+              var ro = [], rw = [], root = [];
+              angular.forEach($scope.rule.endpoints, function(obj) {
+                     if (obj.endpoint != '' && obj.permission == 'ro') {
+                           ro.push(obj.endpoint);
+                     } else if (obj.endpoint != '' && obj.permission == 'rw') {
+                           rw.push(obj.endpoint);
+                     } else if (obj.endpoint != '' && obj.permission == 'root') {
+                           root.push(obj.endpoint);
+                     }
+              });
+              
+              $scope.rule.security = newVal.security;
+              $scope.rule.anon = newVal.anon;
+              $('#rule_security').find(':checkbox').each(function() {
+                     $(this).prop("checked", isMatch($(this).val(),$scope.rule.security));
+              });
+              $scope.rule.subDir = newVal.subDir;
+              $scope.ro = ro.toString();
+              $scope.rw = rw.toString();
+              $scope.root = root.toString();
+       }, true);
     },
+    
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};

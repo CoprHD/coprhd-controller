@@ -601,8 +601,8 @@ public class VPlexControllerUtils {
 
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
-            List<String> initiatorPortsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorsToAdd = new ArrayList<Initiator>();
+            List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
+            List<Initiator> initiatorObjectsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -610,9 +610,10 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
-                    initiatorPortsToAdd.add(normalizedPort);
                     if (knownInitiator != null) {
-                        initiatorsToAdd.add(knownInitiator);
+                        initiatorObjectsToAdd.add(knownInitiator);
+                    } else {
+                        initiatorPortWwnsToAdd.add(normalizedPort);
                     }
                     addInitiators = true;
                 }
@@ -726,7 +727,7 @@ public class VPlexControllerUtils {
 
             log.info(
                     String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}%n",
-                            name, Joiner.on(',').join(initiatorPortsToAdd),
+                            name, Joiner.on(',').join(initiatorPortWwnsToAdd),
                             Joiner.on(',').join(initiatorsToRemove), 
                             Joiner.on(',').join(initiatorsToRemoveFromExisting)));
             log.info(
@@ -749,14 +750,16 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorsToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
-                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortsToAdd);
-                exportMask.addInitiators(initiatorsToAdd);
+                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
+                exportMask.addInitiators(initiatorObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);
                 exportMask.getStoragePorts().removeAll(storagePortsToRemove);
+                // update native id (this is the context path to the storage view on the vplex)
+                exportMask.setNativeId(storageView.getPath());
                 ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
                 dbClient.updateObject(exportMask);
                 log.info("ExportMask is now:\n" + exportMask.toString());
@@ -874,9 +877,12 @@ public class VPlexControllerUtils {
         Map<ExportGroup, Set<ExportMask>> exportGroupToStaleMaskMap = new HashMap<ExportGroup, Set<ExportMask>>();
         Map<URI, ExportGroup> exportGroupUriMap = new HashMap<URI, ExportGroup>();
 
-        // check all export masks in the database to make sure they still exist on the VPLEX
+        // check all export masks in the database to make sure they still exist on the VPLEX.
+        // a null or empty ExportMask.nativeId would indicate an ExportMask that has been created
+        // by ViPR in the database, but not yet created on the VPLEX device itself. skip those of course.
         for (ExportMask exportMask : exportMasks) {
-            if (null != exportMask && !exportMask.getInactive()) {
+            if (null != exportMask && !exportMask.getInactive() 
+                    && (exportMask.getNativeId() != null && !exportMask.getNativeId().isEmpty())) {
                 // we need to check both native id and export mask name to make sure we are NOT finding the storage view.
                 // native id is most accurate, but greenfield ExportMasks for VPLEX don't have this property set.
                 // native id will be set on ingested export masks, however, and we should check it, in case the same

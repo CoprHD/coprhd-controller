@@ -2046,16 +2046,16 @@ public class VPlexApiDiscoveryManager {
                         .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
                                 VPlexStorageViewInfo.class);
 
-                for (VPlexStorageViewInfo sv : storageViews) {
-                    if (includeInitiatorDetails) {
-                        // update storage views with wwpn info
-                        Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
+                if (includeInitiatorDetails) {
+                    Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
+                    for (VPlexStorageViewInfo sv : storageViews) {
+                            // update storage views with wwpn info
                         for (String initName : sv.getInitiators()) {
                             String initWwn = initInfoMap.get(initName);
                             sv.getInitiatorPwwns().add(initWwn);
                         }
+                        sv.refreshMaps();
                     }
-                    sv.refreshMaps();
                 }
 
                 return storageViews;

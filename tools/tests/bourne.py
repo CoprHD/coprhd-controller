@@ -1193,9 +1193,7 @@ class Bourne:
 
         while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
             time.sleep(1)
-	    if (obj_op['state'] == 'pending'):
-		seen_pending = 1;
-	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
+	    if (obj_op['state'] == 'suspended_no_error'):
 		break
 		
             obj_op = showfn(id)

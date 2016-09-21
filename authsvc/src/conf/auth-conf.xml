@@ -120,6 +120,7 @@
     <bean id="localAuthNProvider" class="com.emc.storageos.auth.impl.AuthenticationProvider">
     	<constructor-arg index="0" ref="localAuthNHandler"/>
     	<constructor-arg index="1" ref="localAuthNPersonAttributeDao"/>    	
+        <constructor-arg index="2"> <null/> </constructor-arg>
     </bean>
     <bean id="secFilters" class="org.springframework.web.filter.CompositeFilter">
         <property name="filters">

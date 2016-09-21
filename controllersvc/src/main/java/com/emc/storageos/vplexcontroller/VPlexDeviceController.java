@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -140,6 +141,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInit
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
@@ -153,8 +155,11 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDe
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
+import com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
@@ -4232,6 +4237,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String stepId) throws DeviceControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
+
+            ExportMaskAddInitiatorCompleter taskCompleter = new ExportMaskAddInitiatorCompleter(exportURI, maskURI,
+                    initiatorURIs, targetURIs, stepId);
+            ExportOperationContext context = new VPlexExportOperationContext();
+            // Prime the context object
+            taskCompleter.updateWorkflowStepContext(context);
+
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -4250,8 +4262,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
                         VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName),
                         _networkDeviceController);
-
-                boolean updateExportMask = false;
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
@@ -4284,7 +4294,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // Add the targets to the database.
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.addTarget(target);
-                            updateExportMask = true;
                         }
                     }
                 }
@@ -4322,36 +4331,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                         // Add the initiators to the VPLEX
                         client.addInitiatorsToStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfos);
-
-                        for (PortInfo portInfo : initiatorPortInfos) {
-                            // update the ExportMask with the successfully added initiator
-                            Initiator initForThisPortInfo = portInfosToInitiatorMap.get(portInfo);
-                            exportMask.addInitiator(initForThisPortInfo);
-                            if (!exportMask.hasExistingInitiator(initForThisPortInfo)) {
-                                exportMask.addToUserCreatedInitiators(initForThisPortInfo);
-                            }
-                            updateExportMask = true;
-                        }
+                        ExportOperationContext.insertContextOperation(taskCompleter,
+                                VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW,
+                                maskURI);
 
                         _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
                         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
 
-                        // because these are now managed initiators, remove from existing initiators if present.
-                        // this may happen in the case where a vipr-managed initiator was added manually outside of vipr
-                        // by the user.
-                        for (String wwn : initiatorPortWwns) {
-                            if (exportMask.hasExistingInitiator(wwn)) {
-                                _log.info("initiator port {} has been added to the storage view {} by the user, but it "
-                                        + "was already in existing initiators, removing from existing initiators.",
-                                        wwn, exportMask.forDisplay());
-                                exportMask.removeFromExistingInitiators(wwn);
-                                updateExportMask = true;
-                            }
-                        }
-
-                        if (updateExportMask) {
-                            _dbClient.updateObject(exportMask);
-                        }
+                        taskCompleter.ready(_dbClient);
                     } finally {
                         if (lockAcquired) {
                             _vplexApiLockManager.releaseLock(lockName);
@@ -5157,6 +5144,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, String stepId)
             throws WorkflowException {
+
+        List<URI> initiatorIdsToProcess = new ArrayList<>(initiatorURIs);
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -5168,6 +5157,33 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
             VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
                     targetPortMap, _networkDeviceController);
+
+            // Get the context from the task completer, in case this is a rollback.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(stepId);
+            if (context != null && context.getOperations() != null) {
+                _log.info("Handling removeInitiators as a result of rollback");
+                List<Initiator> addedInitiators = new ArrayList<Initiator>();
+                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                while (li.hasPrevious()) {
+                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                    if (operation != null
+                            && VnxExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_GROUP.equals(operation.getOperation())) {
+                        addedInitiators = (List<Initiator>) operation.getArgs().get(0);
+                        _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                    }
+                }
+
+                if (addedInitiators == null || addedInitiators.isEmpty()) {
+                    _log.info("There was no context found for add initiator. So there is nothing to rollback.");
+                    WorkflowStepCompleter.stepSucceded(stepId);
+                    return;
+                }
+
+                // Change the list of initiators to process to the list that successfully were added during
+                // addInitiators.
+                initiatorIdsToProcess.clear();
+                initiatorIdsToProcess.addAll(URIUtil.toUris(addedInitiators));
+            }
 
             // validate the remove initiator operation against the export mask volumes
             List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
@@ -5218,7 +5234,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Update the initiators in the ExportMask.
             List<PortInfo> initiatorPortInfo = new ArrayList<PortInfo>();
-            for (URI initiatorURI : initiatorURIs) {
+            for (URI initiatorURI : initiatorIdsToProcess) {
                 Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
                 // We don't want to remove existing initiator, unless this is a rollback step
                 if (exportMask.hasExistingInitiator(initiator) && !WorkflowService.getInstance().isStepInRollbackState(stepId)) {
@@ -5457,27 +5473,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
         return volumeLunIdMap;
-    }
-
-    /**
-     * Returns a list of Initiator URIs in the ExportGroup
-     *
-     * @param exportGroup
-     * @return
-     */
-    private List<URI> getInitiators(ExportGroup exportGroup) {
-        List<URI> initiatorURIs = new ArrayList<URI>();
-        if (exportGroup.hasInitiators()) {
-            for (String initiator : exportGroup.getInitiators()) {
-                try {
-                    URI initiatorURI = new URI(initiator);
-                    initiatorURIs.add(initiatorURI);
-                } catch (URISyntaxException ex) {
-                    _log.error("Bad URI syntax: " + initiator);
-                }
-            }
-        }
-        return initiatorURIs;
     }
 
     /**

@@ -316,7 +316,8 @@ angular.module("portalApp").controller({
                      $scope.exportPath = path;
                      $scope.rule.security = sec;
                      $scope.rule.anon = anon;
-                     $scope.ruleTitle=translate('resources.filesystem.export.modify');//"Modify Export Rule";
+                     // Set the title as Modify rule
+                     $scope.ruleTitle=translate('resources.filesystem.export.modify');
                      var data = {params: { id: id, path: path, sec: sec} };
                      if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
                            $http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
@@ -324,7 +325,8 @@ angular.module("portalApp").controller({
                            $http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
                      }
               } else {
-                     $scope.ruleTitle=translate('resources.filesystem.export.addExportRule');//"Add Export Rule";
+                     // Set the title as Add rule
+                     $scope.ruleTitle=translate('resources.filesystem.export.addExportRule');
                      $scope.rule.anon = "root";
                      $scope.rule.endpoints = [];
                      $scope.rule.endpoints.push(angular.copy($scope.add));

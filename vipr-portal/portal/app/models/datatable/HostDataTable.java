@@ -31,6 +31,7 @@ public class HostDataTable extends DataTable {
         addColumn("version").hidden();
         addColumn("cluster").hidden();
         addColumn("discoverable").setRenderFunction("render.boolean");
+        addColumn("isVirtualHost").setRenderFunction("render.boolean");
         HostInfo.addDiscoveryColumns(this);
         sortAll();
         setDefaultSort("name", "asc");
@@ -48,6 +49,7 @@ public class HostDataTable extends DataTable {
         public String type;
         public String version;
         public boolean discoverable;
+        public boolean isVirtualHost;
         public String cluster;
 
         public HostInfo() {
@@ -72,6 +74,7 @@ public class HostDataTable extends DataTable {
             this.version = prettifyVersion(host.getOsVersion());
             this.type = host.getType();
             this.discoverable = host.getDiscoverable() == null ? true : host.getDiscoverable();
+            this.isVirtualHost = host.getIsVirtualMachine() == null ? false : host.getIsVirtualMachine();
             if (host.getCluster() != null) {
                 this.cluster = clusterMap.get(host.getCluster().getId());
             }

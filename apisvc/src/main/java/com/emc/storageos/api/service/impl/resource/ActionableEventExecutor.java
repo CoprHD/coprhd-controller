@@ -408,48 +408,41 @@ public class ActionableEventExecutor {
         return hostClusterChange(hostId, clusterId, datacenterId, isVcenter, eventId);
     }
 
-    private Set<String> getHostVolumes(URI hostId) {
-        List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-        Set<String> volumeIds = Sets.newHashSet();
-        for (ExportGroup export : ComputeSystemControllerImpl.getExportGroups(_dbClient, hostId, hostInitiators)) {
-            volumeIds.addAll(export.getVolumes().keySet());
-        }
-        return volumeIds;
-    }
-
     private List<BlockObjectDetails> getBlockObjectDetails(URI hostId, StringMap volumes) {
         List<BlockObjectDetails> result = Lists.newArrayList();
         Set<String> hostVolumes = Sets.newHashSet();
 
-        for (Entry<String, String> volume : volumes.entrySet()) {
-            // if host has access to volume in an exclusive export, skip it from the list of changes
-            if (hostVolumes.contains(volume.getKey())) {
-                continue;
-            }
-            URI project = null;
-            String volumeName = null;
-            URI blockURI = URI.create(volume.getKey());
-            if (URIUtil.isType(blockURI, Volume.class)) {
-                Volume block = _dbClient.queryObject(Volume.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
-                BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
-                BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            }
+        if (volumes != null) {
+            for (Entry<String, String> volume : volumes.entrySet()) {
+                // if host has access to volume in an exclusive export, skip it from the list of changes
+                if (hostVolumes.contains(volume.getKey())) {
+                    continue;
+                }
+                URI project = null;
+                String volumeName = null;
+                URI blockURI = URI.create(volume.getKey());
+                if (URIUtil.isType(blockURI, Volume.class)) {
+                    Volume block = _dbClient.queryObject(Volume.class, blockURI);
+                    project = block.getProject().getURI();
+                    volumeName = block.getLabel();
+                } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
+                    BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
+                    project = block.getProject().getURI();
+                    volumeName = block.getLabel();
+                } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
+                    BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
+                    project = block.getProject().getURI();
+                    volumeName = block.getLabel();
+                }
 
-            Project projectObj = _dbClient.queryObject(Project.class, project);
-            String projectName = null;
-            if (projectObj != null) {
-                projectName = projectObj.getLabel();
-            }
+                Project projectObj = _dbClient.queryObject(Project.class, project);
+                String projectName = null;
+                if (projectObj != null) {
+                    projectName = projectObj.getLabel();
+                }
 
-            result.add(new BlockObjectDetails(blockURI, projectName, volumeName));
+                result.add(new BlockObjectDetails(blockURI, projectName, volumeName));
+            }
         }
         return result;
     }

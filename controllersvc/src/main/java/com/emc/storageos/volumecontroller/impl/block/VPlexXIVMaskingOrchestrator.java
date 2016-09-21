@@ -233,7 +233,6 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             if (exportMask.getNativeId() != null) {
-                _log.info("Refreshing Export mask.......");
                 exportMask = refreshExportMask(array, device, exportMask);
             }
             

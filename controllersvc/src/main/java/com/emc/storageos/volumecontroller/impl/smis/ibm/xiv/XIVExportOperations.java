@@ -135,18 +135,20 @@ public class XIVExportOperations implements ExportMaskOperations {
             // if an HBA get moved from one host to another, it need to be removed on array side manually
             List<Initiator> allInitiators;
             Host host = null;
+            Initiator firstInitiator = initiatorList.get(0);
+            String label;
             if (initiatorList.get(0).getHost() != null) {
                 allInitiators = CustomQueryUtility
                         .queryActiveResourcesByConstraint(_dbClient,
                                 Initiator.class, ContainmentConstraint.Factory
-                                        .getContainedObjectsConstraint(
-                                                initiatorList.get(0).getHost(),
+                                        .getContainedObjectsConstraint(firstInitiator.getHost(),
                                                 Initiator.class, "host"));
-                host = _dbClient.queryObject(Host.class, initiatorList.get(0)
-                        .getHost());
+                host = _dbClient.queryObject(Host.class, firstInitiator.getHost());
+                label = host.getLabel();
             } else {
                 allInitiators = CustomQueryUtility
-                        .queryActiveResourcesByAltId(_dbClient, Initiator.class, "hostname", initiatorList.get(0).getHostName());
+                        .queryActiveResourcesByAltId(_dbClient, Initiator.class, "hostname", firstInitiator.getHostName());
+                label = firstInitiator.getHostName();
             }
             for (Initiator initiator : allInitiators) {
                 String normalizedPortName = Initiator.normalizePort(initiator
@@ -199,14 +201,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                     // same host/controller on both ViPR and array sides
                     break;
                 }
-            }
-
-            String label;
-            if(host != null){
-                label = host.getLabel();
-            }else {
-                label = initiatorList.get(0).getHostName();
-            }              
+            }        
 
             // no matched initiator on array side, now try to find host with the given name
             if (controllerInst == null) {

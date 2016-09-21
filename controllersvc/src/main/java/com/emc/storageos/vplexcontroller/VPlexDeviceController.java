@@ -2893,6 +2893,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // We might need to change the completer or use ExportMaskCreateCompleter
             // during exportGroupCreate which sets volumes to user created volumes list.
             exportMask.addToUserCreatedVolumes(blockObjects);
+            // update native id (this is the context path to the storage view on the vplex)
+            // e.g.: /clusters/cluster-1/exports/storage-views/V1_myserver_288
+            // this column being set to non-null can be used to indicate a storage view that 
+            // has been successfully created on the VPLEX device
+            exportMask.setNativeId(svInfo.getPath());
             _dbClient.updateObject(exportMask);
 
             _dbClient.updateObject(exportGroup);
@@ -3670,12 +3675,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // initiators and existing volumes then remove all the initiators
                     // as well. Remove initiators method will make sure
                     // not to remove existing initiators.
-                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes and initiators "
-                            + "so just removing ViPR-managed volumes and initiators : "
-                            + exportMask.getMaskName());
+                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes ({}) or initiators ({}) "
+                            + "so just removing ViPR-managed volumes and initiators: {}", 
+                            existingVolumes, existingInitiators, exportMask.getMaskName());
                     hasSteps = true;
-                    // Remove volumes from the storage view.
-                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                     if (!existingVolumes) {
                         // create workflow and steps to remove zones and initiators
@@ -3711,6 +3714,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 vplex.getSystemType(),
                                 this.getClass(), fireCompleter, null, completerStepId);
                     }
+
+                    // Remove volumes from the storage view.
+                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
@@ -3869,10 +3875,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
 
-        // if no vipr-managed volumes are remaining, the ExportMask object should be deleted from the database.
-        // if we don't do this, then the unmanaged storage view might be deleted out-of-band later and then we
-        // would have inconsistent information, and any VPLEX API call to update this ExportMask would return a 404
-        if (exportMask.getVolumes().isEmpty()) {
+        // if the ExportMask no longer has any user added volumes,
+        // remove it from any ExportGroups it's associated with,
+        // and mark the ExportMask for deletion
+        if (!exportMask.hasAnyUserAddedVolumes()) {
             _log.info("updating ExportGroups containing this ExportMask");
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
             for (ExportGroup exportGroup : exportGroups) {
@@ -5231,9 +5237,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {
-                    StringSet portIds = exportMask.getStoragePorts();
-                    StoragePort exportMaskPort = getDataObject(StoragePort.class, URI.create(portIds.iterator().next()), _dbClient);
-                    String clusterId = ConnectivityUtil.getVplexClusterOfPort(exportMaskPort);
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                    String clusterId = ConnectivityUtil.getVplexClusterForVarray(exportGroup.getVirtualArray(), vplexURI, _dbClient);
                     lockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
                     lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                     if (!lockAcquired) {

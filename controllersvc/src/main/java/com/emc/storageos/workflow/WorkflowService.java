@@ -2106,8 +2106,8 @@ public class WorkflowService implements WorkflowController {
             if (state != WorkflowState.SUSPENDED_ERROR
                     && state != WorkflowState.SUSPENDED_NO_ERROR) {
                 // Cannot resume a workflow that is not suspended
-                _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
-                return;
+                _log.info(String.format("Workflow %s state %s is not suspended and will not be resumed", uri, state));
+                throw WorkflowException.exceptions.workflowNotSuspended(uri.toString(), state.toString());
             }
 
             if (workflow._taskCompleter != null) {
@@ -2125,7 +2125,6 @@ public class WorkflowService implements WorkflowController {
             completer.ready(_dbClient);
         } catch (WorkflowException ex) {
             completer.error(_dbClient, ex);
-            ;
         } finally {
             unlockWorkflow(workflow, workflowLock);
         }

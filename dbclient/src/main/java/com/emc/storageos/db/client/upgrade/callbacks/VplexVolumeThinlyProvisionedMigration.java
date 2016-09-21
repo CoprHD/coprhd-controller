@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -39,8 +41,6 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
     @Override
     public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
-        List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
-        Iterator<Volume> volumesIter = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
         int volumeUpdatedCount = 0;
 
         // cache a list of vplex URIs for performance reasons
@@ -53,23 +53,31 @@ public class VplexVolumeThinlyProvisionedMigration extends BaseCustomMigrationCa
         }
         logger.info("found {} vplex storage systems in the database", vplexUris.size());
 
-        while (volumesIter.hasNext()) {
-            Volume volume = volumesIter.next();
-            URI systemURI = volume.getStorageController();
-            if (!NullColumnValueGetter.isNullURI(systemURI)) {
-                if (vplexUris.contains(systemURI)) {
-                    // This is a VPLEX volume. If we are upgrading from any version
-                    // before 3.5, if the thinlyProvisioned property is true, it should 
-                    // be set to false on any ViPR-managed volumes.
-                    if (volume.getThinlyProvisioned()) {
-                        logger.info("updating thinlyProvisioned property on volume {} to false", volume.forDisplay());
-                        volume.setThinlyProvisioned(false);
-                        dbClient.updateObject(volume);
-                        volumeUpdatedCount++;
+        for (URI vplexUri : vplexUris) {
+            URIQueryResultList result = new URIQueryResultList();
+            dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(vplexUri), result);
+            Iterator<Volume> volumesIter = dbClient.queryIterativeObjects(Volume.class, result);
+
+            while (volumesIter.hasNext()) {
+                Volume volume = volumesIter.next();
+                URI systemURI = volume.getStorageController();
+                if (!NullColumnValueGetter.isNullURI(systemURI)) {
+                    if (vplexUris.contains(systemURI)) {
+                        // This is a VPLEX volume. If we are upgrading from any version
+                        // before 3.5, if the thinlyProvisioned property is true, it should 
+                        // be set to false on any ViPR-managed volumes.
+                        if (volume.getThinlyProvisioned()) {
+                            logger.info("updating thinlyProvisioned property on volume {} to false", volume.forDisplay());
+                            volume.setThinlyProvisioned(false);
+                            dbClient.updateObject(volume);
+                            volumeUpdatedCount++;
+                        }
                     }
                 }
             }
         }
+
         logger.info("VplexVolumeThinlyProvisionedMigration completed, updated thinlyProvisioned to false on {} volumes", 
                 volumeUpdatedCount);
     }

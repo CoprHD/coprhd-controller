@@ -1363,24 +1363,16 @@ public class ExportGroupService extends TaskResourceService {
                 initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                 String name = null;
                 if (initiator != null && !initiator.getInactive()) {
-                    // Temporarily suppress validating the host initiators from ExportGroup to allow multiple host sharing the same EG.
-                    if (isCluster && !initiator.getInactive() && !VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
+                    if (!VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
                             && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                        /*if (isCluster && StringUtils.hasText(initiator.getClusterName())) {
+                        if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
                             name = initiator.getClusterName();
-                        } else if (StringUtils.hasText(initiator.getHostName())) {
-                            name = initiator.getHostName();
-                        } else {
-                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
-                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                        }*/
-                        if (StringUtils.hasText(initiator.getClusterName())) {
-                            name = initiator.getClusterName();
-                        } else {
-                            _log.error("Initiator {} does not have cluster/host name", initiator.getId());
+                        } else if (!StringUtils.hasText(initiator.getHostName())
+                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
+                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
                             throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
                         }
-                        
+
                         Set<URI> set = null;
                         if (initiatorMap.get(name) == null) {
                             set = new HashSet<URI>();

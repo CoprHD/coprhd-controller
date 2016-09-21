@@ -3958,7 +3958,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             scanCompleter.statusReady(_dbClient, "Scan for storage system has completed");
         } catch (Exception ex) {
             _log.error("Scan failed for {}--->", provider, ex);
-            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex));
+            scanCompleter.statusError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
             throw DeviceControllerException.exceptions.scanProviderFailed(storageSystem.getNativeGuid(),
                     provider.getId().toString());
         }

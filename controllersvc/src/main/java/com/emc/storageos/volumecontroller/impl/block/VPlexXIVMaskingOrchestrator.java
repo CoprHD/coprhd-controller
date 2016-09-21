@@ -232,25 +232,33 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
 
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
-            exportMask = refreshExportMask(array, device, exportMask);
-
-            if (!exportMask.hasAnyVolumes()) {
-                // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
-                // Fetch the Initiators
-                List<URI> initiatorURIs = new ArrayList<URI>();
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                        initiatorURIs.add(initiator.getId());
-                    }
+            if (exportMask.getNativeId() != null) {
+                exportMask = refreshExportMask(array, device, exportMask);
+            }
+            
+            // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
+            // Fetch the Initiators
+            List<URI> initiatorURIs = new ArrayList<URI>();
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorId : exportMask.getInitiators()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null) {
+                    initiators.add(initiator);
+                    initiatorURIs.add(initiator.getId());
                 }
-
+            }
+            
+            if (!exportMask.hasAnyVolumes()) {
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
+                }
+
+                //If some invalid export mask exists
+                if (exportMask.getNativeId() != null) {
+                    exportMask.setNativeId("");
+                    _dbClient.updateAndReindexObject(exportMask);
                 }
 
                 // The default completer passed in is for add volume, create correct one
@@ -259,18 +267,6 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, createCompleter);
             } else {
-                // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
-                // Fetch the Initiators
-                List<URI> initiatorURIs = new ArrayList<URI>();
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                        initiatorURIs.add(initiator.getId());
-                    }
-                }
-
                 device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
@@ -339,7 +335,9 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             }
 
             // Refresh the ExportMask
-            exportMask = refreshExportMask(array, device, exportMask);
+            if (exportMask.getNativeId() != null) {
+                exportMask = refreshExportMask(array, device, exportMask);
+            }
 
             // Determine if we're deleting the last volume.
             Set<String> remainingVolumes = new HashSet<String>();

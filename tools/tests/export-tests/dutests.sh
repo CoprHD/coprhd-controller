@@ -23,7 +23,7 @@
 # - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
 # - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
-#set +x
+#set -x
 
 Usage()
 {
@@ -103,11 +103,6 @@ verify_export() {
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
 
-    # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
-	sleep 10
-    fi
-
     arrayhelper verify_export ${SERIAL_NUMBER} ${masking_view_name} $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
@@ -115,9 +110,34 @@ verify_export() {
 	fi
 	echo There was a failure
 	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	cleanup
 	finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+# Extra gut-check.  Make sure we didn't just grab a different mask off the array.
+# Run this during test_0 to make sure we're not getting off on the wrong foot.
+# Even better would be to delete that mask, export_group, and try again.
+verify_maskname() {
+    export_name=$1
+    host_name=$2
+
+    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
+
+    maskname=$(/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep ${masking_view_name} | awk -e ' { print $3; }')
+
+    if [ "${maskname}" = "" ]; then
+	echo -e "\e[91mERROR\e[0m: Mask was not found with the name we expected.  This is likely because there is another mask using the same WWNs from a previous run of the test on this VM."
+	echo -e "\e[91mERROR\e[0m: Recommended action: delete mask manually from array and rerun test"
+	echo -e "\e[91mERROR\e[0m: OR: rerun -setup after setting environment variable: \"export WWN=<some value between 1-9,A-F>\""
+	echo "Masks found: "
+	/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep host1export
+
+	# We normally don't bail out of the suite, but this is a pretty serious issue that would prevent you from running further.
+	cleanup
+	finish
+    fi
 }
 
 # Array helper method that supports the following operations:
@@ -184,7 +204,8 @@ arrayhelper() {
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
-	exit
+	cleanup
+	finish -1
 	;;
     esac
 }
@@ -208,7 +229,8 @@ arrayhelper_create_export_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -237,7 +259,8 @@ arrayhelper_volume_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -266,7 +289,8 @@ arrayhelper_initiator_mask_operation() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -294,7 +318,8 @@ arrayhelper_delete_volume() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -315,7 +340,8 @@ arrayhelper_delete_export_mask() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -343,7 +369,8 @@ arrayhelper_delete_mask() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -371,7 +398,8 @@ arrayhelper_verify_export() {
 	 ;;
     default)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 exit
+	 cleanup
+	 finish -1
 	 ;;
     esac
 }
@@ -381,6 +409,10 @@ arrayhelper_verify_export() {
 verify_no_zones() {
     fabricid=$1
     host=$2
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
@@ -393,6 +425,11 @@ verify_no_zones() {
 #
 load_zones() {
     host=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
     if [ $? -ne 0 ]; then
 	echo -e "\e[91mERROR\e[0m: Could not determine the zones that were created"
@@ -406,6 +443,10 @@ load_zones() {
 verify_zones() {
     fabricid=$1
     check=$2
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     for zone in ${zones}
     do
@@ -422,6 +463,11 @@ verify_zones() {
 # Cleans zones and zone referencese ($1=fabricId, $2=host)
 clean_zones() {
     fabricid=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     load_zones $2
     delete_zones ${HOST1}
     zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
@@ -440,6 +486,10 @@ clean_zones() {
 # Deletes the zones returned by load_zones, then any remaining zones
 delete_zones() {
     host=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     zonesdel=0
     for zone in ${zones}
@@ -494,8 +544,12 @@ dbupdate() {
 }
 
 finish() {
+    code=${1}
     if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
         exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    if [ "${code}" != "" ]; then
+	exit ${code}
     fi
     exit 0
 }
@@ -598,10 +652,8 @@ run() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	if [ "${docleanup}" = "1" ]; then
-	    cleanup;
-	fi
-	exit;
+	cleanup
+	finish -1
     fi
 }
 
@@ -757,6 +809,13 @@ prerun_setup() {
 	    storage_password=${XTREMIO_3X_PASSWD}
        fi
 
+    fi
+
+    smisprovider list | grep SIM > /dev/null
+    if [ $? -eq 0 ];
+    then
+	ZONE_CHECK=0
+	echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -1024,6 +1083,38 @@ vplex_sim_setup() {
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
+            run cos create block ${VPOOL_BASE}_migration_src false                            \
+                             --description 'vpool-for-vplex-local-volumes-src'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (target)"
+            run cos create block ${VPOOL_BASE}_migration_tgt false                           \
+                             --description 'vpool-for-vplex-local-volumes-tgt'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_SIM_VMAX2_NATIVEGUID
         ;;
         distributed)
             secho "Setting up the virtual pool for distributed VPLEX provisioning"
@@ -1065,11 +1156,10 @@ vplex_setup() {
 
     secho "Discovering VPLEX Storage Assets"
     storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+    run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    
+    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
     run storagedevice discover_all
 
     VPLEX_VARRAY1=$NH
@@ -1383,6 +1473,8 @@ test_0() {
     verify_export ${expname}1 ${HOST1} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
+    # Paranoia check, verify if maybe we picked up an old mask.  Exit if we did.
+    verify_maskname  ${expname}1 ${HOST1}
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
@@ -1479,8 +1571,8 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	# TODO: add error handling
-	exit;
+	cleanup
+	finish 2
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1512,8 +1604,8 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	# TODO: add error handling
-	exit;
+	cleanup
+	finish 2
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1580,7 +1672,8 @@ test_3() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 3
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1659,7 +1752,8 @@ test_4() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1740,7 +1834,8 @@ test_5() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 5
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1835,7 +1930,8 @@ test_6() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2035,7 +2131,8 @@ test_9() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 9
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2179,7 +2276,8 @@ test_11() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 11
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2242,7 +2340,7 @@ test_12() {
     volname=${HOST1}-dutest-oktodelete-t12-${RANDOM}
 
     # Check to make sure we're running VPLEX only
-    if [ "${SS: 0:-1}" != "vplex" ]; then
+    if [ "${SS}" != "vplex" ]; then
         echo "test_12 only runs on VPLEX.  Bypassing for ${SS}."
         return
     fi
@@ -2316,7 +2414,8 @@ test_13() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 13
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2414,7 +2513,8 @@ test_14() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 14
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2500,7 +2600,8 @@ test_15() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 15
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2602,7 +2703,8 @@ test_16() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 16
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2682,6 +2784,9 @@ test_17() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Verify the mask was created
+    verify_export ${expname}1 ${HOST1} 2 1
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
@@ -2702,7 +2807,8 @@ test_17() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 17
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2787,7 +2893,8 @@ test_18() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 18
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2870,7 +2977,8 @@ test_19() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 19
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2965,9 +3073,10 @@ test_20() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
 
     if [ $? -ne 0 ]; then
-	    echo "export group command failed outright"
-	    exit;
-	fi
+	echo "export group command failed outright"
+	cleanup
+	finish 20
+    fi
 
 	# Show the result of the export group command for now (show the task and WF IDs)
     echo $resultcmd
@@ -3062,7 +3171,8 @@ test_21() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
-	exit;
+	cleanup
+	finish 21
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3133,6 +3243,11 @@ test_22() {
 	return
     fi
 
+    if [ "${SIM}" = "1" ]; then
+        # validation check off for this one.  vplex sim failing volume validation
+	runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    fi
+
     # Create a new vplex volume that we can migrate
     HIJACK=du-hijack-volume-${RANDOM}
 
@@ -3180,6 +3295,9 @@ test_23() {
     echot "Test 23 (VPLEX) Suspend resume migration with CGs"
     expname=${EXPORT_GROUP_NAME}t23
 
+    # validation check off for this one.  vplex sim failing volume validation
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
@@ -3189,6 +3307,11 @@ test_23() {
     if [ "${VPLEX_MODE}" = "distributed" ]; then
 	echo "This test is reserved for vplex local as distributed mode uses the same code path"
 	return
+    fi
+
+    if [ "${SIM}" = "1" ]; then
+        # validation check off for this one.  vplex sim failing volume validation
+	runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     fi
 
     randval=${RANDOM}
@@ -3235,7 +3358,7 @@ test_23() {
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
-    runcmd blockconsistencygroup delete ${PROJECT}/{$CGNAME}
+    runcmd blockconsistencygroup delete ${CGNAME}
 }
 
 # Export Test 24
@@ -3400,14 +3523,16 @@ test_25() {
 }
 
 cleanup() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      runcmd export_group delete ${id} > /dev/null
-      echo "Deleted export group: ${id}"
-   done
-   runcmd volume delete --project $PROJECT --wait
-   echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    if [ "${docleanup}" = "1" ]; then
+	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+	do
+	  runcmd export_group delete ${id} > /dev/null
+	  echo "Deleted export group: ${id}"
+	done
+	runcmd volume delete --project $PROJECT --wait
+    fi
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
@@ -3423,7 +3548,6 @@ cleanup_previous_run_artifacts() {
       echo "Deleting old volume: ${id}"
       runcmd volume delete ${id} --wait > /dev/null
    done
-
 }
 
 # call this to generate a random WWN for exports.
@@ -3505,15 +3629,18 @@ case $SS in
     ;;
 esac
 
+# By default, check zones
+ZONE_CHECK=${ZONE_CHECK:-1}
 if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
 then
     echo "Setting up testing based on real hardware"
     setup=1;
     shift 1;
-elif [ "$1" = "setupsim" ]; then
+elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	echo "Setting up testing based on simulators"
 	SIM=1;
+	ZONE_CHECK=0;
 	setup=1;
 	shift 1;
     else
@@ -3584,6 +3711,6 @@ if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi
 
-finish
-exit;
+finish;
+
 

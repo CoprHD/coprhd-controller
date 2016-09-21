@@ -53,7 +53,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
-import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -1927,6 +1926,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 _log.info(String
                         .format("determineInitiatorToExportMaskPlacements - Checking to see if we can consider mask %s, given its initiators, storage ports, and volumes",
                                 mask.getMaskName()));
+
+                // Check for NO_VIPR. If found, avoid this mask.
+                if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
+                    _log.info(
+                            String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
+                                    mask.getMaskName(), ExportUtils.NO_VIPR));
+                    continue;
+                }
+
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
                     if (mask.getResource().equals(computeResource)) {

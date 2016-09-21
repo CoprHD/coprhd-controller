@@ -452,7 +452,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         try {
             _log.info("Refreshing volumes and initiator labels in ViPR.. ");
-            Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             Set<String> igNames = new HashSet<>();
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -486,6 +485,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 _log.info("Mask is null which means we are creating a new export mask and need to refresh just the initiators' info.");
                 return mask;
             }
+
+            Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+
             // get the mask volumes
             for (String igName : igNames) {
                 List<XtremIOVolume> igVolumes = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
@@ -519,35 +521,32 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
             _log.info(String.format("XtremIO discovered volumes: {%s}%n",
                     Joiner.on(',').join(discoveredVolumes.keySet())));
-            // Check the volumes and update the lists as necessary
-            Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
-            boolean addVolumes = !volumesToAdd.isEmpty();
 
-            boolean removeVolumes = false;
+            Map<String, Integer> volumesToAdd = new HashMap<>();
             List<String> volumesToRemove = new ArrayList<String>();
+
+            // Check the volumes and update the lists as necessary
             if (mask.getExistingVolumes() != null &&
                     !mask.getExistingVolumes().isEmpty()) {
                 volumesToRemove.addAll(mask.getExistingVolumes().keySet());
                 volumesToRemove.removeAll(discoveredVolumes.keySet());
             }
-
-            // if the volume is in export mask's volume and also in the existing volumes, remove from exiting volumes
+            // if the volume is not in export mask's volume or in the existing volumes, add to existing volumes.
+            // if the volume is in export mask's volume and also in the existing volumes, remove from existing volumes
             for (String wwn : discoveredVolumes.keySet()) {
-                if (mask.hasExistingVolume(wwn)) {
-                    URIQueryResultList volumeList = new URIQueryResultList();
-                    dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
-                    if (volumeList.iterator().hasNext()) {
-                        URI volumeURI = volumeList.iterator().next();
-                        if (mask.hasVolume(volumeURI)) {
-                            _log.info(String.format("\texisting volumes contain wwn %s, but it is also in the "
-                                    + "export mask's volumes, so removing from existing volumes", wwn));
-                            volumesToRemove.add(wwn);
-                        }
-                    }
+                String normalizedWWN = BlockObject.normalizeWWN(wwn);
+                if (!mask.hasExistingVolume(normalizedWWN) && !mask.hasUserCreatedVolume(normalizedWWN)) {
+                    volumesToAdd.put(normalizedWWN, discoveredVolumes.get(wwn));
+                } else if (mask.hasExistingVolume(wwn) && mask.hasUserCreatedVolume(wwn)) {
+                    _log.info(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                            + "export mask's volumes, so removing from existing volumes", wwn));
+                    volumesToRemove.add(wwn);
                 }
             }
 
-            removeVolumes = !volumesToRemove.isEmpty();
+            boolean addVolumes = !volumesToAdd.isEmpty();
+
+            boolean removeVolumes = !volumesToRemove.isEmpty();
 
             _log.info(String.format("Mask refresh: %s volumes; add:{%s} remove:{%s}%n", mask.getMaskName(),
                     Joiner.on(',').join(volumesToAdd.keySet()), Joiner.on(',').join(volumesToRemove)));

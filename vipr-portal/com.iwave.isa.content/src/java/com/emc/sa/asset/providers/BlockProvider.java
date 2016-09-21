@@ -11,6 +11,7 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -1110,7 +1111,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     @Override
                     public boolean accept(BlockSnapshotRestRep snapshot) {
                         VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
-                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                        return ((isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot)) ||
+                                !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                    }
+                });
+
+        return constructSnapshotOptions(client, project, snapshots);
+    }
+
+    private List<AssetOption> getVolumeRPSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
+                new DefaultResourceFilter<BlockSnapshotRestRep>() {
+                    @Override
+                    public boolean accept(BlockSnapshotRestRep snapshot) {
+                        return (isSnapshotRPBookmark(snapshot));
                     }
                 });
 
@@ -1160,6 +1175,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             } else if (SNAPSHOT_SESSION_TYPE_VALUE.equals(snapshotType)) {
                 info("getting blockSnapshotSessions (project=%s)", project);
                 return getVolumeSnapshotSessionOptionsForProject(ctx, project);
+            } else if (RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
+                info("getting rpBookmarks (project=%s)", project);
+                return getVolumeRPSnapshotOptionsForProject(ctx, project);
             } else {
                 info("getting blockSnapshots (project=%s)", project);
                 return getVolumeSnapshotOptionsForProject(ctx, project);

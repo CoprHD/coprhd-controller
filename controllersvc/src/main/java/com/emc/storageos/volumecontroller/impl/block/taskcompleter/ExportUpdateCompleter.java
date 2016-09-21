@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
@@ -121,13 +122,18 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
                 exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
             }
+            cleanStaleReferences(exportGroup, dbClient);
             dbClient.updateObject(exportGroup);
+            
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
+            
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -180,6 +186,17 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
+
+
+    }
+
+    /**
+     * Cleans ExportGroup's stale references
+     * 
+     * @param exportGroup
+     * @param dbClient
+     */
+    private void cleanStaleReferences(ExportGroup exportGroup, DbClient dbClient) {
 
         cleanStaleMaskReferences(exportGroup, dbClient);
 

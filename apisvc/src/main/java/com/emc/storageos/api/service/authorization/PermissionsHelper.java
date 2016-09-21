@@ -242,7 +242,8 @@ public class PermissionsHelper extends BasePermissionsHelper {
                         _maxRoleAclEntries, current + roleAssignments.entrySet().size());
             }
 
-            roleAssignments = filter.convertFromRolesAdd(changes.getAdd(), true);
+            // don't validate principle as no way to do in oidc mode. TODO: enable in normal mode but disable in oidc mode
+            roleAssignments = filter.convertFromRolesAdd(changes.getAdd(), false);
 
             for (Map.Entry<String, AbstractChangeTrackingSet<String>> roleAssignment : roleAssignments.entrySet()) {
                 String rowKey = roleAssignment.getKey();

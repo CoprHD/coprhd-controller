@@ -122,7 +122,7 @@
       #{if details.scheduledEvent != null}
         #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
         <dt>&{'order.currentScheduleTime'}:</dt>
-        <dd>${localDateTime details.order.scheduledTime}&nbsp;</dd>
+        <dd>#{localDateTime details.order.scheduledTime/}</dd>
         #{/if}
       #{/if}
 

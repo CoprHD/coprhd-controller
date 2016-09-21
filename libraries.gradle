@@ -457,6 +457,13 @@ ext {
         "org.owasp.esapi:esapi:2.1.0"
     ]
 
+    nimbusoidc = [
+        "net.minidev:json-smart:1.1.1",
+        "com.nimbusds:lang-tag:1.4",
+        "com.nimbusds:oauth2-oidc-sdk:3.4.1",
+        "com.nimbusds:nimbus-jose-jwt:4.23"
+    ]
+
     json_simple = [
         "com.googlecode.json-simple:json-simple:1.1"
     ]
@@ -468,4 +475,5 @@ ext {
     ceph = [
         "com.ceph:rados:0.3.0"
     ]
+
 }

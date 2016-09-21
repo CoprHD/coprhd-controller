@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.TenantCreateParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
@@ -207,7 +208,8 @@ public class AuthnConfigurationService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public AuthnProviderRestRep createProvider(AuthnCreateParam param) {
-        validateAuthnCreateParam(param);
+        // validateAuthnCreateParam(param);
+/*
         if (param.getDisable() == null || !param.getDisable()) {
             _log.debug("Validating manager dn credentials before provider creation...");
             AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateCreate(param, null);
@@ -218,7 +220,7 @@ public class AuthnConfigurationService extends TaggedResource {
                         authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
-
+*/
         AuthnProvider provider = map(param);
         provider.setId(URIUtil.createId(AuthnProvider.class));
 
@@ -237,6 +239,8 @@ public class AuthnConfigurationService extends TaggedResource {
                     provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
                 }
             }
+        } if (null != mode && AuthnProvider.ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
+            buildOIDCParameters(provider);
         } else {
             // Now validate the authn provider to make sure
             // either both group object classes and
@@ -257,6 +261,23 @@ public class AuthnConfigurationService extends TaggedResource {
         // "Authentication Profile created", provider.getId());
 
         return map(provider);
+    }
+
+    private AuthnProvider buildOIDCParameters(AuthnProvider provider) {
+        provider.setJwksUrl( String.format("http://%s/oidc/jwks.json", provider.getOidcProviderAddress() ) );
+        provider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", provider.getOidcProviderAddress() ) );
+        provider.setOidcTokenUrl( String.format("http://%s/oidc/token", provider.getOidcProviderAddress() ) );
+
+        String cbURL = buildCallbackURL();
+        provider.setOidcCallBackUrl(cbURL);
+        provider.setOidcClientId(cbURL);
+
+        return provider;
+    }
+
+    private String buildCallbackURL() {
+        PropertyInfo props = _coordinator.getPropertyInfo();
+        return String.format("https://%s:4443/oidccb", props.getProperty("network_vip"));
     }
 
     /**

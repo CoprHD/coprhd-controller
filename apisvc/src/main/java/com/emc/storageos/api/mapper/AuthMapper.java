@@ -137,6 +137,10 @@ public class AuthMapper {
             authn.setGroupMemberAttributeTypeNames(ss);
         }
 
+        if (from.getOidcProviderAddress() != null) {
+            authn.setOidcProviderAddress(from.getOidcProviderAddress());
+        }
+
         return authn;
     }
 

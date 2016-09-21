@@ -289,6 +289,38 @@ public class Security extends Controller {
 
     @Util
     public static void redirectToAuthPage() {
+        try {
+            String base = request.getBase();
+            String path = "GET".equalsIgnoreCase(request.method) ? request.url : Play.ctxPath + "/";
+            String service = base + path;
+            redirectToAuthPage(service);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Util
+    public static void redirectToAuthPage(String service) {
+        if (Security.isApiRequest()) {
+            // Redirecting to the apisvc login page will fail in most browsers due to the same origin policy.
+            // Return a 401 and let the client handle it.
+            error(401, "Unauthorized");
+        }
+        else {
+            try {
+                String encodedService = URLEncoder.encode(service, "UTF-8");
+                String authSvcPort = Play.configuration.getProperty("authsvc.port");
+                String url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, encodedService);
+                Logger.debug("No cookie detected. Redirecting to login page %s", url);
+                redirect(url);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Util
+    public static void redirectToOIDCAuth() {
         if (Security.isApiRequest()) {
             // Redirecting to the apisvc login page will fail in most browsers due to the same origin policy.
             // Return a 401 and let the client handle it.
@@ -300,7 +332,7 @@ public class Security extends Controller {
                 String path = "GET".equalsIgnoreCase(request.method) ? request.url : Play.ctxPath + "/";
                 String service = URLEncoder.encode(base + path, "UTF-8");
                 String authSvcPort = Play.configuration.getProperty("authsvc.port");
-                String url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, service);
+                String url = String.format("https://%s:%s/oidcauth?resource_uri=%s", request.domain, authSvcPort, service);
                 Logger.debug("No cookie detected. Redirecting to login page %s", url);
                 redirect(url);
             } catch (Exception e) {

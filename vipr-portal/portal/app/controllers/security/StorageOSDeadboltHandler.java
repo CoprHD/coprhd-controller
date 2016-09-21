@@ -42,7 +42,12 @@ public class StorageOSDeadboltHandler extends Controller implements controllers.
             if (request.params._contains("auth-redirected")) {
                 Security.noCookies();
             }
-            Security.redirectToAuthPage();
+            if (request.path.contains("locallogin")) {
+                String service = String.format("https://%s", request.domain);
+                Security.redirectToAuthPage(service);
+            } else {
+                Security.redirectToOIDCAuth();
+            }
         }
 
         try {

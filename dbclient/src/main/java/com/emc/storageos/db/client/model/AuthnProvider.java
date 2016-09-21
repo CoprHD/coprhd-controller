@@ -50,10 +50,76 @@ public class AuthnProvider extends DataObject {
     private StringMap keys;
     private StringSet _groupObjectClassNames;
     private StringSet _groupMemberAttributeTypeNames;
+    private String oidcClientId;
+    private String oidcCallBackUrl;
+    private String oidcTokenUrl;
+    private String oidcAuthorizeUrl;
+    private String jwksUrl;
+    private String oidcProviderAddress;
+
+    @Name("clientid")
+    public String getOidcClientId() {
+        return oidcClientId;
+    }
+
+    public void setOidcClientId(String oidcClientId) {
+        this.oidcClientId = oidcClientId;
+        setChanged("clientid");
+    }
+
+    @Name("cburl")
+    public String getOidcCallBackUrl() {
+        return oidcCallBackUrl;
+    }
+
+    public void setOidcCallBackUrl(String oidcCallBackUrl) {
+        this.oidcCallBackUrl = oidcCallBackUrl;
+        setChanged("cburl");
+    }
+
+    @Name("tokenurl")
+    public String getOidcTokenUrl() {
+        return oidcTokenUrl;
+    }
+
+    public void setOidcTokenUrl(String oidcTokenUrl) {
+        this.oidcTokenUrl = oidcTokenUrl;
+        setChanged("tokenurl");
+    }
+
+    @Name("authurl")
+    public String getOidcAuthorizeUrl() {
+        return oidcAuthorizeUrl;
+    }
+
+    public void setOidcAuthorizeUrl(String oidcAuthorizeUrl) {
+        this.oidcAuthorizeUrl = oidcAuthorizeUrl;
+        setChanged("authurl");
+    }
+
+    @Name("jwksurl")
+    public String getJwksUrl() {
+        return jwksUrl;
+    }
+
+    public void setJwksUrl(String jwksUrl) {
+        this.jwksUrl = jwksUrl;
+        setChanged("jwksurl");
+    }
+
+    public void setOidcProviderAddress(String oidcProviderAddress) {
+        this.oidcProviderAddress = oidcProviderAddress;
+        setChanged("oidcaddr");
+    }
+
+    @Name("oidcaddr")
+    public String getOidcProviderAddress() {
+        return oidcProviderAddress;
+    }
 
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {
-        ldap, ad, keystone
+        ldap, ad, keystone, oidc;
     }
 
     // values to be used for the searchScope element

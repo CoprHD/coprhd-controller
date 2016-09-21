@@ -89,8 +89,8 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         _tokenManager.setTokenEncoder(_encoder);
         _authManager.setDbClient(_dbClient);
         _authManager.setCoordinator(_coordinator);
-        _authManager.setLocalAuthenticationProvider(new AuthenticationProvider(new TestStorageOSAuthenticationHandler(),
-                new TestStorageOSPersonAttributeDao()));
+        _authManager.setLocalAuthenticationProvider( 
+                new AuthenticationProvider(new TestStorageOSAuthenticationHandler(), new TestStorageOSPersonAttributeDao(), null) );
         _authManager.setTokenManager(_tokenManager);
         // get root tenant, save root tenant id
         URIQueryResultList tenants = new URIQueryResultList();

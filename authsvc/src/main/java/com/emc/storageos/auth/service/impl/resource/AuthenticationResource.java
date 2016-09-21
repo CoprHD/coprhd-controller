@@ -5,26 +5,26 @@
 package com.emc.storageos.auth.service.impl.resource;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+import java.net.*;
 import java.security.Principal;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.regex.Matcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.auth.idp.OIDCAuthenticationManager;
+import com.emc.storageos.auth.impl.CustomAuthenticationManager;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.password.PasswordChangeParam;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
@@ -42,7 +42,6 @@ import com.emc.storageos.auth.AuthenticationManager;
 import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.auth.impl.CassandraTokenManager;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.security.authentication.RequestProcessingUtils;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
@@ -96,9 +95,17 @@ public class AuthenticationResource {
     private static String HEADER_PRAGMA = "Pragma";
     private static String HEADER_PRAGMA_VALUE = "no-cache";
 
+    private static AuthnProvider authnProvider = null;
+
     private static CacheControl _cacheControl = null;
     @Autowired
     private RequestedTokenHelper tokenNotificationHelper;
+
+    @Autowired
+    private CoordinatorClient coordinator;
+
+    // TODO
+    private String oidcProviderAddr = "lglw7227.lss.emc.com:58080/SSO";
 
     static {
         _cacheControl = new CacheControl();
@@ -1241,5 +1248,65 @@ public class AuthenticationResource {
         _log.debug("Updated service = " + newService);
 
         return URI.create(newService);
+    }
+
+    @GET
+    @Path("/oidcauth")
+    public Response oidcAuthRequest(@QueryParam("resource_uri") String resourceURI) {
+
+        OIDCAuthenticationManager authMgr = ((CustomAuthenticationManager) _authManager).getOIDCAuthManager();
+        authMgr.verifyAuthModeForOIDC();
+
+        try {
+            URI oidcAuthEndpoint = authMgr.buildAuthenticationRequestInURI(resourceURI);
+
+            return Response.temporaryRedirect(oidcAuthEndpoint).build();
+        } catch (Exception e) {
+            _log.error("", e);
+            throw new RuntimeException("Fail to generate auth req", e);
+        }
+    }
+
+    private AuthnProvider getAuthnProvider() {
+        if (authnProvider == null) {
+            authnProvider = new AuthnProvider();
+            authnProvider.setJwksUrl( String.format("http://%s/oidc/jwks.json", oidcProviderAddr) );
+            authnProvider.setOidcAuthorizeUrl( String.format("http://%s/oidc/authorize", oidcProviderAddr) );
+            authnProvider.setOidcClientId("vipr1");
+            authnProvider.setOidcTokenUrl( String.format("http://%s/oidc/token", oidcProviderAddr) );
+
+            authnProvider.setOidcCallBackUrl( String.format("https://%s:4443/oidccb", getVIP()) );
+
+            String[] domains = new String[] {"secqe.com"};
+            StringSet domainSet = new StringSet(Arrays.asList(domains));
+            authnProvider.setDomains(domainSet);
+        }
+        return authnProvider;
+    }
+
+    private String getVIP() {
+        PropertyInfo props = coordinator.getPropertyInfo();
+        return props.getProperty("network_vip");
+    }
+
+    @GET    @Path("/oidccb")
+    public Response oidcAuthCallback(@Context HttpServletRequest request,
+                                     @Context HttpServletResponse servletResponse,
+                                     @QueryParam("code") String code,
+                                     @QueryParam("state") String relaystate) {
+
+        OIDCAuthenticationManager authMgr = ((CustomAuthenticationManager) _authManager).getOIDCAuthManager();
+        authMgr.verifyAuthModeForOIDC();
+
+        try {
+            StorageOSUserDAO userInfo = authMgr.authenticate(code);
+            String viprToken = _tokenManager.getToken(userInfo);
+            LoginStatus loginStatus = new LoginStatus(userInfo.getUserName(), viprToken, true);
+            // suppose relaystate is service
+            return buildLoginResponse(relaystate, null, true, true, loginStatus, request);
+        } catch (Exception e) {
+            _log.error("", e);
+            throw new RuntimeException("", e);
+        }
     }
 }

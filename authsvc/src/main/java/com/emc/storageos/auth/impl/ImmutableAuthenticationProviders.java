@@ -15,6 +15,7 @@ import java.util.Set;
 
 import javax.naming.directory.SearchControls;
 
+import org.apache.cassandra.cql3.statements.MultiColumnRestriction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.AuthenticationException;
@@ -98,11 +99,10 @@ public class ImmutableAuthenticationProviders {
      * @param providerConfigs: provider configurations from db
      * @return
      */
-    public static ImmutableAuthenticationProviders
-            getInstance(DbClient dbclient,
-                    CoordinatorClient coordinator,
-                    AuthenticationProvider _localAuthenticationProvider,
-                    List<AuthnProvider> providerConfigs) {
+    public static ImmutableAuthenticationProviders getInstance(DbClient dbclient,
+            CoordinatorClient coordinator,
+            AuthenticationProvider _localAuthenticationProvider,
+            List<AuthnProvider> providerConfigs) {
 
         List<AuthenticationProvider> authenticationProviders = new ArrayList<AuthenticationProvider>();
         authenticationProviders.add(_localAuthenticationProvider);
@@ -113,7 +113,7 @@ public class ImmutableAuthenticationProviders {
         }
         _log.info("Loading authentication providers from the database");
         for (AuthnProvider authenticationConfiguration : providerConfigs) {
-            _log.debug("Adding auth provider with ID {}", authenticationConfiguration.getId());
+            _log.info("Adding auth provider with ID {} and mode {}", authenticationConfiguration.getId(), authenticationConfiguration.getMode());
             if (authenticationConfiguration.getInactive() || authenticationConfiguration.getDisable()) {
                 _log.info("Skipping authentication provider {} because it is inactive", authenticationConfiguration.getId());
                 continue;
@@ -130,7 +130,7 @@ public class ImmutableAuthenticationProviders {
                         authenticationConfiguration.getId(), e);
             }
         }
-        _log.info("Loaded {} authentication handlers", authenticationProviders.size());
+        _log.info("Loaded {} authentication providers", authenticationProviders.size());
         return new ImmutableAuthenticationProviders(authenticationProviders);
     }
 
@@ -159,12 +159,20 @@ public class ImmutableAuthenticationProviders {
                 .equalsIgnoreCase(authenticationConfiguration.getMode())) {
             _log.debug("Auth handler is in keystone mode");
             return getKeystoneProvider(coordinator, authenticationConfiguration, dbclient);
+        } else if (AuthnProvider.ProvidersType.oidc.toString()
+                .equalsIgnoreCase(authenticationConfiguration.getMode())) {
+            _log.debug("Auth handler is in OIDC mode");
+            return getOIDCProvider(authenticationConfiguration);
         } else {
             _log.error(
                     "Mode {} not known skipping this authN configuration",
                     authenticationConfiguration.getMode());
         }
         return null;
+    }
+
+    private static AuthenticationProvider getOIDCProvider(AuthnProvider authenticationConfiguration) {
+        return new AuthenticationProvider(null, null, authenticationConfiguration);
     }
 
     /**
@@ -212,7 +220,7 @@ public class ImmutableAuthenticationProviders {
 
         _log.debug("Adding LDAP mode auth handler to map");
 
-        return new AuthenticationProvider(authHandler, attributeRepository);
+        return new AuthenticationProvider(authHandler, attributeRepository, authenticationConfiguration);
     }
 
     /**
@@ -240,7 +248,7 @@ public class ImmutableAuthenticationProviders {
         attributeRepository.setProviderType(ProvidersType.ad);
         _log.debug("Adding AD mode auth handler to map");
 
-        return new AuthenticationProvider(authHandler, attributeRepository);
+        return new AuthenticationProvider(authHandler, attributeRepository, authenticationConfiguration);
     }
 
     /**

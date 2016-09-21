@@ -66,6 +66,7 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
      * 
      */
     private Set<String> groupMemberAttributes;
+    private String oidcProviderAddress;
 
     public AuthnCreateParam() {
     }
@@ -210,5 +211,15 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
 
         sb.append("]");
         return sb.toString();
+    }
+
+    @XmlElement(name = "oidc_address")
+    @JsonProperty("oidc_address")
+    public String getOidcProviderAddress() {
+        return oidcProviderAddress;
+    }
+
+    public void setOidcProviderAddress(String oidcProviderAddress) {
+        this.oidcProviderAddress = oidcProviderAddress;
     }
 }

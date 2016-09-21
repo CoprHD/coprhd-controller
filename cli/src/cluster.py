@@ -293,7 +293,7 @@ class Cluster(object):
 
         # get the cluster uri query to the right cluster ..
         
-        cluster_uri = self.cluster_update_query(name, datacenter , vcenter ,tenant)
+        cluster_uri = self.cluster_query(name, datacenter , vcenter ,tenant)
 
 
         if(updateExports is not None):

@@ -643,6 +643,10 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             combined.add(fileshareURI);
             if (targetFileShare.getParentFileShare() != null) {
                 combined.add(targetFileShare.getParentFileShare().getURI());
+            } else {
+            	for (String fsId : targetFileShare.getMirrorfsTargets()) {
+            		combined.add(URI.create(fsId));
+                }
             }
             completer = new MirrorFileResyncTaskCompleter(FileShare.class, combined, opId, primarysystemURI);
 

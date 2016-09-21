@@ -113,6 +113,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             }
             dbClient.updateObject(exportGroup);
             
+            ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
+
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

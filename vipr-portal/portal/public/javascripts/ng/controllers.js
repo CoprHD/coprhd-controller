@@ -69,7 +69,7 @@ angular.module("portalApp").controller({
             vpoolHAJournalVirtualPool: {
                 path: routes.BlockVirtualPools_listHaRpJournalVPoolsJson(),
                 depend: ['vpool.haJournalVArray']
-            }            
+            }
         };
 
         angular.forEach(track, function(options, key) {
@@ -94,6 +94,20 @@ angular.module("portalApp").controller({
             event.preventDefault();
         };
 
+        $scope.disablePlacementPolicy = function(value) {
+        	/*
+        	 * When value does not belong to nonequalList or belongs to equalList, 
+        	 * ie. value is not XTREMIO, VMAX, Unity, VnxBlock or value is "vplex_local","vplex_distributed","rp", "srdf"
+        	 */
+        	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
+        	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
+        	if((nonequalList.indexOf(value)==-1)||(equalList.indexOf(value)!=-1)) {
+        		$('#vpool_placementPolicy').val('0').prop('selected',true);
+        		$('#vpool_placementPolicy').change();
+        	}
+        	
+        }
+        
         $scope.saveRecoverPointCopy = function(rpCopy, event) {
             function find(options, id) {
                 var name = $scope.none;

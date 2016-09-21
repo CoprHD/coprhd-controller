@@ -592,7 +592,7 @@ class Host(object):
     the compute virtual pool.
     '''
     def create_compute_hosts(self, tenant, varray, computevpool,
-                             hostnames, cluster):
+                             hostnames, cluster, datacenter, vcenter):
         #get tenant uri
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         if(tenant is None):
@@ -619,7 +619,7 @@ class Host(object):
         if(cluster):
             #cluster
             cluster_obj = Cluster(self.__ipAddr, self.__port)
-            cluster_uri = cluster_obj.cluster_query(cluster, tenant)
+            cluster_uri = cluster_obj.cluster_query(cluster, datacenter,vcenter, tenant)
             request['cluster'] = cluster_uri
 
         body = json.dumps(request)
@@ -1706,6 +1706,16 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                help='Name of the cluster for the host',
                                dest='cluster',
                                metavar='<cluster>')
+    create_parser.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    create_parser.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     mandatory_args.add_argument('-computevpool', '-cvp',
                                 help='name of computevpool',
                                 dest='computevpool',
@@ -1735,7 +1745,7 @@ def compute_host_create(args):
     hostObj = Host(args.ip, args.port)
     try:
         hostObj.create_compute_hosts(args.tenant, args.varray,
-        args.computevpool, args.hostnames, args.cluster)
+        args.computevpool, args.hostnames, args.cluster, args.datacenter, args.vcenter)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)

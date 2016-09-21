@@ -55,11 +55,13 @@
         </li>
         #{if isActiveSite }
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+         #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
         <li id="colWiz" ng-controller="navBarController">
           <a href ng-click="toggleGuide(false)">
             #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
           </a>
         </li>
+        #{/deadbolt.restrict}
         #{/deadbolt.restrict}
         #{/if}
 
@@ -342,9 +344,11 @@
 #{get 'menu'/}
 #{if isActiveSite }
 #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
-<div id="wizard" ng-controller="wizardController" ng-init="checkGuide()" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
-  #{GettingStarted.gettingStarted/}
-</div>
+  #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+  <div id="wizard" ng-controller="wizardController" ng-init="checkGuide()" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
+    #{GettingStarted.gettingStarted/}
+  </div>
+  #{/deadbolt.restrict}
 #{/deadbolt.restrict}
 #{/if}
 #{nav.contentArea}

@@ -202,6 +202,14 @@
     </div>
   #{/field}
   <div class="osType Windows Linux AIX AIXVIO HPUX Esx">
+   #{field 'host.isVirtualHost'}
+    %{
+      field.required = true
+      field.cssClass = 'span2'
+    }%
+    #{Form.booleanCheckBoxControlGroup field:field/}
+  #{/field}
+  
   #{field 'host.discoverable'}
     %{
       field.required = true

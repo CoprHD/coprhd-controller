@@ -249,6 +249,8 @@ public class Hosts extends ViprResourceController {
 
         public boolean discoverable = true;
 
+        public boolean isVirtualHost = false;
+
         public boolean useHttps;
 
         public HostForm() {
@@ -273,6 +275,7 @@ public class Hosts extends ViprResourceController {
             }
 
             this.discoverable = host.getDiscoverable() == null ? true : host.getDiscoverable();
+            this.isVirtualHost = host.getIsVirtualMachine() == null ? false : host.getIsVirtualMachine();
             this.useHttps = host.getUseSsl() == null ? true : host.getUseSsl();
         }
 
@@ -292,11 +295,13 @@ public class Hosts extends ViprResourceController {
         protected void doWriteToHostParam(HostParam hostParam) {
             hostParam.setName(this.name);
             hostParam.setTenant(uri(tenantId));
+            hostParam.setVirtualMachine(this.isVirtualHost);
             if (isManualHost()) {
                 hostParam.setUserName(Messages.get("Hosts.defaultUsername"));
                 hostParam.setPassword(Messages.get("Hosts.defaultPassword"));
                 hostParam.setUseSsl(false);
                 hostParam.setDiscoverable(false);
+
             }
             else {
                 if (StringUtils.isNotBlank(this.username)) {

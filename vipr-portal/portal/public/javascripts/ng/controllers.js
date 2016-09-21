@@ -2250,7 +2250,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $('.wizard-side-next').popover({
         delay : {
             show : 0,
-            hide : 2000
+            hide : 3000
         },
         placement : 'bottom',
         html : true,
@@ -2303,6 +2303,48 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         } else {
             window.clearInterval(guideMonitor);
             $('.rootNav , .navMenu a').off('click');
+        }
+    });
+
+    document.getElementById('wizard').addEventListener('mousedown', mouseDown, false);
+    window.addEventListener('mouseup', mouseUp, false);
+
+    function pauseEvent(e){
+        if(e.stopPropagation) e.stopPropagation();
+        if(e.preventDefault) e.preventDefault();
+        e.cancelBubble=true;
+        e.returnValue=false;
+        return false;
+    }
+
+    function mouseUp()
+    {
+        window.removeEventListener('mousemove', divMove, true);
+    }
+
+    function mouseDown(e){
+        var senderElement = e.target;
+        if(this === e.target && this.className.split(" ").indexOf("wizard-side") >= 0) {
+      		window.addEventListener('mousemove', divMove, true);
+            pauseEvent(e);
+        }
+    }
+
+    function divMove(e){
+          var div = document.getElementById('wizard');
+          div.style.position = 'absolute';
+          if (e.clientY < $(window).height()-div.scrollHeight && e.clientY > 0+$(".navbar").height()) {
+            div.style.top = e.clientY + 'px';
+          }
+    }
+
+    $scope.$watch('guideMode', function(newValue, oldValue) {
+        if (newValue != oldValue){
+            var div = document.getElementById('wizard');
+            div.removeAttribute("style");
+        }
+        if (newValue=='side'){
+            $(".mainContent .section-header").addClass("wizard-side-move-content");
         }
     });
 });

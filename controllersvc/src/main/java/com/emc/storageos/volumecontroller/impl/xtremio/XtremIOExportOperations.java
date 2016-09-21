@@ -45,7 +45,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
@@ -63,6 +62,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Sets;
 
 public class XtremIOExportOperations extends XtremIOOperations implements ExportMaskOperations {
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
@@ -509,76 +509,26 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         _log.info("Found HLU {} for volume {}", hluNumber, igVolume.getVolInfo().get(1));
                         // for each IG involved, the same volume is visible thro different HLUs.
                         // TODO we might need a list of HLU for each Volume URI
-                        discoveredVolumes.put(igVolume.getWwn(), Integer.valueOf(hluNumber.intValue()));
+                        discoveredVolumes.put(BlockObject.normalizeWWN(igVolume.getWwn()), Integer.valueOf(hluNumber.intValue()));
                     }
                 }
             }
 
-            Set<String> existingVolumes = mask.getExistingVolumes() != null ? mask.getExistingVolumes().keySet()
-                    : Collections.emptySet();
+            // Clear the existing volumes to update with the latest info
+            if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
+                mask.getExistingVolumes().clear();
+            }
 
+            Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());
+
+            _log.info(String.format("XtremIO discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
             _log.info(String.format("%nXtremIO mask existing volumes : {%s}%n", Joiner.on(',').join(existingVolumes)));
 
-            _log.info(String.format("XtremIO discovered volumes: {%s}%n",
-                    Joiner.on(',').join(discoveredVolumes.keySet())));
-
-            Map<String, Integer> volumesToAdd = new HashMap<>();
-            List<String> volumesToRemove = new ArrayList<String>();
-
-            // Check the volumes and update the lists as necessary
-            if (mask.getExistingVolumes() != null &&
-                    !mask.getExistingVolumes().isEmpty()) {
-                volumesToRemove.addAll(mask.getExistingVolumes().keySet());
-                volumesToRemove.removeAll(discoveredVolumes.keySet());
+            for (String wwn : existingVolumes) {
+                mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
             }
-            // if the volume is not in export mask's volume or in the existing volumes, add to existing volumes.
-            // if the volume is in export mask's volume and also in the existing volumes, remove from existing volumes
-            for (String wwn : discoveredVolumes.keySet()) {
-                String normalizedWWN = BlockObject.normalizeWWN(wwn);
-                if (!mask.hasExistingVolume(normalizedWWN) && !mask.hasUserCreatedVolume(normalizedWWN)) {
-                    volumesToAdd.put(normalizedWWN, discoveredVolumes.get(wwn));
-                } else if (mask.hasExistingVolume(wwn) && mask.hasUserCreatedVolume(wwn)) {
-                    _log.info(String.format("\texisting volumes contain wwn %s, but it is also in the "
-                            + "export mask's volumes, so removing from existing volumes", wwn));
-                    volumesToRemove.add(wwn);
-                }
-            }
+            dbClient.updateObject(mask);
 
-            boolean addVolumes = !volumesToAdd.isEmpty();
-
-            boolean removeVolumes = !volumesToRemove.isEmpty();
-
-            _log.info(String.format("Mask refresh: %s volumes; add:{%s} remove:{%s}%n", mask.getMaskName(),
-                    Joiner.on(',').join(volumesToAdd.keySet()), Joiner.on(',').join(volumesToRemove)));
-
-            // Any changes indicated, then update the mask and persist it
-            if (addVolumes || removeVolumes) {
-                _log.info("Mask refresh: There are changes to mask, updating it...\n");
-                mask.removeFromExistingVolumes(volumesToRemove);
-                mask.addToExistingVolumesIfAbsent(volumesToAdd);
-
-                // Update the volume list to include existing volumes if we know about them.
-                if (addVolumes) {
-                    for (String wwn : volumesToAdd.keySet()) {
-                        URIQueryResultList results = new URIQueryResultList();
-                        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                                .getVolumeWwnConstraint(wwn.toUpperCase()), results);
-                        if (results != null) {
-                            Iterator<URI> resultsIter = results.iterator();
-                            if (resultsIter.hasNext()) {
-                                Volume volume = dbClient.queryObject(Volume.class, resultsIter.next());
-                                if (null != volume) {
-                                    mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
-                                }
-                            }
-                        }
-                    }
-                }
-                ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);
-                dbClient.updateObject(mask);
-            } else {
-                _log.info("Mask refresh: There are no changes to the mask\n");
-            }
         } catch (Exception e) {
             _log.warn("Refreshing XtremIO mask failed", e);
         }

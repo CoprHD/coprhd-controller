@@ -149,6 +149,11 @@ nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
+nav.customWorkflow=Workflow Modeler
+
+diagram.crud.title=Workflow Diagrams
+diagrams.name=Name
+customWorkflow.title=Workflow Modeler
 
 # Override messages in the Secure plugin
 secure.title=

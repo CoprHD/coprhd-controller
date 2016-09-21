@@ -757,6 +757,18 @@ prerun_setup() {
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
+    # Check if we have the most recent version of preExistingConfig.jar
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    TOOLS_MD5="${DIR}/preExistingConfig.md5"
+    TOOLS_JAR="${DIR}/preExistingConfig.jar"
+    TMP_MD5=/tmp/preExistingConfig.md5
+    MD5=`cat ${TOOLS_MD5} | awk '{print $1}'`
+    echo "${MD5} ${TOOLS_JAR}" > ${TMP_MD5}
+    if [ -f "${TOOLS_JAR}" ]; then
+       md5sum -c ${TMP_MD5}
+       [ $? -ne 0 ] && echo "WARNING: There may be a newer version of ${TOOLS_JAR} available."
+    fi
+
     echo "Seeing if there's an existing base of volumes"
     BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
     if [ "${BASENUM}" != "" ]

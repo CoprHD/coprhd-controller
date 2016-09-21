@@ -157,7 +157,9 @@ class Host(object):
             request['os_version'] = osversion
 
         if(cluster):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
+            from cluster import Cluster
+            cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            request['cluster'] = cli_uri
 
         if(datacenter):
             request['vcenter_data_center'] = self.get_vcenterdatacenter_id(
@@ -242,7 +244,10 @@ class Host(object):
             request['use_ssl'] = usessl
 
         if(cluster is not None):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
+            from cluster import Cluster
+            cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            request['cluster'] = cli_uri
+
 
         if(datacenter):
             request['vcenter_data_center'] = self.get_vcenterdatacenter_id(

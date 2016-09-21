@@ -67,7 +67,7 @@ public class FileUtils {
                     }
                 }
                 exportRuleInfo.setAnon(rule.getAnon());
-                exportRuleInfo.setSecurity(getSecFlovorList(rule.getSecFlavor()));
+                exportRuleInfo.setSecurity(getSecurityFlavorList(rule.getSecFlavor()));
                 exportRuleInfo.setEndpointsInfo(infos);
             }
         }
@@ -89,7 +89,7 @@ public class FileUtils {
         return endpointList;
     }
 
-    private static List<String> getSecFlovorList(String secFlo) {
+    private static List<String> getSecurityFlavorList(String secFlo) {
     	List<String> secTypes = Lists.newArrayList();
     	for (String secType : secFlo.split(",")) {
     		secTypes.add(secType.trim());

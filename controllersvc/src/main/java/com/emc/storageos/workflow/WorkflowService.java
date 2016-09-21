@@ -2106,7 +2106,7 @@ public class WorkflowService implements WorkflowController {
             if (state != WorkflowState.SUSPENDED_ERROR
                     && state != WorkflowState.SUSPENDED_NO_ERROR) {
                 // Cannot resume a workflow that is not suspended
-                _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
+                _log.info(String.format("Workflow %s state %s is not suspended and will not be resumed", uri, state));
                 throw WorkflowException.exceptions.workflowNotSuspended(uri.toString(), state.toString());
             }
 

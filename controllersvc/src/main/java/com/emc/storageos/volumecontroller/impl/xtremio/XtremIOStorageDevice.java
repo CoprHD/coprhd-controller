@@ -112,13 +112,24 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
+            boolean isRPSource = false;
             Volume vol = volumes.get(0);
+            
+            //Only XIO volumes that are back-end volumes of a RP+VPLEX source volumes can be in
+            //an array CG (if enable array CG is checked). Targets and journals are never in an array CG.
+            if (vol.checkForRp() && Volume.checkForVplexBackEndVolume(dbClient, vol)) {
+              Volume rpSrcVolume = Volume.fetchVplexVolume(dbClient, vol);
+               if (null != rpSrcVolume && rpSrcVolume.checkPersonality(PersonalityTypes.SOURCE.name())) {
+                       isRPSource = true;
+               }
+            }
+
             // If the volume is regular volume and in CG
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null
                         && cgObj.created(storage.getId())
-                        && !vol.checkForRp()) {
+                        && isRPSource) {
                     // Only set this flag to true if the CG reference is valid
                     // and it is already created on the storage system.
                     // Also, exclude RP volumes.

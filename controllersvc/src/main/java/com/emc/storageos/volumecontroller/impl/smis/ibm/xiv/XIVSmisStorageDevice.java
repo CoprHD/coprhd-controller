@@ -1040,11 +1040,11 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
+    private synchronized void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-
         if (null != consistencyGroup) {
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storageSystem);
+            _log.info("####################### : Group Name : " + groupName);
             if (groupName.equals(EMPTY_CG_NAME)) {
                 // may also check if CG instance exists on array, or not, if not, re-create it here need to create CG group
                 // here with member volumes this will ensure the new CG is associated to right pool without member volumes,

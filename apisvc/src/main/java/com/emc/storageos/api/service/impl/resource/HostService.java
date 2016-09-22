@@ -840,7 +840,7 @@ public class HostService extends TaskResourceService {
         }
         initiator.setId(URIUtil.createId(Initiator.class));
         populateInitiator(initiator, createParam);
-        validateAndAssociateInitiator(initiator, createParam.getAssociatedInitiator());
+
         _dbClient.createObject(initiator);
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
@@ -1057,23 +1057,6 @@ public class HostService extends TaskResourceService {
             initiator.setLabel(initiator.getInitiatorPort());
         } else if (param.getName() != null) {
             initiator.setLabel(param.getName());
-        }
-    }
-
-    public void validateAndAssociateInitiator(Initiator initiator, URI associatedInitiator) {
-
-        if (associatedInitiator != null) {
-            // validate the associated Initiator data if provided and update the paired initiator
-            Initiator pairInitiator = queryObject(Initiator.class, associatedInitiator, true);
-
-            if (pairInitiator != null) {
-                initiator.setAssociatedInitiator(associatedInitiator);
-                pairInitiator.setAssociatedInitiator(initiator.getId());
-                _dbClient.updateObject(pairInitiator);
-            } else {
-                throw APIException.badRequests.associateInitiatorMismatch(initiator.getId(), associatedInitiator);
-            }
-
         }
     }
 

@@ -112,24 +112,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
-            boolean isRPVplexSource = false;
             Volume vol = volumes.get(0);
             
-            //Only XIO volumes that are back-end volumes of a RP+VPLEX source volumes can be in
-            //an array CG (if enable array CG is checked). Targets and journals are never in an array CG.
-            for (Volume volume : volumes) {
-	            if (volume.checkForRp() && Volume.checkForVplexBackEndVolume(dbClient, volume)) {
-	              Volume rpSrcVolume = Volume.fetchVplexVolume(dbClient, volume);
-	              //See if there is atleast one RP source volume in the list and set the isRPSource to true. 
-	              //Later on, we will add the back-end XIO of the RP source volume in a array CG is the arrayCG option is enabled. 
-	               if (null != rpSrcVolume && rpSrcVolume.checkPersonality(PersonalityTypes.SOURCE.name())) {
-	                       isRPVplexSource = true;
-	                       vol = volume;
-	                       break;
-	               }
-	            }
-            }
-
             // If the volume is regular volume and in CG
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
@@ -139,14 +123,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     // and it is already created on the storage system.                  
                     isCG = true;
                     
-                    //RP volumes : If the volume is anything but a back-end volume to a RP+VPLEX source, set the flag to false.
-                    if (vol.checkForRp() && !isRPVplexSource) {
-                    	isCG = false;
-                    }
+                    //RP back-end volumes DO NOT have personality flag set. All RP volumes will satisfy checkForRP
+                    //Find out out if this is a RP volume that is not a back-end volume to a RP+VPLEX volume.
+                    boolean excludeRPNotBackendVolumes = vol.checkForRp() && (NullColumnValueGetter.isNotNullValue(vol.getPersonality()));
                    
                     // If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into back-end cg
-                   if (Volume.checkForVplexBackEndVolume(dbClient, vol)
-                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())) {
+                    // Only XIO volumes that are back-end volumes to RP+VPLEX volumes will be in an array CG if arrayConsistency is chosen.
+                   if (excludeRPNotBackendVolumes || (Volume.checkForVplexBackEndVolume(dbClient, vol)
+                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance()))) {
                         isCG = false;
                     }
                 }

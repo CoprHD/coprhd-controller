@@ -249,36 +249,19 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     }
     
     /**
-     * Return the matching pools for a given set of VirtualPool attributes.
-     * This API is useful for user to find the matching pools before creating a VirtualPool.
+     * Return the storage pool recommendations for given vpool. 
      *
-     * @prereq none
-     * @param param : VirtualPoolAttributeParam
-     * @brief List matching pools for virtual pool properties
-     * @return matching pools.
+     * @param param : virtual pool id
+     * @brief List pool recommendations for virtual pool 
+     * @return pool recommendations.
      */
     @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("{id}/pool-recommendations")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public StoragePoolRecommendations getPoolRecommendations(@PathParam("id") URI id) {
-    	
-        ArgValidator.checkUri(id);
-        VirtualPool vpool = queryResource(id);
-        ArgValidator.checkEntity(vpool, id, isIdEmbeddedInURL(id));
-
-        List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
-        List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
-        StringBuffer errorMessage = new StringBuffer();
-        List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
-                null,
-                null,
-                null,
-                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
-        
-        StoragePoolRecommendations to = new StoragePoolRecommendations();
-        return toPoolRecommendation("source_data", matchedPools, to);
+    public StoragePoolRecommendations getPoolRecommendations(@PathParam("id") URI id) {	
+    	return getPoolRecommendations(id);
     }
     
     

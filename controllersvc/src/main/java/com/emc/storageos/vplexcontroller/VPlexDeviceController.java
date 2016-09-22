@@ -6591,6 +6591,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *     Volume object for virtual volume, used to clean up consistency group
      */
     private void inventoryDeleteMigrationSource(URI sourceVolumeURI, Volume virtualVolume) {
+        if (NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
+            return;
+        }
         Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
         try {
             if (sourceVolume == null || sourceVolume.getInactive()) {

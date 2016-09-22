@@ -35,7 +35,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * Discover storage system and it's capabilities
      *
      * @param storageSystem StorageSystem to discover. Type: Input/Output.
-     * @return
+     * @return driver task
      */
     public DriverTask discoverStorageSystem(StorageSystem storageSystem);
 
@@ -43,7 +43,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * Discover storage pools and their capabilities.
      * @param storageSystem Type: Input.
      * @param storagePools  Type: Output.
-     * @return
+     * @return driver task
      */
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools);
 
@@ -51,7 +51,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * Discover storage ports and their capabilities
      * @param storageSystem Type: Input.
      * @param storagePorts  Type: Output.
-     * @return
+     * @return driver task
      */
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts);
 
@@ -61,7 +61,7 @@ public interface DiscoveryDriver extends StorageDriver {
      *
      * @param storageSystem Type: Input.
      * @param embeddedStorageHostComponents Type: Output.
-     * @return
+     * @return driver task
      */
     public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents);
 
@@ -76,6 +76,15 @@ public interface DiscoveryDriver extends StorageDriver {
      */
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
 
-    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds, List<RemoteReplicationSet> remoteReplicationSets);
+    /**
+     * Discover remote replication sets managed by driver.
+     *
+     * @param storageSystemNativeIds storage systems managed by driver. Type: Input.
+     * @param storageProviderNativeIds storage providers managed by driver. Type: Input.
+     * @param remoteReplicationSets remote replication sets managed by driver. Type: Output.
+     * @return driver task
+     */
+    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
+                                                    List<RemoteReplicationSet> remoteReplicationSets);
 
 }

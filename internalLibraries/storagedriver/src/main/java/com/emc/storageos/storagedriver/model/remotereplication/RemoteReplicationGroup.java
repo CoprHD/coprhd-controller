@@ -4,11 +4,11 @@
  */
 package com.emc.storageos.storagedriver.model.remotereplication;
 
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 /**
  * Describes remote replication group on device.
@@ -161,5 +161,20 @@ public class RemoteReplicationGroup {
 
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
+    }
+
+    @Override
+    public String toString() {
+        String msg = String.format("Set %s: " +
+                        "\t\t replication mode: %s, replication state: %s" +
+                        "\t\t is group consistency enforced: %s" +
+                        "\t\t supported link granularity: %s" +
+                        "\t\t source system %s" +
+                        "\t\t target system %s" +
+                        "\t\t parent replication set: %s",
+                nativeId,  replicationMode, replicationState, isGroupConsistencyEnforced, replicationLinkGranularity,
+                sourceSystemNativeId, targetSystemNativeId, replicationSetNativeId);
+
+        return(msg);
     }
 }

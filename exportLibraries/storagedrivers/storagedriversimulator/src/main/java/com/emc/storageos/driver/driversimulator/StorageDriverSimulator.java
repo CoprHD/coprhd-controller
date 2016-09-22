@@ -30,6 +30,7 @@ import com.emc.storageos.driver.driversimulator.operations.ExpandVolumeSimulator
 import com.emc.storageos.driver.driversimulator.operations.RestoreFromCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.RestoreFromSnapshotSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
@@ -47,6 +48,7 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
@@ -108,6 +110,9 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public StorageDriverSimulator() {
         ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {SIMULATOR_CONF_FILE}, parentApplicationContext);
         simulatorConfig = (SimulatorConfiguration) context.getBean(CONFIG_BEAN_NAME);
+
+        // Initialize remote replication configuration
+        RemoteReplicationConfiguration.init();
     }
     
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -1056,6 +1061,22 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         task.setMessage(msg);
         _log.info(msg);
 
+        return task;
+    }
+
+    @Override
+    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
+                                                    List<RemoteReplicationSet> remoteReplicationSets) {
+        remoteReplicationSets.addAll(RemoteReplicationConfiguration.getRemoteReplicationSets());
+
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationSets", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        String msg = String.format("Discovery remote replication configuration: %s: %s", "discoverRemoteReplicationSets", remoteReplicationSets);
+        _log.info(msg);
+        task.setMessage(msg);
         return task;
     }
 

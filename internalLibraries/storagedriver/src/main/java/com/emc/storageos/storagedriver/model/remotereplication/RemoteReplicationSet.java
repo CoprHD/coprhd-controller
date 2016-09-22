@@ -4,13 +4,14 @@
  */
 package com.emc.storageos.storagedriver.model.remotereplication;
 
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 /**
  * This class describes set of interconnected storage systems configured for remote replication.
@@ -93,7 +94,9 @@ public class RemoteReplicationSet {
 
 
     /**
-     * When replication link granularity is SET, defines replication link state of this set. Type: Output.
+     * When replication link granularity is only SET, defines replication link state of this set.
+     * Otherwise, not applicable.
+     * Type: Output.
      */
     private ReplicationState replicationState;
 
@@ -186,5 +189,26 @@ public class RemoteReplicationSet {
 
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
+    }
+
+    @Override
+    public String toString() {
+        List<String> groupIds = new ArrayList<>();
+        Set<RemoteReplicationGroup> replicationGroups = getReplicationGroups();
+        if (replicationGroups !=null) {
+            for (RemoteReplicationGroup group : replicationGroups) {
+                groupIds.add(group.getNativeId());
+            }
+        }
+
+       String msg = String.format("Set %s: " +
+               "\t\t supported replication modes: %s, replication state: %s" +
+               "\t\t supported link granularity: %s" +
+               "\t\t system map: %s" +
+               "\t\t groups: %s",
+               nativeId,  supportedReplicationModes, replicationState, replicationLinkGranularity,
+               systemMap, groupIds);
+
+        return(msg);
     }
 }

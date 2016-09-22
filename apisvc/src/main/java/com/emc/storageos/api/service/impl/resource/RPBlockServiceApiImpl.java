@@ -116,6 +116,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ControllerOperationValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Table;
 
 /**
  * Block Service subtask (parts of larger operations) RecoverPoint implementation.
@@ -4180,8 +4181,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }                
                 sourceVolumesToMigrate.add(volume);
             }
+            
+            if (!sourceMigrationsExist && targetMigrationsExist) {
+                
+            }
 
-            if (targetMigrationsExist) {
+            if (targetMigrationsExist) {                
                 // Find the Targets for the volume
                 StringSet rpTargets = volume.getRpTargets();
                 for (String rpTargetId : rpTargets) {

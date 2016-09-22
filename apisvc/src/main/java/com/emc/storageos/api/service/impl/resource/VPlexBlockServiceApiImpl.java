@@ -1420,35 +1420,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     protected TaskList migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
             List<Volume> volumesNotInRG, List<Volume> volumesInRG, 
-            ControllerOperationValuesWrapper controllerOperationValues, String taskId) {
-        Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+            ControllerOperationValuesWrapper controllerOperationValues, String taskId) {        
         TaskList taskList = new TaskList();
-
-        // Group volumes by array groups
-        for (Volume volume : volumes) {
-            Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-            URI backStorage = backedVol.getStorageController();
-            String replicaGroup = backedVol.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
-                List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
-                if (volumeList == null) {
-                    volumeList = new ArrayList<Volume>();
-                    groupVolumes.put(backStorage, replicaGroup, volumeList);
-                }
-                volumeList.add(volume);
-                // Keeps track of the volumes that will be processed because
-                // they are in found to be in an RG.
-                if (volumesInRG != null) {
-                    volumesInRG.add(volume);
-                }
-            } else {
-                // Keeps track of the volumes that will not be processed here
-                // since they are not in a RG.
-                if (volumesNotInRG != null) {
-                    volumesNotInRG.add(volume);
-                }
-            }
-        }
+        Table<URI, String, List<Volume>> groupVolumes = VPlexUtil.groupVPlexVolumesByRG(
+                                                            volumes, volumesNotInRG, volumesInRG, _dbClient);
         for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
             List<Volume> volumesInRGRequest = cell.getValue();
             Volume firstVolume = volumesInRGRequest.get(0);

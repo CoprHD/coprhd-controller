@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -63,6 +64,8 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 public class VPlexUtil {
     private static Logger _log = LoggerFactory.getLogger(VPlexUtil.class);
@@ -1638,5 +1641,53 @@ public class VPlexUtil {
                         backingVolume.getLabel(), backingVolume.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
             }
         }
+    }
+    
+    /**
+     * Groups VPLEX volumes into a Table indexed by:
+     *    1. The backend Storage Controller of the VPLEX backend volume 
+     *    2. The backend replica group of the VPLEX backend volume
+     *    3. and a list of all VPLEX volumes that have backend volumes in that backend replica group
+     *    
+     * Optional: Will also populate two lists dividing the volumes in an RG and not in an RG
+     * if those lists are passed in as not null.     
+     * 
+     * @param vplexVolumes VPlex Volumes to 
+     * @param volumesNotInRG A container to store all volumes NOT in an RG
+     * @param volumesInRG A container to store all the volumes in an RG
+     * @param dbClient DbClient reference
+     * @return an indexed Table: StorageController(URI)/RG(String)/Volumes(List)
+     */
+    public static Table<URI, String, List<Volume>> groupVPlexVolumesByRG(List<Volume> vplexVolumes, List<Volume> volumesNotInRG, 
+            List<Volume> volumesInRG, DbClient dbClient) {
+        Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+
+        // Group volumes by array groups
+        for (Volume volume : vplexVolumes) {
+            Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+            URI backStorage = backedVol.getStorageController();
+            String replicaGroup = backedVol.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                if (volumeList == null) {
+                    volumeList = new ArrayList<Volume>();
+                    groupVolumes.put(backStorage, replicaGroup, volumeList);
+                }
+                volumeList.add(volume);
+                // Keeps track of the volumes that will be processed because
+                // they are in found to be in an RG.
+                if (volumesInRG != null) {
+                    volumesInRG.add(volume);
+                }
+            } else {
+                // Keeps track of the volumes that will not be processed here
+                // since they are not in a RG.
+                if (volumesNotInRG != null) {
+                    volumesNotInRG.add(volume);
+                }
+            }
+        }
+        
+        return groupVolumes;
     }
 }

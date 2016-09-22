@@ -112,7 +112,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
-            boolean isRPSource = false;
+            boolean isRPVplexSource = false;
             Volume vol = volumes.get(0);
             
             //Only XIO volumes that are back-end volumes of a RP+VPLEX source volumes can be in
@@ -123,7 +123,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 	              //See if there is atleast one RP source volume in the list and set the isRPSource to true. 
 	              //Later on, we will add the back-end XIO of the RP source volume in a array CG is the arrayCG option is enabled. 
 	               if (null != rpSrcVolume && rpSrcVolume.checkPersonality(PersonalityTypes.SOURCE.name())) {
-	                       isRPSource = true;
+	                       isRPVplexSource = true;
 	                       vol = volume;
 	                       break;
 	               }
@@ -134,17 +134,18 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null
-                        && cgObj.created(storage.getId())
-                        && isRPSource) {
+                        && cgObj.created(storage.getId())) {
                     // Only set this flag to true if the CG reference is valid
-                    // and it is already created on the storage system.
-                    // Also, exclude RP volumes.
+                    // and it is already created on the storage system.                  
                     isCG = true;
-
-                    /**
-                     * If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into backend cg
-                     */
-                    if (Volume.checkForVplexBackEndVolume(dbClient, vol)
+                    
+                    //RP volumes : If the volume is anything but a back-end volume to a RP+VPLEX source, set the flag to false.
+                    if (!isRPVplexSource) {
+                    	isCG = false;
+                    }
+                   
+                    // If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into back-end cg
+                   if (Volume.checkForVplexBackEndVolume(dbClient, vol)
                             && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())) {
                         isCG = false;
                     }

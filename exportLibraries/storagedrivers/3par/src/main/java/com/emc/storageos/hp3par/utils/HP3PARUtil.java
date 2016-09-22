@@ -127,7 +127,6 @@ public class HP3PARUtil {
                 }
 
 
-                // get speed from general query
                 for (PortStatMembers currStat:portStatResult.getMembers()) {
                		if (currMember.getPortPos().getNode() == currStat.getNode() && 
                			currMember.getPortPos().getSlot() == currStat.getSlot() && 

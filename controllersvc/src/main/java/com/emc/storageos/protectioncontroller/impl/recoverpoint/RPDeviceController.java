@@ -5583,8 +5583,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             
             completer.ready(_dbClient, _locker);
 
-            // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);
             return stepFailed(stepId, (ServiceCoded) e, "restoreVolumeStep");

@@ -117,11 +117,15 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             
             //Only XIO volumes that are back-end volumes of a RP+VPLEX source volumes can be in
             //an array CG (if enable array CG is checked). Targets and journals are never in an array CG.
-            if (vol.checkForRp() && Volume.checkForVplexBackEndVolume(dbClient, vol)) {
-              Volume rpSrcVolume = Volume.fetchVplexVolume(dbClient, vol);
-               if (null != rpSrcVolume && rpSrcVolume.checkPersonality(PersonalityTypes.SOURCE.name())) {
-                       isRPSource = true;
-               }
+            for (Volume volume : volumes) {
+	            if (volume.checkForRp() && Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+	              Volume rpSrcVolume = Volume.fetchVplexVolume(dbClient, volume);
+	               if (null != rpSrcVolume && rpSrcVolume.checkPersonality(PersonalityTypes.SOURCE.name())) {
+	                       isRPSource = true;
+	                       vol = volume;
+	                       break;
+	               }
+	            }
             }
 
             // If the volume is regular volume and in CG

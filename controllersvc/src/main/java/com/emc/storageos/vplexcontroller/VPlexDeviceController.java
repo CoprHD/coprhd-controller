@@ -156,7 +156,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDe
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
-import com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
@@ -4339,7 +4338,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         client.addInitiatorsToStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfos);
                         ExportOperationContext.insertContextOperation(taskCompleter,
                                 VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW,
-                                maskURI);
+                                initiatorURIs);
 
                         _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
                         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
@@ -5223,14 +5222,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         .loadStepData(taskCompleter != null ? taskCompleter.getOpId() : null);
                 if (context != null && context.getOperations() != null) {
                     _log.info("Handling removeInitiators as a result of rollback");
-                    List<Initiator> addedInitiators = new ArrayList<Initiator>();
+                    List<URI> addedInitiators = new ArrayList<>();
                     ListIterator<ExportOperationContextOperation> li = context.getOperations()
                             .listIterator(context.getOperations().size());
                     while (li.hasPrevious()) {
                         ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                         if (operation != null
-                                && VnxExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_GROUP.equals(operation.getOperation())) {
-                            addedInitiators = (List<Initiator>) operation.getArgs().get(0);
+                                && VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW.equals(operation.getOperation())) {
+                            addedInitiators = (List<URI>) operation.getArgs().get(0);
                             _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
                         }
                     }
@@ -5244,7 +5243,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Change the list of initiators to process to the list that successfully were added during
                     // addInitiators.
                     initiatorIdsToProcess.clear();
-                    initiatorIdsToProcess.addAll(URIUtil.toUris(addedInitiators));
+                    initiatorIdsToProcess.addAll(addedInitiators);
                 }
             }
 

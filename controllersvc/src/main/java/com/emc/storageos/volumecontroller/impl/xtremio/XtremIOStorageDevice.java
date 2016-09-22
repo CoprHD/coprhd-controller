@@ -140,7 +140,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     isCG = true;
                     
                     //RP volumes : If the volume is anything but a back-end volume to a RP+VPLEX source, set the flag to false.
-                    if (!isRPVplexSource) {
+                    if (vol.checkForRp() && !isRPVplexSource) {
                     	isCG = false;
                     }
                    

@@ -2059,6 +2059,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty();
 
+                // Check the volumes and update the lists as necessary
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
+
+                boolean removeVolumes = false;
+                List<String> volumesToRemove = new ArrayList<String>();
+                if (mask.getExistingVolumes() != null &&
+                        !mask.getExistingVolumes().isEmpty()) {
+                    volumesToRemove.addAll(mask.getExistingVolumes().keySet());
+                    volumesToRemove.removeAll(discoveredVolumes.keySet());
+                    removeVolumes = !volumesToRemove.isEmpty();
+                }
+
                 // Grab the storage ports that have been allocated for this
                 // existing mask and update them.
                 List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
@@ -2093,17 +2106,17 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 name, Joiner.on(',').join(initiatorsToAdd),
                                 Joiner.on(',').join(initiatorsToRemove)));
                 builder.append(
+                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
+                                name, Joiner.on(',').join(volumesToAdd.keySet()),
+                                Joiner.on(',').join(volumesToRemove)));
+                builder.append(
                         String.format("XM refresh: %s ports; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(storagePortsToAdd),
                                 Joiner.on(',').join(storagePortsToRemove)));
 
-                if (!CollectionUtils.isEmpty(mask.getExistingVolumes())) {
-                    mask.getExistingVolumes().clear();
-                }
-                mask.addToExistingVolumesIfAbsent(discoveredVolumes);
-                _dbClient.updateObject(mask);
                 // Any changes indicated, then update the mask and persist it
-                if (addInitiators || removeInitiators || addStoragePorts || removeStoragePorts) {
+                if (addInitiators || removeInitiators || addVolumes ||
+                        removeVolumes || addStoragePorts || removeStoragePorts) {
                     builder.append("XM refresh: There are changes to mask, " +
                             "updating it...\n");
                     mask.removeFromExistingInitiators(initiatorsToRemove);
@@ -2124,6 +2137,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.addToUserCreatedInitiators(userAddedInitiators);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.addInitiators(initiatorIdsToAdd);
+                    mask.removeFromExistingVolumes(volumesToRemove);
+                    mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);

@@ -3465,6 +3465,11 @@ test_24() {
 # 6. Cleanup
 #
 test_25() {
+    if [ "$SS" = "xio" ]; then
+        echo "Test 25 is not applicable for XtremIO. Skipping."
+        return
+    fi
+
     echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
     expname=${EXPORT_GROUP_NAME}t25
 

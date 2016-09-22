@@ -85,8 +85,8 @@ public class VPlexApiClient {
     private String _vplexSessionId = null;
 
     // caching of some almost-static VPLEX info for performance improvement
-    private static final Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
-    private static final List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+    private final Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
+    private final List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
 
     /**
      * Constructor

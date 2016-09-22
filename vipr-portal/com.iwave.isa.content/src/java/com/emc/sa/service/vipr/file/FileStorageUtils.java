@@ -15,6 +15,7 @@ import static com.emc.sa.service.vipr.file.FileConstants.NFS_PROTOCOL;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -249,7 +250,7 @@ public class FileStorageUtils {
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, exportRule.security, exportRule.permission, DEFAULT_ROOT_USER,
+        return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, DEFAULT_ROOT_USER,
                 exportRule.exportHosts, subDirectory);
     }
 
@@ -272,7 +273,7 @@ public class FileStorageUtils {
     }
 
     public static String createFileSnapshotExport(URI fileSnapshotId, String comment, FileExportRule exportRule, String subDirectory) {
-        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.security, exportRule.permission,
+        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.getSecurity(), exportRule.permission,
                 DEFAULT_ROOT_USER, exportRule.exportHosts, subDirectory);
     }
 

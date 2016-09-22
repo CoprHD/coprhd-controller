@@ -880,7 +880,7 @@ angular.module("portalApp").controller('taskController', function($rootScope, $s
 });
 
 angular.module("portalApp").controller('eventController', function($rootScope, $scope, $timeout, $document, $http, $window) {
-    $scope.numOfPendingEvents = -1;
+    $scope.numOfPendingAndFailedEvents = -1;
 
     var SHORT_POLL_SECS = 5000;
     var LONG_POLL_SECS = 15000;
@@ -895,12 +895,12 @@ angular.module("portalApp").controller('eventController', function($rootScope, $
 
     // Polls just for the count
     var pollForCount = function() {
-        $http.get(routes.Events_pendingEventCount()).success(function(numberOfEvents) {
-            $scope.numOfPendingEvents = numberOfEvents;
+        $http.get(routes.Events_pendingAndFailedEventCount()).success(function(numberOfEvents) {
+            $scope.numOfPendingAndFailedEvents = numberOfEvents;
             setCountPoller();
         })
         .error(function(data, status) {
-            console.log("Error fetching pending event count " + status);
+            console.log("Error fetching pending and failed event count " + status);
         });
     };
 

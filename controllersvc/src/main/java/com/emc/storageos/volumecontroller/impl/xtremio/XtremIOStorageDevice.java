@@ -120,6 +120,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             for (Volume volume : volumes) {
 	            if (volume.checkForRp() && Volume.checkForVplexBackEndVolume(dbClient, volume)) {
 	              Volume rpSrcVolume = Volume.fetchVplexVolume(dbClient, volume);
+	              //See if there is atleast one RP source volume in the list and set the isRPSource to true. 
+	              //Later on, we will add the back-end XIO of the RP source volume in a array CG is the arrayCG option is enabled. 
 	               if (null != rpSrcVolume && rpSrcVolume.checkPersonality(PersonalityTypes.SOURCE.name())) {
 	                       isRPSource = true;
 	                       vol = volume;

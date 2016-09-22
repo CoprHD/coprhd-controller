@@ -44,6 +44,7 @@ public class MountBlockVolumeService extends HpuxService {
             ExecutionUtils.fail("failTask.verifyVMFSDatastore", volume.getName(), volume.getName());
         }
         acquireHostsLock();
+        mountBlockVolumeHelper.verifyMountConfiguration(volume);
         mountBlockVolumeHelper.precheck();
     }
 

@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -66,7 +67,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -798,13 +798,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             exportMaskURIs.add(mask.getId());
             volumeURIs.addAll(ExportMaskUtils.getVolumeURIs(mask));
         }
+        
+        List<NetworkZoningParam> zoningParams = 
+        		NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroupURI, exportMaskURIs, _dbClient);
 
         String zoningStep = workflow.createStepId();
 
-        ZoneDeleteCompleter zoneTaskCompleter = new ZoneDeleteCompleter(exportMaskURIs, zoningStep);
-
         Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportMasksDeleteMethod(exportGroupURI, exportMaskURIs, volumeURIs, zoneTaskCompleter);
+                .zoneExportMasksDeleteMethod(zoningParams, volumeURIs);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -817,9 +818,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     }
 
     public String generateZoningAddInitiatorsWorkflow(Workflow workflow,
-            String previousStep,
-            ExportGroup exportGroup,
-            Map<URI, List<URI>> exportMasksToInitiators)
+            String previousStep, ExportGroup exportGroup, Map<URI, List<URI>> exportMasksToInitiators)
                     throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         String zoningStep = workflow.createStepId();
@@ -827,8 +826,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Workflow.Method zoningExecuteMethod = _networkDeviceController
                 .zoneExportAddInitiatorsMethod(exportGroupURI, exportMasksToInitiators);
 
+        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+        		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
         Workflow.Method zoningRollbackMethod = _networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(exportGroupURI, exportMasksToInitiators);
+                .zoneExportRemoveInitiatorsMethod(zoningParams);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -841,15 +842,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     }
 
     public String generateZoningRemoveInitiatorsWorkflow(Workflow workflow,
-            String previousStep,
-            ExportGroup exportGroup,
-            Map<URI, List<URI>> exportMasksToInitiators)
+            String previousStep, ExportGroup exportGroup, Map<URI, List<URI>> exportMasksToInitiators)
                     throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         String zoningStep = workflow.createStepId();
-
+        
+        List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+        		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
         Workflow.Method zoningExecuteMethod = _networkDeviceController
-                .zoneExportRemoveInitiatorsMethod(exportGroupURI, exportMasksToInitiators);
+                .zoneExportRemoveInitiatorsMethod(zoningParams);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -899,11 +900,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         for (ExportMask mask : exportMasks) {
             exportMaskURIs.add(mask.getId());
         }
+        List<NetworkZoningParam> zoningParams = 
+        		NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroup.getId(), exportMaskURIs, _dbClient);
 
         String zoningStep = workflow.createStepId();
 
-        Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(exportGroupURI,
-                exportMaskURIs, volumeURIs);
+        Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
+                zoningParams, volumeURIs);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -1924,6 +1927,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 _log.info(String
                         .format("determineInitiatorToExportMaskPlacements - Checking to see if we can consider mask %s, given its initiators, storage ports, and volumes",
                                 mask.getMaskName()));
+
+                // Check for NO_VIPR. If found, avoid this mask.
+                if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
+                    _log.info(
+                            String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
+                                    mask.getMaskName(), ExportUtils.NO_VIPR));
+                    continue;
+                }
+
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
                     if (mask.getResource().equals(computeResource)) {

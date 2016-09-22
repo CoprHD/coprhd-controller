@@ -85,8 +85,10 @@ public class EventUtils {
             DataObject resource, Collection<URI> affectedResources, String approveMethod, Object[] approveParameters,
             String declineMethod, Object[] declineParameters) {
         ActionableEvent duplicateEvent = null;
-        if (!ALLOWED_DUPLICATE_EVENTS.contains(eventCode)) {
-            duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId());
+        if (ALLOWED_DUPLICATE_EVENTS.contains(eventCode)) {
+            duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId(), affectedResources);
+        } else {
+            duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId(), null);
         }
 
         if (duplicateEvent != null) {
@@ -147,13 +149,17 @@ public class EventUtils {
      * @param dbClient db client
      * @param the event code
      * @param resourceId the id of the resource to check
+     * @param affectedResources list of affected resources to check or null to skip the check
      * @return event if a duplicate is found, else null
      */
-    public static ActionableEvent getDuplicateEvent(DbClient dbClient, String eventCode, URI resourceId) {
+    public static ActionableEvent getDuplicateEvent(DbClient dbClient, String eventCode, URI resourceId,
+            Collection<URI> affectedResources) {
         List<ActionableEvent> events = findResourceEvents(dbClient, resourceId);
         for (ActionableEvent event : events) {
-            if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
-                    && event.getEventCode().equalsIgnoreCase(eventCode)) {
+            if ((event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                    || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name()))
+                    && event.getEventCode().equalsIgnoreCase(eventCode)
+                    && (affectedResources == null || event.getAffectedResources().equals(getAffectedResources(affectedResources)))) {
                 return event;
             }
         }
@@ -238,7 +244,8 @@ public class EventUtils {
         List<ActionableEvent> result = Lists.newArrayList();
         for (ActionableEvent event : events) {
             if (event != null && event.getEventStatus() != null
-                    && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {
+                    && (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name()))) {
                 result.add(event);
             }
         }

@@ -112,18 +112,18 @@ public class OrderManagerImpl implements OrderManager {
                     catalogService.getDefaultExecutionWindowId().getURI().equals(ExecutionWindow.NEXT)) {
                     // For default execution window, null is deemed as NEXT window as well.
                     // But we always need to set order execution window to NEXT explicitly to different it
-                    // with INDIFINITE window in new scheuler framework.
+                    // with INFINITE window in new scheduler framework.
 
                     // Set schedule time to latest updated time.  It would still be scheduled in executed window
                     Calendar scheduleTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-                    scheduleTime.setTime(order.getLastUpdated());
+                    scheduleTime.setTime(new Date());
                     order.setScheduledTime(scheduleTime);
                     order.setExecutionWindowId(new NamedURI(ExecutionWindow.NEXT, "NEXT"));
                 } else {
                     // Set schedule time to
                     // either 1) the next execution window starting time
                     // or     2) the current time if it is in current execution window
-                    ExecutionWindow executionWindow = client.findById(order.getExecutionWindowId().getURI());
+                    ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
                     ExecutionWindowHelper helper = new ExecutionWindowHelper(executionWindow);
                     order.setScheduledTime(helper.getScheduledTime());
                     order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());

@@ -55,7 +55,7 @@ public class ExportBlockVolumeHelper {
 
     @Param(value = SNAPSHOTS, required = false)
     protected List<String> snapshotIds;
-    
+
     @Param(value = COPIES, required = false)
     protected List<String> copiesIds;
 
@@ -96,7 +96,7 @@ public class ExportBlockVolumeHelper {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
 
-        BlockStorageUtils.checkEvents(hostId);
+        BlockStorageUtils.checkEvents(host != null ? host : cluster);
     }
 
     /** convenience method for exporting volumes */
@@ -106,17 +106,17 @@ public class ExportBlockVolumeHelper {
 
     /**
      * export the block resources identified by URIs in the given resource id list
-     * 
+     *
      * @param resourceIds the list of URIs which identify the block resources that need to be exported
      * @return The list of export groups which have been created/updated
      */
     public List<ExportGroupRestRep> exportBlockResources(List<URI> resourceIds) {
         return exportBlockResources(resourceIds, null);
     }
-    
+
     /**
      * export the block resources identified by URIs in the given resource id list
-     * 
+     *
      * @param resourceIds the list of URIs which identify the block resources that need to be exported
      * @param parentId the parent URI for the list of resourceIds
      * @return The list of export groups which have been created/updated
@@ -127,6 +127,7 @@ public class ExportBlockVolumeHelper {
 
         List<URI> newVolumes = new ArrayList<URI>();
         Map<URI, Set<URI>> addVolumeExports = Maps.newHashMap();
+        Map<URI, URI> addComputeResourceToExports = Maps.newHashMap();
 
         // we will need to keep track of the current HLU number
         Integer currentHlu = hlu;
@@ -153,6 +154,14 @@ public class ExportBlockVolumeHelper {
                 else {
                     updateExportVolumes(export, blockResource, addVolumeExports);
                 }
+
+                // Since the existing export can also be an empty export, also check if the host/cluster is present in the export.
+                // If not, add them.
+                if (BlockStorageUtils.isEmptyExport(export)) {
+                    URI computeResource = cluster != null ? cluster.getId() : host.getId();
+                    addComputeResourceToExports.put(export.getId(), computeResource);
+                }
+
                 exports.add(export);
             }
         }
@@ -174,6 +183,16 @@ public class ExportBlockVolumeHelper {
             }
         }
 
+        for (Map.Entry<URI, URI> entry : addComputeResourceToExports.entrySet()) {
+            if (cluster != null) {
+                BlockStorageUtils.addClusterToExport(entry.getKey(), cluster.getId(), minPaths, maxPaths, pathsPerInitiator);
+                logInfo("export.cluster.add.existing", entry.getValue(), entry.getKey());
+            } else {
+                BlockStorageUtils.addHostToExport(entry.getKey(), host.getId(), minPaths, maxPaths, pathsPerInitiator);
+                logInfo("export.host.add.existing", entry.getValue(), entry.getKey());
+            }
+        }
+
         // Create new export with multiple volumes that don't belong to an export
         if (!newVolumes.isEmpty()) {
             volumeHlus = getVolumeHLUs(newVolumes);
@@ -190,6 +209,7 @@ public class ExportBlockVolumeHelper {
             // add this export to the list of exports we will return to the caller
             exports.add(export);
         }
+
         // add host or cluster to the affected resources
         if (host != null) {
             ExecutionUtils.addAffectedResource(host.getId().toString());
@@ -226,7 +246,12 @@ public class ExportBlockVolumeHelper {
 
     private ExportGroupRestRep findExistingExportGroup(BlockObjectRestRep volume, URI virtualArrayId) {
         if (cluster != null) {
-            return BlockStorageUtils.findExportByCluster(cluster, projectId, virtualArrayId, volume.getId());
+            ExportGroupRestRep export = BlockStorageUtils.findExportByCluster(cluster, projectId, virtualArrayId, volume.getId());
+            if (export == null) {
+                // try to find an empty export group with same name as the cluster.
+                export = BlockStorageUtils.findEmptyExportsByName(cluster.getLabel(), projectId, virtualArrayId);
+            }
+            return export;
         }
 
         // Attempt to find one (regardless of type) that contains the Volume
@@ -243,8 +268,8 @@ public class ExportBlockVolumeHelper {
                 return exportGroup;
             }
         }
-
-        return null;
+        // try to find an empty export group with same name as the host.
+        return BlockStorageUtils.findEmptyExportsByName(host.getHostName(), projectId, virtualArrayId);
     }
 
     public URI getHostId() {

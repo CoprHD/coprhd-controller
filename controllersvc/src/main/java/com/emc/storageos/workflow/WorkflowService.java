@@ -2106,8 +2106,8 @@ public class WorkflowService implements WorkflowController {
             if (state != WorkflowState.SUSPENDED_ERROR
                     && state != WorkflowState.SUSPENDED_NO_ERROR) {
                 // Cannot resume a workflow that is not suspended
-                _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
-                return;
+                _log.info(String.format("Workflow %s state %s is not suspended and will not be resumed", uri, state));
+                throw WorkflowException.exceptions.workflowNotSuspended(uri.toString(), state.toString());
             }
 
             if (workflow._taskCompleter != null) {
@@ -2125,7 +2125,6 @@ public class WorkflowService implements WorkflowController {
             completer.ready(_dbClient);
         } catch (WorkflowException ex) {
             completer.error(_dbClient, ex);
-            ;
         } finally {
             unlockWorkflow(workflow, workflowLock);
         }
@@ -2564,10 +2563,17 @@ public class WorkflowService implements WorkflowController {
     public void markWorkflowBeenCreated(String stepId, String workflowKey) {
         // Mark this workflow as created/executed so we don't do it again on retry/resume
         try {
+            Workflow workflow = getWorkflowFromStepId(stepId);
+            if (workflow == null) {
+                _log.info(String.format(
+                        "Step %s has already been deleted and therefore cannot mark sub-workflow created, key %s",
+                        stepId, workflowKey));
+                return;
+            }
             WorkflowService.getInstance().storeStepData(stepId, workflowKey, Boolean.TRUE.toString());
         } catch (WorkflowException ex) {
             _log.info(String.format(
-                "Step %s has already been deleted and therefore cannot mark sub-workflow created, key %s",
+                "Step %s unable to mark sub-workflow created, key %s",
                 stepId, workflowKey));
         }
     }

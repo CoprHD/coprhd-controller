@@ -11,6 +11,7 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -323,7 +324,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
         debug("getting source block volumes (project=%s)", project);
-        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project);
+        FilterChain<VolumeRestRep> filters = new BlockVolumeMountPointFilter().not();
+        filters.and(new BlockVolumeVMFSDatastoreFilter().not());
+        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project, filters);
         return createVolumeOptions(null, volumes);
     }
 
@@ -348,6 +351,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // Filter volumes that are not RP Metadata
         List<URI> volumeIds = getExportedVolumeIds(ctx, project);
         FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
+        filter.and(new BlockVolumeVMFSDatastoreFilter().not());
+        filter.and(new BlockVolumeMountPointFilter().not());
         List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
         return createVolumeWithVarrayOptions(client, volumes);
     }
@@ -1106,7 +1111,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     @Override
                     public boolean accept(BlockSnapshotRestRep snapshot) {
                         VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
-                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                        return ((isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot)) ||
+                                !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                    }
+                });
+
+        return constructSnapshotOptions(client, project, snapshots);
+    }
+
+    private List<AssetOption> getVolumeRPSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
+                new DefaultResourceFilter<BlockSnapshotRestRep>() {
+                    @Override
+                    public boolean accept(BlockSnapshotRestRep snapshot) {
+                        return (isSnapshotRPBookmark(snapshot));
                     }
                 });
 
@@ -1156,6 +1175,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             } else if (SNAPSHOT_SESSION_TYPE_VALUE.equals(snapshotType)) {
                 info("getting blockSnapshotSessions (project=%s)", project);
                 return getVolumeSnapshotSessionOptionsForProject(ctx, project);
+            } else if (RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
+                info("getting rpBookmarks (project=%s)", project);
+                return getVolumeRPSnapshotOptionsForProject(ctx, project);
             } else {
                 info("getting blockSnapshots (project=%s)", project);
                 return getVolumeSnapshotOptionsForProject(ctx, project);
@@ -1801,7 +1823,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockVolume")
     @AssetDependencies({ "esxHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForEsxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, false);
+        return getProjectBlockVolumesForHost(api(context), project, host, false,
+                new BlockObjectMountPointFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
     }
 
     @Asset("mountedBlockResource")
@@ -3442,6 +3465,36 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         @Override
         public boolean accept(BlockObjectRestRep blockObject) {
             return BlockStorageUtils.isVolumeVMFSDatastore(blockObject);
+        }
+    }
+
+    /**
+     * VMFS Datastore filter for block volumes.
+     */
+    private static class BlockVolumeVMFSDatastoreFilter extends DefaultResourceFilter<VolumeRestRep> {
+        @Override
+        public boolean accept(VolumeRestRep volume) {
+            return BlockStorageUtils.isVolumeVMFSDatastore(volume);
+        }
+    }
+
+    /**
+     * MountPoint filter for block objects.
+     */
+    private static class BlockObjectMountPointFilter extends DefaultResourceFilter<BlockObjectRestRep> {
+        @Override
+        public boolean accept(BlockObjectRestRep blockObject) {
+            return BlockStorageUtils.isVolumeMounted(blockObject);
+        }
+    }
+
+    /**
+     * MountPoint filter for block volumes.
+     */
+    private static class BlockVolumeMountPointFilter extends DefaultResourceFilter<VolumeRestRep> {
+        @Override
+        public boolean accept(VolumeRestRep volume) {
+            return BlockStorageUtils.isVolumeMounted(volume);
         }
     }
 

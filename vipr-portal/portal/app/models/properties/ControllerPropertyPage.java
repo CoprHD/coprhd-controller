@@ -10,6 +10,8 @@ public class ControllerPropertyPage extends CustomPropertyPage {
     private Property meteringEnabled;
     private Property meteringInterval;
     private Property monitoringEnabled;
+    private Property mdsCloneZoneset;
+    private Property mdsAllowZonesetCommit;
 
     public ControllerPropertyPage(Map<String, Property> properties) {
         super("Controller");
@@ -17,6 +19,9 @@ public class ControllerPropertyPage extends CustomPropertyPage {
         meteringEnabled = addCustomProperty(properties, "controller_enable_metering");
         meteringInterval = addCustomProperty(properties, "controller_metering_interval");
         monitoringEnabled = addCustomProperty(properties, "controller_enable_monitoring");
+        mdsCloneZoneset = addCustomProperty(properties, "controller_mds_clone_zoneset");
+        mdsAllowZonesetCommit = addCustomProperty(properties, "controller_mds_allow_zoneset_commit");
+        		
     }
 
     public Property getMeteringEnabled() {
@@ -29,5 +34,13 @@ public class ControllerPropertyPage extends CustomPropertyPage {
 
     public Property getMonitoringEnabled() {
         return monitoringEnabled;
+    }
+    
+    public Property getMdsCloneZoneset() {
+    	return mdsCloneZoneset;
+    }
+    
+    public Property getMdsAllowZonesetCommit() {
+    	return mdsAllowZonesetCommit;
     }
 }

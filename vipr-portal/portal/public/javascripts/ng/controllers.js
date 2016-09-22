@@ -1613,7 +1613,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             $scope.guideDataAvailable = true;
             $scope.guideVisible = cookieObject.guideVisible;
             $scope.maxSteps = maxSteps;
-
+			$scope.failedType = cookieObject.failedType;
         }
         $scope.isMenuPinned = readCookie("isMenuPinned");
     }
@@ -1814,6 +1814,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.guideVisible;
+        cookieObject.failedType=$scope.failedType;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1854,6 +1855,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=$scope.guideMode;
         cookieObject.guideVisible=$scope.guideVisible;
+        cookieObject.failedType=$scope.failedType;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1939,6 +1941,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         if (data.data.length != 0) {
                             if(!failedType){
                                 failedType="PROVIDER";
+                                $scope.failedType = failedType;
                                 failedArray=failedArray.concat(data.data);
                             }
                         }
@@ -1947,6 +1950,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         if (data.data.length != 0) {
                             if(!failedType){
                                 failedType="SYSTEM";
+                                $scope.failedType = failedType;
                                 failedArray=failedArray.concat(data.data);
                             }
                         }
@@ -2225,7 +2229,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("Overview");
                     break;
                 case 4:
-                    setActiveMenu("Storage Systems");
+                	if($scope.failedType == "PROVIDER") {
+                		setActiveMenu("Storage Providers");
+                	}
+                	else {
+                    	setActiveMenu("Storage Systems");
+                    }
                     break;
                 case 5:
                     setActiveMenu("Fabric Managers");

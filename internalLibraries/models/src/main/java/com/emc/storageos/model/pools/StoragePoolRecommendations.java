@@ -4,37 +4,42 @@
  */
 package com.emc.storageos.model.pools;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-@XmlRootElement(name = "storage_pools")
+@XmlRootElement(name = "storage_pool_recommendations")
 public class StoragePoolRecommendations {
-    private List<NamedRelatedResourceRep> pools;
+    private List<StoragePoolRecommendation> poolRecommedations;
 
-    public StoragePoolList() {
+    public StoragePoolRecommendations() {
     }
 
-    public StoragePoolList(List<NamedRelatedResourceRep> pools) {
-        this.pools = pools;
+    public StoragePoolRecommendations(List<StoragePoolRecommendation> recs) {
+        this.poolRecommedations = recs;
     }
 
     /**
-     * List of storage pool
+     * List of storage pool recommendations
      * 
      */
-    @XmlElement(name = "storage_pool")
-    public List<NamedRelatedResourceRep> getPools() {
-        if (pools == null) {
-            pools = new ArrayList<NamedRelatedResourceRep>();
+    @XmlElement(name = "storage_pool_recommendation")
+    public List<StoragePoolRecommendation> getPoolRecommendations() {
+        if (poolRecommedations == null) {
+        	poolRecommedations = new ArrayList<StoragePoolRecommendation>();
         }
-        return pools;
+        return poolRecommedations;
     }
 
-    public void setPools(List<NamedRelatedResourceRep> pools) {
-        this.pools = pools;
+    public void setPoolRecommendations(List<StoragePoolRecommendation> poolRecommedations) {
+        this.poolRecommedations = poolRecommedations;
+    }
+    
+    public void addPoolRecommendations(StoragePoolRecommendation poolRecommedation) {
+    	if (this.poolRecommedations == null) {
+        	this.poolRecommedations = new ArrayList<StoragePoolRecommendation>();
+        }
+        this.poolRecommedations.add(poolRecommedation);
     }
 }

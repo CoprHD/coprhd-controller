@@ -20,6 +20,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toBlockVirtualPool;
+import static com.emc.storageos.api.mapper.VirtualPoolMapper.toPoolRecommendation;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -74,6 +75,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.pools.StoragePoolRecommendations;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
@@ -255,30 +257,28 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @brief List matching pools for virtual pool properties
      * @return matching pools.
      */
-    @POST
+    @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/pool-recommendations")
+    @Path("{id}/pool-recommendations")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public StoragePoolList getPoolRecommendations(BlockVirtualPoolParam param) {
-        StoragePoolList poolList = new StoragePoolList();
+    public StoragePoolRecommendations getPoolRecommendations(@PathParam("id") URI id) {
+    	
+        ArgValidator.checkUri(id);
+        VirtualPool vpool = queryResource(id);
+        ArgValidator.checkEntity(vpool, id, isIdEmbeddedInURL(id));
 
-        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
-        List<VpoolProtectionVarraySettings> protectionSettings = new ArrayList<VpoolProtectionVarraySettings>();
-        Map<URI, VpoolProtectionVarraySettings> protectionSettingsMap = new HashMap<URI, VpoolProtectionVarraySettings>();
-        VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap, protectionSettingsMap, protectionSettings);
         List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
         StringBuffer errorMessage = new StringBuffer();
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
-                protectionSettingsMap,
-                remoteSettingsMap,
+                null,
+                null,
                 null,
                 _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
-        for (StoragePool pool : matchedPools) {
-            poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
-        }
-        return poolList;
+        
+        StoragePoolRecommendations to = new StoragePoolRecommendations();
+        return toPoolRecommendation("source_data", matchedPools, to);
     }
     
     

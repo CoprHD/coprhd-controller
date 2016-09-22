@@ -56,6 +56,10 @@ public class RemoteReplicationConfiguration {
 
         RemoteReplicationMode replicationModeSync = new RemoteReplicationMode("synchronous", true, false);
         RemoteReplicationMode replicationModeAsync = new RemoteReplicationMode("asynchronous", true, false);
+        Set<RemoteReplicationMode> supportedReplicationModes = new HashSet<>();
+        supportedReplicationModes.add(replicationModeAsync);
+        supportedReplicationModes.add(replicationModeSync);
+
         // group link granularity
         Set<RemoteReplicationSet.ElementType> replicationLinkGranularity = new HashSet<>();
         replicationLinkGranularity.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
@@ -77,7 +81,6 @@ public class RemoteReplicationConfiguration {
         replicationGroup1_set1.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
         replicationGroup1_set1.setReplicationMode(replicationModeSync);
-
         replicationGroup1_set1.setReplicationLinkGranularity(replicationLinkGranularity);
         // source and target systems
         replicationGroup1_set1.setSourceSystemNativeId(SourceStorageSystems.source_replicationGroup1_set1.toString());
@@ -159,6 +162,7 @@ public class RemoteReplicationConfiguration {
         replicationSet1.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         replicationSet1.setSupportedElementTypes(setSupportedElements);
         replicationSet1.setReplicationGroups(set1ReplicationGroups);
+        replicationSet1.setSupportedReplicationModes(supportedReplicationModes);
 
         // set system map
         Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet1 = new HashMap<>();
@@ -177,6 +181,7 @@ public class RemoteReplicationConfiguration {
         replicationSet2.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         replicationSet2.setSupportedElementTypes(setSupportedElements);
         replicationSet2.setReplicationGroups(set1ReplicationGroups);
+        replicationSet2.setSupportedReplicationModes(supportedReplicationModes);
 
         // set system map
         Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet2 = new HashMap<>();

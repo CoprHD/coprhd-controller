@@ -1222,7 +1222,7 @@ public class ExternalDeviceCommunicationInterface extends
         com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet =
                 checkRemoteReplicationSetExistsInDB(nativeGuid);
         if (systemSet == null) {
-            _log.info("Replication set {} does not exist in database, we will create a new system set for it.", nativeGuid);
+            _log.info("Replication set {} does not exist in database, we will create a new system replication set for it.", nativeGuid);
             systemSet = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
             systemSet.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class));
             systemSet.setNativeGuid(nativeGuid);
@@ -1401,7 +1401,7 @@ public class ExternalDeviceCommunicationInterface extends
             systemSet.setReplicationModesNoGroupConsistency(systemReplicationModesNoGroupConsistency);
             systemSet.setReplicationModesGroupConsistencyEnforced(systemReplicationModeGroupConsistencyEnforced);
         } catch (Exception e) {
-            String message = String.format("Failed to prepare remote replication set %s . Error: %s . Set repllication set to not reachable.",
+            String message = String.format("Failed to prepare remote replication set %s . Error: %s . Set replication set to not reachable.",
                     systemSet.getNativeGuid(), e.getMessage());
             _log.error(message, e);
             systemSet.setReachable(false);

@@ -40,17 +40,17 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     private URI targetSystem;
 
     // replication mode of this group
-    String replicationMode;
+    private String replicationMode;
 
     // Element types for this replication group for which device supports replication link operations.
     // Can be group only, pair only or both types.
     private StringSet supportedReplicationLinkGranularity;
 
     // replication state of this group
-    RemoteReplicationSet.ReplicationState replicationState;
+    private RemoteReplicationSet.ReplicationState replicationState;
 
     // Defines if group consistency of link operations is enforced.
-    private boolean isGroupConsistencyEnforced;
+    private Boolean isGroupConsistencyEnforced;
 
     // Parent replication set
     URI replicationSet;
@@ -129,11 +129,11 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     }
 
     @Name("isGroupConsistencyEnforced")
-    public boolean getIsGroupConsistencyEnforced() {
+    public Boolean getIsGroupConsistencyEnforced() {
         return isGroupConsistencyEnforced;
     }
 
-    public void setIsGroupConsistencyEnforced(boolean isGroupConsistencyEnforced) {
+    public void setIsGroupConsistencyEnforced(Boolean isGroupConsistencyEnforced) {
         this.isGroupConsistencyEnforced = isGroupConsistencyEnforced;
         setChanged("isGroupConsistencyEnforced");
     }

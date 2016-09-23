@@ -901,8 +901,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
-        xtremioExportOperationHelper.refreshExportMask(storage, mask);
-        return mask;
+        return xtremioExportOperationHelper.refreshExportMask(storage, mask);
     }
 
     @Override

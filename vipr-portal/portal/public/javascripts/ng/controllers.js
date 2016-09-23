@@ -69,7 +69,7 @@ angular.module("portalApp").controller({
             vpoolHAJournalVirtualPool: {
                 path: routes.BlockVirtualPools_listHaRpJournalVPoolsJson(),
                 depend: ['vpool.haJournalVArray']
-            }            
+            }
         };
 
         angular.forEach(track, function(options, key) {
@@ -94,6 +94,20 @@ angular.module("portalApp").controller({
             event.preventDefault();
         };
 
+        $scope.disablePlacementPolicy = function(value) {
+        	/*
+        	 * When value does not belong to nonequalList or belongs to equalList, 
+        	 * ie. value is not XTREMIO, VMAX, Unity, VnxBlock or value is "vplex_local","vplex_distributed","rp", "srdf"
+        	 */
+        	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
+        	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
+        	if((nonequalList.indexOf(value)==-1)||(equalList.indexOf(value)!=-1)) {
+        		$('#vpool_placementPolicy').val('0').prop('selected',true);
+        		$('#vpool_placementPolicy').change();
+        	}
+        	
+        }
+        
         $scope.saveRecoverPointCopy = function(rpCopy, event) {
             function find(options, id) {
                 var name = $scope.none;
@@ -866,7 +880,7 @@ angular.module("portalApp").controller('taskController', function($rootScope, $s
 });
 
 angular.module("portalApp").controller('eventController', function($rootScope, $scope, $timeout, $document, $http, $window) {
-    $scope.numOfPendingEvents = -1;
+    $scope.numOfPendingAndFailedEvents = -1;
 
     var SHORT_POLL_SECS = 5000;
     var LONG_POLL_SECS = 15000;
@@ -881,12 +895,12 @@ angular.module("portalApp").controller('eventController', function($rootScope, $
 
     // Polls just for the count
     var pollForCount = function() {
-        $http.get(routes.Events_pendingEventCount()).success(function(numberOfEvents) {
-            $scope.numOfPendingEvents = numberOfEvents;
+        $http.get(routes.Events_pendingAndFailedEventCount()).success(function(numberOfEvents) {
+            $scope.numOfPendingAndFailedEvents = numberOfEvents;
             setCountPoller();
         })
         .error(function(data, status) {
-            console.log("Error fetching pending event count " + status);
+            console.log("Error fetching pending and failed event count " + status);
         });
     };
 
@@ -1599,41 +1613,33 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             $scope.guideDataAvailable = true;
             $scope.guideVisible = cookieObject.guideVisible;
             $scope.maxSteps = maxSteps;
-
+			$scope.failedType = cookieObject.failedType;
         }
         $scope.isMenuPinned = readCookie("isMenuPinned");
     }
 
     $scope.toggleGuide = function(nonav) {
 
-        //we need to check that the guide only appears on the license and initial setup nonav pages
+        //we need erase guide data on the license and initial setup nonav pages
         if (nonav) {
-            if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
-                //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
-                eraseCookie(cookieKey);
-                return;
-            } else {
-                eraseCookie(dataCookieKey);
-            }
+            eraseCookie(dataCookieKey);
         }
 
         if ($scope.guideVisible) {
 		    $scope.closeGuide();
         }
         else {
-            if (window.location.pathname != '/security/logout') {
-                $scope.guideVisible = true;
-                $scope.guideMode='full';
-                if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
-                    if ($window.location.pathname == '/setup/license') {
-                        if ($scope.currentStep == 1) {return;};
-                    }
-                    if ($window.location.pathname == '/setup/index') {
-                        if ($scope.currentStep == 2) {return;};
-                    }
+            $scope.guideVisible = true;
+            $scope.guideMode='full';
+            if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
+                if ($window.location.pathname == '/setup/license') {
+                    if ($scope.currentStep == 1) {return;};
                 }
-                $scope.initializeSteps();
-		    }
+                if ($window.location.pathname == '/setup/index') {
+                    if ($scope.currentStep == 2) {return;};
+                }
+            }
+            $scope.initializeSteps();
         }
     }
 
@@ -1808,6 +1814,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.guideVisible;
+        cookieObject.failedType=$scope.failedType;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1848,6 +1855,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=$scope.guideMode;
         cookieObject.guideVisible=$scope.guideVisible;
+        cookieObject.failedType=$scope.failedType;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1933,6 +1941,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         if (data.data.length != 0) {
                             if(!failedType){
                                 failedType="PROVIDER";
+                                $scope.failedType = failedType;
                                 failedArray=failedArray.concat(data.data);
                             }
                         }
@@ -1941,6 +1950,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         if (data.data.length != 0) {
                             if(!failedType){
                                 failedType="SYSTEM";
+                                $scope.failedType = failedType;
                                 failedArray=failedArray.concat(data.data);
                             }
                         }
@@ -1967,7 +1977,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                     $scope.completedSteps = 4;
                                     callback();
                                 } else {
-                                    $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
+                                    if (guide_data.storage_systems){
+                                        $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
+                                    }
                                     finishChecking();
                                 }
                             });
@@ -1991,9 +2003,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideErrorObject = data.data;
-                        $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
-                        $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
+                        if (guide_data.fabrics){
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
+                            $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
+                        }
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -2016,9 +2030,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideErrorObject = data.data;
-                        $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Array:";
-                         $scope.guideErrorSolution = "To complete step, run Virtual Array creation step again.";
+                        if (guide_data.varrays){
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Array:";
+                            $scope.guideErrorSolution = "To complete step, run Virtual Array creation step again.";
+                         }
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -2041,9 +2057,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideErrorObject = data.data;
-                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Pool:";
-                             $scope.guideErrorSolution = "To complete step, run Virtual Pool creation step again.";
+                            if (guide_data.vpools){
+                                $scope.guideErrorObject = data.data;
+                                $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Pool:";
+                                $scope.guideErrorSolution = "To complete step, run Virtual Pool creation step again.";
+                            }
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;
@@ -2211,7 +2229,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("Overview");
                     break;
                 case 4:
-                    setActiveMenu("Storage Systems");
+                	if($scope.failedType == "PROVIDER") {
+                		setActiveMenu("Storage Providers");
+                	}
+                	else {
+                    	setActiveMenu("Storage Systems");
+                    }
                     break;
                 case 5:
                     setActiveMenu("Fabric Managers");
@@ -2268,7 +2291,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $('.wizard-side-next').popover({
         delay : {
             show : 0,
-            hide : 2000
+            hide : 3000
         },
         placement : 'bottom',
         html : true,
@@ -2289,7 +2312,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
                 window.clearInterval(guideMonitor);
                 $scope.currentStep = 3;
+                $scope.guideMode='full';
                 $scope.staleData = true;
+                $scope.$apply();
             }
         };
     }();
@@ -2319,6 +2344,48 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         } else {
             window.clearInterval(guideMonitor);
             $('.rootNav , .navMenu a').off('click');
+        }
+    });
+
+    document.getElementById('wizard').addEventListener('mousedown', mouseDown, false);
+    window.addEventListener('mouseup', mouseUp, false);
+
+    function pauseEvent(e){
+        if(e.stopPropagation) e.stopPropagation();
+        if(e.preventDefault) e.preventDefault();
+        e.cancelBubble=true;
+        e.returnValue=false;
+        return false;
+    }
+
+    function mouseUp()
+    {
+        window.removeEventListener('mousemove', divMove, true);
+    }
+
+    function mouseDown(e){
+        var senderElement = e.target;
+        if(this === e.target && this.className.split(" ").indexOf("wizard-side") >= 0) {
+      		window.addEventListener('mousemove', divMove, true);
+            pauseEvent(e);
+        }
+    }
+
+    function divMove(e){
+          var div = document.getElementById('wizard');
+          div.style.position = 'absolute';
+          if (e.clientY < $(window).height()-div.scrollHeight && e.clientY > 0+$(".navbar").height()) {
+            div.style.top = e.clientY + 'px';
+          }
+    }
+
+    $scope.$watch('guideMode', function(newValue, oldValue) {
+        if (newValue !== oldValue){
+            var div = document.getElementById('wizard');
+            div.removeAttribute("style");
+        }
+        if (newValue==='side' && $scope.guideVisible === true){
+            $(".dataTableContainer").addClass("wizard-side-move-content");
         }
     });
 });

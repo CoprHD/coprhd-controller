@@ -1037,7 +1037,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             }
                         }
                     } catch (VMWareException ex) {
-                        _log.error(ex.getMessage(), ex);
+                        _log.warn(ex.getMessage(), ex);
                     }
 
                     if (blockObject != null && blockObject.getTag() != null) {
@@ -1052,18 +1052,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                         storageAPI.mountDatastore(datastore);
                                     }
                                 } catch (VMWareException ex) {
-                                    _log.error(ex.getMessage(), ex);
+                                    _log.warn(ex.getMessage(), ex);
                                 }
                             }
                         }
                     }
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**
@@ -1192,12 +1192,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**

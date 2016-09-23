@@ -1145,19 +1145,11 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     position: absolute;
 }
 
-.wizard-dialog .title-side {
-    font-size: 12px;
-    color: #e6e6e6;
-    text-transform: uppercase;
-    opacity: 0.5;
-}
-
 .wizard-dialog .title-side-next {
-    font-size: 25px;
+    font-size: 20px;
     color: white;
-    text-transform: uppercase;
-    //opacity: 0.5;
-    padding:10px;
+    float: right;
+    margin-top: 2px;
 }
 
 .wizard-dialog .step-side {
@@ -1166,15 +1158,20 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-side {
-    top: 50px;
+    top: 45px;
     right: 0;
     background-color: rgba(0, 0, 0, 0.75);
     color: white;
     display: inline-block;
-    padding: 12px;
     width: 306px;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
+    cursor: grab;
+    cursor: -webkit-grab;
+}
+
+.wizard-side-move-content {
+    margin-top:20px;
 }
 
 .wizard-full {
@@ -1193,17 +1190,22 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-side-close {
-    top: -5px;
-    right: -5px;
-    font-size: small;
+    height: 16px;
+    right: 12px;
+    top: 12px;
     position: absolute;
+    cursor: pointer;
+    opacity:0.6;
+}
+
+.wizard-side-close:hover {
+    opacity:1;
 }
 
 .wizard-side-next {
-    position: absolute;
-    font-size: 50px;
-    top: -8px;
-    right: 80px;
+    height: 24px;
+    padding-right: 20px;
+    float: left;
 }
 
 .popover {
@@ -1218,8 +1220,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     color: white;
     border: none;
     font-size: 13px;
-    top: 48px !important;
-    left: -210px !important;
+    top: 64px !important;
 }
 
 .popover.bottom .arrow:after {
@@ -1235,7 +1236,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-side.guide-menuopen{
-   padding-left: 12px;
+   padding-left: 0px;
 }
 
 .guide-fullpage{
@@ -1340,10 +1341,12 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     margin-bottom: 25px;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 15px;
-    max-width: 785px;
+    max-width: 636px;
     text-align: left;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #ddd;
 }
 
 .wizard-dialog .landing-image img{
@@ -1356,14 +1359,22 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     font-size: 26px;
     text-transform: uppercase;
     color: #428bca;
+    letter-spacing:2px;
 }
 
 .wizard-buttons {
-    z-index: 1;
+    float: left;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+    margin: 12px;
+    cursor: pointer;
+    border-radius: 4px;
 }
 
-.wizard-buttons-full {
-    margin-top: -10px;
+.wizard-buttons:hover{
+   background-color:#282828;
 }
 
 step-side > div.step-circle {

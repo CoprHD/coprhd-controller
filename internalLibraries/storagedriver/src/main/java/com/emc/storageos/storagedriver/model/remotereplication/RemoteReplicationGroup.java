@@ -165,7 +165,7 @@ public class RemoteReplicationGroup {
 
     @Override
     public String toString() {
-        String msg = String.format("Group native id %s: " +
+        String msg = String.format("\n\tGroup native id %s: " +
                         "\n\t\t replication mode: %s, replication state: %s" +
                         "\n\t\t is group consistency enforced: %s" +
                         "\n\t\t supported link granularity: %s" +

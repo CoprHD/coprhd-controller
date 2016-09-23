@@ -145,6 +145,10 @@ public class RemoteReplicationConfiguration {
         set1ReplicationGroups.add(replicationGroup1_set1);
         set1ReplicationGroups.add(replicationGroup2_set1);
 
+        Set<RemoteReplicationGroup> set2ReplicationGroups = new HashSet<>();
+        set2ReplicationGroups.add(replicationGroup1_set2);
+        set2ReplicationGroups.add(replicationGroup2_set2);
+
         /* ============== Done with replication groups initialization =================== */
 
         // initialize two replication sets
@@ -180,7 +184,7 @@ public class RemoteReplicationConfiguration {
         replicationSet2.setReplicationLinkGranularity(replicationLinkGranularity);
         replicationSet2.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         replicationSet2.setSupportedElementTypes(setSupportedElements);
-        replicationSet2.setReplicationGroups(set1ReplicationGroups);
+        replicationSet2.setReplicationGroups(set2ReplicationGroups);
         replicationSet2.setSupportedReplicationModes(supportedReplicationModes);
 
         // set system map

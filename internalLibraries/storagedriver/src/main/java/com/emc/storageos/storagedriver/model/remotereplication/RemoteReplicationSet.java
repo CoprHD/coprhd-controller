@@ -201,8 +201,9 @@ public class RemoteReplicationSet {
             }
         }
 
-       String msg = String.format("Set nativeId %s: " +
-               "\n\t\t supported replication modes: %s, replication state: %s" +
+       String msg = String.format("\n\tSet nativeId %s: " +
+               "\n\t\t supported replication modes: %s, " +
+               "\n\t\treplication state: %s" +
                "\n\t\t supported link granularity: %s" +
                "\n\t\t system map: %s" +
                "\n\t\t groups: %s",

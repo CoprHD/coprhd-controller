@@ -965,7 +965,8 @@ public class ExternalDeviceCommunicationInterface extends
 
         // get all systems of the required type  and get all their providers, so we can send this information to driver
         List<URI> systemUris = _dbClient.queryByType(com.emc.storageos.db.client.model.StorageSystem.class, true);
-        if (systemUris == null || systemUris.isEmpty()) {
+        Iterator<URI> iter = systemUris.iterator();
+        if (!iter.hasNext()) {
             // no storage systems found.
             _log.info("No storage systems found in the database. ");
             return;
@@ -1169,7 +1170,6 @@ public class ExternalDeviceCommunicationInterface extends
             List<URI> remoteReplicationSets =
                     queryActiveResourcesUriByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
                             "storageSystemType", storageSystemType);
-            _log.info("Found {} existing replication sets for storage type {} .", remoteReplicationSets.size(), storageSystemType);
             for (URI setUri : remoteReplicationSets) {
                 if (!updatedObjectUris.contains(setUri)) {
                     // unreachable
@@ -1186,7 +1186,6 @@ public class ExternalDeviceCommunicationInterface extends
             List<URI> remoteReplicationGroups =
                     queryActiveResourcesUriByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
                             "storageSystemType", storageSystemType);
-            _log.info("Found {} existing replication groups for storage type {} .", remoteReplicationGroups.size(), storageSystemType);
             for (URI groupUri : remoteReplicationGroups) {
                 if (!updatedObjectUris.contains(groupUri)) {
                     // unreachable
@@ -1235,6 +1234,7 @@ public class ExternalDeviceCommunicationInterface extends
         if (systemSet == null) {
             _log.info("Replication set {} does not exist in database, we will create a new system replication set for it.", nativeGuid);
             systemSet = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
+            systemSet.setIsDriverManaged(true);
             systemSet.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class));
             systemSet.setNativeGuid(nativeGuid);
             systemSet.setStorageSystemType(storageSystemType);
@@ -1283,6 +1283,7 @@ public class ExternalDeviceCommunicationInterface extends
                         checkRemoteReplicationGroupExistsInDB(nativeGuid);
                 if (systemGroup == null) {
                     _log.info("Replication group {} does not exist in database, we will create a new system group for it.", nativeGuid);
+                    systemGroup.setIsDriverManaged(true);
                     systemGroup = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup();
                     systemGroup.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class));
                     systemGroup.setNativeGuid(nativeGuid);
@@ -1299,7 +1300,7 @@ public class ExternalDeviceCommunicationInterface extends
                 systemGroups.add(systemGroup);
             } catch (Exception e) {
                 _log.error(String.format("Failed to process replication group %s, from set %s ." +
-                        " Error: %s .", driverGroup.getNativeId(), parentRrSet.getNativeGuid(), e.getMessage()));
+                        " Error: %s .", driverGroup.getNativeId(), parentRrSet.getNativeGuid(), e.getMessage()), e);
             }
         }
         return systemGroups;

@@ -49,4 +49,9 @@ public class RemoteReplicationMode {
     public void setIsGroupConsistencyNotSupported(boolean isGroupConsistencyNotSupported) {
         this.isGroupConsistencyNotSupported = isGroupConsistencyNotSupported;
     }
+
+    @Override
+    public String toString() {
+        return replicationModeName;
+    }
 }

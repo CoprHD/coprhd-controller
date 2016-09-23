@@ -6620,10 +6620,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (storageSystemToRemove != null) {
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, virtualVolume.getConsistencyGroup());
                     StringSet cgNames = cg.getSystemConsistencyGroups().get(storageSystemToRemove.toString());
-                    for (String cgName : cgNames) {
-                        cg.removeSystemConsistencyGroup(storageSystemToRemove.toString(), cgName);
+                    if (cgNames != null) {
+                        for (String cgName : cgNames) {
+                            cg.removeSystemConsistencyGroup(storageSystemToRemove.toString(), cgName);
+                        }
+                        _dbClient.updateObject(cg);
                     }
-                    _dbClient.updateObject(cg);
                 }
             }
         } catch (Exception ex) {

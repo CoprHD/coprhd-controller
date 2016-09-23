@@ -11887,6 +11887,12 @@ vplexsnap_tests()
     secho "Unexport VPLEX volume built from snapshot"
     run export_group delete $PROJECT/$hname-1$host
 
+    secho "Deleting VPLEX volume built on snapshot"
+    run volume delete $PROJECT/$localSnapshot --wait
+
+    secho "Deleting snapshot"
+    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
+
     secho "Deleting source VPLEX local volume"
     run volume delete $PROJECT/$localVolume --wait
 

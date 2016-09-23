@@ -113,22 +113,24 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
             Volume vol = volumes.get(0);
+            
             // If the volume is regular volume and in CG
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null
-                        && cgObj.created(storage.getId())
-                        && !vol.checkForRp()) {
+                        && cgObj.created(storage.getId())) {
                     // Only set this flag to true if the CG reference is valid
-                    // and it is already created on the storage system.
-                    // Also, exclude RP volumes.
+                    // and it is already created on the storage system.                  
                     isCG = true;
-
-                    /**
-                     * If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into backend cg
-                     */
-                    if (Volume.checkForVplexBackEndVolume(dbClient, vol)
-                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())) {
+                    
+                    //RP back-end volumes DO NOT have personality flag set. All RP volumes will satisfy checkForRP
+                    //Find out out if this is a RP volume that is not a back-end volume to a RP+VPLEX volume.
+                    boolean excludeRPNotBackendVolumes = vol.checkForRp() && (NullColumnValueGetter.isNotNullValue(vol.getPersonality()));
+                   
+                    // If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into back-end cg
+                    // Only XIO volumes that are back-end volumes to RP+VPLEX volumes will be in an array CG if arrayConsistency is chosen.
+                   if (excludeRPNotBackendVolumes || (Volume.checkForVplexBackEndVolume(dbClient, vol)
+                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance()))) {
                         isCG = false;
                     }
                 }
@@ -901,8 +903,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
-        xtremioExportOperationHelper.refreshExportMask(storage, mask);
-        return mask;
+        return xtremioExportOperationHelper.refreshExportMask(storage, mask);
     }
 
     @Override

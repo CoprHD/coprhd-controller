@@ -1040,9 +1040,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
-    private void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
+    private synchronized void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-
         if (null != consistencyGroup) {
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storageSystem);
             if (groupName.equals(EMPTY_CG_NAME)) {

@@ -74,6 +74,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.pools.StoragePoolRecommendations;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
@@ -355,6 +356,24 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     public StoragePoolList getStoragePools(@PathParam("id") URI id) {
         return getStoragePoolsForVirtualPool(id);
     }
+    
+    
+    /**
+     * Return the storage pool recommendations for given vpool. 
+     *
+     * @param param : virtual pool id
+     * @brief List pool recommendations for virtual pool 
+     * @return pool recommendations.
+     */
+    @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("{id}/pool-recommendations")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public StoragePoolRecommendations getPoolRecommendations(@PathParam("id") URI id) {	
+    	return getVirtualPoolRecommendations(id);
+    }
+    
 
     /**
      * This method re-computes the matched pools for this virtual pool and returns this information.

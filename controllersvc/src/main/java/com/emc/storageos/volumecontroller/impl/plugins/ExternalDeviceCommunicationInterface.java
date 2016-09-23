@@ -965,6 +965,11 @@ public class ExternalDeviceCommunicationInterface extends
 
         // get all systems of the required type  and get all their providers, so we can send this information to driver
         List<URI> systemUris = _dbClient.queryByType(com.emc.storageos.db.client.model.StorageSystem.class, true);
+        if (systemUris == null || systemUris.isEmpty()) {
+            // no storage systems found.
+            _log.info("No storage systems found in the database. ");
+            return;
+        }
         for (URI systemUri : systemUris) {
             com.emc.storageos.db.client.model.StorageSystem system =
                     _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, systemUri);
@@ -985,6 +990,12 @@ public class ExternalDeviceCommunicationInterface extends
 
         _log.info("Discover remote replication configuration for the following systems of type {} : {}, providers for these systems: {}",
                 storageSystemType, systemNativeIds, providerNativeIds);
+
+        if (systemNativeIds.isEmpty()) {
+            // no storage systems of the required type found.
+            _log.info("No storage systems found in the database of type: {}", storageSystemType);
+            return;
+        }
 
         try {
             // call the driver to discover remote configuration

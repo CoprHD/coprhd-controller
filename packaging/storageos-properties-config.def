@@ -940,8 +940,8 @@
     },
     {
         key : "controller_discovery_interval",
-        label : "Storage Systems",
-        description : "Number of seconds between discovery operations of storage systems.",
+        label : "Storage Systems Auto-Discovery Interval",
+        description : "Number of seconds between auto-discovery operations of storage systems.",
         type : "uint32",
         userConfigurable : false, 
         userMutable : true,
@@ -997,8 +997,8 @@
     },
     {
         key : "controller_ns_discovery_interval",
-        label : "Network Systems",
-        description : "Number of seconds between discovery operations of switches (fabric managers).",
+        label : "Network Systems Auto-Discovery Interval",
+        description : "Number of seconds between auto-discovery operations of switches (fabric managers).",
         type : "uint32",
         userConfigurable : false, 
         userMutable : true,
@@ -1053,8 +1053,8 @@
     },
     {
         key : "controller_discovery_refresh_interval",
-        label : "Storage Systems Refresh Interval",
-        description : "Number of seconds before a new discovery operation is allowed since the last discovery operation.",
+        label : "Storage Systems Allowed Discovery Interval",
+        description : "Number of seconds before a new discovery operation of storage systems is allowed since the last discovery operation.",
         type : "uint32",
         userConfigurable : false, 
         userMutable : true,
@@ -1095,7 +1095,7 @@
     },
     {
         key : "controller_ns_discovery_refresh_interval",
-        label : "Network Systems Refresh Interval",
+        label : "Network Systems Allowed Discovery Interval",
         description : "Number of seconds before a new discovery of switches (fabric managers) is allowed since the last discovery operation.",
         type : "uint32",
         userConfigurable : false, 

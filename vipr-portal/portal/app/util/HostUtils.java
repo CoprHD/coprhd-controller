@@ -23,6 +23,7 @@ import com.emc.storageos.model.host.InitiatorCreateParam;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.IpInterfaceCreateParam;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
+import com.emc.storageos.model.host.PairedInitiatorCreateParam;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.vipr.client.Task;
@@ -76,6 +77,10 @@ public class HostUtils {
 
     public static Task<InitiatorRestRep> createInitiator(URI hostId, InitiatorCreateParam hostInitiatorCreateParam) {
         return getViprClient().initiators().create(hostId, hostInitiatorCreateParam);
+    }
+
+    public static Task<InitiatorRestRep> createInitiatorPair(URI hostId, PairedInitiatorCreateParam hostInitiatorCreateParam) {
+        return getViprClient().initiators().createPair(hostId, hostInitiatorCreateParam);
     }
 
     public static IpInterfaceRestRep createIpInterface(URI hostId, IpInterfaceCreateParam ipInterfaceCreateParam) {

@@ -541,6 +541,9 @@ Hosts.arrayAffinityDiscoveryInitiated=Tasks initiated to discover array affinity
 Hosts.initiators.title=Host Initiators
 Hosts.initiators.description=
 Hosts.initiators.add.title=Add Host Initiator
+Hosts.initiators.add=Add Initiator
+Hosts.initiators.addPaired=Add Associated Initiator
+Hosts.initiators.addPaired.title=Add Associated Initiator to Host
 
 initiators.label=Initiators
 initiators.added=Task initiated to add Initiator '%s'.
@@ -555,6 +558,10 @@ initiators.port.invalidIQN=Not a valid IQN
 initiator.node=Node
 initiator.node.help=Node WWN for Fibre-Channel ports, empty for iSCSI
 initiator.port=Port
+initiator.firstPort=First Port
+initiator.secondPort=Second Port
+initiator.firstNode= First Node
+initiator.secondNode= Second Node
 initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI
 initiator.deleteConfirm=Are you sure you want to delete the selected Initiator(s)?
 

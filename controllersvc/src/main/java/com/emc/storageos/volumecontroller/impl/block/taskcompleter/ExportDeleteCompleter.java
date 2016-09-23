@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 @SuppressWarnings("serial")
 public class ExportDeleteCompleter extends ExportTaskCompleter {
@@ -67,6 +68,7 @@ public class ExportDeleteCompleter extends ExportTaskCompleter {
                 exportGroup.clearInternalFlags(Flag.DELETION_IN_PROGRESS);   
             }
             dbClient.updateObject(exportGroup);
+            ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
 
             if (operation.getStatus().equals(Operation.Status.ready.name())) {
                 if (!checkForActiveMasks) {

@@ -410,6 +410,10 @@ verify_no_zones() {
     fabricid=$1
     host=$2
 
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
     if [ $? -eq 0 ]; then
@@ -421,6 +425,11 @@ verify_no_zones() {
 #
 load_zones() {
     host=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
     if [ $? -ne 0 ]; then
 	echo -e "\e[91mERROR\e[0m: Could not determine the zones that were created"
@@ -434,6 +443,10 @@ load_zones() {
 verify_zones() {
     fabricid=$1
     check=$2
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     for zone in ${zones}
     do
@@ -450,6 +463,11 @@ verify_zones() {
 # Cleans zones and zone referencese ($1=fabricId, $2=host)
 clean_zones() {
     fabricid=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
+
     load_zones $2
     delete_zones ${HOST1}
     zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
@@ -468,6 +486,10 @@ clean_zones() {
 # Deletes the zones returned by load_zones, then any remaining zones
 delete_zones() {
     host=$1
+
+    if [ "${ZONE_CHECK}" = "0" ]; then
+	return
+    fi
 
     zonesdel=0
     for zone in ${zones}
@@ -801,6 +823,13 @@ prerun_setup() {
 
     fi
 
+    smisprovider list | grep SIM > /dev/null
+    if [ $? -eq 0 ];
+    then
+	ZONE_CHECK=0
+	echo "Shutting off zone check for simulator environment"
+    fi
+
     if [ "${SS}" = "vnx" ]
     then
 	array_ip=${VNXB_IP}
@@ -1066,6 +1095,38 @@ vplex_sim_setup() {
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
+            run cos create block ${VPOOL_BASE}_migration_src false                            \
+                             --description 'vpool-for-vplex-local-volumes-src'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+
+	    # Migration vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning and migration (target)"
+            run cos create block ${VPOOL_BASE}_migration_tgt false                           \
+                             --description 'vpool-for-vplex-local-volumes-tgt'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_SIM_VMAX2_NATIVEGUID
         ;;
         distributed)
             secho "Setting up the virtual pool for distributed VPLEX provisioning"
@@ -3246,6 +3307,9 @@ test_23() {
     echot "Test 23 (VPLEX) Suspend resume migration with CGs"
     expname=${EXPORT_GROUP_NAME}t23
 
+    # validation check off for this one.  vplex sim failing volume validation
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+
     # Bailing out for non-VPLEX
     if [ "${SS}" != "vplex" ]; then
 	echo "This test is testing migration, so it is only valid for VPLEX."
@@ -3582,15 +3646,18 @@ case $SS in
     ;;
 esac
 
+# By default, check zones
+ZONE_CHECK=${ZONE_CHECK:-1}
 if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
 then
     echo "Setting up testing based on real hardware"
     setup=1;
     shift 1;
-elif [ "$1" = "setupsim" ]; then
+elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	echo "Setting up testing based on simulators"
 	SIM=1;
+	ZONE_CHECK=0;
 	setup=1;
 	shift 1;
     else

@@ -783,6 +783,18 @@ prerun_setup() {
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
+    # Check if we have the most recent version of preExistingConfig.jar
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    TOOLS_MD5="${DIR}/preExistingConfig.md5"
+    TOOLS_JAR="${DIR}/preExistingConfig.jar"
+    TMP_MD5=/tmp/preExistingConfig.md5
+    MD5=`cat ${TOOLS_MD5} | awk '{print $1}'`
+    echo "${MD5} ${TOOLS_JAR}" > ${TMP_MD5}
+    if [ -f "${TOOLS_JAR}" ]; then
+       md5sum -c ${TMP_MD5}
+       [ $? -ne 0 ] && echo "WARNING: There may be a newer version of ${TOOLS_JAR} available."
+    fi
+
     echo "Seeing if there's an existing base of volumes"
     BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
     if [ "${BASENUM}" != "" ]
@@ -2062,16 +2074,16 @@ test_7() {
 #
 test_8() {
     echot "Test 8: Add initiator: allow adding initiator that was added outside ViPR"
-    expname=${EXPORT_GROUP_NAME}t8
+    expname=${EXPORT_GROUP_NAME}_${RANDOM}_t8
 
     # Make sure we start clean; no masking view on the array
-    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname} ${HOST1} gone
 
     # Create the mask with the 1 volume
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
+    runcmd export_group create $PROJECT ${expname} $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
     # Verify the mask has been created
-    verify_export ${expname}1 ${HOST1} 1 1
+    verify_export ${expname} ${HOST1} 1 1
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
@@ -2080,19 +2092,19 @@ test_8() {
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
     
     # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname} ${HOST1} 2 1
 
     # Now add that volume using ViPR
-    runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
+    runcmd export_group update $PROJECT/${expname} --addInits ${HOST1}/${H1PI2}
 
     # Verify the mask is "normal" after that command
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname} ${HOST1} 2 1
 
     # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT/${expname}
 
     # Make sure it really did kill off the mask
-    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname} ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
@@ -3465,6 +3477,11 @@ test_24() {
 # 6. Cleanup
 #
 test_25() {
+    if [ "$SS" = "xio" ]; then
+        echo "Test 25 is not applicable for XtremIO. Skipping."
+        return
+    fi
+
     echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
     expname=${EXPORT_GROUP_NAME}t25
 

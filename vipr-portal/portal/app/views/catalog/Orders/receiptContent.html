@@ -116,10 +116,17 @@
          #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
             &{'order.occurrences.indefinite'}
          #{/if}
-                
+
       </dd>
       #{/if}
-      
+
+      #{if details.scheduledEvent != null}
+        #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+        <dt>&{'order.currentScheduleTime'}:</dt>
+        <dd>#{localDateTime details.order.scheduledTime/}</dd>
+        #{/if}
+      #{/if}
+
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
       

@@ -53,7 +53,7 @@
             </a>
           #{/else}
         </li>
-        #{if isActiveSite }
+        #{if isActiveSite && !util.SetupUtils.isOssBuild()}
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
          #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
         <li id="colWiz" ng-controller="navBarController">
@@ -342,7 +342,7 @@
 
 #{/nav.mainMenu}
 #{get 'menu'/}
-#{if isActiveSite }
+#{if isActiveSite && !util.SetupUtils.isOssBuild() }
 #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
   #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
   <div id="wizard" ng-controller="wizardController" ng-init="checkGuide()" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">

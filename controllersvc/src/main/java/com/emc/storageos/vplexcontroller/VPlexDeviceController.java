@@ -10112,7 +10112,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Find virtual volume that should have been created when we did detach mirror.
             // Virtual volume is created with the same name as the device name.
-            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexMirror.getDeviceLabel(), vplexMirror.getNativeId());
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexMirror.getDeviceLabel(), null);
 
             // Get the backend volume for this promoted VPLEX volume.
             StringSet assocVolumes = vplexMirror.getAssociatedVolumes();

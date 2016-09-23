@@ -3183,6 +3183,7 @@ order.executionTaskLogs.elapsed=Elapsed
 order.viprTasks=Tasks
 
 order.schedule=Schedule
+order.currentScheduleTime=Current Schedule Time
 order.occur=Occurring on
 order.recur=Recurring every
 order.at=at

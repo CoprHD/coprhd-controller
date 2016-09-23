@@ -26,9 +26,11 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorCreateParam;
 import com.emc.storageos.model.host.InitiatorRestRep;
+import com.emc.storageos.model.host.PairedInitiatorCreateParam;
 import com.emc.storageos.model.valid.Endpoint;
 
 import controllers.Common;
@@ -80,6 +82,21 @@ public class HostInitiators extends ViprResourceController {
 
         HostUtils.createInitiator(uri(hostId), initiator.toCreateParam());
         flash.success(MessagesUtils.get(ADDED, initiator.port));
+        list(hostId);
+    }
+
+    @FlashException
+    public static void createPair(String hostId, PairedInitiatorForm initiator) {
+        initiator.validate("initiator");
+        if (Validation.hasErrors()) {
+            params.flash();
+            Validation.keep();
+            list(hostId);
+        }
+
+        HostUtils.createInitiatorPair(uri(hostId), initiator.toCreateParam());
+        flash.success(MessagesUtils.get(ADDED, initiator.firstPort));
+        flash.success(MessagesUtils.get(ADDED, initiator.secondPort));
         list(hostId);
     }
 
@@ -184,5 +201,85 @@ public class HostInitiators extends ViprResourceController {
                 }
             }
         }
+
     }
+
+    public static class PairedInitiatorForm {
+        public String firstNode;
+        @Required
+        public String firstPort;
+
+        public String secondNode;
+        @Required
+        public String secondPort;
+
+        public PairedInitiatorCreateParam toCreateParam() {
+            String protocol = getProtocolFromWWN(firstPort);
+
+            PairedInitiatorCreateParam pairedInitiator = new PairedInitiatorCreateParam();
+            BaseInitiatorParam firstInitiator = new BaseInitiatorParam();
+            BaseInitiatorParam secondInitiator = new BaseInitiatorParam();
+            firstInitiator.setProtocol(protocol);
+            if (BlockProtocols.isFC(protocol)) {
+                firstInitiator.setNode(firstNode.trim());
+                firstInitiator.setPort(firstPort.trim());
+            }
+            else {
+                firstInitiator.setPort(firstPort.trim());
+            }
+            secondInitiator.setProtocol(protocol);
+            if (BlockProtocols.isFC(protocol)) {
+                secondInitiator.setNode(secondNode.trim());
+                secondInitiator.setPort(secondPort.trim());
+            }
+            else {
+                secondInitiator.setPort(secondPort.trim());
+            }
+            pairedInitiator.setFirstInitiator(firstInitiator);
+            pairedInitiator.setSecondInitiator(secondInitiator);
+            return pairedInitiator;
+        }
+
+        public void validate(String formName) {
+            Validation.valid(formName, this);
+
+            String protocol = getProtocolFromWWN(firstPort.trim());
+            if (BlockProtocols.isFC(protocol)) {
+                Validation.required(formName + ".node", firstNode);
+                Validation.required(formName + ".port", firstPort);
+                if (firstNode != null && !EndpointUtility.isValidEndpoint(firstPort.trim(), Endpoint.EndpointType.WWN)) {
+                    Validation.addError(formName + ".node", "initiators.port.invalidWWN");
+                }
+                if (firstPort != null && !EndpointUtility.isValidEndpoint(firstPort.trim(), Endpoint.EndpointType.WWN)) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidWWN");
+                }
+            }
+            else {
+                boolean valid = EndpointUtility.isValidEndpoint(firstPort.trim(), Endpoint.EndpointType.IQN);
+                if (!valid) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidIQN");
+                }
+            }
+
+            protocol = getProtocolFromWWN(secondPort.trim());
+            if (BlockProtocols.isFC(protocol)) {
+                Validation.required(formName + ".node", secondNode);
+                Validation.required(formName + ".port", secondPort);
+                if (secondNode != null && !EndpointUtility.isValidEndpoint(secondPort.trim(), Endpoint.EndpointType.WWN)) {
+                    Validation.addError(formName + ".node", "initiators.port.invalidWWN");
+                }
+                if (secondPort != null && !EndpointUtility.isValidEndpoint(secondPort.trim(), Endpoint.EndpointType.WWN)) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidWWN");
+                }
+            }
+            else {
+                boolean valid = EndpointUtility.isValidEndpoint(secondPort.trim(), Endpoint.EndpointType.IQN);
+                if (!valid) {
+                    Validation.addError(formName + ".port", "initiators.port.invalidIQN");
+                }
+            }
+        }
+
+    }
+
 }

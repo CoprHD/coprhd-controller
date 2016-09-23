@@ -97,6 +97,7 @@ public class PathConstants {
     public static final String HOST_URL = "/compute/hosts";
     public static final String HOST_DETACH_STORAGE_URL = HOST_URL + "/{hostId}/detach-storage";
     public static final String INITIATOR_BY_HOST_URL = HOST_URL + "/{hostId}/initiators";
+    public static final String PAIRED_INITIATOR_BY_HOST_URL = HOST_URL + "/{hostId}/paired-initiators";
     public static final String IPINTERFACE_BY_HOST_URL = HOST_URL + "/{hostId}/ip-interfaces";
     public static final String VCENTER_URL = "/compute/vcenters";
     public static final String VCENTER_DETACH_STORAGE_URL = VCENTER_URL + "/{vcenterId}/detach-storage";
@@ -106,6 +107,8 @@ public class PathConstants {
     public static final String CLUSTER_DETACH_STORAGE_URL = CLUSTER_URL + "/{clusterId}/detach-storage";
     public static final String HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/hosts";
     public static final String INITIATOR_URL = "/compute/initiators";
+    public static final String ASSOCIATE_INITIATOR_URL = INITIATOR_URL + "/{id}/associate/{associatedId}";
+    public static final String DISSOCIATE_INITIATOR_URL = INITIATOR_URL + "/{id}/dissociate";
     public static final String IPINTERFACE_URL = "/compute/ip-interfaces";
     public static final String DATACENTER_URL = "/compute/vcenter-data-centers";
     public static final String DATACENTER_DETACH_STORAGE_URL = DATACENTER_URL + "/{dataCenterId}/detach-storage";
@@ -162,7 +165,7 @@ public class PathConstants {
     public static final String SCHEDULE_POLICIES_URL = "/schedule-policies";
     public static final String SCHEDULE_POLICIES_BY_TENANT_URL = TENANT_URL + "/{tenantId}/schedule-policies";
     public static final String VOLUME_GROUPS_BY_TENANT_URL = TENANT_URL + "/{tenantId}/volume-groups";
-    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL+"/{policyId}";
+    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL + "/{policyId}";
     public static final String ASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/assign-file-policy/{policy_id}";
     public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";
     public static final String FILE_POLICIES_BY_FILESYSTEM_URL = FILESYSTEM_URL + "/{fileSystemId}/file-policies";

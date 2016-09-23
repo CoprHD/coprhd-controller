@@ -19,7 +19,14 @@
                       selectable:true}
   #{DataTable.buttonBar}
     #{if initiatorsEditable}
-      #{Form.button name:'button.add', class:'success', icon:'plus', action:'showDialogClick()'/}
+    <div class="btn-group">
+
+        #{Form.button name:'button.add', class:'success', icon:'plus', dropdown:true/}
+      <ul class="dropdown-menu above">
+        <li><a href="#" onclick="showDialogClick(); return false;">&{'Hosts.initiators.add'}</a></li>
+        <li><a href="#" onclick="showPairedDialogClick(); return false;">&{'Hosts.initiators.addPaired'}</a></li>
+      </ul>
+       </div>
       #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', 
                     data:['enabled':'selected']/}
     #{/if}
@@ -59,6 +66,44 @@
     #{/Modal.footer}
   #{/form}
 #{/Modal.dialog}
+
+#{Modal.dialog id:'addPairedDialog', cssClass:'wide', titleKey:'Hosts.initiators.addPaired.title'}
+  #{form @createPair(), id:'pairedInitiatorForm', class:'form form-horizontal', autocomplete:"off"}
+    <input type="hidden" name="hostId" value="${host?.id}">   
+    #{Modal.body}
+      #{field 'initiator.firstNode'}
+        %{
+          field.cssClass = "span6 initialFocus"
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+
+      #{field 'initiator.firstPort'}
+        %{
+          field.required = true
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+            #{field 'initiator.secondNode'}
+        %{
+          field.cssClass = "span6 initialFocus"
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+
+      #{field 'initiator.secondPort'}
+        %{
+          field.required = true
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'pairedInitiatorForm'/}
+      #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
   
 <script>
   #{ifErrors}
@@ -69,8 +114,14 @@
 
   function showDialogClick() {
 	clearErrors();
-    showDialog();
+	  $('#addDialog').modal();
   }
+  
+  function showPairedDialogClick() {
+		clearErrors();
+		  $('#addPairedDialog').modal();
+	  }
+ 
 
   function showDialog() {
     $('.modal').modal();

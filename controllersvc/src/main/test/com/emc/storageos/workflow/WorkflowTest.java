@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ import com.emc.storageos.workflow.Workflow.StepState;
  * The controllersvc is started from within setup().
  *
  */
+@Ignore
 public class WorkflowTest extends ControllersvcTestBase implements Controller {
     private static final int SLEEP_MILLIS = 3000;
     private static final URI nullURI = NullColumnValueGetter.getNullURI();

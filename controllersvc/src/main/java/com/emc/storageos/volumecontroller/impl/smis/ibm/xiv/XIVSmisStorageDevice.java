@@ -1201,7 +1201,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
             } catch (WBEMException e) {
-                DeviceControllerException.exceptions.smis.hluRetrivalfailed("Error occured during retrieval of HLUs for a Host", e);
+                DeviceControllerException.exceptions.smis.hluRetrievalFailed("Error occured during retrieval of HLUs for a Host", e);
             } finally {
                 if (scsiPCInstances != null) {
                     scsiPCInstances.close();

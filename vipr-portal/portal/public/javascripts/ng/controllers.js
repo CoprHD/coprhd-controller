@@ -2309,7 +2309,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
             var currentCookie = angular.fromJson(readCookie(cookieKey));
 
-            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
+            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps && guideDataAvailable===true) {
                 window.clearInterval(guideMonitor);
                 $scope.currentStep = 3;
                 $scope.guideMode='full';

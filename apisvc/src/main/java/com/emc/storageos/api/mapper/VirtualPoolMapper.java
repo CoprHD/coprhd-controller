@@ -6,9 +6,11 @@ package com.emc.storageos.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFieldsNoLink;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNotNullValue;
 
 import java.net.URI;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
@@ -19,12 +21,16 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.pools.StoragePoolRecommendation;
+import com.emc.storageos.model.pools.StoragePoolRecommendations;
+import com.emc.storageos.model.pools.StorageDeviceStoragePoolResource;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileReplicationPolicy;
@@ -356,5 +362,26 @@ public class VirtualPoolMapper {
         }
 
         return to;
+    }
+    
+    public static StoragePoolRecommendations toPoolRecommendation(String dataSourceType,
+    		List<StoragePool> matchedPools, StoragePoolRecommendations to) {
+    	
+    	StoragePoolRecommendation dataSourcRecs = new StoragePoolRecommendation();
+    	List<StorageDeviceStoragePoolResource> storagePools = new ArrayList<StorageDeviceStoragePoolResource>();
+    	for ( StoragePool pool: matchedPools ) {
+    		StorageDeviceStoragePoolResource devicePool = new StorageDeviceStoragePoolResource();
+    		devicePool.setStorageDevice(toNamedRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, 
+    				pool.getStorageDevice(), "StorageDevice"));
+    		devicePool.setStoragePool(toNamedRelatedResource(ResourceTypeEnum.STORAGE_POOL,
+    				pool.getId(), pool.getPoolName()));
+    		storagePools.add(devicePool);
+    	}
+    	
+    	// set the recommendations!!
+    	dataSourcRecs.setDataSourceType(dataSourceType);
+    	dataSourcRecs.setStoragePools(storagePools);
+    	to.addPoolRecommendations(dataSourcRecs);
+    	return to;
     }
 }

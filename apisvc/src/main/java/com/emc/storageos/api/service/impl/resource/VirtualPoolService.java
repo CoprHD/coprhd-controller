@@ -20,6 +20,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.VirtualPoolMapper.toPoolRecommendation;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.pools.StoragePoolRecommendations;
 import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
 import com.emc.storageos.model.quota.QuotaInfo;
@@ -92,6 +94,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -1330,6 +1333,24 @@ public abstract class VirtualPoolService extends TaggedResource {
         if (virtualPoolNames.length() != 0) {
             throw APIException.badRequests.virtualPoolIsSetAsContinuousCopiesVpool(vpool.getLabel(), virtualPoolNames);
         }
+    }
+    
+    public StoragePoolRecommendations getVirtualPoolRecommendations(URI id) {
+    	
+        ArgValidator.checkUri(id);
+        VirtualPool vpool = queryResource(id);
+        ArgValidator.checkEntity(vpool, id, isIdEmbeddedInURL(id));
+
+        List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
+        List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
+        List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
+                null,
+                null,
+                null,
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+        
+        StoragePoolRecommendations to = new StoragePoolRecommendations();
+        return toPoolRecommendation("source_data", matchedPools, to);
     }
 
 }

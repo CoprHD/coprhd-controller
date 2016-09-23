@@ -1040,6 +1040,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         _log.warn(ex.getMessage(), ex);
                     }
 
+                    storageAPI.getStorageSystem().rescanVmfs();
+
                     if (blockObject != null && blockObject.getTag() != null) {
                         for (ScopedLabel tag : blockObject.getTag()) {
                             String tagValue = tag.getLabel();

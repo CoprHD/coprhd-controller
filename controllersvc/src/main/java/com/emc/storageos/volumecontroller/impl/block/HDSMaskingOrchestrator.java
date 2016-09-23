@@ -202,8 +202,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                             URI.create(maskURIStr));
                     //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
-                    if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, exportMask.getStoragePorts()).isEmpty())
+                    if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, exportMask.getStoragePorts()).isEmpty()) {
                         continue;
+                    }
                     _log.info(String.format("Checking mask %s", exportMask.getMaskName()));
                     if (!exportMask.getInactive()
                             && exportMask.getStorageDevice().equals(storageURI)) {

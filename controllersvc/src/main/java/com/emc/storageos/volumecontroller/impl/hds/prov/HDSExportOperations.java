@@ -1444,7 +1444,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
                     boolean isNewExportMask = false;
                     // Create single ExportMask for each hsd having host initiators
-                    List<ExportMask> exportMaskWithHostInitiators = fetchExportMaskFromDB(activeMasks,
+                    List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
                             hostInitiators, storage);
                     for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
                         String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
@@ -1581,13 +1581,13 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     /**
-     * Fetches ExportMask from DB based on the given initiators.
+     * Fetches ExportMasks from DB based on the given initiators.
      * 
      * @param hostInitiators
      * @param storage
      * @return
      */
-    private List<ExportMask> fetchExportMaskFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
+    private List<ExportMask> fetchExportMasksFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
         List<ExportMask> exportMasks = new ArrayList<>();
         if (null != activeMasks && !activeMasks.isEmpty()) {
             for (ExportMask activeExportMask : activeMasks) {

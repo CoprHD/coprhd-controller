@@ -144,8 +144,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         } 
                         
                         if (RPHelper.isVPlexVolume(volume, dbClient)) {
-                            // Special rollback for VPLEX to update the backend vpools to the old vpools
-                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            if (serviceCoded.getServiceCode() != ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                                // Special rollback for VPLEX to update the backend vpools to the old vpools
+                                rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            }
                         }
                         
                         // Add the volume to the list of volumes to be updated in the DB so that the

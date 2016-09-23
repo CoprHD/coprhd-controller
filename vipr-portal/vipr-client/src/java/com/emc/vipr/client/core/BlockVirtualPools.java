@@ -19,6 +19,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.pools.StoragePoolRecommendations;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
@@ -408,5 +409,19 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
         VirtualPoolChangeList response = client.post(VirtualPoolChangeList.class, input, getIdUrl() + "/vpool-change/vpool", id);
         return defaultList(response.getVirtualPools());
     }
+    
+    /**
+    * Get storage pool recommendations for a given file virtual pool.
+    * <p>
+    * API Call: <tt>PUT /file/vpools/{id}/pool-recommendations</tt>
+    * 
+    * @param id
+    *            the ID of the file virtual pool.
+    * @return storage pool recommendations for a given file virtual pool.
+    */
+   public StoragePoolRecommendations storagePoolRecommendations(URI id) {
+   	return client.get(StoragePoolRecommendations.class, getIdUrl() + "/pool-recommendations", id);
+   }
+    
 
 }

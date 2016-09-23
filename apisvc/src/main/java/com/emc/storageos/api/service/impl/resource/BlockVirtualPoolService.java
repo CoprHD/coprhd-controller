@@ -261,7 +261,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @Path("{id}/pool-recommendations")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePoolRecommendations getPoolRecommendations(@PathParam("id") URI id) {	
-    	return getPoolRecommendations(id);
+    	return getVirtualPoolRecommendations(id);
     }
     
     

@@ -1378,7 +1378,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
     }
     
-    public StoragePoolRecommendations getPoolRecommendations(URI id) {
+    public StoragePoolRecommendations getVirtualPoolRecommendations(URI id) {
     	
         ArgValidator.checkUri(id);
         VirtualPool vpool = queryResource(id);

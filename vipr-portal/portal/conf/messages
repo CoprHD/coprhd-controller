@@ -3182,6 +3182,7 @@ order.executionTaskLogs.elapsed=Elapsed
 order.viprTasks=Tasks
 
 order.schedule=Schedule
+order.currentScheduleTime=Current Schedule Time
 order.occur=Occurring on
 order.recur=Recurring every
 order.at=at
@@ -4814,14 +4815,14 @@ scheduler.expiration=Automatic Expiration
 scheduler.expiration.helpText=Maximum snapshots or copies to keep.
 
 gettingStarted.header.full=Getting Started Guide
-gettingStarted.header.side=Return To Guide
+gettingStarted.header.side=Return to Guide
 gettingStarted.header.side.next=Next Step
 gettingStarted.button.error=Complete Step
 gettingStarted.loader.recheck=Add more Storage
 gettingStarted.landing.loading=&nbsp;&nbsp;&nbsp;Loading...
 gettingStarted.loader.dismiss=Exit
 gettingStarted.landing.header=Welcome to EMC ViPR Controller
-gettingStarted.landing.text=ViPR Controller Getting Started Guide, brings easy and quick steps to create a virtual data center with EMC VMAX All Flash, EMC Unity All Flash, and XtremIO arrays.<br><br>If you are not configuring ViPR Controller with all flash arrays, or prefer a custom deployment, exit guide, and continue with ViPR Controller UI.<br><br> System and Tenant Administrator role are required.
+gettingStarted.landing.text=With the ViPR Controller Guide we have made it easy for you to provision your EMC VMAX All Flash, EMC Unity All Flash, and XtremIO storage.<br><br>Exit the guide if you are not configuring ViPR Controller with all flash arrays, or prefer a custom configuration.
 gettingStarted.landing.systemNew=You can now use our Getting Started Guide to help you configure ViPR
 gettingStarted.landing.systemPartial=Welcome back! You\'re almost done with the Getting Started Guide.
 gettingStarted.landing.systemReady=Welcome back! You\'re done with the Getting Started Guide.

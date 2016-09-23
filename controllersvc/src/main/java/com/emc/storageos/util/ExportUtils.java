@@ -1738,6 +1738,78 @@ public class ExportUtils {
     }
     
     /**
+     * For ViPR-only delete operations, we use this method to remove the
+     * block object from the export group and export masks associated with
+     * the block object.
+     * 
+     * @param boURI
+     *            The BlockObject to remove from export masks
+     * @param addToExisting
+     *            When true, adds the block object to the existing objects list from the mask.
+     * @param dbClient
+     *            Database handle
+     */
+    public static void cleanBlockObjectFromExports(URI boURI, boolean addToExisting, DbClient dbClient) {
+        _log.info("Cleaning block object {} from exports", boURI);
+        Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
+        Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
+        Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
+        BlockObject bo = BlockObject.fetch(dbClient, boURI);
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
+        for (URI exportGroupURI : exportGroupURIs) {
+            _log.info("Cleaning block object from export group {}", exportGroupURI);
+            ExportGroup exportGroup = null;
+            if (exportGroupMap.containsKey(exportGroupURI)) {
+                exportGroup = exportGroupMap.get(exportGroupURI);
+            } else {
+                exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                exportGroupMap.put(exportGroupURI, exportGroup);
+            }
+
+            if (exportGroup.hasBlockObject(boURI)) {
+                _log.info("Removing block object from export group");
+                exportGroup.removeVolume(boURI);
+                if (!updatedExportGroupMap.containsKey(exportGroupURI)) {
+                    updatedExportGroupMap.put(exportGroupURI, exportGroup);
+                }
+            }
+
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+            for (ExportMask exportMask : exportMasks) {              
+                if (exportMask.hasVolume(boURI)) {
+                    _log.info(String.format("Cleaning block object from export mask [%s]", exportMask.forDisplay()));
+                    StringMap exportMaskVolumeMap = exportMask.getVolumes();
+                    String hluStr = exportMaskVolumeMap.get(boURI.toString());
+                    exportMask.removeVolume(boURI);
+                    exportMask.removeFromUserCreatedVolumes(bo);
+                    // Add this volume to the existing volumes map for the
+                    // mask, so that if the last ViPR created volume goes
+                    // away, the physical mask will not be deleted.
+                    if (addToExisting) {
+                        _log.info("Adding to existing volumes");
+                        exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
+                    }
+                    if (!updatedExportMaskMap.containsKey(exportMask.getId().toString())) {
+                        updatedExportMaskMap.put(exportMask.getId().toString(), exportMask);
+                    }
+                }
+            }
+        }
+        if (!updatedExportGroupMap.isEmpty()) {
+            List<ExportGroup> updatedExportGroups = new ArrayList<ExportGroup>(
+                    updatedExportGroupMap.values());
+            dbClient.updateObject(updatedExportGroups);
+        }
+
+        if (!updatedExportMaskMap.isEmpty()) {
+            List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
+                    updatedExportMaskMap.values());
+            dbClient.updateObject(updatedExportMasks);
+        }    
+    }
+
+    /**
      * Checks the passed in Export Group and determines if it requires cleanup. This is
      * mainly used for internal EGs (VPLEX/RP) as they might not otherwise be cleaned up.
      * 

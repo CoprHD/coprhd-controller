@@ -28,6 +28,7 @@ import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.Initiator.Type;
 import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -447,6 +448,32 @@ public class HP3PARIngestHelper {
 				}
 
 				resultMap.put(objVirtualLun.getHostname(), exportInfo);
+				
+				String val = "set:";
+				if (objVirtualLun.getHostname().contains(val) || initiators.get(0).getInitiatorType().equals(Type.Cluster)) {
+					
+                //String exportPath = storageSystemId + objectName + host;
+                String exportPath = storageSystemId + objectName + objVirtualLun.getHostname();
+                _log.info("3PARDriver:Ingestion {} for registry entry", exportPath);
+
+               // Everything is successful, Make a registry entry for ingested volume 
+
+                Map<String, List<String>> attributes = new HashMap<>();
+                List<String> expValue = new ArrayList<>();
+                List<String> lunValue = new ArrayList<>();
+                
+                expValue.add(exportPath);
+                attributes.put("EXPORT_PATH", expValue);
+                lunValue.add(objVirtualLun.getLun().toString());
+                attributes.put(objectName, lunValue);
+
+                attributes.put(objectName, lunValue);
+                registry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath,
+                        attributes);
+                _log.info("3PARDriver:Ingestion {} for registry entry", attributes);
+                
+				}
+
 			}
 			_log.info("Resultmap of GetVolumeExportInfo {}", resultMap);
 			_log.info("3PARDriver: Leaving getBlockObjectExportInfoForHosts");

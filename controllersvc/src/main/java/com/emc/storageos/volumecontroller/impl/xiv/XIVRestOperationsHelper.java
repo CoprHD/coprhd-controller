@@ -857,7 +857,7 @@ public class XIVRestOperationsHelper {
             final String storageIP = storage.getSmisProviderIP();
 
             List<URI> userRemovedInitiators = new ArrayList<URI>();
-            List<URI> hostURIs = new ArrayList<URI>();
+            Set<URI> hostURIs = new HashSet<URI>();
             if (null != initiatorList) {
                 for (Initiator initiator : initiatorList) {
                     final Host host = _dbClient.queryObject(Host.class, initiator.getHost());

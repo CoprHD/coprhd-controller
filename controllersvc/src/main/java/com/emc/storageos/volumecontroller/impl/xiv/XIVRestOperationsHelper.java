@@ -503,7 +503,7 @@ public class XIVRestOperationsHelper {
             // Delete Host if there are no associated Initiators/Volume to it.
             for (URI hostURI : hostURIs) {
                 Host host = _dbClient.queryObject(Host.class, hostURI);
-                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel());
+                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel(), false);
                 // Perform post-mask-delete cleanup steps
                 if (hostDeleted && emVolumeURIs.size() > 0) {
                     unsetTag(host, storage.getSerialNumber());
@@ -873,7 +873,7 @@ public class XIVRestOperationsHelper {
             // Delete Host if there are no associated Initiators to it.
             for (URI hostURI : hostURIs) {
                 Host host = _dbClient.queryObject(Host.class, hostURI);
-                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel());
+                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel(), true);
                 // Perform post-mask-delete cleanup steps
                 if (hostDeleted) {
                     unsetTag(host, storage.getSerialNumber());

@@ -11905,7 +11905,7 @@ vplexsnap_tests()
 snapvx_vpool_setup()
 {
     secho "Creating snapvx virtual pools"
-    cos create block $COS_VMAX3BLOCK_FC true \
+    run cos create block $COS_VMAX3BLOCK_FC true \
 	--description 'Virtual-Pool-for-VMAX3-block-FC' \
                       --protocols FC \
                       --numpaths 2 \
@@ -11982,8 +11982,8 @@ snapvx_group_tests()
 
     # Create a VMAX3 volumes in CG to serve as the snapshot session sources.
     secho "Creating VMAX3 source volume"
-    volume create $VOLUME_NAME-1 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
-    volume create $VOLUME_NAME-2 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
+    run volume create $VOLUME_NAME-1 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
+    run volume create $VOLUME_NAME-2 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
 
     # Create snapvx sessions with no linked targets
     run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME1
@@ -12019,6 +12019,8 @@ snapvx_group_tests()
     run blockconsistencygroup link_targets $CG_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
 
     # Restore the source from a linked target
+    secho "Sleeping 60 seconds to wait for copy complete
+    sleep 60
     secho "Restoring source from linked target"
     run blockconsistencygroup restore_snapshot $CG_NAME $SNAP_SESSION_TGT_NAME3-1-1
 
@@ -12028,7 +12030,7 @@ snapvx_group_tests()
     run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME2-2-1 --delete_target true
     run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME3-1-1 --delete_target true
 
-    # Create snapvx sessions with no linked targets
+    # Delete snapvx sessions with no linked targets
     run blockconsistencygroup delete_snapshot_session $CG_NAME/$SNAP_SESSION_NAME3
 
     # Delete the source volumes
@@ -12036,7 +12038,7 @@ snapvx_group_tests()
     for volume in $volumes
     do
         secho "Deleting the VMAX3 source volume $volume"
-        volume delete $volume --wait
+        run_noundo volume delete $volume --wait
     done
 
     secho "Deleting the VMAX3 CG"

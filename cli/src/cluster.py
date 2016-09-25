@@ -196,7 +196,7 @@ class Cluster(object):
             resources = self.cluster_search(name)
             for resource in resources:
                 details = self.cluster_show_uri(resource['id'])
-                if (details is not None and details['name'] == name):
+                if (details.get('vcenter_data_center') is None and details['name'] == name):
                     return resource['id']
 
             raise SOSError(SOSError.NOT_FOUND_ERR,

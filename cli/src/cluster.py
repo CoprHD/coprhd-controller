@@ -384,7 +384,7 @@ class Cluster(object):
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_EXPORT_MASKS.format(cluster_uri),
+            Cluster.URI_CLUSTER_LIST_UM_EXPORT_MASKS.format(cluster_uri),
             None)
         if(not s):
             return []
@@ -398,7 +398,7 @@ class Cluster(object):
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_VOLUMES.format(cluster_uri),
+            Cluster.URI_CLUSTER_LIST_UM_VOLUMES.format(cluster_uri),
             None)
         if(not s):
             return []

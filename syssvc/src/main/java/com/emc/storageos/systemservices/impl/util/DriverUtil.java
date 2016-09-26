@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -47,8 +48,11 @@ public class DriverUtil {
     public InputStream getFile(String driverName) {
         List<URI> ids = dbClient.queryByType(StorageDriverFile.class, true);
 
-        Set<StorageDriverFile> file = new TreeSet<>((c1, c2) -> {
-            return c1.getNumber() - c2.getNumber();
+        Set<StorageDriverFile> file = new TreeSet<>(new Comparator<StorageDriverFile> () {
+            @Override
+            public int compare(StorageDriverFile o1, StorageDriverFile o2) {
+                return o1.getNumber() - o2.getNumber();
+            }
         });
 
         int size = 0;

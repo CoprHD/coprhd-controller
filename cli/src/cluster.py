@@ -196,7 +196,7 @@ class Cluster(object):
             resources = self.cluster_search(name)
             for resource in resources:
                 details = self.cluster_show_uri(resource['id'])
-                if (details is not None and details['name'] == name):
+                if (details.get('vcenter_data_center') is None and details['name'] == name):
                     return resource['id']
 
             raise SOSError(SOSError.NOT_FOUND_ERR,
@@ -384,7 +384,7 @@ class Cluster(object):
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_EXPORT_MASKS.format(cluster_uri),
+            Cluster.URI_CLUSTER_LIST_UM_EXPORT_MASKS.format(cluster_uri),
             None)
         if(not s):
             return []
@@ -398,7 +398,7 @@ class Cluster(object):
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_VOLUMES.format(cluster_uri),
+            Cluster.URI_CLUSTER_LIST_UM_VOLUMES.format(cluster_uri),
             None)
         if(not s):
             return []

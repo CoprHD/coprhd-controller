@@ -4326,6 +4326,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (!exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
                         continue;
                     }
+
+                    // Only add this initiator if it's not in the mask already after refresh
+                    if (exportMask.hasInitiator(initiatorURI.toString())) {
+                        continue;
+                    }
+
                     PortInfo portInfo = new PortInfo(initiator.getInitiatorPort()
                             .toUpperCase().replaceAll(":", ""), initiator.getInitiatorNode()
                             .toUpperCase().replaceAll(":", ""),
@@ -4354,9 +4360,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW,
                                 initiatorURIs);
 
-                        _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
-                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
-
                         taskCompleter.ready(_dbClient);
                     } finally {
                         if (lockAcquired) {
@@ -4365,6 +4368,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+            _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
+
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception adding initiator to Storage View: " + vae.getMessage(), vae);
@@ -5188,7 +5194,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private Workflow.Method storageViewRemoveInitiatorsMethod(URI vplexURI, URI exportGroupURI,
             URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs, TaskCompleter taskCompleter) {
         return new Workflow.Method("storageViewRemoveInitiators", vplexURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, targetURIs, null);
+                exportMaskURI, initiatorURIs, targetURIs, taskCompleter);
     }
 
     /**

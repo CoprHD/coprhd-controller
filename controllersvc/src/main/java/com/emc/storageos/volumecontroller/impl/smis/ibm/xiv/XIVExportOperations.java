@@ -718,6 +718,10 @@ public class XIVExportOperations implements ExportMaskOperations {
                                     Joiner.on(',').join(storagePorts),
                                     Joiner.on(',').join(storagePortURIs)));
                         }
+                    } else {
+                        // refresh the export mask
+                        refreshExportMask(storage, exportMask);
+                        builder.append('\n');
                     }
 
                     // Get volumes for the masking instance

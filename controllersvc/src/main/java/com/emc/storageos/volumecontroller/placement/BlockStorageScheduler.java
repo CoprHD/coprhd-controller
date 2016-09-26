@@ -1373,13 +1373,18 @@ public class BlockStorageScheduler {
         Map<String, Integer> hostInitiatorCounts = new HashMap<String, Integer>();
         // Calculate the path parameters.
         ExportPathParams param = new ExportPathParams(0, 0, 0);
+        Set<String> loopedInitiators = new HashSet<String>();
         // If there is a zoningMap, use that.
         if (mask.getZoningMap() != null) {
             for (String initiatorId : mask.getZoningMap().keySet()) {
+                if (loopedInitiators.contains(initiatorId)) {
+                    continue;
+                }
                 Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
                 if (initiator == null || initiator.getInactive()) {
                     continue;
                 }
+
                 String host = (initiator.getHost() != null) ? initiator.getHost().toString() : "<unknown>";
                 if (hostInitiatorCounts.get(host) == null) {
                     hostInitiatorCounts.put(host, 0);
@@ -1396,6 +1401,11 @@ public class BlockStorageScheduler {
                 }
                 if (ppi > param.getPathsPerInitiator()) {
                     param.setPathsPerInitiator(ppi);
+                }
+                loopedInitiators.add(initiatorId);
+                URI associatedInitorURI = initiator.getAssociatedInitiator();
+                if (associatedInitorURI != null) {
+                    loopedInitiators.add(associatedInitorURI.toString());
                 }
             }
             // Return the maximum of any host.

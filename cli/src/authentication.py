@@ -385,9 +385,23 @@ class Authentication(object):
         common.service_json_request(self.__ipAddr, self.__port, "POST",
             Authentication.URI_VDC_AUTHN_PROFILE,
             body)
+
         if autoRegCoprHDNImportOSProjects == 'true':
             self.add_os_tenants()
 
+    def add_oidc_auth_provider(self, mode, name, description, disable, oidc_addr, domains):
+        parms = {'mode': mode,
+                 'name': name,
+                 'description': description,
+                 'disable': disable}
+
+        parms['oidc_addr'] = oidc_addr
+        parms['domains'] = domains
+
+        body = json.dumps(parms)
+        common.service_json_request(self.__ipAddr, self.__port, "POST",
+                                    Authentication.URI_VDC_AUTHN_PROFILE,
+                                    body)
 
     def add_os_tenants(self):
         profiles = self.list_os_tenants()
@@ -1047,16 +1061,17 @@ def add_authentication_provider(args):
 
         for sectioniter in sectionslst:
             mode = config.get(sectioniter, "mode")
-            if(mode is ""):
+            if(not mode):
                 raise SOSError(SOSError.VALUE_ERR, "mode should not be empty")
 
-            if (mode is not None
-                and mode not in Authentication.MODES):
+            if (mode not in Authentication.MODES):
                 raise SOSError(SOSError.VALUE_ERR,
                      "mode should be one of" + str(Authentication.MODES))
 
             if(mode == 'keystone'):
                 add_keystone_provider(config, sectioniter, obj, mode)
+            elif mode == "oidc":
+                add_oidc_provider(config, sectioniter, obj, mode)
             else:
                 add_other_provider(config, sectioniter, obj, mode)
 
@@ -1104,6 +1119,18 @@ def add_keystone_provider(config, sectioniter, obj, mode):
                 None, description, disable, None,
                 None, None, None, autoReg, syncOptions)
 
+def add_oidc_provider(config, sectioniter, obj, mode):
+    oidc_addr = config.get(sectioniter, "oidc_addr")
+    domains = config.get(sectioniter, "domains")
+    name = config.get(sectioniter, 'name')
+    description = config.get(sectioniter, 'description')
+    disable = config.get(sectioniter, 'disable')
+
+    if not oidc_addr or not domains:
+        raise SOSError(SOSError.VALUE_ERR,
+                       "For oidc mode, oidc_addr and domains are required")
+
+    obj.add_oidc_auth_provider(mode, name, description, disable, oidc_addr, domains)
 
 def add_other_provider(config, sectioniter, obj, mode):
     url = config.get(sectioniter, "url")

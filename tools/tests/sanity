@@ -15,7 +15,7 @@ CONFIG_FILE=${1}
 Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
- vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
+ vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
@@ -176,7 +176,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|custvolname|arrayaffinity)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -4114,6 +4114,11 @@ recoverpoint_auto_snapshot_cleanup_test()
         run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
         blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
 
+        # do a restore before swap to show that the lock is removed after restore
+        secho 'Performing restore of RP bookmark'
+        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        sleep 10
+
         secho 'Performing swap operation to verify auto snapshot cleanup'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
@@ -6039,7 +6044,8 @@ vnxfile_discovery()
                          --smispw=nasadmin --smisssl=true --serialno=$VNXF_SN
     vnxfile_cos_setup
 }
-
+<<COMMENT
+COP-14502
 vnxfile_flex_varray_setup_once()
 {
     vnxfile_discovery
@@ -6059,7 +6065,7 @@ vnxfile_flex_varray_setup()
     vnxfile_flex_varray_setup_once
     run cos allow $COS_VNXFILE file $TENANT
 }
-
+COMMENT
 vnxe_setup_once()
 {
 
@@ -7525,6 +7531,7 @@ vnxfile_tests()
 #
 # do fileshare tests using manually assigned ports to varray
 #
+<<COMMENT
 vnxfile_flex_varray_tests () {
     cos=$COS_VNXFILE
     fsname=fs-$cos-$macaddr
@@ -7533,7 +7540,7 @@ vnxfile_flex_varray_tests () {
     FSEXP_RW_EPS=$FSEXP_SHARED_VARRAY_RW_EPS
     file_tests $COS_VNXFILE rw
 }
-
+COMMENT
 netapp_tests()
 {
     file_tests $COS_NETAPP default
@@ -11879,6 +11886,12 @@ vplexsnap_tests()
 
     secho "Unexport VPLEX volume built from snapshot"
     run export_group delete $PROJECT/$hname-1$host
+
+    secho "Deleting VPLEX volume built on snapshot"
+    run volume delete $PROJECT/$localSnapshot --wait
+
+    secho "Deleting snapshot"
+    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
 
     secho "Deleting source VPLEX local volume"
     run volume delete $PROJECT/$localVolume --wait

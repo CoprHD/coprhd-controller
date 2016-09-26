@@ -503,7 +503,7 @@ public class XIVRestOperationsHelper {
             // Delete Host if there are no associated Initiators/Volume to it.
             for (URI hostURI : hostURIs) {
                 Host host = _dbClient.queryObject(Host.class, hostURI);
-                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel());
+                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel(), false);
                 // Perform post-mask-delete cleanup steps
                 if (hostDeleted && emVolumeURIs.size() > 0) {
                     unsetTag(host, storage.getSerialNumber());
@@ -857,17 +857,29 @@ public class XIVRestOperationsHelper {
             final String storageIP = storage.getSmisProviderIP();
 
             List<URI> userRemovedInitiators = new ArrayList<URI>();
+            Set<URI> hostURIs = new HashSet<URI>();
             if (null != initiatorList) {
                 for (Initiator initiator : initiatorList) {
                     final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
                     final String normalizedPort = Initiator.normalizePort(initiator.getInitiatorPort());
-                    if (restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(),
-                            true)) {
+                    if (restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(), true)) {
                         userRemovedInitiators.add(initiator.getId());
+                        hostURIs.add(initiator.getHost());
                     }
                 }
             }
             mask.removeFromUserAddedInitiatorsByURI(userRemovedInitiators);
+            
+            // Delete Host if there are no associated Initiators to it.
+            for (URI hostURI : hostURIs) {
+                Host host = _dbClient.queryObject(Host.class, hostURI);
+                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel(), true);
+                // Perform post-mask-delete cleanup steps
+                if (hostDeleted) {
+                    unsetTag(host, storage.getSerialNumber());
+                }
+            }
+            
             ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
             _dbClient.updateObject(mask);
             taskCompleter.ready(_dbClient);

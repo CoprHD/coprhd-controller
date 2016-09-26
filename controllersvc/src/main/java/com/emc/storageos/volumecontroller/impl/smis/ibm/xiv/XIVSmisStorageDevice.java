@@ -745,19 +745,23 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     Constants.IBM_NAMESPACE, null);
             List<CIMInstance> cgInstances = _helper.executeQuery(storage,
                     cgPath, query, "WQL");
-            if (!cgInstances.isEmpty()) {
-                _log.error("Failed to create consistency group: " + IBMSmisConstants.DUPLICATED_CG_NAME_ERROR);
-                ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                        "doCreateConsistencyGroup", IBMSmisConstants.DUPLICATED_CG_NAME_ERROR);
-                taskCompleter.error(_dbClient, error);
-                return;
+            if (cgInstances.isEmpty()) {
+//                _log.error("Failed to create consistency group: " + IBMSmisConstants.DUPLICATED_CG_NAME_ERROR);
+//                ServiceError error = DeviceControllerErrors.smis.methodFailed(
+//                        "doCreateConsistencyGroup", IBMSmisConstants.DUPLICATED_CG_NAME_ERROR);
+//                taskCompleter.error(_dbClient, error);
+//                return;
+                consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
+                consistencyGroup.setStorageController(storage.getId());
+                consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
+                _dbClient.persistObject(consistencyGroup);
             }
 
             // CG has not really been created on array side yet, but to ViPR it is created
-            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
-            consistencyGroup.setStorageController(storage.getId());
-            consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
-            _dbClient.persistObject(consistencyGroup);
+//            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
+//            consistencyGroup.setStorageController(storage.getId());
+//            consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
+//            _dbClient.persistObject(consistencyGroup);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Failed to create consistency group: " + e);
@@ -1042,6 +1046,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     private synchronized void addVolumesToCG(StorageSystem storageSystem, URI consistencyGroupId, List<URI> volumeURIs) throws Exception {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+        //Checking
         if (null != consistencyGroup) {
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storageSystem);
             if (groupName.equals(EMPTY_CG_NAME)) {

@@ -4359,8 +4359,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         ExportOperationContext.insertContextOperation(taskCompleter,
                                 VPlexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW,
                                 initiatorURIs);
-
-                        taskCompleter.ready(_dbClient);
                     } finally {
                         if (lockAcquired) {
                             _vplexApiLockManager.releaseLock(lockName);
@@ -4371,6 +4369,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
 
+            taskCompleter.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception adding initiator to Storage View: " + vae.getMessage(), vae);
@@ -5327,7 +5326,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorPortInfo.add(portInfo);
             }
 
-            if (!initiatorPortInfo.isEmpty() && !exportMask.hasAnyExistingVolumes()) {
+            // Remove the initiators if there aren't any existing volumes, unless this is a rollback step.
+            if (!initiatorPortInfo.isEmpty()
+                    && (!exportMask.hasAnyExistingVolumes() || WorkflowService.getInstance().isStepInRollbackState(stepId))) {
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {

@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -68,8 +69,15 @@ public class ActionableEventExecutor {
         }
         URI oldClusterURI = host.getCluster();
 
-        Cluster oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
-        Cluster newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        Cluster oldCluster = null;
+        if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+            oldCluster = _dbClient.queryObject(Cluster.class, oldClusterURI);
+        }
+        Cluster newCluster = null;
+        if (!NullColumnValueGetter.isNullURI(clusterId)) {
+            newCluster = _dbClient.queryObject(Cluster.class, clusterId);
+        }
+
         if (newCluster != null && oldCluster != null) {
             result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostClusterChangeDetails", host.getLabel(),
                     oldCluster.getLabel(), newCluster.getLabel()));
@@ -320,7 +328,9 @@ public class ActionableEventExecutor {
         List<String> result = Lists.newArrayList();
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host != null) {
-            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel()));
+            Vcenter vcenter = ComputeSystemHelper.getHostVcenter(_dbClient, host);
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignDetails", host.getLabel(),
+                    vcenter == null ? "N/A" : vcenter.getLabel()));
             result.addAll(hostClusterChangeDetails(hostId, NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI(), true));
         }
         return result;
@@ -408,48 +418,41 @@ public class ActionableEventExecutor {
         return hostClusterChange(hostId, clusterId, datacenterId, isVcenter, eventId);
     }
 
-    private Set<String> getHostVolumes(URI hostId) {
-        List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-        Set<String> volumeIds = Sets.newHashSet();
-        for (ExportGroup export : ComputeSystemControllerImpl.getExportGroups(_dbClient, hostId, hostInitiators)) {
-            volumeIds.addAll(export.getVolumes().keySet());
-        }
-        return volumeIds;
-    }
-
     private List<BlockObjectDetails> getBlockObjectDetails(URI hostId, StringMap volumes) {
         List<BlockObjectDetails> result = Lists.newArrayList();
         Set<String> hostVolumes = Sets.newHashSet();
 
-        for (Entry<String, String> volume : volumes.entrySet()) {
-            // if host has access to volume in an exclusive export, skip it from the list of changes
-            if (hostVolumes.contains(volume.getKey())) {
-                continue;
-            }
-            URI project = null;
-            String volumeName = null;
-            URI blockURI = URI.create(volume.getKey());
-            if (URIUtil.isType(blockURI, Volume.class)) {
-                Volume block = _dbClient.queryObject(Volume.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
-                BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
-                BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
-                project = block.getProject().getURI();
-                volumeName = block.getLabel();
-            }
+        if (volumes != null) {
+            for (Entry<String, String> volume : volumes.entrySet()) {
+                // if host has access to volume in an exclusive export, skip it from the list of changes
+                if (hostVolumes.contains(volume.getKey())) {
+                    continue;
+                }
+                URI project = null;
+                String volumeName = null;
+                URI blockURI = URI.create(volume.getKey());
+                if (URIUtil.isType(blockURI, Volume.class)) {
+                    Volume block = _dbClient.queryObject(Volume.class, blockURI);
+                    project = block.getProject().getURI();
+                    volumeName = block.getLabel();
+                } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
+                    BlockSnapshot block = _dbClient.queryObject(BlockSnapshot.class, blockURI);
+                    project = block.getProject().getURI();
+                    volumeName = block.getLabel();
+                } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
+                    BlockMirror block = _dbClient.queryObject(BlockMirror.class, blockURI);
+                    project = block.getProject().getURI();
+                    volumeName = block.getLabel();
+                }
 
-            Project projectObj = _dbClient.queryObject(Project.class, project);
-            String projectName = null;
-            if (projectObj != null) {
-                projectName = projectObj.getLabel();
-            }
+                Project projectObj = _dbClient.queryObject(Project.class, project);
+                String projectName = null;
+                if (projectObj != null) {
+                    projectName = projectObj.getLabel();
+                }
 
-            result.add(new BlockObjectDetails(blockURI, projectName, volumeName));
+                result.add(new BlockObjectDetails(blockURI, projectName, volumeName));
+            }
         }
         return result;
     }
@@ -469,12 +472,11 @@ public class ActionableEventExecutor {
             URI blockURI = details.getBlockURI();
             if (addPath) {
                 result.add(
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded", (projectName == null ? "N/A" : projectName),
-                                (volumeName == null ? "N/A" : volumeName), blockURI));
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathAdded",
+                                (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName), blockURI));
             } else {
                 result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.hostPathRemoved",
-                        (projectName == null ? "N/A" : projectName),
-                        (volumeName == null ? "N/A" : volumeName), blockURI));
+                        (volumeName == null ? "N/A" : volumeName), (projectName == null ? "N/A" : projectName), blockURI));
             }
         }
         return result;

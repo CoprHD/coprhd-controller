@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -49,6 +50,7 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
+import com.emc.storageos.systemservices.impl.util.DriverUtil;
 import com.sun.jersey.multipart.FormDataParam;
 
 /**
@@ -190,7 +192,45 @@ public class DriverService {
         InputStream in = new FileInputStream(UPLOAD_DEVICE_DRIVER + "/" + name);
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
+    // ---------------------- for test only -----------------------------------
+    @POST
+    @Path("storeincassandra/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response storeInCassandra(@Context HttpServletRequest request, @QueryParam("filename") String name) throws IOException {
+        log.info("Storing driver to cassandra...");
+        InputStream driver = request.getInputStream();
+        File f = new File(UPLOAD_DEVICE_DRIVER + name);
+        OutputStream os = new BufferedOutputStream(new FileOutputStream(f));
+        int bytesRead = 0;
+        while (true) {
+            byte[] buffer = new byte[0x10000];
+            bytesRead = driver.read(buffer);
+            if (bytesRead == -1) {
+                break;
+            }
+            os.write(buffer, 0, bytesRead);
+        }
+        driver.close();
+        os.close();
+        // Till now, driver file has been saved, need to parse file to get meta data and return
+        String tmpFilePath = f.getAbsolutePath();
+        DriverUtil driverUtil = new DriverUtil(dbClient);
+        driverUtil.storeDriver(tmpFilePath);
+        return Response.ok().build();
+    }
 
+    @GET
+    @Path("downloadfromcassandra/")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
+    public Response downloadFromCassandra(@QueryParam("name") String name) throws FileNotFoundException {
+        log.info("download driver {} ...", name);
+        DriverUtil driverUtil = new DriverUtil(dbClient);
+        InputStream in = driverUtil.getFile(UPLOAD_DEVICE_DRIVER + "/" + name);
+        return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
+    }
+    // ---------------------- for test only -----------------------------------
     private StorageSystemTypeAddParam parseDriver(String path) throws Exception {
         ZipFile zipFile = new ZipFile(UPLOAD_DEVICE_DRIVER + path);
         Enumeration<? extends ZipEntry> entries = zipFile.entries();

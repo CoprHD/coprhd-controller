@@ -395,8 +395,9 @@ class Authentication(object):
                  'description': description,
                  'disable': disable}
 
-        parms['oidc_addr'] = oidc_addr
-        parms['domains'] = domains
+        parms['oidc_address'] = oidc_addr
+        domains_array = domains.split(',')
+        parms['domains'] = domains_array
 
         body = json.dumps(parms)
         common.service_json_request(self.__ipAddr, self.__port, "POST",
@@ -1120,6 +1121,7 @@ def add_keystone_provider(config, sectioniter, obj, mode):
                 None, None, None, autoReg, syncOptions)
 
 def add_oidc_provider(config, sectioniter, obj, mode):
+
     oidc_addr = config.get(sectioniter, "oidc_addr")
     domains = config.get(sectioniter, "domains")
     name = config.get(sectioniter, 'name')

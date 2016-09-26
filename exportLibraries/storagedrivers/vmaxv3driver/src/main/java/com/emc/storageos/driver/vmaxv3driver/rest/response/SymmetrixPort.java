@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.driver.vmaxv3driver.rest.bean;
+package com.emc.storageos.driver.vmaxv3driver.rest.response;
 
 /**
  * A marker interface for all concrete storage port classes to implement.

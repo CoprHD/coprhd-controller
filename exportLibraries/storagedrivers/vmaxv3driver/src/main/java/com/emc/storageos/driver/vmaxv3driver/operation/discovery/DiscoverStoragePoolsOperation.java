@@ -9,7 +9,7 @@ import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixDirectorList;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixSrpGet;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixSrpList;
-import com.emc.storageos.driver.vmaxv3driver.rest.bean.Srp;
+import com.emc.storageos.driver.vmaxv3driver.rest.response.Srp;
 import com.emc.storageos.driver.vmaxv3driver.util.CapUnit;
 import com.emc.storageos.driver.vmaxv3driver.util.DriverUtil;
 import com.emc.storageos.storagedriver.model.StoragePool;

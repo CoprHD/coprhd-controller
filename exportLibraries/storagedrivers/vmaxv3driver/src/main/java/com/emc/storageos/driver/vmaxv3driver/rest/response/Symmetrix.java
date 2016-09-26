@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.driver.vmaxv3driver.rest.bean;
+package com.emc.storageos.driver.vmaxv3driver.rest.response;
 
 /**
  * Java bean class for "sloprovisioning/symmetrix/{}" GET method JSON result deserialization.

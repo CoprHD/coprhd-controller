@@ -8,7 +8,7 @@ package com.emc.storageos.driver.vmaxv3driver.operation.discovery;
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
 import com.emc.storageos.driver.vmaxv3driver.registry.RegistryHandler;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixGet;
-import com.emc.storageos.driver.vmaxv3driver.rest.bean.Symmetrix;
+import com.emc.storageos.driver.vmaxv3driver.rest.response.Symmetrix;
 import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import org.slf4j.Logger;

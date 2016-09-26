@@ -1,4 +1,4 @@
-package com.emc.storageos.driver.vmaxv3driver.rest.bean;
+package com.emc.storageos.driver.vmaxv3driver.rest.response;
 
 /**
  * Java bean class(nested) for "sloprovisioning/symmetrix/{}/director/{}/port/{}" GET method

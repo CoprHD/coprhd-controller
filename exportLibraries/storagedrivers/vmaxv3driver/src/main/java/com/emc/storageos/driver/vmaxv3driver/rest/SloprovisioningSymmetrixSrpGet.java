@@ -3,7 +3,7 @@ package com.emc.storageos.driver.vmaxv3driver.rest;
 import com.emc.storageos.driver.vmaxv3driver.Vmaxv3Constants;
 import com.emc.storageos.driver.vmaxv3driver.base.RestActionImpl;
 import com.emc.storageos.driver.vmaxv3driver.exception.Vmaxv3RestCallException;
-import com.emc.storageos.driver.vmaxv3driver.rest.bean.Srp;
+import com.emc.storageos.driver.vmaxv3driver.rest.response.Srp;
 import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

@@ -3,16 +3,17 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.driver.vmaxv3driver.rest.bean;
+package com.emc.storageos.driver.vmaxv3driver.rest.response;
 
 /**
  * Java bean class for "sloprovisioning/symmetrix/{}/director/{}/port/{}" GET method
- * JSON result deserialization(type = "GigE").
+ * JSON result deserialization(type = "FibreChannel (563)").
  *
  * Created by gang on 6/30/16.
  */
-public class SymmetrixPortIscsi implements SymmetrixPort {
+public class SymmetrixPortFc implements SymmetrixPort {
     private String director_status;
+    private Boolean no_participating;
     private Integer num_of_cores;
     private Boolean aclx;
     private Boolean environ_set;
@@ -23,6 +24,7 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
     private Boolean disable_q_reset_on_ua;
     private Boolean sunapee;
     private String port_status;
+    private Boolean init_point_to_point;
     private Boolean volume_set_addressing;
     private Boolean vnx_attached;
     private Boolean scsi_support1;
@@ -32,6 +34,7 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
     private Boolean negotiate_reset;
     private Boolean enable_auto_negotive;
     private Boolean spc2_protocol_version;
+    private Boolean unique_wwn;
     private Boolean siemens;
     private String negotiated_speed;
     private Integer num_of_port_groups;
@@ -42,8 +45,9 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
 
     @Override
     public String toString() {
-        return "SymmetrixPortIscsi{" +
+        return "SymmetrixPortFc{" +
             "director_status='" + director_status + '\'' +
+            ", no_participating=" + no_participating +
             ", num_of_cores=" + num_of_cores +
             ", aclx=" + aclx +
             ", environ_set=" + environ_set +
@@ -54,6 +58,7 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
             ", disable_q_reset_on_ua=" + disable_q_reset_on_ua +
             ", sunapee=" + sunapee +
             ", port_status='" + port_status + '\'' +
+            ", init_point_to_point=" + init_point_to_point +
             ", volume_set_addressing=" + volume_set_addressing +
             ", vnx_attached=" + vnx_attached +
             ", scsi_support1=" + scsi_support1 +
@@ -63,6 +68,7 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
             ", negotiate_reset=" + negotiate_reset +
             ", enable_auto_negotive=" + enable_auto_negotive +
             ", spc2_protocol_version=" + spc2_protocol_version +
+            ", unique_wwn=" + unique_wwn +
             ", siemens=" + siemens +
             ", negotiated_speed='" + negotiated_speed + '\'' +
             ", num_of_port_groups=" + num_of_port_groups +
@@ -79,6 +85,14 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
 
     public void setDirector_status(String director_status) {
         this.director_status = director_status;
+    }
+
+    public Boolean getNo_participating() {
+        return no_participating;
+    }
+
+    public void setNo_participating(Boolean no_participating) {
+        this.no_participating = no_participating;
     }
 
     public Integer getNum_of_cores() {
@@ -161,6 +175,14 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
         this.port_status = port_status;
     }
 
+    public Boolean getInit_point_to_point() {
+        return init_point_to_point;
+    }
+
+    public void setInit_point_to_point(Boolean init_point_to_point) {
+        this.init_point_to_point = init_point_to_point;
+    }
+
     public Boolean getVolume_set_addressing() {
         return volume_set_addressing;
     }
@@ -231,6 +253,14 @@ public class SymmetrixPortIscsi implements SymmetrixPort {
 
     public void setSpc2_protocol_version(Boolean spc2_protocol_version) {
         this.spc2_protocol_version = spc2_protocol_version;
+    }
+
+    public Boolean getUnique_wwn() {
+        return unique_wwn;
+    }
+
+    public void setUnique_wwn(Boolean unique_wwn) {
+        this.unique_wwn = unique_wwn;
     }
 
     public Boolean getSiemens() {

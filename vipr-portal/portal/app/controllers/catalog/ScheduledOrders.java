@@ -181,7 +181,6 @@ public class ScheduledOrders extends Controller {
                     recurrence = -1;
                 } else {
                     rangeOfRecurrence = 10;
-                    Logger.info("-------------- abc ------------");
                 }
                 
                 cycleType = schedulerInfo.getCycleType().toString();

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -234,14 +235,14 @@ public abstract class ViPRService extends AbstractExecutionService {
         
         for (Task<? extends DataObjectRestRep> task : tasks) {
             URI resourceId = task.getResourceId();
-            if (resourceId != null && !volumeOrCGId.equals(resourceId)) {
+            if (resourceId != null && !volumeOrCGId.equals(resourceId) && !resourceId.toString().contains("ConsistencyGroup")) {
                 retainedResource.add(resourceId.toString());
             }
 
             if (task.getAssociatedResources() != null
                     && !task.getAssociatedResources().isEmpty()) {
                 for (URI id : ResourceUtils.refIds(task.getAssociatedResources())) {
-                    if (volumeOrCGId.equals(id)) {
+                    if (volumeOrCGId.equals(id) || resourceId.toString().contains("ConsistencyGroup")) {
                         continue;
                     }
                     retainedResource.add(id.toString());

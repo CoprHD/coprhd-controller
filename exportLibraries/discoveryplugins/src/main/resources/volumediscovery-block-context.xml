@@ -764,7 +764,7 @@
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
 		<property name="creator" ref="argscreator" />
 		<property name="method" value="createCIMPath" />
-		<property name="value" value="root/emc:EMC_SynchronizationAspectForSource" />
+		<property name="value" value="root/emc:Symm_SynchronizationAspectForSource" />
 	</bean>
 
 	<bean id="synchronizationaspect-propList" class="com.emc.storageos.plugins.common.domainmodel.Argument">

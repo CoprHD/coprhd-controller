@@ -338,6 +338,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     // Miscellaneous Constants
     private static final String HYPHEN_OPERATOR = "-";
+    private static final String COMMIT_MIGRATION_SUSPEND_MESSAGE = 
+        "The user has the opportunity to perform any manual validation before the migration is committed. " 
+        + "If you resume the task, the migration will be committed. "
+        + "If you rollback the task, the VPLEX migration will be rolled back and the migration target will be deleted."
+;   private static final String DELETE_MIGRATION_SOURCES_SUSPEND_MESSAGE = 
+        "If you rollback the deletion of the migration source, it will be inventory deleted from ViPR, "
+        + "and you should rename the source volume on the array as ViPR uses a temporary name that may " 
+        + "conflict with future migrations.";
 
     // migration speed to transfer size map
     private static final Map<String, String> migrationSpeedToTransferSizeMap;
@@ -2893,6 +2901,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // We might need to change the completer or use ExportMaskCreateCompleter
             // during exportGroupCreate which sets volumes to user created volumes list.
             exportMask.addToUserCreatedVolumes(blockObjects);
+            // update native id (this is the context path to the storage view on the vplex)
+            // e.g.: /clusters/cluster-1/exports/storage-views/V1_myserver_288
+            // this column being set to non-null can be used to indicate a storage view that 
+            // has been successfully created on the VPLEX device
+            exportMask.setNativeId(svInfo.getPath());
             _dbClient.updateObject(exportMask);
 
             _dbClient.updateObject(exportGroup);
@@ -3670,12 +3683,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // initiators and existing volumes then remove all the initiators
                     // as well. Remove initiators method will make sure
                     // not to remove existing initiators.
-                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes and initiators "
-                            + "so just removing ViPR-managed volumes and initiators : "
-                            + exportMask.getMaskName());
+                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes ({}) or initiators ({}) "
+                            + "so just removing ViPR-managed volumes and initiators: {}", 
+                            existingVolumes, existingInitiators, exportMask.getMaskName());
                     hasSteps = true;
-                    // Remove volumes from the storage view.
-                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                     if (!existingVolumes) {
                         // create workflow and steps to remove zones and initiators
@@ -3711,6 +3722,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 vplex.getSystemType(),
                                 this.getClass(), fireCompleter, null, completerStepId);
                     }
+
+                    // Remove volumes from the storage view.
+                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
@@ -3732,7 +3746,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             _networkDeviceController.zoneExportRemoveVolumesMethod(
                                     zoningParams, volumeURIs),
                             null, workflow.createStepId());
-
                 }
             }
 
@@ -3870,10 +3883,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
 
-        // if no vipr-managed volumes are remaining, the ExportMask object should be deleted from the database.
-        // if we don't do this, then the unmanaged storage view might be deleted out-of-band later and then we
-        // would have inconsistent information, and any VPLEX API call to update this ExportMask would return a 404
-        if (exportMask.getVolumes().isEmpty()) {
+        // if the ExportMask no longer has any user added volumes,
+        // remove it from any ExportGroups it's associated with,
+        // and mark the ExportMask for deletion
+        if (!exportMask.hasAnyUserAddedVolumes()) {
             _log.info("updating ExportGroups containing this ExportMask");
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
             for (ExportGroup exportGroup : exportGroups) {
@@ -5232,9 +5245,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {
-                    StringSet portIds = exportMask.getStoragePorts();
-                    StoragePort exportMaskPort = getDataObject(StoragePort.class, URI.create(portIds.iterator().next()), _dbClient);
-                    String clusterId = ConnectivityUtil.getVplexClusterOfPort(exportMaskPort);
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                    String clusterId = ConnectivityUtil.getVplexClusterForVarray(exportGroup.getVirtualArray(), vplexURI, _dbClient);
                     lockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
                     lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                     if (!lockAcquired) {
@@ -5651,9 +5663,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Commit operation id is {}", stepId);
                 Workflow.Method vplexExecuteMethod = new Workflow.Method(
                         COMMIT_MIGRATION_METHOD_NAME, vplexURI, virtualVolumeURI,
-                        migrationURI, rename);
+                        migrationURI, rename, newCoSURI, newNhURI);
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
-                        RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
+                        RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, newCoSURI, newNhURI, stepId);
                 _log.info("Creating workflow step to commit migration");
                 waitForStep = workflow.createStep(
                         MIGRATION_COMMIT_STEP,
@@ -5818,9 +5830,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Commit operation id is {}", stepId);
                 Workflow.Method vplexExecuteMethod = new Workflow.Method(
                         COMMIT_MIGRATION_METHOD_NAME, vplexURI, virtualVolumeURI,
-                        migrationURI, rename);
+                        migrationURI, rename, newVpoolURI, newVarrayURI);
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
-                        RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
+                        RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, newVpoolURI, newVarrayURI, stepId);
                 _log.info("Creating workflow step to commit migration");
                 String stepDescription = String.format("migration commit step on VPLEX %s of volume %s",
                         vplexSystem.getSerialNumber(), volumeUserLabel);
@@ -5830,6 +5842,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         waitForStep, vplexSystem.getId(),
                         vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
                         vplexRollbackMethod, suspendBeforeCommit, stepId);
+                workflow.setSuspendedStepMessage(stepId, COMMIT_MIGRATION_SUSPEND_MESSAGE);
                 _log.info("Created workflow step to commit migration");
             }
 
@@ -5856,6 +5869,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     waitForStep, vplexSystem.getId(), vplexSystem.getSystemType(),
                     getClass(), vplexExecuteMethod, null, suspendBeforeDeleteSource,
                     stepId);
+            workflow.setSuspendedStepMessage(stepId, DELETE_MIGRATION_SOURCES_SUSPEND_MESSAGE);
             _log.info("Created workflow step to create sub workflow for source deletion");
 
             return DELETE_MIGRATION_SOURCES_STEP;
@@ -6266,13 +6280,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param rename
      *            Indicates if the volume should be renamed after commit to
      *            conform to ViPR standard naming conventions.
+     * @param newVpoolURI - the new virtual pool for the virtual volume (or null if not changing)
+     * @param newVarrayURI - the new varray for the virtual volume (or null if not changing)
      * @param stepId
      *            The workflow step identifier.
      *
      * @throws WorkflowException
      */
     public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
-            Boolean rename, String stepId) throws WorkflowException {
+            Boolean rename, URI newVpoolURI, URI newVarrayURI, String stepId) throws WorkflowException {
         _log.info("Committing migration {}", migrationURI);
         Migration migration = null;
         VPlexApiClient client = null;
@@ -6325,6 +6341,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         return;
                     }
                 }
+                
+                // Below this point migration is committed, no turning back.
 
                 // Initialize the migration info in the database.
                 migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue());
@@ -6392,6 +6410,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     assocVolumes.add(migration.getTarget().toString());
                     virtualVolume.setAssociatedVolumes(assocVolumes);
                 }
+                updateMigratedVirtualVolumeVpoolAndVarray(virtualVolume, newVpoolURI, newVarrayURI);
                 _dbClient.updateObject(virtualVolume);
                 _log.info("Updated virtual volume.");
             } else {
@@ -6427,19 +6446,56 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
+    
+    /**
+     * Updates the Vpool and Varray of a migrated volume after commit succeeds.
+     * NOTE: this routine does not persist the vplex volume; it is the caller's
+     * responsibility to do so.
+     * @param volume -- Volume object
+     * @param newVpoolURI -- new VPool URI (may be null)
+     * @param newVarrayURI -- new Varray URI (may be null)
+     */
+    private void updateMigratedVirtualVolumeVpoolAndVarray(Volume volume, URI newVpoolURI, URI newVarrayURI) {
+        // First update the virtual volume Vpool, if necessary.
+        if (newVpoolURI != null) {
+            // Typically the source side backend volume has the same vpool as the
+            // VPLEX volume. If the source side is not being migrated when the VPLEX
+            // volume is migrated, then its vpool will reflect the old vpool. If the
+            // source side had the same as the VPLEX volume, then make sure it still
+            // does.
+            Volume backendSrcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            if (backendSrcVolume != null) {
+                if (backendSrcVolume.getVirtualPool().toString().equals(volume.getVirtualPool().toString())) {
+                    backendSrcVolume.setVirtualPool(newVpoolURI);
+                    _dbClient.updateObject(backendSrcVolume);
+                }
+            }
+
+            // Now update the vpool for the VPLEX volume.
+            volume.setVirtualPool(newVpoolURI);
+        } else if (newVarrayURI != null) {
+            // Update the virtual volume Varray, if necessary
+            volume.setVirtualArray(newVarrayURI);
+        }
+    }
 
     /**
      * Rollback when a migration commit fails.
      *
      * @param migrationURIs
      *            The URIs for all migrations.
+     * @param newVpoolURI
+     *            The URI of the new Vpool after migration commit
+     * @param newVarrayURI
+     *            The URI of the new Varray after migration commit 
      * @param commitStepId
      *            The commit step id.
      * @param stepId
      *            The rollback step id.
+     
      * @throws WorkflowException
      */
-    public void rollbackCommitMigration(List<URI> migrationURIs, String commitStepId,
+    public void rollbackCommitMigration(List<URI> migrationURIs, URI newVpoolURI, URI newVarrayURI, String commitStepId,
             String stepId) throws WorkflowException {
         // Update step state to executing.
         WorkflowStepCompleter.stepExecuting(stepId);
@@ -6451,11 +6507,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             while (migrationIter.hasNext()) {
                 URI migrationURI = migrationIter.next();
                 Migration migration = _dbClient.queryObject(Migration.class, migrationURI);
+                Volume volume = _dbClient.queryObject(Volume.class, migration.getVolume());
+                // Check migration database record for committed state
                 if (VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue().equals(migration.getMigrationStatus())) {
                     migrationCommitted = true;
+                    updateMigratedVirtualVolumeVpoolAndVarray(volume, newVpoolURI, newVarrayURI);
+                    _dbClient.updateObject(volume);
+                    inventoryDeleteMigrationSource(migration.getSource(), volume);
                     continue;
                 }
-                Volume volume = _dbClient.queryObject(Volume.class, migration.getVolume());
+                // Check vplex hardware migration records for committed state
                 VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, volume.getStorageController(), _dbClient);
                 VPlexMigrationInfo migrationInfo = client.getMigrationInfo(migration.getLabel());
                 if (migrationInfo.getStatus().equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) {
@@ -6463,9 +6524,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.COMMITTED.name());
                     _dbClient.updateObject(migration);
                     associateVplexVolumeWithMigratedTarget(migration, migration.getVolume());
-                    // Clear the internal flag for the source volume, making it visible so that
-                    // it can be deleted if desired by the user.
-                    setOrClearVolumeInternalFlag(migration.getSource(), false);
+                    updateMigratedVirtualVolumeVpoolAndVarray(volume, newVpoolURI, newVarrayURI);
+                    _dbClient.updateObject(volume);
+                    inventoryDeleteMigrationSource(migration.getSource(), volume);
                     continue;
                 }
             }
@@ -6526,6 +6587,56 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _dbClient.updateObject(virtualVolume);
         _log.info("Updated virtual volume.");
     }
+    
+    /**
+     * Try and inventory delete the migration source volume
+     * @param sourceVolumeURI
+     *     Source volume URI
+     * @param virtualVolume
+     *     Volume object for virtual volume, used to clean up consistency group
+     */
+    private void inventoryDeleteMigrationSource(URI sourceVolumeURI, Volume virtualVolume) {
+        if (NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
+            return;
+        }
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+        try {
+            if (sourceVolume == null || sourceVolume.getInactive()) {
+                return;
+            }
+            URI storageSystemToRemove = sourceVolume.getStorageController();
+            ExportUtils.cleanBlockObjectFromExports(sourceVolumeURI, true, _dbClient);
+            _dbClient.markForDeletion(sourceVolume);
+            
+            // If the virtual volume is in a CG, and has information about the associated volumes,
+            // clean up the CG by removing the source volumes storage system unless it is the same as
+            // one of the associated volumes.
+            if (!NullColumnValueGetter.isNullURI(virtualVolume.getConsistencyGroup()) 
+                    && (virtualVolume.getAssociatedVolumes() != null && !virtualVolume.getAssociatedVolumes().isEmpty())) {
+                Volume srcAssocVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, true, _dbClient, false);
+                if (srcAssocVolume != null && srcAssocVolume.getStorageController().equals(storageSystemToRemove)) {
+                    storageSystemToRemove = null;
+                }
+                Volume haAssocVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume,  false, _dbClient, false);
+                if (haAssocVolume != null && haAssocVolume.getStorageController().equals(storageSystemToRemove)) {
+                    storageSystemToRemove = null;
+                }
+                // No more uses in by this storage system, remove from CG if present
+                if (storageSystemToRemove != null) {
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, virtualVolume.getConsistencyGroup());
+                    StringSet cgNames = cg.getSystemConsistencyGroups().get(storageSystemToRemove.toString());
+                    if (cgNames != null) {
+                        for (String cgName : cgNames) {
+                            cg.removeSystemConsistencyGroup(storageSystemToRemove.toString(), cgName);
+                        }
+                        _dbClient.updateObject(cg);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.info("Unable to inventory delete migration source volume after commit: " + sourceVolume.getLabel(), ex);
+        }
+    }
 
     /**
      * This step is executed after a virtual volume is successfully migrated to
@@ -6564,28 +6675,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // First update the virtual volume CoS, if necessary.
             Volume volume = _dbClient.queryObject(Volume.class, virtualVolumeURI);
-
-            if (newVpoolURI != null) {
-                // Typically the source side backend volume has the same vpool as the
-                // VPLEX volume. If the source side is not being migrated when the VPLEX
-                // volume is migrated, then its vpool will reflect the old vpool. If the
-                // source side had the same as the VPLEX volume, then make sure it still
-                // does.
-                Volume backendSrcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-                if (backendSrcVolume != null) {
-                    if (backendSrcVolume.getVirtualPool().toString().equals(volume.getVirtualPool().toString())) {
-                        backendSrcVolume.setVirtualPool(newVpoolURI);
-                        _dbClient.updateObject(backendSrcVolume);
-                    }
-                }
-
-                // Now update the vpool for the VPLEX volume.
-                volume.setVirtualPool(newVpoolURI);
-                _dbClient.updateObject(volume);
-            } else if (newVarrayURI != null) {
-                volume.setVirtualArray(newVarrayURI);
-                _dbClient.updateObject(volume);
-            }
 
             // If volumes are exported, and this is change varray operation, we need to remove the volume from the
             // current exportGroup, then
@@ -6951,7 +7040,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (createdVolumeURI != null) {
                     Volume createdVolume = _dbClient.queryObject(Volume.class, createdVolumeURI);
                     if (createdVolume != null) {
-                        _dbClient.markForDeletion(vplexVolume);
+                        _dbClient.markForDeletion(createdVolume);
                     }
                 }
                 
@@ -10108,7 +10197,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Find virtual volume that should have been created when we did detach mirror.
             // Virtual volume is created with the same name as the device name.
-            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexMirror.getDeviceLabel(), vplexMirror.getNativeId());
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexMirror.getDeviceLabel(), null);
 
             // Get the backend volume for this promoted VPLEX volume.
             StringSet assocVolumes = vplexMirror.getAssociatedVolumes();

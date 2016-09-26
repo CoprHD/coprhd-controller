@@ -1234,8 +1234,8 @@ public class ExternalDeviceCommunicationInterface extends
         if (systemSet == null) {
             _log.info("Replication set {} does not exist in database, we will create a new system replication set for it.", nativeGuid);
             systemSet = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
-            systemSet.setIsDriverManaged(true);
             systemSet.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class));
+            systemSet.setIsDriverManaged(true);
             systemSet.setNativeGuid(nativeGuid);
             systemSet.setStorageSystemType(storageSystemType);
             systemSet.setNativeId(driverSet.getNativeId());
@@ -1283,9 +1283,9 @@ public class ExternalDeviceCommunicationInterface extends
                         checkRemoteReplicationGroupExistsInDB(nativeGuid);
                 if (systemGroup == null) {
                     _log.info("Replication group {} does not exist in database, we will create a new system group for it.", nativeGuid);
-                    systemGroup.setIsDriverManaged(true);
                     systemGroup = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup();
                     systemGroup.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class));
+                    systemGroup.setIsDriverManaged(true);
                     systemGroup.setNativeGuid(nativeGuid);
                     systemGroup.setNativeId(driverGroup.getNativeId());
                     systemGroup.setReplicationSet(parentRrSet.getId());
@@ -1465,11 +1465,10 @@ public class ExternalDeviceCommunicationInterface extends
             List<com.emc.storageos.db.client.model.StorageSystem> sourceSystems =
                     queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StorageSystem.class, "nativeGuid", nativeGuid);
             if (sourceSystems.isEmpty()) {
-                String message = String.format("Source system is not set for remote replication group %s . Set group to not reachable.",
-                        systemGroup.getNativeGuid());
+                String message = String.format("Cannot find source system %s, defined in remote replication group %s . Set group to not reachable.",
+                        systemNativeId, systemGroup.getNativeGuid());
                 _log.error(message);
                 systemGroup.setReachable(false);
-                return;
             } else {
                 com.emc.storageos.db.client.model.StorageSystem sourceSystem = sourceSystems.get(0);
                 systemGroup.setSourceSystem(sourceSystem.getId());
@@ -1480,11 +1479,10 @@ public class ExternalDeviceCommunicationInterface extends
             List<com.emc.storageos.db.client.model.StorageSystem> targetSystems =
                     queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StorageSystem.class, "nativeGuid", nativeGuid);
             if (targetSystems.isEmpty()) {
-                String message = String.format("Target system is not set for remote replication group %s . Set group to not reachable. ",
-                        systemGroup.getNativeGuid());
+                String message = String.format("Cannot find target system %s, defined in remote replication group %s. Set group to not reachable. ",
+                        systemNativeId, systemGroup.getNativeGuid());
                 _log.error(message);
                 systemGroup.setReachable(false);
-                return;
             } else {
                 com.emc.storageos.db.client.model.StorageSystem targetSystem = targetSystems.get(0);
                 systemGroup.setTargetSystem(targetSystem.getId());

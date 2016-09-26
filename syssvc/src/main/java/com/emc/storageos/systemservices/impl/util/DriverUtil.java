@@ -1,28 +1,18 @@
 package com.emc.storageos.systemservices.impl.util;
 
-import static com.emc.storageos.api.mapper.SystemsMapper.map;
-
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageDriverFile;
-import com.emc.storageos.db.client.model.StorageSystemType;
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 
 /**
  * Class for test to store driver jar file in Cassandra

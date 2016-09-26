@@ -3338,7 +3338,7 @@ resources.noprojectsapplications=There are no projects nor applications configur
 resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
 resources.events=Actionable Events
-resources.event=Event
+resources.event=Actionable Event
 resources.events.approved=Approved
 resources.events.pending=Pending
 resources.events.declined=Declined

@@ -5,7 +5,7 @@ package com.emc.storageos.db.client.model;
 public class StorageDriverFile extends DataObject {
     private String driverName;
     private byte[] chunk;
-    private int number;
+    private Integer number;
 
     @Name("driverName")
     public String getDriverName() {
@@ -28,11 +28,11 @@ public class StorageDriverFile extends DataObject {
     }
 
     @Name("number")
-    public int getNumber() {
+    public Integer getNumber() {
         return number;
     }
 
-    public void setNumber(int number) {
+    public void setNumber(Integer number) {
         this.number = number;
         setChanged("number");
     }

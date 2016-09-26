@@ -158,7 +158,7 @@ class Host(object):
 
         if(cluster):
             from cluster import Cluster
-            cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
             request['cluster'] = cli_uri
 
         if(datacenter):
@@ -245,7 +245,7 @@ class Host(object):
 
         if(cluster is not None):
             from cluster import Cluster
-            cl_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
             request['cluster'] = cli_uri
 
 

@@ -71,27 +71,27 @@
   #{form @createPair(), id:'pairedInitiatorForm', class:'form form-horizontal', autocomplete:"off"}
     <input type="hidden" name="hostId" value="${host?.id}">   
     #{Modal.body}
-      #{field 'initiator.firstNode'}
+      #{field 'pairedInitiator.firstNode'}
         %{
           field.cssClass = "span6 initialFocus"
         }%
         #{Form.inputTextControlGroup field:field /}
       #{/field}
 
-      #{field 'initiator.firstPort'}
+      #{field 'pairedInitiator.firstPort'}
         %{
           field.required = true
         }%
         #{Form.inputTextControlGroup field:field /}
       #{/field}
-            #{field 'initiator.secondNode'}
+            #{field 'pairedInitiator.secondNode'}
         %{
           field.cssClass = "span6 initialFocus"
         }%
         #{Form.inputTextControlGroup field:field /}
       #{/field}
 
-      #{field 'initiator.secondPort'}
+      #{field 'pairedInitiator.secondPort'}
         %{
           field.required = true
         }%
@@ -118,17 +118,17 @@
   }
   
   function showPairedDialogClick() {
-		clearErrors();
+	  clearErrors();
 		  $('#addPairedDialog').modal();
 	  }
  
 
   function showDialog() {
-    $('.modal').modal();
+	  $('.modal').modal();
   }
   
   function clearErrors() {
-    var $modal = $('.modal');
+    var $modal =  $('.modal');
     $('.form-group', $modal).removeClass("has-error");
     $('.help-inline', $modal).html("");    
   }

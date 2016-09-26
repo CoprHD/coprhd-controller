@@ -158,7 +158,7 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
                 _unManagedVolumeService.commitIngestedCG(_requestContext, unManagedVolume);
 
                 // Commit the volume's internal resources
-                _requestContext.getVolumeContext().commit();
+                volumeContext.commit();
 
                 // Commit this volume's updated data objects if any after ingestion
                 Set<DataObject> updatedObjects = _requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);

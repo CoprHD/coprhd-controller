@@ -4114,6 +4114,11 @@ recoverpoint_auto_snapshot_cleanup_test()
         run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
         blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false       
 
+        # do a restore before swap to show that the lock is removed after restore
+        secho 'Performing restore of RP bookmark'
+        run blocksnapshot restore ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+        sleep 10
+
         secho 'Performing swap operation to verify auto snapshot cleanup'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
@@ -6825,7 +6830,7 @@ blocksnapshot_single_vmax()
 blocksnapshot_consistency_group_vnx()
 {
     snaptest_vol="${VNX_VOLUME}-cg"
-    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    consistency_group=`openssl passwd "$RANDOM" | tr -cd [:alnum:] | cut -c1-8`
 
     # Create consistency group
     run blockconsistencygroup create $PROJECT $consistency_group
@@ -6860,7 +6865,7 @@ blocksnapshot_consistency_group_vnx()
     # --------------------------------------------
     # Consistency Group snap tests with activation
     # --------------------------------------------
-    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    consistency_group=`openssl passwd "$RANDOM" | tr -cd [:alnum:] | cut -c1-8`
 
     # Create consistency group
     run blockconsistencygroup create $PROJECT $consistency_group
@@ -6905,7 +6910,7 @@ blocksnapshot_consistency_group_vnx()
 blocksnapshot_consistency_group_vmax()
 {
     snaptest_vol="${VMAX_VOLUME}-cg"
-    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    consistency_group=`openssl passwd "$RANDOM" | tr -cd [:alnum:] | cut -c1-8`
 	
     # Create volumes
     run volume create ${snaptest_vol}1 $PROJECT $NH $COS_VMAXBLOCK_FC 1280000000 --consistencyGroup consistency_group
@@ -6933,7 +6938,7 @@ blocksnapshot_consistency_group_vmax()
     volumename="${VMAX_VOLUME}-CG-VOL-TO-SNAP"
     cg_vol1=${volumename}1
     cg_vol2=${volumename}2
-    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    consistency_group=`openssl passwd "$RANDOM" | tr -cd [:alnum:] | cut -c1-8`
     
     run volume create ${cg_vol1} $PROJECT $NH $COS_VMAXBLOCK 1280000000 --consistencyGroup consistency_group
     run volume create ${cg_vol2} $PROJECT $NH $COS_VMAXBLOCK 1280000000 --consistencyGroup consistency_group
@@ -8839,7 +8844,7 @@ blockmirror_vnx()
 blockmirror_group_mirrors()
 {
     mirrortest_vol="${MIRROR_VOLUME}-group"
-    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    consistency_group=`openssl passwd "$RANDOM" | tr -cd [:alnum:] | cut -c1-8`
     group_mirror="sanitytest"
     run blockconsistencygroup create $PROJECT $consistency_group
 
@@ -11881,6 +11886,12 @@ vplexsnap_tests()
 
     secho "Unexport VPLEX volume built from snapshot"
     run export_group delete $PROJECT/$hname-1$host
+
+    secho "Deleting VPLEX volume built on snapshot"
+    run volume delete $PROJECT/$localSnapshot --wait
+
+    secho "Deleting snapshot"
+    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
 
     secho "Deleting source VPLEX local volume"
     run volume delete $PROJECT/$localVolume --wait

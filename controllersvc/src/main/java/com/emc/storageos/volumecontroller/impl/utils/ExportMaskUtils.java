@@ -1342,4 +1342,38 @@ public class ExportMaskUtils {
         }
         return differentResource;
     }
+
+    /**
+     * Set the resource on an ExportMask, if it hasn't already been set.
+     *
+     * @param dbClient      Database client
+     * @param exportGroup   ExportGroup
+     * @param exportMask    ExportMask
+     * @return              true if the resource field was set, false otherwise.
+     */
+    public static boolean setExportMaskResource(DbClient dbClient, ExportGroup exportGroup, ExportMask exportMask) {
+        if (NullColumnValueGetter.isNotNullValue(exportMask.getResource())) {
+            return false;
+        }
+
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, null);
+        String resourceRef = null;
+        if (exportGroup.getType() != null && !initiators.isEmpty()) {
+            Initiator firstInitiator = initiators.iterator().next();
+            if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                resourceRef = firstInitiator.getClusterName();
+            } else {
+                resourceRef = firstInitiator.getHost() == null ? null : firstInitiator.getHost().toString();
+            }
+        }
+
+        if (Strings.isNullOrEmpty(resourceRef)){
+            // This resource is used when we add initiators to existing masks on VMAX, which should not be
+            // case with VPLEX and RP, which do not associate their initiators with hosts or clusters.
+            resourceRef = NullColumnValueGetter.getNullURI().toString();
+        }
+
+        exportMask.setResource(resourceRef);
+        return true;
+    }
 }

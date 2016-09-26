@@ -86,17 +86,17 @@ public class HostInitiators extends ViprResourceController {
     }
 
     @FlashException
-    public static void createPair(String hostId, PairedInitiatorForm initiator) {
-        initiator.validate("initiator");
+    public static void createPair(String hostId, PairedInitiatorForm pairedInitiator) {
+        pairedInitiator.validate("pairedInitiator");
         if (Validation.hasErrors()) {
             params.flash();
             Validation.keep();
             list(hostId);
         }
 
-        HostUtils.createInitiatorPair(uri(hostId), initiator.toCreateParam());
-        flash.success(MessagesUtils.get(ADDED, initiator.firstPort));
-        flash.success(MessagesUtils.get(ADDED, initiator.secondPort));
+        HostUtils.createInitiatorPair(uri(hostId), pairedInitiator.toCreateParam());
+        flash.success(MessagesUtils.get(ADDED, pairedInitiator.firstPort));
+        flash.success(MessagesUtils.get(ADDED, pairedInitiator.secondPort));
         list(hostId);
     }
 
@@ -245,37 +245,37 @@ public class HostInitiators extends ViprResourceController {
 
             String protocol = getProtocolFromWWN(firstPort.trim());
             if (BlockProtocols.isFC(protocol)) {
-                Validation.required(formName + ".node", firstNode);
-                Validation.required(formName + ".port", firstPort);
-                if (firstNode != null && !EndpointUtility.isValidEndpoint(firstPort.trim(), Endpoint.EndpointType.WWN)) {
-                    Validation.addError(formName + ".node", "initiators.port.invalidWWN");
+                Validation.required(formName + ".firstNode", firstNode);
+                Validation.required(formName + ".firstPort", firstPort);
+                if (firstNode != null && !EndpointUtility.isValidEndpoint(firstNode.trim(), Endpoint.EndpointType.WWN)) {
+                    Validation.addError(formName + ".firstNode", "initiators.port.invalidWWN");
                 }
                 if (firstPort != null && !EndpointUtility.isValidEndpoint(firstPort.trim(), Endpoint.EndpointType.WWN)) {
-                    Validation.addError(formName + ".port", "initiators.port.invalidWWN");
+                    Validation.addError(formName + ".firstPort", "initiators.port.invalidWWN");
                 }
             }
             else {
                 boolean valid = EndpointUtility.isValidEndpoint(firstPort.trim(), Endpoint.EndpointType.IQN);
                 if (!valid) {
-                    Validation.addError(formName + ".port", "initiators.port.invalidIQN");
+                    Validation.addError(formName + ".firstPort", "initiators.port.invalidIQN");
                 }
             }
 
             protocol = getProtocolFromWWN(secondPort.trim());
             if (BlockProtocols.isFC(protocol)) {
-                Validation.required(formName + ".node", secondNode);
-                Validation.required(formName + ".port", secondPort);
-                if (secondNode != null && !EndpointUtility.isValidEndpoint(secondPort.trim(), Endpoint.EndpointType.WWN)) {
-                    Validation.addError(formName + ".node", "initiators.port.invalidWWN");
+                Validation.required(formName + ".secondNode", secondNode);
+                Validation.required(formName + ".secondPort", secondPort);
+                if (secondNode != null && !EndpointUtility.isValidEndpoint(secondNode.trim(), Endpoint.EndpointType.WWN)) {
+                    Validation.addError(formName + ".secondNode", "initiators.port.invalidWWN");
                 }
                 if (secondPort != null && !EndpointUtility.isValidEndpoint(secondPort.trim(), Endpoint.EndpointType.WWN)) {
-                    Validation.addError(formName + ".port", "initiators.port.invalidWWN");
+                    Validation.addError(formName + ".secondPort", "initiators.port.invalidWWN");
                 }
             }
             else {
                 boolean valid = EndpointUtility.isValidEndpoint(secondPort.trim(), Endpoint.EndpointType.IQN);
                 if (!valid) {
-                    Validation.addError(formName + ".port", "initiators.port.invalidIQN");
+                    Validation.addError(formName + ".secondPort", "initiators.port.invalidIQN");
                 }
             }
         }

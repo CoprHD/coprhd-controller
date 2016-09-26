@@ -62,7 +62,7 @@ class Authentication(object):
     BOOL_VALS = ['true', 'false']
     ZONE_ROLES = ['SYSTEM_ADMIN', 'SECURITY_ADMIN', 'SYSTEM_MONITOR',
                   'SYSTEM_AUDITOR']
-    MODES = ['ad', 'ldap', 'keystone']
+    MODES = ['ad', 'ldap', 'keystone', 'oidc']
 
     def __init__(self, ipAddr, port):
         '''

@@ -2602,7 +2602,7 @@ test_12() {
 
 # DU Prevention Validation Test 13
 #
-# Summary: add volume to mask fails after volume added, rollback doesn't remove it because there's another initiator in the mask
+# Summary: add volume to mask fails after volume added, rollback can remove volume it added, even if extra initiator is in mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2613,10 +2613,10 @@ test_12() {
 # 6. export group update will suspend.
 # 7. Add initiator to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the volume in the mask because there was another initiator we aren't managing in the mask.
+# 9. Rollback should be allowed to remove the volume it added, regardless of the extra initiator
 #
 test_13() {
-    echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
+    echot "Test 13: Test rollback of add volume, verify it can remove its own volumes on rollback when initiator sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t13
 
     # Make sure we start clean; no masking view on the array
@@ -2666,14 +2666,14 @@ test_13() {
     echo "*** Following the export_group update task to verify it FAILS due to the invoked failure"
     fail task follow $task
 
-    # Verify the mask still has the new volume in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 3 2
+    # Verify rollback was able to remove the volume it added
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -2685,7 +2685,7 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
-# Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
+# Summary: add initiator to mask fails after initiator added, rollback allowed to remove it even though another volume in the mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2696,7 +2696,7 @@ test_13() {
 # 6. export group update will suspend.
 # 7. Add external volume to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the initiator in the mask because there was another volume we aren't managing in the mask.
+# 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
@@ -2760,7 +2760,7 @@ test_14() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added
@@ -3745,6 +3745,100 @@ test_25() {
 
     # The mask is out of our control at this point, delete mask
     arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+}
+
+# Validation Test 26
+#
+# Summary: Add Volume: Volume added outside of ViPR, then inside ViPR, but fail after addVolume, rollback shouldn't remove volume we didn't really add.
+#
+# Basic Use Case for single host, single initiator
+# 1. ViPR creates 2 initiator, 1 host export.
+# 2. ViPR creates a new volume, doesn't not export it.
+# 3. Set export_group update to suspend after orchestration, but before adding volume to mask
+# 4. Set a failure to occur after volume add passively succeeded (because volume was already in the mask)
+# 5. ViPR update export group to add volume, suspends
+# 6. add volume to mask outside of ViPR
+# 7. Resume workflow, it should passively succeed the volume add step, then fail a future step, then rollback (and not remove the volume)
+# 8. Verify volume still exists in mask
+# 9. Remove suspensions/error injections
+# 10. Rerun export_group update, verify the mask is still the same.
+# 11. Delete export group
+# 12. Verify we were able to delete the mask
+#
+test_26() {
+    echot "Test 26: Add volume: Make sure rollback doesn't remove volume it didn't add"
+    expname=${EXPORT_GROUP_NAME}t26
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with the 1 initiator
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportAddVolumesDeviceStep}
+    set_artificial_failure failure_003_late_in_add_volume_to_mask
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	cleanup
+	finish 15
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Strip out colons for array helper command
+    h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
+
+    # Add volume to the mask
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of a failure invocation.
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+    fail task follow $task
+
+    # Verify the mask still has the new volume in it (this will fail if rollback removed it)
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # shut off suspensions/failures
+    set_suspend_on_class_method "none"
+    set_artificial_failure none
+
+    # Now add that volume into the mask, this time it should pass
+    runcmd export_group update $PROJECT/${expname}1 --addVols ${VOLNAME}-2
+
+    # Verify the mask is "normal" after that command
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone

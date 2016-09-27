@@ -43,7 +43,6 @@ public class ZkBackupHandler extends BackupHandler {
     private int nodeCount = 0;
     private File zkDir;
     private List<String> fileTypeList;
-    private int maxEnrolledFileCount;
     private File siteIdFile;
 
     public void setNodeCount(int nodeCount) {
@@ -96,16 +95,6 @@ public class ZkBackupHandler extends BackupHandler {
      */
     public List<String> getFileTypeList() {
         return fileTypeList;
-    }
-
-    /**
-     * Sets max file count of each type enrolled by backup
-     *
-     * @param maxEnrolledFileCount
-     *            The max file count of each type enrolled by backup
-     */
-    public void setMaxEnrolledFileCount(int maxEnrolledFileCount) {
-        this.maxEnrolledFileCount = maxEnrolledFileCount;
     }
 
     /**
@@ -272,25 +261,19 @@ public class ZkBackupHandler extends BackupHandler {
                 return Long.valueOf(f2.lastModified()).compareTo(f1.lastModified());
             }
         });
-
-        int enrolledFileCount = 0;
+        boolean latest = true;
         for (File zkFile : sourceFileList) {
-            if (enrolledFileCount >= maxEnrolledFileCount) {
-                log.info("Have enrolled enough files into backup archive");
-                return;
-            }
-
             log.debug("file name={}, time={}", zkFile.getName(), zkFile.lastModified());
             if (zkFile.isDirectory()) {
                 continue;
             }
             File targetFile = new File(targetDir, zkFile.getName());
-            if (enrolledFileCount == 0) {
+            if (latest) {
                 FileUtils.copyFile(zkFile, targetFile);
-            } else {
-                createFileLink(targetFile.toPath(), zkFile.toPath());
+                latest = false;
+                continue;
             }
-            enrolledFileCount++;
+            createFileLink(targetFile.toPath(), zkFile.toPath());
         }
     }
 

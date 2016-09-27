@@ -4,24 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
-import static com.google.common.collect.Collections2.transform;
-import static java.lang.String.format;
-
-import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -33,6 +15,22 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
+import static com.google.common.collect.Collections2.transform;
+import static java.lang.String.format;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
@@ -64,7 +62,7 @@ class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends Abstrac
      * @return          True, if validation passed, false otherwise.
      */
     @Override
-    protected boolean validate(CIMInstance mask, CIMInstance assocMask) throws WBEMException {
+    protected boolean validate(BlockObject blockObject, CIMInstance mask, CIMInstance assocMask) throws WBEMException {
         boolean isSharingStorageGroups;
         boolean assocMaskHasExportGroup = false;
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
@@ -130,12 +128,12 @@ class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends Abstrac
     }
 
     @Override
-    protected String getFriendlyId(T blockObject) {
+    protected String getFriendlyId(BlockObject blockObject) {
         return format("%s/%s", blockObject.getId(), blockObject.getNativeGuid());
     }
 
     @Override
-    protected CIMObjectPath getCIMObjectPath(T obj) {
+    protected CIMObjectPath getCIMObjectPath(BlockObject obj) {
         return getCimPath().getBlockObjectPath(storage, obj);
     }
 

@@ -660,6 +660,9 @@ public class ExternalDeviceCommunicationInterface extends
 		// Get the capabilities specified for the storage pool and
 		// process and process deduplication capability if reported by driver
 		List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+        if (capabilities == null) {
+            return;
+        }
 		for (CapabilityInstance capability : capabilities) {
 			// Get the capability definition for the capability.
 			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();

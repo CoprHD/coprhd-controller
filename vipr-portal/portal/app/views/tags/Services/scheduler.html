@@ -56,11 +56,10 @@
 	     <div class="row col-gap-sm">
 	        <div class="col-xs-2">
 	        	<input type="number" id="scheduler.cycleFrequency" name="scheduler.cycleFrequency" class="form-control" 
-	        	   ng-model="scheduler.cycleFrequency" min="1" max="100"/>
+	        	   ng-model="scheduler.cycleFrequency" min="1" max="100" onkeypress="return event.charCode >= 48 && event.charCode <= 57 && this.value.length < 3"/>
 	        </div>
 	        <div class="col-xs-3">
 	        	<select id="scheduler.cycleType" name="scheduler.cycleType" ng-model="scheduler.cycleType" class="form-control" >
-		           <option value="MINUTELY">&{'scheduler.minutes'}</option>
 		           <option value="HOURLY">&{'scheduler.hours'}</option>
 		           <option value="DAILY">&{'scheduler.days'}</option>
 		           <option value="WEEKLY">&{'scheduler.weeks'}</option>
@@ -102,7 +101,7 @@
         <div class="row col-gap-sm">
      		<div class="col-xs-3" ng-show="scheduler.recurrence == -1"> 
 	             <input type="number" id="scheduler.rangeOfRecurrence" name="scheduler.rangeOfRecurrence" class="form-control" 
-	        	   ng-model="scheduler.rangeOfRecurrence" min="2" max="200"/>
+	        	   ng-model="scheduler.rangeOfRecurrence" min="2" max="200" onkeypress="return event.charCode >= 48 && event.charCode <= 57 && this.value.length < 3"/>
 	        </div>
 	    </div>
      </div>
@@ -114,7 +113,7 @@
         <div class="row col-gap-sm">
      		<div class="col-xs-3"> 
 	             <input type="number" id="scheduler.maxNumOfCopies" name="scheduler.maxNumOfCopies" class="form-control" 
-	        	   ng-model="scheduler.maxNumOfCopies" min="1" max="256" />
+	        	   ng-model="scheduler.maxNumOfCopies" min="1" max="256" onkeypress="return event.charCode >= 48 && event.charCode <= 57 && this.value.length < 3" />
 	        	 
 	        </div>
 	          

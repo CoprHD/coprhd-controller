@@ -584,7 +584,6 @@ public class ExportMask extends DataObject {
         if (_existingInitiators == null) {
             _existingInitiators = new StringSet();
         }
-        _existingInitiators.clear();
         for (String port : ports) {
             String normalizedPort = Initiator.normalizePort(port);
             if (!_existingInitiators.contains(normalizedPort) &&
@@ -652,13 +651,6 @@ public class ExportMask extends DataObject {
         if (_existingVolumes == null) {
             _existingVolumes = new StringMap();
         }
-        /**
-         * Cleared the existing volume's wwns from ViPR to clear the stale information.
-         * For ex: all the existing volumes will be added in existingVolumes list.
-         * Outside vipr if someone removed the volume/s from Mask, ViPR should clear the stale.
-         * Impact of the stale volume's wwn will be like, Can not export the same volume through ViPR and can not delete the mask from vipr
-         */
-        _existingVolumes.clear();
         for (String wwn : volumeWWNs.keySet()) {
             String normalizedWWN = BlockObject.normalizeWWN(wwn);
             if (!_existingVolumes.containsKey(normalizedWWN) &&

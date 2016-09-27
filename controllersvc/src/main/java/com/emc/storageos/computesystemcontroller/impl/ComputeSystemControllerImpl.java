@@ -378,10 +378,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void addInitiatorsToExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
+    public void addInitiatorsToExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(initiators, false, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -397,16 +397,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeInitiatorFromExport(URI hostId, URI initId, String taskId) throws ControllerException {
+    public void removeInitiatorFromExport(URI eventId, URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
-        removeInitiatorsFromExport(hostId, uris, taskId);
+        removeInitiatorsFromExport(eventId, hostId, uris, taskId);
     }
 
     @Override
-    public void removeInitiatorsFromExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
+    public void removeInitiatorsFromExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(initiators, true, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, true, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -461,11 +461,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+    public void addHostsToExport(URI eventId, List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new HostCompleter(hostIds, false, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -493,11 +493,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
-            throws ControllerException {
+    public void removeHostsFromExport(URI eventId, List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new HostCompleter(hostIds, false, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -1024,8 +1025,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
+                _log.info("Refreshing storage");
+                storageAPI.refreshStorage();
                 for (String volume : exportGroup.getVolumes().keySet()) {
-
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     try {
                         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
@@ -1034,11 +1036,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 storageAPI.attachScsiLun(entry);
                             }
                         }
-                        _log.info("Refreshing storage");
-                        storageAPI.refreshStorage();
                     } catch (VMWareException ex) {
-                        _log.error(ex.getMessage(), ex);
+                        _log.warn(ex.getMessage(), ex);
                     }
+
+                    storageAPI.getStorageSystem().rescanVmfs();
 
                     if (blockObject != null && blockObject.getTag() != null) {
                         for (ScopedLabel tag : blockObject.getTag()) {
@@ -1052,18 +1054,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                         storageAPI.mountDatastore(datastore);
                                     }
                                 } catch (VMWareException ex) {
-                                    _log.error(ex.getMessage(), ex);
+                                    _log.warn(ex.getMessage(), ex);
                                 }
                             }
                         }
                     }
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**
@@ -1192,12 +1194,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 }
             }
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
-
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**
@@ -1987,5 +1988,36 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+    }
+
+    @Override
+    public void addInitiatorsToExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        addInitiatorsToExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+    }
+
+    @Override
+    public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException {
+        removeInitiatorFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException {
+        removeInitiatorsFromExport(NullColumnValueGetter.getNullURI(), host, init, taskId);
+
+    }
+
+    @Override
+    public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException {
+        addHostsToExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, taskId, oldCluster, isVcenter);
+
+    }
+
+    @Override
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
+            throws ControllerException {
+        removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
+
     }
 }

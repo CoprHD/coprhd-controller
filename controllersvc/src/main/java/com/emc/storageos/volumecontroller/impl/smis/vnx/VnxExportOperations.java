@@ -263,7 +263,6 @@ public class VnxExportOperations implements ExportMaskOperations {
             CIMObjectPath protocolController = _cimPath.getClarProtocolControllers(storage, nativeId)[0];
             CIMInstance instance = _helper.checkExists(storage, protocolController, true, true);
             if (instance != null) {
-                deleteOrShrinkStorageGroup(storage, exportMaskURI, null, null);
                 _helper.setProtocolControllerNativeId(exportMaskURI, null);
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 if (mask != null) {
@@ -275,6 +274,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                     }
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                     deleteStorageHWIDs(storage, initiators);
+                    deleteOrShrinkStorageGroup(storage, exportMaskURI, null, null);
                 }
             }
             // Perform post-mask-delete cleanup steps

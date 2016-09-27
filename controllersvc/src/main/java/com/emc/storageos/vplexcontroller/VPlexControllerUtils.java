@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.plugins.metering.vplex.VPlexCollectionException;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -47,8 +49,10 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
+import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
@@ -597,8 +601,8 @@ public class VPlexControllerUtils {
 
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
-            List<String> initiatorPortsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorsToAdd = new ArrayList<Initiator>();
+            List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
+            List<Initiator> initiatorObjectsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -606,9 +610,10 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
-                    initiatorPortsToAdd.add(normalizedPort);
                     if (knownInitiator != null) {
-                        initiatorsToAdd.add(knownInitiator);
+                        initiatorObjectsToAdd.add(knownInitiator);
+                    } else {
+                        initiatorPortWwnsToAdd.add(normalizedPort);
                     }
                     addInitiators = true;
                 }
@@ -722,7 +727,7 @@ public class VPlexControllerUtils {
 
             log.info(
                     String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}%n",
-                            name, Joiner.on(',').join(initiatorPortsToAdd),
+                            name, Joiner.on(',').join(initiatorPortWwnsToAdd),
                             Joiner.on(',').join(initiatorsToRemove), 
                             Joiner.on(',').join(initiatorsToRemoveFromExisting)));
             log.info(
@@ -745,14 +750,16 @@ public class VPlexControllerUtils {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
                 List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorsToAdd, dbClient);
+                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsToAdd, dbClient);
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
-                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortsToAdd);
-                exportMask.addInitiators(initiatorsToAdd);
+                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
+                exportMask.addInitiators(initiatorObjectsToAdd);
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);
                 exportMask.getStoragePorts().removeAll(storagePortsToRemove);
+                // update native id (this is the context path to the storage view on the vplex)
+                exportMask.setNativeId(storageView.getPath());
                 ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
                 dbClient.updateObject(exportMask);
                 log.info("ExportMask is now:\n" + exportMask.toString());
@@ -767,6 +774,67 @@ public class VPlexControllerUtils {
             String storageViewName = exportMask != null ? exportMask.getMaskName() : "unknown";
             throw VPlexApiException.exceptions.failedToRefreshVplexStorageView(storageViewName, ex.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Returns all VPLEX storage systems in ViPR.
+     * 
+     * @param dbClient a database client reference
+     * @return a List of StorageSystems that are "vplex" type
+     */
+    public static List<StorageSystem> getAllVplexStorageSystems(DbClient dbClient) {
+        List<StorageSystem> vplexStorageSystems = new ArrayList<StorageSystem>();
+        List<URI> allStorageSystemUris = dbClient.queryByType(StorageSystem.class, true);
+        List<StorageSystem> allStorageSystems = dbClient.queryObject(StorageSystem.class, allStorageSystemUris);
+        for (StorageSystem storageSystem : allStorageSystems) {
+            if ((storageSystem != null)
+                    && (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType()))) {
+                vplexStorageSystems.add(storageSystem);
+            }
+        }
+        return vplexStorageSystems;
+    }
+
+    /**
+     * Returns all VPLEX Storage Systems in ViPR that have the given assembly id count. The
+     * VPLEX assembly id is another term for the cluster serial number.
+     * 
+     * @param dbClient a database client reference
+     * @param assemblyIdCount the VPLEX assembly id count
+     * @return a List of StorageSystems with a matching assembly id count
+     */
+    private static List<StorageSystem> getVplexesByAssemblyIdCount(DbClient dbClient, Integer assemblyIdCount) {
+        List<StorageSystem> vplexStorageSystems = getAllVplexStorageSystems(dbClient);
+        Iterator<StorageSystem> it = vplexStorageSystems.iterator();
+        while (it.hasNext()) {
+            StorageSystem vplex = it.next();
+            if (null != vplex.getVplexAssemblyIdtoClusterId()
+                    && (assemblyIdCount != vplex.getVplexAssemblyIdtoClusterId().size())) {
+                it.remove();
+            }
+        }
+
+        return vplexStorageSystems;
+    }
+
+    /**
+     * Returns all VPLEX local storage systems in ViPR.
+     * 
+     * @param dbClient a database client reference
+     * @return a List of StorageSystems that are in a VPLEX local configuration
+     */
+    public static List<StorageSystem> getAllVplexLocalStorageSystems(DbClient dbClient) {
+        return getVplexesByAssemblyIdCount(dbClient, VPlexApiConstants.VPLEX_LOCAL_ASSEMBLY_COUNT);
+    }
+
+    /**
+     * Returns all VPLEX metro storage systems in ViPR.
+     * 
+     * @param dbClient a database client reference
+     * @return a List of StorageSystems that are in a VPLEX metro configuration
+     */
+    public static List<StorageSystem> getAllVplexMetroStorageSystems(DbClient dbClient) {
+        return getVplexesByAssemblyIdCount(dbClient, VPlexApiConstants.VPLEX_METRO_ASSEMBLY_COUNT);
     }
 
     /**
@@ -809,9 +877,12 @@ public class VPlexControllerUtils {
         Map<ExportGroup, Set<ExportMask>> exportGroupToStaleMaskMap = new HashMap<ExportGroup, Set<ExportMask>>();
         Map<URI, ExportGroup> exportGroupUriMap = new HashMap<URI, ExportGroup>();
 
-        // check all export masks in the database to make sure they still exist on the VPLEX
+        // check all export masks in the database to make sure they still exist on the VPLEX.
+        // a null or empty ExportMask.nativeId would indicate an ExportMask that has been created
+        // by ViPR in the database, but not yet created on the VPLEX device itself. skip those of course.
         for (ExportMask exportMask : exportMasks) {
-            if (null != exportMask && !exportMask.getInactive()) {
+            if (null != exportMask && !exportMask.getInactive() 
+                    && (exportMask.getNativeId() != null && !exportMask.getNativeId().isEmpty())) {
                 // we need to check both native id and export mask name to make sure we are NOT finding the storage view.
                 // native id is most accurate, but greenfield ExportMasks for VPLEX don't have this property set.
                 // native id will be set on ingested export masks, however, and we should check it, in case the same
@@ -894,6 +965,4 @@ public class VPlexControllerUtils {
 
         log.info("Stale Export Mask cleanup complete.");
     }
-
 }
-

@@ -159,6 +159,20 @@ $FileGroup root
 # Adding a selective ACL for the user storageos would be better.
 # - Unfortunately neither rsyslog nor logrotate support ACLs out of the box.
 $FileCreateMode 0644
+EOF
+if [ "$syslog_enable" == "True" ]; then
+    cat << 'EOF' >> ${syslogConf}
+*.*;mail.none;local2.none   -/var/log/messages;vipr_log_format
+$FileOwner root
+$FileGroup root
+$FileCreateMode 0644
+
+# Some foreign boot scripts require local7
+local0,local1.*  -/var/log/localmessages
+local3.*  -/var/log/localmessages
+EOF
+else
+    cat << 'EOF' >> ${syslogConf}
 *.*;mail.none   -/var/log/messages;vipr_log_format
 $FileOwner root
 $FileGroup root
@@ -167,6 +181,9 @@ $FileCreateMode 0644
 # Some foreign boot scripts require local7
 local0,local1.*  -/var/log/localmessages
 local2,local3.*  -/var/log/localmessages
+EOF
+fi
+    cat << 'EOF' >> ${syslogConf}
 local4,local5.*  -/var/log/localmessages
 local6,local7.*  -/var/log/localmessages
 

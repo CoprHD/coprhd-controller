@@ -156,7 +156,8 @@ public class EventUtils {
             Collection<URI> affectedResources) {
         List<ActionableEvent> events = findResourceEvents(dbClient, resourceId);
         for (ActionableEvent event : events) {
-            if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+            if ((event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                    || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name()))
                     && event.getEventCode().equalsIgnoreCase(eventCode)
                     && (affectedResources == null || event.getAffectedResources().equals(getAffectedResources(affectedResources)))) {
                 return event;
@@ -243,7 +244,8 @@ public class EventUtils {
         List<ActionableEvent> result = Lists.newArrayList();
         for (ActionableEvent event : events) {
             if (event != null && event.getEventStatus() != null
-                    && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {
+                    && (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name()))) {
                 result.add(event);
             }
         }

@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.UnManagedVolumeService;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -24,24 +25,26 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.util.ExceptionUtils;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public class IngestVolumesUnexportedSchedulingThread implements Runnable {
 
     private static final Logger _logger = LoggerFactory.getLogger(IngestVolumesUnexportedSchedulingThread.class);
-    private BaseIngestionRequestContext _requestContext;
-    private IngestStrategyFactory _ingestStrategyFactory;
-    private UnManagedVolumeService _unManagedVolumeService;
-    private DbClient _dbClient;
-    private Map<String, String> _taskMap;
+    private final BaseIngestionRequestContext _requestContext;
+    private final IngestStrategyFactory _ingestStrategyFactory;
+    private final UnManagedVolumeService _unManagedVolumeService;
+    private final DbClient _dbClient;
+    private final Map<String, String> _taskMap;
 
     private static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
 
     /**
-     * Constructor. 
-     * 
+     * Constructor.
+     *
      * @param requestContext the BaseIngestionRequestContext
      * @param ingestStrategyFactory the IngestStrategyFactory
      * @param unManagedVolumeService the UnManagedVolumeService
@@ -60,7 +63,6 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
 
     @Override
     public void run() {
-
         _requestContext.reset();
         while (_requestContext.hasNext()) {
             UnManagedVolume unManagedVolume = _requestContext.next();
@@ -89,9 +91,25 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
                 _requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                 _requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), _requestContext.getVolumeContext());
+            } catch (APIException ex) {
+                _logger.error("APIException occurred", ex);
+                _dbClient.error(UnManagedVolume.class, _requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
+                _requestContext.getVolumeContext().rollback();
+            } catch (Exception ex) {
+                _logger.error("Exception occurred", ex);
+                _dbClient.error(UnManagedVolume.class, _requestContext.getCurrentUnManagedVolumeUri(),
+                        taskId, IngestionException.exceptions.generalVolumeException(
+                                unManagedVolume.getLabel(), ex.getLocalizedMessage()));
+                _requestContext.getVolumeContext().rollback();
+            }
+        }
 
-                String unManagedVolumeGUID = unManagedVolume.getNativeGuid();
-                String taskMessage = "";
+        try {
+            // update the task status
+            for (String unManagedVolumeGUID : _requestContext.getProcessedUnManagedVolumeMap().keySet()) {
+                VolumeIngestionContext volumeContext = _requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID);
+                UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();String taskMessage = "";
+                String taskId = _taskMap.get(unManagedVolume.getId().toString());
                 boolean ingestedSuccessfully = false;
                 if (unManagedVolume.getInactive()) {
                     ingestedSuccessfully = true;
@@ -104,11 +122,11 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
                     _logger.info("checking partial ingestion status of block object " + createdObject);
                     if ((null != createdObject)
                             && (!createdObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) ||
-                            // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
+                                    // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
                                     (createdObject instanceof Volume && ((Volume) createdObject).checkForRp() && ((Volume) createdObject)
                                             .getProtectionSet() == null))
                             ||
-                    // If this is a successfully processed VPLEX backend volume, it will have the INTERNAL_OBJECT Flag
+                            // If this is a successfully processed VPLEX backend volume, it will have the INTERNAL_OBJECT Flag
                             (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume) && createdObject
                                     .checkInternalFlags(Flag.INTERNAL_OBJECT))) {
                         _logger.info("successfully partially ingested block object {} ", createdObject.forDisplay());
@@ -140,7 +158,7 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
                 _unManagedVolumeService.commitIngestedCG(_requestContext, unManagedVolume);
 
                 // Commit the volume's internal resources
-                _requestContext.getVolumeContext().commit();
+                volumeContext.commit();
 
                 // Commit this volume's updated data objects if any after ingestion
                 Set<DataObject> updatedObjects = _requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
@@ -160,17 +178,12 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
                     }
                 }
 
-            } catch (APIException ex) {
-                _logger.error("APIException occurred", ex);
-                _dbClient.error(UnManagedVolume.class, _requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
-                _requestContext.getVolumeContext().rollback();
-            } catch (Exception ex) {
-                _logger.error("Exception occurred", ex);
-                _dbClient.error(UnManagedVolume.class, _requestContext.getCurrentUnManagedVolumeUri(),
-                        taskId, IngestionException.exceptions.generalVolumeException(
-                                unManagedVolume.getLabel(), ex.getLocalizedMessage()));
-                _requestContext.getVolumeContext().rollback();
             }
+        } catch (InternalException e) {
+            throw e;
+        } catch (Exception e) {
+            _logger.debug("Unexpected ingestion exception:", e);
+            throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
         }
 
         for (BlockObject bo : _requestContext.getBlockObjectsToBeCreatedMap().values()) {
@@ -191,7 +204,7 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
 
     /**
      * Executes API Tasks on a separate thread by instantiating a IngestVolumesUnexportedSchedulingThread.
-     * 
+     *
      * @param executorService the ExecutorService
      * @param requestContext the BaseIngestionRequestContext
      * @param ingestStrategyFactory the IngestStrategyFactory

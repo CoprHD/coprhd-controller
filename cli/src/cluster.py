@@ -38,7 +38,7 @@ class Cluster(object):
     URI_CLUSTER_HOSTS = URI_CLUSTER + '/hosts'
 
     URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
-
+    URI_GET_CLUSTER = '/compute/vcenter-data-centers/{0}/clusters'
     URI_CLUSTER_LIST_UM_VOLUMES = URI_CLUSTER + "/unmanaged-volumes"
     URI_CLUSTER_LIST_UM_EXPORT_MASKS = URI_CLUSTER + "/unmanaged-export-masks"
     BOOL_TYPE_LIST = ['true', 'false']
@@ -121,9 +121,9 @@ class Cluster(object):
             cluster detail information
         '''
 
-    def cluster_show(self, label, tenant=None, xml=False):
+    def cluster_show(self, label,datacenter,vcenter, tenant=None, xml=False):
 
-        uri = self.cluster_query(label, tenant)
+        uri = self.cluster_query(label,datacenter,vcenter, tenant)
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Cluster.URI_CLUSTER.format(uri),
@@ -150,6 +150,7 @@ class Cluster(object):
                                              Cluster.URI_CLUSTER.format(uri),
                                              None, None, False)
         o = common.json_decode(s)
+
         if(o['inactive'] is False):
             return o
 
@@ -163,6 +164,22 @@ class Cluster(object):
             return clusters list
         '''
 
+    
+    def vcenterdatacenter_get_clusters(self, datacenter_uri):
+        '''
+        Makes a REST API call to retrieve details of a vcenterdatacenter
+        based on its UUID
+        '''
+        
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            Cluster.URI_GET_CLUSTER.format(datacenter_uri) , None)
+
+        o = common.json_decode(s)
+        
+        return o
+    
     def cluster_search(self, name):
 
         (s, h) = common.service_json_request(
@@ -171,28 +188,36 @@ class Cluster(object):
         o = common.json_decode(s)
         return o['resource']
 
-        '''
-        query cluster action
-        Parameters:
-            name : Name of the cluster
-            tenant : name of tenant
-        Returns:
-            return cluster id or uri
-        '''
-    # default = None(provider tenant)
+    
+    
+    def cluster_query(self, name, datacenter, vcenter, tenant=None):
+        
+        if(datacenter is "" and vcenter is "" ):
+            resources = self.cluster_search(name)
+            for resource in resources:
+                details = self.cluster_show_uri(resource['id'])
+                if (details.get('vcenter_data_center') is None and details['name'] == name):
+                    return resource['id']
 
-    def cluster_query(self, name, tenant=None):
-
-        resources = self.cluster_search(name)
-        for resource in resources:
-            details = self.cluster_show_uri(resource['id'])
-            if (details is not None and details['name'] == name):
-                return resource['id']
-
-        raise SOSError(SOSError.NOT_FOUND_ERR,
+            raise SOSError(SOSError.NOT_FOUND_ERR,
                        "cluster " + name + ": not found")
+        
+        
+        else:
+        #find the uri of the datacenter
+            from vcenterdatacenter import VcenterDatacenter
+            datacenter_uri = self.get_datacenter_uri(datacenter,vcenter,tenant)
+        
+            result = self.vcenterdatacenter_get_clusters(datacenter_uri)
 
+            for cluster in result['cluster']:
+                if cluster['name'] == name:
+                    return cluster['id']        
+        
+        
+    
         '''
+        
         delete cluster action
         Parameters:
             name : Name of the cluster
@@ -201,9 +226,9 @@ class Cluster(object):
             result of the action.
         '''
 
-    def cluster_delete(self, name, tenant=None, detachstorage=False):
+    def cluster_delete(self, name,datacenter,vcenter, tenant=None, detachstorage=False):
 
-        uri = self.cluster_query(name, tenant)
+        uri = self.cluster_query(name,datacenter,vcenter, tenant)
 
         formaturi = self.URI_RESOURCE_DEACTIVATE.format(
             Cluster.URI_CLUSTER.format(uri))
@@ -225,9 +250,9 @@ class Cluster(object):
             result of the action.
         '''
 
-    def cluster_detach(self, name, tenant=None):
+    def cluster_detach(self, name,datacenter,vcenter, tenant=None):
 
-        uri = self.cluster_query(name, tenant)
+        uri = self.cluster_query(name,datacenter,vcenter, tenant)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST",
@@ -236,7 +261,7 @@ class Cluster(object):
 
         return
 
-    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled, updateExports=True):
+    def cluster_update(self, name, tenant, datacenter, vcenter, label, newdatacenter, newvcenter, autoexportsenabled, updateExports=False):
         '''
         update cluster with datacenter, label
         Parameters:
@@ -244,6 +269,8 @@ class Cluster(object):
             tenant    : name of tenant
             datacenter: Name of datacenter
             vcenter   : name of vcenter
+            ndatacenter : name of new datacenter
+            nvcenter : name of the new vcenter 
             label     : new name to existing cluster
         Returns:
             result of the action.
@@ -257,14 +284,17 @@ class Cluster(object):
             parms['auto_export_enabled'] = autoexportsenabled
         
         # datacenter
-        if(datacenter):
+        if(newdatacenter is not None):
             vdatacenterobj = VcenterDatacenter(self.__ipAddr, self.__port)
             data_uri = vdatacenterobj.vcenterdatacenter_query(
-                datacenter, vcenter, tenant)
+                newdatacenter, newvcenter, tenant)
+            
             parms['vcenter_data_center'] = data_uri
 
-        # get the cluster uri
-        cluster_uri = self.cluster_query(name, tenant)
+        # get the cluster uri query to the right cluster ..
+        
+        cluster_uri = self.cluster_query(name, datacenter , vcenter ,tenant)
+
 
         if(updateExports is not None):
             cluster_uri = cluster_uri + "?update-exports=" + updateExports
@@ -286,9 +316,9 @@ class Cluster(object):
             uri of datacenter
         '''
 
-    def get_datacenter_uri(self, datacenter, vcenter):
+    def get_datacenter_uri(self, datacenter, vcenter,tenant):
         vdatacenterobj = VcenterDatacenter(self.__ipAddr, self.__port)
-        return vdatacenterobj.vcenterdatacenter_query(datacenter, vcenter)
+        return vdatacenterobj.vcenterdatacenter_query(datacenter, vcenter,tenant)
 
     def cluster_get_details_list(self, detailslst):
         rsltlst = []
@@ -299,9 +329,9 @@ class Cluster(object):
 
         return rsltlst
 
-    def list_tasks(self, tenant_name, cluster_name=None, task_id=None):
+    def list_tasks(self, tenant_name, cluster_name=None,datacenter=None,vcenter=None, task_id=None):
 
-        uri = self.cluster_query(cluster_name, tenant_name)
+        uri = self.cluster_query(cluster_name,datacenter,vcenter, tenant_name)
 
         if(cluster_name):
             cluster = self.cluster_show_uri(uri)
@@ -326,14 +356,14 @@ class Cluster(object):
     '''
         get the list of hosts associated with Cluster '''
 
-    def cluster_get_hosts(self, label, tenantname):
+    def cluster_get_hosts(self, label, datacenter, vcenter, tenantname):
 
         '''
         Makes a REST API call to retrieve details of a hosts
         associated with cluster
         '''
 
-        uri = self.cluster_query(label, tenantname)
+        uri = self.cluster_query(label, datacenter, vcenter, tenantname)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
@@ -348,13 +378,13 @@ class Cluster(object):
 
         return hostsdtls
 
-    def list_um_exportmasks(self, clusterName):
+    def list_um_exportmasks(self, clusterName ,datacenter, vcenter):
 
-        cluster_uri = self.cluster_query(clusterName, None)
+        cluster_uri = self.cluster_query(clusterName, datacenter, vcenter, None)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_EXPORT_MASKS.format(cluster_uri),
+            Cluster.URI_CLUSTER_LIST_UM_EXPORT_MASKS.format(cluster_uri),
             None)
         if(not s):
             return []
@@ -362,13 +392,13 @@ class Cluster(object):
         res = o["unmanaged_export_mask"]
         return res
 
-    def list_um_volumes(self, clusterName):
+    def list_um_volumes(self, clusterName, datacenter, vcenter):
 
-        cluster_uri = self.cluster_query(clusterName, None)
+        cluster_uri = self.cluster_query(clusterName, datacenter, vcenter, None)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_VOLUMES.format(cluster_uri),
+            Cluster.URI_CLUSTER_LIST_UM_VOLUMES.format(cluster_uri),
             None)
         if(not s):
             return []
@@ -456,6 +486,16 @@ def delete_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     delete_parser.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
@@ -472,7 +512,7 @@ def delete_parser(subcommand_parsers, common_parser):
 def cluster_delete(args):
     obj = Cluster(args.ip, args.port)
     try:
-        obj.cluster_delete(args.name, args.tenant, args.detachstorage)
+        obj.cluster_delete(args.name, args.tenant,args.datacenter, args.vcenter, args.detachstorage)
         return
     except SOSError as e:
         common.format_err_msg_and_raise("delete", "cluster",
@@ -496,6 +536,16 @@ def show_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     show_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
                              dest='tenant',
@@ -512,7 +562,7 @@ def show_parser(subcommand_parsers, common_parser):
 def cluster_show(args):
     obj = Cluster(args.ip, args.port)
     try:
-        res = obj.cluster_show(args.name, args.tenant, args.xml)
+        res = obj.cluster_show(args.name, args.datacenter, args.vcenter, args.tenant, args.xml)
 
         if(args.xml):
             return common.format_xml(res)
@@ -604,18 +654,28 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='tenant',
                                help='new name of tenant',
                                default=None)
-    update_parser.add_argument('-datacenter', '-dc',
+    mandatory_args.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    update_parser.add_argument('-newdatacenter', '-ndc',
+                               metavar='<newdatacentername>',
+                               dest='newdatacenter',
                                help='new name of datacenter')
     update_parser.add_argument('-label', '-l',
                                metavar='<label>',
                                dest='label',
                                help='new label for the cluster')
-    update_parser.add_argument('-vcenter', '-vc',
-                               help='new name of a vcenter',
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
                                dest='vcenter',
-                               metavar='<vcentername>')
+                               metavar='<vcentername>',
+                               default="")
+    update_parser.add_argument('-newvcenter', '-nvc',
+                               help='new name of a vcenter',
+                               dest='newvcenter',
+                               metavar='<newvcentername>')
     update_parser.add_argument('-autoExportsEnabled' , '-autoEx' ,
                                help="Enables the Auto exports" ,
                                dest='autoexportsenabled' ,
@@ -623,6 +683,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-updateExports' , '-updateEx' ,
                                help="Updates the exports during cluster update" ,
                                dest='updateExports' ,
+                               default='false' ,
                                choices = Cluster.BOOL_TYPE_LIST)
 
     update_parser.set_defaults(func=cluster_update)
@@ -649,7 +710,7 @@ def cluster_update(args):
                                "vcenter and datacenter needs to be specified")
 
         obj.cluster_update(args.name, args.tenant, args.datacenter,
-                           args.vcenter, args.label ,args.autoexportsenabled, args.updateExports)
+                           args.vcenter, args.label ,args.newdatacenter, args.newvcenter, args.autoexportsenabled, args.updateExports)
     except SOSError as e:
         common.format_err_msg_and_raise("update", "cluster",
                                         e.err_text, e.err_code)
@@ -669,6 +730,16 @@ def detach_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     detach_parser.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
@@ -680,7 +751,7 @@ def detach_parser(subcommand_parsers, common_parser):
 def cluster_detach(args):
     obj = Cluster(args.ip, args.port)
     try:
-        obj.cluster_detach(args.name, args.tenant)
+        obj.cluster_detach(args.name,args.datacenter,args.vcenter, args.tenant)
     except SOSError as e:
         common.format_err_msg_and_raise("detach", "cluster",
                                         e.err_text, e.err_code)
@@ -702,6 +773,16 @@ def task_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     task_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
                              dest='tenant',
@@ -728,11 +809,11 @@ def cluster_list_tasks(args):
         if(not args.tenant):
             args.tenant = ""
         if(args.id):
-            res = obj.list_tasks(args.tenant, args.name, args.id)
+            res = obj.list_tasks(args.tenant, args.name,args.datacenter, args.vcenter, args.id)
             if(res):
                 return common.format_json_object(res)
         elif(args.name):
-            res = obj.list_tasks(args.tenant, args.name)
+            res = obj.list_tasks(args.tenant, args.name, args.datacenter, args.vcenter)
             if(res and len(res) > 0):
                 if(args.verbose):
                     return common.format_json_object(res)
@@ -771,6 +852,16 @@ def get_hosts_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 metavar='<clustername>',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
 
     get_hosts_parser.add_argument('-tenant', '-tn',
                                   help='Name of Tenant',
@@ -795,7 +886,7 @@ def get_hosts_parser(subcommand_parsers, common_parser):
 def cluster_get_hosts(args):
     obj = Cluster(args.ip, args.port)
     try:
-        res = obj.cluster_get_hosts(args.name, args.tenant)
+        res = obj.cluster_get_hosts(args.name,args.datacenter, args.vcenter, args.tenant)
 
         if(len(res) > 0):
             if(args.verbose):
@@ -828,6 +919,16 @@ def list_exportmasks_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     list_exportmasks_parser.add_argument('-v', '-verbose',
         dest='verbose',
         action='store_true',
@@ -840,7 +941,7 @@ def cluster_list_exportmasks(args):
     clusterObj = Cluster(args.ip, args.port)
 
     try:
-        um_export_mask_list = clusterObj.list_um_exportmasks(args.name)
+        um_export_mask_list = clusterObj.list_um_exportmasks(args.name, args.datacenter, args.vcenter)
 
         if(len(um_export_mask_list) > 0):
 
@@ -867,6 +968,16 @@ def list_umvolumes_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
+    mandatory_args.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default="")
+    mandatory_args.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default="")
     list_umvols_parser.add_argument('-v', '-verbose',
         dest='verbose',
         action='store_true',
@@ -879,7 +990,7 @@ def cluster_list_umvolumes(args):
     clusterObj = Cluster(args.ip, args.port)
 
     try:
-        um_volume_list = clusterObj.list_um_volumes(args.name)
+        um_volume_list = clusterObj.list_um_volumes(args.name, args.datacenter, args.vcenter)
 
         if(len(um_volume_list) > 0):
 

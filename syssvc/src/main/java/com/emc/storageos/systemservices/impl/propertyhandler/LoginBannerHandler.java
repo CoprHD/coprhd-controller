@@ -63,8 +63,6 @@ public class LoginBannerHandler implements UpdateHandler{
                     return false;
                 }
             }
-
-            return false;
         }
 
         return true;

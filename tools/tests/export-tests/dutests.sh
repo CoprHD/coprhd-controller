@@ -1751,10 +1751,34 @@ test_4() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 1 volume
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 2
 
+    PWWN=`echo ${H2PI1} | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Run the export group command.  Expect it to fail with validation
+    fail export_group delete $PROJECT/${expname}1
+
+    # Run the export group command.  Expect it to fail with validation
+    fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+
+    # Verify the mask wasn't touched
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Now remove the initiator from the export mask
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Reset test: test lower levels (original test_4 test)
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
@@ -1783,7 +1807,7 @@ test_4() {
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
     # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 3 1
+    verify_export ${expname}1 ${HOST1} 3 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
@@ -1793,13 +1817,60 @@ test_4() {
     fail task follow $task
 
     # Verify the mask wasn't touched
-    verify_export ${expname}1 ${HOST1} 3 1
+    verify_export ${expname}1 ${HOST1} 3 2
 
     # Now remove the initiator from the export mask
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Reset the test, now try to add initiators from other hosts we know about
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	cleanup
+	finish 4
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    PWWN=`echo ${H2PI1} | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+    fail task follow $task
+
+    # Verify the mask wasn't touched
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Now remove the initiator from the export mask
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 2
 
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"

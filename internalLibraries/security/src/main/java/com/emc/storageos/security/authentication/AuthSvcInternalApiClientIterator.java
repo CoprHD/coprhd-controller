@@ -21,7 +21,7 @@ import com.sun.jersey.api.client.WebResource;
 public class AuthSvcInternalApiClientIterator extends AuthSvcBaseClientIterator {
 
     private int clientReadTimeout = 300 * 1000;
-    private int clientConnectTimeout = 300 * 100;
+    private int clientConnectTimeout = 300 * 1000;
 
     /**
      * Constructor when using signature based api calls which will need a

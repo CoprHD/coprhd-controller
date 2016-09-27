@@ -393,8 +393,8 @@ public class HP3PARIngestHelper {
 			// in the resultMap with hostname:HostExportInfo information.
 			//for (int index = 0; index < vlunsOfVolume.getTotal(); index++) {
 			for (VirtualLun objVirtualLun : vlunsOfVolume.getMembers()){
-				if (!objVirtualLun.isActive()) {
-					if (objVirtualLun.getType() == 5) {
+				if (!objVirtualLun.isActive() && objVirtualLun.getType() == 5) {
+
 						String exportPath = storageSystemId + objectName + objVirtualLun.getHostname();
 						_log.info("3PARDriver:Ingestion {} for registry entry", exportPath);
 
@@ -408,12 +408,10 @@ public class HP3PARIngestHelper {
 						expValue.add(exportPath);
 						attributes.put("EXPORT_PATH", expValue);
 						lunValue.add(objVirtualLun.getLun().toString());
-						attributes.put(objectName, lunValue);
 
 						attributes.put(objectName, lunValue);
 						registry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath, attributes);
-						_log.info("3PARDriver:Ingestion {} for registry entry", attributes);
-					}
+						_log.info("3PARDriver:Ingestion {} for attributes entry", attributes);
 
 					continue;
 				}

@@ -123,7 +123,9 @@ function checkDbProgressUpdate() {
         		updateProgressBarStyle("Status", "warning");
         		$("#checkDbStatus").css("color", "#f0ad4e");
         		$("#checkDbStatus").css("font-weight", "bold");
-        		$("#checkDetailMsg").text('The check failure is a warning for informational purpose only and it does not mean functionality impact.');
+        		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		$("#checkDetailMsg").text('Please check the syssvc log during local time '+startTime+'('+result.startTime+' UTC) and '+endTime+'('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
 
         	}
         },

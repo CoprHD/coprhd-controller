@@ -588,7 +588,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 if (param.getLabel().equals(LINKED_SNAPSHOT_NAME)) {
                     if (param.getValue() != null) {
                         String snapshotName = param.getValue();
-                        if (!(snapshotName.isEmpty() || snapshotName.equals(""))) {
+                        if (!(snapshotName.isEmpty() || snapshotName.equals("\"\""))) {
                             throw APIException.badRequests.scheduleInfoNotAllowedWithSnapshotSessionTarget();
                         }
                     }

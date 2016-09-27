@@ -71,7 +71,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
                 getModelClient().delete(replica);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            ;
         }
     }
 }

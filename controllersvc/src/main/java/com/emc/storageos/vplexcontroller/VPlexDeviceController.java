@@ -3246,8 +3246,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 } else {
                     List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
                     List<Initiator> initiators = new ArrayList<>();
-                    if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
-                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                    if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
+                        List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values());
                         initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
                     }
 
@@ -3840,9 +3840,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
-        if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+        if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
             Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class,
-                URIUtil.toURIList(exportMask.getInitiators()), true);
+                    URIUtil.toURIList(exportMask.getUserAddedInitiators().values()), true);
             while (initItr.hasNext()) {
                 initiators.add(initItr.next());
             }

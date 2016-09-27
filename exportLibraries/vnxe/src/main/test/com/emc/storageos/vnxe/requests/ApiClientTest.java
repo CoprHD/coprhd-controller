@@ -18,6 +18,7 @@ import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.ReplicationSession;
+import com.emc.storageos.vnxe.models.ReplicationSession.ReplicationEndpointResourceTypeEnum;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
@@ -27,6 +28,7 @@ import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeFCPort;
+import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeIscsiNode;
@@ -372,13 +374,80 @@ public class ApiClientTest {
 
     }
 
-    @Test
+    // @Test
     public void getAllRepSessions() {
         List<ReplicationSession> sessions = apiClient.getAllReplicationSessions();
         System.out.println("List start");
         for (ReplicationSession session : sessions) {
-            System.out.println(session.getReplicationResourceType().name());
+            System.out.println(session.getReplicationResourceType());
+            System.out.println(session.getId());
         }
         System.out.println("List end");
+    }
+
+    // @Test
+    public void createRepSession() {
+        apiClient.createReplicationSession("res_8", "res_11", -1, null, "test");
+    }
+
+    // @Test
+    public void createFS() {
+        apiClient.createFileSystem("testfsdst1", 3221225472l, "pool_2", "nas_6", true, VNXeFSSupportedProtocolEnum.NFS);
+    }
+
+    // @Test
+    public void modifyRepSession() {
+        apiClient.modifyReplicationSession("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000", 60);
+    }
+
+    // @Test
+    public void deleteRepSession() {
+        apiClient.deleteReplicationSession("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000");
+    }
+
+    // @Test
+    public void resumeRepSession() {
+        apiClient.resumeReplicationSession("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000", true);
+    }
+
+    // @Test
+    public void pauseRepSession() {
+        apiClient.pauseReplicationSession("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000");
+    }
+
+    // @Test
+    public void failoverRepSession() {
+        apiClient.failoverReplicationSession("103079215106_VIRT1638GJ6DJM_0000_103079215111_VIRT1638GJ6DJM_0000", true);
+    }
+
+    // @Test
+    public void failbackRepSession() {
+        apiClient.failbackReplicationSession("103079215106_VIRT1638GJ6DJM_0000_103079215111_VIRT1638GJ6DJM_0000", false);
+    }
+
+    // @Test
+    public void syncRepSession() {
+        apiClient.syncReplicationSession("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000");
+    }
+
+    // @Test
+    public void getRepSessionById() {
+        apiClient.getReplicationSessionById("171798691880_VIRT1638GJ6DJM_0000_171798691882_VIRT1638GJ6DJM_0000");
+    }
+
+    // @Test
+    public void getRepSessionsByResource() {
+        List<ReplicationSession> sessions = apiClient.getAllReplicationSessionsByResource(ReplicationEndpointResourceTypeEnum.FILESYSTEM);
+        System.out.println("List start");
+        for (ReplicationSession session : sessions) {
+            System.out.println(session.getReplicationResourceType());
+            System.out.println(session.getId());
+        }
+        System.out.println("List end");
+    }
+
+    @Test
+    public void getRepSession() {
+        apiClient.getReplicationSession("res_8", "res_11");
     }
 }

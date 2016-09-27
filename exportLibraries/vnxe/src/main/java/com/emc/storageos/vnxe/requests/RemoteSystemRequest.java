@@ -69,6 +69,19 @@ public class RemoteSystemRequest extends KHRequests<RemoteSystem> {
     }
 
     /**
+     * Create a remote system sync
+     * 
+     * @param param
+     *            RemoteSystemParam
+     * @return VNXeCommandResult
+     */
+
+    public VNXeCommandResult createRemoteSystemSync(RemoteSystemParam param) {
+        _url = URL;
+        return postRequestSync(param);
+    }
+
+    /**
      * modify a remote system
      * 
      * @param id

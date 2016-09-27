@@ -176,6 +176,15 @@ public class VNXeApiClient {
     }
 
     /**
+     * get a NasServer in the vnxe array
+     */
+    public VNXeNasServer getNasServer(String id) {
+        _logger.info("getting NasServers");
+        NasServerListRequest req = new NasServerListRequest(_khClient);
+        return req.get(id);
+    }
+
+    /**
      * get the storage system
      */
     public VNXeStorageSystem getStorageSystem() throws VNXeException {
@@ -355,7 +364,11 @@ public class VNXeApiClient {
         fsParm.setPool(pool);
         fsParm.setSize(size);
         fsParm.setSupportedProtocols(supportedProtocols.getValue());
-
+        if (getNasServer(nasServerId).getIsReplicationDestination()) {
+            ReplicationParam repParam = new ReplicationParam();
+            repParam.setIsReplicationDestination(true);
+            parm.setReplicationParameters(repParam);
+        }
         parm.setFsParameters(fsParm);
         FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
         _logger.info("submitted the create file system job for " + fsName);
@@ -2956,13 +2969,11 @@ public class VNXeApiClient {
             RemoteSystem remoteSystem, String name) {
         _logger.info("Creating new replication session:");
         ReplicationSessionParam createParam = new ReplicationSessionParam();
-        if (remoteSystem == null) {
-            createParam.setSrcResourceId(srcResourceId);
-            createParam.setDstResourceId(dstResourceId);
-            createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
-            createParam.setName(name);
-            createParam.setAutoInitiate(false);
-        } else {
+        createParam.setSrcResourceId(srcResourceId);
+        createParam.setDstResourceId(dstResourceId);
+        createParam.setMaxTimeOutOfSync(maxTimeOutOfSync);
+        createParam.setAutoInitiate(false);
+        if (remoteSystem != null) {
             createParam.setRemoteSystem(remoteSystem);
         }
         ReplicationSessionRequest req = new ReplicationSessionRequest(_khClient);
@@ -3034,6 +3045,16 @@ public class VNXeApiClient {
         return req.createRemoteSystem(createParam);
     }
 
+    public VNXeCommandResult createRemoteSystemSync(String ipAddress, String userName, String password) {
+        _logger.info("Creating new remote system");
+        RemoteSystemParam createParam = new RemoteSystemParam();
+        createParam.setManagementAddress(ipAddress);
+        createParam.setRemoteUsername(userName);
+        createParam.setRemotePassword(password);
+        RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
+        return req.createRemoteSystemSync(createParam);
+    }
+
     public VNXeCommandJob modifyRemoteSystem(String id, String ipAddress, String userName, String password) {
         _logger.info("modifying remote system");
         RemoteSystemParam param = new RemoteSystemParam();
@@ -3062,5 +3083,4 @@ public class VNXeApiClient {
         RemoteSystemRequest req = new RemoteSystemRequest(_khClient);
         return req.getBySerial(serial);
     }
-
 }

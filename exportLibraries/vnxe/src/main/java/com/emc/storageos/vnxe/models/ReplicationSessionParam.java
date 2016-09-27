@@ -5,14 +5,17 @@
 
 package com.emc.storageos.vnxe.models;
 
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ReplicationSessionParam extends ParamBase {
     private String srcResourceId;
     private String dstResourceId;
-    private int maxTimeOutOfSync;
-    private boolean autoInitiate;
-    private RemoteSystem remoteSystem = null;
-    private boolean forceFullCopy; // not for create
-    private boolean sync; // not for create
+    private Integer maxTimeOutOfSync = null;
+    private Boolean autoInitiate = null;
+    private RemoteSystem remoteSystem;
+    private Boolean sync = null;
+    private Boolean forceFullCopy = null;
 
     public String getSrcResourceId() {
         return srcResourceId;
@@ -38,35 +41,35 @@ public class ReplicationSessionParam extends ParamBase {
         this.remoteSystem = remoteSystem;
     }
 
-    public int getMaxTimeOutOfSync() {
+    public Integer getMaxTimeOutOfSync() {
         return maxTimeOutOfSync;
     }
 
-    public void setMaxTimeOutOfSync(int maxTimeOutOfSync) {
+    public void setMaxTimeOutOfSync(Integer maxTimeOutOfSync) {
         this.maxTimeOutOfSync = maxTimeOutOfSync;
     }
 
-    public boolean getAutoInitiate() {
+    public Boolean getAutoInitiate() {
         return this.autoInitiate;
     }
 
-    public void setAutoInitiate(boolean autoInitiate) {
+    public void setAutoInitiate(Boolean autoInitiate) {
         this.autoInitiate = autoInitiate;
     }
 
-    public boolean isForceFullCopy() {
-        return forceFullCopy;
-    }
-
-    public void setForceFullCopy(boolean forceFullCopy) {
-        this.forceFullCopy = forceFullCopy;
-    }
-
-    public boolean isSync() {
+    public Boolean getSync() {
         return sync;
     }
 
-    public void setSync(boolean sync) {
+    public void setSync(Boolean sync) {
         this.sync = sync;
+    }
+
+    public Boolean getForceFullCopy() {
+        return forceFullCopy;
+    }
+
+    public void setForceFullCopy(Boolean forceFullCopy) {
+        this.forceFullCopy = forceFullCopy;
     }
 }

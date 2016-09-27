@@ -3049,6 +3049,9 @@ public interface BadRequestExceptions {
     public BadRequestException schduleInfoInvalid(final String field);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException scheduleInfoNotAllowedWithSnapshotSessionTarget();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException scheduleInfoNotMatchWithExecutionWindow(final String field);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

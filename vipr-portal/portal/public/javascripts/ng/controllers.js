@@ -2226,7 +2226,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("General Configuration");
                     break;
                 case 3:
-                    setActiveMenu("Overview");
+                    setActiveMenu("");
                     break;
                 case 4:
                 	if($scope.failedType == "PROVIDER") {
@@ -2309,7 +2309,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
             var currentCookie = angular.fromJson(readCookie(cookieKey));
 
-            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
+            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps && guideDataAvailable===true) {
                 window.clearInterval(guideMonitor);
                 $scope.currentStep = 3;
                 $scope.guideMode='full';

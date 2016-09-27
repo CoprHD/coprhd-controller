@@ -16,8 +16,8 @@
                         <span class="title-side-next">&{'gettingStarted.header.side.next'}</span>
                     </div>
                 </a>
-                <a ng-show="completedSteps > 2" ng-click="closeGuide();"><img class="wizard-side-close" src="/public/img/icon-guide-close.png"></a>
             </div>
+            <a ng-show="completedSteps > 2" ng-click="closeGuide();"><img ng-class="{'side-close':guideMode=='side'}" class="wizard-close" src="/public/img/icon-guide-close.png"></a>
         </div>
         <div class="{'panel-body':guideMode=='full'}">
 

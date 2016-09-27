@@ -69,7 +69,8 @@ task assembleLibs(type: Copy) {
         from project.configurations.packagingLib
     }
     exclude "**/hamcrest-*.jar"
-    from "${jdkHome}/lib/tools.jar"
+    def javaHome = System.getProperty("java.home")
+    from "${javaHome}/../lib/tools.jar"
 }
 
 task assembleWars() {

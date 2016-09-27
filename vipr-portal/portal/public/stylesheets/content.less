@@ -1189,16 +1189,21 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     transition: opacity .2s ease;
 }
 
-.wizard-side-close {
-    height: 16px;
-    right: 12px;
-    top: 12px;
-    position: absolute;
-    cursor: pointer;
-    opacity:0.6;
+.wizard-close {
+     height: 16px;
+     right: 36px;
+     top: 47px;
+     position: absolute;
+     cursor: pointer;
+     opacity:0.6;
 }
 
-.wizard-side-close:hover {
+.wizard-close.side-close {
+     right: 12px;
+     top: 12px;
+}
+
+.wizard-close:hover {
     opacity:1;
 }
 

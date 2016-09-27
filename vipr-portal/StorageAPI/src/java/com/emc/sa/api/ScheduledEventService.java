@@ -284,6 +284,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             return msg;
         }
 
+        if (scheduleInfo.getReoccurrence() == 1)
+            return msg;
+
         switch (scheduleInfo.getCycleType()) {
             case MINUTELY:
             case HOURLY:

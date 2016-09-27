@@ -420,7 +420,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
         List<CatalogCategory> subCatalogCategories = catalogCategoryManager.getSubCategories(id);
         subCatalogCategories = filterCategoriesByACLs(subCatalogCategories);
-        subCatalogCategories = filterCategoriesBySource(source, subCatalogCategories);
+        //subCatalogCategories = filterCategoriesBySource(source, subCatalogCategories);
 
         CatalogCategoryList subCatalogCategoryList = new CatalogCategoryList();
         for (CatalogCategory subCatalogCategory : subCatalogCategories) {

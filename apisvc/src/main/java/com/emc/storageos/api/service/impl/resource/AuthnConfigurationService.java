@@ -1093,7 +1093,9 @@ public class AuthnConfigurationService extends TaggedResource {
         // The domains tag must be present in any new profile
         ArgValidator.checkFieldNotNull(param.getDomains(), "domains");
 
-        if (! param.getMode().equalsIgnoreCase(ProvidersType.oidc.name())) { // for ad, ldap or keystone
+        if (param.getMode().equalsIgnoreCase(ProvidersType.oidc.name())) {
+            ensureSingleProvider(param, ProvidersType.oidc);
+        } else { // for ad, ldap or keystone
             ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
             ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
             // The syntax for search_filter will be checked in the following section of this function
@@ -1105,7 +1107,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 ArgValidator.checkFieldNotNull(param.getSearchFilter(), "search_filter");
                 ArgValidator.checkFieldNotNull(param.getSearchBase(), "search_base");
             } else {
-                ensureSingleKeystoneProvider(param);
+                ensureSingleProvider(param, ProvidersType.keystone);
             }
 
             checkIfCreateLDAPGroupPropertiesSupported(param);
@@ -1125,15 +1127,14 @@ public class AuthnConfigurationService extends TaggedResource {
      *
      * @param param
      */
-    private void ensureSingleKeystoneProvider(AuthnCreateParam param) {
+    private void ensureSingleProvider(AuthnCreateParam param, ProvidersType targetProvidersType) {
         List<URI> allProviders = _dbClient.queryByType(AuthnProvider.class, true);
         for (URI providerURI : allProviders) {
             AuthnProvider provider = getProviderById(providerURI, true);
-            if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode().toString())) {
+            if (targetProvidersType.toString().equalsIgnoreCase(provider.getMode().toString())) {
                 throw APIException.badRequests.keystoneProviderAlreadyPresent();
             }
         }
-
     }
 
     private void validateAuthnUpdateParam(AuthnUpdateParam param, AuthnProvider provider) {

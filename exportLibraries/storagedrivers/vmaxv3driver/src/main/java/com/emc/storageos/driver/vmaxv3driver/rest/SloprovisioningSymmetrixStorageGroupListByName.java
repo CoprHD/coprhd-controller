@@ -20,36 +20,48 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Created by gang on 6/23/16.
+ * Query StorageGroup list by given name prefix.
+ *
+ * Created by gang on 9/27/16.
  */
-public class SloprovisioningSymmetrixSrpList extends RestActionImpl {
+public class SloprovisioningSymmetrixStorageGroupListByName extends RestActionImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixSrpList.class);
+    private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixStorageGroupListByName.class);
 
     private String symmetrixId;
+    private String namePrefix;
 
-    public SloprovisioningSymmetrixSrpList(String symmetrixId) {
+    public SloprovisioningSymmetrixStorageGroupListByName(String symmetrixId, String namePrefix) {
         this.symmetrixId = symmetrixId;
+        this.namePrefix = namePrefix;
     }
 
     @Override
-    public List<String> perform(RestClient client) {
-        String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_SRP, this.symmetrixId);
+    public Object perform(RestClient client) {
+        String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_STORAGE_GROUP_LIST_BY_NAME,
+            this.symmetrixId, this.namePrefix);
         String responseBody = client.request(path);
-        List<String> srpIds = parseRestResult(responseBody);
-        return srpIds;
+        List<String> storageGroupIds = parseRestResult(responseBody);
+        return storageGroupIds;
     }
 
     /**
      * Parse the REST response below and return the array list:
      *
      * {
-     * "srpId": [
-     * "SRP_0x102",
-     * "SRP_1"
-     * ],
-     * "success": true,
-     * "num_of_srps": 2
+     *   "success": true,
+     *   "num_of_storage_groups": 5,
+     *   "storageGroupId": [
+     *     "test_vmaxv3_001",
+     *     "test_vmaxv3_002",
+     *     "test_vmaxv3_003",
+     *     "test_vmaxv3_003_1",
+     *     "test_vmaxv3_003_2"
+     *   ]
+     * } or:
+     * {
+     *   "success": true,
+     *   "message": "No Storage Groups Found"
      * }
      *
      * @param responseBody
@@ -62,7 +74,7 @@ public class SloprovisioningSymmetrixSrpList extends RestActionImpl {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         List<String> result = new ArrayList<>();
-        JsonArray list = root.getAsJsonArray("srpId");
+        JsonArray list = root.getAsJsonArray("storageGroupId");
         Iterator<JsonElement> it = list.iterator();
         while (it.hasNext()) {
             result.add(it.next().getAsString());

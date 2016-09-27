@@ -5,6 +5,8 @@
 
 package com.emc.storageos.driver.vmaxv3driver.util.rest;
 
+import com.google.gson.Gson;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -21,6 +23,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicStatusLine;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,14 +116,12 @@ public class RestClient {
                 StringEntity entity = new StringEntity(body, ContentType.APPLICATION_JSON);
                 ((HttpEntityEnclosingRequestBase) request).setEntity(entity);
             }
-            logger.info("Executing perform: {}", request.getRequestLine());
+            logger.debug("Executing perform: {}", request.getRequestLine());
             CloseableHttpResponse response = client.execute(request);
             try {
-                logger.info(response.getStatusLine().toString());
-                String responseBody = null;
-                if (response.getEntity() == null) {
-                    responseBody = "";
-                } else {
+                logger.debug(response.getStatusLine().toString());
+                String responseBody = new Gson().toJson(response.getStatusLine());
+                if (response.getEntity() != null) {
                     responseBody = EntityUtils.toString(response.getEntity());
                 }
                 return responseBody;

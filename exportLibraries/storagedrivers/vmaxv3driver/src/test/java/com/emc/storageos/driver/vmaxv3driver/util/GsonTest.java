@@ -10,6 +10,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.StatusLine;
+import org.apache.http.message.BasicStatusLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -90,5 +93,13 @@ public class GsonTest {
         Assert.assertEquals(bean.getLocal(), Boolean.FALSE);
         Assert.assertEquals(bean.getVirtualCapacity().getTotal_capacity_gb(), new Double(43558.59));
         logger.info("Pass all the assert checks.");
+    }
+
+    @Test
+    public void testConvertJavaBean2Json() {
+        Gson gson = new Gson();
+        StatusLine statusLine = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "Resource Not Found");
+        String json = gson.toJson(statusLine);
+        logger.info("StatusLine in JSON: {}", json);
     }
 }

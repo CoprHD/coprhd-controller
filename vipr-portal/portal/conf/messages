@@ -542,8 +542,8 @@ Hosts.initiators.title=Host Initiators
 Hosts.initiators.description=
 Hosts.initiators.add.title=Add Host Initiator
 Hosts.initiators.add=Add Initiator
-Hosts.initiators.addPaired=Add Associated Initiator
-Hosts.initiators.addPaired.title=Add Associated Initiator to Host
+Hosts.initiators.addPaired=Add Paired Initiator
+Hosts.initiators.addPaired.title=Add Paired Initiator to Host
 
 initiators.label=Initiators
 initiators.added=Task initiated to add Initiator '%s'.

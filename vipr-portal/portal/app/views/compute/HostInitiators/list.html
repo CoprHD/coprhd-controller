@@ -108,23 +108,34 @@
 <script>
   #{ifErrors}
     $(document).ready(function() {
-      showDialog();
+        var $addModal =  $('#addDialog');
+        var $addPairedModal =  $('#addPairedDialog');
+        if ($('.form-group', $addModal).hasClass("has-error")) {
+            showAddDialog();
+        }
+        if ($('.form-group', $addPairedModal).hasClass("has-error")) {
+            showAddPairedDialog();
+        }
     });
   #{/ifErrors}
 
   function showDialogClick() {
-	clearErrors();
-	  $('#addDialog').modal();
+    clearErrors();
+    $('#addDialog').modal();
   }
   
   function showPairedDialogClick() {
-	  clearErrors();
-		  $('#addPairedDialog').modal();
-	  }
+    clearErrors();
+    $('#addPairedDialog').modal();
+  }
  
-
-  function showDialog() {
-	  $('.modal').modal();
+  
+  function showAddDialog() {
+    $('#addDialog').modal();
+  }
+  
+  function showAddPairedDialog() {
+    $('#addPairedDialog').modal();
   }
   
   function clearErrors() {

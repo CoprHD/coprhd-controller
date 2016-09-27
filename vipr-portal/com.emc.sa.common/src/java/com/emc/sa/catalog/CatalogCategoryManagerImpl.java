@@ -323,19 +323,25 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         return categories;
     }
     
-    public CatalogService getCategorieService(List<CatalogCategory> catalogCategories, String serviceName) {
-        if (null != catalogCategories && !catalogCategories.isEmpty() && null != serviceName) {
-            List<URI> serviceURIList = client.catalogServices().findByLabel(serviceName);
-            List<CatalogService> requestedCatalogServices = client.catalogServices().findByIds(serviceURIList);
+    public CatalogService getCategorieService(List<CatalogCategory> catalogCategories, String name) {
+        if (null != catalogCategories && !catalogCategories.isEmpty() && null != name) {
+            String[] service = StringUtils.split(name, '|');
+            if (service.length == 2) {
+                List<URI> serviceURIList = client.catalogServices().findByLabel(service[0]);
+                List<CatalogService> requestedCatalogServices = client.catalogServices().findByIds(serviceURIList);
 
-            for (CatalogCategory catalogCategory : catalogCategories) {
-                final String parentCatalogCategoryId = catalogCategory.getId() + ":" + catalogCategory.getLabel();
-                for (CatalogService requestedCatalogService : requestedCatalogServices) {
-                    if (null != requestedCatalogService) {
-                        final NamedURI serviceID = requestedCatalogService.getCatalogCategoryId();
-                        final String serviceLabel = requestedCatalogService.getLabel();
-                        if (null != serviceID && parentCatalogCategoryId.equals(serviceID.toString()) && serviceName.equals(serviceLabel)) {
-                            return requestedCatalogService;
+                for (CatalogCategory catalogCategory : catalogCategories) {
+                    if (service[1].equals(catalogCategory.getLabel())) {
+                        final String parentCatalogCategoryId = catalogCategory.getId() + ":" + catalogCategory.getLabel();
+                        for (CatalogService requestedCatalogService : requestedCatalogServices) {
+                            if (null != requestedCatalogService) {
+                                final NamedURI serviceID = requestedCatalogService.getCatalogCategoryId();
+                                final String baseServiceName = requestedCatalogService.getLabel();
+                                if (null != serviceID && parentCatalogCategoryId.equals(serviceID.toString())
+                                        && service[0].equals(baseServiceName)) {
+                                    return requestedCatalogService;
+                                }
+                            }
                         }
                     }
                 }

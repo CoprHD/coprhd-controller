@@ -1755,28 +1755,30 @@ test_4() {
 
     verify_export ${expname}1 ${HOST1} 2 2
 
-    PWWN=`echo ${H2PI1} | sed 's/://g'`
+    if [ "$SS" != "xio" ]; then
+        PWWN=`echo ${H2PI1} | sed 's/://g'`
 
-    # Add another initiator to the mask (done differently per array type)
-    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        # Add another initiator to the mask (done differently per array type)
+        arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
-    # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 3 2
+        # Verify the mask has the new initiator in it
+        verify_export ${expname}1 ${HOST1} 3 2
 
-    # Run the export group command.  Expect it to fail with validation
-    fail export_group delete $PROJECT/${expname}1
+        # Run the export group command.  Expect it to fail with validation
+	fail export_group delete $PROJECT/${expname}1
 
-    # Run the export group command.  Expect it to fail with validation
-    fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+        # Run the export group command.  Expect it to fail with validation
+        fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
-    # Verify the mask wasn't touched
-    verify_export ${expname}1 ${HOST1} 3 2
+        # Verify the mask wasn't touched
+        verify_export ${expname}1 ${HOST1} 3 2
 
-    # Now remove the initiator from the export mask
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        # Now remove the initiator from the export mask
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
-    # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 2 2
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 2 2
+    fi
 
     # Reset test: test lower levels (original test_4 test)
     # Turn on suspend of export after orchestration

@@ -15,6 +15,7 @@ import com.emc.vipr.model.catalog.CatalogServiceUpdateParam
 import com.emc.vipr.model.catalog.ExecutionWindowCreateParam
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep
+import com.emc.vipr.model.catalog.ServiceFieldTableRestRep
 
 
 class CatalogServiceHelper {
@@ -100,18 +101,36 @@ class CatalogServiceHelper {
             
             // only try to get the asset options if we don't already have a value selected for this asset type 
             if ( parameters[fieldName] == null ) {
-                println sprintf("Field: %s [%s]", field.label, field.type)
-                def option = getAssetOptionValue(serviceId, field, overrideParameters, parameterTypeMap, parameters)
-                
-                // if we found an option for this asset type, add it to the parameters list 
-                if (option) {
-                    parameters[fieldName] = option
-                    println sprintf("Added parameter: %s:%s", fieldName, option);
+
+                if (field.isTable()) {
+                    ServiceFieldTableRestRep table = (ServiceFieldTableRestRep)field;
+                    for ( item in table.getItems()) {
+                        println sprintf("Field: %s [%s]", item.label, field.type)
+                        def option = getAssetOptionValue(serviceId, item, overrideParameters, parameterTypeMap, parameters)
+                        // if we found an option for this asset type, add it to the parameters list
+                        if (option) {
+                            parameters[item.name] = option
+                            println sprintf("Added parameter: %s:%s", item.name, option);
+                        }
+
+                        // make sure we record the entry in the type map
+                        parameterTypeMap[fieldName] = field.type
+                        println ""
+                    }
+                } else {
+                    println sprintf("Field: %s [%s]", field.label, field.type)
+                    def option = getAssetOptionValue(serviceId, field, overrideParameters, parameterTypeMap, parameters)
+                    // if we found an option for this asset type, add it to the parameters list
+                    if (option) {
+                        parameters[fieldName] = option
+                        println sprintf("Added parameter: %s:%s", fieldName, option);
+                    }
+
+                    // make sure we record the entry in the type map
+                    parameterTypeMap[fieldName] = field.type
+                    println ""
                 }
-                
-                // make sure we record the entry in the type map
-                parameterTypeMap[fieldName] = field.type
-                println ""    
+
             }
         }
         

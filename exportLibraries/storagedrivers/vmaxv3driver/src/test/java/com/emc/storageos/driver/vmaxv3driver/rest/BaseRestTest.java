@@ -24,15 +24,19 @@ public abstract class BaseRestTest {
         return new ArrayInfo("000196801612", "SRP_1", "DF-1C", "12");
     }
 
+    protected String getStorageGroupId() {
+        return "test1";
+    }
+
     protected ArrayInfo getArrayWithFcPort() {
-        return new ArrayInfo("000196701343", null, "FA-1D", "24");
+        return new ArrayInfo("000196800794", null, "FA-1D", "24");
     }
 
     protected ArrayInfo getArrayWithIscsiPort() {
-        return new ArrayInfo("000196701343", null, "SE-4F", "11");
+        return new ArrayInfo("000196800794", null, "SE-1F", "4");
     }
 
     protected ArrayInfo getArrayWithRdfPort() {
-        return new ArrayInfo("000196701343", null, "RF-2G", "26");
+        return new ArrayInfo("000196800794", null, "RF-2E", "26");
     }
 }

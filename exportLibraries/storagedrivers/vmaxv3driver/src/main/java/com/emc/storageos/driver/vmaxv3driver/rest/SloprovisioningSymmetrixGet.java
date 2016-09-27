@@ -70,8 +70,7 @@ public class SloprovisioningSymmetrixGet extends RestActionImpl {
     private Symmetrix parseRestResult(String responseBody) {
         logger.debug("Response body = {}", responseBody);
         JsonObject root = this.parseResponse(responseBody);
-        Boolean success = root.get("success").getAsBoolean();
-        if (!success) {
+        if (root.get("success") == null || !root.get("success").getAsBoolean()) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         Symmetrix bean = new Gson().fromJson(root.getAsJsonArray("symmetrix").get(0), Symmetrix.class);

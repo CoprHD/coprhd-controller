@@ -37,7 +37,7 @@ public class Vmaxv3Constants {
     public static final String RA_SLOPROVISIONING_SYMMETRIX_STORAGE_GROUP_ID =
         "/univmax/restapi/sloprovisioning/symmetrix/%1$s/storagegroup/%2$s";
     public static final String RA_SLOPROVISIONING_SYMMETRIX_STORAGE_GROUP_LIST_BY_NAME =
-        "/univmax/restapi/sloprovisioning/symmetrix/%1$s/storagegroup?storageGroupId=<like>%2$s";
+        "/univmax/restapi/sloprovisioning/symmetrix/%1$s/storagegroup?storageGroupId=%%3Clike%%3E%2$s";
     public static final String RA_SLOPROVISIONING_SYMMETRIX_VOLUME_LIST_BY_STORAGE_GROUP =
         "/univmax/restapi/sloprovisioning/symmetrix/%1$s/volume?storageGroupId=%2$s";
     public static final String RA_SLOPROVISIONING_SYMMETRIX_VOLUME =

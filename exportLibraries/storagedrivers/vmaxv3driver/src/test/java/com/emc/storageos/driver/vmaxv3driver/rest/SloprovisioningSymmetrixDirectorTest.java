@@ -1,0 +1,19 @@
+package com.emc.storageos.driver.vmaxv3driver.rest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.annotations.Test;
+
+/**
+ * Created by gang on 6/24/16.
+ */
+public class SloprovisioningSymmetrixDirectorTest extends BaseRestTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixDirectorTest.class);
+
+    @Test
+    public void testList() {
+        logger.info("Director list = {}", new SloprovisioningSymmetrixDirectorList(
+            this.getDefaultArray().getArrayId()).perform(this.getClient()));
+    }
+}

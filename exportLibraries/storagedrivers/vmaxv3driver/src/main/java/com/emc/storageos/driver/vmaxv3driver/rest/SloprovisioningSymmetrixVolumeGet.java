@@ -81,8 +81,7 @@ public class SloprovisioningSymmetrixVolumeGet extends RestActionImpl {
     private Volume parseRestResult(String responseBody) {
         logger.debug("Response body = {}", responseBody);
         JsonObject root = this.parseResponse(responseBody);
-        Boolean success = root.get("success").getAsBoolean();
-        if (!success) {
+        if (root.get("success") == null || !root.get("success").getAsBoolean()) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         Volume bean = new Gson().fromJson(root.getAsJsonArray("volume").get(0), Volume.class);

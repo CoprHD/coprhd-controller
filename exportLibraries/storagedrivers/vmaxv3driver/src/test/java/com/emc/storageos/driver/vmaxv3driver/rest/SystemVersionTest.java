@@ -12,12 +12,12 @@ import org.testng.annotations.Test;
 /**
  * Created by gang on 6/23/16.
  */
-public class SystemVersionGetTest extends BaseRestTest {
+public class SystemVersionTest extends BaseRestTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(SystemVersionGetTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(SystemVersionTest.class);
 
     @Test
-    public void test() {
+    public void testGet() {
         logger.info("Version = {}", new SystemVersionGet().perform(this.getClient()));
     }
 }

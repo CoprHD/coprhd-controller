@@ -1,6 +1,5 @@
 package com.emc.storageos.driver.vmaxv3driver.rest.request;
 
-import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixDirectorListTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;

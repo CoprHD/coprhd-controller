@@ -75,8 +75,7 @@ public class SloprovisioningSymmetrixDirectorPortList extends RestActionImpl {
     private List<String> parseRestResult(String responseBody) {
         logger.debug("Response body = {}", responseBody);
         JsonObject root = this.parseResponse(responseBody);
-        Boolean success = root.get("success").getAsBoolean();
-        if (!success) {
+        if (root.get("success") == null || !root.get("success").getAsBoolean()) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         List<String> result = new ArrayList<>();

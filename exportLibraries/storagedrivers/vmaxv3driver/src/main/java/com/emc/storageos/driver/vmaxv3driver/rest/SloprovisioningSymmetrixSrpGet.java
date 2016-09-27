@@ -93,8 +93,7 @@ public class SloprovisioningSymmetrixSrpGet extends RestActionImpl {
     private Srp parseRestResult(String responseBody) {
         logger.debug("Response body = {}", responseBody);
         JsonObject root = this.parseResponse(responseBody);
-        Boolean success = root.get("success").getAsBoolean();
-        if (!success) {
+        if (root.get("success") == null || !root.get("success").getAsBoolean()) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         Srp bean = new Gson().fromJson(root.getAsJsonArray("srp").get(0), Srp.class);

@@ -502,6 +502,21 @@ public class ExportMaskUtils {
         return volumeURIs;
     }
 
+    /**
+     * Returns a list of all the user added Volumes in an ExportMask
+     *
+     * @param exportMask
+     * @return
+     */
+    static public List<URI> getUserAddedVolumeURIs(ExportMask exportMask) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+        if (exportMask.getUserAddedVolumes() != null) {
+            volumeURIs.addAll(
+                    Collections2.transform(exportMask.getUserAddedVolumes().values(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        }
+        return volumeURIs;
+    }
+
     public static DataSource getExportDatasource(StorageSystem storage, List<Initiator> initiators,
             DataSourceFactory factory, String configName) {
 

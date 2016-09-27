@@ -40,7 +40,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
-import com.emc.storageos.plugins.metering.vplex.VPlexCollectionException;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -52,7 +51,6 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
@@ -610,9 +608,15 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
+
+                    // If the initiator is in our DB, add it to the Initiator list
                     if (knownInitiator != null) {
                         initiatorObjectsToAdd.add(knownInitiator);
-                    } else {
+                    }
+
+                    // If the initiator is not in our DB (or it's in our DB, but not a user added initiator), add to the
+                    // existing initiator list.
+                    if (knownInitiator == null || !exportMask.hasUserInitiator(normalizedPort)) {
                         initiatorPortWwnsToAdd.add(normalizedPort);
                     }
                     addInitiators = true;

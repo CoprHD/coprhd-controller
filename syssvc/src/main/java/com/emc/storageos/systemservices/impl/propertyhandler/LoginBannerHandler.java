@@ -25,7 +25,7 @@ public class LoginBannerHandler implements UpdateHandler{
     public void before(PropertyInfoRestRep oldProps,PropertyInfoRestRep newProps){
         String newValue = newProps.getProperty(SYSTEM_LOGIN_BANNER);
 
-        if (!testInput(newValue)){
+        if (newValue != null && !testInput(newValue)){
             throw APIException.badRequests.parameterValueContainsInvalidCharacters(SYSTEM_LOGIN_BANNER,LEGAL_CHARACTERS_MESSAGE);
         }
     }

@@ -7,6 +7,8 @@ package com.emc.storageos.systemservices.impl.propertyhandler;
 
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import java.util.Arrays;
+import java.util.List;
 
 public class LoginBannerHandler implements UpdateHandler{
 
@@ -14,6 +16,7 @@ public class LoginBannerHandler implements UpdateHandler{
     private static final String BACKTICK= "`";
     private static final String BACKSLASH= "\\";
     private static final String LEGAL_CHARACTERS_MESSAGE="Only ASCII characters except ` and \\ ";
+    private static final List<Character> LEGAL_ESCAPE_CHARACTERS= Arrays.asList('n','r');
 
     /**
      * Checks if system_login_banner property conforms to allowed characters
@@ -51,6 +54,16 @@ public class LoginBannerHandler implements UpdateHandler{
         }
 
         if (input.contains(BACKSLASH)){
+            //check for legal escape characters newline and carriage return
+            for (int index = input.indexOf(BACKSLASH); index >= 0; index = input.indexOf(BACKSLASH, index + 1)) {
+                if (index == input.length()-1){
+                    return false;
+                }
+                else if (!LEGAL_ESCAPE_CHARACTERS.contains(input.charAt(index+1))){
+                    return false;
+                }
+            }
+
             return false;
         }
 

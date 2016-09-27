@@ -927,12 +927,8 @@ public class HostService extends TaskResourceService {
     private void validatePairedInitiatorData(PairedInitiatorCreateParam createParam) {
         validateInitiatorData(createParam.getFirstInitiator(), null);
         validateInitiatorData(createParam.getSecondInitiator(), null);
-
         if (createParam.getFirstInitiator().getPort().equalsIgnoreCase(createParam.getSecondInitiator().getPort())) {
             throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getPort(), "initiator_port");
-        }
-        if (createParam.getFirstInitiator().getName().equalsIgnoreCase(createParam.getSecondInitiator().getName())) {
-            throw APIException.badRequests.duplicateEntityWithField(createParam.getFirstInitiator().getName(), "name");
         }
 
     }

@@ -5180,7 +5180,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     targetPortMap, _networkDeviceController);
 
             // validate the remove initiator operation against the export mask volumes
-            List<URI> volumeURIList = (exportMask.getVolumes() != null) ? URIUtil.toURIList(exportMask.getVolumes().keySet())
+            List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
+                    ? URIUtil.toURIList(exportMask.getUserAddedVolumes().keySet())
                     : new ArrayList<URI>();
             if (volumeURIList.isEmpty()) {
                 _log.warn("volume URI list for validating remove initiators is empty...");

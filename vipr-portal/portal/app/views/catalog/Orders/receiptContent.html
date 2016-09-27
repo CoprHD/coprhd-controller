@@ -107,7 +107,7 @@
          &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
          &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
          &{'order.at'}
-         #{localDateTime details.scheduleStartDateTime, format: "hh:mm a"/}
+         #{localDateTime details.scheduleStartDateTime, format: "h:mm A"/}
          #{/if}
          
          #{if details.scheduledEvent.scheduleInfo.reoccurrence > 1}

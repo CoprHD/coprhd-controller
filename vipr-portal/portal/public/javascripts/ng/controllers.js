@@ -656,7 +656,7 @@ angular.module("portalApp").controller({
                 $scope.quota.name = data.name;
                 $scope.quota.securityStyle = data.securityStyle;
                 $scope.quota.oplock = data.oplock
-                $scope.quota.size = $filter('number')(data.quotaSize, 0);
+                $scope.quota.size = ($filter('number')(data.quotaSize, 0)).replace(",","");
             });
        }
     },

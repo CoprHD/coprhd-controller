@@ -4009,6 +4009,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             boolean targetMigrationsExist = (!targetVpoolMigrations.isEmpty());
             boolean journalMigrationsExist = (!journalVpoolMigrations.isEmpty());
             
+            if (!sourceMigrationsExist && (targetMigrationsExist || journalMigrationsExist)) {                
+                // When there are no Source migrations and the Source volumes are in RGs we need
+                // to make sure all those Source volumes are in the request.
+                //
+                // Otherwise we could have the case where some Source volumes have been moved to a 
+                // new vpool and some have not. 
+                validateSourceVolumesInRGForMigrationRequest(volumes);                 
+            }
+            
             _log.info(String.format("%s SOURCE migrations, %s TARGET migrations, %s METADATA migrations", 
                     sourceVpoolMigrations.size(), targetVpoolMigrations.size(), journalVpoolMigrations.size()));
            
@@ -4181,11 +4190,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }                
                 sourceVolumesToMigrate.add(volume);
             }
-            
-            if (!sourceMigrationsExist && targetMigrationsExist) {
-                
-            }
-
+                        
             if (targetMigrationsExist) {                
                 // Find the Targets for the volume
                 StringSet rpTargets = volume.getRpTargets();
@@ -4348,5 +4353,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
         }
+    }
+    
+    /**
+     * Given a list of RP Source volumes, check to see if all the volumes passed in are a part of the Replication
+     * Group. If we are not passed in all the volumes from the RG, throw an exception. We need to migrate
+     * these volumes together.
+     * 
+     * @param volumes List of Source volumes to check
+     */
+    private void validateSourceVolumesInRGForMigrationRequest(List<Volume> volumes) {
+        // Group all volumes in the request by RG. If there are no volumes in the request
+        // that are in an RG then the table will be empty.
+        Table<URI, String, List<Volume>> groupVolumes = VPlexUtil.groupVPlexVolumesByRG(
+                volumes, null, null, _dbClient);        
+        for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
+            // Get all the volumes in the request that have been grouped by RG 
+            List<Volume> volumesInRGRequest = cell.getValue();
+            // Grab the first volume
+            Volume firstVolume = volumesInRGRequest.get(0);            
+            // Get all the volumes from the RG
+            List<Volume> rgVolumes = VPlexUtil.getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey(), firstVolume.getPersonality(), _dbClient);
+            
+            // If all the volumes in the request that have been grouped by RG are not all the volumes from 
+            // the RG, throw an exception.
+            // We need to migrate all the volumes from the RG together.
+            if (volumesInRGRequest.size() != rgVolumes.size()) {
+                throw APIException.badRequests.cantMigrateNotAllRPSourceVolumesInRequest();
+            }
+        }  
     }
 }

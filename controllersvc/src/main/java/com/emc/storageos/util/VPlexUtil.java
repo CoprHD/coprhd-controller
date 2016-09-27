@@ -1690,4 +1690,38 @@ public class VPlexUtil {
         
         return groupVolumes;
     }
+    
+    /**
+     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
+     *
+     * @param groupName The replication group name
+     * @param storageSystemUri The backend storage system URI
+     * @param personality Optional argument to filter on volume personality
+     * @param dbClient DbClient reference
+     * @return The list of Vplex virtual volumes
+     */
+    public static List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri, String personality, DbClient dbClient) {
+        List<Volume> vplexVols = new ArrayList<Volume>();
+        // Get all backend volumes with the same replication group name
+        List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName));
+        for (Volume volume : volumes) {
+            URI system = volume.getStorageController();
+            if (system.equals(storageSystemUri)) {
+                // Get the vplex virtual volume
+                List<Volume> vplexVolumes = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                                getVolumesByAssociatedId(volume.getId().toString()));
+                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                    Volume vplexVol = vplexVolumes.get(0);
+                    if ((personality == null) || vplexVol.checkPersonality(personality)) {
+                        vplexVols.add(vplexVol);
+                    }
+                }
+
+            }
+        }
+        return vplexVols;
+    }
 }

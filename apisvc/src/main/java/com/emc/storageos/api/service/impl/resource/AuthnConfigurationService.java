@@ -1067,6 +1067,7 @@ public class AuthnConfigurationService extends TaggedResource {
             }
         } if ( !ProvidersType.oidc.toString().equalsIgnoreCase( param.getMode() ) ) {
             ArgValidator.checkFieldNotEmpty(oidcAddress, "oidc_address");
+            ensureSingleOidcProvider();
         } else {
             String managerDn = param.getManagerDn();
             if (managerDn != null) {
@@ -1082,6 +1083,17 @@ public class AuthnConfigurationService extends TaggedResource {
         }
     }
 
+    // TODO: may want to add more checks for update provider
+    private void ensureSingleOidcProvider() {
+        List<URI> allProviders = _dbClient.queryByType(AuthnProvider.class, true);
+        for (URI providerURI : allProviders) {
+            AuthnProvider provider = getProviderById(providerURI, true);
+            if (ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode().toString())) {
+                throw APIException.badRequests.oidcProviderAlreadyPresent();
+            }
+        }
+    }
+
     private void validateAuthnCreateParam(AuthnCreateParam param) {
         if (param == null) {
             throw APIException.badRequests.resourceEmptyConfiguration("authn provider");
@@ -1093,9 +1105,7 @@ public class AuthnConfigurationService extends TaggedResource {
         // The domains tag must be present in any new profile
         ArgValidator.checkFieldNotNull(param.getDomains(), "domains");
 
-        if (param.getMode().equalsIgnoreCase(ProvidersType.oidc.name())) {
-            ensureSingleProvider(param, ProvidersType.oidc);
-        } else { // for ad, ldap or keystone
+        if (param.getMode().equalsIgnoreCase(ProvidersType.oidc.name())) { // for ad, ldap or keystone
             ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
             ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
             // The syntax for search_filter will be checked in the following section of this function
@@ -1107,7 +1117,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 ArgValidator.checkFieldNotNull(param.getSearchFilter(), "search_filter");
                 ArgValidator.checkFieldNotNull(param.getSearchBase(), "search_base");
             } else {
-                ensureSingleProvider(param, ProvidersType.keystone);
+                ensureSingleKeystoneProvider(param);
             }
 
             checkIfCreateLDAPGroupPropertiesSupported(param);
@@ -1125,13 +1135,12 @@ public class AuthnConfigurationService extends TaggedResource {
      * use for which request, hence only single keystone authentication provider is
      * supported.
      *
-     * @param param
      */
-    private void ensureSingleProvider(AuthnCreateParam param, ProvidersType targetProvidersType) {
+    private void ensureSingleKeystoneProvider(AuthnCreateParam param) {
         List<URI> allProviders = _dbClient.queryByType(AuthnProvider.class, true);
         for (URI providerURI : allProviders) {
             AuthnProvider provider = getProviderById(providerURI, true);
-            if (targetProvidersType.toString().equalsIgnoreCase(provider.getMode().toString())) {
+            if (ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode().toString())) {
                 throw APIException.badRequests.keystoneProviderAlreadyPresent();
             }
         }

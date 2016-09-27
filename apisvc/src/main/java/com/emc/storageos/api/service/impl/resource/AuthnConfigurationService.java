@@ -1093,21 +1093,23 @@ public class AuthnConfigurationService extends TaggedResource {
         // The domains tag must be present in any new profile
         ArgValidator.checkFieldNotNull(param.getDomains(), "domains");
 
-        ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
-        ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
-        // The syntax for search_filter will be checked in the following section of this function
-        // Check that the LDAP server URL is present.
-        // The syntax will be checked in the following section of this function
-        ArgValidator.checkFieldNotEmpty(param.getServerUrls(), "server_urls");
+        if (! param.getMode().equalsIgnoreCase(ProvidersType.oidc.name())) { // for ad, ldap or keystone
+            ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
+            ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
+            // The syntax for search_filter will be checked in the following section of this function
+            // Check that the LDAP server URL is present.
+            // The syntax will be checked in the following section of this function
+            ArgValidator.checkFieldNotEmpty(param.getServerUrls(), "server_urls");
 
-        if (!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
-            ArgValidator.checkFieldNotNull(param.getSearchFilter(), "search_filter");
-            ArgValidator.checkFieldNotNull(param.getSearchBase(), "search_base");
-        } else {
-            ensureSingleKeystoneProvider(param);
+            if (!AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
+                ArgValidator.checkFieldNotNull(param.getSearchFilter(), "search_filter");
+                ArgValidator.checkFieldNotNull(param.getSearchBase(), "search_base");
+            } else {
+                ensureSingleKeystoneProvider(param);
+            }
+
+            checkIfCreateLDAPGroupPropertiesSupported(param);
         }
-
-        checkIfCreateLDAPGroupPropertiesSupported(param);
 
         validateAuthnProviderParam(param, null, param.getServerUrls(), param.getDomains(),
                 param.getGroupWhitelistValues(), param.getOidcProviderAddress());

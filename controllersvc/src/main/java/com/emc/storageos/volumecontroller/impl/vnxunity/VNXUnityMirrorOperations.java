@@ -20,6 +20,7 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.RemoteSystem;
 import com.emc.storageos.vnxe.models.ReplicationSession;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
+import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -57,7 +58,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
         String name = targetFileShare.getLabel();
 
         try {
-            VNXeCommandJob job = apiClient.createReplicationSession(getNativeIdByFileShareURI(source), getNativeIdByFileShareURI(target),
+            VNXeCommandJob job = apiClient.createReplicationSession(getResIdByFileShareURI(source), getResIdByFileShareURI(target),
                     maxTimeOutOfSync, getRemoteSystem(apiClient, targetStorageSystem), name);
             VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "createMirrorFileShareLink");
             ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -149,8 +150,8 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             throws DeviceControllerException {
         VNXeApiClient apiClient = getVnxUnityClient(system);
         try {
-            ReplicationSession session = apiClient.getReplicationSession(getNativeIdByFileShareURI(source),
-                    getNativeIdByFileShareURI(target));
+            ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(source),
+                    getResIdByFileShareURI(target));
             VNXeCommandJob job = apiClient.deleteReplicationSession(session.getId());
             VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "failoverMirrorFileShareLink");
             ControllerServiceImpl.enqueueJob(new QueueJob(replicationJob));
@@ -265,7 +266,7 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
             throws DeviceControllerException {
         VNXeApiClient apiClient = getVnxUnityClient(system);
         try {
-            ReplicationSession session = apiClient.getReplicationSession(getNativeIdByFileShareURI(target.getParentFileShare().getURI()),
+            ReplicationSession session = apiClient.getReplicationSession(getResIdByFileShareURI(target.getParentFileShare().getURI()),
                     target.getNativeId());
             VNXeCommandJob job = apiClient.deleteReplicationSession(session.getId());
             VNXeJob replicationJob = new VNXeJob(job.getId(), system.getId(), completer, "refreshMirrorFileShareLink");
@@ -319,13 +320,24 @@ public class VNXUnityMirrorOperations extends VNXUnityOperations implements File
 
     // Util Methods
 
-    private String getNativeIdByFileShareURI(URI fsId) {
-        return dbClient.queryObject(FileShare.class, fsId).getNativeId();
+    private String getResIdByFileShareURI(URI fsId) {
+        FileShare fs = dbClient.queryObject(FileShare.class, fsId);
+        VNXeApiClient apiClient = getVnxUnityClient(dbClient.queryObject(StorageSystem.class, fs.getStorageDevice()));
+        return apiClient.getFileSystemByFSId(fs.getNativeId()).getStorageResource().getId();
     }
 
     private RemoteSystem getRemoteSystem(VNXeApiClient client, StorageSystem system) {
         VNXeApiClient remoteClient = getVnxUnityClient(system);
-        return client.getRemoteSystemBySerial(remoteClient.getStorageSystem().getSerialNumber());
+        // create remote system if does not exist
+        RemoteSystem remoteSystem = client.getRemoteSystemBySerial(remoteClient.getStorageSystem().getSerialNumber());
+        if (remoteSystem != null) {
+            return remoteSystem; // remote system already exists
+        }
+        VNXeCommandResult result = client.createRemoteSystemSync(system.getIpAddress(), system.getUsername(), system.getPassword());
+        if (result.getSuccess()) {
+            return client.getRemoteSystem(result.getId());
+        }
+        return null;
     }
 
     private int convertToMinutes(Long fsRpoValue, String fsRpoType) {

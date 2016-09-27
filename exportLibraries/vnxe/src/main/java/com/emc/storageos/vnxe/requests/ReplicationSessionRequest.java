@@ -83,7 +83,7 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
     }
 
     public VNXeCommandJob modifyReplicationSession(String id, ReplicationSessionParam param) {
-        _url = URL_INSTANCE + id;
+        _url = URL_INSTANCE + id + ACTION + "modify";
         return postRequestAsync(param);
     }
 
@@ -129,6 +129,9 @@ public class ReplicationSessionRequest extends KHRequests<ReplicationSession> {
         setQueryParameters(queryParams);
         _url = URL;
         List<ReplicationSession> sessions = getDataForObjects(ReplicationSession.class);
-        return sessions.get(0);
+        if (!sessions.isEmpty()) {
+            return sessions.get(0);
+        }
+        return null;
     }
 }

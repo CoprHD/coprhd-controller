@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.CifsServerMap;
@@ -434,6 +435,30 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     }
 
     private List<VirtualNAS> discoverNasReplicationAssociations(StorageSystem viprStorageSystem, VNXeApiClient client) {
+        // remove bad associations
+        URIQueryResultList res = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(viprStorageSystem.getId()),
+                res);
+        if (!res.isEmpty()) {
+            List<VirtualNAS> vnasList = _dbClient.queryObject(VirtualNAS.class, res);
+            for (VirtualNAS vnas : vnasList) {
+                URI srcNas = vnas.getId();
+                URI destNas = vnas.getDestinationVirtualNas();
+                if (vnas.getIsReplicationDestination()) {
+                    srcNas = vnas.getSourceVirtualNas();
+                    destNas = vnas.getId();
+                }
+                ReplicationSession session = client.getReplicationSession(
+                        _dbClient.queryObject(VirtualNAS.class, srcNas).getNativeId(),
+                        _dbClient.queryObject(VirtualNAS.class, destNas).getNativeId());
+                if (session == null) {
+                    vnas.setDestinationVirtualNas(null);
+                    vnas.setSourceVirtualNas(null);
+                    vnas.setIsReplicationDestination(false);
+                }
+            }
+        }
+        // discover/rediscover associations for vnas from replication session
         List<ReplicationSession> repSessions = client.getAllReplicationSessionsByResource(ReplicationEndpointResourceTypeEnum.NAS_SERVER);
         List<VirtualNAS> nasList = new ArrayList<VirtualNAS>();
         for (ReplicationSession session : repSessions) { // get all replication sessions on the storage system

@@ -45,7 +45,7 @@ public class WinRMTarget {
     protected static final ContentType SOAP = ContentType.create("application/soap+xml", "UTF-8");
     public static final int DEFAULT_HTTP_PORT = 5985;
     public static final int DEFAULT_HTTPS_PORT = 5986;
-    private static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000 * 1000; // 1 hour
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
     private String host;
     private int port;

@@ -2039,6 +2039,68 @@ test_6() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    known_device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Run the export group command.  Expect it to fail with validation
+    fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+    # Now remove the volume from the storage group (masking view)
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	cleanup
+	finish 6
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
+    fail task follow $task
+
+    # Now remove the volume from the storage group (masking view)
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Reset the test and run with a volume outside of ViPR
     HIJACK=du-hijack-volume-${RANDOM}
 
     # Create another volume that we will inventory-only delete
@@ -2108,69 +2170,6 @@ test_6() {
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-
-    # Reset the test, use a volume we know about this time.
-
-    known_device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
-
-    # Add the volume to the mask (done differently per array type)
-    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
-    
-    # Verify the mask has the new volume in it
-    verify_export ${expname}1 ${HOST1} 2 2
-
-    # Turn off suspend of export after orchestration
-    set_suspend_on_class_method "none"
-
-    # Run the export group command.  Expect it to fail with validation
-    fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-
-    # Now remove the volume from the storage group (masking view)
-    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
-
-    # Verify the mask has the new volume in it
-    verify_export ${expname}1 ${HOST1} 2 1
-
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
-
-    # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
-
-    if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 6
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Add the volume to the mask (done differently per array type)
-    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
-    
-    # Verify the mask has the new volume in it
-    verify_export ${expname}1 ${HOST1} 2 2
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-
-    # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
-    fail task follow $task
-
-    # Now remove the volume from the storage group (masking view)
-    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
-
-    # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"

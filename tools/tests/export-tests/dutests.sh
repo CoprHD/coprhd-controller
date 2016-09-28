@@ -1861,24 +1861,37 @@ test_4() {
     # Resume the workflow
     runcmd workflow resume $workflow
 
-    # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
-    fail task follow $task
+    if [ "$SS" != "xio" ] 
+    then
+        # Follow the task.  It should fail because of Poka Yoke validation
+        echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+        fail task follow $task
+        # Verify the mask wasn't touched
+        verify_export ${expname}1 ${HOST1} 3 2
+        # Now remove the initiator from the export mask
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
-    # Verify the mask wasn't touched
-    verify_export ${expname}1 ${HOST1} 3 2
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 2 2
 
-    # Now remove the initiator from the export mask
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        # Turn off suspend of export after orchestration
+        set_suspend_on_class_method "none"
 
-    # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 2 2
+        # Delete the export group
+        runcmd export_group delete $PROJECT/${expname}1
 
-    # Turn off suspend of export after orchestration
-    set_suspend_on_class_method "none"
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
+    else
+	# For XIO, extra initiator of different host but same cluster results in delete initiator call
+	sleep 60
+	verify_export ${expname}1 ${HOST1} 1 2
+	# Now remove the volumes from the storage group (masking view)
+        device_id=`get_device_id ${PROJECT}/${VOLNAME}-1`
+        arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+        device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
+        arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}	
+        # Now delete the export mask
+        arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}        
+    fi
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone

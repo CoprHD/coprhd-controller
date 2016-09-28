@@ -2127,6 +2127,9 @@ test_6() {
     # Inventory-only delete of the volume
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     

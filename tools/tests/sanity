@@ -1503,7 +1503,7 @@ xtremio_simulator_setup()
  
     storageprovider create xtremio3x $XIO_SIMULATOR_IP 4430 root root xtremio 
     storageprovider create xtremio4x $XIO_SIMULATOR_IP 4431 root root xtremio
-    run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+    run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     storagedevice discover_all
     storagedevice list    

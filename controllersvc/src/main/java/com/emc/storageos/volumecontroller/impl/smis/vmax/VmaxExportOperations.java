@@ -1812,24 +1812,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         // Update the tracking containers
                         Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
-
-                        for (Entry<String, Integer> entry : volumeWWNs.entrySet()) {
-                            String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                            URIQueryResultList volumeList = new URIQueryResultList();
-                            _dbClient.queryByConstraint(
-                                    AlternateIdConstraint.Factory.getVolumeWwnConstraint(normalizedWWN), volumeList);
-                            Iterator<URI> volumes = volumeList.iterator();
-                            while (volumes.hasNext()) {
-                                URI volume = volumes.next();
-                                Volume obj = _dbClient.queryObject(Volume.class, volume);
-                                if (exportMask.getUserAddedVolumes() == null
-                                        || !exportMask.getUserAddedVolumes().containsKey(normalizedWWN)) {
-                                    exportMask.addToUserCreatedVolumes(obj);
-                                    exportMask.addVolume(volume, entry.getValue());
-                                    _log.info("Adding managed wwn:{} to mask:{}", obj.getWWN(), exportMask.getId());
-                                }
-                            }
-                        }
                         if (!CollectionUtils.isEmpty(exportMask.getExistingVolumes())) {
                             exportMask.getExistingVolumes().clear();
                         }

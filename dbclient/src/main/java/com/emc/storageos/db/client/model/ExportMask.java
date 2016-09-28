@@ -29,7 +29,13 @@ public class ExportMask extends DataObject {
     private URI _storageDevice;
     private String _maskName;
     private String _nativeId;
+
+    // Volumes in the mask
+    // Map URI --> HLU
     private StringMap _volumes;
+
+    // Initiators in the mask
+    // Initiators known by ViPR in the compute resource of the mask
     private StringSet _initiators;
     private StringSet _storagePorts;
 
@@ -37,19 +43,23 @@ public class ExportMask extends DataObject {
     // so that export operations can be performed on existing
     // array masking components
 
-    // Volumes that were added to the mask by Bourne user.
+    // Volumes that were added to the mask by ViPR user.
     // Map WWN --> BlockObject::URI
     private StringMap _userAddedVolumes;
 
-    // Volumes that were already in mask.
+    // Volumes that were not added to the mask by ViPR user.
+    // Note: Regardless of ViPR's knowledge of volume in our own DB.
+    // Volumes in this list do not appear in _volumes or _userAddedVolumes.
     // Map WWN --> HLU
     private StringMap _existingVolumes;
 
-    // Initiators that were added to the mask by Bourne user.
+    // Initiators that were added to the mask by ViPR user.
     // Map portName --> Initiator::URI
     private StringMap _userAddedInitiators;
 
-    // Initiators that were already in the mask (created outside of Bourne).
+    // Initiators that were not added to the mask by ViPR user and not
+    // associated with the compute resource(s) of the mask.
+    // Note: initiators in this list do not appear in _initiators or _userAddedInitiators.
     // Set portName
     private StringSet _existingInitiators;
 

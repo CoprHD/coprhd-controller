@@ -6,10 +6,9 @@ package com.emc.vipr.client;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import com.emc.vipr.model.keystore.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -18,17 +17,11 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
-import com.emc.storageos.model.block.export.InitiatorsUpdateParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
-import com.emc.vipr.model.keystore.CertificateChain;
-import com.emc.vipr.model.keystore.TrustedCertificate;
-import com.emc.vipr.model.keystore.TrustedCertificateChanges;
-import com.emc.vipr.model.keystore.TruststoreSettings;
-import com.emc.vipr.model.keystore.TruststoreSettingsChanges;
 
 public class ViPRClientApp {
 
@@ -99,20 +92,9 @@ public class ViPRClientApp {
     public static void main(String[] args) {
         Logger.getRootLogger().setLevel(Level.INFO);
         ViPRCoreClient client =
-                new ViPRCoreClient("10.247.96.242", true).withLogin("ldapvipruser1@viprsanity.com", "secret");
+                new ViPRCoreClient("localhost", true).withLogin("root", "ChangeMe");
         try {
             ViPRClientApp application = new ViPRClientApp(client);
-
-            ExportUpdateParam param = new ExportUpdateParam();
-            param.addVolume(URI.create("urn:storageos:Volume:5b38e5f9-0cab-49c5-ac98-c595a7df1ed6:vdc1"));
-
-            InitiatorsUpdateParam initParam = new InitiatorsUpdateParam();
-            Set<URI> initsToAdd = new HashSet<URI>();
-            initsToAdd.add(URI.create("urn:storageos:Initiator:8b2bfa5c-172e-48e3-8485-d23d46e61fd8:vdc1"));
-            initParam.setAdd(initsToAdd);
-            param.setInitiators(initParam);
-
-            client.blockExports().update(URI.create("urn:storageos:ExportGroup:4dc1ceb2-2902-49bc-ba7f-eb456c2c3547:vdc1"), param);
 
             application.updateTrustStore();
 

@@ -1,0 +1,159 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+
+<!-- 
+	<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName"><value>jdbc/DefaultDS</value></property>
+    </bean>
+ -->    
+	<!--bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName"><value>org.hsqldb.jdbcDriver</value></property>
+		<property name="url"><value>jdbc:hsqldb:data/osworkflow</value></property>
+		<property name="username"><value>sa</value></property>
+		<property name="password"><value></value></property>
+	</bean-->
+<!--
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate.LocalSessionFactoryBean">
+		<property name="dataSource"><ref local="dataSource"/></property>
+		<property name="mappingResources">
+			<list>
+				<value>com/opensymphony/workflow/spi/hibernate/HibernateCurrentStep.hbm.xml</value>
+				<value>com/opensymphony/workflow/spi/hibernate/HibernateHistoryStep.hbm.xml</value>
+				<value>com/opensymphony/workflow/spi/hibernate/HibernateWorkflowEntry.hbm.xml</value>				
+				<value>com/opensymphony/module/propertyset/hibernate/PropertySetItemImpl.hbm.xml</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">net.sf.hibernate.dialect.MckoiDialect</prop>
+				<!--prop key="hibernate.dialect">net.sf.hibernate.dialect.HSQLDialect</prop-->		
+				<prop key="hibernate.show_sql">false</prop>
+				<prop key="hibernate.hbm2ddl.auto">create-drop</prop>
+			</props>
+		</property>
+	</bean>
+
+ 
+	<bean id="dataSource"  class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/osworkflow" />
+		<property name="username" value="osworkflow" />
+		<property name="password" value="osworkflow" />
+	</bean>
+
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="configurationClass" value="org.hibernate.cfg.AnnotationConfiguration" />
+		<property name="configLocation">
+			<value>classpath:hibernate.cfg.xml</value>
+		</property>
+	</bean>
+ -->	
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	<bean id="workflowStore"
+		class="com.opensymphony.workflow.spi.hibernate3.SpringHibernateWorkflowStore">
+		<property name="sessionFactory">
+			<ref bean="sessionFactory" />
+		</property>
+		<property name="propertySetDelegate">
+			<bean id="propertySetDelegate"
+				class="com.opensymphony.workflow.util.PropertySetDelegateImpl" />
+		</property>
+	</bean>
+	<bean id="workflowFactory"
+		class="com.opensymphony.workflow.loader.XMLWorkflowFactory"
+		init-method="initDone" />
+	<bean id="osworkflowConfiguration"
+		class="com.opensymphony.workflow.config.SpringConfiguration">
+		<property name="store">
+			<ref local="workflowStore" />
+		</property>
+		<property name="factory">
+			<ref local="workflowFactory" />
+		</property>
+	</bean>
+	<bean id="workflowTypeResolver"
+		class="com.opensymphony.workflow.util.SpringTypeResolver">
+	</bean>
+	<bean id="workflow"
+		class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager">
+			<ref bean="transactionManager" />
+		</property>
+		<property name="target">
+			<ref local="workflowTarget" />
+		</property>
+		<property name="transactionAttributes">
+			<props>
+				<prop key="*">PROPAGATION_REQUIRED</prop>
+			</props>
+		</property>
+	</bean>
+	<bean id="workflowTarget"
+		class="com.opensymphony.workflow.basic.BasicWorkflow">
+		<constructor-arg>
+			<value>workflow</value>
+		</constructor-arg>
+		<property name="configuration">
+			<ref local="osworkflowConfiguration" />
+		</property>
+		<property name="resolver">
+			<ref local="workflowTypeResolver" />
+		</property>
+	</bean>
+
+<!-- 
+	<bean id="workflowStore"
+		class="com.opensymphony.workflow.spi.memory.MemoryWorkflowStore" />
+
+	<bean id="workflowFactory"
+		class="com.opensymphony.workflow.spi.hibernate.SpringWorkflowFactory"
+		init-method="init">
+		<property name="resource" value="workflow-defs.xml" />
+		<property name="reload" value="true" />
+	</bean>
+
+	<bean id="workflowConfiguration" class="com.opensymphony.workflow.config.SpringConfiguration">
+		<property name="factory" ref="workflowFactory" />
+		<property name="store" ref="workflowStore" />
+	</bean>
+
+	<bean id="workflowTypeResolver" class="com.opensymphony.workflow.util.SpringTypeResolver">
+		<property name="functions">
+			<map>
+				<entry key="mockAction">
+					<ref bean="mockAction" />
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<bean id="workflow" class="com.opensymphony.workflow.basic.BasicWorkflow"
+		scope="prototype">
+		<constructor-arg>
+			<value>testuser</value>
+		</constructor-arg>
+		<property name="configuration" ref="workflowConfiguration" />
+		<property name="resolver" ref="workflowTypeResolver" />
+	</bean>
+
+	<bean id="mockAction" class="com.emc.ctd.workflow.MockAction"
+		scope="prototype" />
+
+	<bean id="workflowRunner" class="com.emc.ctd.workflow.WorkflowRunner"
+		scope="prototype">
+		<property name="workflow" ref="workflow" />
+	</bean>
+	 -->
+</beans>
+
+

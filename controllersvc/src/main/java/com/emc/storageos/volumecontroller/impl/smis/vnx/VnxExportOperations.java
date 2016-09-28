@@ -28,7 +28,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +73,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -755,16 +755,16 @@ public class VnxExportOperations implements ExportMaskOperations {
                     volumesToRemove.removeAll(discoveredVolumes.keySet());
                 }
 
-                // if the volume is in export mask's volume and also in the existing volumes, remove from exiting volumes
+                // if the volume is in export mask's user added volumes and also in the existing volumes, remove from existing volumes
                 for (String wwn : discoveredVolumes.keySet()) {
                     if (mask.hasExistingVolume(wwn)) {
                         URIQueryResultList volumeList = new URIQueryResultList();
                         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
                         if (volumeList.iterator().hasNext()) {
                             URI volumeURI = volumeList.iterator().next();
-                            if (mask.hasVolume(volumeURI)) {
+                            if (mask.hasUserCreatedVolume(volumeURI)) {
                                 builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
-                                        + "export mask's volumes, so removing from existing volumes", wwn));
+                                        + "export mask's user added volumes, so removing from existing volumes", wwn));
                                 volumesToRemove.add(wwn);
                             }
                         }

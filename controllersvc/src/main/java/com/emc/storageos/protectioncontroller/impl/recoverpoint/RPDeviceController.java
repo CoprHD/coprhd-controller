@@ -192,7 +192,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_EXPORT_DELETE_SNAPSHOT = "rpExportDeleteSnapshot";
     private static final String STEP_EXPORT_GROUP_DELETE = "rpExportGroupDelete";
     private static final String STEP_EXPORT_GROUP_DISABLE = "rpExportGroupDisable";
-    private static final String STEP_EXPORT_REMOVE_SNAPSHOT = "rpExportRemoveSnapshot";
+    private static final String STEP_EXPORT_REMOVE_BLOCK_OBJECT = "rpExportRemoveBlockObject";
     private static final String STEP_POST_VOLUME_CREATE = "rpPostVolumeCreate";
     private static final String STEP_ADD_JOURNAL_VOLUME = "rpAddJournalVolume";
     private static final String STEP_PRE_VOLUME_EXPAND = "rpPreVolumeExpand";
@@ -2490,7 +2490,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (deleteEntireCG) {
                 deleteEntireCG = RPHelper.validateCGForDelete(_dbClient, rpSystem, cgId, volumes);
             }
-            
+
             // All protection sets can be deleted at the same time, but only one step per protection set can be running
             String cgWaitFor = waitFor;
 
@@ -2661,38 +2661,49 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param snapshots snapshot list
-     *
+     * 
      * @param initatorURIs initiators to send to the block controller
-     *
+     * 
      * @param token The task object
      */
     @Override
-    public void exportGroupCreate(URI protectionDevice, URI exportGroupID, List<URI> initiatorURIs, Map<URI, Integer> snapshots,
+    public void exportGroupCreate(URI protectionDevice, URI exportGroupID, List<URI> initiatorURIs, Map<URI, Integer> blockObjectMap,
             String token) throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
+            // The blockObjectMap may contain Volume or BlockSnapshot objects. First, isolate all the
+            // BlockSnapshots (RP bookmarks).
+            Map<URI, Integer> snapshots = new HashMap<URI, Integer>();
+            for (Map.Entry<URI, Integer> entry : blockObjectMap.entrySet()) {
+                if (URIUtil.isType(entry.getKey(), BlockSnapshot.class)) {
+                    snapshots.put(entry.getKey(), entry.getValue());
+                }
+            }
+
             // Grab the RP System information; we'll need it to talk to the RP client
             ProtectionSystem rpSystem = getRPSystem(protectionDevice);
 
             taskCompleter = new RPCGExportCompleter(exportGroupID, token);
 
-            // Ensure the bookmarks actually exist before creating the export group
-            searchForBookmarks(protectionDevice, snapshots.keySet());
+            if (!snapshots.isEmpty()) {
+                // Ensure the bookmarks actually exist before creating the export group
+                searchForBookmarks(protectionDevice, snapshots.keySet());
+            }
 
             // Create a new token/taskid and use that in the workflow. Multiple threads entering this method might
             // collide with each others
@@ -2705,12 +2716,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Tasks 1: Activate the bookmarks
             //
             // Enable image access on the target volumes
-            addEnableImageAccessStep(workflow, rpSystem, snapshots, null);
+            if (!snapshots.isEmpty()) {
+                addEnableImageAccessStep(workflow, rpSystem, snapshots, null);
+            }
 
             // Tasks 2: Export Volumes
             //
-            // Export the volumes associated with the snapshots to the host
-            addExportSnapshotSteps(workflow, rpSystem, exportGroupID, snapshots, initiatorURIs);
+            // Export the volumes/volumes associated with the snapshots to the host
+            addExportBlockObjectSteps(workflow, rpSystem, exportGroupID, blockObjectMap, initiatorURIs);
 
             // Execute the plan and allow the WorkflowExecutor to fire the taskCompleter.
             String successMessage = String.format("Workflow of Export Group %s successfully created", exportGroupID);
@@ -2737,14 +2750,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            RP system
      * @param exportGroupID
      *            export group ID
-     * @param snapshots
-     *            snapshots, HLUs
+     * @param blockObjectMap
+     *            block objects, HLUs
      * @param initiatorURIs
      *            initiators
      * @throws InternalException
      * @throws URISyntaxException
      */
-    private void addExportSnapshotSteps(Workflow workflow, ProtectionSystem rpSystem, URI exportGroupID, Map<URI, Integer> snapshots,
+    private void addExportBlockObjectSteps(Workflow workflow, ProtectionSystem rpSystem, URI exportGroupID,
+            Map<URI, Integer> blockObjectMap,
             List<URI> initiatorURIs) throws InternalException {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupID);
 
@@ -2753,34 +2767,55 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "create export");
 
         // Get the mapping of storage systems to snapshot block objects for export
-        Map<URI, Map<URI, Integer>> storageToBlockObjects = getStorageToBlockObjects(snapshots);
+        Map<URI, Map<URI, Integer>> storageToBlockObjects = getStorageToBlockObjects(blockObjectMap);
 
         for (Map.Entry<URI, Map<URI, Integer>> entry : storageToBlockObjects.entrySet()) {
+            String waitFor = null;
+            for (Map.Entry<URI, Integer> blockObjectEntry : entry.getValue().entrySet()) {
+                if (URIUtil.isType(blockObjectEntry.getKey(), BlockSnapshot.class)) {
+                    // We only want to wait for the enable image access step to finish if we are exporting
+                    // a bookmark. If there are only block objects to export, no waiting is required.
+                    waitFor = STEP_ENABLE_IMAGE_ACCESS;
+                    break;
+                }
+            }
+
             _log.info(String
                     .format(
-                            "Adding workflow step to export RP bookmark and associated target volumes.  ExportGroup: %s, Initiators: %s, Volume Map: %s",
+                            "Adding workflow step to export RP volumes/RP bookmarks and associated target volumes.  ExportGroup: %s, Initiators: %s, Volume Map: %s",
                             exportGroup.getId(), initiatorURIs, entry.getValue()));
-            _exportWfUtils.generateExportGroupCreateWorkflow(workflow, null, STEP_ENABLE_IMAGE_ACCESS, entry.getKey(), exportGroupID,
+            _exportWfUtils.generateExportGroupCreateWorkflow(workflow, null, waitFor, entry.getKey(), exportGroupID,
                     entry.getValue(), initiatorURIs);
         }
 
-        _log.info("Finished adding export group create steps in workflow: " + exportGroup.getId());
+        _log.info("Finished adding RP export group create steps in workflow: " + exportGroup.getId());
     }
 
     /**
-     * Given a Map of snapshots (bookmarks) to HLUs, this method obtains all target copy volumes
-     * corresponding to the snapshot and groups them by storage system.
+     * Given a Map of volumes/snapshots (bookmarks) to HLUs, this method does the following:
+     * <p>
+     * <ul>
+     * <li>Obtains all target copy volumes corresponding to snapshots in the blockObjectsMap
+     * <li>Groups all snapshots and volumes by storage system.
+     * </ul>
      *
-     * @param snapshots
-     *            the base mapping of snapshots to HLU
+     * @param blockObjectsMap
+     *            the base mapping of block objects to HLU
      * @return a mapping of snapshot export BlockObjects by storage system
      */
-    private Map<URI, Map<URI, Integer>> getStorageToBlockObjects(Map<URI, Integer> snapshots) {
+    private Map<URI, Map<URI, Integer>> getStorageToBlockObjects(Map<URI, Integer> blockObjectsMap) {
         Map<URI, Map<URI, Integer>> storageToBlockObjects = new HashMap<URI, Map<URI, Integer>>();
-        for (Map.Entry<URI, Integer> entry : snapshots.entrySet()) {
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, entry.getKey());
-            // Get the export objects corresponding to this snapshot
-            List<BlockObject> blockObjects = getExportObjectsForBookmark(snapshot);
+        for (Map.Entry<URI, Integer> entry : blockObjectsMap.entrySet()) {
+            Set<BlockObject> blockObjects = new HashSet<BlockObject>();
+
+            if (URIUtil.isType(entry.getKey(), BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, entry.getKey());
+                // Get the export objects corresponding to this snapshot
+                blockObjects.addAll(getExportObjectsForBookmark(snapshot));
+            } else if (URIUtil.isType(entry.getKey(), Volume.class)) {
+                Volume volume = _dbClient.queryObject(Volume.class, entry.getKey());
+                blockObjects.add(volume);
+            }
 
             for (BlockObject blockObject : blockObjects) {
                 URI storage = blockObject.getStorageController();
@@ -2896,19 +2931,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3021,15 +3056,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     *
+     * 
      * @param workflow Workflow
-     *
+     * 
      * @param waitFor waitFor step id
-     *
+     * 
      * @param snapshots list of snapshot to disable
-     *
+     * 
      * @param rpSystem RP system
-     *
+     * 
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -3208,38 +3243,47 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportGroupID The export group
-     *
-     * @param snapshot RP snapshot
-     *
-     * @param lun HLU
-     *
+     * 
+     * @param blockObjectMap Map of RP volumes/snapshots to HLUs
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
-    public void exportGroupAddVolumes(URI protectionDevice, URI exportGroupID, Map<URI, Integer> snapshots, String token)
+    public void exportGroupAddVolumes(URI protectionDevice, URI exportGroupID, Map<URI, Integer> blockObjectMap, String token)
             throws InternalException {
         TaskCompleter taskCompleter = null;
         try {
+            // The blockObjectMap may contain Volume or BlockSnapshot objects. First, isolate all the
+            // BlockSnapshots (RP bookmarks).
+            Map<URI, Integer> snapshots = new HashMap<URI, Integer>();
+            for (Map.Entry<URI, Integer> entry : blockObjectMap.entrySet()) {
+                if (URIUtil.isType(entry.getKey(), BlockSnapshot.class)) {
+                    snapshots.put(entry.getKey(), entry.getValue());
+                }
+            }
+
             // Grab the RP System information; we'll need it to talk to the RP client
             ProtectionSystem rpSystem = getRPSystem(protectionDevice);
 
             taskCompleter = new RPCGExportCompleter(exportGroupID, token);
 
-            // Ensure the bookmarks actually exist before creating the export group
-            searchForBookmarks(protectionDevice, snapshots.keySet());
+            if (!snapshots.isEmpty()) {
+                // Ensure the bookmarks actually exist before creating the export group
+                searchForBookmarks(protectionDevice, snapshots.keySet());
+            }
 
             // Create a new token/taskid and use that in the workflow. Multiple threads entering this method might
             // collide with each others
@@ -3252,12 +3296,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Tasks 1: Activate the bookmark
             //
             // Enable image access on the target volume
-            addEnableImageAccessStep(workflow, rpSystem, snapshots, null);
+            if (!snapshots.isEmpty()) {
+                addEnableImageAccessStep(workflow, rpSystem, snapshots, null);
+            }
 
             // Tasks 2: Export Volumes
             //
             // Export the volumes associated with the snapshots to the host
-            addExportAddVolumeSteps(workflow, rpSystem, exportGroupID, snapshots);
+            addExportAddVolumeSteps(workflow, rpSystem, exportGroupID, blockObjectMap);
 
             // Execute the plan and allow the WorkflowExecutor to fire the taskCompleter.
             String successMessage = String.format("Workflow of Export Group %s Add Volume successfully created", exportGroupID);
@@ -3284,32 +3330,40 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            RP system
      * @param exportGroupID
      *            export group ID
-     * @param snapshotID
-     *            snapshot ID
-     * @param hlu
-     *            host logical unit
+     * @param blockObjects
+     *            Map of RP volume/snapshots to HLU for export
      * @throws InternalException
      */
-    private void addExportAddVolumeSteps(Workflow workflow, ProtectionSystem rpSystem, URI exportGroupID, Map<URI, Integer> snapshots)
+    private void addExportAddVolumeSteps(Workflow workflow, ProtectionSystem rpSystem, URI exportGroupID, Map<URI, Integer> blockObjects)
             throws InternalException {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupID);
 
         String exportStep = workflow.createStepId();
-        initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "export add volume");
+        initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "export add RP volume/snapshot");
 
         // Get the mapping of storage systems to snapshot block objects for export
-        Map<URI, Map<URI, Integer>> storageToBlockObjects = getStorageToBlockObjects(snapshots);
+        Map<URI, Map<URI, Integer>> storageToBlockObjects = getStorageToBlockObjects(blockObjects);
 
         for (Map.Entry<URI, Map<URI, Integer>> entry : storageToBlockObjects.entrySet()) {
+            String waitFor = null;
+            for (Map.Entry<URI, Integer> blockObjectEntry : entry.getValue().entrySet()) {
+                if (URIUtil.isType(blockObjectEntry.getKey(), BlockSnapshot.class)) {
+                    // We only want to wait for the enable image access step to finish if we are exporting
+                    // a bookmark. If there are only block objects to export, no waiting is required.
+                    waitFor = STEP_ENABLE_IMAGE_ACCESS;
+                    break;
+                }
+            }
+
             _log.info(String
                     .format(
-                            "Adding workflow step to add RP bookmark and associated target volumes to export.  ExportGroup: %s, Storage System: %s, Volume Map: %s",
+                            "Adding workflow step to add RP volume/bookmark and associated target volumes to export.  ExportGroup: %s, Storage System: %s, Volume Map: %s",
                             exportGroup.getId(), entry.getKey(), entry.getValue()));
-            _exportWfUtils.generateExportGroupAddVolumes(workflow, null, STEP_ENABLE_IMAGE_ACCESS, entry.getKey(), exportGroupID,
+            _exportWfUtils.generateExportGroupAddVolumes(workflow, null, waitFor, entry.getKey(), exportGroupID,
                     entry.getValue());
         }
 
-        _log.info("Finished adding export group add volume steps in workflow: " + exportGroup.getId());
+        _log.info("Finished adding export group add RP volume/snapshot steps in workflow: " + exportGroup.getId());
     }
 
     /**
@@ -3317,7 +3371,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *
      * This method is a mini-orchestration of all of the steps necessary to remove an RP volume from an export group.
      *
-     * This controller does not service block devices for export, only RP bookmark snapshots.
+     * This controller services RP volumes/bookmarks for export.
      *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volume
@@ -3327,16 +3381,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            The RP System used to manage the protection
      * @param exportgroupID
      *            The export group
-     * @param snapshotID
-     *            snapshot ID to remove
+     * @param blockObjectIDs
+     *            RP volumes/snapshots
      * @param token
      *            The task object
      */
     @Override
-    public void exportGroupRemoveVolumes(URI protectionDevice, URI exportGroupID, List<URI> snapshotIDs, String token)
+    public void exportGroupRemoveVolumes(URI protectionDevice, URI exportGroupID, List<URI> blockObjectIDs, String token)
             throws InternalException {
         TaskCompleter taskCompleter = null;
         try {
+            // The blockObjectMap may contain Volume or BlockSnapshot objects. First, isolate all the
+            // BlockSnapshots (RP bookmarks).
+            List<URI> snapshotIDs = new ArrayList<URI>();
+            for (URI blockObjectID : blockObjectIDs) {
+                if (URIUtil.isType(blockObjectID, BlockSnapshot.class)) {
+                    snapshotIDs.add(blockObjectID);
+                }
+            }
+
             // Grab the RP System information; we'll need it to talk to the RP client
             ProtectionSystem rpSystem = getRPSystem(protectionDevice);
 
@@ -3355,12 +3418,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Disable image access on the target volumes
             // We want to run this first so we at least get the target volume freed-up, even if
             // the export remove fails.
-            addDisableImageAccessSteps(workflow, rpSystem, exportGroupID, snapshotIDs);
+            if (!snapshotIDs.isEmpty()) {
+                addDisableImageAccessSteps(workflow, rpSystem, exportGroupID, snapshotIDs);
+            }
 
             // Task 2: Export Volume removal
             //
-            // Export the volumes associated with the snapshots to the host
-            addExportRemoveVolumeSteps(workflow, rpSystem, exportGroupID, snapshotIDs);
+            // Un-export the RP volumes/volumes associated with the snapshots from the host
+            addExportRemoveVolumeSteps(workflow, rpSystem, exportGroupID, blockObjectIDs);
 
             // Execute the plan and allow the WorkflowExecutor to fire the taskCompleter.
             String successMessage = String.format("Workflow of Export Group %s Remove Volume successfully created", exportGroupID);
@@ -3396,13 +3461,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             throws InternalException {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupID);
         String exportStep = workflow.createStepId();
-        initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "export remove volumes (that contain RP snapshots)");
+        initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "export remove RP volumes/snapshots");
         Map<URI, List<URI>> deviceToBlockObjects = new HashMap<URI, List<URI>>();
 
-        for (URI snapshotID : boIDs) {
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-            // Get the export objects corresponding to this snapshot
-            List<BlockObject> objectsToRemove = getExportObjectsForBookmark(snapshot);
+        Set<BlockObject> objectsToRemove = new HashSet<BlockObject>();
+        for (URI blockObjectID : boIDs) {
+            if (URIUtil.isType(blockObjectID, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectID);
+                // Get the export objects corresponding to this snapshot
+                objectsToRemove.addAll(getExportObjectsForBookmark(snapshot));
+            } else if (URIUtil.isType(blockObjectID, Volume.class)) {
+                Volume volume = _dbClient.queryObject(Volume.class, blockObjectID);
+                objectsToRemove.add(volume);
+            }
 
             for (BlockObject blockObject : objectsToRemove) {
                 List<URI> blockObjects = deviceToBlockObjects.get(blockObject.getStorageController());
@@ -3415,15 +3486,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
 
         for (Map.Entry<URI, List<URI>> deviceEntry : deviceToBlockObjects.entrySet()) {
+            String waitFor = null;
+            for (URI uri : deviceEntry.getValue()) {
+                if (URIUtil.isType(uri, BlockSnapshot.class)) {
+                    // We only want to wait for the enable image access step to finish if we are exporting
+                    // a bookmark. If there are only block objects to export, no waiting is required.
+                    waitFor = STEP_EXPORT_GROUP_DISABLE;
+                    break;
+                }
+            }
+
             _log.info(String
                     .format(
-                            "Adding workflow step to remove RP bookmarks and associated target volumes from export.  ExportGroup: %s, Storage System: %s, BlockObjects: %s",
+                            "Adding workflow step to remove RP volumes/bookmarks and associated target volumes from export.  ExportGroup: %s, Storage System: %s, BlockObjects: %s",
                             exportGroup.getId(), deviceEntry.getKey(), deviceEntry.getValue()));
-            _exportWfUtils.generateExportGroupRemoveVolumes(workflow, STEP_EXPORT_REMOVE_SNAPSHOT, STEP_EXPORT_GROUP_DISABLE,
+            _exportWfUtils.generateExportGroupRemoveVolumes(workflow, STEP_EXPORT_REMOVE_BLOCK_OBJECT, waitFor,
                     deviceEntry.getKey(), exportGroupID, deviceEntry.getValue());
         }
 
-        _log.info(String.format("Created export group remove snapshot steps in workflow: %s", exportGroup.getId()));
+        _log.info(String.format("Created RecoverPoint export group remove block object steps in workflow: %s", exportGroup.getId()));
     }
 
     /**
@@ -4193,7 +4274,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4554,8 +4635,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Changing personalities means that the source was on "Copy Name A" and it's now on "Copy Name B":
         // 1. a. Any previous TARGET volume that matches the copy name of the incoming volume is now a SOURCE volume
-        //    b. That volume needs its RP Target volumes list filled-in as well; it's all of the devices that are
-        //       the same replication set name that aren't the new SOURCE volume itself.
+        // b. That volume needs its RP Target volumes list filled-in as well; it's all of the devices that are
+        // the same replication set name that aren't the new SOURCE volume itself.
         // 2. All SOURCE volumes are now TARGET volumes and their RP Target lists need to be null'd out
         //
         for (URI protectionVolumeID : volumeIDs) {
@@ -4678,7 +4759,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4779,7 +4860,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.
      * storageos.workflow
@@ -5580,7 +5661,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (response == null) {
                 throw DeviceControllerExceptions.recoverpoint.failedToImageAccessBookmark();
             }
-            
+
             completer.ready(_dbClient, _locker);
 
         } catch (InternalException e) {
@@ -6859,7 +6940,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
@@ -7266,7 +7347,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.
      * storageos.workflow.Workflow

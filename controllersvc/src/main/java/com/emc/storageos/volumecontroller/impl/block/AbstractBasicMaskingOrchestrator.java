@@ -43,6 +43,7 @@ import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 /**
  * This class will have common code used by the MaskingOrchestrator implementations. It
@@ -837,7 +838,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 + "initiators, we are going to delete the mask from the "
                                 + "array", mask.getMaskName()));
                         List<URI> maskVolumeURIs = ExportMaskUtils.getUserAddedVolumeURIs(mask);
-                        List<URI> maskInitiatorURIs = StringSetUtil.stringSetToUriList(mask.getUserAddedInitiators().values());
+                        List<URI> maskInitiatorURIs = Lists
+                                .newArrayList(Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null),
+                                        CommonTransformerFunctions.fctnDataObjectToID()));
                         stepMap.put(entry.getKey(), generateDeviceSpecificDeleteWorkflow(workflow, null, exportGroup, mask, maskVolumeURIs,
                                 maskInitiatorURIs, storage));
                         anyOperationsToDo = true;
@@ -894,7 +897,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 Joiner.on(",").join(volumesToRemove), mask.getMaskName()));
                         errorMessage.append(String.format("Mask %s will be removed from array. ", mask.forDisplay()));
                         List<URI> maskVolumeURIs = ExportMaskUtils.getUserAddedVolumeURIs(mask);
-                        List<URI> maskInitiatorURIs = StringSetUtil.stringSetToUriList(mask.getUserAddedInitiators().values());
+                        List<URI> maskInitiatorURIs = Lists
+                                .newArrayList(Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null),
+                                        CommonTransformerFunctions.fctnDataObjectToID()));
                         generateDeviceSpecificDeleteWorkflow(workflow, null, exportGroup, mask, maskVolumeURIs, maskInitiatorURIs, storage);
                         anyOperationsToDo = true;
                     } else {
@@ -907,7 +912,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         errorMessage.append(String.format("A subset of volumes will be removed from mask %s: %s. ",
                                 mask.getMaskName(), Joiner.on(", ").join(
                                         Collections2.transform(boList, CommonTransformerFunctions.fctnDataObjectToForDisplay()))));
-                        List<URI> maskInitiatorURIs = StringSetUtil.stringSetToUriList(mask.getUserAddedInitiators().values());
+                        List<URI> maskInitiatorURIs = Lists
+                                .newArrayList(Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null),
+                                        CommonTransformerFunctions.fctnDataObjectToID()));
                         generateDeviceSpecificRemoveVolumesWorkflow(workflow, stepMap.get(entry.getKey()), exportGroup, mask, storage,
                                 volumesToRemove, maskInitiatorURIs, completer);
 
@@ -1118,7 +1125,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 exportMasksToZoneRemoveVolumes.add(tempMask);
                                 volumesToZoneRemoveVolumes.addAll(volumesToRemove);
 
-                                List<URI> maskInitiatorURIs = StringSetUtil.stringSetToUriList(tempMask.getUserAddedInitiators().values());
+                                List<URI> maskInitiatorURIs = Lists.newArrayList(
+                                        Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, tempMask, null),
+                                                CommonTransformerFunctions.fctnDataObjectToID()));
                                 List<URI> volumesToRemoveList = new ArrayList<>();
                                 volumesToRemoveList.addAll(volumesToRemove);
                                 previousStep = generateDeviceSpecificExportMaskRemoveVolumesWorkflow(workflow, previousStep, exportGroup,
@@ -1131,9 +1140,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 if (!exportMasksToDelete.isEmpty()) {
                     for (ExportMask exportMaskToDelete : exportMasksToDelete) {
                         _log.info("generating workflow to remove exportmask {}", exportMaskToDelete.getMaskName());
-                        List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMaskToDelete);
-                        List<URI> maskInitiatorURIs = StringSetUtil
-                                .stringSetToUriList(exportMaskToDelete.getUserAddedInitiators().values());
+                        List<URI> maskVolumeURIs = ExportMaskUtils.getUserAddedVolumeURIs(exportMaskToDelete);
+                        List<URI> maskInitiatorURIs = Lists.newArrayList(
+                                Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMaskToDelete, null),
+                                        CommonTransformerFunctions.fctnDataObjectToID()));
                         previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
                                 exportMaskToDelete, maskVolumeURIs, maskInitiatorURIs, storage);
                     }
@@ -1295,8 +1305,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 _log.info(String.format("volumes in mask: %s", Joiner.on(',').join(exportMask.getVolumes().entrySet())));
                                 exportMasksToZoneRemoveVolumes.add(exportMask);
                                 volumesToZoneRemoveVolumes.addAll(volumesToRemove);
-                                List<URI> maskInitiatorURIs = StringSetUtil
-                                        .stringSetToUriList(exportMask.getUserAddedInitiators().values());
+                                List<URI> maskInitiatorURIs = Lists.newArrayList(
+                                        Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null),
+                                                CommonTransformerFunctions.fctnDataObjectToID()));
                                 previousStep = generateDeviceSpecificRemoveVolumesWorkflow(workflow, previousStep,
                                         exportGroup, exportMask, storage, new ArrayList<URI>(volumesToRemove), maskInitiatorURIs, null);
 
@@ -1310,7 +1321,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 if (!exportMasksToZoneDelete.isEmpty()) {
                     for (ExportMask exportMask : exportMasksToZoneDelete) {
                         List<URI> volumeURIs = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
-                        List<URI> maskInitiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values());
+                        List<URI> maskInitiatorURIs = Lists.newArrayList(
+                                Collections2.transform(ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null),
+                                        CommonTransformerFunctions.fctnDataObjectToID()));
                         previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
                                 exportMask, volumeURIs, maskInitiatorURIs, storage);
                     }

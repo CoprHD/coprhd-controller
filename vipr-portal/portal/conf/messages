@@ -562,6 +562,8 @@ pairedInitiator.firstPort=First Port
 pairedInitiator.secondPort=Second Port
 pairedInitiator.firstNode= First Node
 pairedInitiator.secondNode= Second Node
+pairedInitiator.firstNode.help=Node WWN for Fibre-Channel ports, empty for iSCSI
+pairedInitiator.secondNode.help=Node WWN for Fibre-Channel ports, empty for iSCSI
 initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI
 initiator.deleteConfirm=Are you sure you want to delete the selected Initiator(s)?
 

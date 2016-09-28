@@ -1,0 +1,28 @@
+{
+	"workflowInputParams": 
+	{
+		"name": "MANOJ-WF-VOL-SKIN1",
+		"size": "2GB",
+		"count": 1,
+		"vpool": "urn:storageos:VirtualPool:cd5f458f-8e8e-496a-b591-e9813cf500cc:vdc1",
+		"varray": "urn:storageos:VirtualArray:6b893d11-48cf-4a1f-b732-eb47c236c0fd:vdc1",
+		"project": "urn:storageos:Project:18bd76ed-eee3-43d0-9bba-a6499addd914:global",
+		"volumeName": "TEST-ModelWF-VOL-SKIN",
+		"volumeSize": "2GB",
+		"type": "Host",
+		"hosts": 
+		[
+			"urn:storageos:Host:ff86b941-6d24-4b65-a7d8-6e8463c707b5:vdc1"
+		],
+
+		"passThroughParams": 
+		{
+			"storage-pool": "urn:storageos:StoragePool:5b9f094c-2fb6-481b-aaed-4611f6117791:vdc1",
+			"storage-system": "urn:storageos:StorageSystem:0b6050ef-9c41-449d-93d0-46e78279a6b6:vdc1",
+			"exportPassThroughParam": "direct"
+		},
+		"exportPassThroughParam": "direct",
+		"hlu": "-1",
+		"volumes" : [{"id":"urn:storageos:Volume:2634eda1-1dbf-437d-9e53-bce6e19e8370:vdc1","lun":-1}]
+	}
+}

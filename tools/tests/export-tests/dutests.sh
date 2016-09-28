@@ -1966,48 +1966,50 @@ test_5() {
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
 
-    # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"`
+    if [ "$SS" != "xio" ]; then    
+        # Run the export group command TODO: Do this more elegantly
+        echo === export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+        resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"`
 
-    if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
-    fi
+        if [ $? -ne 0 ]; then
+	    echo "export group command failed outright"
+       	    cleanup
+	    finish 4
+        fi
 
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+        # Show the result of the export group command for now (show the task and WF IDs)
+        echo $resultcmd
 
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+        # Parse results (add checks here!  encapsulate!)
+        taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+        answersarray=($taskworkflow)
+        task=${answersarray[0]}
+        workflow=${answersarray[1]}
 
-    PWWN=`echo ${H2PI1} | sed 's/://g'`
-
-    # Add another initiator to the mask (done differently per array type)
-    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        PWWN=`echo ${H2PI1} | sed 's/://g'`
     
-    # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 3 2
+        # Add another initiator to the mask (done differently per array type)
+        arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+        # Verify the mask has the new initiator in it
+        verify_export ${expname}1 ${HOST1} 3 2
 
-    # Resume the workflow
-    runcmd workflow resume $workflow
+        # Resume the workflow
+        runcmd workflow resume $workflow
 
-    # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group remove volume task to verify it FAILS because of the additional initiator"
-    fail task follow $task
+        # Follow the task.  It should fail because of Poka Yoke validation
+        echo "*** Following the export_group remove volume task to verify it FAILS because of the additional initiator"
+        fail task follow $task
 
-    # Verify the mask wasn't touched
-    verify_export ${expname}1 ${HOST1} 3 2
+        # Verify the mask wasn't touched
+        verify_export ${expname}1 ${HOST1} 3 2
 
-    # Now remove the initiator from the export mask
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        # Now remove the initiator from the export mask
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
-    # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 2 2
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 2 2
+    fi
 
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"

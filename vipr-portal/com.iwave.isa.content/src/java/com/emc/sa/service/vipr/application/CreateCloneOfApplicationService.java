@@ -69,7 +69,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
                     info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
                     fullCopyIds.add(uri(obsoleteCloneId));
                 } else {
-                    info("Skip object %s. It is not a full copy", obsoleteCloneId);
+                    info("Skip object %s. It is not a snapshot", obsoleteCloneId);
                 }
             }
             BlockStorageUtils.detachFullCopies(fullCopyIds);

@@ -101,7 +101,6 @@ public class SSHCommandExecutor implements CommandExecutor {
             session = createClient().getSession(connection.getUsername(), connection.getHost(), connection.getPort());
             session.setPassword(connection.getPassword());
             session.setUserInfo(new SSHUserInfo(connection.getPassword()));
-            session.setTimeout(CONNECTION_TIMEOUT);
             if (connectTimeout > 0) {
                 session.connect(connectTimeout);
             }
@@ -111,6 +110,8 @@ public class SSHCommandExecutor implements CommandExecutor {
 
             if (readTimeout > 0) {
                 session.setTimeout(readTimeout);
+            } else {
+                session.setTimeout(CONNECTION_TIMEOUT);
             }
         } catch (JSchException e) {
             throw new SSHException(e);

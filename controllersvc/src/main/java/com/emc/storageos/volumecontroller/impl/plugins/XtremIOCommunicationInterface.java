@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +52,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 
 public class XtremIOCommunicationInterface extends
-        ExtendedCommunicationInterfaceImpl {
+ExtendedCommunicationInterfaceImpl {
 
     private static final Logger _logger = LoggerFactory
             .getLogger(XtremIOCommunicationInterface.class);
@@ -106,35 +105,35 @@ public class XtremIOCommunicationInterface extends
                 accessProfile.getSystemId());
         XtremIOClient xtremIOClient = null;
         try {
-            xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
+            xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+                    accessProfile.getUserName(), accessProfile.getPassword(), provider.getVersionString(), true);
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0)
                     ? StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
-            provider.setCompatibilityStatus(compatibility);
-            provider.setVersionString(xmsVersion);
+                    provider.setCompatibilityStatus(compatibility);
+                    provider.setVersionString(xmsVersion);
 
-            String systemType = StorageSystem.Type.xtremio.name();
-            List<XtremIOSystem> xioSystems = xtremIOClient.getXtremIOSystemInfo();
-            _logger.info("Found {} clusters during scan of XMS {}", xioSystems.size(), accessProfile.getIpAddress());
-            Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
-            for (XtremIOSystem system : xioSystems) {
-                String arrayNativeGUID = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.xtremio.name(),
-                        system.getSerialNumber());
-                StorageSystemViewObject viewObject = storageSystemsCache.get(arrayNativeGUID);
-                if (viewObject == null) {
-                    viewObject = new StorageSystemViewObject();
-                }
-                viewObject.setDeviceType(systemType);
-                viewObject.addprovider(accessProfile.getSystemId().toString());
-                viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, system.getSerialNumber());
-                viewObject.setProperty(StorageSystemViewObject.VERSION, system.getVersion());
-                viewObject.setProperty(StorageSystemViewObject.STORAGE_NAME, arrayNativeGUID);
-                storageSystemsCache.put(arrayNativeGUID, viewObject);
-            }
+                    String systemType = StorageSystem.Type.xtremio.name();
+                    List<XtremIOSystem> xioSystems = xtremIOClient.getXtremIOSystemInfo();
+                    _logger.info("Found {} clusters during scan of XMS {}", xioSystems.size(), accessProfile.getIpAddress());
+                    Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
+                    for (XtremIOSystem system : xioSystems) {
+                        String arrayNativeGUID = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.xtremio.name(),
+                                system.getSerialNumber());
+                        StorageSystemViewObject viewObject = storageSystemsCache.get(arrayNativeGUID);
+                        if (viewObject == null) {
+                            viewObject = new StorageSystemViewObject();
+                        }
+                        viewObject.setDeviceType(systemType);
+                        viewObject.addprovider(accessProfile.getSystemId().toString());
+                        viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, system.getSerialNumber());
+                        viewObject.setProperty(StorageSystemViewObject.VERSION, system.getVersion());
+                        viewObject.setProperty(StorageSystemViewObject.STORAGE_NAME, arrayNativeGUID);
+                        storageSystemsCache.put(arrayNativeGUID, viewObject);
+                    }
         } catch (Exception ex) {
             _logger.error("Error scanning XMS", ex);
             cxnStatus = StorageProvider.ConnectionStatus.NOTCONNECTED;
@@ -244,9 +243,9 @@ public class XtremIOCommunicationInterface extends
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported,
                     firmwareVersion) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
                             .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
-            systemInDB.setCompatibilityStatus(compatibility);
-            systemInDB.setReachableStatus(true);
-            _dbClient.persistObject(systemInDB);
+                            systemInDB.setCompatibilityStatus(compatibility);
+                            systemInDB.setReachableStatus(true);
+                            _dbClient.persistObject(systemInDB);
         } else {
             throw XtremIOApiException.exceptions.discoveryFailed(system.getSerialNumber());
         }
@@ -257,7 +256,7 @@ public class XtremIOCommunicationInterface extends
             _logger.info("Pool Native Guid : {}", poolNativeGUID);
             @SuppressWarnings("deprecation")
             List<URI> uriList = _dbClient
-                    .queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGUID));
+            .queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGUID));
 
             if (uriList.isEmpty()) {
                 xioSystemPool = new StoragePool();
@@ -427,7 +426,7 @@ public class XtremIOCommunicationInterface extends
             for (XtremIOInitiator initiator : initiators) {
                 @SuppressWarnings("deprecation")
                 List<URI> initiatorUris = _dbClient
-                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()));
+                .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()));
                 if (initiatorUris.isEmpty()) {
                     continue;
                 } else {
@@ -460,7 +459,7 @@ public class XtremIOCommunicationInterface extends
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);
-            
+
             List<XtremIOSystem> xioSystems = xtremIOClient.getXtremIOSystemInfo();
             _logger.info("Found {} clusters for XMS {}", xioSystems.size(), accessProfile.getIpAddress());
             for (XtremIOSystem xioSystem : xioSystems) {

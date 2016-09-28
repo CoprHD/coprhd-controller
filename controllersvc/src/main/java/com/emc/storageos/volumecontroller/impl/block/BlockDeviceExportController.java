@@ -491,15 +491,15 @@ public class BlockDeviceExportController implements BlockExportController {
             // that reference the same storage system, protection controller, and consistency group. In this case we
             // want to focus only on the BlockSnapshot so we do not generate 2 BlockObjectControllerKey objects for the
             // same storage system.
-            reduceBlockObjectsByRpBlockSnapshot(existingBlockObjectMap);
+            // reduceBlockObjectsByRpBlockSnapshot(existingBlockObjectMap);
 
             for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
                 BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
-                URI storageControllerUri = getExportStorageController(bo);
+                // URI storageControllerUri = getExportStorageController(bo);
                 controllerKey = new BlockObjectControllerKey();
                 controllerKey.setStorageControllerUri(bo.getStorageController());
-                if (!storageControllerUri.equals(bo.getStorageController())) {
-                    controllerKey.setProtectionControllerUri(storageControllerUri);
+                if (!NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
+                    controllerKey.setProtectionControllerUri(bo.getProtectionController());
                 }
                 _log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
                 // add an entry in each map for the storage system if not already exists
@@ -511,12 +511,12 @@ public class BlockDeviceExportController implements BlockExportController {
         // compute a map of storage-system-to-volumes for volumes to be added
         for (URI uri : addedBlockObjectsFromRequest.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, uri);
-            URI storageControllerUri = getExportStorageController(bo);
+            // URI storageControllerUri = getExportStorageController(bo);
 
             controllerKey = new BlockObjectControllerKey();
             controllerKey.setStorageControllerUri(bo.getStorageController());
-            if (!storageControllerUri.equals(bo.getStorageController())) {
-                controllerKey.setProtectionControllerUri(storageControllerUri);
+            if (!NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
+                controllerKey.setProtectionControllerUri(bo.getProtectionController());
             }
             // add an entry in each map for the storage system if not already exists
             getOrAddStorageMap(controllerKey, addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
@@ -528,12 +528,12 @@ public class BlockDeviceExportController implements BlockExportController {
         for (URI uri : removedBlockObjectsFromRequest.keySet()) {
             if (existingMap.containsKey(uri)) {
                 BlockObject bo = BlockObject.fetch(_dbClient, uri);
-                URI storageControllerUri = getExportStorageController(bo);
+                // URI storageControllerUri = getExportStorageController(bo);
 
                 controllerKey = new BlockObjectControllerKey();
                 controllerKey.setStorageControllerUri(bo.getStorageController());
-                if (!storageControllerUri.equals(bo.getStorageController())) {
-                    controllerKey.setProtectionControllerUri(storageControllerUri);
+                if (!NullColumnValueGetter.isNullURI(bo.getProtectionController())) {
+                    controllerKey.setProtectionControllerUri(bo.getProtectionController());
                 }
 
                 // add an empty map for the added blocks so that the two maps have the same keyset
